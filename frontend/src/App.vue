@@ -1,0 +1,100 @@
+<template>
+  <div id="app">
+    <template v-if="!isLoginPage">
+      <nav class="sidebar">
+        <div class="sidebar-logo" title="Charting Platform">
+          <span class="logo-mark">◈</span>
+        </div>
+        <router-link to="/chart"    class="nav-link" title="Chart">📈</router-link>
+        <router-link to="/alerts"   class="nav-link" title="Alerts">🔔</router-link>
+        <router-link to="/screener" class="nav-link" title="Screener">🔍</router-link>
+        <router-link to="/settings" class="nav-link" title="Settings">⚙</router-link>
+        <div class="sidebar-spacer" />
+        <div class="user-avatar" :title="authStore.user?.username" @click="authStore.logout()">
+          {{ userInitial }}
+        </div>
+      </nav>
+      <main class="main-content">
+        <router-view />
+      </main>
+    </template>
+    <template v-else>
+      <router-view />
+    </template>
+    <Notification />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import Notification from '@/components/common/Notification.vue'
+
+const route     = useRoute()
+const authStore = useAuthStore()
+
+const isLoginPage  = computed(() => route.path === '/login')
+const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
+</script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #080808;
+  color: #ccc;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  overflow: hidden;
+}
+#app { display: flex; height: 100vh; overflow: hidden; }
+
+.sidebar {
+  width: 48px;
+  background: #0a0a0a;
+  border-right: 1px solid #161616;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo { color: #64b5f6; font-size: 20px; margin-bottom: 12px; }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #444;
+  font-size: 16px;
+  transition: background 0.12s, color 0.12s;
+}
+.nav-link:hover { background: #141414; color: #888; }
+.nav-link.router-link-active { background: #0f1f2e; color: #64b5f6; }
+
+.sidebar-spacer { flex: 1; }
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1a3a5c;
+  color: #64b5f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 4px;
+  border: 1px solid #2a4a6c;
+}
+.user-avatar:hover { background: #1e4a7a; }
+
+.main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+</style>

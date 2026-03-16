@@ -1,0 +1,68 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+uv.lock
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# ── Environment files ─────────────────────────────────────────────────────────
+# Never commit secrets — use .env.dev for local dev, root .env for Docker
+.env
+backend/.env
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+coverage.xml
+coverage_html/
+.coverage
+htmlcov/
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+# Keep migrations in version control — do NOT ignore alembic/versions/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+package-lock.json
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo
+
+# ── OS artefacts ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Keep both compose files in version control
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp

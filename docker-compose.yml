@@ -1,0 +1,128 @@
+version: "3.9"
+
+# ── Persistent volumes ────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    # To bind-mount to a specific NAS path instead, replace with:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /volume1/docker/charting/pgdata   # Synology example
+    #   device: /mnt/pool/charting/pgdata         # TrueNAS example
+  redis_data:
+
+networks:
+  charting:
+    driver: bridge
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: charting-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB:       ${POSTGRES_DB:-chartingdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # expose for pgAdmin / direct access — remove in production
+    networks: [charting]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis (ARQ task queue) ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: charting-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks: [charting]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── FastAPI backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: charting-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Infrastructure — always Docker-internal hostnames in this context
+      DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      REDIS_URL:         redis://redis:6379/0
+      APP_ENV:           production
+      APP_HOST:          "0.0.0.0"
+      APP_PORT:          "8000"
+      # Secrets / deployment-specific — set these in a root-level .env file
+      # (copy .env.example to .env and fill in your values)
+      SECRET_KEY:              ${SECRET_KEY:-change-me-insecure-default-do-not-use-in-production}
+      CORS_ORIGINS:            ${CORS_ORIGINS:-["http://localhost"]}
+      ONESIGNAL_APP_ID:        ${ONESIGNAL_APP_ID:-}
+      ONESIGNAL_REST_API_KEY:  ${ONESIGNAL_REST_API_KEY:-}
+      ALERT_POLL_INTERVAL:     ${ALERT_POLL_INTERVAL:-60}
+      PROXY_FILE:              proxies.txt
+      PROXY_ENABLED:           "false"
+      LOG_LEVEL:               ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
+    volumes:
+      - ./backend/proxies.txt:/app/proxies.txt:ro
+
+  # ── ARQ worker (background tasks) ──────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: charting-worker
+    restart: unless-stopped
+    command: python -m app.workers.arq_worker
+    environment:
+      DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      REDIS_URL:         redis://redis:6379/0
+      APP_ENV:           production
+      SECRET_KEY:              ${SECRET_KEY:-change-me-insecure-default-do-not-use-in-production}
+      ONESIGNAL_APP_ID:        ${ONESIGNAL_APP_ID:-}
+      ONESIGNAL_REST_API_KEY:  ${ONESIGNAL_REST_API_KEY:-}
+      ALERT_POLL_INTERVAL:     ${ALERT_POLL_INTERVAL:-60}
+      PROXY_FILE:              proxies.txt
+      PROXY_ENABLED:           "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
+
+  # ── Vue frontend ────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: charting-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on: [backend]
+    networks: [charting]
