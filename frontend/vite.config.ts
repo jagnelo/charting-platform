@@ -16,10 +16,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-      },
-      '/ws': {
-        target: 'ws://localhost:8000',
-        ws: true,
+        ws: true,  // proxies ws://localhost:5173/api/... → ws://localhost:8000/api/...
       },
     },
   },
