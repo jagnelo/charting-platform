@@ -20,8 +20,21 @@
         </span>
       </div>
 
-      <!-- Log scale indicator -->
-      <div class="scale-badge" v-if="isLogScale">LOG</div>
+      <!-- TradingView-style A (auto) + L (log) buttons on Y axis -->
+      <div class="yaxis-btns">
+        <button
+          class="yaxis-btn"
+          :class="{ active: autoY }"
+          @click="toggleAutoY"
+          title="Auto scale (A)"
+        >A</button>
+        <button
+          class="yaxis-btn"
+          :class="{ active: isLogScale }"
+          @click="toggleLogScale"
+          title="Log scale (L)"
+        >L</button>
+      </div>
 
       <!-- Right-click context menu on price axis -->
       <div class="ctx-menu" v-if="ctxMenu.visible"
@@ -178,6 +191,20 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
 const isAtLatest    = ref(true)
 const showShortcuts = ref(false)
 const isLogScale    = ref(false)
+const autoY         = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
+
+function toggleAutoY() {
+  if (autoY.value) {
+    // Lock to current range
+    autoY.value = false
+  } else {
+    // Reset to auto-fit
+    autoY.value   = true
+    manualYMin    = null
+    manualYMax    = null
+    if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+  }
+}
 const ctxMenu        = reactive({ visible: false, y: 0 })
 const drawCtxMenu    = reactive({ visible: false, x: 0, y: 0 })
 
@@ -262,9 +289,18 @@ const hasVolumeIndicator = computed(() =>
 
 // ── Y-scale range ─────────────────────────────────────────────────────────────
 function yRangeFn(u: uPlot): [number, number] {
-  if (manualYMin !== null && manualYMax !== null) return [manualYMin, manualYMax]
+  // Manual lock: user has dragged/scrolled the Y axis
+  if (!autoY.value && manualYMin !== null && manualYMax !== null) {
+    // Log scale: clamp to strictly positive
+    if (isLogScale.value) {
+      const safeMin = Math.max(manualYMin, manualYMax * 1e-6)
+      return [safeMin, manualYMax]
+    }
+    return [manualYMin, manualYMax]
+  }
+  // Auto-fit to visible bars
   const [ts, , highs, lows] = u.data as number[][]
-  if (!ts?.length) return [0, 1]
+  if (!ts?.length) return [1, 2]
   const xMin = u.scales.x?.min ?? -Infinity
   const xMax = u.scales.x?.max ?? Infinity
   let lo = Infinity, hi = -Infinity
@@ -274,12 +310,12 @@ function yRangeFn(u: uPlot): [number, number] {
       if (lows[i]  != null && lows[i]  < lo) lo = lows[i]
     }
   }
-  if (lo === Infinity) return [0, 1]
-  const pad = (hi - lo) * 0.08
+  if (lo === Infinity || lo <= 0) return [1, 2]
+  const pad  = (hi - lo) * 0.08
   const yMin = lo - pad
   const yMax = hi + pad
-  // Log scale requires strictly positive values
-  if (isLogScale.value) return [Math.max(yMin, yMax * 0.0001), yMax]
+  // Log scale: floor must be strictly positive — use actual data min, not zero
+  if (isLogScale.value) return [Math.max(yMin, lo * 0.92), yMax]
   return [yMin, yMax]
 }
 
@@ -287,13 +323,13 @@ function yRangeFn(u: uPlot): [number, number] {
 function toggleLogScale() {
   ctxMenu.visible = false
   isLogScale.value = !isLogScale.value
-  manualYMin = null; manualYMax = null
   initChart()
 }
 
 function resetPriceScale() {
   ctxMenu.visible = false
-  manualYMin = null; manualYMax = null
+  manualYMin  = null; manualYMax = null
+  autoY.value = true
   if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
 }
 
@@ -346,7 +382,8 @@ function buildSeries(): uPlot.Series[] {
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
   destroyAll()
-  manualYMin = null; manualYMax = null
+  // Do NOT reset manualYMin/Max or autoY here — they survive rebuilds
+  // (log toggle, indicator changes). Only explicit user actions reset them.
 
   const data = chartStore.uplotData as number[][]
   if (!data[0]?.length) return
@@ -408,7 +445,7 @@ async function initChart() {
       {
         scale:  'y', side: 1, size: 65, stroke: '#888',
         ticks:  { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
-        values: (_u, ticks) => ticks.map(t => t >= 1000 ? t.toFixed(0) : t.toFixed(2)),
+        values: (_u, ticks) => ticks.map(t => t == null ? '' : t >= 1000 ? t.toFixed(0) : t.toFixed(2)),
       },
     ],
 
@@ -536,8 +573,9 @@ function setupInteraction(u: uPlot) {
       const mid  = (yMin + yMax) / 2
       const half = (yMax - yMin) / 2
       const f    = e.deltaY > 0 ? 1.08 : 1 / 1.08
-      manualYMin = mid - half * f
-      manualYMax = mid + half * f
+      autoY.value = false
+      manualYMin  = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
+      manualYMax  = mid + half * f
       u.setScale('y', { min: manualYMin, max: manualYMax })
       return
     }
@@ -607,8 +645,9 @@ function setupInteraction(u: uPlot) {
       const f    = Math.exp(dy * PRICE_DRAG_EXPO)
       const mid  = (priceStartMin + priceStartMax) / 2
       const half = (priceStartMax - priceStartMin) / 2 * f
-      manualYMin = mid - half
-      manualYMax = mid + half
+      autoY.value = false
+      manualYMin  = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
+      manualYMax  = mid + half
       u.setScale('y', { min: manualYMin, max: manualYMax })
       return
     }
@@ -638,15 +677,13 @@ function setupInteraction(u: uPlot) {
   }
 
   const onDblClick = (e: MouseEvent) => {
-    // Prevent uPlot's own dblclick-to-reset on the plot area
     e.preventDefault()
     e.stopPropagation()
     if (isOnYAxis(e.clientX)) {
-      // Reset manual Y lock only — TradingView behaviour
-      manualYMin = null; manualYMax = null
+      manualYMin  = null; manualYMax = null
+      autoY.value = true
       u.setData(u.data as uPlot.AlignedData)
     }
-    // Dblclick on plot area: no action (TradingView doesn't reset X on dblclick)
   }
 
   // Also intercept uPlot's own dblclick on u.over with capture to be sure
@@ -655,11 +692,8 @@ function setupInteraction(u: uPlot) {
     e.stopPropagation()
   }
   u.over.addEventListener('dblclick', onOverDblClick, { capture: true })
-  const origCleanup = interactionCleanup
-  interactionCleanup = () => {
-    origCleanup?.()
-    u.over.removeEventListener('dblclick', onOverDblClick, true)
-  }
+  // Will be cleaned up below alongside other listeners
+  const _overDblClickCleanup = () => u.over.removeEventListener('dblclick', onOverDblClick, true)
 
   const onContextMenu = (e: MouseEvent) => {
     if (isOnYAxis(e.clientX)) {
@@ -688,6 +722,7 @@ function setupInteraction(u: uPlot) {
       case 'ArrowRight':  e.preventDefault(); setXRange(xMin + barDur*5, xMax + barDur*5); break
       case 'r': case 'R': if (e.altKey) { e.preventDefault(); goToLatest() } break
       case 'l': case 'L': toggleLogScale(); break
+      case 'a': case 'A': toggleAutoY(); break
       case '?':           showShortcuts.value = !showShortcuts.value; break
       case 'Delete': case 'Backspace':
         if (drawStore.selectedId != null) {
@@ -721,6 +756,7 @@ function setupInteraction(u: uPlot) {
     window.removeEventListener('mousemove',    onMouseMove)
     window.removeEventListener('mouseup',      onMouseUp)
     window.removeEventListener('keydown',      onKeyDown)
+    _overDblClickCleanup()
     wrapper.style.cursor = ''
   }
 }
@@ -1065,6 +1101,39 @@ watch(() => drawStore.renderableDrawings, () => {
   position: absolute; top: 4px; left: 8px;
   font-size: 10px; color: #555; z-index: 5;
   pointer-events: none; font-family: monospace;
+}
+
+/* Y axis A/L buttons — TradingView style, pinned to bottom of Y axis */
+.yaxis-btns {
+  position: absolute;
+  bottom: 28px;
+  right: 0;
+  width: 65px; /* matches axis size */
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  z-index: 25;
+  pointer-events: all;
+}
+
+.yaxis-btn {
+  width: 22px; height: 18px;
+  background: rgba(20,20,20,0.85);
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  color: #555;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+.yaxis-btn:hover { color: #aaa; border-color: #555; }
+.yaxis-btn.active {
+  color: #64b5f6;
+  border-color: #64b5f6;
+  background: rgba(100,181,246,0.08);
 }
 
 /* Go to latest */
