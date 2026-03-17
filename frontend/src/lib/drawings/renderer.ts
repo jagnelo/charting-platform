@@ -22,9 +22,8 @@ export class DrawingRenderer {
   }
 
   resize() {
-    if (!this.uplot) return
-    this.canvas.width = this.uplot.width
-    this.canvas.height = this.uplot.height
+    // canvas sizing is managed by alignDrawingCanvas in UPlotChart
+    // which uses u.over dimensions — nothing to do here
   }
 
   clear() {
