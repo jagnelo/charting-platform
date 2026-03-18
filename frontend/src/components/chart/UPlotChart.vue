@@ -110,7 +110,7 @@ import { DrawingRenderer }   from '@/lib/drawings/renderer'
 import { computeSMA }  from '@/lib/uplot/indicators/sma'
 import { computeEMA }  from '@/lib/uplot/indicators/ema'
 import { computeRSI }  from '@/lib/uplot/indicators/rsi'
-import { computeVWAP } from '@/lib/uplot/indicators/vwap'
+import { computeVWAP, computeAVWAP } from '@/lib/uplot/indicators/vwap'
 import { api }         from '@/lib/api'
 import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { DrawingType, IndicatorConfig, Timeframe } from '@/types'
@@ -342,6 +342,7 @@ function computeIndicatorSeries(
     case 'sma':    return computeSMA(closes, (ind.params.period as number) ?? 20)
     case 'ema':    return computeEMA(closes, (ind.params.period as number) ?? 20)
     case 'vwap':   return computeVWAP(ts, highs, lows, closes, vols)
+    case 'avwap':  return computeAVWAP(ts, highs, lows, closes, vols, (ind.params.anchorTime as number) ?? ts[0] ?? 0)
     default:       return new Array(closes.length).fill(null)
   }
 }
@@ -382,6 +383,7 @@ function buildSeries(): uPlot.Series[] {
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
   destroyAll()
+  drawingPoints = []
   // Do NOT reset manualYMin/Max or autoY here — they survive rebuilds
   // (log toggle, indicator changes). Only explicit user actions reset them.
 
@@ -453,6 +455,9 @@ async function initChart() {
     plugins,
 
     hooks: {
+      draw: [(u) => {
+        drawingRenderer?.renderAll(drawStore.renderableDrawings)
+      }],
       setCursor: [(u) => {
         updateTooltip(u, u.cursor.idx)
         // Snap crosshair to nearest bar centre — guard against re-entrancy
@@ -476,13 +481,13 @@ async function initChart() {
         setupDrawingInteraction(u)
         setupHitDetection(u)
         setupInteraction(u)
-        setInitialView(u)
         updateTooltip(u, null)
       }],
     },
   }
 
   uplot = new uPlot(opts, buildData(), chartRef.value)
+  setInitialView(uplot)
   syncCanvasSize(w, h)
   await buildSubPanes()
   startLivePolling()
@@ -886,31 +891,40 @@ function syncCanvasSize(_w: number, _h: number) {
 let drawingPoints: DrawingPoint[] = []
 
 function setupDrawingInteraction(u: uPlot) {
-  const canvas = drawingCanvasRef.value; if (!canvas) return
-  canvas.addEventListener('pointerdown', (e) => {
-    if (!drawStore.activeToolType) return; e.preventDefault()
-    const rect = canvas.getBoundingClientRect()
+  // Use u.over so events fire regardless of drawing canvas pointer-events state
+  const over = u.over; if (!over) return
+
+  over.addEventListener('pointerdown', (e) => {
+    if (!drawStore.activeToolType || e.button !== 0) return
+    e.stopPropagation()  // prevent pan from also firing
+    const rect = over.getBoundingClientRect()
     const pt = { time: u.posToVal(e.clientX - rect.left, 'x'), price: u.posToVal(e.clientY - rect.top, 'y') }
     if (drawStore.activeToolType === 'horizontal_line' || drawStore.activeToolType === 'vertical_line') {
       finishDrawing([pt], drawStore.activeToolType); return
     }
     drawingPoints.push(pt)
     if (drawingPoints.length >= 2) {
-      finishDrawing([...drawingPoints], drawStore.activeToolType); drawingPoints = []
+      finishDrawing([...drawingPoints], drawStore.activeToolType)
+      drawingPoints = []
     }
-  })
-  canvas.addEventListener('pointermove', (e) => {
+  }, { capture: true })
+
+  over.addEventListener('pointermove', (e) => {
     if (!drawStore.activeToolType || drawingPoints.length === 0) return
-    const rect = canvas.getBoundingClientRect()
+    const rect = over.getBoundingClientRect()
     const cur = { time: u.posToVal(e.clientX - rect.left, 'x'), price: u.posToVal(e.clientY - rect.top, 'y') }
+    // Render preview inline — draw hook will re-render committed ones on next frame
     drawingRenderer?.renderAll([
-      ...drawStore.renderableDrawings,
       { type: drawStore.activeToolType as DrawingType, points: [drawingPoints[0], cur],
         style: { color: '#ffffff88', lineWidth: 1 }, isVisible: true } as any,
     ])
   })
-  canvas.addEventListener('contextmenu', (e) => {
-    e.preventDefault(); drawingPoints = []; drawStore.setActiveTool(null)
+
+  over.addEventListener('contextmenu', (e) => {
+    if (drawStore.activeToolType) {
+      e.preventDefault(); e.stopPropagation()
+      drawingPoints = []; drawStore.setActiveTool(null)
+    }
   })
 }
 
@@ -1013,6 +1027,9 @@ watch(() => chartStore.indicators, async () => { await nextTick(); initChart() }
 watch(() => drawStore.renderableDrawings, () => {
   drawingRenderer?.renderAll(drawStore.renderableDrawings)
 }, { deep: true })
+
+// Reset in-progress drawing points whenever the active tool changes
+watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
 </script>
 
 <style scoped>
