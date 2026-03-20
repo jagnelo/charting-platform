@@ -2,7 +2,8 @@
   <div class="chart-root" ref="rootRef">
 
     <!-- Main price chart -->
-    <div class="uplot-wrapper" ref="wrapperRef">
+    <div class="uplot-wrapper" ref="wrapperRef"
+          :class="{ 'cursor-crosshair-wrapper': !!drawStore.activeToolType }">
       <canvas ref="drawingCanvasRef" class="drawing-canvas"
               :class="{ 'cursor-crosshair': !!drawStore.activeToolType }" />
       <div ref="chartRef" />
@@ -1057,7 +1058,9 @@ watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
   position: absolute; top: 0; left: 0;
   z-index: 10; pointer-events: none;
 }
-.drawing-canvas.cursor-crosshair { pointer-events: all; cursor: crosshair; }
+.drawing-canvas.cursor-crosshair { pointer-events: none; cursor: crosshair; }
+
+.cursor-crosshair-wrapper { cursor: crosshair; }
 
 /* TradingView-style OHLCV overlay — top-left, small, semi-transparent */
 .ohlcv-info {
