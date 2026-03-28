@@ -1,104 +1,140 @@
 <template>
   <div class="alert-form">
-    <h4 class="form-title">New Alert — {{ symbol }}</h4>
-
-    <!-- Alert type tabs -->
-    <div class="alert-tabs">
-      <button :class="{ active: alertType === 'price' }" @click="alertType = 'price'">Price</button>
-      <button :class="{ active: alertType === 'indicator' }" @click="alertType = 'indicator'">Indicator</button>
+    <div class="form-header">
+      <span class="form-title">New Alert — {{ symbol }}</span>
+      <button class="form-close" @click="$emit('close')">✕</button>
     </div>
 
-    <!-- ── Price alert ──────────────────────────────────── -->
-    <template v-if="alertType === 'price'">
-      <div class="form-row">
-        <label>Condition</label>
-        <select v-model="price.condition" class="form-select">
-          <option value="crosses_above">Crosses Above</option>
-          <option value="crosses_below">Crosses Below</option>
-          <option value="touches">Touches</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>Price</label>
-        <input v-model.number="price.threshold" type="number" step="0.0001" class="form-input" placeholder="0.0000" />
-      </div>
-    </template>
+    <!-- Live preview of what the alert will say -->
+    <div class="alert-preview">{{ preview }}</div>
 
-    <!-- ── Indicator alert ──────────────────────────────── -->
-    <template v-else>
-      <div class="form-row">
-        <label>Timeframe</label>
-        <select v-model="ind.timeframe" class="form-select">
-          <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
-        </select>
-      </div>
-
-      <!-- Indicator A -->
-      <div class="form-section-label">Indicator</div>
-      <div class="form-row">
-        <label>Type</label>
-        <select v-model="ind.indAType" class="form-select" @change="onIndATypeChange">
-          <option v-for="t in indicatorTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-        </select>
-      </div>
-      <div class="form-row" v-for="(val, key) in indAParamDefs" :key="key">
-        <label>{{ paramLabel(key) }}</label>
-        <input v-model.number="ind.indAParams[key]" type="number" min="1" class="form-input form-input--sm" />
-      </div>
-
-      <!-- Condition -->
-      <div class="form-row">
-        <label>Condition</label>
-        <select v-model="ind.condition" class="form-select">
-          <option value="crosses_above">Crosses Above</option>
-          <option value="crosses_below">Crosses Below</option>
-          <option value="gt">&gt; (greater than)</option>
-          <option value="lt">&lt; (less than)</option>
-          <option value="gte">≥ (greater or equal)</option>
-          <option value="lte">≤ (less or equal)</option>
+    <!-- ── LHS ──────────────────────────────────────────────── -->
+    <div class="expr-section">
+      <div class="expr-label">When</div>
+      <div class="expr-row">
+        <select v-model="lhs.sourceType" class="form-select" @change="onLhsTypeChange">
+          <optgroup label="Price">
+            <option value="close">Close</option>
+            <option value="open">Open</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </optgroup>
+          <optgroup label="Active indicators" v-if="activeIndicators.length">
+            <option v-for="ind in activeIndicators" :key="ind.key" :value="ind.key">
+              {{ ind.label }}
+            </option>
+          </optgroup>
+          <optgroup label="Add indicator">
+            <option v-for="t in allIndicatorTypes" :key="'add_'+t.value" :value="'new_'+t.value">
+              + {{ t.label }}
+            </option>
+          </optgroup>
         </select>
       </div>
 
-      <!-- Compare against: value or indicator B -->
-      <div class="form-row">
-        <label>Compare to</label>
-        <select v-model="ind.compareMode" class="form-select">
-          <option value="value">Fixed value</option>
-          <option value="indicator">Another indicator</option>
-        </select>
-      </div>
-
-      <div class="form-row" v-if="ind.compareMode === 'value'">
-        <label>Value</label>
-        <input v-model.number="ind.threshold" type="number" step="0.0001" class="form-input" />
-      </div>
-
-      <template v-else>
-        <div class="form-section-label">Compare indicator</div>
-        <div class="form-row">
-          <label>Type</label>
-          <select v-model="ind.indBType" class="form-select" @change="onIndBTypeChange">
-            <option v-for="t in indicatorTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+      <!-- Params for LHS if it's a non-active indicator -->
+      <template v-if="lhs.isCustomIndicator">
+        <div class="param-row" v-for="(_, key) in lhsDefaultParams" :key="key">
+          <label>{{ paramLabel(key) }}</label>
+          <input v-model.number="lhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
+        </div>
+        <div class="param-row" v-if="lhs.sourceType.replace('new_','') === 'avwap'">
+          <label>Anchor</label>
+          <input type="datetime-local" :value="tsToDateInput(lhs.params.anchorTime)"
+                 @input="e => lhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
+                 class="form-input" />
+        </div>
+        <div class="param-row">
+          <label>Timeframe</label>
+          <select v-model="lhs.timeframe" class="form-select">
+            <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
           </select>
         </div>
-        <div class="form-row" v-for="(val, key) in indBParamDefs" :key="key">
+      </template>
+    </div>
+
+    <!-- ── Condition ─────────────────────────────────────────── -->
+    <div class="expr-section">
+      <div class="expr-label">Condition</div>
+      <div class="cond-grid">
+        <button
+          v-for="c in conditions"
+          :key="c.value"
+          :class="['cond-btn', { active: condition === c.value }]"
+          @click="condition = c.value"
+        >{{ c.label }}</button>
+      </div>
+      <div class="param-row" v-if="condition === 'within_percent'">
+        <label>Within %</label>
+        <input v-model.number="withinPct" type="number" min="0.01" step="0.1" class="form-input form-input--sm" />
+        <span class="param-unit">%</span>
+      </div>
+    </div>
+
+    <!-- ── RHS ──────────────────────────────────────────────── -->
+    <div class="expr-section">
+      <div class="expr-label">Target</div>
+      <div class="expr-row">
+        <select v-model="rhs.sourceType" class="form-select" @change="onRhsTypeChange">
+          <option value="value">Fixed value</option>
+          <optgroup label="Price">
+            <option value="close">Close</option>
+            <option value="open">Open</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </optgroup>
+          <optgroup label="Active indicators" v-if="activeIndicators.length">
+            <option v-for="ind in activeIndicators" :key="ind.key" :value="ind.key">
+              {{ ind.label }}
+            </option>
+          </optgroup>
+          <optgroup label="Add indicator">
+            <option v-for="t in allIndicatorTypes" :key="'add_'+t.value" :value="'new_'+t.value">
+              + {{ t.label }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Fixed value input -->
+      <div class="param-row" v-if="rhs.sourceType === 'value'">
+        <input v-model.number="rhs.fixedValue" type="number" step="0.0001" class="form-input"
+               placeholder="0.0000" />
+      </div>
+
+      <!-- Params for RHS if it's a non-active indicator -->
+      <template v-if="rhs.isCustomIndicator">
+        <div class="param-row" v-for="(_, key) in rhsDefaultParams" :key="key">
           <label>{{ paramLabel(key) }}</label>
-          <input v-model.number="ind.indBParams[key]" type="number" min="1" class="form-input form-input--sm" />
+          <input v-model.number="rhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
+        </div>
+        <div class="param-row" v-if="rhs.sourceType.replace('new_','') === 'avwap'">
+          <label>Anchor</label>
+          <input type="datetime-local" :value="tsToDateInput(rhs.params.anchorTime)"
+                 @input="e => rhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
+                 class="form-input" />
+        </div>
+        <div class="param-row">
+          <label>Timeframe</label>
+          <select v-model="rhs.timeframe" class="form-select">
+            <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+          </select>
         </div>
       </template>
-
-      <!-- Example hint -->
-      <div class="alert-hint">{{ alertHint }}</div>
-    </template>
-
-    <!-- Shared fields -->
-    <div class="form-row form-row-check">
-      <label><input type="checkbox" v-model="shared.repeat" /> Repeat after trigger</label>
     </div>
-    <div class="form-row">
-      <label>Notes</label>
-      <input v-model="shared.notes" type="text" class="form-input" placeholder="Optional note…" />
+
+    <!-- ── Options ───────────────────────────────────────────── -->
+    <div class="expr-section">
+      <div class="form-row-check">
+        <input type="checkbox" v-model="repeat" id="repeat-check" />
+        <label for="repeat-check">Repeat after trigger</label>
+      </div>
+      <div class="param-row" style="margin-top:8px">
+        <label>Notes</label>
+        <input v-model="notes" type="text" class="form-input" placeholder="Optional…" />
+      </div>
     </div>
+
     <div class="form-actions">
       <button class="btn-cancel" @click="$emit('close')">Cancel</button>
       <button class="btn-create" :disabled="!isValid" @click="submit">Create Alert</button>
@@ -107,30 +143,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
-import type { Timeframe } from '@/types'
+import { useChartStore } from '@/stores/chart'
+import type { Timeframe, IndicatorConfig } from '@/types'
 
-const props = defineProps<{ instrumentId: number; symbol: string; currentTf?: Timeframe }>()
-const emit  = defineEmits<{ close: [] }>()
+const props = defineProps<{
+  instrumentId: number
+  symbol: string
+  currentTf?: Timeframe
+  // Pre-seed from clicking 🔔 on an indicator in the sidebar
+  seedIndicator?: IndicatorConfig | null
+}>()
+const emit = defineEmits<{ close: [] }>()
 
 const alertsStore = useAlertsStore()
-const alertType = ref<'price' | 'indicator'>('price')
+const chartStore  = useChartStore()
 
-// ── Price alert state ──────────────────────────────────────────────────────────
-const price = reactive({ condition: 'crosses_above' as string, threshold: 0 })
-
-// ── Indicator alert state ─────────────────────────────────────────────────────
+// ── Timeframes ────────────────────────────────────────────────────────────────
 const timeframes: Timeframe[] = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN']
 
-const indicatorTypes = [
+// ── Indicator type catalogue ──────────────────────────────────────────────────
+const allIndicatorTypes = [
   { value: 'sma',   label: 'SMA'   },
   { value: 'ema',   label: 'EMA'   },
   { value: 'rsi',   label: 'RSI'   },
   { value: 'vwap',  label: 'VWAP'  },
+  { value: 'avwap', label: 'AVWAP' },
   { value: 'macd',  label: 'MACD'  },
   { value: 'bb',    label: 'Bollinger Bands' },
-  { value: 'close', label: 'Close price' },
 ]
 
 const DEFAULT_PARAMS: Record<string, Record<string, number>> = {
@@ -138,79 +179,239 @@ const DEFAULT_PARAMS: Record<string, Record<string, number>> = {
   ema:   { period: 50 },
   rsi:   { period: 14 },
   vwap:  {},
+  avwap: { anchorTime: Math.floor(Date.now() / 1000) - 86400 * 30 },
   macd:  { fast: 12, slow: 26, signal: 9 },
   bb:    { period: 20, stdDev: 2 },
-  close: {},
 }
 
-const ind = reactive({
-  timeframe:   props.currentTf ?? 'D1' as Timeframe,
-  indAType:    'rsi',
-  indAParams:  { period: 14 } as Record<string, number>,
-  condition:   'crosses_below',
-  compareMode: 'value' as 'value' | 'indicator',
-  threshold:   30,
-  indBType:    'ema',
-  indBParams:  { period: 200 } as Record<string, number>,
-})
+// ── Active indicators on the chart (for quick selection) ──────────────────────
+const activeIndicators = computed(() =>
+  chartStore.indicators
+    .filter(i => i.type !== 'volume')
+    .map(i => {
+      const params = Object.entries(i.params)
+        .filter(([k]) => k !== 'anchorTime')
+        .map(([, v]) => v)
+        .join(',')
+      const label = i.type === 'avwap' && i.params.anchorTime
+        ? `AVWAP(${new Date((i.params.anchorTime as number)*1000).toLocaleDateString()})`
+        : `${i.type.toUpperCase()}${params ? `(${params})` : ''}`
+      return { key: `active_${i.type}_${JSON.stringify(i.params)}`, label, config: i }
+    })
+)
 
-const indAParamDefs = computed(() => DEFAULT_PARAMS[ind.indAType] ?? {})
-const indBParamDefs = computed(() => DEFAULT_PARAMS[ind.indBType] ?? {})
-
-function onIndATypeChange() {
-  ind.indAParams = { ...DEFAULT_PARAMS[ind.indAType] }
+// ── Source descriptor ─────────────────────────────────────────────────────────
+interface Source {
+  sourceType: string   // 'value' | 'close'|'open'|'high'|'low' | 'active_*' | 'new_*'
+  fixedValue: number
+  params: Record<string, number>
+  timeframe: Timeframe
+  isCustomIndicator: boolean
 }
-function onIndBTypeChange() {
-  ind.indBParams = { ...DEFAULT_PARAMS[ind.indBType] }
+
+function makeSource(tf: Timeframe): Source {
+  return { sourceType: 'close', fixedValue: 0, params: {}, timeframe: tf, isCustomIndicator: false }
 }
 
-const alertHint = computed(() => {
-  const a = `${ind.indAType.toUpperCase()}(${Object.values(ind.indAParams).join(',')})`
-  const cond = ind.condition.replace(/_/g, ' ')
-  if (ind.compareMode === 'value') {
-    return `Alert when ${a} ${cond} ${ind.threshold}`
+const defaultTf = props.currentTf ?? 'D1'
+const lhs = reactive<Source>(makeSource(defaultTf))
+const rhs = reactive<Source>(makeSource(defaultTf))
+rhs.sourceType = 'value'
+
+// Pre-seed from indicator sidebar button
+if (props.seedIndicator) {
+  lhs.sourceType = `active_${props.seedIndicator.type}_${JSON.stringify(props.seedIndicator.params)}`
+  rhs.sourceType = 'close'
+}
+
+function onLhsTypeChange() { updateIsCustom(lhs) }
+function onRhsTypeChange() { updateIsCustom(rhs) }
+
+function updateIsCustom(s: Source) {
+  s.isCustomIndicator = s.sourceType.startsWith('new_')
+  if (s.isCustomIndicator) {
+    const type = s.sourceType.replace('new_', '')
+    s.params = { ...(DEFAULT_PARAMS[type] ?? {}) }
   }
-  const b = `${ind.indBType.toUpperCase()}(${Object.values(ind.indBParams).join(',')})`
-  return `Alert when ${a} ${cond} ${b}`
-})
+}
 
-// ── Shared ────────────────────────────────────────────────────────────────────
-const shared = reactive({ repeat: false, notes: '' })
+const lhsDefaultParams = computed(() => DEFAULT_PARAMS[lhs.sourceType.replace('new_', '')] ?? {})
+const rhsDefaultParams = computed(() => DEFAULT_PARAMS[rhs.sourceType.replace('new_', '')] ?? {})
 
-const isValid = computed(() => {
-  if (alertType.value === 'price') return price.threshold > 0
-  return true  // indicator alerts have sensible defaults
+// ── Conditions ────────────────────────────────────────────────────────────────
+const conditions = [
+  { value: 'crosses_above', label: '↑ Crosses above' },
+  { value: 'crosses_below', label: '↓ Crosses below' },
+  { value: 'touches',       label: '⟷ Touches'       },
+  { value: 'gt',            label: '> Greater than'  },
+  { value: 'lt',            label: '< Less than'     },
+  { value: 'gte',           label: '≥ Greater/equal' },
+  { value: 'lte',           label: '≤ Less/equal'    },
+  { value: 'within_percent', label: '% Within %'     },
+]
+
+const condition  = ref('crosses_above')
+const withinPct  = ref(1)
+const repeat     = ref(false)
+const notes      = ref('')
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function sourceLabel(s: Source): string {
+  if (s.sourceType === 'value') return String(s.fixedValue)
+  if (['close','open','high','low'].includes(s.sourceType)) return s.sourceType.toUpperCase()
+  if (s.sourceType.startsWith('active_')) {
+    const found = activeIndicators.value.find(i => i.key === s.sourceType)
+    return found?.label ?? s.sourceType
+  }
+  if (s.sourceType.startsWith('new_')) {
+    const type = s.sourceType.replace('new_', '').toUpperCase()
+    const p = Object.values(s.params).join(',')
+    return p ? `${type}(${p})` : type
+  }
+  return s.sourceType
+}
+
+const preview = computed(() => {
+  const l = sourceLabel(lhs)
+  const r = sourceLabel(rhs)
+  const c = condition.value === 'within_percent'
+    ? `within ${withinPct.value}% of`
+    : conditions.find(c => c.value === condition.value)?.label.replace(/^[↑↓⟷><≥≤%]\s+/,'') ?? condition.value
+  return `${props.symbol}: ${l} ${c} ${r}`
 })
 
 function paramLabel(key: string): string {
-  const m: Record<string, string> = { period: 'Period', fast: 'Fast', slow: 'Slow', signal: 'Signal', stdDev: 'Std dev' }
+  const m: Record<string, string> = { period: 'Period', fast: 'Fast', slow: 'Slow', signal: 'Signal', stdDev: 'Std dev', anchorTime: 'Anchor' }
   return m[key] ?? key
+}
+
+function tsToDateInput(ts: number | undefined): string {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const p = (n: number) => String(n).padStart(2,'0')
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+function dateInputToTs(val: string): number {
+  return Math.floor(new Date(val).getTime() / 1000)
+}
+
+// ── Resolve a source to API params ────────────────────────────────────────────
+type PriceField = 'open' | 'high' | 'low' | 'close'
+const PRICE_FIELDS: PriceField[] = ['open','high','low','close']
+
+function resolveSource(s: Source): {
+  isPriceField: boolean
+  priceField?: PriceField
+  isFixedValue: boolean
+  fixedValue?: number
+  isIndicator: boolean
+  indicatorType?: string
+  indicatorParams?: Record<string, unknown>
+  indicatorTf?: Timeframe
+} {
+  if (s.sourceType === 'value') {
+    return { isPriceField: false, isFixedValue: true, fixedValue: s.fixedValue, isIndicator: false }
+  }
+  if (PRICE_FIELDS.includes(s.sourceType as PriceField)) {
+    return { isPriceField: true, priceField: s.sourceType as PriceField, isFixedValue: false, isIndicator: false }
+  }
+  if (s.sourceType.startsWith('active_')) {
+    const found = activeIndicators.value.find(i => i.key === s.sourceType)
+    if (found) {
+      return { isPriceField: false, isFixedValue: false, isIndicator: true,
+        indicatorType: found.config.type, indicatorParams: { ...found.config.params },
+        indicatorTf: s.timeframe }
+    }
+  }
+  if (s.sourceType.startsWith('new_')) {
+    return { isPriceField: false, isFixedValue: false, isIndicator: true,
+      indicatorType: s.sourceType.replace('new_',''), indicatorParams: { ...s.params },
+      indicatorTf: s.timeframe }
+  }
+  return { isPriceField: false, isFixedValue: false, isIndicator: false }
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+const isValid = computed(() => {
+  if (rhs.sourceType === 'value' && !rhs.fixedValue) return false
+  if (condition.value === 'within_percent' && withinPct.value <= 0) return false
+  return true
+})
+
+// ── Determine if this is a price alert or indicator alert ─────────────────────
+// Price alert: both sides resolve to price fields or fixed values
+// Indicator alert: at least one side is an indicator
+function isPriceAlert(): boolean {
+  const l = resolveSource(lhs)
+  const r = resolveSource(rhs)
+  return !l.isIndicator && !r.isIndicator
 }
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 async function submit() {
-  if (alertType.value === 'price') {
-    await alertsStore.createAlert(
-      props.instrumentId,
-      price.condition as any,
-      price.threshold,
-      shared.repeat,
-      shared.notes || undefined,
-    )
+  const l = resolveSource(lhs)
+  const r = resolveSource(rhs)
+
+  if (isPriceAlert()) {
+    // Map to a price alert — LHS must be a price field, RHS must be a fixed value
+    // (price field vs price field is also supported as an indicator alert)
+    const priceField = l.priceField ?? 'close'
+    const threshold = r.fixedValue ?? 0
+
+    // within_percent is its own condition on price alerts
+    if (condition.value === 'within_percent') {
+      await alertsStore.createAlert(
+        props.instrumentId,
+        'within_percent' as any,
+        threshold,
+        repeat.value,
+        notes.value || undefined,
+        priceField,
+        withinPct.value,
+      )
+    } else {
+      await alertsStore.createAlert(
+        props.instrumentId,
+        condition.value as any,
+        threshold,
+        repeat.value,
+        notes.value || undefined,
+        priceField,
+      )
+    }
   } else {
-    await alertsStore.createIndicatorAlert({
+    // Indicator alert
+    // LHS must be an indicator or price field (price field = use type 'close' etc.)
+    const indAType = l.isIndicator ? l.indicatorType! : (l.priceField ?? 'close')
+    const indAParams = l.isIndicator ? (l.indicatorParams ?? {}) : {}
+    const tf = l.indicatorTf ?? r.indicatorTf ?? defaultTf
+
+    const body: any = {
       instrument_id:      props.instrumentId,
-      timeframe:          ind.timeframe,
-      indicator_a_type:   ind.indAType,
-      indicator_a_params: { ...ind.indAParams },
-      condition:          ind.condition,
-      threshold_value:    ind.compareMode === 'value' ? ind.threshold : undefined,
-      indicator_b_type:   ind.compareMode === 'indicator' ? ind.indBType : undefined,
-      indicator_b_params: ind.compareMode === 'indicator' ? { ...ind.indBParams } : undefined,
-      repeat:             shared.repeat,
-      notes:              shared.notes || undefined,
-    })
+      timeframe:          tf,
+      indicator_a_type:   indAType,
+      indicator_a_params: indAParams,
+      condition:          condition.value,
+      repeat:             repeat.value,
+      notes:              notes.value || undefined,
+    }
+
+    if (condition.value === 'within_percent') {
+      body.threshold_value = r.fixedValue ?? 0
+      body.within_percent  = withinPct.value
+    } else if (r.isIndicator) {
+      body.indicator_b_type   = r.indicatorType
+      body.indicator_b_params = r.indicatorParams ?? {}
+    } else if (r.isPriceField) {
+      body.indicator_b_type   = r.priceField  // backend handles close/open/high/low as valid types
+      body.indicator_b_params = {}
+    } else {
+      body.threshold_value = r.fixedValue ?? 0
+    }
+
+    await alertsStore.createIndicatorAlert(body)
   }
+
   emit('close')
 }
 </script>
@@ -220,52 +421,79 @@ async function submit() {
   background: #111;
   border: 1px solid #333;
   border-radius: 6px;
-  padding: 16px;
-  width: 300px;
+  width: 320px;
   font-size: 12px;
   color: #aaa;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
-}
-
-.form-title { color: #64b5f6; margin: 0 0 12px; font-size: 13px; }
-
-.alert-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 14px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.alert-tabs button {
-  flex: 1;
-  background: none;
-  border: none;
-  color: #666;
-  padding: 5px;
-  cursor: pointer;
-  font-size: 11px;
-  font-family: monospace;
-}
-.alert-tabs button.active { background: #1a3a5c; color: #64b5f6; }
-
-.form-section-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: #444;
-  letter-spacing: 0.06em;
-  margin: 10px 0 6px;
-}
-
-.form-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
 }
 
-.form-row-check { flex-direction: row; align-items: center; gap: 6px; }
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.form-title { color: #64b5f6; font-size: 13px; font-weight: 600; }
+.form-close  { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; }
+.form-close:hover { color: #aaa; }
+
+.alert-preview {
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 7px 14px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #26a69a;
+  min-height: 28px;
+}
+
+.expr-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.expr-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.expr-row { display: flex; gap: 6px; }
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.param-row label { color: #555; min-width: 60px; font-size: 11px; }
+.param-unit { color: #555; font-size: 11px; }
+
+.cond-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.cond-btn {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #666;
+  border-radius: 3px;
+  padding: 5px 6px;
+  cursor: pointer;
+  font-size: 10px;
+  font-family: monospace;
+  text-align: left;
+  transition: all 0.1s;
+}
+.cond-btn:hover { border-color: #444; color: #aaa; }
+.cond-btn.active { background: #1a3a5c; border-color: #64b5f6; color: #64b5f6; }
 
 .form-select, .form-input {
   background: #1a1a1a;
@@ -274,25 +502,23 @@ async function submit() {
   border-radius: 3px;
   padding: 5px 8px;
   font-size: 12px;
+  width: 100%;
 }
-.form-input--sm { max-width: 80px; }
+.form-input--sm { width: 70px; }
 
-.alert-hint {
-  background: #0d0d0d;
-  border: 1px solid #222;
-  border-radius: 3px;
-  padding: 6px 8px;
+.form-row-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
   font-size: 11px;
-  color: #555;
-  font-family: monospace;
-  margin: 8px 0;
 }
 
 .form-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 12px;
+  padding: 10px 14px;
 }
 
 .btn-cancel {

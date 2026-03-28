@@ -16,6 +16,7 @@ class AlertCondition(str, enum.Enum):
     TOUCHES = "touches"
     PERCENT_CHANGE_UP = "percent_change_up"
     PERCENT_CHANGE_DOWN = "percent_change_down"
+    WITHIN_PERCENT = "within_percent"   # abs((price - threshold) / threshold) <= pct
 
 
 class AlertStatus(str, enum.Enum):
@@ -41,6 +42,8 @@ class PriceAlert(Base, TimestampMixin):
     condition: Mapped[AlertCondition] = mapped_column(SAEnum(AlertCondition), nullable=False)
     threshold_price: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     reference_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    price_field: Mapped[str] = mapped_column(String(10), nullable=False, default="close")
+    within_percent: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
 
     status: Mapped[AlertStatus] = mapped_column(
         SAEnum(AlertStatus), nullable=False, default=AlertStatus.ACTIVE, index=True

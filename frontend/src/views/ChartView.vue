@@ -33,6 +33,7 @@
           :instrument-id="chartStore.instrument.id"
           :symbol="chartStore.symbol"
           :current-tf="currentTf"
+          :seed-indicator="alertSeedIndicator"
           @close="showAlertForm = false"
         />
       </div>
@@ -56,7 +57,7 @@
         </div>
         <UPlotChart v-else />
       </div>
-      <IndicatorPanel />
+      <IndicatorPanel @alert-for-indicator="onAlertForIndicator" />
     </div>
 
     <!-- Bottom panel: alerts list for current symbol -->
@@ -87,7 +88,7 @@ import UPlotChart        from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar    from '@/components/chart/DrawingToolbar.vue'
 import IndicatorPanel    from '@/components/chart/IndicatorPanel.vue'
 import AlertForm         from '@/components/alerts/AlertForm.vue'
-import type { Timeframe } from '@/types'
+import type { IndicatorConfig, Timeframe } from '@/types'
 
 const chartStore   = useChartStore()
 const drawStore    = useDrawingsStore()
@@ -96,8 +97,9 @@ const presetsStore = usePresetsStore()
 
 const route = useRoute()
 
-const currentTf       = ref<Timeframe>('D1')
-const showAlertForm   = ref(false)
+const currentTf          = ref<Timeframe>('D1')
+const showAlertForm      = ref(false)
+const alertSeedIndicator = ref<IndicatorConfig | null>(null)
 
 const currentPrice = computed(() => {
   const bars = chartStore.bars
@@ -126,6 +128,11 @@ async function onSymbolSelect(symbol: string) {
   lastClose.value = currentPrice.value
 }
 
+function onAlertForIndicator(config: IndicatorConfig) {
+  alertSeedIndicator.value = config
+  showAlertForm.value = true
+}
+
 watch(currentTf, async (tf) => {
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
@@ -133,6 +140,10 @@ watch(currentTf, async (tf) => {
   if (chartStore.instrument) {
     await drawStore.loadDrawings(chartStore.instrument.id, tf)
   }
+})
+
+watch(showAlertForm, (v) => {
+  if (!v) alertSeedIndicator.value = null  // clear seed when form closes
 })
 
 onMounted(async () => {

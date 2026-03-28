@@ -69,6 +69,9 @@ class IndicatorAlert(Base, TimestampMixin):
     # Mode 2: compare indicator_a to another indicator's value
     indicator_b_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     indicator_b_params: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Allow LHS or RHS to be a price field instead of a computed indicator
+    # e.g. "close crosses_above SMA(20)" — indicator_a_type="close", no params needed
+    # The engine treats type "close"/"open"/"high"/"low" as raw OHLCV field access
 
     # Alert behaviour
     status: Mapped[AlertStatus] = mapped_column(

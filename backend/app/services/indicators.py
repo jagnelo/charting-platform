@@ -435,6 +435,21 @@ INDICATOR_REGISTRY: dict[str, IndicatorDef] = {
     ),
 }
 
+# Price field pass-throughs — treated as indicators for alert purposes so that
+# alert conditions like "close crosses_above SMA(20)" work uniformly.
+# The lambda captures `field` correctly via the default argument trick.
+for _field in ("open", "high", "low", "close"):
+    INDICATOR_REGISTRY[_field] = IndicatorDef(
+        type=_field,
+        label=_field.capitalize(),
+        pane="main",
+        description=f"Raw {_field} price",
+        params=[],
+        output_keys=[_field],
+        fn=lambda series, field=_field, **_: {field: getattr(series, f"{field}s")},
+        default_style={"color": "#ffffff", "lineWidth": 1},
+    )
+
 
 # ── Public API ────────────────────────────────────────────────────────────────
 

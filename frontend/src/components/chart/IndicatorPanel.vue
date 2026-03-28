@@ -19,6 +19,7 @@
             >
               <span class="color-dot" :style="{ background: ind.style.color }" />
               <span class="row-name">{{ displayName(ind) }}</span>
+              <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
               <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
               <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
             </div>
@@ -208,6 +209,8 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
 import type { ChartDrawing, IndicatorConfig, IndicatorType } from '@/types'
 
+const emit = defineEmits<{ alertForIndicator: [config: IndicatorConfig] }>()
+
 const chartStore   = useChartStore()
 const drawStore    = useDrawingsStore()
 const presetsStore = usePresetsStore()
@@ -322,6 +325,10 @@ function openIndEditor(i: number) {
   indFields.pane      = (ind.pane ?? 'main') as 'main'|'separate'
   indFields.params    = { ...ind.params }
   indEditorOpen.value = true
+}
+
+function alertForIndicator(i: number) {
+  emit('alertForIndicator', chartStore.indicators[i])
 }
 
 function closeIndEditor() { indEditorOpen.value = false; editingInd.value = null; editingIndIdx = -1 }

@@ -8,6 +8,7 @@ export type AlertCondition =
   | 'touches'
   | 'percent_change_up'
   | 'percent_change_down'
+  | 'within_percent'
 
 export type AlertStatus = 'active' | 'triggered' | 'paused' | 'expired'
 

@@ -13,6 +13,8 @@ class PriceAlertCreate(BaseModel):
     condition: AlertCondition
     threshold_price: Decimal
     reference_price: Decimal | None = None
+    price_field: str = "close"          # open | high | low | close
+    within_percent: Decimal | None = None  # required when condition=within_percent
     repeat: bool = False
     notes: str | None = None
 
@@ -33,6 +35,8 @@ class PriceAlertOut(BaseModel):
     condition: AlertCondition
     threshold_price: Decimal
     reference_price: Decimal | None = None
+    price_field: str = "close"
+    within_percent: Decimal | None = None
     status: AlertStatus
     repeat: bool
     notes: str | None = None

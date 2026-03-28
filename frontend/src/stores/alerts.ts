@@ -33,6 +33,8 @@ export const useAlertsStore = defineStore('alerts', () => {
     thresholdPrice: number,
     repeat: boolean = false,
     notes?: string,
+    priceField: string = 'close',
+    withinPercent?: number,
   ): Promise<PriceAlert> {
     const created = await api.post<PriceAlert>('/alerts/price', {
       instrument_id: instrumentId,
@@ -40,6 +42,8 @@ export const useAlertsStore = defineStore('alerts', () => {
       threshold_price: thresholdPrice,
       repeat,
       notes,
+      price_field: priceField,
+      within_percent: withinPercent,
     })
     alerts.value.unshift(created)
     return created
