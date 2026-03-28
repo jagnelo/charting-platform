@@ -19,8 +19,8 @@
         <button class="hdr-btn" @click="showAlertForm = !showAlertForm" :disabled="!chartStore.instrument" title="New Alert">
           🔔 Alert
         </button>
-        <div v-if="alertsStore.alerts.filter(a=>a.status==='active').length" class="alert-badge">
-          {{ alertsStore.alerts.filter(a=>a.status==='active').length }}
+        <div v-if="currentAlerts.filter(a=>a.status==='active').length" class="alert-badge">
+          {{ currentAlerts.filter(a=>a.status==='active').length }}
         </div>
         <div class="ws-dot" :class="{ connected: alertsStore.wsConnected }" title="WebSocket status" />
       </div>
@@ -32,6 +32,7 @@
         <AlertForm
           :instrument-id="chartStore.instrument.id"
           :symbol="chartStore.symbol"
+          :current-tf="currentTf"
           @close="showAlertForm = false"
         />
       </div>
@@ -75,6 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useChartStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
@@ -91,6 +93,8 @@ const chartStore   = useChartStore()
 const drawStore    = useDrawingsStore()
 const alertsStore  = useAlertsStore()
 const presetsStore = usePresetsStore()
+
+const route = useRoute()
 
 const currentTf       = ref<Timeframe>('D1')
 const showAlertForm   = ref(false)
@@ -134,6 +138,9 @@ watch(currentTf, async (tf) => {
 onMounted(async () => {
   alertsStore.connectWebSocket()
   await presetsStore.loadPresets()
+  // Load ticker from URL param e.g. navigating from /alerts
+  const sym = route.params.symbol as string | undefined
+  if (sym) await onSymbolSelect(sym)
 })
 </script>
 

@@ -3,6 +3,19 @@ import { ref } from 'vue'
 import type { PriceAlert, AlertCondition } from '@/types'
 import { api } from '@/lib/api'
 
+export interface IndicatorAlertCreate {
+  instrument_id: number
+  timeframe: string
+  indicator_a_type: string
+  indicator_a_params: Record<string, number>
+  condition: string
+  threshold_value?: number
+  indicator_b_type?: string
+  indicator_b_params?: Record<string, number>
+  repeat?: boolean
+  notes?: string
+}
+
 export const useAlertsStore = defineStore('alerts', () => {
   const alerts = ref<PriceAlert[]>([])
   const wsConnected = ref(false)
@@ -41,6 +54,11 @@ export const useAlertsStore = defineStore('alerts', () => {
     const updated = await api.post<PriceAlert>(`/alerts/price/${id}/rearm`, {})
     const idx = alerts.value.findIndex(a => a.id === id)
     if (idx !== -1) alerts.value[idx] = updated
+  }
+
+  async function createIndicatorAlert(body: IndicatorAlertCreate) {
+    await api.post('/alerts/indicator', body)
+    // Indicator alerts are not in the price alerts list — no local state update needed
   }
 
   function connectWebSocket() {
@@ -92,7 +110,7 @@ export const useAlertsStore = defineStore('alerts', () => {
 
   return {
     alerts, wsConnected,
-    loadAlerts, createAlert, deleteAlert, rearmAlert,
+    loadAlerts, createAlert, createIndicatorAlert, deleteAlert, rearmAlert,
     connectWebSocket, disconnectWebSocket,
   }
 })

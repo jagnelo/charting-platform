@@ -87,6 +87,7 @@ export interface DrawingStyle {
 export interface PriceAlert {
   id: number
   instrument_id: number
+  instrument_symbol: string
   condition: AlertCondition
   threshold_price: number
   reference_price?: number

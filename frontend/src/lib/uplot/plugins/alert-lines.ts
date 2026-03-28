@@ -22,23 +22,23 @@ export function alertLinesPlugin(getAlerts: () => AlertLine[]): uPlot.Plugin {
           ctx.save()
 
           for (const alert of alerts) {
-            const y = u.valToPos(alert.price, 'y')
-            if (y < 0 || y > u.height) continue
+            const y = u.valToPos(alert.price, 'y', true)   // device pixels
+            if (y < u.bbox.top || y > u.bbox.top + u.bbox.height) continue
 
             const color = alert.triggered ? '#888' : (alert.color ?? '#f59e0b')
             ctx.strokeStyle = color
-            ctx.lineWidth = 1
+            ctx.lineWidth = devicePixelRatio || 1
             ctx.setLineDash([6, 4])
             ctx.beginPath()
-            ctx.moveTo(0, y)
-            ctx.lineTo(u.width, y)
+            ctx.moveTo(u.bbox.left, y)
+            ctx.lineTo(u.bbox.left + u.bbox.width, y)
             ctx.stroke()
 
             if (alert.label) {
               ctx.fillStyle = color
-              ctx.font = '11px monospace'
+              ctx.font = `${(devicePixelRatio || 1) * 11}px monospace`
               ctx.setLineDash([])
-              ctx.fillText(`▶ ${alert.label} ${alert.price}`, 4, y - 3)
+              ctx.fillText(`▶ ${alert.label} ${alert.price}`, u.bbox.left + (devicePixelRatio || 1) * 4, y - (devicePixelRatio || 1) * 3)
             }
           }
 

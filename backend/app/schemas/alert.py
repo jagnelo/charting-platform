@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
+from sqlalchemy.orm import selectinload
+
 from app.models.price_alert import AlertCondition, AlertStatus
 
 
@@ -27,6 +29,7 @@ class PriceAlertOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     instrument_id: int
+    instrument_symbol: str = ''
     condition: AlertCondition
     threshold_price: Decimal
     reference_price: Decimal | None = None

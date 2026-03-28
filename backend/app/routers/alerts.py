@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
@@ -12,6 +13,7 @@ from app.models.indicator_alert import IndicatorAlert
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertStatus, PriceAlert
 from app.models.user import User
+from app.models.instrument import Instrument
 from app.schemas.alert import PriceAlertCreate, PriceAlertOut, PriceAlertUpdate
 from app.websocket.manager import ws_manager
 
@@ -28,13 +30,24 @@ async def list_price_alerts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = select(PriceAlert).where(PriceAlert.user_id == current_user.id)
+    stmt = (
+        select(PriceAlert)
+        .options(selectinload(PriceAlert.instrument))
+        .where(PriceAlert.user_id == current_user.id)
+    )
     if instrument_id:
         stmt = stmt.where(PriceAlert.instrument_id == instrument_id)
     if status:
         stmt = stmt.where(PriceAlert.status == status)
     result = await db.execute(stmt.order_by(PriceAlert.created_at.desc()))
-    return result.scalars().all()
+    alerts = result.scalars().all()
+    # Attach symbol for frontend display
+    out = []
+    for a in alerts:
+        d = PriceAlertOut.model_validate(a)
+        d.instrument_symbol = a.instrument.symbol if a.instrument else ''
+        out.append(d)
+    return out
 
 
 @router.post("/price", response_model=PriceAlertOut, status_code=201)

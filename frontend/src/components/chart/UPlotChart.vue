@@ -842,13 +842,14 @@ function getSubPaneRefLines(type: string): { value: number; color: string; label
 function refLinesPlugin(lines: { value: number; color: string; label?: string }[]): uPlot.Plugin {
   return { hooks: { draw: [(u) => {
     const ctx = u.ctx; ctx.save()
+    const dpr = devicePixelRatio || 1
     for (const line of lines) {
-      const y = u.valToPos(line.value, 'y')
-      ctx.strokeStyle = line.color; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(u.width, y); ctx.stroke()
+      const y = u.valToPos(line.value, 'y', true)
+      ctx.strokeStyle = line.color; ctx.lineWidth = dpr; ctx.setLineDash([4 * dpr, 3 * dpr])
+      ctx.beginPath(); ctx.moveTo(u.bbox.left, y); ctx.lineTo(u.bbox.left + u.bbox.width, y); ctx.stroke()
       if (line.label) {
-        ctx.fillStyle = line.color; ctx.font = '10px monospace'; ctx.setLineDash([])
-        ctx.fillText(line.label, 4, y - 3)
+        ctx.fillStyle = line.color; ctx.font = `${dpr * 10}px monospace`; ctx.setLineDash([])
+        ctx.fillText(line.label, u.bbox.left + dpr * 4, y - dpr * 3)
       }
     }
     ctx.restore()

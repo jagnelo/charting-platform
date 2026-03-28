@@ -26,7 +26,7 @@
         <tbody>
           <tr v-for="a in filtered" :key="a.id" :class="`row--${a.status}`">
             <td class="td-symbol">
-              <router-link :to="`/chart/${a.instrument_id}`">—</router-link>
+              <router-link :to="`/chart/${a.instrument_symbol}`">{{ a.instrument_symbol || '—' }}</router-link>
             </td>
             <td>{{ a.condition.replace(/_/g, ' ') }}</td>
             <td class="td-mono">${{ a.threshold_price }}</td>
@@ -61,7 +61,9 @@ const filtered = computed(() =>
     : alertsStore.alerts
 )
 
-onMounted(() => alertsStore.loadAlerts())
+onMounted(async () => {
+  await alertsStore.loadAlerts()
+})
 </script>
 
 <style scoped>
