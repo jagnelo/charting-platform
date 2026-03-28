@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import alerts, auth, drawings, indicators, instruments, ohlcv, presets, screener
+from app.routers import alerts, auth, drawings, indicators, instruments, ohlcv, presets, screener, instrument_indicators
 from app.services.alert_engine import run_alert_check
 
 logging.basicConfig(
@@ -64,6 +64,7 @@ app.include_router(presets.router, prefix=PREFIX)
 app.include_router(alerts.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
+app.include_router(instrument_indicators.router, prefix=PREFIX)
 
 
 @app.get("/health")

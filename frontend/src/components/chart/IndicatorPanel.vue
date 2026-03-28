@@ -22,7 +22,10 @@
               <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
               <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
             </div>
-            <div v-if="!chartStore.indicators.length" class="empty-hint">None active</div>
+            <div v-if="!chartStore.indicators.length" class="empty-hint">
+              No indicators for this ticker
+              <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
+            </div>
           </div>
 
           <!-- Picker -->
@@ -261,6 +264,11 @@ function applyPreset() {
   if (preset) chartStore.setIndicators([...preset.indicators])
 }
 
+function applyDefault() {
+  const def = presetsStore.getDefault()
+  if (def) chartStore.setIndicators([...def.indicators])
+}
+
 async function saveAsPreset() {
   const name = prompt('Preset name:')
   if (!name) return
@@ -473,6 +481,20 @@ function dateInputToTs(val: string): number {
 .row-btn.btn--active { color: #64b5f6; }
 
 .empty-hint { padding: 8px 10px; color: #333; font-style: italic; font-size: 11px; }
+
+.hint-btn {
+  display: block;
+  margin-top: 6px;
+  background: #1a3a5c;
+  border: none;
+  color: #64b5f6;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-style: normal;
+}
+.hint-btn:hover { background: #1f4a7a; }
 
 /* ── Add / preset bars ─────────────────────────────────────────────────── */
 .add-bar {

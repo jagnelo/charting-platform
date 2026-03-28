@@ -12,6 +12,7 @@ from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.watchlist import Watchlist, watchlist_instrument
+from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 
 __all__ = [
     "TimestampMixin",

@@ -32,6 +32,7 @@ class User(Base, TimestampMixin):
     indicator_presets: Mapped[list["IndicatorPreset"]] = relationship(back_populates="user")
     screener_definitions: Mapped[list["ScreenerDefinition"]] = relationship(back_populates="user")
     watchlists: Mapped[list["Watchlist"]] = relationship(back_populates="user")
+    instrument_indicator_configs: Mapped[list["InstrumentIndicatorConfig"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User id={self.id} username={self.username}>"

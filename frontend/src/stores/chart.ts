@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig } from '@/types'
 import { api } from '@/lib/api'
 
@@ -11,6 +11,8 @@ export const useChartStore = defineStore('chart', () => {
   const indicators = ref<IndicatorConfig[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  
+  let _saveTimer: ReturnType<typeof setTimeout> | null = null
 
   const uplotData = computed(() => {
     if (!bars.value.length) return [[], [], [], [], [], []]
@@ -31,6 +33,20 @@ export const useChartStore = defineStore('chart', () => {
     }
   }
 
+  async function loadIndicatorsForInstrument(instrumentId: number) {
+    try {
+      const res = await api.get<{ indicators: IndicatorConfig[] }>(`/instrument-indicators/${instrumentId}`)
+      indicators.value = res.indicators  // always replace, including empty
+    } catch { /* silent */ }
+  }
+
+  async function saveIndicatorsForInstrument() {
+    if (!instrument.value) return
+    try {
+      await api.put(`/instrument-indicators/${instrument.value.id}`, { indicators: indicators.value })
+    } catch { /* silent */ }
+  }
+
   async function loadBars(sym: string, tf: Timeframe) {
     isLoading.value = true
     error.value = null
@@ -38,6 +54,10 @@ export const useChartStore = defineStore('chart', () => {
     timeframe.value = tf
 
     await loadInstrument(sym)
+
+    if (instrument.value) {
+      await loadIndicatorsForInstrument(instrument.value.id)
+    }
 
     try {
       const raw = await api.get<any[]>(`/ohlcv/${sym}/${tf}`)
@@ -73,10 +93,18 @@ export const useChartStore = defineStore('chart', () => {
     indicators.value[index] = config
   }
 
+  // Auto-save when indicators change, but only if an instrument is loaded
+  watch(indicators, () => {
+    if (!instrument.value) return
+    if (_saveTimer) clearTimeout(_saveTimer)
+    _saveTimer = setTimeout(saveIndicatorsForInstrument, 1000)
+  }, { deep: true })
+
   return {
     symbol, timeframe, bars, instrument, indicators,
     isLoading, error, uplotData,
     loadBars, loadInstrument,
     setIndicators, addIndicator, removeIndicator, updateIndicator,
+    saveIndicatorsForInstrument,
   }
 })
