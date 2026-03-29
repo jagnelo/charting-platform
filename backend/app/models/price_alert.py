@@ -16,7 +16,7 @@ class AlertCondition(str, enum.Enum):
     TOUCHES = "touches"
     PERCENT_CHANGE_UP = "percent_change_up"
     PERCENT_CHANGE_DOWN = "percent_change_down"
-    WITHIN_PERCENT = "within_percent"   # abs((price - threshold) / threshold) <= pct
+    WITHIN_PERCENT = "within_percent"  # abs((price - threshold) / threshold) <= pct
 
 
 class AlertStatus(str, enum.Enum):

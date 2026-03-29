@@ -19,8 +19,8 @@
         <button class="hdr-btn" @click="showAlertForm = !showAlertForm" :disabled="!chartStore.instrument" title="New Alert">
           🔔 Alert
         </button>
-        <div v-if="currentAlerts.filter(a=>a.status==='active').length" class="alert-badge">
-          {{ currentAlerts.filter(a=>a.status==='active').length }}
+        <div v-if="chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
+          {{ alertsStore.activeCountForInstrument(chartStore.instrument.id) }}
         </div>
         <div class="ws-dot" :class="{ connected: alertsStore.wsConnected }" title="WebSocket status" />
       </div>

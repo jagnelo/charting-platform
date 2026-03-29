@@ -13,7 +13,6 @@ from app.models.indicator_alert import IndicatorAlert
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertStatus, PriceAlert
 from app.models.user import User
-from app.models.instrument import Instrument
 from app.schemas.alert import PriceAlertCreate, PriceAlertOut, PriceAlertUpdate
 from app.websocket.manager import ws_manager
 
@@ -45,7 +44,7 @@ async def list_price_alerts(
     out = []
     for a in alerts:
         d = PriceAlertOut.model_validate(a)
-        d.instrument_symbol = a.instrument.symbol if a.instrument else ''
+        d.instrument_symbol = a.instrument.symbol if a.instrument else ""
         out.append(d)
     return out
 
@@ -127,6 +126,7 @@ class IndicatorAlertCreate(BaseModel):
 class IndicatorAlertOut(BaseModel):
     id: int
     instrument_id: int
+    instrument_symbol: str = ""
     timeframe: str
     indicator_a_type: str
     indicator_a_params: dict
@@ -154,11 +154,21 @@ async def list_indicator_alerts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = select(IndicatorAlert).where(IndicatorAlert.user_id == current_user.id)
+    stmt = (
+        select(IndicatorAlert)
+        .options(selectinload(IndicatorAlert.instrument))
+        .where(IndicatorAlert.user_id == current_user.id)
+    )
     if instrument_id:
         stmt = stmt.where(IndicatorAlert.instrument_id == instrument_id)
     result = await db.execute(stmt.order_by(IndicatorAlert.created_at.desc()))
-    return result.scalars().all()
+    alerts = result.scalars().all()
+    out = []
+    for a in alerts:
+        d = IndicatorAlertOut.model_validate(a)
+        d.instrument_symbol = a.instrument.symbol if a.instrument else ""
+        out.append(d)
+    return out
 
 
 @router.post("/indicator", response_model=IndicatorAlertOut, status_code=201)
@@ -194,6 +204,21 @@ async def delete_indicator_alert(
         raise HTTPException(404, "Alert not found")
     await db.delete(alert)
     await db.commit()
+
+
+@router.post("/indicator/{alert_id}/rearm", response_model=IndicatorAlertOut)
+async def rearm_indicator_alert(
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    alert = await db.get(IndicatorAlert, alert_id)
+    if alert is None or alert.user_id != current_user.id:
+        raise HTTPException(404, "Alert not found")
+    alert.status = AlertStatus.ACTIVE
+    await db.commit()
+    await db.refresh(alert)
+    return alert
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────

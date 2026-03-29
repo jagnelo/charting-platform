@@ -7,7 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import alerts, auth, drawings, indicators, instruments, ohlcv, presets, screener, instrument_indicators
+from app.routers import (
+    alerts,
+    auth,
+    drawings,
+    indicators,
+    instrument_indicators,
+    instruments,
+    ohlcv,
+    presets,
+    screener,
+)
 from app.services.alert_engine import run_alert_check
 
 logging.basicConfig(

@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.instrument import Instrument
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 from app.models.user import User
 

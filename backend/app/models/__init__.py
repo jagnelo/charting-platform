@@ -6,13 +6,13 @@ from app.models.exchange import Exchange
 from app.models.indicator_alert import IndicatorAlert, IndicatorAlertCondition
 from app.models.indicator_preset import IndicatorPreset
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument, OptionDetail
+from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.watchlist import Watchlist, watchlist_instrument
-from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 
 __all__ = [
     "TimestampMixin",
@@ -21,6 +21,7 @@ __all__ = [
     "AssetClass",
     "InstrumentType",
     "Instrument",
+    "InstrumentIndicatorConfig",
     "EquityDetail",
     "FutureDetail",
     "OptionDetail",

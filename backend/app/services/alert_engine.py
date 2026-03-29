@@ -28,7 +28,9 @@ INDICATOR_LOOKBACK = 300  # bars to load for indicator computation
 # ── Price alert evaluation ────────────────────────────────────────────────────
 
 
-def _price_condition_met(condition, threshold, last_price, current_price, within_percent=None) -> bool:
+def _price_condition_met(
+    condition, threshold, last_price, current_price, within_percent=None
+) -> bool:
     cp = float(current_price)
     tp = float(threshold)
     lp = float(last_price) if last_price is not None else None
@@ -42,7 +44,8 @@ def _price_condition_met(condition, threshold, last_price, current_price, within
     if condition in (AlertCondition.PERCENT_CHANGE_UP, AlertCondition.PERCENT_CHANGE_DOWN):
         return cp >= tp if condition == AlertCondition.PERCENT_CHANGE_UP else cp <= tp
     if condition == AlertCondition.WITHIN_PERCENT:
-        if tp == 0 or within_percent is None: return False
+        if tp == 0 or within_percent is None:
+            return False
         return abs((cp - tp) / tp) * 100 <= float(within_percent)
     return False
 
@@ -203,8 +206,11 @@ async def run_alert_check():
                 current_dec = Decimal(str(raw_price))
                 await db.refresh(alert, ["instrument"])
                 if _price_condition_met(
-                    alert.condition, alert.threshold_price, alert.last_known_price,
-                    current_dec, alert.within_percent
+                    alert.condition,
+                    alert.threshold_price,
+                    alert.last_known_price,
+                    current_dec,
+                    alert.within_percent,
                 ):
                     await _fire_price_alert(db, alert, current_price)
                 else:

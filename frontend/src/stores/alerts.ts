@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { PriceAlert, AlertCondition } from '@/types'
+import { computed, ref } from 'vue'
+import type { PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
 import { api } from '@/lib/api'
 
 export interface IndicatorAlertCreate {
@@ -18,6 +18,7 @@ export interface IndicatorAlertCreate {
 
 export const useAlertsStore = defineStore('alerts', () => {
   const alerts = ref<PriceAlert[]>([])
+  const indicatorAlerts = ref<IndicatorAlert[]>([])
   const wsConnected = ref(false)
   let ws: WebSocket | null = null
 
@@ -25,6 +26,7 @@ export const useAlertsStore = defineStore('alerts', () => {
     const params: Record<string, any> = {}
     if (instrumentId) params.instrument_id = instrumentId
     alerts.value = await api.get('/alerts/price', params)
+    indicatorAlerts.value = await api.get('/alerts/indicator', params)
   }
 
   async function createAlert(
@@ -61,8 +63,31 @@ export const useAlertsStore = defineStore('alerts', () => {
   }
 
   async function createIndicatorAlert(body: IndicatorAlertCreate) {
-    await api.post('/alerts/indicator', body)
-    // Indicator alerts are not in the price alerts list — no local state update needed
+    const created = await api.post<IndicatorAlert>('/alerts/indicator', body)
+    indicatorAlerts.value.unshift(created)
+  }
+
+  async function deleteIndicatorAlert(id: number) {
+    await api.delete(`/alerts/indicator/${id}`)
+    indicatorAlerts.value = indicatorAlerts.value.filter(a => a.id !== id)
+  }
+
+  async function rearmIndicatorAlert(id: number) {
+    const updated = await api.post<IndicatorAlert>(`/alerts/indicator/${id}/rearm`, {})
+    const idx = indicatorAlerts.value.findIndex(a => a.id === id)
+    if (idx !== -1) indicatorAlerts.value[idx] = updated
+  }
+
+  // Total active alert count across both types — used by badge
+  const totalActiveCount = computed(() =>
+    alerts.value.filter(a => a.status === 'active').length +
+    indicatorAlerts.value.filter(a => a.status === 'active').length
+  )
+
+  // Active alerts for a specific instrument (both types)
+  function activeCountForInstrument(instrumentId: number): number {
+    return alerts.value.filter(a => a.status === 'active' && a.instrument_id === instrumentId).length +
+      indicatorAlerts.value.filter(a => a.status === 'active' && a.instrument_id === instrumentId).length
   }
 
   function connectWebSocket() {
@@ -113,8 +138,11 @@ export const useAlertsStore = defineStore('alerts', () => {
   }
 
   return {
-    alerts, wsConnected,
-    loadAlerts, createAlert, createIndicatorAlert, deleteAlert, rearmAlert,
+    alerts, indicatorAlerts, wsConnected, totalActiveCount,
+    loadAlerts, createAlert, createIndicatorAlert,
+    deleteAlert, rearmAlert,
+    deleteIndicatorAlert, rearmIndicatorAlert,
+    activeCountForInstrument,
     connectWebSocket, disconnectWebSocket,
   }
 })

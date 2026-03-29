@@ -102,6 +102,28 @@ export interface PriceAlert {
   updated_at: string
 }
 
+export interface IndicatorAlert {
+  id: number
+  instrument_id: number
+  instrument_symbol: string
+  timeframe: string
+  indicator_a_type: string
+  indicator_a_params: Record<string, unknown>
+  condition: string
+  threshold_value: number | null
+  indicator_b_type: string | null
+  indicator_b_params: Record<string, unknown> | null
+  status: AlertStatus
+  repeat: boolean
+  notes: string | null
+  triggered_at: string | null
+  trigger_count: number
+  last_value_a: number | null
+  last_value_b: number | null
+  created_at: string
+  updated_at: string
+}
+
 export interface IndicatorConfig {
   type: IndicatorType
   params: Record<string, unknown>
