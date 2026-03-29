@@ -200,7 +200,6 @@ async def run_alert_check():
             if current_price is None:
                 continue
             for alert in alerts:
-                # ✅ fetch latest bar for instrument instead of using invalid placeholder
                 result = await db.execute(
                     select(OHLCVBar)
                     .where(OHLCVBar.instrument_id == instrument.id)
