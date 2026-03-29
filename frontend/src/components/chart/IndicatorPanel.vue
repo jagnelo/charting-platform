@@ -118,8 +118,8 @@
               class="list-row alert-row"
               :class="`alert-row--${a.status}`"
             >
-              <span class="alert-icon">$</span>
-              <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ a.threshold_price }}</span>
+              <span class="alert-icon">¤</span>
+              <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
               <button class="row-btn" :class="{ 'btn--active': a.repeat }"
                       @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
               <button class="row-btn" v-if="a.status==='active'"
@@ -264,6 +264,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
+import { formatMoney } from '@/lib/format'
 import { useChartStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'

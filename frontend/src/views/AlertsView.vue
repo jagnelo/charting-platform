@@ -35,8 +35,8 @@
             </td>
             <td class="td-mono">{{ (a as any).price_field ?? 'close' }}</td>
             <td>{{ a.condition.replace(/_/g, ' ') }}</td>
-            <td class="td-mono">${{ a.threshold_price }}</td>
-            <td class="td-mono">{{ a.last_known_price != null ? Number(a.last_known_price).toFixed(4) : '—' }}</td>
+            <td class="td-mono">{{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</td>
+            <td class="td-mono">{{ a.last_known_price != null ? formatMoney(Number(a.last_known_price), a.instrument_currency) : '—' }}</td>
             <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
             <td>
               <button class="inline-toggle" @click="alertsStore.updateAlert(a.id, { repeat: !a.repeat })"
@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
+import { formatMoney } from '@/lib/format'
 import type { IndicatorAlert } from '@/types'
 
 const alertsStore = useAlertsStore()

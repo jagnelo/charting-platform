@@ -44,6 +44,7 @@ async def list_price_alerts(
     out = []
     for a in alerts:
         d = PriceAlertOut.model_validate(a)
+        d.instrument_currency = a.instrument.currency if a.instrument else None
         d.instrument_symbol = a.instrument.symbol if a.instrument else ""
         out.append(d)
     return out
@@ -126,6 +127,7 @@ class IndicatorAlertCreate(BaseModel):
 class IndicatorAlertOut(BaseModel):
     id: int
     instrument_id: int
+    instrument_currency: str | None = None
     instrument_symbol: str = ""
     timeframe: str
     indicator_a_type: str
@@ -172,6 +174,7 @@ async def list_indicator_alerts(
     out = []
     for a in alerts:
         d = IndicatorAlertOut.model_validate(a)
+        d.instrument_currency = a.instrument.currency if a.instrument else None
         d.instrument_symbol = a.instrument.symbol if a.instrument else ""
         out.append(d)
     return out
@@ -243,7 +246,7 @@ async def update_indicator_alert(
     await db.refresh(alert)
     d = IndicatorAlertOut.model_validate(alert)
     await db.refresh(alert, ["instrument"])
-    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ''
+    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ""
     return d
 
 

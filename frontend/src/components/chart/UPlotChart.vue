@@ -118,10 +118,12 @@ import type { DrawingType, IndicatorConfig, Timeframe } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const DEFAULT_BARS_VISIBLE = 150
-const ZOOM_FACTOR          = 1.08
-const PRICE_DRAG_EXPO      = 0.004
-const LIVE_POLL_MULTIPLIER = 1.0   // poll every 1× bar duration
+const DEFAULT_BARS_VISIBLE  = 150
+const ZOOM_FACTOR           = 1.08
+const PRICE_DRAG_EXPO       = 0.004
+const WHEEL_AXIS_DOMINANCE  = 1.25
+const WHEEL_PAN_SENSITIVITY = 0.65
+const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
 
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const chartStore  = useChartStore()
@@ -501,6 +503,9 @@ function setInitialView(u: uPlot) {
   const barDur = ts.length > 1 ? ts[1] - ts[0] : 86400
   const latest = ts[ts.length - 1]
   u.setScale('x', { min: latest - DEFAULT_BARS_VISIBLE * barDur, max: latest + barDur * 5 })
+  // Recompute the auto Y range against the initial X window so the first
+  // user interaction does not snap to a different vertical scale.
+  u.setData(u.data as uPlot.AlignedData)
   isAtLatest.value = true
 }
 
@@ -586,15 +591,23 @@ function setupInteraction(u: uPlot) {
       return
     }
 
+    const absX = Math.abs(e.deltaX)
+    const absY = Math.abs(e.deltaY)
+
     // Horizontal trackpad swipe — pan
-    if (!isPinch && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+    if (!isPinch && absX > absY * WHEEL_AXIS_DOMINANCE) {
       const span    = xMax - xMin
       const pxWidth = getRect().width || 1
-      setXRange(xMin + (e.deltaX / pxWidth) * span, xMax + (e.deltaX / pxWidth) * span)
+      const panDelta = e.deltaX * WHEEL_PAN_SENSITIVITY
+      setXRange(
+        xMin + (panDelta / pxWidth) * span,
+        xMax + (panDelta / pxWidth) * span,
+      )
       return
     }
 
     // Vertical scroll / pinch — zoom on cursor
+    if (!isPinch && absY <= absX * WHEEL_AXIS_DOMINANCE) return
     const rect       = liveRect()
     const cursorPx   = Math.max(0, e.clientX - rect.left)
     const cursorTime = u.posToVal(cursorPx, 'x')

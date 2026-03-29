@@ -8,7 +8,7 @@
           <span class="sym">{{ chartStore.symbol }}</span>
           <span class="sym-name">{{ chartStore.instrument?.name }}</span>
           <span class="sym-price" :class="priceClass">
-            {{ currentPrice?.toFixed(4) ?? '—' }}
+            {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
           </span>
         </div>
       </div>
@@ -66,6 +66,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChartStore }   from '@/stores/chart'
+import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
