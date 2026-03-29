@@ -100,6 +100,65 @@
       </Transition>
     </div>
 
+    <!-- ── Alerts section ──────────────────────────────────────────── -->
+    <div class="section section--alerts" :class="{ collapsed: !alertsOpen }">
+      <div class="section-header" @click="alertsOpen = !alertsOpen">
+        <span class="section-title">Alerts</span>
+        <span class="section-count">{{ instrumentAlerts.length }}</span>
+        <span class="section-chevron">{{ alertsOpen ? '▴' : '▾' }}</span>
+      </div>
+
+      <Transition name="slide">
+        <div class="section-body" v-if="alertsOpen">
+          <div class="ind-list">
+            <!-- Price alerts -->
+            <div
+              v-for="a in instrumentPriceAlerts"
+              :key="'p'+a.id"
+              class="list-row alert-row"
+              :class="`alert-row--${a.status}`"
+            >
+              <span class="alert-icon">$</span>
+              <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ a.threshold_price }}</span>
+              <button class="row-btn" :class="{ 'btn--active': a.repeat }"
+                      @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
+              <button class="row-btn" v-if="a.status==='active'"
+                      @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
+              <button class="row-btn" v-if="a.status==='paused'"
+                      @click.stop="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
+              <button class="row-btn" v-if="a.status==='triggered'"
+                      @click.stop="alertsStore.rearmAlert(a.id)" title="Rearm">↺</button>
+              <button class="row-btn danger" @click.stop="alertsStore.deleteAlert(a.id)" title="Delete">✕</button>
+            </div>
+            <!-- Indicator alerts -->
+            <div
+              v-for="a in instrumentIndicatorAlerts"
+              :key="'i'+a.id"
+              class="list-row alert-row"
+              :class="`alert-row--${a.status}`"
+              :title="indAlertLabel(a)"
+            >
+              <span class="alert-icon">≈</span>
+              <span class="row-name">{{ indAlertLabel(a) }}</span>
+              <button class="row-btn" :class="{ 'btn--active': a.repeat }"
+                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
+              <button class="row-btn" v-if="a.status==='active'"
+                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
+              <button class="row-btn" v-if="a.status==='paused'"
+                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume">▶</button>
+              <button class="row-btn" v-if="a.status==='triggered'"
+                      @click.stop="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">↺</button>
+              <button class="row-btn danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id)" title="Delete">✕</button>
+            </div>
+            <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this ticker</div>
+          </div>
+          <div class="add-bar">
+            <button class="add-btn" @click="emit('addAlert')">+ Add Alert</button>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
   </div>
 
   <!-- ── Indicator editor popup ──────────────────────────────────────────── -->
@@ -203,19 +262,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useAlertsStore } from '@/stores/alerts'
 import { useChartStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
-import type { ChartDrawing, IndicatorConfig, IndicatorType } from '@/types'
+import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 
-const emit = defineEmits<{ alertForIndicator: [config: IndicatorConfig] }>()
+const emit = defineEmits<{
+  alertForIndicator: [config: IndicatorConfig]
+  addAlert: []
+}>()
 
+const alertsStore  = useAlertsStore()
 const chartStore   = useChartStore()
 const drawStore    = useDrawingsStore()
 const presetsStore = usePresetsStore()
 
 // ── Section collapse state ────────────────────────────────────────────────────
+const alertsOpen     = ref(true)
 const indicatorsOpen = ref(true)
 const drawingsOpen   = ref(true)
 
@@ -344,6 +409,37 @@ function applyIndEdit() {
   closeIndEditor()
 }
 
+const instrumentPriceAlerts = computed(() =>
+  alertsStore.alerts.filter(a => a.instrument_id === chartStore.instrument?.id)
+)
+const instrumentIndicatorAlerts = computed(() =>
+  alertsStore.indicatorAlerts.filter(a => a.instrument_id === chartStore.instrument?.id)
+)
+const instrumentAlerts = computed(() =>
+  [...instrumentPriceAlerts.value, ...instrumentIndicatorAlerts.value]
+)
+
+function fmtTs(ts: number): string {
+  const d = new Date(ts * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`
+}
+
+function fmtIndParams(type: string, params: Record<string, unknown>): string {
+  if (!params || !Object.keys(params).length) return type.toUpperCase()
+  if (type === 'avwap' && params.anchorTime) return `AVWAP(${fmtTs(params.anchorTime as number)})`
+  return `${type.toUpperCase()}(${Object.values(params).join(',')})`
+}
+
+function indAlertLabel(a: IndicatorAlert): string {
+  const indA = fmtIndParams(a.indicator_a_type, a.indicator_a_params ?? {})
+  const cond = a.condition.replace(/_/g, ' ')
+  if (a.indicator_b_type) {
+    return `${indA} ${cond} ${fmtIndParams(a.indicator_b_type, a.indicator_b_params ?? {})}`
+  }
+  return `${indA} ${cond} ${a.threshold_value ?? ''}`
+}
+
 // ── Drawing editor ────────────────────────────────────────────────────────────
 const drawEditorOpen = ref(false)
 const editingDraw    = ref<ChartDrawing | null>(null)
@@ -437,6 +533,12 @@ function dateInputToTs(val: string): number {
   flex: 1;
   min-height: 0;
 }
+
+.alert-row { cursor: default; }
+.alert-icon { width: 14px; text-align: center; font-size: 10px; color: #f59e0b; flex-shrink: 0; }
+.alert-row--active .alert-icon { color: #f59e0b; }
+.alert-row--triggered .alert-icon { color: #555; }
+.alert-row--paused .alert-icon { color: #ffd54f; opacity: 0.5; }
 
 /* ── List ──────────────────────────────────────────────────────────────── */
 .ind-list {

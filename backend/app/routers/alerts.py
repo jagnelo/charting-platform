@@ -148,6 +148,12 @@ class IndicatorAlertOut(BaseModel):
         from_attributes = True
 
 
+class IndicatorAlertUpdate(BaseModel):
+    repeat: bool | None = None
+    notes: str | None = None
+    status: AlertStatus | None = None
+
+
 @router.get("/indicator", response_model=list[IndicatorAlertOut])
 async def list_indicator_alerts(
     instrument_id: int | None = Query(None),
@@ -219,6 +225,26 @@ async def rearm_indicator_alert(
     await db.commit()
     await db.refresh(alert)
     return alert
+
+
+@router.patch("/indicator/{alert_id}", response_model=IndicatorAlertOut)
+async def update_indicator_alert(
+    alert_id: int,
+    body: IndicatorAlertUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    alert = await db.get(IndicatorAlert, alert_id)
+    if alert is None or alert.user_id != current_user.id:
+        raise HTTPException(404, "Alert not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(alert, k, v)
+    await db.commit()
+    await db.refresh(alert)
+    d = IndicatorAlertOut.model_validate(alert)
+    await db.refresh(alert, ["instrument"])
+    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ''
+    return d
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────

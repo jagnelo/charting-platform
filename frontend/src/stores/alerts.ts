@@ -51,6 +51,12 @@ export const useAlertsStore = defineStore('alerts', () => {
     return created
   }
 
+  async function updateAlert(id: number, patch: Partial<{ repeat: boolean; notes: string; status: string }>) {
+    const updated = await api.patch<PriceAlert>(`/alerts/price/${id}`, patch)
+    const idx = alerts.value.findIndex(a => a.id === id)
+    if (idx !== -1) alerts.value[idx] = updated
+  }
+
   async function deleteAlert(id: number) {
     await api.delete(`/alerts/price/${id}`)
     alerts.value = alerts.value.filter(a => a.id !== id)
@@ -65,6 +71,12 @@ export const useAlertsStore = defineStore('alerts', () => {
   async function createIndicatorAlert(body: IndicatorAlertCreate) {
     const created = await api.post<IndicatorAlert>('/alerts/indicator', body)
     indicatorAlerts.value.unshift(created)
+  }
+
+  async function updateIndicatorAlert(id: number, patch: Partial<{ repeat: boolean; notes: string; status: string }>) {
+    const updated = await api.patch<IndicatorAlert>(`/alerts/indicator/${id}`, patch)
+    const idx = indicatorAlerts.value.findIndex(a => a.id === id)
+    if (idx !== -1) indicatorAlerts.value[idx] = updated
   }
 
   async function deleteIndicatorAlert(id: number) {
@@ -140,6 +152,7 @@ export const useAlertsStore = defineStore('alerts', () => {
   return {
     alerts, indicatorAlerts, wsConnected, totalActiveCount,
     loadAlerts, createAlert, createIndicatorAlert,
+    updateAlert, updateIndicatorAlert,
     deleteAlert, rearmAlert,
     deleteIndicatorAlert, rearmIndicatorAlert,
     activeCountForInstrument,

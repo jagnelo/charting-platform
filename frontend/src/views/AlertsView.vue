@@ -9,6 +9,7 @@
         <option value="paused">Paused</option>
       </select>
     </div>
+
     <!-- Price alerts -->
     <div class="section-title">Price Alerts</div>
     <div class="alerts-table-wrap">
@@ -19,6 +20,7 @@
             <th>Field</th>
             <th>Condition</th>
             <th>Threshold</th>
+            <th>Last price</th>
             <th>Status</th>
             <th>Repeat</th>
             <th>Triggered</th>
@@ -34,17 +36,28 @@
             <td class="td-mono">{{ (a as any).price_field ?? 'close' }}</td>
             <td>{{ a.condition.replace(/_/g, ' ') }}</td>
             <td class="td-mono">${{ a.threshold_price }}</td>
+            <td class="td-mono">{{ a.last_known_price != null ? Number(a.last_known_price).toFixed(4) : '—' }}</td>
             <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
-            <td>{{ a.repeat ? '↺' : '—' }}</td>
+            <td>
+              <button class="inline-toggle" @click="alertsStore.updateAlert(a.id, { repeat: !a.repeat })"
+                      :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
+                {{ a.repeat ? '↺' : '—' }}
+              </button>
+            </td>
             <td class="td-mono">{{ a.triggered_at ? new Date(a.triggered_at).toLocaleString() : '—' }}</td>
-            <td class="td-notes">{{ a.notes ?? '' }}</td>
+            <td class="td-notes">
+              <input class="inline-edit" :value="a.notes ?? ''" placeholder="Add note…"
+                     @change="alertsStore.updateAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
+            </td>
             <td class="td-actions">
               <button v-if="a.status === 'triggered'" @click="alertsStore.rearmAlert(a.id)" title="Rearm">↺</button>
+              <button v-if="a.status === 'active'" @click="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
+              <button v-if="a.status === 'paused'" @click="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
               <button @click="alertsStore.deleteAlert(a.id)" title="Delete" class="btn-danger">✕</button>
             </td>
           </tr>
           <tr v-if="!filteredPrice.length">
-            <td colspan="9" class="empty-row">No price alerts</td>
+            <td colspan="10" class="empty-row">No price alerts</td>
           </tr>
         </tbody>
       </table>
@@ -57,12 +70,13 @@
         <thead>
           <tr>
             <th>Symbol</th>
-            <th>Timeframe</th>
+            <th>TF</th>
             <th>Expression</th>
+            <th>Last value A</th>
+            <th>Last value B</th>
             <th>Status</th>
             <th>Repeat</th>
             <th>Triggered</th>
-            <th>Last value</th>
             <th>Notes</th>
             <th>Actions</th>
           </tr>
@@ -73,18 +87,30 @@
               <router-link :to="`/chart/${a.instrument_symbol}`">{{ a.instrument_symbol || '—' }}</router-link>
             </td>
             <td class="td-mono">{{ a.timeframe }}</td>
-            <td class="td-mono td-expr">{{ indAlertExpr(a) }}</td>
-            <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
-            <td>{{ a.repeat ? '↺' : '—' }}</td>
-            <td class="td-mono">{{ a.triggered_at ? new Date(a.triggered_at).toLocaleString() : '—' }}</td>
+            <td class="td-mono td-expr" :title="indAlertExpr(a)">{{ indAlertExpr(a) }}</td>
             <td class="td-mono">{{ a.last_value_a != null ? Number(a.last_value_a).toFixed(4) : '—' }}</td>
-            <td class="td-notes">{{ a.notes ?? '' }}</td>
+            <td class="td-mono">{{ a.last_value_b != null ? Number(a.last_value_b).toFixed(4) : '—' }}</td>
+            <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
+            <td>
+              <button class="inline-toggle" @click="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })"
+                      :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
+                {{ a.repeat ? '↺' : '—' }}
+              </button>
+            </td>
+            <td class="td-mono">{{ a.triggered_at ? new Date(a.triggered_at).toLocaleString() : '—' }}</td>
+            <td class="td-notes">
+              <input class="inline-edit" :value="a.notes ?? ''" placeholder="Add note…"
+                     @change="alertsStore.updateIndicatorAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
+            </td>
             <td class="td-actions">
+              <button v-if="a.status === 'triggered'" @click="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">↺</button>
+              <button v-if="a.status === 'active'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
+              <button v-if="a.status === 'paused'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume">▶</button>
               <button @click="alertsStore.deleteIndicatorAlert(a.id)" title="Delete" class="btn-danger">✕</button>
             </td>
           </tr>
           <tr v-if="!filteredIndicator.length">
-            <td colspan="9" class="empty-row">No indicator alerts</td>
+            <td colspan="10" class="empty-row">No indicator alerts</td>
           </tr>
         </tbody>
       </table>
@@ -112,16 +138,25 @@ const filteredIndicator = computed(() =>
     : alertsStore.indicatorAlerts
 )
 
+function fmtTs(ts: number): string {
+  const d = new Date(ts * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`
+}
+
+function fmtIndicatorParams(type: string, params: Record<string, unknown>): string {
+  if (!params || !Object.keys(params).length) return type.toUpperCase()
+  if (type === 'avwap' && params.anchorTime) {
+    return `AVWAP(${fmtTs(params.anchorTime as number)})`
+  }
+  return `${type.toUpperCase()}(${Object.values(params).join(',')})`
+}
+
 function indAlertExpr(a: IndicatorAlert): string {
-  const params = (p: Record<string, unknown>) => Object.values(p).join(',')
-  const indA = a.indicator_a_params && Object.keys(a.indicator_a_params).length
-    ? `${a.indicator_a_type.toUpperCase()}(${params(a.indicator_a_params)})`
-    : a.indicator_a_type.toUpperCase()
+  const indA = fmtIndicatorParams(a.indicator_a_type, a.indicator_a_params ?? {})
   const cond = a.condition.replace(/_/g, ' ')
   if (a.indicator_b_type) {
-    const indB = a.indicator_b_params && Object.keys(a.indicator_b_params).length
-      ? `${a.indicator_b_type.toUpperCase()}(${params(a.indicator_b_params)})`
-      : a.indicator_b_type.toUpperCase()
+    const indB = fmtIndicatorParams(a.indicator_b_type, a.indicator_b_params ?? {})
     return `${indA} ${cond} ${indB}`
   }
   return `${indA} ${cond} ${a.threshold_value ?? ''}`
@@ -138,6 +173,8 @@ onMounted(async () => {
 .filter-bar  { margin-bottom: 12px; }
 .filter-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 4px 8px; border-radius: 3px; }
 
+.section-title { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
 .alerts-table-wrap { overflow-x: auto; }
 .alerts-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
 .alerts-table th { background: #111; color: #666; text-align: left; padding: 8px 12px; border-bottom: 1px solid #222; font-weight: 600; }
@@ -148,20 +185,33 @@ onMounted(async () => {
 
 .td-symbol a { color: #64b5f6; text-decoration: none; }
 .td-mono  { font-family: monospace; }
-.td-notes { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
+.td-notes { max-width: 160px; }
+.td-expr  { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .status-badge { padding: 2px 7px; border-radius: 10px; font-size: 10px; text-transform: uppercase; }
 .status-badge--active    { background: #1a3a1a; color: #66bb6a; border: 1px solid #2e6b2e; }
 .status-badge--triggered { background: #1a1a1a; color: #555;    border: 1px solid #333; }
 .status-badge--paused    { background: #2a2a1a; color: #ffd54f; border: 1px solid #4a4a1a; }
 
-.td-actions { display: flex; gap: 6px; }
-.td-actions button { background: none; border: 1px solid #333; color: #777; border-radius: 3px; padding: 2px 7px; cursor: pointer; }
-.td-actions button:hover { color: #aaa; }
+/* Inline editable repeat toggle */
+.inline-toggle {
+  background: none; border: none; color: #666; cursor: pointer;
+  font-size: 12px; padding: 0;
+}
+.inline-toggle:hover { color: #aaa; }
+
+/* Inline editable notes input */
+.inline-edit {
+  background: none; border: none; border-bottom: 1px solid transparent;
+  color: #666; font-family: monospace; font-size: 11px; width: 100%; padding: 0;
+}
+.inline-edit:hover { border-bottom-color: #333; }
+.inline-edit:focus { outline: none; border-bottom-color: #64b5f6; color: #aaa; }
+
+.td-actions { display: flex; gap: 4px; }
+.td-actions button { background: none; border: 1px solid #333; color: #777; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 11px; }
+.td-actions button:hover { color: #aaa; border-color: #555; }
 .td-actions .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
 .empty-row { text-align: center; color: #444; padding: 32px; }
-
-.section-title { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-.td-expr { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

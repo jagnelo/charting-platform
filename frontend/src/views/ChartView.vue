@@ -16,9 +16,6 @@
         <TimeframeSelector v-model="currentTf" />
       </div>
       <div class="header-right">
-        <button class="hdr-btn" @click="showAlertForm = !showAlertForm" :disabled="!chartStore.instrument" title="New Alert">
-          🔔 Alert
-        </button>
         <div v-if="chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
           {{ alertsStore.activeCountForInstrument(chartStore.instrument.id) }}
         </div>
@@ -57,20 +54,10 @@
         </div>
         <UPlotChart v-else />
       </div>
-      <IndicatorPanel @alert-for-indicator="onAlertForIndicator" />
-    </div>
-
-    <!-- Bottom panel: alerts list for current symbol -->
-    <div class="alert-strip" v-if="currentAlerts.length">
-      <span class="strip-label">ALERTS:</span>
-      <span
-        v-for="a in currentAlerts"
-        :key="a.id"
-        :class="['alert-chip', `alert-chip--${a.status}`]"
-      >
-        {{ a.condition.replace('_', ' ') }} ${{ a.threshold_price }}
-        <button @click="alertsStore.deleteAlert(a.id)">✕</button>
-      </span>
+      <IndicatorPanel
+        @alert-for-indicator="onAlertForIndicator"
+        @add-alert="showAlertForm = true"
+      />
     </div>
   </div>
 </template>
@@ -111,10 +98,6 @@ const priceClass  = computed(() => {
   if (currentPrice.value == null || lastClose.value == null) return ''
   return currentPrice.value >= lastClose.value ? 'price-up' : 'price-down'
 })
-
-const currentAlerts = computed(() =>
-  alertsStore.alerts.filter(a => a.instrument_id === chartStore.instrument?.id)
-)
 
 async function onSymbolSelect(symbol: string) {
   await chartStore.loadBars(symbol, currentTf.value)

@@ -255,10 +255,11 @@ async def run_alert_check():
                     alert.condition, val_a, last_a, threshold, val_b, last_b
                 ):
                     await _fire_indicator_alert(db, alert, val_a, val_b)
-                else:
-                    alert.last_value_a = Decimal(str(val_a))
-                    if val_b is not None:
-                        alert.last_value_b = Decimal(str(val_b))
+
+                # Always persist latest values for display in UI
+                alert.last_value_a = Decimal(str(val_a))
+                if val_b is not None:
+                    alert.last_value_b = Decimal(str(val_b))
 
             except Exception as e:
                 logger.error(f"Indicator alert {alert.id} evaluation failed: {e}")
