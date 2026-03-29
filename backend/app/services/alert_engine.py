@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -200,7 +200,18 @@ async def run_alert_check():
             if current_price is None:
                 continue
             for alert in alerts:
-                bar = await db.get(OHLCVBar, ...)  # already fetched
+                # ✅ fetch latest bar for instrument instead of using invalid placeholder
+                result = await db.execute(
+                    select(OHLCVBar)
+                    .where(OHLCVBar.instrument_id == instrument.id)
+                    .order_by(desc(OHLCVBar.ts))
+                    .limit(1)
+                )
+                bar = result.scalar_one_or_none()
+        
+                if bar is None:
+                    # no data available, skip this alert
+                    continue
                 field = alert.price_field or "close"
                 raw_price = getattr(bar, field, current_price) if bar else current_price
                 current_dec = Decimal(str(raw_price))
