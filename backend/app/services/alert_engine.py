@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -207,7 +207,7 @@ async def run_alert_check():
                     .limit(1)
                 )
                 bar = result.scalar_one_or_none()
-        
+
                 if bar is None:
                     # no data available, skip this alert
                     continue
