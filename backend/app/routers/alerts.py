@@ -1,8 +1,4 @@
-from datetime import datetime
-from decimal import Decimal
-
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,10 +6,16 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.indicator_alert import IndicatorAlert
-from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertStatus, PriceAlert
 from app.models.user import User
-from app.schemas.alert import PriceAlertCreate, PriceAlertOut, PriceAlertUpdate
+from app.schemas.alert import (
+    IndicatorAlertCreate,
+    IndicatorAlertOut,
+    IndicatorAlertUpdate,
+    PriceAlertCreate,
+    PriceAlertOut,
+    PriceAlertUpdate,
+)
 from app.websocket.manager import ws_manager
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -109,51 +111,6 @@ async def rearm_price_alert(
 
 
 # ── Indicator Alerts ──────────────────────────────────────────────────────────
-
-
-class IndicatorAlertCreate(BaseModel):
-    instrument_id: int
-    timeframe: Timeframe
-    indicator_a_type: str
-    indicator_a_params: dict = {}
-    condition: str
-    threshold_value: Decimal | None = None
-    indicator_b_type: str | None = None
-    indicator_b_params: dict | None = None
-    repeat: bool = False
-    notes: str | None = None
-
-
-class IndicatorAlertOut(BaseModel):
-    id: int
-    instrument_id: int
-    instrument_currency: str | None = None
-    instrument_symbol: str = ""
-    timeframe: str
-    indicator_a_type: str
-    indicator_a_params: dict
-    condition: str
-    threshold_value: Decimal | None
-    indicator_b_type: str | None
-    indicator_b_params: dict | None
-    status: str
-    repeat: bool
-    notes: str | None
-    triggered_at: datetime | None
-    trigger_count: int
-    last_value_a: Decimal | None
-    last_value_b: Decimal | None
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class IndicatorAlertUpdate(BaseModel):
-    repeat: bool | None = None
-    notes: str | None = None
-    status: AlertStatus | None = None
 
 
 @router.get("/indicator", response_model=list[IndicatorAlertOut])
