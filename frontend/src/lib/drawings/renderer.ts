@@ -10,7 +10,7 @@ export class DrawingRenderer {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private uplot: uPlot | null = null
-  private timeToX: (time: number) => number = (time) => this.uplot ? this.uplot.valToPos(time, 'x') : time
+  private timeToX: (time: number) => number = (time) => time
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas

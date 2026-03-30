@@ -120,9 +120,10 @@ describe('useChartStore', () => {
     ] as any
 
     const data = store.uplotData
-    expect(data).toHaveLength(6)           // [ts, o, h, l, c, vol]
+    expect(data).toHaveLength(6)           // [barIndex, o, h, l, c, vol]
     expect(data[0]).toHaveLength(2)        // 2 bars
-    expect(typeof data[0][0]).toBe('number')  // timestamps are numbers
+    expect(data[0][0]).toBe(0)
+    expect(data[0][1]).toBe(1)
     expect(data[1][0]).toBeCloseTo(100)   // open
     expect(data[4][1]).toBeCloseTo(106)   // close bar 2
   })

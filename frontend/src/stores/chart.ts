@@ -16,13 +16,13 @@ export const useChartStore = defineStore('chart', () => {
 
   const uplotData = computed(() => {
     if (!bars.value.length) return [[], [], [], [], [], []]
-    const timestamps = bars.value.map(b => new Date(b.ts).getTime() / 1000)
+    const barIndex = bars.value.map((_, i) => i)
     const opens   = bars.value.map(b => b.open)
     const highs   = bars.value.map(b => b.high)
     const lows    = bars.value.map(b => b.low)
     const closes  = bars.value.map(b => b.close)
     const volumes = bars.value.map(b => b.volume ?? 0)
-    return [timestamps, opens, highs, lows, closes, volumes]
+    return [barIndex, opens, highs, lows, closes, volumes]
   })
 
   async function loadInstrument(sym: string) {
