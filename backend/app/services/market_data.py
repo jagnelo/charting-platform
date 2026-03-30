@@ -170,9 +170,10 @@ def _fetch_yfinance(instrument, timeframe, start, end, adjusted, datasource) -> 
     yf_interval = TF_TO_YF.get(timeframe, "1d")
     try:
         t = yf.Ticker(ticker_sym)
+        yf_end = (end + timedelta(days=1)).strftime("%Y-%m-%d")
         df = t.history(
             start=start.strftime("%Y-%m-%d"),
-            end=end.strftime("%Y-%m-%d"),
+            end=yf_end,
             interval=yf_interval,
             auto_adjust=adjusted,
             actions=False,
