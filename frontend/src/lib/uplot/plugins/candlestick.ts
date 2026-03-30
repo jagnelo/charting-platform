@@ -10,6 +10,7 @@
  * Data series: [timestamps, opens, highs, lows, closes, volumes]
  */
 import type uPlot from 'uplot'
+import { getBodyWidthPx } from '@/lib/uplot/bar-metrics'
 
 export interface CandlestickOptions {
   upColor?: string
@@ -38,11 +39,8 @@ export function candlestickPlugin(opts: CandlestickOptions = {}): uPlot.Plugin {
 
           ctx.save()
 
-          // Bar width in device pixels using the true (device-pixel) coordinates
-          const pixelPerBar = times.length > 1
-            ? Math.abs(u.valToPos(times[1], 'x', true) - u.valToPos(times[0], 'x', true))
-            : 8
-          const bodyWidth = Math.max(1, pixelPerBar * 0.7)
+          // Width is based on current visible bar spacing, not the timeframe.
+          const bodyWidth = getBodyWidthPx(u, 0.78, 2)
           const halfBody  = bodyWidth / 2
           const wickWidth = cfg.wickWidth * (devicePixelRatio || 1)
 

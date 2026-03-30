@@ -174,7 +174,7 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
     idx = i
   }
   const d = u.data as number[][]
-  const ts = d[0]?.[idx]
+  const ts = barIndexToTime(idx)
   if (ts == null) { tooltip.value.hasData = false; return }
   const o = d[1]?.[idx] ?? 0
   const h = d[2]?.[idx] ?? 0
@@ -195,6 +195,38 @@ const isAtLatest    = ref(true)
 const showShortcuts = ref(false)
 const isLogScale    = ref(false)
 const autoY         = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
+
+const barTimestamps = computed(() =>
+  chartStore.bars.map(b => new Date(b.ts).getTime() / 1000)
+)
+
+function barIndexToTime(idx: number): number | null {
+  const i = Math.round(idx)
+  return barTimestamps.value[i] ?? null
+}
+
+function timeToBarIndex(ts: number): number {
+  const times = barTimestamps.value
+  if (!times.length) return 0
+
+  let lo = 0
+  let hi = times.length - 1
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    const v = times[mid]
+    if (v === ts) return mid
+    if (v < ts) lo = mid + 1
+    else hi = mid - 1
+  }
+
+  return Math.max(0, Math.min(times.length - 1, lo))
+}
+
+function formatXAxisTick(idx: number): string {
+  const ts = barIndexToTime(idx)
+  if (ts == null) return ''
+  return formatDate(ts, chartStore.timeframe)
+}
 
 function toggleAutoY() {
   if (autoY.value) {
@@ -302,13 +334,13 @@ function yRangeFn(u: uPlot): [number, number] {
     return [manualYMin, manualYMax]
   }
   // Auto-fit to visible bars
-  const [ts, , highs, lows] = u.data as number[][]
-  if (!ts?.length) return [1, 2]
+  const [x, , highs, lows] = u.data as number[][]
+  if (!x?.length) return [1, 2]
   const xMin = u.scales.x?.min ?? -Infinity
   const xMax = u.scales.x?.max ?? Infinity
   let lo = Infinity, hi = -Infinity
-  for (let i = 0; i < ts.length; i++) {
-    if (ts[i] >= xMin && ts[i] <= xMax) {
+  for (let i = 0; i < x.length; i++) {
+    if (i >= xMin && i <= xMax) {
       if (highs[i] != null && highs[i] > hi) hi = highs[i]
       if (lows[i]  != null && lows[i]  < lo) lo = lows[i]
     }
@@ -352,12 +384,17 @@ function computeIndicatorSeries(
 
 // ── Build data ────────────────────────────────────────────────────────────────
 function buildData(): uPlot.AlignedData {
-  const d = chartStore.uplotData as number[][]
-  const [ts, opens, highs, lows, closes, vols] = d
+  const barIdx = chartStore.bars.map((_, i) => i)
+  const ts = barTimestamps.value
+  const opens  = chartStore.bars.map(b => b.open)
+  const highs  = chartStore.bars.map(b => b.high)
+  const lows   = chartStore.bars.map(b => b.low)
+  const closes = chartStore.bars.map(b => b.close)
+  const vols   = chartStore.bars.map(b => b.volume ?? 0)
   const extra = chartStore.indicators
     .filter(i => i.pane !== 'separate' && i.type !== 'volume')
     .map(i => computeIndicatorSeries(closes, highs, lows, vols, ts, i))
-  return [ts, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
+  return [barIdx, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
 }
 
 // ── Build series ──────────────────────────────────────────────────────────────
@@ -432,7 +469,7 @@ async function initChart() {
     },
 
     scales: {
-      x: { time: true },
+      x: { time: false },
       y: {
         auto:  true,
         dir:   1,
@@ -446,6 +483,7 @@ async function initChart() {
       {
         scale: 'x', stroke: '#555',
         ticks: { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
+        values: (_u, ticks) => ticks.map(t => t == null ? '' : formatXAxisTick(Math.round(t))),
       },
       {
         scale:  'y', side: 1, size: 65, stroke: '#888',
@@ -467,10 +505,10 @@ async function initChart() {
         if (snapGuard) return
         const idx = u.cursor.idx
         if (idx != null && u.cursor.left != null) {
-          const [ts] = u.data as number[][]
-          if (ts?.length > 1) {
-            const snapX = u.valToPos(ts[idx], 'x')
-            const barPx = Math.abs(u.valToPos(ts[1], 'x') - u.valToPos(ts[0], 'x'))
+          const [x] = u.data as number[][]
+          if (x?.length > 1) {
+            const snapX = u.valToPos(idx, 'x')
+            const barPx = Math.abs(u.valToPos(1, 'x') - u.valToPos(0, 'x'))
             if (Math.abs((u.cursor.left ?? snapX) - snapX) < barPx * 0.7) {
               snapGuard = true
               u.setCursor({ left: snapX, top: u.cursor.top ?? 0 })
@@ -498,11 +536,13 @@ async function initChart() {
 
 // ── Initial view: last DEFAULT_BARS_VISIBLE bars ──────────────────────────────
 function setInitialView(u: uPlot) {
-  const [ts] = u.data as number[][]
-  if (!ts?.length) return
-  const barDur = ts.length > 1 ? ts[1] - ts[0] : 86400
-  const latest = ts[ts.length - 1]
-  u.setScale('x', { min: latest - DEFAULT_BARS_VISIBLE * barDur, max: latest + barDur * 5 })
+  const [x] = u.data as number[][]
+  if (!x?.length) return
+  const latest = x[x.length - 1]
+  u.setScale('x', {
+    min: Math.max(-0.5, latest - DEFAULT_BARS_VISIBLE + 0.5),
+    max: latest + 0.5,
+  })
   // Recompute the auto Y range against the initial X window so the first
   // user interaction does not snap to a different vertical scale.
   u.setData(u.data as uPlot.AlignedData)
@@ -511,12 +551,11 @@ function setInitialView(u: uPlot) {
 
 function goToLatest() {
   if (!uplot) return
-  const [ts] = uplot.data as number[][]
-  if (!ts?.length) return
-  const barDur = ts.length > 1 ? ts[1] - ts[0] : 86400
+  const [x] = uplot.data as number[][]
+  if (!x?.length) return
   const span   = uplot.scales.x.max! - uplot.scales.x.min!
-  const latest = ts[ts.length - 1]
-  uplot.setScale('x', { min: latest - span + barDur * 5, max: latest + barDur * 5 })
+  const latest = x[x.length - 1]
+  uplot.setScale('x', { min: latest - span + 0.5, max: latest + 0.5 })
   isAtLatest.value = true
 }
 
@@ -549,18 +588,18 @@ function setupInteraction(u: uPlot) {
   const isOnXAxis   = (cy: number) => cy > getRect().bottom
 
   const updateAtLatest = () => {
-    const [ts] = u.data as number[][]
-    if (!ts?.length) { isAtLatest.value = true; return }
+    const [x] = u.data as number[][]
+    if (!x?.length) { isAtLatest.value = true; return }
     const span = u.scales.x.max! - u.scales.x.min!
-    isAtLatest.value = u.scales.x.max! >= ts[ts.length - 1] - span * 0.08
+    isAtLatest.value = u.scales.x.max! >= x[x.length - 1] - span * 0.08
   }
 
   const setXRange = (min: number, max: number) => {
-    const [ts] = u.data as number[][]
-    if (!ts?.length) return
+    const [x] = u.data as number[][]
+    if (!x?.length) return
     const span   = max - min
-    const lBound = ts[0]              - span * 0.5
-    const rBound = ts[ts.length - 1] + span * 0.15
+    const lBound = -0.5
+    const rBound = x[x.length - 1] + 0.5
     if (min < lBound) { min = lBound; max = min + span }
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
@@ -610,14 +649,14 @@ function setupInteraction(u: uPlot) {
     if (!isPinch && absY <= absX * WHEEL_AXIS_DOMINANCE) return
     const rect       = liveRect()
     const cursorPx   = Math.max(0, e.clientX - rect.left)
-    const cursorTime = u.posToVal(cursorPx, 'x')
+    const cursorIdx  = u.posToVal(cursorPx, 'x')
     const mag        = isPinch ? Math.abs(e.deltaY) * 0.01 : 1
     const f          = e.deltaY > 0
       ? 1 + (ZOOM_FACTOR - 1) * Math.min(mag, 3)
       : 1 / (1 + (ZOOM_FACTOR - 1) * Math.min(mag, 3))
     setXRange(
-      cursorTime - (cursorTime - xMin) * f,
-      cursorTime + (xMax - cursorTime) * f,
+      cursorIdx - (cursorIdx - xMin) * f,
+      cursorIdx + (xMax - cursorIdx) * f,
     )
   }
 
@@ -783,9 +822,13 @@ function setupInteraction(u: uPlot) {
 // ── Sub-panes ─────────────────────────────────────────────────────────────────
 async function buildSubPanes() {
   await nextTick()
-  const data = chartStore.uplotData as number[][]
-  if (!data[0]?.length) return
-  const [ts, , highs, lows, closes, vols] = data
+  const x = chartStore.bars.map((_, i) => i)
+  const ts = barTimestamps.value
+  if (!x?.length) return
+  const highs  = chartStore.bars.map(b => b.high)
+  const lows   = chartStore.bars.map(b => b.low)
+  const closes = chartStore.bars.map(b => b.close)
+  const vols   = chartStore.bars.map(b => b.volume ?? 0)
 
   for (const pane of subPanes.value) {
     const el = subPaneRefs[pane.key]
@@ -797,7 +840,7 @@ async function buildSubPanes() {
       width: w, height: 110,
       legend: { show: false },
       cursor: { drag: { x: false, y: false }, sync: { key: 'chart' }, lock: false },
-      scales: { x: { time: true }, y: { auto: true } },
+      scales: { x: { time: false }, y: { auto: true } },
       axes: [
         { scale: 'x', show: false },
         { scale: 'y', side: 1, stroke: '#888', size: 65,
@@ -812,7 +855,7 @@ async function buildSubPanes() {
         ? [refLinesPlugin(getSubPaneRefLines(pane.config.type))] : [],
     }
 
-    const sp = new uPlot(subOpts, [ts, values] as uPlot.AlignedData, el)
+    const sp = new uPlot(subOpts, [x, values] as uPlot.AlignedData, el)
     subPlotsMap[pane.key] = sp
 
     el.addEventListener('wheel', (e: WheelEvent) => {
@@ -833,13 +876,17 @@ function computeSubPaneSeries(ind: IndicatorConfig, closes: number[], highs: num
 }
 
 function updateSubPaneData() {
-  const data = chartStore.uplotData as number[][]
-  if (!data[0]?.length) return
-  const [ts, , highs, lows, closes, vols] = data
+  const x = chartStore.bars.map((_, i) => i)
+  const ts = barTimestamps.value
+  if (!x?.length) return
+  const highs  = chartStore.bars.map(b => b.high)
+  const lows   = chartStore.bars.map(b => b.low)
+  const closes = chartStore.bars.map(b => b.close)
+  const vols   = chartStore.bars.map(b => b.volume ?? 0)
   for (const pane of subPanes.value) {
     const sp = subPlotsMap[pane.key]
     if (!sp) continue
-    sp.setData([ts, computeSubPaneSeries(pane.config, closes, highs, lows, vols, ts)] as uPlot.AlignedData)
+    sp.setData([x, computeSubPaneSeries(pane.config, closes, highs, lows, vols, ts)] as uPlot.AlignedData)
   }
 }
 
@@ -874,6 +921,7 @@ function setupDrawingCanvas(u: uPlot) {
   if (!drawingCanvasRef.value) return
   drawingRenderer = new DrawingRenderer(drawingCanvasRef.value)
   drawingRenderer.attach(u)
+  drawingRenderer.setTimeToXMapper((time: number) => u.valToPos(timeToBarIndex(time), 'x'))
   alignDrawingCanvas(u)
   drawingRenderer.renderAll(drawStore.renderableDrawings)
 }
@@ -913,7 +961,8 @@ function setupDrawingInteraction(u: uPlot) {
     if (!drawStore.activeToolType || e.button !== 0) return
     e.stopPropagation()  // prevent pan from also firing
     const rect = over.getBoundingClientRect()
-    const pt = { time: u.posToVal(e.clientX - rect.left, 'x'), price: u.posToVal(e.clientY - rect.top, 'y') }
+    const idx = u.posToVal(e.clientX - rect.left, 'x')
+    const pt = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
     if (drawStore.activeToolType === 'horizontal_line' || drawStore.activeToolType === 'vertical_line') {
       finishDrawing([pt], drawStore.activeToolType); return
     }
@@ -927,7 +976,8 @@ function setupDrawingInteraction(u: uPlot) {
   over.addEventListener('pointermove', (e) => {
     if (!drawStore.activeToolType || drawingPoints.length === 0) return
     const rect = over.getBoundingClientRect()
-    const cur = { time: u.posToVal(e.clientX - rect.left, 'x'), price: u.posToVal(e.clientY - rect.top, 'y') }
+    const idx = u.posToVal(e.clientX - rect.left, 'x')
+    const cur = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
     // Render preview inline — draw hook will re-render committed ones on next frame
     drawingRenderer?.renderAll([
       { type: drawStore.activeToolType as DrawingType, points: [drawingPoints[0], cur],
@@ -981,12 +1031,13 @@ function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
   const HIT = 8
   for (const d of [...drawStore.renderableDrawings].reverse()) {
     if (!d.points?.length) continue
+    const toX = (time: number) => u.valToPos(timeToBarIndex(time), 'x')
     if (d.type === 'horizontal_line' && Math.abs(my - u.valToPos(d.points[0].price, 'y')) < HIT) return d
-    if (d.type === 'vertical_line'   && Math.abs(mx - u.valToPos(d.points[0].time, 'x'))  < HIT) return d
+    if (d.type === 'vertical_line'   && Math.abs(mx - toX(d.points[0].time))              < HIT) return d
     if (d.points.length >= 2) {
       const [p0, p1] = [d.points[0]!, d.points[1]!]
-      const [x1, y1] = [u.valToPos(p0.time, 'x'), u.valToPos(p0.price, 'y')]
-      const [x2, y2] = [u.valToPos(p1.time, 'x'), u.valToPos(p1.price, 'y')]
+      const [x1, y1] = [toX(p0.time), u.valToPos(p0.price, 'y')]
+      const [x2, y2] = [toX(p1.time), u.valToPos(p1.price, 'y')]
       if (distToSeg(mx, my, x1, y1, x2, y2) < HIT) return d
     }
   }

@@ -1,4 +1,5 @@
 import uPlot from 'uplot'
+import { getBodyWidthPx } from '@/lib/uplot/bar-metrics'
 
 export function volumePlugin(opts: {
   upColor?: string
@@ -37,7 +38,7 @@ export function volumePlugin(opts: {
       ctx.fillStyle = isUp ? upColor : downColor
 
       const xPx = Math.round(u.valToPos(timeData[i], 'x', true))
-      const barW = Math.max(1, Math.round(bbox.width / timeData.length * 0.7 * dpr))
+      const barW = getBodyWidthPx(u, 0.78, 2)
       const halfW = Math.floor(barW / 2)
       const barH = (vol / maxVol) * volAreaH
 

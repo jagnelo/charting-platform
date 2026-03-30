@@ -10,6 +10,7 @@ export class DrawingRenderer {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private uplot: uPlot | null = null
+  private timeToX: (time: number) => number = (time) => this.uplot ? this.uplot.valToPos(time, 'x') : time
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -19,6 +20,10 @@ export class DrawingRenderer {
   attach(u: uPlot) {
     this.uplot = u
     this.resize()
+  }
+
+  setTimeToXMapper(mapper: (time: number) => number) {
+    this.timeToX = mapper
   }
 
   resize() {
@@ -41,7 +46,7 @@ export class DrawingRenderer {
 
   private toPixel(time: number, price: number): [number, number] {
     const u = this.uplot!
-    return [u.valToPos(time, 'x'), u.valToPos(price, 'y')]
+    return [this.timeToX(time), u.valToPos(price, 'y')]
   }
 
   private applyStyle(drawing: AnyDrawing) {
@@ -145,7 +150,7 @@ export class DrawingRenderer {
 
   private renderVerticalLine(d: AnyDrawing) {
     if (!d.points[0]) return
-    const x = this.uplot!.valToPos(d.points[0].time, 'x')
+    const x = this.timeToX(d.points[0].time)
     this.ctx.beginPath()
     this.ctx.moveTo(x, 0)
     this.ctx.lineTo(x, this.canvas.height)
