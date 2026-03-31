@@ -3,7 +3,7 @@ Market data service — async yfinance wrapper with local OHLCV cache.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd
@@ -17,6 +17,8 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 
 logger = logging.getLogger(__name__)
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 TF_TO_YF: dict[Timeframe, str] = {
     Timeframe.M1: "1m",
@@ -259,7 +261,15 @@ async def fetch_ohlcv_page_before(
     limit: int,
     adjusted: bool = True,
 ) -> list[OHLCVBar]:
-    """Return up to `limit` bars strictly before `before`, newest-last then reversed."""
+    """
+    Return up to `limit` bars strictly before `before`.
+
+    DB-first: queries the local cache. If the DB has fewer rows than requested,
+    falls back to a live yfinance fetch for the missing historical range
+    (EPOCH → before), stores the results, then re-queries. This ensures
+    pagination works correctly even when the background bulk fetch hasn't
+    finished writing all historical bars yet.
+    """
     stmt = (
         select(OHLCVBar)
         .where(
@@ -272,6 +282,33 @@ async def fetch_ohlcv_page_before(
         .limit(limit)
     )
     rows = list((await db.execute(stmt)).scalars().all())
+
+    if len(rows) < limit:
+        # DB doesn't have enough older bars — attempt a live fetch for the
+        # full historical range up to `before`. The bulk fetch may still be
+        # running, but fetching on-demand here is safe: the upsert uses
+        # on_conflict_do_nothing so there are no duplicates.
+        datasource = await _get_or_create_datasource(db)
+        fetched = _fetch_yfinance(
+            instrument, timeframe, _EPOCH, before, adjusted, datasource
+        )
+        if fetched:
+            try:
+                await db.execute(
+                    pg_insert(OHLCVBar).on_conflict_do_nothing(
+                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                    ),
+                    [_bar_as_dict(b) for b in fetched],
+                )
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"fetch_ohlcv_page_before: failed to save bars: {e}")
+
+            # Re-query so we return proper ORM objects and pick up any bars
+            # written by the concurrent bulk fetch as well
+            rows = list((await db.execute(stmt)).scalars().all())
+
     rows.sort(key=lambda b: b.ts)
     return rows
 
