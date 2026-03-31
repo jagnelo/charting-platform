@@ -125,8 +125,7 @@ const WHEEL_AXIS_DOMINANCE  = 1.25
 const WHEEL_PAN_SENSITIVITY = 0.65
 const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
 
-// How many bars from the left edge before we prefetch the next page
-const PREFETCH_THRESHOLD = 50
+const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fires
 
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const chartStore  = useChartStore()
@@ -625,8 +624,8 @@ function setupInteraction(u: uPlot) {
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
     updateAtLatest()
-    // Trigger older-page fetch when user pans close to the left edge
-    if (min < PREFETCH_THRESHOLD && !chartStore.hasReachedStart) {
+    // Trigger older-page load when viewport approaches the left edge of loaded data
+    if (min < PREFETCH_THRESHOLD && !chartStore.hasReachedStart && !chartStore.isLoadingMore) {
       chartStore.loadMoreBars()
     }
   }
