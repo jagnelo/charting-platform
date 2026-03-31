@@ -125,6 +125,9 @@ const WHEEL_AXIS_DOMINANCE  = 1.25
 const WHEEL_PAN_SENSITIVITY = 0.65
 const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
 
+// How many bars from the left edge before we prefetch the next page
+const PREFETCH_THRESHOLD = 50
+
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const chartStore  = useChartStore()
 const drawStore   = useDrawingsStore()
@@ -273,6 +276,7 @@ function startLivePolling() {
   const poll = async () => {
     if (!chartStore.symbol || !chartStore.timeframe) return
     try {
+      // Only fetch the latest page; merge any genuinely new bars at the tail
       const raw = await api.get<any[]>(`/ohlcv/${chartStore.symbol}/${chartStore.timeframe}`)
       const mapped = raw.map((b: any) => ({
         ...b,
@@ -280,12 +284,18 @@ function startLivePolling() {
         low:  Number(b.low),  close: Number(b.close),
         volume: b.volume != null ? Number(b.volume) : undefined,
       }))
-      // Compare latest timestamp numerically (both end up as ISO strings from API)
-      const existingTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
-      const newTs      = mapped[mapped.length - 1]?.ts ?? ''
-      if (newTs !== existingTs) {
+      const existingLatestTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
+      const newLatestTs      = mapped[mapped.length - 1]?.ts ?? ''
+      if (newLatestTs !== existingLatestTs) {
         const wasAtLatest = isAtLatest.value
-        chartStore.bars = mapped
+        // Splice only the tail: keep all bars before the overlap, append new ones
+        const overlapIdx = chartStore.bars.findIndex(b => b.ts === mapped[0]?.ts)
+        if (overlapIdx >= 0) {
+          chartStore.bars = [...chartStore.bars.slice(0, overlapIdx), ...mapped]
+        } else {
+          // No overlap — just append (shouldn't normally happen)
+          chartStore.bars = [...chartStore.bars, ...mapped]
+        }
         if (wasAtLatest && uplot) {
           const [tArr] = uplot.data as number[][]
           if (tArr?.length) {
@@ -566,11 +576,22 @@ function updateData() {
   const currentCount = buildSeries().length
   if (currentCount !== lastSeriesCount) { initChart(); return }
 
+  // When bars are prepended (loadMoreBars), the existing visible bars shift
+  // right by the number of new bars. Preserve the viewport by offsetting.
+  const prevLen = (uplot.data[0] as number[]).length
+  const newLen  = (newData[0] as number[]).length
+  const prepended = newLen - prevLen
+
   const xMin = uplot.scales.x.min
   const xMax = uplot.scales.x.max
   uplot.setData(newData)
   lastSeriesCount = currentCount
-  if (xMin != null && xMax != null) uplot.setScale('x', { min: xMin, max: xMax })
+  if (xMin != null && xMax != null) {
+    uplot.setScale('x', {
+      min: xMin + prepended,
+      max: xMax + prepended,
+    })
+  }
   drawingRenderer?.renderAll(drawStore.renderableDrawings)
   updateSubPaneData()
   updateTooltip(uplot, uplot.cursor.idx)
@@ -604,6 +625,10 @@ function setupInteraction(u: uPlot) {
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
     updateAtLatest()
+    // Trigger older-page fetch when user pans close to the left edge
+    if (min < PREFETCH_THRESHOLD && !chartStore.hasReachedStart) {
+      chartStore.loadMoreBars()
+    }
   }
 
   // Drag state

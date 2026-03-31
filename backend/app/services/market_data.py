@@ -209,6 +209,102 @@ def _fetch_yfinance(instrument, timeframe, start, end, adjusted, datasource) -> 
     return bars
 
 
+async def fetch_ohlcv_latest(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    limit: int,
+    adjusted: bool = True,
+) -> list[OHLCVBar]:
+    """Return the most recent `limit` bars from the DB, newest-last."""
+    stmt = (
+        select(OHLCVBar)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted == adjusted,
+        )
+        .order_by(OHLCVBar.ts.desc())
+        .limit(limit)
+    )
+    rows = list((await db.execute(stmt)).scalars().all())
+    rows.sort(key=lambda b: b.ts)  # return chronological order
+
+    # If nothing in DB yet, fall back to a live yfinance fetch for the window
+    if not rows:
+        rows = _fetch_yfinance_latest(
+            instrument, timeframe, limit, adjusted, await _get_or_create_datasource(db)
+        )
+        if rows:
+            try:
+                await db.execute(
+                    pg_insert(OHLCVBar).on_conflict_do_nothing(
+                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                    ),
+                    [_bar_as_dict(b) for b in rows],
+                )
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Failed to save bars: {e}")
+
+    return rows
+
+
+async def fetch_ohlcv_page_before(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    before: datetime,
+    limit: int,
+    adjusted: bool = True,
+) -> list[OHLCVBar]:
+    """Return up to `limit` bars strictly before `before`, newest-last then reversed."""
+    stmt = (
+        select(OHLCVBar)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted == adjusted,
+            OHLCVBar.ts < before,
+        )
+        .order_by(OHLCVBar.ts.desc())
+        .limit(limit)
+    )
+    rows = list((await db.execute(stmt)).scalars().all())
+    rows.sort(key=lambda b: b.ts)
+    return rows
+
+
+def _bar_as_dict(b: OHLCVBar) -> dict:
+    return {
+        "instrument_id": b.instrument_id,
+        "data_source_id": b.data_source_id,
+        "timeframe": b.timeframe,
+        "ts": b.ts,
+        "open": b.open,
+        "high": b.high,
+        "low": b.low,
+        "close": b.close,
+        "volume": b.volume,
+        "vwap": b.vwap,
+        "is_adjusted": b.is_adjusted,
+    }
+
+
+def _fetch_yfinance_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
+    """Fetch approximately `limit` recent bars from yfinance when DB is cold."""
+    # Estimate the time window needed to cover `limit` bars
+    from app.models.ohlcv import TIMEFRAME_SECONDS
+
+    tf_secs = TIMEFRAME_SECONDS.get(timeframe, 86400)
+    # Request 2× to account for weekends/holidays
+    days_needed = max(7, int(tf_secs * limit * 2 / 86400))
+    start = datetime.now(UTC) - timedelta(days=days_needed)
+    bars = _fetch_yfinance(instrument, timeframe, start, datetime.now(UTC), adjusted, datasource)
+    return bars[-limit:] if len(bars) > limit else bars
+
+
 def get_current_price(ticker: str) -> float | None:
     try:
         t = yf.Ticker(ticker)

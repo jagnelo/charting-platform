@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -8,8 +8,10 @@ from app.database import get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.listing import InstrumentListing
+from app.models.ohlcv import OHLCVBar
 from app.models.user import User
 from app.schemas.instrument import InstrumentOut, InstrumentSearchResult
+from app.services.bulk_fetch import get_fetch_progress
 from app.services.market_data import get_instrument_info, search_ticker
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
@@ -47,6 +49,60 @@ async def search_instruments(
             if r["symbol"] not in existing:
                 out.append(InstrumentSearchResult(**r))
     return out[:10]
+
+
+@router.get("/{symbol}/data-coverage")
+async def get_data_coverage(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    instrument = result.scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found")
+
+    rows = (
+        await db.execute(
+            select(
+                OHLCVBar.timeframe,
+                func.min(OHLCVBar.ts).label("oldest"),
+                func.max(OHLCVBar.ts).label("newest"),
+                func.count().label("bar_count"),
+            )
+            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.is_adjusted.is_(True))
+            .group_by(OHLCVBar.timeframe)
+        )
+    ).all()
+
+    coverage = {
+        row.timeframe.value: {
+            "oldest": row.oldest.isoformat() if row.oldest else None,
+            "newest": row.newest.isoformat() if row.newest else None,
+            "bar_count": row.bar_count,
+        }
+        for row in rows
+    }
+
+    progress: dict | None = None
+    try:
+        from arq.connections import RedisSettings, create_pool
+
+        from app.config import settings
+
+        redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        progress = await get_fetch_progress(instrument.id, redis)
+        await redis.aclose()
+    except Exception:
+        pass
+
+    return {
+        "instrument_id": instrument.id,
+        "symbol": symbol.upper(),
+        "coverage": coverage,
+        "is_fetching": progress is not None and progress.get("status") == "in_progress",
+        "fetch_progress": progress,
+    }
 
 
 @router.get("/{symbol}", response_model=InstrumentOut)

@@ -3,53 +3,50 @@ Background data tasks — bulk historical fetches.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
+
+from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.market_data import fetch_ohlcv
 
 logger = logging.getLogger(__name__)
 
-# Timeframes to fetch for a full history pull, and their lookback periods
-FULL_HISTORY_TIMEFRAMES: list[tuple[Timeframe, int]] = [
-    (Timeframe.MN, 365 * 30),  # monthly — 30 years
-    (Timeframe.W1, 365 * 20),  # weekly  — 20 years
-    (Timeframe.D1, 365 * 20),  # daily   — 20 years
-    (Timeframe.H4, 365 * 2),  # 4h      — 2 years (yfinance limit)
-    (Timeframe.H1, 365 * 2),  # 1h      — 2 years
-    (Timeframe.M30, 60),  # 30m     — 60 days
-    (Timeframe.M15, 60),  # 15m     — 60 days
-    (Timeframe.M5, 60),  # 5m      — 60 days
+# Timeframes to refresh nightly (recent bars only, not full re-fetch)
+NIGHTLY_REFRESH_TIMEFRAMES: list[Timeframe] = [
+    Timeframe.MN,
+    Timeframe.W1,
+    Timeframe.D1,
+    Timeframe.H4,
+    Timeframe.H1,
 ]
 
 
+async def _get_newest_bar_ts(db, instrument_id: int, tf: Timeframe) -> datetime | None:
+    from sqlalchemy import func
+
+    result = await db.execute(
+        select(func.max(OHLCVBar.ts)).where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe == tf,
+            OHLCVBar.is_adjusted.is_(True),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def fetch_instrument_history(ctx: dict, instrument_id: int) -> dict:
-    """
-    Fetch all available historical OHLCV data for a single instrument
-    across all supported timeframes.
-    Called automatically when a new instrument is registered,
-    and can be triggered manually.
-    """
+    """Legacy entry-point — delegates to bulk_fetch_instrument."""
     async with AsyncSessionLocal() as db:
         instrument = await db.get(Instrument, instrument_id)
         if instrument is None:
             return {"error": f"Instrument {instrument_id} not found"}
 
-        logger.info(f"Starting full history fetch for {instrument.symbol}")
-        results = {}
+        from app.services.bulk_fetch import bulk_fetch_instrument
 
-        for tf, lookback_days in FULL_HISTORY_TIMEFRAMES:
-            start = datetime.now(UTC) - timedelta(days=lookback_days)
-            try:
-                bars = await fetch_ohlcv(db, instrument, tf, start)
-                results[tf.value] = len(bars)
-                logger.info(f"  {instrument.symbol} {tf.value}: {len(bars)} bars")
-            except Exception as e:
-                logger.error(f"  {instrument.symbol} {tf.value} failed: {e}")
-                results[tf.value] = f"error: {e}"
-
+        results = await bulk_fetch_instrument(db, instrument, redis=ctx.get("redis"))
         return {"instrument_id": instrument_id, "symbol": instrument.symbol, "results": results}
 
 
@@ -76,9 +73,14 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
         total_bars = 0
 
         for instrument in instruments:
-            for tf, _ in FULL_HISTORY_TIMEFRAMES[:5]:  # D1 and above for nightly refresh
+            for tf in NIGHTLY_REFRESH_TIMEFRAMES:
                 try:
-                    start = datetime.now(UTC) - timedelta(days=30)
+                    newest = await _get_newest_bar_ts(db, instrument.id, tf)
+                    if newest is None:
+                        # No data for this TF yet — bulk fetch handles this, skip
+                        continue
+                    # Small overlap buffer to catch any late-arriving bars
+                    start = newest - timedelta(hours=1)
                     bars = await fetch_ohlcv(db, instrument, tf, start)
                     total_bars += len(bars)
                 except Exception as e:

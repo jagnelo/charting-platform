@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -10,23 +10,13 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
-from app.services.market_data import fetch_ohlcv
+from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
 
 router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
 
-TF_DEFAULT_DAYS = {
-    Timeframe.M1: 5,
-    Timeframe.M5: 30,
-    Timeframe.M15: 60,
-    Timeframe.M30: 90,
-    Timeframe.H1: 180,
-    Timeframe.H2: 360,
-    Timeframe.H4: 365,
-    Timeframe.H12: 365,
-    Timeframe.D1: 365 * 5,
-    Timeframe.W1: 365 * 10,
-    Timeframe.MN: 365 * 20,
-}
+# Number of bars returned in one page. Chosen to be comfortable for rendering
+# while giving enough history context for indicators (e.g. 200-period SMA).
+PAGE_SIZE = 500
 
 
 @router.get("/{symbol}/{timeframe}", response_model=list[OHLCVBarOut])
@@ -35,6 +25,9 @@ async def get_ohlcv(
     timeframe: Timeframe,
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
+    before: datetime | None = Query(
+        None, description="Return PAGE_SIZE bars strictly before this timestamp (for pagination)"
+    ),
     adjusted: bool = Query(True),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -46,13 +39,21 @@ async def get_ohlcv(
             404, f"Instrument '{symbol}' not found. Visit /instruments/{symbol} first."
         )
 
-    if start is None:
-        start = datetime.now(UTC) - timedelta(days=TF_DEFAULT_DAYS.get(timeframe, 365))
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=UTC)
-    if end and end.tzinfo is None:
-        end = end.replace(tzinfo=UTC)
-
-    # Load listings for ticker resolution
     await db.refresh(instrument, ["listings"])
-    return await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+
+    if before is not None:
+        # Paginated: return the PAGE_SIZE bars immediately before `before`
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
+        return await fetch_ohlcv_page_before(db, instrument, timeframe, before, PAGE_SIZE, adjusted)
+
+    if start is not None:
+        # Explicit range query (used by alert engine, screener, etc.)
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=UTC)
+        if end and end.tzinfo is None:
+            end = end.replace(tzinfo=UTC)
+        return await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+
+    # Default: initial load — return the latest PAGE_SIZE bars
+    return await fetch_ohlcv_latest(db, instrument, timeframe, PAGE_SIZE, adjusted)

@@ -23,6 +23,13 @@
       </div>
     </header>
 
+    <Transition name="fetch-banner">
+      <div v-if="chartStore.isFetchingHistory" class="fetch-banner" role="status" aria-live="polite">
+        <span class="fetch-banner-icon">⏳</span>
+        <span>Fetching full historical data for <strong>{{ chartStore.symbol }}</strong> in the background — older bars will appear as they arrive.</span>
+      </div>
+    </Transition>
+
     <!-- Alert form popup -->
     <Transition name="fade">
       <div class="alert-form-wrap" v-if="showAlertForm && chartStore.instrument">
@@ -203,6 +210,26 @@ onMounted(async () => {
   background: #444;
 }
 .ws-dot.connected { background: #26a69a; }
+
+.fetch-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255, 183, 77, 0.12);
+  border-bottom: 1px solid rgba(255, 183, 77, 0.3);
+  color: #ffb74d;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.fetch-banner-icon { font-size: 14px; }
+.fetch-banner strong { font-weight: 700; }
+.fetch-banner-enter-active, .fetch-banner-leave-active {
+  transition: max-height 0.25s ease, opacity 0.25s ease;
+  max-height: 40px;
+  overflow: hidden;
+}
+.fetch-banner-enter-from, .fetch-banner-leave-to { max-height: 0; opacity: 0; }
 
 .alert-form-wrap {
   position: fixed;

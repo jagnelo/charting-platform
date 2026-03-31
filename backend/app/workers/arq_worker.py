@@ -39,7 +39,7 @@ async def task_bulk_fetch_instrument(
             return
 
         tf_list = [Timeframe(tf) for tf in timeframes] if timeframes else None
-        summary = await bulk_fetch_instrument(db, instrument, tf_list)
+        summary = await bulk_fetch_instrument(db, instrument, tf_list, redis=ctx.get("redis"))
         logger.info(f"bulk_fetch complete for {instrument.symbol}: {summary}")
         return summary
 
