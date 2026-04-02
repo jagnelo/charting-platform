@@ -5,7 +5,7 @@
         <div class="sidebar-logo" title="Charting Platform">
           <span class="logo-mark">◈</span>
         </div>
-        <router-link to="/chart"    class="nav-link" title="Chart">📈</router-link>
+        <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/chart') }" title="Chart">📈</router-link>
         <router-link to="/alerts"   class="nav-link" title="Alerts">🔔</router-link>
         <router-link to="/screener" class="nav-link" title="Screener">🔍</router-link>
         <router-link to="/settings" class="nav-link" title="Settings">⚙</router-link>
@@ -29,13 +29,16 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChartStore } from '@/stores/chart'
 import Notification from '@/components/common/Notification.vue'
 
-const route     = useRoute()
-const authStore = useAuthStore()
+const route      = useRoute()
+const authStore  = useAuthStore()
+const chartStore = useChartStore()
 
 const isLoginPage  = computed(() => route.path === '/login')
 const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
+const chartLink    = computed(() => chartStore.symbol ? `/chart/${chartStore.symbol}` : '/chart')
 </script>
 
 <style>
