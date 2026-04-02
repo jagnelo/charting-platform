@@ -21,6 +21,47 @@ from app.websocket.manager import ws_manager
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _enrich_price(alert: PriceAlert) -> PriceAlertOut:
+    """Build PriceAlertOut from a fully-loaded ORM object (instrument must be loaded)."""
+    d = PriceAlertOut.model_validate(alert)
+    d.instrument_currency = alert.instrument.currency if alert.instrument else None
+    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ""
+    return d
+
+
+def _enrich_indicator(alert: IndicatorAlert) -> IndicatorAlertOut:
+    """Build IndicatorAlertOut from a fully-loaded ORM object (instrument must be loaded)."""
+    d = IndicatorAlertOut.model_validate(alert)
+    d.instrument_currency = alert.instrument.currency if alert.instrument else None
+    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ""
+    return d
+
+
+async def _get_price_alert_enriched(db: AsyncSession, alert_id: int) -> PriceAlertOut:
+    """Re-fetch a price alert with instrument loaded and return enriched schema."""
+    stmt = (
+        select(PriceAlert)
+        .options(selectinload(PriceAlert.instrument))
+        .where(PriceAlert.id == alert_id)
+    )
+    result = await db.execute(stmt)
+    return _enrich_price(result.scalar_one())
+
+
+async def _get_indicator_alert_enriched(db: AsyncSession, alert_id: int) -> IndicatorAlertOut:
+    """Re-fetch an indicator alert with instrument loaded and return enriched schema."""
+    stmt = (
+        select(IndicatorAlert)
+        .options(selectinload(IndicatorAlert.instrument))
+        .where(IndicatorAlert.id == alert_id)
+    )
+    result = await db.execute(stmt)
+    return _enrich_indicator(result.scalar_one())
+
+
 # ── Price Alerts ──────────────────────────────────────────────────────────────
 
 
@@ -41,15 +82,7 @@ async def list_price_alerts(
     if status:
         stmt = stmt.where(PriceAlert.status == status)
     result = await db.execute(stmt.order_by(PriceAlert.created_at.desc()))
-    alerts = result.scalars().all()
-    # Attach symbol for frontend display
-    out = []
-    for a in alerts:
-        d = PriceAlertOut.model_validate(a)
-        d.instrument_currency = a.instrument.currency if a.instrument else None
-        d.instrument_symbol = a.instrument.symbol if a.instrument else ""
-        out.append(d)
-    return out
+    return [_enrich_price(a) for a in result.scalars().all()]
 
 
 @router.post("/price", response_model=PriceAlertOut, status_code=201)
@@ -61,8 +94,7 @@ async def create_price_alert(
     alert = PriceAlert(**body.model_dump(), user_id=current_user.id)
     db.add(alert)
     await db.commit()
-    await db.refresh(alert)
-    return alert
+    return await _get_price_alert_enriched(db, alert.id)
 
 
 @router.patch("/price/{alert_id}", response_model=PriceAlertOut)
@@ -78,8 +110,7 @@ async def update_price_alert(
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(alert, k, v)
     await db.commit()
-    await db.refresh(alert)
-    return alert
+    return await _get_price_alert_enriched(db, alert_id)
 
 
 @router.delete("/price/{alert_id}", status_code=204)
@@ -106,8 +137,7 @@ async def rearm_price_alert(
         raise HTTPException(404, "Alert not found")
     alert.status = AlertStatus.ACTIVE
     await db.commit()
-    await db.refresh(alert)
-    return alert
+    return await _get_price_alert_enriched(db, alert_id)
 
 
 # ── Indicator Alerts ──────────────────────────────────────────────────────────
@@ -127,14 +157,7 @@ async def list_indicator_alerts(
     if instrument_id:
         stmt = stmt.where(IndicatorAlert.instrument_id == instrument_id)
     result = await db.execute(stmt.order_by(IndicatorAlert.created_at.desc()))
-    alerts = result.scalars().all()
-    out = []
-    for a in alerts:
-        d = IndicatorAlertOut.model_validate(a)
-        d.instrument_currency = a.instrument.currency if a.instrument else None
-        d.instrument_symbol = a.instrument.symbol if a.instrument else ""
-        out.append(d)
-    return out
+    return [_enrich_indicator(a) for a in result.scalars().all()]
 
 
 @router.post("/indicator", response_model=IndicatorAlertOut, status_code=201)
@@ -155,8 +178,7 @@ async def create_indicator_alert(
     alert = IndicatorAlert(**body.model_dump(), user_id=current_user.id)
     db.add(alert)
     await db.commit()
-    await db.refresh(alert)
-    return alert
+    return await _get_indicator_alert_enriched(db, alert.id)
 
 
 @router.delete("/indicator/{alert_id}", status_code=204)
@@ -183,8 +205,7 @@ async def rearm_indicator_alert(
         raise HTTPException(404, "Alert not found")
     alert.status = AlertStatus.ACTIVE
     await db.commit()
-    await db.refresh(alert)
-    return alert
+    return await _get_indicator_alert_enriched(db, alert_id)
 
 
 @router.patch("/indicator/{alert_id}", response_model=IndicatorAlertOut)
@@ -200,11 +221,7 @@ async def update_indicator_alert(
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(alert, k, v)
     await db.commit()
-    await db.refresh(alert)
-    d = IndicatorAlertOut.model_validate(alert)
-    await db.refresh(alert, ["instrument"])
-    d.instrument_symbol = alert.instrument.symbol if alert.instrument else ""
-    return d
+    return await _get_indicator_alert_enriched(db, alert_id)
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
