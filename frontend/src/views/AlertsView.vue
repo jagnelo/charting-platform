@@ -88,8 +88,8 @@
             </td>
             <td class="td-mono">{{ a.timeframe }}</td>
             <td class="td-mono td-expr" :title="indAlertExpr(a)">{{ indAlertExpr(a) }}</td>
-            <td class="td-mono">{{ a.last_value_a != null ? Number(a.last_value_a).toFixed(4) : '—' }}</td>
-            <td class="td-mono">{{ a.last_value_b != null ? Number(a.last_value_b).toFixed(4) : '—' }}</td>
+            <td class="td-mono">{{ fmtIndValue(a.last_value_a, a.indicator_a_type, a.instrument_currency) }}</td>
+            <td class="td-mono">{{ fmtIndValue(a.last_value_b, a.indicator_b_type, a.instrument_currency) }}</td>
             <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
             <td>
               <button class="inline-toggle" @click="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })"
@@ -139,6 +139,16 @@ const filteredIndicator = computed(() =>
     : alertsStore.indicatorAlerts
 )
 
+// Indicators that share the price axis — their values are formatted as currency.
+// Oscillators on a separate scale (RSI, MACD, ATR, etc.) are plain numbers.
+const PRICE_AXIS_TYPES = new Set(['sma','ema','wma','bb','vwap','avwap','close','open','high','low'])
+
+function fmtIndValue(value: number | null, type: string | null | undefined, currency: string | null | undefined): string {
+  if (value == null) return '—'
+  if (type && PRICE_AXIS_TYPES.has(type)) return formatMoney(Number(value), currency)
+  return Number(value).toFixed(4)
+}
+
 function fmtTs(ts: number): string {
   const d = new Date(ts * 1000)
   const p = (n: number) => String(n).padStart(2, '0')
@@ -156,11 +166,10 @@ function fmtIndicatorParams(type: string, params: Record<string, unknown>): stri
 function indAlertExpr(a: IndicatorAlert): string {
   const indA = fmtIndicatorParams(a.indicator_a_type, a.indicator_a_params ?? {})
   const cond = a.condition.replace(/_/g, ' ')
-  if (a.indicator_b_type) {
-    const indB = fmtIndicatorParams(a.indicator_b_type, a.indicator_b_params ?? {})
-    return `${indA} ${cond} ${indB}`
-  }
-  return `${indA} ${cond} ${a.threshold_value ?? ''}`
+  const expr = a.indicator_b_type
+    ? `${indA} ${cond} ${fmtIndicatorParams(a.indicator_b_type, a.indicator_b_params ?? {})}`
+    : `${indA} ${cond} ${a.threshold_value ?? ''}`
+  return `${expr} · ${a.timeframe}`
 }
 
 onMounted(async () => {
