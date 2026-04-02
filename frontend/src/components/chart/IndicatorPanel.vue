@@ -16,9 +16,12 @@
               v-for="(ind, i) in chartStore.indicators"
               :key="i"
               class="list-row"
+              :class="{ 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
+              :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
             >
               <span class="color-dot" :style="{ background: ind.style.color }" />
               <span class="row-name">{{ displayName(ind) }}</span>
+              <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
               <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
               <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
               <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
@@ -120,6 +123,7 @@
             >
               <span class="alert-icon">¤</span>
               <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
+              <button class="row-btn" @click.stop="openAlertEditor(a, null)" title="Edit">⚙</button>
               <button class="row-btn" :class="{ 'btn--active': a.repeat }"
                       @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
               <button class="row-btn" v-if="a.status==='active'"
@@ -140,6 +144,7 @@
             >
               <span class="alert-icon">≈</span>
               <span class="row-name">{{ indAlertLabel(a) }}</span>
+              <button class="row-btn" @click.stop="openAlertEditor(null, a)" title="Edit">⚙</button>
               <button class="row-btn" :class="{ 'btn--active': a.repeat }"
                       @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
               <button class="row-btn" v-if="a.status==='active'"
@@ -153,7 +158,7 @@
             <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this ticker</div>
           </div>
           <div class="add-bar">
-            <button class="add-btn" @click="emit('addAlert')">+ Add Alert</button>
+            <button class="add-btn" @click="openAlertEditor(null, null)">+ Add Alert</button>
           </div>
         </div>
       </Transition>
@@ -213,12 +218,48 @@
                 <option value="separate">Separate subplot</option>
               </select>
             </div>
+            <div class="ed-sep" />
+            <div class="ed-row">
+              <label>Timeframes</label>
+              <select v-model="indFields.tfMode" class="ed-input">
+                <option value="all">All timeframes</option>
+                <option value="locked">Selected only</option>
+              </select>
+            </div>
+            <div v-if="indFields.tfMode === 'locked'" class="ed-tf-grid">
+              <label
+                v-for="tf in allTimeframes"
+                :key="tf"
+                class="ed-tf-chip"
+                :class="{ 'ed-tf-chip--on': indFields.lockedTimeframes.includes(tf) }"
+              >
+                <input type="checkbox" :value="tf" v-model="indFields.lockedTimeframes" class="ed-tf-check" />
+                {{ tf }}
+              </label>
+            </div>
           </div>
           <div class="ed-footer">
             <button class="ed-btn ed-apply" @click="applyIndEdit">Apply</button>
             <button class="ed-btn" @click="closeIndEditor">Cancel</button>
           </div>
         </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ── Alert editor popup ────────────────────────────────────────────── -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div class="editor-backdrop" v-if="alertEditorOpen && chartStore.instrument" @click.self="closeAlertEditor">
+        <AlertForm
+          :instrument-id="chartStore.instrument.id"
+          :symbol="chartStore.symbol"
+          :current-tf="chartStore.timeframe"
+          :seed-indicator="alertSeedIndicator"
+          :edit-price-alert="editingPriceAlertData"
+          :edit-indicator-alert="editingIndicatorAlertData"
+          @close="closeAlertEditor"
+        />
       </div>
     </Transition>
   </Teleport>
@@ -250,6 +291,26 @@
               <label>Notes</label>
               <input type="text" v-model="drawFields.notes" placeholder="Optional notes" class="ed-input" />
             </div>
+
+            <!-- Coordinate editing -->
+            <template v-if="drawPoints.length">
+              <div class="ed-sep" />
+              <template v-for="(pt, i) in drawPoints" :key="i">
+                <div class="ed-point-title">{{ drawPointLabel(editingDraw.drawing_type, i, drawPoints.length) }}</div>
+                <div class="ed-row" v-if="editingDraw.drawing_type !== 'horizontal_line'">
+                  <label>Date / Time</label>
+                  <input type="datetime-local" :value="tsToDateInput(pt.time)"
+                         @change="onDrawPointTime(i, ($event.target as HTMLInputElement).value)"
+                         class="ed-input" />
+                </div>
+                <div class="ed-row" v-if="editingDraw.drawing_type !== 'vertical_line'">
+                  <label>Price</label>
+                  <input type="number" step="any" :value="pt.price"
+                         @change="onDrawPointPrice(i, Number(($event.target as HTMLInputElement).value))"
+                         class="ed-input ed-num" />
+                </div>
+              </template>
+            </template>
           </div>
           <div class="ed-footer">
             <button class="ed-btn ed-apply" @click="applyDrawEdit">Apply</button>
@@ -268,12 +329,9 @@ import { formatMoney } from '@/lib/format'
 import { useChartStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
+import AlertForm from '@/components/alerts/AlertForm.vue'
 import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 
-const emit = defineEmits<{
-  alertForIndicator: [config: IndicatorConfig]
-  addAlert: []
-}>()
 
 const alertsStore  = useAlertsStore()
 const chartStore   = useChartStore()
@@ -310,6 +368,10 @@ const DEFAULTS: Record<IndicatorType, IndicatorConfig> = {
   bb:     { type: 'bb',     params: { period: 20, stdDev: 2 }, style: { color: '#a5d6a7', lineWidth: 1 }, pane: 'main' },
   macd:   { type: 'macd',   params: { fast: 12, slow: 26, signal: 9 }, style: { color: '#ef5350', lineWidth: 1.5 }, pane: 'separate' },
   volume: { type: 'volume', params: {},             style: { color: '#4db6ac', lineWidth: 1   }, pane: 'main'     },
+}
+
+function isActiveOnCurrentTf(ind: IndicatorConfig): boolean {
+  return !ind.lockedTimeframes?.length || ind.lockedTimeframes.includes(chartStore.timeframe)
 }
 
 function displayName(ind: IndicatorConfig): string {
@@ -379,22 +441,32 @@ async function toggleLock(d: ChartDrawing) {
 const indEditorOpen = ref(false)
 let   editingIndIdx = -1
 const editingInd = ref<IndicatorConfig | null>(null)
-const indFields  = reactive({ color: '#fff', lineWidth: 1.5, pane: 'main' as 'main'|'separate', params: {} as Record<string, unknown> })
+const allTimeframes = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN'] as const
+const indFields  = reactive({
+  color: '#fff',
+  lineWidth: 1.5,
+  pane: 'main' as 'main'|'separate',
+  params: {} as Record<string, unknown>,
+  tfMode: 'all' as 'all'|'locked',
+  lockedTimeframes: [] as string[],
+})
 
 function openIndEditor(i: number) {
   const ind = chartStore.indicators[i]
   if (!ind) return
   editingIndIdx = i
   editingInd.value = ind
-  indFields.color     = ind.style.color
-  indFields.lineWidth = ind.style.lineWidth ?? 1.5
-  indFields.pane      = (ind.pane ?? 'main') as 'main'|'separate'
-  indFields.params    = { ...ind.params }
+  indFields.color            = ind.style.color
+  indFields.lineWidth        = ind.style.lineWidth ?? 1.5
+  indFields.pane             = (ind.pane ?? 'main') as 'main'|'separate'
+  indFields.params           = { ...ind.params }
+  indFields.lockedTimeframes = ind.lockedTimeframes ? [...ind.lockedTimeframes] : []
+  indFields.tfMode           = indFields.lockedTimeframes.length ? 'locked' : 'all'
   indEditorOpen.value = true
 }
 
 function alertForIndicator(i: number) {
-  emit('alertForIndicator', chartStore.indicators[i])
+  openAlertEditor(null, null, chartStore.indicators[i])
 }
 
 function closeIndEditor() { indEditorOpen.value = false; editingInd.value = null; editingIndIdx = -1 }
@@ -403,9 +475,12 @@ function applyIndEdit() {
   if (editingIndIdx < 0) return
   chartStore.updateIndicator(editingIndIdx, {
     ...chartStore.indicators[editingIndIdx],
-    style:  { ...chartStore.indicators[editingIndIdx].style, color: indFields.color, lineWidth: indFields.lineWidth },
-    pane:   indFields.pane,
-    params: { ...indFields.params },
+    style:            { ...chartStore.indicators[editingIndIdx].style, color: indFields.color, lineWidth: indFields.lineWidth },
+    pane:             indFields.pane,
+    params:           { ...indFields.params },
+    lockedTimeframes: indFields.tfMode === 'locked' && indFields.lockedTimeframes.length
+      ? [...indFields.lockedTimeframes] as import('@/types').Timeframe[]
+      : null,
   })
   closeIndEditor()
 }
@@ -419,6 +494,26 @@ const instrumentIndicatorAlerts = computed(() =>
 const instrumentAlerts = computed(() =>
   [...instrumentPriceAlerts.value, ...instrumentIndicatorAlerts.value]
 )
+
+// ── Alert editor ──────────────────────────────────────────────────────────────
+const alertEditorOpen           = ref(false)
+const editingPriceAlertData     = ref<PriceAlert | null>(null)
+const editingIndicatorAlertData = ref<IndicatorAlert | null>(null)
+const alertSeedIndicator        = ref<IndicatorConfig | null>(null)
+
+function openAlertEditor(price: PriceAlert | null, indicator: IndicatorAlert | null, seed: IndicatorConfig | null = null) {
+  editingPriceAlertData.value     = price
+  editingIndicatorAlertData.value = indicator
+  alertSeedIndicator.value        = seed
+  alertEditorOpen.value = true
+}
+
+function closeAlertEditor() {
+  alertEditorOpen.value = false
+  editingPriceAlertData.value     = null
+  editingIndicatorAlertData.value = null
+  alertSeedIndicator.value        = null
+}
 
 function fmtTs(ts: number): string {
   const d = new Date(ts * 1000)
@@ -435,16 +530,18 @@ function fmtIndParams(type: string, params: Record<string, unknown>): string {
 function indAlertLabel(a: IndicatorAlert): string {
   const indA = fmtIndParams(a.indicator_a_type, a.indicator_a_params ?? {})
   const cond = a.condition.replace(/_/g, ' ')
-  if (a.indicator_b_type) {
-    return `${indA} ${cond} ${fmtIndParams(a.indicator_b_type, a.indicator_b_params ?? {})}`
-  }
-  return `${indA} ${cond} ${a.threshold_value ?? ''}`
+  const expr = a.indicator_b_type
+    ? `${indA} ${cond} ${fmtIndParams(a.indicator_b_type, a.indicator_b_params ?? {})}`
+    : `${indA} ${cond} ${a.threshold_value ?? ''}`
+  return `${expr} · ${a.timeframe}`
 }
 
 // ── Drawing editor ────────────────────────────────────────────────────────────
 const drawEditorOpen = ref(false)
 const editingDraw    = ref<ChartDrawing | null>(null)
 const drawFields     = reactive({ color: '#fff', lineWidth: 1.5, label: '', notes: '' })
+const drawPoints     = ref<Array<{ time: number; price: number }>>([])
+let   drawOriginalPoints: Array<{ time: number; price: number }> = []
 
 function openDrawEditor(d: ChartDrawing) {
   editingDraw.value    = d
@@ -452,19 +549,67 @@ function openDrawEditor(d: ChartDrawing) {
   drawFields.lineWidth = d.style?.lineWidth ?? 1.5
   drawFields.label     = d.label ?? ''
   drawFields.notes     = d.notes ?? ''
+  const pts = ((d.data as any)?.points ?? []) as Array<{ time: number; price: number }>
+  drawOriginalPoints   = pts.map(p => ({ ...p }))
+  drawPoints.value     = pts.map(p => ({ ...p }))
   drawEditorOpen.value = true
 }
 
-function closeDrawEditor() { drawEditorOpen.value = false; editingDraw.value = null }
+function closeDrawEditor() {
+  // Revert any live coordinate preview changes if user cancels
+  if (editingDraw.value) {
+    drawStore.localUpdateDrawing(editingDraw.value.id, {
+      data: { ...(editingDraw.value.data as any), points: drawOriginalPoints },
+    } as any)
+  }
+  drawEditorOpen.value = false
+  editingDraw.value    = null
+  drawPoints.value     = []
+}
+
+function onDrawPointTime(idx: number, val: string) {
+  if (!editingDraw.value) return
+  const ts = dateInputToTs(val)
+  if (!isFinite(ts)) return
+  drawPoints.value[idx] = { ...drawPoints.value[idx], time: ts }
+  _livePreviewPoints()
+}
+
+function onDrawPointPrice(idx: number, price: number) {
+  if (!editingDraw.value || !isFinite(price)) return
+  drawPoints.value[idx] = { ...drawPoints.value[idx], price }
+  _livePreviewPoints()
+}
+
+function _livePreviewPoints() {
+  if (!editingDraw.value) return
+  drawStore.localUpdateDrawing(editingDraw.value.id, {
+    data: { ...(editingDraw.value.data as any), points: drawPoints.value.map(p => ({ ...p })) },
+  } as any)
+}
+
+function drawPointLabel(type: string, idx: number, total: number): string {
+  if (total === 1) return 'Point'
+  const labels: Record<string, string[]> = {
+    rectangle: ['Top-left', 'Bottom-right'],
+    fibonacci_retracement: ['Start', 'End'],
+    fibonacci_extension: ['Start', 'End'],
+    circle: ['Top-left', 'Bottom-right'],
+  }
+  return labels[type]?.[idx] ?? `Point ${idx + 1}`
+}
 
 async function applyDrawEdit() {
   if (!editingDraw.value) return
   await drawStore.updateDrawing(editingDraw.value.id, {
+    data:  { ...(editingDraw.value.data as any), points: drawPoints.value.map(p => ({ ...p })) },
     style: { ...editingDraw.value.style, color: drawFields.color, lineWidth: drawFields.lineWidth },
     label: drawFields.label || undefined,
     notes: drawFields.notes || undefined,
   } as any)
-  closeDrawEditor()
+  drawEditorOpen.value = false
+  editingDraw.value    = null
+  drawPoints.value     = []
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -559,6 +704,10 @@ function dateInputToTs(val: string): number {
 .list-row:hover { background: #1a1a1a; }
 .list-row.row--selected { background: #1a2a3a; }
 .list-row.row--hidden { opacity: 0.45; }
+.list-row.row--tf-inactive { opacity: 0.35; }
+.list-row.row--tf-inactive .color-dot { filter: grayscale(1); }
+
+.tf-lock-badge { font-size: 9px; opacity: 0.6; flex-shrink: 0; }
 
 .color-dot {
   width: 8px; height: 8px;
@@ -684,7 +833,20 @@ function dateInputToTs(val: string): number {
   color: #ccc; padding: 3px 7px; font-size: 11px; font-family: monospace;
 }
 .ed-input:focus { outline: none; border-color: #64b5f6; }
-.ed-num { max-width: 70px; }
+.ed-num { max-width: 120px; }
+.ed-sep { height: 1px; background: #1a1a1a; margin: 6px 0; }
+.ed-tf-grid {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0 6px;
+}
+.ed-tf-chip {
+  display: flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 10px; font-size: 10px;
+  border: 1px solid #2a2a2a; background: #1a1a1a; color: #555;
+  cursor: pointer; user-select: none; transition: background 0.1s, color 0.1s;
+}
+.ed-tf-chip--on { background: #1a3a5c; color: #64b5f6; border-color: #1a4a7c; }
+.ed-tf-check { display: none; }
+.ed-point-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 0 2px; }
 .ed-footer { display: flex; gap: 8px; padding: 9px 14px; border-top: 1px solid #1a1a1a; }
 .ed-btn {
   flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #2a2a2a;

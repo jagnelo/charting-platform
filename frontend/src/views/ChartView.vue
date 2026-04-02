@@ -30,19 +30,6 @@
       </div>
     </Transition>
 
-    <!-- Alert form popup -->
-    <Transition name="fade">
-      <div class="alert-form-wrap" v-if="showAlertForm && chartStore.instrument">
-        <AlertForm
-          :instrument-id="chartStore.instrument.id"
-          :symbol="chartStore.symbol"
-          :current-tf="currentTf"
-          :seed-indicator="alertSeedIndicator"
-          @close="showAlertForm = false"
-        />
-      </div>
-    </Transition>
-
     <!-- Main workspace -->
     <div class="chart-workspace">
       <DrawingToolbar />
@@ -61,17 +48,14 @@
         </div>
         <UPlotChart v-else />
       </div>
-      <IndicatorPanel
-        @alert-for-indicator="onAlertForIndicator"
-        @add-alert="showAlertForm = true"
-      />
+      <IndicatorPanel />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useChartStore }   from '@/stores/chart'
 import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
@@ -82,19 +66,17 @@ import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar    from '@/components/chart/DrawingToolbar.vue'
 import IndicatorPanel    from '@/components/chart/IndicatorPanel.vue'
-import AlertForm         from '@/components/alerts/AlertForm.vue'
-import type { IndicatorConfig, Timeframe } from '@/types'
+import type { Timeframe } from '@/types'
 
 const chartStore   = useChartStore()
 const drawStore    = useDrawingsStore()
 const alertsStore  = useAlertsStore()
 const presetsStore = usePresetsStore()
 
-const route = useRoute()
+const route  = useRoute()
+const router = useRouter()
 
-const currentTf          = ref<Timeframe>('D1')
-const showAlertForm      = ref(false)
-const alertSeedIndicator = ref<IndicatorConfig | null>(null)
+const currentTf = ref<Timeframe>('D1')
 
 const currentPrice = computed(() => {
   const bars = chartStore.bars
@@ -117,11 +99,9 @@ async function onSymbolSelect(symbol: string) {
     if (def) chartStore.setIndicators([...def.indicators])
   }
   lastClose.value = currentPrice.value
-}
-
-function onAlertForIndicator(config: IndicatorConfig) {
-  alertSeedIndicator.value = config
-  showAlertForm.value = true
+  if (route.params.symbol !== symbol) {
+    router.replace(`/chart/${symbol}`)
+  }
 }
 
 watch(currentTf, async (tf) => {
@@ -133,9 +113,6 @@ watch(currentTf, async (tf) => {
   }
 })
 
-watch(showAlertForm, (v) => {
-  if (!v) alertSeedIndicator.value = null  // clear seed when form closes
-})
 
 onMounted(async () => {
   alertsStore.connectWebSocket()

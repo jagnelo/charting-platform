@@ -1,7 +1,7 @@
 <template>
   <div class="alert-form">
     <div class="form-header">
-      <span class="form-title">New Alert — {{ symbol }}</span>
+      <span class="form-title">{{ isEditing ? 'Edit Alert' : 'New Alert' }} — {{ symbol }}</span>
       <button class="form-close" @click="$emit('close')">✕</button>
     </div>
 
@@ -36,21 +36,19 @@
       <template v-if="lhs.isCustomIndicator">
         <div class="param-row" v-for="(_, key) in lhsDefaultParams" :key="key">
           <label>{{ paramLabel(key) }}</label>
-          <input v-model.number="lhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
-        </div>
-        <div class="param-row" v-if="lhs.sourceType.replace('new_','') === 'avwap'">
-          <label>Anchor</label>
-          <input type="datetime-local" :value="tsToDateInput(lhs.params.anchorTime)"
+          <input v-if="String(key) !== 'anchorTime'" v-model.number="lhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
+          <input v-else type="datetime-local" :value="tsToDateInput(lhs.params.anchorTime as number)"
                  @input="e => lhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
                  class="form-input" />
         </div>
-        <div class="param-row">
-          <label>Timeframe</label>
-          <select v-model="lhs.timeframe" class="form-select">
-            <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
-          </select>
-        </div>
       </template>
+      <!-- Timeframe shown for any indicator source (active or new) -->
+      <div class="param-row" v-if="lhs.isCustomIndicator || lhs.sourceType.startsWith('active_')">
+        <label>Timeframe</label>
+        <select v-model="lhs.timeframe" class="form-select">
+          <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- ── Condition ─────────────────────────────────────────── -->
@@ -106,21 +104,19 @@
       <template v-if="rhs.isCustomIndicator">
         <div class="param-row" v-for="(_, key) in rhsDefaultParams" :key="key">
           <label>{{ paramLabel(key) }}</label>
-          <input v-model.number="rhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
-        </div>
-        <div class="param-row" v-if="rhs.sourceType.replace('new_','') === 'avwap'">
-          <label>Anchor</label>
-          <input type="datetime-local" :value="tsToDateInput(rhs.params.anchorTime)"
+          <input v-if="String(key) !== 'anchorTime'" v-model.number="rhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
+          <input v-else type="datetime-local" :value="tsToDateInput(rhs.params.anchorTime as number)"
                  @input="e => rhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
                  class="form-input" />
         </div>
-        <div class="param-row">
-          <label>Timeframe</label>
-          <select v-model="rhs.timeframe" class="form-select">
-            <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
-          </select>
-        </div>
       </template>
+      <!-- Timeframe shown for any indicator source (active or new) -->
+      <div class="param-row" v-if="rhs.isCustomIndicator || rhs.sourceType.startsWith('active_')">
+        <label>Timeframe</label>
+        <select v-model="rhs.timeframe" class="form-select">
+          <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- ── Options ───────────────────────────────────────────── -->
@@ -137,16 +133,16 @@
 
     <div class="form-actions">
       <button class="btn-cancel" @click="$emit('close')">Cancel</button>
-      <button class="btn-create" :disabled="!isValid" @click="submit">Create Alert</button>
+      <button class="btn-create" :disabled="!isValid" @click="submit">{{ isEditing ? 'Save Alert' : 'Create Alert' }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useChartStore } from '@/stores/chart'
-import type { Timeframe, IndicatorConfig } from '@/types'
+import type { Timeframe, IndicatorConfig, PriceAlert, IndicatorAlert } from '@/types'
 
 const props = defineProps<{
   instrumentId: number
@@ -154,8 +150,13 @@ const props = defineProps<{
   currentTf?: Timeframe
   // Pre-seed from clicking 🔔 on an indicator in the sidebar
   seedIndicator?: IndicatorConfig | null
+  // Pre-populate form for editing an existing alert
+  editPriceAlert?: PriceAlert | null
+  editIndicatorAlert?: IndicatorAlert | null
 }>()
 const emit = defineEmits<{ close: [] }>()
+
+const isEditing = computed(() => !!(props.editPriceAlert || props.editIndicatorAlert))
 
 const alertsStore = useAlertsStore()
 const chartStore  = useChartStore()
@@ -255,6 +256,51 @@ const withinPct  = ref(1)
 const repeat     = ref(false)
 const notes      = ref('')
 
+// ── Pre-populate for editing ──────────────────────────────────────────────────
+const PRICE_FIELDS_SET = new Set(['close','open','high','low'])
+
+if (props.editPriceAlert) {
+  const a = props.editPriceAlert
+  lhs.sourceType = (a as any).price_field ?? 'close'
+  lhs.isCustomIndicator = false
+  rhs.sourceType = 'value'
+  rhs.fixedValue = Number(a.threshold_price)
+  condition.value = a.condition as string
+  if (a.condition === 'within_percent') withinPct.value = Number((a as any).within_percent ?? 1)
+  repeat.value = a.repeat
+  notes.value = a.notes ?? ''
+} else if (props.editIndicatorAlert) {
+  const a = props.editIndicatorAlert
+  // LHS
+  if (PRICE_FIELDS_SET.has(a.indicator_a_type)) {
+    lhs.sourceType = a.indicator_a_type
+    lhs.isCustomIndicator = false
+  } else {
+    lhs.sourceType = `new_${a.indicator_a_type}`
+    lhs.params = { ...(a.indicator_a_params as Record<string, number>) }
+    lhs.isCustomIndicator = true
+  }
+  lhs.timeframe = a.timeframe as Timeframe
+  // RHS
+  if (a.indicator_b_type) {
+    if (PRICE_FIELDS_SET.has(a.indicator_b_type)) {
+      rhs.sourceType = a.indicator_b_type
+      rhs.isCustomIndicator = false
+    } else {
+      rhs.sourceType = `new_${a.indicator_b_type}`
+      rhs.params = { ...(a.indicator_b_params as Record<string, number>) }
+      rhs.isCustomIndicator = true
+    }
+  } else {
+    rhs.sourceType = 'value'
+    rhs.fixedValue = Number(a.threshold_value ?? 0)
+  }
+  condition.value = a.condition
+  if (a.condition === 'within_percent') withinPct.value = Number(a.threshold_value ?? 1)
+  repeat.value = a.repeat
+  notes.value = a.notes ?? ''
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function sourceLabel(s: Source): string {
   if (s.sourceType === 'value') return String(s.fixedValue)
@@ -264,9 +310,12 @@ function sourceLabel(s: Source): string {
     return found?.label ?? s.sourceType
   }
   if (s.sourceType.startsWith('new_')) {
-    const type = s.sourceType.replace('new_', '').toUpperCase()
+    const type = s.sourceType.replace('new_', '')
+    if (type === 'avwap' && s.params.anchorTime) {
+      return `AVWAP(${tsToDateInput(s.params.anchorTime as number).split('T')[0]})`
+    }
     const p = Object.values(s.params).join(',')
-    return p ? `${type}(${p})` : type
+    return p ? `${type.toUpperCase()}(${p})` : type.toUpperCase()
   }
   return s.sourceType
 }
@@ -277,7 +326,10 @@ const preview = computed(() => {
   const c = condition.value === 'within_percent'
     ? `within ${withinPct.value}% of`
     : conditions.find(c => c.value === condition.value)?.label.replace(/^[↑↓⟷><≥≤%]\s+/,'') ?? condition.value
-  return `${props.symbol}: ${l} ${c} ${r}`
+  const isIndicator = lhs.isCustomIndicator || lhs.sourceType.startsWith('active_') ||
+                      rhs.isCustomIndicator  || rhs.sourceType.startsWith('active_')
+  const tf = isIndicator ? ` · ${lhs.isCustomIndicator || lhs.sourceType.startsWith('active_') ? lhs.timeframe : rhs.timeframe}` : ''
+  return `${props.symbol}: ${l} ${c} ${r}${tf}`
 })
 
 function paramLabel(key: string): string {
@@ -410,6 +462,13 @@ async function submit() {
     }
 
     await alertsStore.createIndicatorAlert(body)
+  }
+
+  // If editing, delete the original now that the replacement was created successfully
+  if (props.editPriceAlert) {
+    await alertsStore.deleteAlert(props.editPriceAlert.id)
+  } else if (props.editIndicatorAlert) {
+    await alertsStore.deleteIndicatorAlert(props.editIndicatorAlert.id)
   }
 
   emit('close')
