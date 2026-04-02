@@ -27,6 +27,13 @@ export const useChartStore = defineStore('chart', () => {
   let _saveTimer: ReturnType<typeof setTimeout> | null = null
   let _coveragePoller: ReturnType<typeof setInterval> | null = null
 
+  /** Indicators that should render on the current timeframe (respects lockedTimeframes). */
+  const activeIndicators = computed(() =>
+    indicators.value.filter(i =>
+      !i.lockedTimeframes?.length || i.lockedTimeframes.includes(timeframe.value)
+    )
+  )
+
   const uplotData = computed(() => {
     if (!bars.value.length) return [[], [], [], [], [], []]
     const barIndex = bars.value.map((_, i) => i)
@@ -185,7 +192,7 @@ export const useChartStore = defineStore('chart', () => {
   }, { deep: true })
 
   return {
-    symbol, timeframe, bars, instrument, indicators,
+    symbol, timeframe, bars, instrument, indicators, activeIndicators,
     isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
     loadBars, loadMoreBars, loadInstrument,
     setIndicators, addIndicator, removeIndicator, updateIndicator,

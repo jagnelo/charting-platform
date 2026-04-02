@@ -131,6 +131,8 @@ export interface IndicatorConfig {
   params: Record<string, unknown>
   style: { color: string; lineWidth: number }
   pane?: 'main' | 'separate'
+  /** Timeframes this indicator is active on. null/undefined = all timeframes. */
+  lockedTimeframes?: Timeframe[] | null
 }
 
 export type IndicatorType = 'sma' | 'ema' | 'vwap' | 'avwap' | 'rsi' | 'macd' | 'bb' | 'volume'

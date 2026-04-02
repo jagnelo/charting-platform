@@ -318,7 +318,7 @@ function stopLivePolling() {
 
 // ── Sub-panes ─────────────────────────────────────────────────────────────────
 const subPanes = computed(() =>
-  chartStore.indicators
+  chartStore.activeIndicators
     .filter(i => i.pane === 'separate')
     .map(i => ({
       key:    `${i.type}_${JSON.stringify(i.params)}`,
@@ -328,7 +328,7 @@ const subPanes = computed(() =>
 )
 
 const hasVolumeIndicator = computed(() =>
-  chartStore.indicators.some(i => i.type === 'volume' && i.pane !== 'separate')
+  chartStore.activeIndicators.some(i => i.type === 'volume' && i.pane !== 'separate')
 )
 
 // ── Y-scale range ─────────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ function buildData(): uPlot.AlignedData {
   const lows   = chartStore.bars.map(b => b.low)
   const closes = chartStore.bars.map(b => b.close)
   const vols   = chartStore.bars.map(b => b.volume ?? 0)
-  const extra = chartStore.indicators
+  const extra = chartStore.activeIndicators
     .filter(i => i.pane !== 'separate' && i.type !== 'volume')
     .map(i => computeIndicatorSeries(closes, highs, lows, vols, ts, i))
   return [barIdx, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
@@ -416,7 +416,7 @@ function buildSeries(): uPlot.Series[] {
     { label: 'Close',  scale: 'y',   show: false },
     { label: 'Volume', scale: 'vol', show: false },
   ]
-  for (const ind of chartStore.indicators.filter(i => i.pane !== 'separate' && i.type !== 'volume')) {
+  for (const ind of chartStore.activeIndicators.filter(i => i.pane !== 'separate' && i.type !== 'volume')) {
     base.push({
       label:  `${ind.type.toUpperCase()}(${Object.values(ind.params).join(',')})`,
       scale:  'y',
@@ -1002,8 +1002,8 @@ function setupDrawingInteraction(u: uPlot) {
     const rect = over.getBoundingClientRect()
     const idx = u.posToVal(e.clientX - rect.left, 'x')
     const cur = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
-    // Render preview inline — draw hook will re-render committed ones on next frame
     drawingRenderer?.renderAll([
+      ...drawStore.renderableDrawings,
       { type: drawStore.activeToolType as DrawingType, points: [drawingPoints[0], cur],
         style: { color: '#ffffff88', lineWidth: 1 }, isVisible: true } as any,
     ])
@@ -1056,14 +1056,52 @@ function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
   for (const d of [...drawStore.renderableDrawings].reverse()) {
     if (!d.points?.length) continue
     const toX = (time: number) => u.valToPos(timeToBarIndex(time), 'x')
-    if (d.type === 'horizontal_line' && Math.abs(my - u.valToPos(d.points[0].price, 'y')) < HIT) return d
-    if (d.type === 'vertical_line'   && Math.abs(mx - toX(d.points[0].time))              < HIT) return d
-    if (d.points.length >= 2) {
-      const [p0, p1] = [d.points[0]!, d.points[1]!]
-      const [x1, y1] = [toX(p0.time), u.valToPos(p0.price, 'y')]
-      const [x2, y2] = [toX(p1.time), u.valToPos(p1.price, 'y')]
-      if (distToSeg(mx, my, x1, y1, x2, y2) < HIT) return d
+    if (d.type === 'horizontal_line') {
+      if (Math.abs(my - u.valToPos(d.points[0].price, 'y')) < HIT) return d
+      continue
     }
+    if (d.type === 'vertical_line') {
+      if (Math.abs(mx - toX(d.points[0].time)) < HIT) return d
+      continue
+    }
+    if (d.points.length < 2) continue
+    const [p0, p1] = [d.points[0]!, d.points[1]!]
+    const [x1, y1] = [toX(p0.time), u.valToPos(p0.price, 'y')]
+    const [x2, y2] = [toX(p1.time), u.valToPos(p1.price, 'y')]
+
+    if (d.type === 'rectangle') {
+      const minX = Math.min(x1, x2), maxX = Math.max(x1, x2)
+      const minY = Math.min(y1, y2), maxY = Math.max(y1, y2)
+      const onLeft   = Math.abs(mx - minX) < HIT && my >= minY - HIT && my <= maxY + HIT
+      const onRight  = Math.abs(mx - maxX) < HIT && my >= minY - HIT && my <= maxY + HIT
+      const onTop    = Math.abs(my - minY) < HIT && mx >= minX - HIT && mx <= maxX + HIT
+      const onBottom = Math.abs(my - maxY) < HIT && mx >= minX - HIT && mx <= maxX + HIT
+      if (onLeft || onRight || onTop || onBottom) return d
+      continue
+    }
+    if (d.type === 'circle') {
+      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2
+      const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2
+      if (rx < 1 || ry < 1) continue
+      const nx = (mx - cx) / rx, ny = (my - cy) / ry
+      const dist = Math.sqrt(nx * nx + ny * ny)
+      const tol  = HIT / Math.min(rx, ry)
+      if (Math.abs(dist - 1) < tol) return d
+      continue
+    }
+    if (d.type === 'fibonacci_retracement' || d.type === 'fibonacci_extension') {
+      const levels = (d as any).levels ?? [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0]
+      const priceRange = p1.price - p0.price
+      const left = Math.min(x1, x2) - HIT, right = Math.max(x1, x2) + HIT
+      if (mx < left || mx > right) continue
+      for (const lvl of levels) {
+        const price = p0.price + priceRange * lvl
+        if (Math.abs(my - u.valToPos(price, 'y')) < HIT) return d
+      }
+      continue
+    }
+    // trendline, ray, arrow, and any other line-type drawings
+    if (distToSeg(mx, my, x1, y1, x2, y2) < HIT) return d
   }
   return null
 }
@@ -1113,7 +1151,7 @@ onMounted(async () => {
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
-watch(() => chartStore.indicators, async () => { await nextTick(); initChart() }, { deep: true })
+watch(() => chartStore.activeIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(() => drawStore.renderableDrawings, () => {
   drawingRenderer?.renderAll(drawStore.renderableDrawings)
 }, { deep: true })
