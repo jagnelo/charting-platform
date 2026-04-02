@@ -81,6 +81,12 @@ export const useDrawingsStore = defineStore('drawings', () => {
     }
   }
 
+  /** Update a drawing locally (no API call) — used for live coordinate preview in the editor. */
+  function localUpdateDrawing(id: number, patch: Partial<ChartDrawing>) {
+    const idx = drawings.value.findIndex(d => d.id === id)
+    if (idx !== -1) drawings.value[idx] = { ...drawings.value[idx], ...patch }
+  }
+
   function selectDrawing(id: number | null) {
     selectedId.value = id
   }
@@ -92,7 +98,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
 
   return {
     drawings, activeToolType, selectedId, renderableDrawings,
-    loadDrawings, saveDrawing, updateDrawing, deleteDrawing,
+    loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
     selectDrawing, setActiveTool,
   }
 })
