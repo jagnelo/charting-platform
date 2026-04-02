@@ -119,7 +119,7 @@ async def fetch_ohlcv(
     )
     cached = list((await db.execute(stmt)).scalars().all())
 
-    if _needs_fetch(cached):
+    if _needs_fetch(cached, timeframe):
         new_bars = _fetch_yfinance(
             instrument, timeframe, start, end, adjusted, await _get_or_create_datasource(db)
         )
@@ -158,13 +158,28 @@ async def fetch_ohlcv(
     return cached
 
 
-def _needs_fetch(cached: list[OHLCVBar]) -> bool:
+_TF_STALENESS: dict[Timeframe, timedelta] = {
+    Timeframe.M1:  timedelta(minutes=1),
+    Timeframe.M5:  timedelta(minutes=5),
+    Timeframe.M15: timedelta(minutes=15),
+    Timeframe.M30: timedelta(minutes=30),
+    Timeframe.H1:  timedelta(hours=1),
+    Timeframe.H2:  timedelta(hours=2),
+    Timeframe.H4:  timedelta(hours=4),
+    Timeframe.H12: timedelta(hours=12),
+    Timeframe.D1:  timedelta(days=1),
+    Timeframe.W1:  timedelta(weeks=1),
+    Timeframe.MN:  timedelta(days=31),
+}
+
+def _needs_fetch(cached: list[OHLCVBar], timeframe: Timeframe) -> bool:
     if not cached:
         return True
     latest = max(b.ts for b in cached)
     if latest.tzinfo is None:
         latest = latest.replace(tzinfo=UTC)
-    return (datetime.now(UTC) - latest) > timedelta(minutes=20)
+    threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
+    return (datetime.now(UTC) - latest) > threshold
 
 
 def _fetch_yfinance(instrument, timeframe, start, end, adjusted, datasource) -> list[OHLCVBar]:
@@ -218,7 +233,7 @@ async def fetch_ohlcv_latest(
     limit: int,
     adjusted: bool = True,
 ) -> list[OHLCVBar]:
-    """Return the most recent `limit` bars from the DB, newest-last."""
+    """Return the most recent `limit` bars from the DB, refreshing from yfinance if stale."""
     stmt = (
         select(OHLCVBar)
         .where(
@@ -232,23 +247,56 @@ async def fetch_ohlcv_latest(
     rows = list((await db.execute(stmt)).scalars().all())
     rows.sort(key=lambda b: b.ts)  # return chronological order
 
-    # If nothing in DB yet, fall back to a live yfinance fetch for the window
     if not rows:
-        rows = _fetch_yfinance_latest(
+        # DB is cold — fetch the full recent window from yfinance
+        new_bars = _fetch_yfinance_latest(
             instrument, timeframe, limit, adjusted, await _get_or_create_datasource(db)
         )
-        if rows:
+        if new_bars:
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
                         index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
                     ),
-                    [_bar_as_dict(b) for b in rows],
+                    [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
+                rows = list((await db.execute(stmt)).scalars().all())
+                rows.sort(key=lambda b: b.ts)
             except Exception as e:
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
+    elif _needs_fetch(rows, timeframe):
+        # DB has data but it's stale — fetch from the latest DB bar onwards
+        latest_ts = max(b.ts for b in rows)
+        if latest_ts.tzinfo is None:
+            latest_ts = latest_ts.replace(tzinfo=UTC)
+        datasource = await _get_or_create_datasource(db)
+        new_bars = _fetch_yfinance(
+            instrument, timeframe, latest_ts, datetime.now(UTC), adjusted, datasource
+        )
+        if new_bars:
+            try:
+                await db.execute(
+                    pg_insert(OHLCVBar).on_conflict_do_update(
+                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                        set_={
+                            "open": pg_insert(OHLCVBar).excluded.open,
+                            "high": pg_insert(OHLCVBar).excluded.high,
+                            "low":  pg_insert(OHLCVBar).excluded.low,
+                            "close": pg_insert(OHLCVBar).excluded.close,
+                            "volume": pg_insert(OHLCVBar).excluded.volume,
+                            "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                        },
+                    ),
+                    [_bar_as_dict(b) for b in new_bars],
+                )
+                await db.commit()
+                rows = list((await db.execute(stmt)).scalars().all())
+                rows.sort(key=lambda b: b.ts)
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Failed to save refreshed bars: {e}")
 
     return rows
 
