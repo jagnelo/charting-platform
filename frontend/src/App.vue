@@ -6,9 +6,10 @@
           <span class="logo-mark">◈</span>
         </div>
         <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/chart') }" title="Chart">📈</router-link>
-        <router-link to="/alerts"   class="nav-link" title="Alerts">🔔</router-link>
-        <router-link to="/screener" class="nav-link" title="Screener">🔍</router-link>
-        <router-link to="/settings" class="nav-link" title="Settings">⚙</router-link>
+        <router-link to="/alerts"    class="nav-link" title="Alerts">🔔</router-link>
+        <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
+        <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
+        <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>
         <div class="sidebar-spacer" />
         <div class="user-avatar" :title="authStore.user?.username" @click="authStore.logout()">
           {{ userInitial }}
@@ -43,13 +44,17 @@ const chartLink    = computed(() => chartStore.symbol ? `/chart/${chartStore.sym
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+}
 body {
   background: #080808;
   color: #ccc;
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
   overflow: hidden;
 }
-#app { display: flex; height: 100vh; overflow: hidden; }
+#app { display: flex; width: 100%; height: 100vh; overflow: hidden; }
 
 .sidebar {
   width: 48px;
@@ -99,5 +104,5 @@ body {
 }
 .user-avatar:hover { background: #1e4a7a; }
 
-.main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.main-content { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 </style>

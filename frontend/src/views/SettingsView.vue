@@ -83,7 +83,7 @@ onMounted(() => presetsStore.loadPresets())
 </script>
 
 <style scoped>
-.settings-view { padding: 24px; color: #ccc; max-width: 640px; }
+.settings-view { padding: 24px; color: #ccc; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .page-title     { color: #fff; font-size: 20px; margin-bottom: 24px; }
 
 .settings-section { margin-bottom: 32px; }

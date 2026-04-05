@@ -178,7 +178,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.alerts-view { padding: 24px; color: #ccc; font-size: 13px; }
+.alerts-view { padding: 24px; color: #ccc; font-size: 13px; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .page-title  { color: #fff; font-size: 20px; margin-bottom: 16px; }
 .filter-bar  { margin-bottom: 12px; }
 .filter-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 4px 8px; border-radius: 3px; }

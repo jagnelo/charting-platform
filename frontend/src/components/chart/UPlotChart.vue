@@ -98,10 +98,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { useChartStore }    from '@/stores/chart'
+import { usePanelStore }     from '@/stores/chart'
+import { useLayoutStore }    from '@/stores/layout'
 import { useDrawingsStore }  from '@/stores/drawings'
 import { useAlertsStore }    from '@/stores/alerts'
 import { candlestickPlugin } from '@/lib/uplot/plugins/candlestick'
@@ -128,7 +129,9 @@ const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
 const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fires
 
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
-const chartStore  = useChartStore()
+const panelId     = inject<string>('panelId', 'main')
+const chartStore  = usePanelStore(panelId)
+const layoutStore = useLayoutStore()
 const drawStore   = useDrawingsStore()
 const alertsStore = useAlertsStore()
 
@@ -255,6 +258,7 @@ let manualYMin: number | null = null
 let manualYMax: number | null = null
 let interactionCleanup: (() => void) | null = null
 let snapGuard = false
+let syncGuard = false
 
 // ── Live polling ───────────────────────────────────────────────────────────────
 // Minimum poll intervals by timeframe — daily+ bars don't change intraday
@@ -490,7 +494,7 @@ async function initChart() {
 
     axes: [
       {
-        scale: 'x', stroke: '#555',
+        scale: 'x', size: 22, stroke: '#555',
         ticks: { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
         values: (_u, ticks) => ticks.map(t => t == null ? '' : formatXAxisTick(Math.round(t))),
       },
@@ -510,6 +514,11 @@ async function initChart() {
       }],
       setCursor: [(u) => {
         updateTooltip(u, u.cursor.idx)
+        // Broadcast cursor timestamp for cross-panel sync
+        if (u.cursor.idx != null && layoutStore.panelCount > 1 && !syncGuard) {
+          const ts = chartStore.bars[u.cursor.idx]?.ts
+          if (ts) layoutStore.setSyncedTs(ts, panelId)
+        }
         // Snap crosshair to nearest bar centre — guard against re-entrancy
         if (snapGuard) return
         const idx = u.cursor.idx
@@ -1158,6 +1167,26 @@ watch(() => drawStore.renderableDrawings, () => {
 
 // Reset in-progress drawing points whenever the active tool changes
 watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
+
+/** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
+function jumpToTs(isoTs: string) {
+  if (!uplot) return
+  const bars = chartStore.bars
+  if (!bars.length) return
+  // Find last bar whose timestamp is <= target
+  let idx = bars.findIndex(b => b.ts > isoTs)
+  if (idx === -1) idx = bars.length - 1
+  else if (idx > 0) idx -= 1
+  const left = uplot.valToPos(idx, 'x')
+  syncGuard = true
+  uplot.setCursor({ left, top: uplot.cursor.top ?? 0 })
+  syncGuard = false
+  // Update tooltip with the correct idx directly — setCursor may clamp idx
+  // if the bar is scrolled off-screen, which would show the wrong OHLCV data.
+  updateTooltip(uplot, idx)
+}
+
+defineExpose({ jumpToTs })
 </script>
 
 <style scoped>
@@ -1253,7 +1282,7 @@ watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
 /* Y axis A/L buttons — TradingView style, pinned to bottom of Y axis */
 .yaxis-btns {
   position: absolute;
-  bottom: 28px;
+  bottom: 22px;
   right: 0;
   width: 65px; /* matches axis size */
   display: flex;
@@ -1285,7 +1314,7 @@ watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
 
 /* Go to latest */
 .go-to-latest {
-  position: absolute; bottom: 20px; right: 80px; z-index: 30;
+  position: absolute; bottom: 26px; right: 80px; z-index: 30;
   background: rgba(20,20,20,0.92); border: 1px solid #333; border-radius: 4px;
   color: #64b5f6; font-family: monospace; font-size: 11px;
   padding: 4px 10px; cursor: pointer;
@@ -1295,7 +1324,7 @@ watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
 
 /* Help button */
 .help-btn {
-  position: absolute; bottom: 20px; left: 12px; z-index: 30;
+  position: absolute; bottom: 26px; left: 12px; z-index: 30;
   width: 22px; height: 22px;
   background: rgba(20,20,20,0.7); border: 1px solid #2a2a2a; border-radius: 50%;
   color: #555; font-size: 12px; cursor: pointer; line-height: 1;

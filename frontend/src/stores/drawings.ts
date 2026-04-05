@@ -32,7 +32,9 @@ export const useDrawingsStore = defineStore('drawings', () => {
     instrumentId.value = instId
     currentTimeframe.value = tf
     try {
-      drawings.value = await api.get('/drawings', { instrument_id: instId, timeframe: tf })
+      // No timeframe filter — drawings belong to the symbol, not a specific timeframe.
+      // The creation timeframe is stored as metadata only.
+      drawings.value = await api.get('/drawings', { instrument_id: instId })
     } catch (e) {
       console.error('Failed to load drawings', e)
     }

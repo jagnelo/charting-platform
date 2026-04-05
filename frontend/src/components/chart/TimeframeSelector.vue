@@ -1,12 +1,11 @@
 <template>
-  <div class="tf-selector">
-    <button
-      v-for="tf in timeframes"
-      :key="tf.value"
-      :class="['tf-btn', { active: modelValue === tf.value }]"
-      @click="$emit('update:modelValue', tf.value)"
-    >{{ tf.label }}</button>
-  </div>
+  <select
+    class="tf-select"
+    :value="modelValue"
+    @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value as Timeframe)"
+  >
+    <option v-for="tf in timeframes" :key="tf.value" :value="tf.value">{{ tf.label }}</option>
+  </select>
 </template>
 
 <script setup lang="ts">
@@ -30,24 +29,24 @@ const timeframes: Array<{ value: Timeframe; label: string }> = [
 </script>
 
 <style scoped>
-.tf-selector {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-}
-
-.tf-btn {
-  padding: 3px 8px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: #777;
-  cursor: pointer;
+.tf-select {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #aaa;
   font-size: 12px;
   font-family: 'JetBrains Mono', monospace;
-  transition: all 0.1s;
+  padding: 3px 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  min-width: 52px;
 }
-
-.tf-btn:hover { background: #1e1e1e; color: #ccc; }
-.tf-btn.active { background: #1a3a5c; color: #64b5f6; }
+.tf-select:hover { border-color: #444; color: #ccc; }
+.tf-select:focus { border-color: #64b5f6; }
 </style>

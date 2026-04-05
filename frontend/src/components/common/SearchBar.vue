@@ -6,7 +6,7 @@
         ref="inputRef"
         v-model="query"
         type="text"
-        placeholder="Search symbol or company…"
+        :placeholder="placeholder"
         class="search-input"
         @input="onInput"
         @keydown.escape="clear"
@@ -28,6 +28,11 @@
         <span class="r-name">{{ r.name }}</span>
         <span class="r-type">{{ r.type }}</span>
       </div>
+      <div class="screener-link-row">
+        <router-link :to="`/screener?q=${encodeURIComponent(query)}`" class="screener-link" @click="clear">
+          Open in Screener →
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -38,6 +43,7 @@ import { api } from '@/lib/api'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
 
+withDefaults(defineProps<{ placeholder?: string }>(), { placeholder: 'Search symbol or company…' })
 const emit = defineEmits<{ select: [symbol: string] }>()
 
 const query        = ref('')
@@ -144,4 +150,16 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 .r-symbol { color: #64b5f6; font-weight: 700; min-width: 60px; font-family: monospace; }
 .r-name   { flex: 1; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .r-type   { color: #555; font-size: 10px; }
+
+.screener-link-row {
+  border-top: 1px solid #222;
+  padding: 6px 10px;
+  text-align: right;
+}
+.screener-link {
+  color: #64b5f6;
+  font-size: 11px;
+  text-decoration: none;
+}
+.screener-link:hover { text-decoration: underline; }
 </style>

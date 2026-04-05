@@ -1,5 +1,13 @@
 <template>
-  <div class="side-panel">
+  <div :class="['side-panel', { 'side-panel--collapsed': !isPanelOpen }]">
+    <!-- Collapse toggle strip -->
+    <button
+      class="panel-toggle"
+      :title="isPanelOpen ? 'Hide panel' : 'Show panel'"
+      @click="isPanelOpen = !isPanelOpen"
+    >{{ isPanelOpen ? '›' : '‹' }}</button>
+
+    <div v-show="isPanelOpen" class="panel-body">
 
     <!-- ── Indicators section ──────────────────────────────────────────── -->
     <div class="section" :class="{ collapsed: !indicatorsOpen }">
@@ -27,7 +35,7 @@
               <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
             </div>
             <div v-if="!chartStore.indicators.length" class="empty-hint">
-              No indicators for this ticker
+              No indicators for this symbol
               <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
             </div>
           </div>
@@ -155,7 +163,7 @@
                       @click.stop="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">↺</button>
               <button class="row-btn danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id)" title="Delete">✕</button>
             </div>
-            <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this ticker</div>
+            <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this symbol</div>
           </div>
           <div class="add-bar">
             <button class="add-btn" @click="openAlertEditor(null, null)">+ Add Alert</button>
@@ -164,6 +172,7 @@
       </Transition>
     </div>
 
+    </div><!-- /panel-body -->
   </div>
 
   <!-- ── Indicator editor popup ──────────────────────────────────────────── -->
@@ -326,19 +335,21 @@
 import { ref, reactive, computed } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { formatMoney } from '@/lib/format'
-import { useChartStore }   from '@/stores/chart'
+import { usePanelStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
 import AlertForm from '@/components/alerts/AlertForm.vue'
 import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 
+const props = defineProps<{ panelId: string }>()
 
 const alertsStore  = useAlertsStore()
-const chartStore   = useChartStore()
+const chartStore   = usePanelStore(props.panelId)
 const drawStore    = useDrawingsStore()
 const presetsStore = usePresetsStore()
 
-// ── Section collapse state ────────────────────────────────────────────────────
+// ── Panel & section collapse state ───────────────────────────────────────────
+const isPanelOpen    = ref(true)
 const alertsOpen     = ref(true)
 const indicatorsOpen = ref(true)
 const drawingsOpen   = ref(true)
@@ -639,10 +650,39 @@ function dateInputToTs(val: string): number {
   border-left: 1px solid #222;
   width: 220px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   font-size: 12px;
   color: #aaa;
   overflow: hidden;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
+}
+.side-panel--collapsed { width: 16px; }
+
+.panel-toggle {
+  width: 16px;
+  flex-shrink: 0;
+  background: #0d0d0d;
+  border: none;
+  border-right: 1px solid #1a1a1a;
+  color: #444;
+  cursor: pointer;
+  font-size: 10px;
+  writing-mode: vertical-rl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.1s, background 0.1s;
+}
+.panel-toggle:hover { color: #aaa; background: #111; }
+
+.panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* ── Section chrome ────────────────────────────────────────────────────── */
