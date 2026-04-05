@@ -17,6 +17,7 @@ from app.routers import (
     ohlcv,
     presets,
     screener,
+    watchlists,
 )
 from app.services.alert_engine import run_alert_check
 
@@ -75,6 +76,7 @@ app.include_router(alerts.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
+app.include_router(watchlists.router, prefix=PREFIX)
 
 
 @app.get("/health")

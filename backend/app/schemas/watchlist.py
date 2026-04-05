@@ -29,6 +29,7 @@ class WatchlistRead(BaseModel):
     id: int
     name: str
     description: str | None = None
+    is_default: bool = False
     created_at: datetime
     items: list[WatchlistItemRead] = []
 
