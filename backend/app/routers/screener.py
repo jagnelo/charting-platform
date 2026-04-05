@@ -1,6 +1,8 @@
-from datetime import UTC, datetime
+import json
+from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,46 +99,35 @@ async def get_screener(
 @router.post("/{screener_id}/run", response_model=ScreenerResultOut)
 async def run_screener_now(
     screener_id: int,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Trigger an immediate screener run.
-    For large universes this runs as a background task via ARQ.
-    Returns a pending result immediately; poll /screeners/{id}/results for completion.
-    """
+    """Trigger an immediate synchronous screener run."""
     screener = await db.get(ScreenerDefinition, screener_id)
     if screener is None or screener.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Screener not found")
 
-    # Enqueue as ARQ task for large universes
-    try:
-        from arq.connections import RedisSettings, create_pool
+    from app.services.screener_engine import run_screener
 
-        from app.config import settings as cfg
+    result = await run_screener(db, screener)
+    return result
 
-        redis = await create_pool(RedisSettings.from_dsn(cfg.REDIS_URL))
-        await redis.enqueue_job("task_run_screener", screener_id)
-        await redis.aclose()
-        # Return a placeholder — client polls for results
-        from datetime import datetime
 
-        return ScreenerResultOut(
-            id=-1,
-            screener_id=screener_id,
-            run_at=datetime.now(UTC),
-            duration_ms=None,
-            matched_ids=[],
-            result_data={},
-            error=None,
-        )
-    except Exception:
-        # Fallback: run synchronously in background thread
-        from app.services.screener_engine import run_screener
-
-        result = await run_screener(db, screener)
-        return result
+@router.patch("/{screener_id}", response_model=ScreenerOut)
+async def update_screener(
+    screener_id: int,
+    body: ScreenerCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    screener = await db.get(ScreenerDefinition, screener_id)
+    if screener is None or screener.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Screener not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(screener, field, value)
+    await db.commit()
+    await db.refresh(screener)
+    return screener
 
 
 @router.get("/{screener_id}/results", response_model=list[ScreenerResultOut])
@@ -170,3 +161,99 @@ async def delete_screener(
         raise HTTPException(status_code=404, detail="Screener not found")
     await db.delete(screener)
     await db.commit()
+
+
+@router.post("/{screener_id}/run/stream")
+async def stream_screener_run(
+    screener_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Streaming screener run — returns newline-delimited JSON (NDJSON).
+
+    Each line is a JSON object with a "type" field:
+      {"type": "progress", "evaluated": N, "total": N, "matches": N}
+      {"type": "match",    "instrument_id": N, "computed": {...}}
+      {"type": "done",     "evaluated": N, "total": N, "matches": N,
+                           "duration_ms": N, "result_id": N}
+
+    Pass 1 evaluates instruments already in the DB (fast).
+    Pass 2 fetches missing OHLCV from yfinance then evaluates (slow, rate-limited).
+    """
+    screener = await db.get(ScreenerDefinition, screener_id)
+    if screener is None or screener.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Screener not found")
+
+    from app.services.screener_engine import stream_screener
+
+    async def event_gen():
+        async for event in stream_screener(db, screener):
+            yield json.dumps(event) + "\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/admin/bootstrap-isins", status_code=202)
+async def bootstrap_isins(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Trigger a background job to fetch and store stable identifiers (ISIN /
+    compositeFIGI) for all active instruments that don't have one yet.
+    """
+    from app.services.instrument_sync import bootstrap_isins as _bootstrap
+
+    async def _run():
+        await _bootstrap(db)
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "message": "ISIN bootstrap running in background"}
+
+
+@router.post("/admin/seed-universe", status_code=202)
+async def seed_universe_endpoint(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Trigger a background job that downloads the full US-listed ticker universe
+    from NASDAQ Trader, creates Instrument rows for any symbols not already in
+    the DB, and enriches every instrument with yfinance metadata (sector,
+    industry, country, market-cap tier, etc.).
+
+    Idempotent — safe to re-run.  Expect 15–45 min for ~8 000 tickers.
+    """
+    from app.services.instrument_sync import seed_universe as _seed
+
+    async def _run():
+        await _seed(db)
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "message": "Universe seed running in background"}
+
+
+@router.post("/admin/sync-instruments", status_code=202)
+async def sync_instruments_endpoint(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Trigger a background metadata sync: refresh names/currencies and detect
+    delistings for all active instruments.
+    """
+    from app.services.instrument_sync import sync_instruments as _sync
+
+    async def _run():
+        await _sync(db)
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "message": "Instrument sync running in background"}
