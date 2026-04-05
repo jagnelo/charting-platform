@@ -4,25 +4,41 @@ Runs as a scheduled job via APScheduler every ALERT_POLL_INTERVAL seconds.
 """
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
-from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.services.indicators import OHLCVSeries, get_latest_value
-from app.services.market_data import _ticker_for_instrument, get_current_price
+from app.services.market_data import _ticker_for_instrument, fetch_ohlcv, get_current_price
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
 INDICATOR_LOOKBACK = 300  # bars to load for indicator computation
+
+# Approximate wall-clock duration of one bar per timeframe — used to compute
+# the lookback start time for `fetch_ohlcv` so it always has fresh data.
+_TF_BAR_DURATION: dict[Timeframe, timedelta] = {
+    Timeframe.M1:  timedelta(minutes=1),
+    Timeframe.M5:  timedelta(minutes=5),
+    Timeframe.M15: timedelta(minutes=15),
+    Timeframe.M30: timedelta(minutes=30),
+    Timeframe.H1:  timedelta(hours=1),
+    Timeframe.H2:  timedelta(hours=2),
+    Timeframe.H4:  timedelta(hours=4),
+    Timeframe.H12: timedelta(hours=12),
+    Timeframe.D1:  timedelta(days=1),
+    Timeframe.W1:  timedelta(weeks=1),
+    Timeframe.MN:  timedelta(days=31),
+}
 
 
 # ── Price alert evaluation ────────────────────────────────────────────────────
@@ -89,16 +105,14 @@ def _indicator_condition_met(
 
 
 async def _load_ohlcv_series(
-    db: AsyncSession, instrument_id: int, timeframe: Timeframe
+    db: AsyncSession, instrument: Instrument, timeframe: Timeframe
 ) -> OHLCVSeries:
-    stmt = (
-        select(OHLCVBar)
-        .where(OHLCVBar.instrument_id == instrument_id, OHLCVBar.timeframe == timeframe)
-        .order_by(OHLCVBar.ts.desc())
-        .limit(INDICATOR_LOOKBACK)
-    )
-    bars = list((await db.execute(stmt)).scalars().all())
-    bars.reverse()
+    """Fetch (and refresh if stale) the OHLCV series used for indicator evaluation."""
+    bar_dur = _TF_BAR_DURATION.get(timeframe, timedelta(days=1))
+    # Request enough history for the lookback window with a small buffer
+    start = datetime.now(UTC) - bar_dur * INDICATOR_LOOKBACK * 2
+    bars = await fetch_ohlcv(db, instrument, timeframe, start)
+    bars = bars[-INDICATOR_LOOKBACK:] if len(bars) > INDICATOR_LOOKBACK else bars
     return OHLCVSeries.from_orm_bars(bars)
 
 
@@ -199,21 +213,8 @@ async def run_alert_check():
             current_price = get_current_price(ticker)
             if current_price is None:
                 continue
+            current_dec = Decimal(str(current_price))
             for alert in alerts:
-                result = await db.execute(
-                    select(OHLCVBar)
-                    .where(OHLCVBar.instrument_id == instrument.id)
-                    .order_by(desc(OHLCVBar.ts))
-                    .limit(1)
-                )
-                bar = result.scalar_one_or_none()
-
-                if bar is None:
-                    # no data available, skip this alert
-                    continue
-                field = alert.price_field or "close"
-                raw_price = getattr(bar, field, current_price) if bar else current_price
-                current_dec = Decimal(str(raw_price))
                 await db.refresh(alert, ["instrument"])
                 if _price_condition_met(
                     alert.condition,
@@ -241,7 +242,7 @@ async def run_alert_check():
         for alert in ind_alerts:
             try:
                 await db.refresh(alert, ["instrument"])
-                data = await _load_ohlcv_series(db, alert.instrument_id, alert.timeframe)
+                data = await _load_ohlcv_series(db, alert.instrument, alert.timeframe)
                 if len(data.closes) < 2:
                     continue
 

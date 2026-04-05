@@ -28,6 +28,7 @@ async def get_ohlcv(
     before: datetime | None = Query(
         None, description="Return PAGE_SIZE bars strictly before this timestamp (for pagination)"
     ),
+    limit: int | None = Query(None, ge=1, description="Cap the number of bars returned"),
     adjusted: bool = Query(True),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -45,15 +46,18 @@ async def get_ohlcv(
         # Paginated: return the PAGE_SIZE bars immediately before `before`
         if before.tzinfo is None:
             before = before.replace(tzinfo=UTC)
-        return await fetch_ohlcv_page_before(db, instrument, timeframe, before, PAGE_SIZE, adjusted)
+        bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, PAGE_SIZE, adjusted)
+        return bars[-limit:] if limit else bars
 
     if start is not None:
-        # Explicit range query (used by alert engine, screener, etc.)
+        # Explicit range query (used by alert engine, screener, sparklines, etc.)
         if start.tzinfo is None:
             start = start.replace(tzinfo=UTC)
         if end and end.tzinfo is None:
             end = end.replace(tzinfo=UTC)
-        return await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        return bars[-limit:] if limit else bars
 
-    # Default: initial load — return the latest PAGE_SIZE bars
-    return await fetch_ohlcv_latest(db, instrument, timeframe, PAGE_SIZE, adjusted)
+    # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
+    page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
+    return await fetch_ohlcv_latest(db, instrument, timeframe, page, adjusted)
