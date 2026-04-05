@@ -51,6 +51,123 @@ async def search_instruments(
     return out[:10]
 
 
+@router.get("/browse")
+async def browse_instruments(
+    q: str | None = Query(None),
+    instrument_type: str | None = Query(None),
+    sector: str | None = Query(None),
+    industry: str | None = Query(None),
+    market_cap_tier: str | None = Query(None),
+    country: str | None = Query(None),
+    currency: str | None = Query(None),
+    exchange: str | None = Query(None),
+    ids: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Browse/filter instruments by fundamental criteria with pagination.
+    Returns instruments with basic info + equity_detail for sector/industry.
+    """
+    stmt = (
+        select(Instrument)
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.instrument_type),
+        )
+        .where(Instrument.is_active.is_(True))
+    )
+
+    if ids:
+        id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
+        if id_list:
+            stmt = stmt.where(Instrument.id.in_(id_list))
+
+    if q:
+        stmt = stmt.where(
+            or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%"))
+        )
+
+    if instrument_type:
+        stmt = stmt.join(Instrument.instrument_type).where(
+            InstrumentType.name.ilike(f"%{instrument_type}%")
+        )
+
+    if currency:
+        stmt = stmt.where(Instrument.currency == currency.upper())
+
+    # EquityDetail filters — only join when needed
+    needs_equity_join = any(f is not None for f in [sector, industry, market_cap_tier, country, exchange])
+    if needs_equity_join:
+        stmt = stmt.join(EquityDetail, EquityDetail.instrument_id == Instrument.id, isouter=True)
+        if sector:
+            stmt = stmt.where(EquityDetail.sector.ilike(f"%{sector}%"))
+        if industry:
+            # industry filter implicitly covers its sector — no separate sector filter needed
+            stmt = stmt.where(EquityDetail.industry.ilike(f"%{industry}%"))
+        if market_cap_tier:
+            stmt = stmt.where(EquityDetail.market_cap_tier == market_cap_tier)
+        if country:
+            stmt = stmt.where(EquityDetail.country.ilike(f"%{country}%"))
+        if exchange:
+            stmt = stmt.where(EquityDetail.exchange_mic.ilike(f"%{exchange}%"))
+
+    # Count total for pagination metadata
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+    rows = (await db.execute(stmt)).scalars().all()
+
+    items = []
+    for inst in rows:
+        eq = inst.equity_detail
+        items.append({
+            "id": inst.id,
+            "symbol": inst.symbol,
+            "name": inst.name,
+            "currency": inst.currency,
+            "type": inst.instrument_type.name if inst.instrument_type else None,
+            "sector": eq.sector if eq else None,
+            "industry": eq.industry if eq else None,
+            "market_cap_tier": eq.market_cap_tier if eq else None,
+            "country": eq.country if eq else None,
+            "exchange": eq.exchange_mic if eq else None,
+        })
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": items,
+    }
+
+
+@router.get("/filter-options")
+async def get_filter_options(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return distinct values for screener/browse dropdown filters."""
+    from sqlalchemy import distinct
+
+    sectors    = (await db.execute(select(distinct(EquityDetail.sector)).where(EquityDetail.sector.isnot(None)))).scalars().all()
+    industries = (await db.execute(select(distinct(EquityDetail.industry)).where(EquityDetail.industry.isnot(None)))).scalars().all()
+    countries  = (await db.execute(select(distinct(EquityDetail.country)).where(EquityDetail.country.isnot(None)))).scalars().all()
+    exchanges  = (await db.execute(select(distinct(EquityDetail.exchange_mic)).where(EquityDetail.exchange_mic.isnot(None)))).scalars().all()
+    currencies = (await db.execute(select(distinct(Instrument.currency)).where(Instrument.currency.isnot(None)))).scalars().all()
+
+    return {
+        "sectors":    sorted(sectors),
+        "industries": sorted(industries),
+        "countries":  sorted(countries),
+        "exchanges":  sorted(exchanges),
+        "currencies": sorted(currencies),
+    }
+
+
 @router.get("/{symbol}/data-coverage")
 async def get_data_coverage(
     symbol: str,
