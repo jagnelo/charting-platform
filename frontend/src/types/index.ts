@@ -162,6 +162,71 @@ export interface Watchlist {
   items: WatchlistItem[]
 }
 
+// ── Screener ──────────────────────────────────────────────────────────────────
+
+export type PriceChangePeriod = '1D' | '1W' | '1M' | 'MTD' | 'YTD' | '1Y'
+
+export type ScreenerConditionType =
+  | 'indicator_threshold'
+  | 'indicator_cross'
+  | 'price_threshold'
+  | 'price_change'
+  | 'price_change_period'
+  | 'fundamental_filter'
+  | 'and'
+  | 'or'
+  | 'not'
+
+export interface ScreenerConditionLeaf {
+  type: Exclude<ScreenerConditionType, 'and' | 'or' | 'not'>
+  indicator?: string
+  indicator_b?: string
+  params?: Record<string, unknown>
+  params_b?: Record<string, unknown>
+  timeframe?: string
+  operator?: string
+  value?: number
+  field?: string
+  period?: PriceChangePeriod
+}
+
+export interface ScreenerConditionGroup {
+  type: 'and' | 'or' | 'not'
+  conditions?: ScreenerConditionNode[]
+  condition?: ScreenerConditionNode
+}
+
+export type ScreenerConditionNode = ScreenerConditionLeaf | ScreenerConditionGroup
+
+export interface ScreenerFilter {
+  id?: number
+  name: string
+  universe: 'all' | 'watchlist'
+  watchlist_id?: number
+  conditions: ScreenerConditionGroup
+}
+
+/** One row returned by POST /screener/run */
+export interface ScreenerResultRow {
+  instrument_id: number
+  symbol: string
+  result_data: Record<string, unknown>
+}
+
+/** Item shape from GET /instruments/browse */
+export interface BrowseResult {
+  id: number
+  symbol: string
+  name: string
+  instrument_type?: string
+  exchange?: string
+  currency?: string
+  sector?: string
+  industry?: string
+  country?: string
+  market_cap_tier?: string
+}
+
 // ── Chart state ───────────────────────────────────────────────────────────────
 
 export interface ChartState {
