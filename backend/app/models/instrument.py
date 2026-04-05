@@ -42,6 +42,7 @@ class Instrument(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    isin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
 
     instrument_type: Mapped["InstrumentType"] = relationship(back_populates="instruments")
     listings: Mapped[list["InstrumentListing"]] = relationship(back_populates="instrument")
