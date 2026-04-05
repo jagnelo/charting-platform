@@ -4,19 +4,50 @@
     <header class="chart-header">
       <div class="header-left">
         <SearchBar @select="onSymbolSelect" />
-        <div class="symbol-info" v-if="chartStore.symbol">
-          <span class="sym">{{ chartStore.symbol }}</span>
-          <span class="sym-name">{{ chartStore.instrument?.name }}</span>
-          <span class="sym-price" :class="priceClass">
-            {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
-          </span>
-        </div>
+        <!-- Single panel: ticker + price -->
+        <template v-if="layoutStore.layout === '1'">
+          <div class="symbol-info" v-if="chartStore.symbol">
+            <span class="sym">{{ chartStore.symbol }}</span>
+            <span class="sym-name">{{ chartStore.instrument?.name }}</span>
+            <span class="sym-price" :class="priceClass">
+              {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
+            </span>
+          </div>
+          <!-- Add to watchlist -->
+          <div
+            v-if="chartStore.symbol && watchlistStore.watchlists.length"
+            ref="wlStarRef"
+            class="wl-star-wrap"
+          >
+            <button
+              class="wl-star"
+              :class="{ active: showWlMenu }"
+              title="Add to watchlist"
+              @click="showWlMenu = !showWlMenu"
+            >★</button>
+            <div v-if="showWlMenu" class="wl-quick-menu">
+              <div class="wqm-title">Add to watchlist</div>
+              <div
+                v-for="wl in watchlistStore.watchlists"
+                :key="wl.id"
+                class="wqm-item"
+                @click="addToWatchlist(wl.id)"
+              >{{ wl.name }}</div>
+            </div>
+          </div>
+        </template>
+        <!-- Multi-panel: search bar acts as "sync all panels" -->
+        <template v-else>
+          <span class="sync-all-hint">Sync all panels</span>
+        </template>
       </div>
-      <div class="header-center">
+      <!-- Single panel only: timeframe selector -->
+      <div class="header-center" v-if="layoutStore.layout === '1'">
         <TimeframeSelector v-model="currentTf" />
       </div>
       <div class="header-right">
-        <div v-if="chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
+        <LayoutPicker />
+        <div v-if="layoutStore.layout === '1' && chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
           {{ alertsStore.activeCountForInstrument(chartStore.instrument.id) }}
         </div>
         <div class="ws-dot" :class="{ connected: alertsStore.wsConnected }" title="WebSocket status" />
@@ -30,53 +61,78 @@
       </div>
     </Transition>
 
-    <!-- Main workspace -->
-    <div class="chart-workspace">
+    <!-- Main body: watchlist panel is always visible regardless of layout -->
+    <div class="chart-body">
+      <WatchlistPanel :current-symbol="chartStore.symbol" @select="onSymbolSelect" />
       <DrawingToolbar />
-      <div class="chart-area">
-        <div v-if="chartStore.isLoading" class="chart-loading">
-          <div class="loading-spinner">Loading {{ chartStore.symbol }}…</div>
-        </div>
-        <div v-else-if="chartStore.error" class="chart-error">
-          {{ chartStore.error }}
-        </div>
-        <div v-else-if="!chartStore.symbol" class="chart-empty">
-          <div class="empty-msg">
-            <p class="empty-title">Search for a symbol to begin</p>
-            <p class="empty-sub">Stocks, ETFs, Futures, Forex, Crypto</p>
+      <div v-if="layoutStore.layout === '1'" class="chart-workspace">
+        <div class="chart-area">
+          <div v-if="chartStore.isLoading" class="chart-loading">
+            <div class="loading-spinner">Loading {{ chartStore.symbol }}…</div>
           </div>
+          <div v-else-if="chartStore.error" class="chart-error">
+            {{ chartStore.error }}
+          </div>
+          <div v-else-if="!chartStore.symbol" class="chart-empty">
+            <div class="empty-msg">
+              <p class="empty-title">Search for a symbol to begin</p>
+              <p class="empty-sub">Stocks, ETFs, Futures, Forex, Crypto</p>
+            </div>
+          </div>
+          <UPlotChart v-else />
         </div>
-        <UPlotChart v-else />
       </div>
-      <IndicatorPanel />
+      <div v-else class="chart-workspace">
+        <MultiChartLayout />
+      </div>
+      <!-- IndicatorPanel is always visible; key forces re-mount on active panel switch -->
+      <IndicatorPanel
+        :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
+        :key="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useChartStore }   from '@/stores/chart'
+import { useChartStore, usePanelStore } from '@/stores/chart'
+import { useLayoutStore }    from '@/stores/layout'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
-import SearchBar         from '@/components/common/SearchBar.vue'
-import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
-import UPlotChart        from '@/components/chart/UPlotChart.vue'
-import DrawingToolbar    from '@/components/chart/DrawingToolbar.vue'
-import IndicatorPanel    from '@/components/chart/IndicatorPanel.vue'
+import SearchBar            from '@/components/common/SearchBar.vue'
+import TimeframeSelector    from '@/components/chart/TimeframeSelector.vue'
+import UPlotChart           from '@/components/chart/UPlotChart.vue'
+import DrawingToolbar       from '@/components/chart/DrawingToolbar.vue'
+import IndicatorPanel       from '@/components/chart/IndicatorPanel.vue'
+import LayoutPicker         from '@/components/chart/LayoutPicker.vue'
+import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
+import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import type { Timeframe } from '@/types'
 
-const chartStore   = useChartStore()
-const drawStore    = useDrawingsStore()
-const alertsStore  = useAlertsStore()
-const presetsStore = usePresetsStore()
+const chartStore      = useChartStore()
+const layoutStore     = useLayoutStore()
+const watchlistStore  = useWatchlistStore()
+const drawStore       = useDrawingsStore()
+const alertsStore     = useAlertsStore()
+const presetsStore    = usePresetsStore()
 
 const route  = useRoute()
 const router = useRouter()
 
-const currentTf = ref<Timeframe>('D1')
+const currentTf     = ref<Timeframe>('D1')
+const showWlMenu    = ref(false)
+const wlStarRef     = ref<HTMLElement | null>(null)
+
+function onDocClick(e: MouseEvent) {
+  if (showWlMenu.value && wlStarRef.value && !wlStarRef.value.contains(e.target as Node)) {
+    showWlMenu.value = false
+  }
+}
 
 const currentPrice = computed(() => {
   const bars = chartStore.bars
@@ -90,15 +146,24 @@ const priceClass  = computed(() => {
 })
 
 async function onSymbolSelect(symbol: string) {
-  await chartStore.loadBars(symbol, currentTf.value)
-  if (chartStore.instrument) {
-    await drawStore.loadDrawings(chartStore.instrument.id, currentTf.value)
-    await alertsStore.loadAlerts(chartStore.instrument.id)
-    // Apply default indicator preset if set
-    const def = presetsStore.getDefault()
-    if (def) chartStore.setIndicators([...def.indicators])
+  if (layoutStore.layout === '1') {
+    // Single panel: load into the global chart store
+    await chartStore.loadBars(symbol, currentTf.value)
+    if (chartStore.instrument) {
+      await drawStore.loadDrawings(chartStore.instrument.id, currentTf.value)
+      await alertsStore.loadAlerts(chartStore.instrument.id)
+      const def = presetsStore.getDefault()
+      if (def) chartStore.setIndicators([...def.indicators])
+    }
+    lastClose.value = currentPrice.value
+  } else {
+    // Multi-panel: broadcast symbol to every panel
+    for (const p of layoutStore.panels) {
+      const pStore = usePanelStore(p.id)
+      layoutStore.updatePanel(p.id, { symbol })
+      await pStore.loadBars(symbol, p.timeframe)
+    }
   }
-  lastClose.value = currentPrice.value
   if (route.params.symbol !== symbol) {
     router.replace(`/chart/${symbol}`)
   }
@@ -113,13 +178,45 @@ watch(currentTf, async (tf) => {
   }
 })
 
+// When switching from single to multi-panel, carry the current symbol into all panels
+watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
+  if (oldLayout === '1' && newLayout !== '1' && chartStore.symbol) {
+    for (const p of layoutStore.panels) {
+      layoutStore.updatePanel(p.id, { symbol: chartStore.symbol })
+      const pStore = usePanelStore(p.id)
+      await pStore.loadBars(chartStore.symbol, p.timeframe)
+    }
+  }
+})
+
+// When the active panel changes in multi-panel mode, sync drawings and alerts to that panel
+watch(() => layoutStore.activePanelId, async (panelId) => {
+  if (layoutStore.layout === '1') return
+  const pStore = usePanelStore(panelId)
+  if (pStore.instrument) {
+    await drawStore.loadDrawings(pStore.instrument.id, pStore.timeframe)
+    await alertsStore.loadAlerts(pStore.instrument.id)
+  }
+})
+
+
+async function addToWatchlist(watchlistId: number) {
+  if (!chartStore.symbol) return
+  await watchlistStore.addBySymbol(watchlistId, chartStore.symbol)
+  showWlMenu.value = false
+}
 
 onMounted(async () => {
+  document.addEventListener('click', onDocClick, true)
   alertsStore.connectWebSocket()
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
   if (sym) await onSymbolSelect(sym)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick, true)
 })
 </script>
 
@@ -127,7 +224,7 @@ onMounted(async () => {
 .chart-view {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: #0a0a0a;
   color: #ccc;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -152,6 +249,51 @@ onMounted(async () => {
   align-items: baseline;
   gap: 8px;
 }
+
+.sync-all-hint { font-size: 11px; color: #444; font-style: italic; }
+
+.wl-star-wrap {
+  position: relative;
+}
+.wl-star {
+  background: none;
+  border: 1px solid #333;
+  color: #555;
+  border-radius: 3px;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
+}
+.wl-star:hover, .wl-star.active { color: #ffd54f; border-color: #ffd54f; }
+
+.wl-quick-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  min-width: 160px;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.wqm-title {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  border-bottom: 1px solid #222;
+}
+.wqm-item {
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.wqm-item:hover { background: #222; color: #fff; }
 
 .sym      { font-size: 16px; font-weight: 700; color: #fff; }
 .sym-name { font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -213,6 +355,12 @@ onMounted(async () => {
   top: 60px;
   right: 16px;
   z-index: 200;
+}
+
+.chart-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
 .chart-workspace {
