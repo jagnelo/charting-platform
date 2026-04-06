@@ -90,7 +90,7 @@
               <td class="td-meta">{{ item.market_cap_tier || '—' }}</td>
               <td class="td-action">
                 <button
-                  v-if="watchlistStore.watchlists.length"
+                  v-if="editableWatchlists.length"
                   class="btn-add-wl"
                   title="Add to watchlist"
                   @click="showWlMenu(item.id, $event)"
@@ -297,10 +297,52 @@
             <span class="rh-meta">{{ selectedScreener.timeframe }} · {{ selectedScreener.universe_type }}</span>
           </div>
           <div class="rh-right">
+            <!-- Alert bell -->
+            <div class="alert-bell-wrap" ref="alertBellRef">
+              <button
+                :class="['btn-alert-bell', { 'btn-alert-bell--active': screenerAlert != null }]"
+                :title="screenerAlert ? 'Screener alert active — click to edit' : 'Create screener alert'"
+                @click="alertPopupOpen = !alertPopupOpen"
+              >🔔{{ screenerAlert ? ' ●' : '' }}</button>
+              <!-- Alert popup -->
+              <div v-if="alertPopupOpen" class="alert-popup">
+                <div class="ap-header">
+                  <span>Screener Alert</span>
+                  <button class="ap-close" @click="alertPopupOpen = false">✕</button>
+                </div>
+                <div class="ap-body">
+                  <div class="ap-row">
+                    <label>Trigger on</label>
+                    <select v-model="alertDraft.trigger_type" class="form-select ap-select">
+                      <option value="entered">Entered screener</option>
+                      <option value="left">Left screener</option>
+                      <option value="both">Entered or left</option>
+                    </select>
+                  </div>
+                  <div class="ap-row">
+                    <label>Repeat</label>
+                    <input type="checkbox" v-model="alertDraft.repeat" class="ap-check" />
+                  </div>
+                  <div class="ap-row">
+                    <label>Notes</label>
+                    <input type="text" v-model="alertDraft.notes" class="form-input ap-notes" placeholder="Optional…" />
+                  </div>
+                </div>
+                <div class="ap-footer">
+                  <button v-if="screenerAlert" class="btn-cancel ap-del" @click="deleteScreenerAlert">Delete</button>
+                  <button class="btn-save" @click="saveScreenerAlert">
+                    {{ screenerAlert ? 'Update' : 'Create Alert' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Save as watchlist / Sync to managed watchlist -->
             <template v-if="showSaveWlForm">
               <input v-model="saveWlName" class="form-input wl-name-input" placeholder="Watchlist name…"
-                     @keydown.enter="saveResultsAsWatchlist" @keydown.esc="showSaveWlForm = false" />
-              <button class="btn-save-wl-confirm" :disabled="!saveWlName.trim()" @click="saveResultsAsWatchlist">Save</button>
+                     @keydown.enter="saveResultsAsWatchlist(false)" @keydown.esc="showSaveWlForm = false" />
+              <button class="btn-save-wl-confirm" :disabled="!saveWlName.trim()" @click="saveResultsAsWatchlist(false)">Save</button>
+              <button class="btn-save-wl-confirm" :disabled="!saveWlName.trim()" title="Create a managed watchlist that auto-updates on each run" @click="saveResultsAsWatchlist(true)">+ Managed</button>
               <button class="btn-cancel" @click="showSaveWlForm = false">✕</button>
             </template>
             <button v-else-if="!running && latestResult?.matched_ids.length" class="btn-save-wl"
@@ -376,7 +418,7 @@
                 </td>
                 <td class="td-action">
                   <button
-                    v-if="watchlistStore.watchlists.length"
+                    v-if="editableWatchlists.length"
                     class="btn-add-wl"
                     title="Add to watchlist"
                     @click="showWlMenu(id, $event)"
@@ -405,13 +447,14 @@
     >
       <div class="wl-menu-title">Add to watchlist</div>
       <div
-        v-for="wl in watchlistStore.watchlists"
+        v-for="wl in editableWatchlists"
         :key="wl.id"
         class="wl-menu-item"
         @click="addToWatchlist(wl.id)"
       >
         {{ wl.name }}
       </div>
+      <div v-if="!editableWatchlists.length" class="wl-menu-empty">No writable watchlists</div>
     </div>
   </div>
 </template>
@@ -421,6 +464,7 @@ import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '@/lib/api'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
 
@@ -455,7 +499,12 @@ interface InstrInfo {
   market_cap_tier?: string
 }
 
-const watchlistStore = useWatchlistStore()
+const watchlistStore      = useWatchlistStore()
+const screenerAlertsStore = useScreenerAlertsStore()
+
+const editableWatchlists = computed(() =>
+  watchlistStore.watchlists.filter(w => !w.is_managed && !w.is_locked)
+)
 
 // ── Filter options (for dropdowns) ────────────────────────────────────────────
 
@@ -540,16 +589,67 @@ const wlMenuInstrId = ref<number | null>(null)
 const wlMenuX    = ref(0)
 const wlMenuY    = ref(0)
 const wlMenuRef  = ref<HTMLElement | null>(null)
+const alertBellRef = ref<HTMLElement | null>(null)
 
 function onDocClick(e: MouseEvent) {
   if (wlMenuInstrId.value !== null && wlMenuRef.value && !wlMenuRef.value.contains(e.target as Node)) {
     wlMenuInstrId.value = null
+  }
+  if (alertPopupOpen.value && alertBellRef.value && !alertBellRef.value.contains(e.target as Node)) {
+    alertPopupOpen.value = false
   }
 }
 
 // Save-as-watchlist state
 const showSaveWlForm = ref(false)
 const saveWlName     = ref('')
+
+// Screener alert state
+const alertPopupOpen = ref(false)
+const alertDraft     = reactive({ trigger_type: 'both', repeat: false, notes: '' })
+
+const screenerAlert = computed(() =>
+  selectedId.value != null ? screenerAlertsStore.forScreener(selectedId.value) : undefined
+)
+
+watch(screenerAlert, (a) => {
+  if (a) {
+    alertDraft.trigger_type = a.trigger_type
+    alertDraft.repeat       = a.repeat
+    alertDraft.notes        = a.notes ?? ''
+  } else {
+    alertDraft.trigger_type = 'both'
+    alertDraft.repeat       = false
+    alertDraft.notes        = ''
+  }
+}, { immediate: true })
+
+watch(selectedId, () => { alertPopupOpen.value = false })
+
+async function saveScreenerAlert() {
+  if (!selectedId.value) return
+  if (screenerAlert.value) {
+    await screenerAlertsStore.updateAlert(screenerAlert.value.id, {
+      trigger_type: alertDraft.trigger_type as any,
+      repeat: alertDraft.repeat,
+      notes: alertDraft.notes,
+    })
+  } else {
+    await screenerAlertsStore.createAlert(
+      selectedId.value,
+      alertDraft.trigger_type as any,
+      alertDraft.repeat,
+      alertDraft.notes || undefined,
+    )
+  }
+  alertPopupOpen.value = false
+}
+
+async function deleteScreenerAlert() {
+  if (!screenerAlert.value) return
+  await screenerAlertsStore.deleteAlert(screenerAlert.value.id)
+  alertPopupOpen.value = false
+}
 
 const selectedScreener = computed(() => screeners.value.find(s => s.id === selectedId.value) ?? null)
 const latestResult     = computed(() => results.value[0] ?? null)
@@ -744,6 +844,8 @@ async function runScreener() {
             scanProgress.value = { evaluated: event.evaluated, total: event.total, matches: event.matches }
             const saved = await api.get<ScreenerResult[]>(`/screeners/${screenerId}/results`, { limit: 1 })
             if (saved.length) results.value.unshift(saved[0])
+            // Sync managed watchlists after screener run (backend already updated them)
+            watchlistStore.loadWatchlists()
           }
         } catch {
           // malformed line — skip
@@ -780,14 +882,20 @@ async function addToWatchlist(watchlistId: number) {
   wlMenuInstrId.value = null
 }
 
-async function saveResultsAsWatchlist() {
+async function saveResultsAsWatchlist(managed = false) {
   if (!saveWlName.value.trim() || !latestResult.value) return
-  const wl = await watchlistStore.createWatchlist(saveWlName.value.trim())
+  const screener_id = managed && selectedId.value ? selectedId.value : undefined
+  const wl = await watchlistStore.createWatchlist(saveWlName.value.trim(), undefined, screener_id)
   if (!wl) return
-  const symbols = latestResult.value.matched_ids
-    .map(id => instrMap.value[id]?.symbol)
-    .filter((s): s is string => !!s && !/^\d+$/.test(s))
-  await Promise.allSettled(symbols.map(sym => watchlistStore.addBySymbol(wl.id, sym)))
+  if (managed) {
+    // Use seed endpoint to bypass managed-watchlist protection
+    await watchlistStore.seedWatchlist(wl.id, latestResult.value.matched_ids)
+  } else {
+    const symbols = latestResult.value.matched_ids
+      .map(id => instrMap.value[id]?.symbol)
+      .filter((s): s is string => !!s && !/^\d+$/.test(s))
+    await Promise.allSettled(symbols.map(sym => watchlistStore.addBySymbol(wl.id, sym)))
+  }
   saveWlName.value = ''
   showSaveWlForm.value = false
 }
@@ -802,7 +910,10 @@ const changeClass = (v: any)  => v == null ? '' : v >= 0 ? 'up' : 'down'
 onMounted(async () => {
   document.addEventListener('click', onDocClick, true)
   screeners.value = await api.get('/screeners')
-  await watchlistStore.loadWatchlists()
+  await Promise.all([
+    watchlistStore.loadWatchlists(),
+    screenerAlertsStore.loadAlerts(),
+  ])
   filterOptions.value = await api.get<FilterOptions>('/instruments/filter-options').catch(() => filterOptions.value)
 
   // Activate browse mode if ?q= is in the URL
@@ -811,6 +922,13 @@ onMounted(async () => {
     browseMode.value = true
     browseQ.value = q
     await fetchBrowse()
+  }
+
+  // Select a screener if ?select=id is in the URL
+  const selectId = route.query.select ? Number(route.query.select) : null
+  if (selectId) {
+    const s = screeners.value.find(sc => sc.id === selectId)
+    if (s) select(s)
   }
 })
 
@@ -937,6 +1055,75 @@ onUnmounted(() => {
 .btn-save-wl:hover { border-color: #ffd54f; color: #ffd54f; }
 .btn-save-wl-confirm { background: #1a3a1a; border: 1px solid #4caf50; color: #4caf50; border-radius: 3px; padding: 5px 10px; cursor: pointer; font-size: 11px; }
 .btn-save-wl-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Alert bell ───────────────────────────────────────────── */
+.alert-bell-wrap { position: relative; }
+
+.btn-alert-bell {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.btn-alert-bell:hover { border-color: #f59e0b; color: #f59e0b; }
+.btn-alert-bell--active { border-color: #f59e0b; color: #f59e0b; }
+
+.alert-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  width: 260px;
+  z-index: 200;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.ap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid #1f1f1f;
+  color: #ccc;
+  font-weight: 600;
+}
+
+.ap-close {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.ap-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.ap-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ap-row label { font-size: 10px; color: #555; text-transform: uppercase; min-width: 70px; }
+
+.ap-select, .ap-notes { flex: 1; }
+.ap-check { flex-shrink: 0; }
+
+.ap-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid #1f1f1f;
+}
+
+.ap-del { color: #ef5350 !important; border-color: #ef5350 !important; }
 .wl-name-input { width: 140px; }
 .btn-cancel { background: none; border: 1px solid #333; color: #666; border-radius: 3px; padding: 5px 8px; cursor: pointer; font-size: 11px; }
 
@@ -1031,6 +1218,7 @@ onUnmounted(() => {
 .wl-menu-title { padding: 6px 10px; font-size: 10px; color: #555; border-bottom: 1px solid #2a2a2a; text-transform: uppercase; }
 .wl-menu-item { padding: 7px 10px; cursor: pointer; font-size: 12px; color: #ccc; }
 .wl-menu-item:hover { background: #2a2a2a; color: #fff; }
+.wl-menu-empty { padding: 7px 10px; font-size: 11px; color: #555; font-style: italic; }
 
 .no-matches { color: #444; padding: 24px 0; font-style: italic; }
 .screener-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: #333; }

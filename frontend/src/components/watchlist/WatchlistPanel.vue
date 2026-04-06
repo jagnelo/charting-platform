@@ -25,34 +25,60 @@
         <template v-if="store.watchlists.length">
           <div v-for="wl in store.watchlists" :key="wl.id" class="wlp-section">
             <!-- Section header -->
-            <div
-              class="wlp-section-hdr"
-              @click="toggleSection(wl.id)"
-            >
+            <div class="wlp-section-hdr" @click="toggleSection(wl.id)">
               <span class="wlp-section-arrow">{{ expanded.has(wl.id) ? '▾' : '▸' }}</span>
               <span class="wlp-section-name">{{ wl.name }}</span>
-              <span class="wlp-section-count">{{ wl.items.length }}</span>
+              <!-- Badges -->
+              <span v-if="wl.is_managed" class="wlp-badge wlp-badge--managed" title="Managed by screener">⊞</span>
+              <span v-if="wl.is_locked" class="wlp-badge wlp-badge--locked" title="Locked">🔒</span>
+              <span class="wlp-section-count">{{ activeItemCount(wl) }}</span>
+              <!-- Copy button for managed watchlists -->
+              <button
+                v-if="wl.is_managed"
+                class="wlp-hdr-btn"
+                title="Copy as independent watchlist"
+                @click.stop="store.copyWatchlist(wl.id)"
+              >⎘</button>
+              <!-- Lock toggle for non-managed watchlists -->
+              <button
+                v-if="!wl.is_managed"
+                :class="['wlp-hdr-btn', wl.is_locked ? 'wlp-hdr-btn--locked' : 'wlp-hdr-btn--unlocked']"
+                :title="wl.is_locked ? 'Unlock watchlist' : 'Lock watchlist'"
+                @click.stop="wl.is_locked ? store.unlockWatchlist(wl.id) : store.lockWatchlist(wl.id)"
+              >{{ wl.is_locked ? '🔒' : '○' }}</button>
             </div>
 
             <!-- Items (shown when expanded) -->
             <div v-if="expanded.has(wl.id)" class="wlp-section-items">
-              <div
-                v-for="item in wl.items"
-                :key="item.id"
-                :class="['wlp-item', { 'wlp-item--active': item.symbol === currentSymbol }]"
-                @click="item.symbol && emit('select', item.symbol)"
-              >
-                <div class="wlpi-left">
-                  <span class="wlpi-sym">{{ item.symbol }}</span>
-                  <div v-if="store.priceMap[item.symbol!]" class="wlpi-prices">
-                    <span class="wlpi-close">{{ fmt(store.priceMap[item.symbol!].close) }}</span>
-                    <span :class="['wlpi-pct', store.priceMap[item.symbol!].pct >= 0 ? 'up' : 'down']">
-                      {{ fmtPct(store.priceMap[item.symbol!].pct) }}
-                    </span>
+              <template v-for="item in sortedItems(wl)" :key="item.id">
+                <!-- Departed items: shown greyed out with a label -->
+                <div
+                  v-if="item.left_screener_at"
+                  class="wlp-item wlp-item--departed"
+                >
+                  <div class="wlpi-left">
+                    <span class="wlpi-sym">{{ item.symbol }}</span>
+                    <span class="wlpi-departed-label">Left screener {{ daysAgo(item.left_screener_at) }}d ago</span>
                   </div>
                 </div>
-                <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlpi-spark" />
-              </div>
+                <!-- Normal items -->
+                <div
+                  v-else
+                  :class="['wlp-item', { 'wlp-item--active': item.symbol === currentSymbol }]"
+                  @click="item.symbol && emit('select', item.symbol)"
+                >
+                  <div class="wlpi-left">
+                    <span class="wlpi-sym">{{ item.symbol }}</span>
+                    <div v-if="store.priceMap[item.symbol!]" class="wlpi-prices">
+                      <span class="wlpi-close">{{ fmt(store.priceMap[item.symbol!].close) }}</span>
+                      <span :class="['wlpi-pct', store.priceMap[item.symbol!].pct >= 0 ? 'up' : 'down']">
+                        {{ fmtPct(store.priceMap[item.symbol!].pct) }}
+                      </span>
+                    </div>
+                  </div>
+                  <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlpi-spark" />
+                </div>
+              </template>
               <div v-if="!wl.items.length" class="wlp-no-items">Empty</div>
             </div>
           </div>
@@ -68,6 +94,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive, onMounted } from 'vue'
 import { useWatchlistStore } from '@/stores/watchlist'
+import type { Watchlist } from '@/types'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
 
@@ -82,12 +109,28 @@ const expanded = reactive(new Set<number>())
 
 const allExpanded = computed(() => store.watchlists.length > 0 && store.watchlists.every(w => expanded.has(w.id)))
 
+function activeItemCount(wl: Watchlist): number {
+  return wl.items.filter(i => !i.left_screener_at).length
+}
+
+/** Sort items: active first, departed last (sorted by left_screener_at desc) */
+function sortedItems(wl: Watchlist) {
+  return [...wl.items].sort((a, b) => {
+    if (!a.left_screener_at && b.left_screener_at) return -1
+    if (a.left_screener_at && !b.left_screener_at) return 1
+    return a.position - b.position
+  })
+}
+
+function daysAgo(dateStr: string): number {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
+}
+
 function toggleSection(id: number) {
   if (expanded.has(id)) {
     expanded.delete(id)
   } else {
     expanded.add(id)
-    // Fetch prices for this watchlist when opened
     const wl = store.watchlists.find(w => w.id === id)
     if (wl) {
       const syms = wl.items.map(i => i.symbol).filter(Boolean) as string[]
@@ -110,8 +153,21 @@ function toggleAll() {
   }
 }
 
-// When watchlists load for the first time, the first one starts collapsed (user expands as needed)
 watch(() => store.watchlists, () => {}, { immediate: true })
+
+// Handle focus requests from membership panel
+watch(() => store.focusRequest, (id) => {
+  if (id == null) return
+  isOpen.value = true
+  expanded.clear()
+  expanded.add(id)
+  const wl = store.watchlists.find(w => w.id === id)
+  if (wl) {
+    const syms = wl.items.map(i => i.symbol).filter(Boolean) as string[]
+    store.fetchPrices(syms)
+  }
+  store.clearFocusRequest()
+})
 
 onMounted(async () => {
   if (!store.watchlists.length) await store.loadWatchlists()
@@ -221,6 +277,29 @@ function fmtPct(v: number) {
 .wlp-section-name  { flex: 1; font-size: 11px; font-weight: 700; color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wlp-section-count { font-size: 10px; color: #444; background: #1a1a1a; border-radius: 8px; padding: 0 5px; flex-shrink: 0; }
 
+.wlp-badge {
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.wlp-badge--managed { color: #64b5f6; }
+.wlp-badge--locked  { color: #888; }
+
+.wlp-hdr-btn {
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+.wlp-hdr-btn:hover { color: #aaa; background: #222; }
+.wlp-hdr-btn--locked { color: #888; }
+.wlp-hdr-btn--unlocked { color: #2a2a2a; font-size: 9px; }
+.wlp-hdr-btn--unlocked:hover { color: #666; }
+
 /* ── Items inside an expanded section ─────────── */
 .wlp-section-items { background: #0a0a0a; }
 
@@ -237,6 +316,12 @@ function fmtPct(v: number) {
 .wlp-item--active { background: #0f1929; }
 .wlp-item--active .wlpi-sym { color: #64b5f6; }
 
+.wlp-item--departed {
+  cursor: default;
+  opacity: 0.45;
+}
+.wlp-item--departed:hover { background: transparent; }
+
 .wlpi-left {
   flex: 1;
   min-width: 0;
@@ -249,6 +334,12 @@ function fmtPct(v: number) {
 .wlpi-close { font-size: 10px; color: #aaa; }
 .wlpi-pct   { font-size: 10px; font-weight: 600; }
 .wlpi-spark { flex-shrink: 0; }
+
+.wlpi-departed-label {
+  font-size: 9px;
+  color: #444;
+  font-style: italic;
+}
 
 .up   { color: #26a69a; }
 .down { color: #ef5350; }

@@ -32,6 +32,8 @@
           @click="setActive(wl.id)"
         >
           <span class="wlsi-name">{{ wl.name }}</span>
+          <span v-if="wl.is_managed" class="wlsi-badge wlsi-badge--managed" title="Managed by screener">⊞</span>
+          <span v-if="wl.is_locked" class="wlsi-badge wlsi-badge--locked" title="Locked">🔒</span>
           <span class="wlsi-count">{{ wl.items.length }}</span>
         </div>
         <div v-if="!store.watchlists.length" class="wls-empty">No watchlists yet</div>
@@ -42,20 +44,60 @@
     <div class="wl-main">
       <template v-if="activeWl">
         <div class="wlm-header">
-          <span class="wlm-title">{{ activeWl.name }}</span>
-          <div class="wlm-actions">
-            <template v-if="deletingActive">
-              <span class="del-prompt">Delete?</span>
-              <button class="act-btn confirm" @click="doDelete">Yes</button>
-              <button class="act-btn" @click="deletingActive = false">No</button>
-            </template>
-            <button v-else class="act-btn danger" @click="deletingActive = true" title="Delete watchlist">✕ Delete</button>
-          </div>
+          <template v-if="renamingActive">
+            <input
+              ref="renameInput"
+              v-model="renameValue"
+              class="wlm-rename-input"
+              @keydown.enter="submitRename"
+              @keydown.esc="cancelRename"
+            />
+            <button class="act-btn confirm" :disabled="!renameValue.trim()" @click="submitRename">✓</button>
+            <button class="act-btn" @click="cancelRename">✕</button>
+          </template>
+          <template v-else>
+            <span class="wlm-title">{{ activeWl.name }}</span>
+            <div class="wlm-actions">
+              <!-- Rename -->
+              <button class="act-btn" title="Rename watchlist" @click="startRename">✎ Rename</button>
+              <!-- Copy for managed watchlists -->
+              <button
+                v-if="activeWl.is_managed"
+                class="act-btn"
+                title="Copy as independent watchlist"
+                @click="copyActive"
+              >⎘ Copy</button>
+              <!-- Lock / Unlock for non-managed watchlists -->
+              <button
+                v-if="!activeWl.is_managed && !activeWl.is_locked"
+                class="act-btn"
+                title="Lock watchlist (prevent modifications)"
+                @click="store.lockWatchlist(activeWl.id)"
+              >🔒 Lock</button>
+              <button
+                v-if="!activeWl.is_managed && activeWl.is_locked"
+                class="act-btn"
+                title="Unlock watchlist"
+                @click="store.unlockWatchlist(activeWl.id)"
+              >🔓 Unlock</button>
+              <!-- Delete -->
+              <template v-if="deletingActive">
+                <span class="del-prompt">Delete?</span>
+                <button class="act-btn confirm" @click="doDelete">Yes</button>
+                <button class="act-btn" @click="deletingActive = false">No</button>
+              </template>
+              <button v-else class="act-btn danger" @click="deletingActive = true" title="Delete watchlist">✕ Delete</button>
+            </div>
+          </template>
         </div>
 
-        <!-- Add via SearchBar -->
-        <div class="wlm-add">
+        <!-- Add via SearchBar — hidden for managed or locked watchlists -->
+        <div v-if="!activeWl.is_managed && !activeWl.is_locked" class="wlm-add">
           <SearchBar placeholder="Add symbol…" @select="addToActive" />
+          <SparkTfSelector />
+        </div>
+        <div v-else class="wlm-add wlm-add--readonly">
+          <span class="wlm-readonly-msg">{{ activeWl.is_managed ? 'Managed by screener — read only' : 'Locked — unlock to edit' }}</span>
           <SparkTfSelector />
         </div>
 
@@ -81,7 +123,7 @@
               <span v-else class="wlmi-no-price">—</span>
             </div>
             <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlmi-spark" />
-            <button class="wlmi-remove" title="Remove" @click.stop="store.removeItem(activeWl.id, item.id)">✕</button>
+            <button v-if="!activeWl.is_managed && !activeWl.is_locked" class="wlmi-remove" title="Remove" @click.stop="store.removeItem(activeWl.id, item.id)">✕</button>
           </div>
           <div v-if="!activeWl.items.length" class="wlm-empty">
             Search for a symbol above to add it
@@ -113,6 +155,9 @@ const showCreateForm = ref(false)
 const newName        = ref('')
 const createInput    = ref<HTMLInputElement | null>(null)
 const deletingActive = ref(false)
+const renamingActive = ref(false)
+const renameValue    = ref('')
+const renameInput    = ref<HTMLInputElement | null>(null)
 
 const activeWl = computed(() => store.watchlists.find(w => w.id === activeId.value) ?? null)
 
@@ -136,9 +181,39 @@ function cancelCreate() {
   newName.value = ''
 }
 
+async function startRename() {
+  if (!activeWl.value) return
+  renameValue.value = activeWl.value.name
+  renamingActive.value = true
+  await nextTick()
+  renameInput.value?.focus()
+  renameInput.value?.select()
+}
+
+async function submitRename() {
+  if (!activeId.value || !renameValue.value.trim()) return
+  try {
+    await store.renameWatchlist(activeId.value, renameValue.value.trim())
+    renamingActive.value = false
+  } catch (e: any) {
+    if (e?.status === 409) alert(e.message || 'Name already in use')
+  }
+}
+
+function cancelRename() {
+  renamingActive.value = false
+  renameValue.value = ''
+}
+
 watch(showCreateForm, async (v) => {
   if (v) { await nextTick(); createInput.value?.focus() }
 })
+
+async function copyActive() {
+  if (!activeId.value) return
+  const copy = await store.copyWatchlist(activeId.value)
+  if (copy) activeId.value = copy.id
+}
 
 async function doDelete() {
   if (!activeId.value) return
@@ -154,7 +229,7 @@ async function addToActive(symbol: string) {
 }
 
 function openChart(symbol: string) {
-  router.push(`/chart/${symbol}`)
+  router.push(`/chart/${encodeURIComponent(symbol)}`)
 }
 
 function fmtClose(v: number) {
@@ -261,7 +336,7 @@ onMounted(async () => {
 .wls-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   padding: 9px 12px;
   cursor: pointer;
   border-bottom: 1px solid #111;
@@ -270,7 +345,7 @@ onMounted(async () => {
 .wls-item:hover  { background: #141414; }
 .wls-item.active { background: #161e2e; border-left: 2px solid #64b5f6; }
 
-.wlsi-name { font-size: 12px; color: #ccc; }
+.wlsi-name { font-size: 12px; color: #ccc; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wlsi-count {
   font-size: 10px;
   color: #444;
@@ -280,6 +355,10 @@ onMounted(async () => {
 }
 .wls-item.active .wlsi-name  { color: #fff; }
 .wls-item.active .wlsi-count { color: #64b5f6; }
+
+.wlsi-badge { font-size: 10px; flex-shrink: 0; }
+.wlsi-badge--managed { color: #64b5f6; }
+.wlsi-badge--locked  { color: #888; }
 
 .wls-empty { padding: 20px; text-align: center; color: #333; font-size: 11px; }
 
@@ -301,6 +380,19 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .wlm-title { font-size: 14px; font-weight: 700; color: #fff; }
+.wlm-rename-input {
+  flex: 1;
+  background: #0a0a0a;
+  border: 1px solid #64b5f6;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 6px;
+  font-family: inherit;
+  outline: none;
+  min-width: 0;
+}
 .wlm-actions { display: flex; align-items: center; gap: 6px; }
 .del-prompt { font-size: 11px; color: #ef5350; }
 .act-btn {
@@ -326,6 +418,9 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
 }
+
+.wlm-add--readonly { opacity: 0.7; }
+.wlm-readonly-msg { font-size: 11px; color: #555; font-style: italic; flex: 1; }
 
 .wlm-items { flex: 1; overflow-y: auto; }
 

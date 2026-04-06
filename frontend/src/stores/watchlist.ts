@@ -7,6 +7,8 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   const watchlists = ref<Watchlist[]>([])
   const loading = ref(false)
   const priceMap = ref<Record<string, { close: number; prevClose: number; pct: number }>>({})
+  /** When set, WatchlistPanel should open, collapse all others, and expand this watchlist. */
+  const focusRequest = ref<number | null>(null)
 
   async function loadWatchlists() {
     loading.value = true
@@ -19,9 +21,11 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function createWatchlist(name: string, description?: string): Promise<Watchlist | null> {
+  async function createWatchlist(name: string, description?: string, screener_id?: number): Promise<Watchlist | null> {
     try {
-      const wl = await api.post<Watchlist>('/watchlists', { name, description })
+      const body: Record<string, unknown> = { name, description }
+      if (screener_id != null) body.screener_id = screener_id
+      const wl = await api.post<Watchlist>('/watchlists', body)
       watchlists.value.push(wl)
       return wl
     } catch (e) {
@@ -75,6 +79,62 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
+  async function lockWatchlist(watchlistId: number) {
+    try {
+      await api.post(`/watchlists/${watchlistId}/lock`, {})
+      const wl = watchlists.value.find(w => w.id === watchlistId)
+      if (wl) wl.is_locked = true
+    } catch (e) {
+      console.error('Failed to lock watchlist', e)
+    }
+  }
+
+  async function unlockWatchlist(watchlistId: number) {
+    try {
+      await api.post(`/watchlists/${watchlistId}/unlock`, {})
+      const wl = watchlists.value.find(w => w.id === watchlistId)
+      if (wl) wl.is_locked = false
+    } catch (e) {
+      console.error('Failed to unlock watchlist', e)
+    }
+  }
+
+  async function renameWatchlist(watchlistId: number, name: string): Promise<Watchlist | null> {
+    try {
+      const wl = await api.patch<Watchlist>(`/watchlists/${watchlistId}`, { name })
+      const idx = watchlists.value.findIndex(w => w.id === watchlistId)
+      if (idx !== -1) watchlists.value[idx] = wl
+      return wl
+    } catch (e: any) {
+      if (e?.status === 409) throw e  // propagate conflict for UI to show
+      console.error('Failed to rename watchlist', e)
+      return null
+    }
+  }
+
+  async function seedWatchlist(watchlistId: number, instrumentIds: number[]): Promise<Watchlist | null> {
+    try {
+      const wl = await api.post<Watchlist>(`/watchlists/${watchlistId}/seed`, { instrument_ids: instrumentIds })
+      const idx = watchlists.value.findIndex(w => w.id === watchlistId)
+      if (idx !== -1) watchlists.value[idx] = wl
+      return wl
+    } catch (e) {
+      console.error('Failed to seed watchlist', e)
+      return null
+    }
+  }
+
+  async function copyWatchlist(watchlistId: number): Promise<Watchlist | null> {
+    try {
+      const copy = await api.post<Watchlist>(`/watchlists/${watchlistId}/copy`, {})
+      watchlists.value.push(copy)
+      return copy
+    } catch (e) {
+      console.error('Failed to copy watchlist', e)
+      return null
+    }
+  }
+
   async function fetchPrices(symbols: string[]) {
     const toFetch = symbols.filter(s => s && !priceMap.value[s])
     if (!toFetch.length) return
@@ -95,16 +155,32 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     )
   }
 
+  function requestFocusWatchlist(id: number) {
+    focusRequest.value = id
+  }
+
+  function clearFocusRequest() {
+    focusRequest.value = null
+  }
+
   return {
     watchlists,
     loading,
     priceMap,
+    focusRequest,
+    requestFocusWatchlist,
+    clearFocusRequest,
     loadWatchlists,
     createWatchlist,
     deleteWatchlist,
     addItem,
     removeItem,
     addBySymbol,
+    renameWatchlist,
+    seedWatchlist,
+    lockWatchlist,
+    unlockWatchlist,
+    copyWatchlist,
     fetchPrices,
   }
 })
