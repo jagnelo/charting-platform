@@ -9,12 +9,58 @@
 
     <div v-show="isPanelOpen" class="panel-body">
 
+    <!-- ── Instrument info ───────────────────────────────────────────────── -->
+    <InstrumentInfoPanel
+      :instrument="chartStore.instrument ?? null"
+      @select="symbol => emit('selectSymbol', symbol)"
+    />
+
+    <!-- ── Membership ────────────────────────────────────────────────────── -->
+    <div v-if="membershipVisible" class="section" :class="{ collapsed: !membershipOpen }">
+      <div class="section-header" @click="membershipOpen = !membershipOpen">
+        <span class="section-title">Watchlists & Screeners</span>
+        <span class="section-chevron">{{ membershipOpen ? '▾' : '▸' }}</span>
+      </div>
+      <Transition name="slide">
+        <div class="section-body" v-if="membershipOpen">
+          <div v-if="membership!.watchlists.length" class="membership-group">
+            <div class="membership-label">Watchlists</div>
+            <div
+              v-for="wl in membership!.watchlists"
+              :key="wl.id"
+              class="membership-row membership-row--link"
+              @click="onWatchlistClick(wl.id)"
+            >
+              <span class="mem-icon">☰</span>
+              <span class="mem-name">{{ wl.name }}</span>
+              <span v-if="wl.is_managed" class="mem-badge">managed</span>
+            </div>
+          </div>
+          <div v-if="activeScreeners.length" class="membership-group">
+            <div class="membership-label">Screeners</div>
+            <div
+              v-for="sc in activeScreeners"
+              :key="sc.id"
+              class="membership-row membership-row--link"
+              @click="onScreenerClick(sc.id)"
+            >
+              <span class="mem-icon">⊞</span>
+              <span class="mem-name">{{ sc.name }}</span>
+            </div>
+          </div>
+          <div v-if="!membership!.watchlists.length && !activeScreeners.length" class="empty-hint">
+            Not in any watchlist or screener
+          </div>
+        </div>
+      </Transition>
+    </div>
+
     <!-- ── Indicators section ──────────────────────────────────────────── -->
     <div class="section" :class="{ collapsed: !indicatorsOpen }">
       <div class="section-header" @click="indicatorsOpen = !indicatorsOpen">
         <span class="section-title">Indicators</span>
         <span class="section-count">{{ chartStore.indicators.length }}</span>
-        <span class="section-chevron">{{ indicatorsOpen ? '▴' : '▾' }}</span>
+        <span class="section-chevron">{{ indicatorsOpen ? '▾' : '▸' }}</span>
       </div>
 
       <Transition name="slide">
@@ -71,7 +117,7 @@
       <div class="section-header" @click="drawingsOpen = !drawingsOpen">
         <span class="section-title">Drawings</span>
         <span class="section-count">{{ drawStore.drawings.length }}</span>
-        <span class="section-chevron">{{ drawingsOpen ? '▴' : '▾' }}</span>
+        <span class="section-chevron">{{ drawingsOpen ? '▾' : '▸' }}</span>
       </div>
 
       <Transition name="slide">
@@ -116,7 +162,7 @@
       <div class="section-header" @click="alertsOpen = !alertsOpen">
         <span class="section-title">Alerts</span>
         <span class="section-count">{{ instrumentAlerts.length }}</span>
-        <span class="section-chevron">{{ alertsOpen ? '▴' : '▾' }}</span>
+        <span class="section-chevron">{{ alertsOpen ? '▾' : '▸' }}</span>
       </div>
 
       <Transition name="slide">
@@ -332,27 +378,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { formatMoney } from '@/lib/format'
 import { usePanelStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
 import AlertForm from '@/components/alerts/AlertForm.vue'
-import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
+import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
+import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType, InstrumentMembership } from '@/types'
+import { api } from '@/lib/api'
 
 const props = defineProps<{ panelId: string }>()
+const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
 
-const alertsStore  = useAlertsStore()
-const chartStore   = usePanelStore(props.panelId)
-const drawStore    = useDrawingsStore()
-const presetsStore = usePresetsStore()
+const router         = useRouter()
+const alertsStore    = useAlertsStore()
+const watchlistStore = useWatchlistStore()
+const chartStore     = usePanelStore(props.panelId)
+const drawStore      = useDrawingsStore()
+const presetsStore   = usePresetsStore()
 
 // ── Panel & section collapse state ───────────────────────────────────────────
 const isPanelOpen    = ref(true)
 const alertsOpen     = ref(true)
 const indicatorsOpen = ref(true)
 const drawingsOpen   = ref(true)
+const membershipOpen = ref(true)
+
+// ── Instrument membership ─────────────────────────────────────────────────────
+// Module-level cache shared across all panel instances — avoids re-fetching the
+// same instrument when switching between multi-layout panels.
+const _membershipCache = new Map<number, InstrumentMembership>()
+
+const membership = ref<InstrumentMembership | null>(null)
+
+const activeScreeners = computed(() =>
+  membership.value?.screeners.filter(s => s.in_current_results) ?? []
+)
+
+const membershipVisible = computed(() =>
+  membership.value !== null &&
+  (membership.value.watchlists.length > 0 || activeScreeners.value.length > 0)
+)
+
+watch(() => chartStore.instrument?.id, async (id) => {
+  if (!id) { membership.value = null; return }
+  if (_membershipCache.has(id)) {
+    membership.value = _membershipCache.get(id)!
+    return
+  }
+  try {
+    const data = await api.get<InstrumentMembership>(`/instruments/${id}/membership`)
+    _membershipCache.set(id, data)
+    membership.value = data
+  } catch {
+    membership.value = null
+  }
+}, { immediate: true })
+
+function onScreenerClick(scId: number) {
+  router.push(`/screener?select=${scId}`)
+}
+
+function onWatchlistClick(wlId: number) {
+  watchlistStore.requestFocusWatchlist(wlId)
+}
 
 // ── Indicators ─────────────────────────────────────────────────────────────────
 const showPicker       = ref(false)
@@ -681,7 +774,7 @@ function dateInputToTs(val: string): number {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   min-width: 0;
 }
 
@@ -715,9 +808,10 @@ function dateInputToTs(val: string): number {
 .section-body {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
+  max-height: 240px;
 }
 
 .alert-row { cursor: default; }
@@ -896,6 +990,45 @@ function dateInputToTs(val: string): number {
 .ed-btn:hover { color: #aaa; }
 .ed-apply { background: #1a3a5c; color: #64b5f6; border-color: #1a3a5c; }
 .ed-apply:hover { background: #1f4a7a; }
+
+/* ── Membership section ───────────────────────────────────────────────── */
+.membership-group { margin-bottom: 6px; }
+
+.membership-label {
+  font-size: 9px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px 2px;
+}
+
+.membership-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+}
+
+.membership-row--link {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.membership-row--link:hover { background: #1a1a1a; }
+
+.mem-icon { color: #444; font-size: 10px; flex-shrink: 0; }
+.mem-name { flex: 1; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mem-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #1a1a1a;
+  color: #555;
+}
+.mem-badge--in  { background: #1a3a1a; color: #66bb6a; }
+.mem-badge--out { background: #2a1a1a; color: #ef5350; }
 
 /* ── Transitions ──────────────────────────────────────────────────────── */
 .slide-enter-active, .slide-leave-active { transition: all 0.18s ease; overflow: hidden; }

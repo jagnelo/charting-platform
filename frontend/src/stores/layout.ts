@@ -46,10 +46,10 @@ export function parseLayoutGrid(layout: LayoutType): { cols: number; rows: numbe
   return null
 }
 
-function makePanels(count: number, current: PanelConfig[]): PanelConfig[] {
+function makePanels(count: number, current: PanelConfig[], fallbackSymbol = ''): PanelConfig[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `p${i}`,
-    symbol:    current[i]?.symbol    ?? '',
+    symbol:    current[i]?.symbol    ?? fallbackSymbol,
     timeframe: current[i]?.timeframe ?? DEFAULT_TIMEFRAMES[i] ?? 'D1',
   }))
 }
@@ -66,8 +66,9 @@ export const useLayoutStore = defineStore('layout', () => {
   const panelCount = computed(() => parseLayoutPanelCount(layout.value))
 
   function setLayout(l: LayoutType) {
+    const fallback = panels.value.find(p => p.id === activePanelId.value)?.symbol ?? panels.value[0]?.symbol ?? ''
     layout.value = l
-    panels.value = makePanels(parseLayoutPanelCount(l), panels.value)
+    panels.value = makePanels(parseLayoutPanelCount(l), panels.value, fallback)
     if (!panels.value.find(p => p.id === activePanelId.value)) {
       activePanelId.value = panels.value[0].id
     }

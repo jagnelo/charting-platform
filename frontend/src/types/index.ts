@@ -27,6 +27,22 @@ export type DrawingType =
 
 // ── Domain models ─────────────────────────────────────────────────────────────
 
+export interface InstrumentStats {
+  week52_high?: number
+  week52_low?: number
+  avg_volume_30d?: number
+  pe_ratio?: number
+  market_cap?: number
+  beta?: number
+  dividend_yield?: number
+  computed_at?: string
+}
+
+export interface SyntheticConstituent {
+  ticker_alias: string
+  constituent_instrument_id: number
+}
+
 export interface Instrument {
   id: number
   symbol: string
@@ -34,7 +50,11 @@ export interface Instrument {
   description?: string
   currency?: string
   is_active: boolean
+  is_synthetic?: boolean
+  expression?: string
   equity_detail?: EquityDetail
+  stats?: InstrumentStats
+  synthetic_constituents?: SyntheticConstituent[]
 }
 
 export interface EquityDetail {
@@ -153,13 +173,53 @@ export interface WatchlistItem {
   symbol?: string
   name?: string
   position: number
+  left_screener_at?: string | null
 }
 
 export interface Watchlist {
   id: number
   name: string
   is_default: boolean
+  is_managed: boolean
+  is_locked: boolean
+  screener_id?: number | null
+  last_screener_run_at?: string | null
   items: WatchlistItem[]
+}
+
+export type ScreenerAlertTriggerType = 'entered' | 'left' | 'both'
+export type ScreenerAlertStatus = 'active' | 'triggered' | 'disabled'
+
+export interface ScreenerAlert {
+  id: number
+  screener_id: number
+  screener_name: string
+  trigger_type: ScreenerAlertTriggerType
+  status: ScreenerAlertStatus
+  repeat: boolean
+  notes?: string | null
+  triggered_at?: string | null
+  last_checked_run_id?: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface InstrumentMembershipWatchlist {
+  id: number
+  name: string
+  is_managed: boolean
+}
+
+export interface InstrumentMembershipScreener {
+  id: number
+  name: string
+  last_run_at: string | null
+  in_current_results: boolean
+}
+
+export interface InstrumentMembership {
+  watchlists: InstrumentMembershipWatchlist[]
+  screeners: InstrumentMembershipScreener[]
 }
 
 // ── Screener ──────────────────────────────────────────────────────────────────
@@ -242,8 +302,13 @@ export interface ChartState {
 // ── WebSocket messages ────────────────────────────────────────────────────────
 
 export interface WsMessage {
-  type: 'alert_triggered' | 'pong'
+  type: 'alert_triggered' | 'screener_alert_triggered' | 'pong'
   alert_id?: number
+  screener_alert_id?: number
+  screener_id?: number
+  screener_name?: string
+  entered?: string[]
+  left?: string[]
   symbol?: string
   condition?: string
   threshold?: number

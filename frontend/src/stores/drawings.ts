@@ -29,6 +29,11 @@ export const useDrawingsStore = defineStore('drawings', () => {
   )
 
   async function loadDrawings(instId: number, tf: Timeframe) {
+    // Skip fetch if we already have this instrument's drawings loaded
+    if (instrumentId.value === instId) {
+      currentTimeframe.value = tf
+      return
+    }
     instrumentId.value = instId
     currentTimeframe.value = tf
     try {
