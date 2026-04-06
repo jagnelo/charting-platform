@@ -89,6 +89,7 @@
       <IndicatorPanel
         :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :key="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
+        @select-symbol="onSymbolSelect"
       />
     </div>
   </div>
@@ -165,7 +166,7 @@ async function onSymbolSelect(symbol: string) {
     }
   }
   if (route.params.symbol !== symbol) {
-    router.replace(`/chart/${symbol}`)
+    router.replace(`/chart/${encodeURIComponent(symbol)}`)
   }
 }
 

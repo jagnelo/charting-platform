@@ -66,7 +66,7 @@
 
     <!-- Go to latest button -->
     <button v-if="!isAtLatest" class="go-to-latest" @click="goToLatest">
-      ↓ Latest
+      → Latest
     </button>
 
     <!-- Keyboard shortcuts overlay -->
@@ -280,7 +280,7 @@ function startLivePolling() {
     if (!chartStore.symbol || !chartStore.timeframe) return
     try {
       // Only fetch the latest page; merge any genuinely new bars at the tail
-      const raw = await api.get<any[]>(`/ohlcv/${chartStore.symbol}/${chartStore.timeframe}`)
+      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(chartStore.symbol)}/${chartStore.timeframe}`)
       const mapped = raw.map((b: any) => ({
         ...b,
         open: Number(b.open), high: Number(b.high),
@@ -444,7 +444,7 @@ async function initChart() {
   if (!data[0]?.length) return
 
   const w = wrapperRef.value.clientWidth || 900
-  const h = Math.max(380, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
+  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
   const series = buildSeries()
   lastSeriesCount = series.length
 
@@ -1136,7 +1136,7 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType) {
 function handleResize() {
   if (!uplot || !wrapperRef.value) return
   const w = wrapperRef.value.clientWidth
-  const h = Math.max(380, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
+  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
   uplot.setSize({ width: w, height: h }); syncCanvasSize(w, h)
   drawingRenderer?.resize(); drawingRenderer?.renderAll(drawStore.renderableDrawings)
   for (const sp of Object.values(subPlotsMap)) sp.setSize({ width: w, height: 110 })
@@ -1282,7 +1282,7 @@ defineExpose({ jumpToTs })
 /* Y axis A/L buttons — TradingView style, pinned to bottom of Y axis */
 .yaxis-btns {
   position: absolute;
-  bottom: 22px;
+  bottom: 28px;
   right: 0;
   width: 65px; /* matches axis size */
   display: flex;

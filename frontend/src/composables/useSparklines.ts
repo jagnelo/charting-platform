@@ -49,7 +49,7 @@ async function fetchSparkPoints(symbol: string, tf: SparkTf): Promise<number[] |
 
   const { ohlcvTf, start } = tfToParams(tf)
 
-  const p = api.get<OhlcvBar[]>(`/ohlcv/${symbol}/${ohlcvTf}`, { start })
+  const p = api.get<OhlcvBar[]>(`/ohlcv/${encodeURIComponent(symbol)}/${ohlcvTf}`, { start })
     .then(bars => {
       const pts = bars.length >= 2 ? bars.map(b => b.close) : null
       cache[key] = pts

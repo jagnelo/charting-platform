@@ -40,7 +40,7 @@ function createChartStore(storeId: string) {
 
     async function loadInstrument(sym: string) {
       try {
-        instrument.value = await api.get(`/instruments/${sym}`)
+        instrument.value = await api.get(`/instruments/${encodeURIComponent(sym)}`)
       } catch {
         // Auto-creates from yfinance on first visit
       }
@@ -77,7 +77,7 @@ function createChartStore(storeId: string) {
       }
 
       try {
-        const raw = await api.get<any[]>(`/ohlcv/${sym}/${tf}`)
+        const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(sym)}/${tf}`)
         bars.value = _mapBars(raw)
         if (raw.length < PAGE_SIZE) hasReachedStart.value = true
       } catch (e: any) {
@@ -97,7 +97,7 @@ function createChartStore(storeId: string) {
       const sym = symbol.value
       const tf  = timeframe.value
       try {
-        const raw = await api.get<any[]>(`/ohlcv/${sym}/${tf}`, { before: oldestTs })
+        const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(sym)}/${tf}`, { before: oldestTs })
         if (!raw.length) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
           return
@@ -134,7 +134,7 @@ function createChartStore(storeId: string) {
       const check = async () => {
         if (symbol.value !== sym) { _stopCoveragePoller(); return }
         try {
-          const res = await api.get<{ is_fetching: boolean }>(`/instruments/${sym}/data-coverage`)
+          const res = await api.get<{ is_fetching: boolean }>(`/instruments/${encodeURIComponent(sym)}/data-coverage`)
           const wasFetching = isFetchingHistory.value
           isFetchingHistory.value = res.is_fetching
           if (!res.is_fetching) {
