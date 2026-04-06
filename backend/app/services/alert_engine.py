@@ -27,17 +27,17 @@ INDICATOR_LOOKBACK = 300  # bars to load for indicator computation
 # Approximate wall-clock duration of one bar per timeframe — used to compute
 # the lookback start time for `fetch_ohlcv` so it always has fresh data.
 _TF_BAR_DURATION: dict[Timeframe, timedelta] = {
-    Timeframe.M1:  timedelta(minutes=1),
-    Timeframe.M5:  timedelta(minutes=5),
+    Timeframe.M1: timedelta(minutes=1),
+    Timeframe.M5: timedelta(minutes=5),
     Timeframe.M15: timedelta(minutes=15),
     Timeframe.M30: timedelta(minutes=30),
-    Timeframe.H1:  timedelta(hours=1),
-    Timeframe.H2:  timedelta(hours=2),
-    Timeframe.H4:  timedelta(hours=4),
+    Timeframe.H1: timedelta(hours=1),
+    Timeframe.H2: timedelta(hours=2),
+    Timeframe.H4: timedelta(hours=4),
     Timeframe.H12: timedelta(hours=12),
-    Timeframe.D1:  timedelta(days=1),
-    Timeframe.W1:  timedelta(weeks=1),
-    Timeframe.MN:  timedelta(days=31),
+    Timeframe.D1: timedelta(days=1),
+    Timeframe.W1: timedelta(weeks=1),
+    Timeframe.MN: timedelta(days=31),
 }
 
 

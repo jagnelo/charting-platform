@@ -27,8 +27,11 @@ from app.models.indicator_cache import IndicatorCache
 from app.models.instrument import EquityDetail, Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
+from app.models.screener_alert import ScreenerAlert
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.services.indicators import OHLCVSeries, compute_indicator
+
+GRACE_PERIOD_DAYS = 7
 
 # Global semaphore: caps concurrent yfinance fetches during screener Pass 2.
 _FETCH_SEMAPHORE = asyncio.Semaphore(3)
@@ -170,9 +173,7 @@ async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[
         wl = await db.get(Watchlist, screener.universe_watchlist_id)
         if wl:
             items_result = await db.execute(
-                select(WatchlistItem.instrument_id).where(
-                    WatchlistItem.watchlist_id == wl.id
-                )
+                select(WatchlistItem.instrument_id).where(WatchlistItem.watchlist_id == wl.id)
             )
             return list(items_result.scalars().all())
 
@@ -185,11 +186,15 @@ async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[
             .where(
                 InstrumentType.asset_class_id == screener.universe_asset_class_id,
                 Instrument.is_active.is_(True),
+                Instrument.is_synthetic.is_(False),
             )
         )
         return list((await db.execute(stmt)).scalars().all())
 
-    stmt = select(Instrument.id).where(Instrument.is_active.is_(True))
+    stmt = select(Instrument.id).where(
+        Instrument.is_active.is_(True),
+        Instrument.is_synthetic.is_(False),  # synthetics are excluded from screeners
+    )
     return list((await db.execute(stmt)).scalars().all())
 
 
@@ -243,8 +248,7 @@ async def _evaluate_condition(
         op = condition["operator"].upper()
         sub_conditions = condition["conditions"]
         sub_results = [
-            await _evaluate_condition(c, data, instrument, timeframe, db)
-            for c in sub_conditions
+            await _evaluate_condition(c, data, instrument, timeframe, db) for c in sub_conditions
         ]
         all_computed: dict = {}
         for _, vals in sub_results:
@@ -445,7 +449,11 @@ async def run_screener(
         # Bulk-load instruments with equity_detail so fundamental filters don't N+1
         instr_result = await db.execute(
             select(Instrument)
-            .options(__import__("sqlalchemy.orm", fromlist=["selectinload"]).selectinload(Instrument.equity_detail))
+            .options(
+                __import__("sqlalchemy.orm", fromlist=["selectinload"]).selectinload(
+                    Instrument.equity_detail
+                )
+            )
             .where(Instrument.id.in_(instrument_ids))
         )
         instruments = {i.id: i for i in instr_result.scalars().all()}
@@ -490,7 +498,179 @@ async def run_screener(
     db.add(result)
     await db.commit()
     await db.refresh(result)
+
+    # Post-run: fire screener alerts and sync managed watchlists
+    if not error:
+        await process_screener_post_run(db, screener, result)
+
     return result
+
+
+# ── Post-run: screener alerts + managed watchlist updates ────────────────────
+
+
+async def process_screener_post_run(
+    db: AsyncSession,
+    screener: ScreenerDefinition,
+    result: ScreenerResult,
+) -> None:
+    """
+    Called after every successful screener run to:
+      1. Diff matched_ids against the previous run and fire ScreenerAlerts.
+      2. Sync managed watchlists linked to this screener.
+
+    This is intentionally fire-and-forget and should not raise; errors are
+    logged and swallowed so the main screener result is always persisted.
+    """
+    try:
+        await _process_screener_alerts(db, screener, result)
+    except Exception as e:
+        logger.error("screener alert processing failed for screener %d: %s", screener.id, e)
+
+    try:
+        await _sync_managed_watchlists(db, screener, result)
+    except Exception as e:
+        logger.error("managed watchlist sync failed for screener %d: %s", screener.id, e)
+
+
+async def _process_screener_alerts(
+    db: AsyncSession,
+    screener: ScreenerDefinition,
+    result: ScreenerResult,
+) -> None:
+    """Diff current vs previous run and dispatch ScreenerAlert events."""
+    # Load all active screener alerts for this screener
+    alerts_result = await db.execute(
+        select(ScreenerAlert).where(
+            ScreenerAlert.screener_id == screener.id,
+            ScreenerAlert.status == "active",
+        )
+    )
+    alerts = list(alerts_result.scalars().all())
+    if not alerts:
+        return
+
+    current_ids = set(result.matched_ids)
+
+    for alert in alerts:
+        # Determine previous matched set
+        if alert.last_checked_run_id is None:
+            prev_ids: set[int] = set()
+        else:
+            prev_result = await db.get(ScreenerResult, alert.last_checked_run_id)
+            prev_ids = set(prev_result.matched_ids) if prev_result else set()
+
+        entered = current_ids - prev_ids
+        left = prev_ids - current_ids
+
+        should_fire = (alert.trigger_type in ("entered", "both") and entered) or (
+            alert.trigger_type in ("left", "both") and left
+        )
+
+        alert.last_checked_run_id = result.id
+
+        if should_fire:
+            alert.triggered_at = result.run_at
+            if not alert.repeat:
+                alert.status = "triggered"
+
+            # Dispatch in-app notification
+            _dispatch_screener_alert_event(alert, screener, entered, left)
+
+    await db.commit()
+
+
+def _dispatch_screener_alert_event(
+    alert: ScreenerAlert,
+    screener: ScreenerDefinition,
+    entered: set[int],
+    left: set[int],
+) -> None:
+    """Publish a screener_alert_triggered event via the WebSocket manager."""
+    try:
+        import asyncio
+
+        from app.websocket.manager import manager
+
+        payload = {
+            "type": "screener_alert_triggered",
+            "alert_id": alert.id,
+            "screener_id": screener.id,
+            "screener_name": screener.name,
+            "trigger_type": alert.trigger_type,
+            "entered_ids": list(entered),
+            "left_ids": list(left),
+            "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None,
+        }
+        # manager.broadcast_to_user is a coroutine; schedule it onto the running loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(manager.broadcast_to_user(alert.user_id, payload))
+    except Exception as e:
+        logger.warning("Failed to dispatch screener alert event: %s", e)
+
+
+async def _sync_managed_watchlists(
+    db: AsyncSession,
+    screener: ScreenerDefinition,
+    result: ScreenerResult,
+) -> None:
+    """
+    Update managed watchlists linked to this screener:
+      - Add instruments that newly entered the screener results.
+      - Mark instruments that left as departed (left_screener_at).
+      - Remove items whose grace period has expired.
+    """
+    wl_result = await db.execute(
+        select(Watchlist).where(
+            Watchlist.screener_id == screener.id,
+            Watchlist.is_managed.is_(True),
+        )
+    )
+    watchlists = list(wl_result.scalars().all())
+    if not watchlists:
+        return
+
+    current_ids = set(result.matched_ids)
+    now = result.run_at
+    grace_deadline = timedelta(days=GRACE_PERIOD_DAYS)
+
+    for wl in watchlists:
+        # Reload items fresh
+        items_result = await db.execute(
+            select(WatchlistItem).where(WatchlistItem.watchlist_id == wl.id)
+        )
+        items = list(items_result.scalars().all())
+        item_map = {item.instrument_id: item for item in items}
+        existing_ids = set(item_map)
+
+        # Add newly matched instruments
+        for inst_id in current_ids - existing_ids:
+            new_item = WatchlistItem(
+                watchlist_id=wl.id,
+                instrument_id=inst_id,
+                position=0,
+                added_at=now,
+            )
+            db.add(new_item)
+
+        # Handle departed and grace-period expiry
+        for inst_id, item in item_map.items():
+            if inst_id in current_ids:
+                # Back in screener — clear any departed mark
+                if item.left_screener_at is not None:
+                    item.left_screener_at = None
+            else:
+                if item.left_screener_at is None:
+                    # Just left — mark departure time
+                    item.left_screener_at = now
+                elif (now - item.left_screener_at) > grace_deadline:
+                    # Grace period expired — remove
+                    await db.delete(item)
+
+        wl.last_screener_run_at = now
+
+    await db.commit()
 
 
 # ── Streaming entry point ─────────────────────────────────────────────────────
@@ -542,7 +722,7 @@ async def stream_screener(
     )
     has_data_set = set((await db.execute(has_data_stmt)).scalars().all())
 
-    has_data_ids  = [iid for iid in instrument_ids if iid in has_data_set]
+    has_data_ids = [iid for iid in instrument_ids if iid in has_data_set]
     needs_fetch_ids = [iid for iid in instrument_ids if iid not in has_data_set]
 
     evaluated = 0
@@ -566,7 +746,11 @@ async def stream_screener(
                     matched += 1
                     matched_ids.append(inst_id)
                     result_data[str(inst_id)] = {k: v for k, v in computed.items() if v is not None}
-                    yield {"type": "match", "instrument_id": inst_id, "computed": result_data[str(inst_id)]}
+                    yield {
+                        "type": "match",
+                        "instrument_id": inst_id,
+                        "computed": result_data[str(inst_id)],
+                    }
         except Exception as exc:
             logger.warning("Screener Pass 1 error on %d: %s", inst_id, exc)
 
@@ -591,7 +775,9 @@ async def stream_screener(
             continue
         try:
             async with _FETCH_SEMAPHORE:
-                bars = await fetch_ohlcv_latest(db, inst, screener.timeframe, SCREENER_LOOKBACK_BARS)
+                bars = await fetch_ohlcv_latest(
+                    db, inst, screener.timeframe, SCREENER_LOOKBACK_BARS
+                )
             if len(bars) >= 2:
                 data = OHLCVSeries.from_orm_bars(bars)
                 ok, computed = await _evaluate_condition(
@@ -601,7 +787,11 @@ async def stream_screener(
                     matched += 1
                     matched_ids.append(inst_id)
                     result_data[str(inst_id)] = {k: v for k, v in computed.items() if v is not None}
-                    yield {"type": "match", "instrument_id": inst_id, "computed": result_data[str(inst_id)]}
+                    yield {
+                        "type": "match",
+                        "instrument_id": inst_id,
+                        "computed": result_data[str(inst_id)],
+                    }
         except Exception as exc:
             logger.warning("Screener Pass 2 error on %d: %s", inst_id, exc)
 
@@ -617,7 +807,10 @@ async def stream_screener(
     duration_ms = int((time.monotonic() - t_start) * 1000)
     logger.info(
         "Screener '%s' (stream) matched %d/%d in %dms",
-        screener.name, matched, total, duration_ms,
+        screener.name,
+        matched,
+        total,
+        duration_ms,
     )
 
     result = ScreenerResult(
@@ -631,6 +824,9 @@ async def stream_screener(
     db.add(result)
     await db.commit()
     await db.refresh(result)
+
+    # Post-run: fire screener alerts and sync managed watchlists
+    await process_screener_post_run(db, screener, result)
 
     yield {
         "type": "done",

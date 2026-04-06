@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -77,6 +77,14 @@ async def create_screener(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    existing = (await db.execute(
+        select(func.count()).select_from(ScreenerDefinition).where(
+            ScreenerDefinition.user_id == current_user.id,
+            func.lower(ScreenerDefinition.name) == body.name.lower(),
+        )
+    )).scalar_one()
+    if existing > 0:
+        raise HTTPException(409, f"A screener named '{body.name}' already exists")
     screener = ScreenerDefinition(**body.model_dump(), user_id=current_user.id)
     db.add(screener)
     await db.commit()
