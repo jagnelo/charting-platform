@@ -1,4 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -7,11 +8,20 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
+from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar
+from app.models.screener import ScreenerDefinition, ScreenerResult
+from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
-from app.schemas.instrument import InstrumentOut, InstrumentSearchResult
+from app.models.watchlist import Watchlist, WatchlistItem
+from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
+from app.services.expression_engine import (
+    ExpressionError,
+    extract_tickers,
+    normalize_expression,
+)
 from app.services.market_data import get_instrument_info, search_ticker
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
@@ -86,9 +96,7 @@ async def browse_instruments(
             stmt = stmt.where(Instrument.id.in_(id_list))
 
     if q:
-        stmt = stmt.where(
-            or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%"))
-        )
+        stmt = stmt.where(or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%")))
 
     if instrument_type:
         stmt = stmt.join(Instrument.instrument_type).where(
@@ -99,7 +107,9 @@ async def browse_instruments(
         stmt = stmt.where(Instrument.currency == currency.upper())
 
     # EquityDetail filters — only join when needed
-    needs_equity_join = any(f is not None for f in [sector, industry, market_cap_tier, country, exchange])
+    needs_equity_join = any(
+        f is not None for f in [sector, industry, market_cap_tier, country, exchange]
+    )
     if needs_equity_join:
         stmt = stmt.join(EquityDetail, EquityDetail.instrument_id == Instrument.id, isouter=True)
         if sector:
@@ -124,18 +134,20 @@ async def browse_instruments(
     items = []
     for inst in rows:
         eq = inst.equity_detail
-        items.append({
-            "id": inst.id,
-            "symbol": inst.symbol,
-            "name": inst.name,
-            "currency": inst.currency,
-            "type": inst.instrument_type.name if inst.instrument_type else None,
-            "sector": eq.sector if eq else None,
-            "industry": eq.industry if eq else None,
-            "market_cap_tier": eq.market_cap_tier if eq else None,
-            "country": eq.country if eq else None,
-            "exchange": eq.exchange_mic if eq else None,
-        })
+        items.append(
+            {
+                "id": inst.id,
+                "symbol": inst.symbol,
+                "name": inst.name,
+                "currency": inst.currency,
+                "type": inst.instrument_type.name if inst.instrument_type else None,
+                "sector": eq.sector if eq else None,
+                "industry": eq.industry if eq else None,
+                "market_cap_tier": eq.market_cap_tier if eq else None,
+                "country": eq.country if eq else None,
+                "exchange": eq.exchange_mic if eq else None,
+            }
+        )
 
     return {
         "total": total,
@@ -153,19 +165,220 @@ async def get_filter_options(
     """Return distinct values for screener/browse dropdown filters."""
     from sqlalchemy import distinct
 
-    sectors    = (await db.execute(select(distinct(EquityDetail.sector)).where(EquityDetail.sector.isnot(None)))).scalars().all()
-    industries = (await db.execute(select(distinct(EquityDetail.industry)).where(EquityDetail.industry.isnot(None)))).scalars().all()
-    countries  = (await db.execute(select(distinct(EquityDetail.country)).where(EquityDetail.country.isnot(None)))).scalars().all()
-    exchanges  = (await db.execute(select(distinct(EquityDetail.exchange_mic)).where(EquityDetail.exchange_mic.isnot(None)))).scalars().all()
-    currencies = (await db.execute(select(distinct(Instrument.currency)).where(Instrument.currency.isnot(None)))).scalars().all()
+    sectors = (
+        (
+            await db.execute(
+                select(distinct(EquityDetail.sector)).where(EquityDetail.sector.isnot(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    industries = (
+        (
+            await db.execute(
+                select(distinct(EquityDetail.industry)).where(EquityDetail.industry.isnot(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    countries = (
+        (
+            await db.execute(
+                select(distinct(EquityDetail.country)).where(EquityDetail.country.isnot(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    exchanges = (
+        (
+            await db.execute(
+                select(distinct(EquityDetail.exchange_mic)).where(
+                    EquityDetail.exchange_mic.isnot(None)
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    currencies = (
+        (
+            await db.execute(
+                select(distinct(Instrument.currency)).where(Instrument.currency.isnot(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     return {
-        "sectors":    sorted(sectors),
+        "sectors": sorted(sectors),
         "industries": sorted(industries),
-        "countries":  sorted(countries),
-        "exchanges":  sorted(exchanges),
+        "countries": sorted(countries),
+        "exchanges": sorted(exchanges),
         "currencies": sorted(currencies),
     }
+
+
+class ResolveExpressionBody(BaseModel):
+    expression: str
+
+
+@router.post("/resolve-expression", response_model=InstrumentOut)
+async def resolve_expression(
+    body: ResolveExpressionBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create or retrieve a synthetic instrument for the given arithmetic expression
+    (e.g. 'SPY/GLD', '(SPY*0.5)/QQQ').
+
+    - Normalises the expression to a canonical upper-case form.
+    - Verifies every constituent ticker exists (auto-creates from yfinance if needed).
+    - If a synthetic instrument with the same normalised expression already exists,
+      returns the existing row.  Otherwise creates a new one.
+    """
+    try:
+        canonical = normalize_expression(body.expression)
+        tickers = extract_tickers(canonical)
+    except ExpressionError as exc:
+        raise HTTPException(400, str(exc))
+
+    if len(tickers) < 2 and not any(c in canonical for c in ('+', '-', '*', '/')):
+        raise HTTPException(400, "Input does not look like an arithmetic expression")
+
+    # Resolve / auto-create every constituent instrument
+    constituents: dict[str, Instrument] = {}
+    for ticker in tickers:
+        result = await db.execute(
+            select(Instrument).where(
+                Instrument.symbol == ticker, Instrument.is_synthetic.is_(False)
+            )
+        )
+        inst = result.scalar_one_or_none()
+        if inst is None:
+            inst = await _create_from_yfinance(ticker, db)
+            if inst is None:
+                raise HTTPException(404, f"Constituent instrument '{ticker}' not found")
+        constituents[ticker] = inst
+
+    # Return existing synthetic if already stored
+    existing = await db.execute(
+        select(Instrument)
+        .options(
+            selectinload(Instrument.synthetic_constituents),
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.stats),
+            selectinload(Instrument.instrument_type),
+        )
+        .where(Instrument.expression == canonical, Instrument.is_synthetic.is_(True))
+    )
+    synth = existing.scalar_one_or_none()
+    if synth is not None:
+        return synth
+
+    # Determine instrument type (reuse "Synthetic" type or create it)
+    type_result = await db.execute(select(InstrumentType).where(InstrumentType.name == "Synthetic"))
+    synth_type = type_result.scalar_one_or_none()
+    if synth_type is None:
+        ac_result = await db.execute(select(AssetClass).where(AssetClass.name == "Synthetic"))
+        synth_ac = ac_result.scalar_one_or_none()
+        if synth_ac is None:
+            synth_ac = AssetClass(name="Synthetic")
+            db.add(synth_ac)
+            await db.flush()
+        synth_type = InstrumentType(name="Synthetic", asset_class_id=synth_ac.id)
+        db.add(synth_type)
+        await db.flush()
+
+    synth = Instrument(
+        symbol=canonical,
+        name=canonical,
+        is_active=True,
+        is_synthetic=True,
+        expression=canonical,
+        instrument_type_id=synth_type.id,
+    )
+    db.add(synth)
+    await db.flush()
+
+    for ticker, inst in constituents.items():
+        db.add(
+            SyntheticConstituent(
+                synthetic_instrument_id=synth.id,
+                constituent_instrument_id=inst.id,
+                ticker_alias=ticker,
+            )
+        )
+
+    await db.commit()
+    return await _reload_instrument_full(synth.id, db)
+
+
+@router.get("/{instrument_id}/membership", response_model=InstrumentMembership)
+async def get_instrument_membership(
+    instrument_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return which of the current user's watchlists and screeners contain this instrument."""
+    # Watchlists
+    wl_rows = (
+        (
+            await db.execute(
+                select(Watchlist)
+                .join(WatchlistItem, WatchlistItem.watchlist_id == Watchlist.id)
+                .where(
+                    Watchlist.user_id == current_user.id,
+                    WatchlistItem.instrument_id == instrument_id,
+                    WatchlistItem.left_screener_at.is_(None),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    watchlists = [{"id": wl.id, "name": wl.name, "is_managed": wl.is_managed} for wl in wl_rows]
+
+    # Screeners: membership means the latest result's matched_ids contains this instrument_id
+    screener_rows = (
+        (
+            await db.execute(
+                select(ScreenerDefinition).where(ScreenerDefinition.user_id == current_user.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    screeners = []
+    for sd in screener_rows:
+        latest_result = (
+            await db.execute(
+                select(ScreenerResult)
+                .where(ScreenerResult.screener_id == sd.id)
+                .order_by(ScreenerResult.run_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+        in_current = latest_result is not None and instrument_id in (
+            latest_result.matched_ids or []
+        )
+        screeners.append(
+            {
+                "id": sd.id,
+                "name": sd.name,
+                "last_run_at": latest_result.run_at.isoformat() if latest_result else None,
+                "in_current_results": in_current,
+            }
+        )
+
+    return InstrumentMembership(watchlists=watchlists, screeners=screeners)
 
 
 @router.get("/{symbol}/data-coverage")
@@ -234,6 +447,8 @@ async def get_instrument(
         .options(
             selectinload(Instrument.equity_detail),
             selectinload(Instrument.instrument_type),
+            selectinload(Instrument.stats),
+            selectinload(Instrument.synthetic_constituents),
         )
         .where(Instrument.symbol == symbol.upper())
     )
@@ -247,6 +462,21 @@ async def get_instrument(
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
 
     return instrument
+
+
+async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instrument:
+    """Re-query an instrument with all relationships needed by InstrumentOut eager-loaded."""
+    result = await db.execute(
+        select(Instrument)
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.instrument_type),
+            selectinload(Instrument.stats),
+            selectinload(Instrument.synthetic_constituents),
+        )
+        .where(Instrument.id == instrument_id)
+    )
+    return result.scalar_one()
 
 
 async def _enqueue_bulk_fetch(instrument_id: int):
@@ -329,7 +559,18 @@ async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | N
         )
     )
 
+    # Populate stats from yfinance info
+    stats_kwargs = {
+        "week52_high":    info.get("fiftyTwoWeekHigh"),
+        "week52_low":     info.get("fiftyTwoWeekLow"),
+        "avg_volume_30d": info.get("averageVolume") or info.get("averageDailyVolume10Day"),
+        "pe_ratio":       info.get("trailingPE") or info.get("forwardPE"),
+        "market_cap":     info.get("marketCap"),
+        "beta":           info.get("beta"),
+        "dividend_yield": info.get("dividendYield"),
+    }
+    if any(v is not None for v in stats_kwargs.values()):
+        db.add(InstrumentStats(instrument_id=instrument.id, **stats_kwargs))
+
     await db.commit()
-    await db.refresh(instrument)
-    await db.refresh(instrument, ["equity_detail"])
-    return instrument
+    return await _reload_instrument_full(instrument.id, db)

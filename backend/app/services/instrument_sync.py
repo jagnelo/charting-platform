@@ -44,20 +44,20 @@ logger = logging.getLogger(__name__)
 OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
 
 # Caps concurrent outbound calls to external APIs platform-wide.
-_ISIN_SEMAPHORE  = asyncio.Semaphore(2)
+_ISIN_SEMAPHORE = asyncio.Semaphore(2)
 _FETCH_SEMAPHORE = asyncio.Semaphore(3)
 
 _YF_SCREENER_PAGE_SIZE = 250
 
 # All yfinance quote types we enumerate.  Maps quote_type → (AssetClass, InstrumentType).
 _QUOTE_TYPE_TAXONOMY: dict[str, tuple[str, str]] = {
-    "EQUITY":         ("Equity",         "Stock"),
-    "ETF":            ("Equity",         "ETF"),
-    "MUTUALFUND":     ("Equity",         "Mutual Fund"),
-    "INDEX":          ("Index",          "Index"),
-    "CURRENCY":       ("Currency",       "Forex Pair"),
+    "EQUITY": ("Equity", "Stock"),
+    "ETF": ("Equity", "ETF"),
+    "MUTUALFUND": ("Equity", "Mutual Fund"),
+    "INDEX": ("Index", "Index"),
+    "CURRENCY": ("Currency", "Forex Pair"),
     "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
-    "FUTURE":         ("Commodity",      "Future"),
+    "FUTURE": ("Commodity", "Future"),
 }
 
 _YF_QUOTE_TYPES = list(_QUOTE_TYPE_TAXONOMY.keys())
@@ -82,9 +82,7 @@ def _cap_tier(cap: float | None) -> str | None:
     return "nano"
 
 
-async def _ensure_instrument_type(
-    db: AsyncSession, asset_class_name: str, type_name: str
-) -> int:
+async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_name: str) -> int:
     """Get-or-create AssetClass + InstrumentType; return InstrumentType.id."""
     ac = (
         await db.execute(select(AssetClass).where(AssetClass.name == asset_class_name))
@@ -179,23 +177,28 @@ def _screener_page_sync(quote_type: str, offset: int) -> dict:
     """
     try:
         from yfinance import Screener
+
         s = Screener()
-        s.set_body({
-            "offset": offset,
-            "size": _YF_SCREENER_PAGE_SIZE,
-            "sortField": "ticker",
-            "sortType": "ASC",
-            "quoteType": quote_type,
-            "query": {
-                "operator": "AND",
-                "operands": [
-                    {"operator": "gt", "operands": ["percentchange", -100]},
-                ],
-            },
-        })
+        s.set_body(
+            {
+                "offset": offset,
+                "size": _YF_SCREENER_PAGE_SIZE,
+                "sortField": "ticker",
+                "sortType": "ASC",
+                "quoteType": quote_type,
+                "query": {
+                    "operator": "AND",
+                    "operands": [
+                        {"operator": "gt", "operands": ["percentchange", -100]},
+                    ],
+                },
+            }
+        )
         return s.response or {}
     except Exception as exc:
-        logger.debug("yfinance screener page failed (type=%s offset=%d): %s", quote_type, offset, exc)
+        logger.debug(
+            "yfinance screener page failed (type=%s offset=%d): %s", quote_type, offset, exc
+        )
         return {}
 
 
@@ -240,25 +243,27 @@ async def seed_universe(db: AsyncSession) -> dict:
     # Determine which quote types use EquityDetail
     _EQUITY_DETAIL_TYPES = {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
 
-    # Pre-load symbol → Instrument for cheap existence checks
+    # Pre-load symbol → Instrument for cheap existence checks (exclude synthetics)
     existing: dict[str, Instrument] = {
         row.symbol: row
-        for row in (await db.execute(select(Instrument))).scalars().all()
+        for row in (await db.execute(select(Instrument).where(Instrument.is_synthetic.is_(False))))
+        .scalars()
+        .all()
     }
 
     created = 0
     updated = 0
-    loop    = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
 
     for quote_type in _YF_QUOTE_TYPES:
         type_id = type_id_map[quote_type]
-        offset  = 0
-        total   = None
+        offset = 0
+        total = None
 
         logger.info("seed_universe: scanning %s…", quote_type)
 
         while True:
-            page   = await loop.run_in_executor(None, _screener_page_sync, quote_type, offset)
+            page = await loop.run_in_executor(None, _screener_page_sync, quote_type, offset)
             quotes = page.get("quotes") or []
 
             if total is None:
@@ -273,7 +278,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                 if not symbol:
                     continue
 
-                name     = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
+                name = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
                 currency = q.get("currency")
                 exchange = q.get("exchange") or q.get("fullExchangeName")
 
@@ -307,11 +312,11 @@ async def seed_universe(db: AsyncSession) -> dict:
                         ed = EquityDetail(instrument_id=inst.id)
                         db.add(ed)
 
-                    ed.sector          = q.get("sector")   or q.get("sectorDisplay")   or ed.sector
-                    ed.industry        = q.get("industry") or q.get("industryDisplay") or ed.industry
-                    ed.country         = q.get("country")                               or ed.country
-                    ed.exchange_mic    = exchange                                        or ed.exchange_mic
-                    ed.market_cap_tier = _cap_tier(q.get("marketCap"))                  or ed.market_cap_tier
+                    ed.sector = q.get("sector") or q.get("sectorDisplay") or ed.sector
+                    ed.industry = q.get("industry") or q.get("industryDisplay") or ed.industry
+                    ed.country = q.get("country") or ed.country
+                    ed.exchange_mic = exchange or ed.exchange_mic
+                    ed.market_cap_tier = _cap_tier(q.get("marketCap")) or ed.market_cap_tier
 
                 elif quote_type == "CURRENCY":
                     pair = _parse_forex_pair(symbol)
@@ -336,7 +341,11 @@ async def seed_universe(db: AsyncSession) -> dict:
             await db.commit()
             logger.info(
                 "seed_universe: %s  offset=%d/%d  created=%d  updated=%d",
-                quote_type, offset + len(quotes), total, created, updated,
+                quote_type,
+                offset + len(quotes),
+                total,
+                created,
+                updated,
             )
 
             offset += len(quotes)
@@ -362,6 +371,7 @@ async def bootstrap_isins(db: AsyncSession) -> dict:
     stmt = select(Instrument).where(
         Instrument.isin.is_(None),
         Instrument.is_active.is_(True),
+        Instrument.is_synthetic.is_(False),
     )
     result = await db.execute(stmt)
     instruments = list(result.scalars().all())
@@ -405,7 +415,9 @@ async def bootstrap_isins(db: AsyncSession) -> dict:
     await db.commit()
     logger.info(
         "Bootstrap complete: %d updated, %d skipped / %d total",
-        updated, skipped, len(instruments),
+        updated,
+        skipped,
+        len(instruments),
     )
     return {"updated": updated, "skipped": skipped, "total": len(instruments)}
 
@@ -428,12 +440,15 @@ async def sync_instruments(db: AsyncSession) -> dict:
          failures happen).  Two consecutive empty responses would be needed
          to confidently deactivate — for now we log and continue.
     """
-    stmt = select(Instrument).where(Instrument.is_active.is_(True))
+    stmt = select(Instrument).where(
+        Instrument.is_active.is_(True),
+        Instrument.is_synthetic.is_(False),  # synthetics don't have yfinance data
+    )
     result = await db.execute(stmt)
     instruments = list(result.scalars().all())
 
     deactivated = 0
-    updated     = 0
+    updated = 0
 
     for inst in instruments:
         loop = asyncio.get_event_loop()
@@ -466,19 +481,17 @@ async def sync_instruments(db: AsyncSession) -> dict:
         # Upsert EquityDetail
         await db.flush()
         ed = (
-            await db.execute(
-                select(EquityDetail).where(EquityDetail.instrument_id == inst.id)
-            )
+            await db.execute(select(EquityDetail).where(EquityDetail.instrument_id == inst.id))
         ).scalar_one_or_none()
         if ed is None:
             ed = EquityDetail(instrument_id=inst.id)
             db.add(ed)
 
         for attr, key in [
-            ("sector",          "sector"),
-            ("industry",        "industry"),
-            ("country",         "country"),
-            ("website",         "website"),
+            ("sector", "sector"),
+            ("industry", "industry"),
+            ("country", "country"),
+            ("website", "website"),
         ]:
             val = info.get(key)
             if val and val != getattr(ed, attr):
@@ -501,6 +514,8 @@ async def sync_instruments(db: AsyncSession) -> dict:
     await db.commit()
     logger.info(
         "Sync complete: %d updated, %d deactivated / %d instruments",
-        updated, deactivated, len(instruments),
+        updated,
+        deactivated,
+        len(instruments),
     )
     return {"updated": updated, "deactivated": deactivated, "total": len(instruments)}

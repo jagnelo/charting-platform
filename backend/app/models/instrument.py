@@ -10,6 +10,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 from app.models.base import TimestampMixin
 
+# Forward-declared here; models imported at bottom to avoid circular imports.
+
 
 class OptionStyle(str, enum.Enum):
     AMERICAN = "american"
@@ -44,6 +46,10 @@ class Instrument(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     isin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
 
+    # Synthetic/expression instruments
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    expression: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     instrument_type: Mapped["InstrumentType"] = relationship(back_populates="instruments")
     listings: Mapped[list["InstrumentListing"]] = relationship(back_populates="instrument")
     ohlcv_bars: Mapped[list["OHLCVBar"]] = relationship(back_populates="instrument")
@@ -62,6 +68,18 @@ class Instrument(Base, TimestampMixin):
     )
     forex_detail: Mapped[Optional["ForexDetail"]] = relationship(
         back_populates="instrument", uselist=False, foreign_keys="[ForexDetail.instrument_id]"
+    )
+
+    # Synthetic instrument: its constituent instruments
+    synthetic_constituents: Mapped[list["SyntheticConstituent"]] = relationship(  # type: ignore[name-defined]
+        back_populates="synthetic_instrument",
+        foreign_keys="[SyntheticConstituent.synthetic_instrument_id]",
+        cascade="all, delete-orphan",
+    )
+
+    # Market stats (populated by scheduled sync; not present for synthetics)
+    stats: Mapped[Optional["InstrumentStats"]] = relationship(  # type: ignore[name-defined]
+        back_populates="instrument", uselist=False, foreign_keys="[InstrumentStats.instrument_id]"
     )
 
     def __repr__(self) -> str:

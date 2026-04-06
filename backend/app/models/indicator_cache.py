@@ -21,7 +21,10 @@ class IndicatorCache(Base):
     __tablename__ = "indicator_cache"
     __table_args__ = (
         UniqueConstraint(
-            "instrument_id", "timeframe", "indicator_type", "params_hash",
+            "instrument_id",
+            "timeframe",
+            "indicator_type",
+            "params_hash",
             name="uq_indicator_cache_key",
         ),
     )
@@ -33,7 +36,9 @@ class IndicatorCache(Base):
     timeframe: Mapped[str] = mapped_column(String(10), nullable=False)
     indicator_type: Mapped[str] = mapped_column(String(50), nullable=False)
     params_hash: Mapped[str] = mapped_column(String(32), nullable=False)
-    params_json: Mapped[str] = mapped_column(Text, nullable=False)  # human-readable, not used as key
+    params_json: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # human-readable, not used as key
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

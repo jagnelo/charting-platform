@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,6 +29,24 @@ class EquityDetailOut(BaseModel):
     logo_url: str | None = None
 
 
+class InstrumentStatsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    week52_high: Decimal | None = None
+    week52_low: Decimal | None = None
+    avg_volume_30d: Decimal | None = None
+    pe_ratio: Decimal | None = None
+    market_cap: Decimal | None = None
+    beta: Decimal | None = None
+    dividend_yield: Decimal | None = None
+    computed_at: datetime | None = None
+
+
+class SyntheticConstituentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    ticker_alias: str
+    constituent_instrument_id: int
+
+
 class InstrumentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -36,7 +55,11 @@ class InstrumentOut(BaseModel):
     description: str | None = None
     currency: str | None = None
     is_active: bool
+    is_synthetic: bool = False
+    expression: str | None = None
     equity_detail: EquityDetailOut | None = None
+    stats: InstrumentStatsOut | None = None
+    synthetic_constituents: list[SyntheticConstituentOut] = []
 
 
 class InstrumentCreate(BaseModel):
@@ -52,3 +75,11 @@ class InstrumentSearchResult(BaseModel):
     name: str
     exchange: str
     type: str
+    is_synthetic: bool = False
+
+
+class InstrumentMembership(BaseModel):
+    """Which watchlists and screeners the current instrument belongs to."""
+
+    watchlists: list[dict] = []  # {id, name, is_managed}
+    screeners: list[dict] = []  # {id, name, last_run_at, in_current_results}
