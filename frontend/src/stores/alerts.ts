@@ -21,8 +21,12 @@ export const useAlertsStore = defineStore('alerts', () => {
   const indicatorAlerts = ref<IndicatorAlert[]>([])
   const wsConnected = ref(false)
   let ws: WebSocket | null = null
+  let _loadedInstrumentId: number | undefined = undefined
 
   async function loadAlerts(instrumentId?: number) {
+    // Skip fetch if we already have alerts loaded for this instrument
+    if (instrumentId !== undefined && instrumentId === _loadedInstrumentId) return
+    _loadedInstrumentId = instrumentId
     const params: Record<string, any> = {}
     if (instrumentId) params.instrument_id = instrumentId
     alerts.value = await api.get('/alerts/price', params)
@@ -48,6 +52,7 @@ export const useAlertsStore = defineStore('alerts', () => {
       within_percent: withinPercent,
     })
     alerts.value.unshift(created)
+    _loadedInstrumentId = undefined  // invalidate cache so a future loadAlerts re-fetches
     return created
   }
 
@@ -60,6 +65,7 @@ export const useAlertsStore = defineStore('alerts', () => {
   async function deleteAlert(id: number) {
     await api.delete(`/alerts/price/${id}`)
     alerts.value = alerts.value.filter(a => a.id !== id)
+    _loadedInstrumentId = undefined
   }
 
   async function rearmAlert(id: number) {
@@ -71,6 +77,7 @@ export const useAlertsStore = defineStore('alerts', () => {
   async function createIndicatorAlert(body: IndicatorAlertCreate) {
     const created = await api.post<IndicatorAlert>('/alerts/indicator', body)
     indicatorAlerts.value.unshift(created)
+    _loadedInstrumentId = undefined
   }
 
   async function updateIndicatorAlert(id: number, patch: Partial<{ repeat: boolean; notes: string; status: string }>) {
@@ -82,6 +89,7 @@ export const useAlertsStore = defineStore('alerts', () => {
   async function deleteIndicatorAlert(id: number) {
     await api.delete(`/alerts/indicator/${id}`)
     indicatorAlerts.value = indicatorAlerts.value.filter(a => a.id !== id)
+    _loadedInstrumentId = undefined
   }
 
   async function rearmIndicatorAlert(id: number) {

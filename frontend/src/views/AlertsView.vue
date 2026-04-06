@@ -50,7 +50,7 @@
                      @change="alertsStore.updateAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
             </td>
             <td class="td-actions">
-              <button v-if="a.status === 'triggered'" @click="alertsStore.rearmAlert(a.id)" title="Rearm">↺</button>
+              <button v-if="a.status === 'triggered'" @click="alertsStore.rearmAlert(a.id)" title="Rearm">⟳</button>
               <button v-if="a.status === 'active'" @click="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
               <button v-if="a.status === 'paused'" @click="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
               <button @click="alertsStore.deleteAlert(a.id)" title="Delete" class="btn-danger">✕</button>
@@ -103,7 +103,7 @@
                      @change="alertsStore.updateIndicatorAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
             </td>
             <td class="td-actions">
-              <button v-if="a.status === 'triggered'" @click="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">↺</button>
+              <button v-if="a.status === 'triggered'" @click="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">⟳</button>
               <button v-if="a.status === 'active'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
               <button v-if="a.status === 'paused'" @click="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume">▶</button>
               <button @click="alertsStore.deleteIndicatorAlert(a.id)" title="Delete" class="btn-danger">✕</button>
@@ -115,16 +115,65 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Screener alerts -->
+    <div class="section-title" style="margin-top: 24px">Screener Alerts</div>
+    <div class="alerts-table-wrap">
+      <table class="alerts-table">
+        <thead>
+          <tr>
+            <th>Screener</th>
+            <th>Trigger on</th>
+            <th>Status</th>
+            <th>Repeat</th>
+            <th>Triggered</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="a in filteredScreener" :key="a.id" :class="`row--${a.status}`">
+            <td class="td-symbol">
+              <router-link :to="`/screener?select=${a.screener_id}`">{{ a.screener_name || '—' }}</router-link>
+            </td>
+            <td>{{ a.trigger_type.replace(/_/g, ' ') }}</td>
+            <td><span :class="`status-badge status-badge--${a.status}`">{{ a.status }}</span></td>
+            <td>
+              <button class="inline-toggle" @click="screenerAlertsStore.updateAlert(a.id, { repeat: !a.repeat })"
+                      :title="a.repeat ? 'Click to disable repeat' : 'Click to enable repeat'">
+                {{ a.repeat ? '↺' : '—' }}
+              </button>
+            </td>
+            <td class="td-mono">{{ a.triggered_at ? new Date(a.triggered_at).toLocaleString() : '—' }}</td>
+            <td class="td-notes">
+              <input class="inline-edit" :value="a.notes ?? ''" placeholder="Add note…"
+                     @change="screenerAlertsStore.updateAlert(a.id, { notes: ($event.target as HTMLInputElement).value })" />
+            </td>
+            <td class="td-actions">
+              <button v-if="a.status === 'triggered'" @click="screenerAlertsStore.rearmAlert(a.id)" title="Rearm">⟳</button>
+              <button v-if="a.status === 'active'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
+              <button v-if="a.status === 'paused'" @click="screenerAlertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
+              <button @click="screenerAlertsStore.deleteAlert(a.id)" title="Delete" class="btn-danger">✕</button>
+            </td>
+          </tr>
+          <tr v-if="!filteredScreener.length">
+            <td colspan="7" class="empty-row">No screener alerts</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
+import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { formatMoney } from '@/lib/format'
 import type { IndicatorAlert } from '@/types'
 
-const alertsStore = useAlertsStore()
+const alertsStore         = useAlertsStore()
+const screenerAlertsStore = useScreenerAlertsStore()
 const statusFilter = ref('')
 
 const filteredPrice = computed(() =>
@@ -137,6 +186,12 @@ const filteredIndicator = computed(() =>
   statusFilter.value
     ? alertsStore.indicatorAlerts.filter(a => a.status === statusFilter.value)
     : alertsStore.indicatorAlerts
+)
+
+const filteredScreener = computed(() =>
+  statusFilter.value
+    ? screenerAlertsStore.alerts.filter(a => a.status === statusFilter.value)
+    : screenerAlertsStore.alerts
 )
 
 // Indicators that share the price axis — their values are formatted as currency.
@@ -173,7 +228,10 @@ function indAlertExpr(a: IndicatorAlert): string {
 }
 
 onMounted(async () => {
-  await alertsStore.loadAlerts()
+  await Promise.all([
+    alertsStore.loadAlerts(),
+    screenerAlertsStore.loadAlerts(),
+  ])
 })
 </script>
 
