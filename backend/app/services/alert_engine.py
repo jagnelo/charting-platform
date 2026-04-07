@@ -118,17 +118,23 @@ async def _load_ohlcv_series(
 
 async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: float):
     now = datetime.now(UTC)
+    # Capture fields that will be needed after commit (commit expires ORM attributes)
+    symbol = alert.instrument.symbol
+    condition_val = alert.condition.value
+    threshold = float(alert.threshold_price)
+    alert_id = alert.id
+
     alert.triggered_at = now
     alert.trigger_count = (alert.trigger_count or 0) + 1
     alert.last_known_price = Decimal(str(current_price))
     alert.status = AlertStatus.ACTIVE if alert.repeat else AlertStatus.TRIGGERED
 
     notif_id = await send_alert_notification(
-        symbol=alert.instrument.symbol,
-        condition=alert.condition.value,
-        threshold=float(alert.threshold_price),
+        symbol=symbol,
+        condition=condition_val,
+        threshold=threshold,
         current_price=current_price,
-        alert_id=alert.id,
+        alert_id=alert_id,
     )
     if notif_id:
         alert.last_notification_id = notif_id
@@ -138,21 +144,28 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
         {
             "type": "alert_triggered",
             "alert_kind": "price",
-            "alert_id": alert.id,
-            "symbol": alert.instrument.symbol,
-            "condition": alert.condition.value,
-            "threshold": float(alert.threshold_price),
+            "alert_id": alert_id,
+            "symbol": symbol,
+            "condition": condition_val,
+            "threshold": threshold,
             "current_price": current_price,
             "triggered_at": now.isoformat(),
         }
     )
-    logger.info(f"Price alert {alert.id} fired: {alert.instrument.symbol} @ {current_price}")
+    logger.info(f"Price alert {alert_id} fired: {symbol} @ {current_price}")
 
 
 async def _fire_indicator_alert(
     db: AsyncSession, alert: IndicatorAlert, val_a: float, val_b: float | None
 ):
     now = datetime.now(UTC)
+    # Capture fields before commit (commit expires ORM attributes, lazy-load fails in async)
+    symbol = alert.instrument.symbol
+    indicator_type = alert.indicator_a_type
+    condition = alert.condition
+    alert_id = alert.id
+    threshold_value = float(alert.threshold_value) if alert.threshold_value else val_b
+
     alert.triggered_at = now
     alert.trigger_count = (alert.trigger_count or 0) + 1
     alert.last_value_a = Decimal(str(val_a))
@@ -161,12 +174,12 @@ async def _fire_indicator_alert(
     alert.status = AlertStatus.ACTIVE if alert.repeat else AlertStatus.TRIGGERED
 
     notif_id = await send_indicator_alert_notification(
-        symbol=alert.instrument.symbol,
-        indicator_type=alert.indicator_a_type,
-        condition=alert.condition,
+        symbol=symbol,
+        indicator_type=indicator_type,
+        condition=condition,
         value=val_a,
-        threshold=float(alert.threshold_value) if alert.threshold_value else val_b,
-        alert_id=alert.id,
+        threshold=threshold_value,
+        alert_id=alert_id,
     )
     if notif_id:
         alert.last_notification_id = notif_id
@@ -176,17 +189,17 @@ async def _fire_indicator_alert(
         {
             "type": "alert_triggered",
             "alert_kind": "indicator",
-            "alert_id": alert.id,
-            "symbol": alert.instrument.symbol,
-            "indicator": alert.indicator_a_type,
-            "condition": alert.condition,
+            "alert_id": alert_id,
+            "symbol": symbol,
+            "indicator": indicator_type,
+            "condition": condition,
             "value_a": val_a,
             "value_b": val_b,
             "triggered_at": now.isoformat(),
         }
     )
     logger.info(
-        f"Indicator alert {alert.id} fired: {alert.instrument.symbol} {alert.indicator_a_type}={val_a:.4f}"
+        f"Indicator alert {alert_id} fired: {symbol} {indicator_type}={val_a:.4f}"
     )
 
 
