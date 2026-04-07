@@ -13,33 +13,38 @@
               {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
             </span>
           </div>
-          <!-- Add to watchlist -->
-          <div
-            v-if="chartStore.symbol && watchlistStore.watchlists.length"
-            ref="wlStarRef"
-            class="wl-star-wrap"
-          >
-            <button
-              class="wl-star"
-              :class="{ active: showWlMenu }"
-              title="Add to watchlist"
-              @click="showWlMenu = !showWlMenu"
-            >★</button>
-            <div v-if="showWlMenu" class="wl-quick-menu">
-              <div class="wqm-title">Add to watchlist</div>
-              <div
-                v-for="wl in watchlistStore.watchlists"
-                :key="wl.id"
-                class="wqm-item"
-                @click="addToWatchlist(wl.id)"
-              >{{ wl.name }}</div>
-            </div>
-          </div>
         </template>
-        <!-- Multi-panel: search bar acts as "sync all panels" -->
+        <!-- Multi-panel: show active panel symbol -->
         <template v-else>
-          <span class="sync-all-hint">Sync all panels</span>
+          <div class="symbol-info" v-if="activePanelStore.symbol">
+            <span class="sym">{{ activePanelStore.symbol }}</span>
+            <span class="sym-name">{{ activePanelStore.instrument?.name }}</span>
+          </div>
+          <span v-else class="sync-all-hint">Sync all panels</span>
         </template>
+        <!-- Add to watchlist — available in any layout when a symbol is loaded -->
+        <div
+          v-if="activeSymbol"
+          ref="wlStarRef"
+          class="wl-star-wrap"
+        >
+          <button
+            class="wl-star"
+            :class="{ active: showWlMenu }"
+            title="Add to watchlist"
+            @click="showWlMenu = !showWlMenu"
+          >★</button>
+          <div v-if="showWlMenu" class="wl-quick-menu">
+            <div class="wqm-title">Add to watchlist</div>
+            <div
+              v-for="wl in addableWatchlists"
+              :key="wl.id"
+              class="wqm-item"
+              @click="addToWatchlist(wl.id)"
+            >{{ wl.name }}</div>
+            <div class="wqm-item wqm-new" @click="createAndAddToWatchlist">+ New watchlist</div>
+          </div>
+        </div>
       </div>
       <!-- Single panel only: timeframe selector -->
       <div class="header-center" v-if="layoutStore.layout === '1'">
@@ -122,6 +127,21 @@ const drawStore       = useDrawingsStore()
 const alertsStore     = useAlertsStore()
 const presetsStore    = usePresetsStore()
 
+// Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
+const activePanelStore = computed(() =>
+  layoutStore.layout === '1' ? chartStore : usePanelStore(layoutStore.activePanelId)
+)
+
+// Symbol currently focused in the header area (single or active panel)
+const activeSymbol = computed(() =>
+  layoutStore.layout === '1' ? chartStore.symbol : activePanelStore.value.symbol
+)
+
+// Watchlists that can receive a "add" — exclude locked and managed ones
+const addableWatchlists = computed(() =>
+  watchlistStore.watchlists.filter(w => !w.is_locked && !w.is_managed)
+)
+
 const route  = useRoute()
 const router = useRouter()
 
@@ -202,8 +222,20 @@ watch(() => layoutStore.activePanelId, async (panelId) => {
 
 
 async function addToWatchlist(watchlistId: number) {
-  if (!chartStore.symbol) return
-  await watchlistStore.addBySymbol(watchlistId, chartStore.symbol)
+  const sym = activeSymbol.value
+  if (!sym) return
+  await watchlistStore.addBySymbol(watchlistId, sym)
+  showWlMenu.value = false
+}
+
+async function createAndAddToWatchlist() {
+  const sym = activeSymbol.value
+  if (!sym) return
+  const name = prompt('New watchlist name:')
+  if (!name?.trim()) return
+  const wl = await watchlistStore.createWatchlist(name.trim())
+  if (!wl) return
+  await watchlistStore.addBySymbol(wl.id, sym)
   showWlMenu.value = false
 }
 
@@ -295,6 +327,7 @@ onUnmounted(() => {
   transition: background 0.1s;
 }
 .wqm-item:hover { background: #222; color: #fff; }
+.wqm-new { color: #64b5f6; border-top: 1px solid #222; margin-top: 2px; }
 
 .sym      { font-size: 16px; font-weight: 700; color: #fff; }
 .sym-name { font-size: 11px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

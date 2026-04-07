@@ -1,12 +1,5 @@
 <template>
   <div :class="['wl-panel', { 'wl-panel--open': isOpen }]">
-    <!-- Toggle strip -->
-    <button
-      class="wlp-toggle"
-      :title="isOpen ? 'Hide watchlists' : 'Show watchlists'"
-      @click="isOpen = !isOpen"
-    >{{ isOpen ? '‹' : '›' }}</button>
-
     <!-- Panel body -->
     <div v-show="isOpen" class="wlp-body">
       <!-- Top bar: title + collapse-all + TF selector -->
@@ -30,7 +23,6 @@
               <span class="wlp-section-name">{{ wl.name }}</span>
               <!-- Badges -->
               <span v-if="wl.is_managed" class="wlp-badge wlp-badge--managed" title="Managed by screener">⊞</span>
-              <span v-if="wl.is_locked" class="wlp-badge wlp-badge--locked" title="Locked">🔒</span>
               <span class="wlp-section-count">{{ activeItemCount(wl) }}</span>
               <!-- Copy button for managed watchlists -->
               <button
@@ -45,7 +37,7 @@
                 :class="['wlp-hdr-btn', wl.is_locked ? 'wlp-hdr-btn--locked' : 'wlp-hdr-btn--unlocked']"
                 :title="wl.is_locked ? 'Unlock watchlist' : 'Lock watchlist'"
                 @click.stop="wl.is_locked ? store.unlockWatchlist(wl.id) : store.lockWatchlist(wl.id)"
-              >{{ wl.is_locked ? '🔒' : '○' }}</button>
+              >{{ wl.is_locked ? '🔒' : '🔓' }}</button>
             </div>
 
             <!-- Items (shown when expanded) -->
@@ -88,6 +80,12 @@
         </div>
       </div>
     </div>
+    <!-- Toggle strip — on the right (inner) side, facing the chart -->
+    <button
+      class="wlp-toggle"
+      :title="isOpen ? 'Hide watchlists' : 'Show watchlists'"
+      @click="isOpen = !isOpen"
+    >{{ isOpen ? '‹' : '›' }}</button>
   </div>
 </template>
 
@@ -189,14 +187,13 @@ function fmtPct(v: number) {
   align-items: stretch;
   flex-shrink: 0;
   background: #0d0d0d;
-  border-right: 1px solid #1a1a1a;
 }
 
 .wlp-toggle {
   width: 16px;
   background: #0d0d0d;
   border: none;
-  border-right: 1px solid #1a1a1a;
+  border-left: 1px solid #1a1a1a;
   color: #333;
   cursor: pointer;
   font-size: 10px;
@@ -215,6 +212,7 @@ function fmtPct(v: number) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-right: 1px solid #1a1a1a;
 }
 
 .wlp-topbar {
@@ -297,8 +295,8 @@ function fmtPct(v: number) {
 }
 .wlp-hdr-btn:hover { color: #aaa; background: #222; }
 .wlp-hdr-btn--locked { color: #888; }
-.wlp-hdr-btn--unlocked { color: #2a2a2a; font-size: 9px; }
-.wlp-hdr-btn--unlocked:hover { color: #666; }
+.wlp-hdr-btn--unlocked { opacity: 0.2; }
+.wlp-hdr-btn--unlocked:hover { opacity: 0.6; }
 
 /* ── Items inside an expanded section ─────────── */
 .wlp-section-items { background: #0a0a0a; }

@@ -72,7 +72,10 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   async function addBySymbol(watchlistId: number, symbol: string): Promise<WatchlistItem | null> {
     try {
       const instr = await api.get<{ id: number }>(`/instruments/${symbol.toUpperCase()}`)
-      return await addItem(watchlistId, instr.id)
+      const item = await addItem(watchlistId, instr.id)
+      // Eagerly fetch price so it shows immediately if the watchlist is already expanded
+      if (item) fetchPrices([symbol])
+      return item
     } catch (e) {
       console.error('Failed to resolve instrument for watchlist add', e)
       return null

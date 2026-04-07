@@ -80,13 +80,15 @@
                 title="Unlock watchlist"
                 @click="store.unlockWatchlist(activeWl.id)"
               >🔓 Unlock</button>
-              <!-- Delete -->
-              <template v-if="deletingActive">
-                <span class="del-prompt">Delete?</span>
-                <button class="act-btn confirm" @click="doDelete">Yes</button>
-                <button class="act-btn" @click="deletingActive = false">No</button>
+              <!-- Delete — hidden for locked watchlists (must unlock first) -->
+              <template v-if="!activeWl.is_locked">
+                <template v-if="deletingActive">
+                  <span class="del-prompt">Delete?</span>
+                  <button class="act-btn confirm" @click="doDelete">Yes</button>
+                  <button class="act-btn" @click="deletingActive = false">No</button>
+                </template>
+                <button v-else class="act-btn danger" @click="deletingActive = true" title="Delete watchlist">✕ Delete</button>
               </template>
-              <button v-else class="act-btn danger" @click="deletingActive = true" title="Delete watchlist">✕ Delete</button>
             </div>
           </template>
         </div>
