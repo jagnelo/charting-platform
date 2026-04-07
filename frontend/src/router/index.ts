@@ -13,7 +13,7 @@ export const router = createRouter({
     { path: '/login', component: LoginView, meta: { public: true } },
     { path: '/',              redirect: '/chart' },
     { path: '/chart',         component: ChartView },
-    { path: '/chart/:symbol', component: ChartView },
+    { path: '/chart/:symbol(.*)', component: ChartView },
     { path: '/alerts',        component: AlertsView },
     { path: '/screener',      component: ScreenerView },
     { path: '/watchlist',     component: WatchlistView },
