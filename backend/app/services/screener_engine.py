@@ -210,13 +210,32 @@ def _period_start(period: str) -> datetime:
     if period == "1W":
         return now - timedelta(weeks=1)
     if period == "1M":
-        # One calendar month back
         month = today.month - 1 or 12
         year = today.year - (1 if today.month == 1 else 0)
         d = date(year, month, min(today.day, 28))
         return datetime(d.year, d.month, d.day, tzinfo=UTC)
+    if period == "3M":
+        month = today.month - 3
+        year = today.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        d = date(year, month, min(today.day, 28))
+        return datetime(d.year, d.month, d.day, tzinfo=UTC)
+    if period == "6M":
+        month = today.month - 6
+        year = today.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        d = date(year, month, min(today.day, 28))
+        return datetime(d.year, d.month, d.day, tzinfo=UTC)
     if period == "MTD":
         return datetime(today.year, today.month, 1, tzinfo=UTC)
+    if period == "QTD":
+        # Start of current quarter: Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct
+        q_start_month = ((today.month - 1) // 3) * 3 + 1
+        return datetime(today.year, q_start_month, 1, tzinfo=UTC)
     if period == "YTD":
         return datetime(today.year, 1, 1, tzinfo=UTC)
     if period == "1Y":
@@ -413,6 +432,109 @@ async def _evaluate_condition(
         computed["price_change"] = change
         return _compare(change, op, value), computed
 
+    # ── Performance over calendar period (always uses D1 bars) ───────────────
+    if ctype == "performance":
+        period = condition.get("period", "1D")
+        op = condition["op"]
+        value = float(condition["value"])
+
+        # Load D1 bars if we're not already on D1
+        if timeframe == Timeframe.D1:
+            d1_data = data
+        else:
+            d1_data = await _load_bars(db, instrument.id, Timeframe.D1)
+
+        if len(d1_data.closes) < 2 or len(d1_data.timestamps) < 2:
+            return False, computed
+
+        period_start_ts = _period_start(period).timestamp()
+        ref_idx = None
+        for i, ts in enumerate(d1_data.timestamps):
+            if ts >= period_start_ts:
+                ref_idx = i
+                break
+        if ref_idx is None or ref_idx == len(d1_data.closes) - 1:
+            return False, computed
+
+        ref = float(d1_data.closes[ref_idx])
+        cur = float(d1_data.closes[-1])
+        change = (cur - ref) / ref if ref != 0 else 0.0
+        computed["performance"] = change
+        return _compare(change, op, value), computed
+
+    # ── 52-week new high / new low (uses W1 bars regardless of screener TF) ──
+    if ctype in ("week52_new_high", "week52_new_low"):
+        if timeframe == Timeframe.W1:
+            w1_data = data
+        else:
+            w1_data = await _load_bars(db, instrument.id, Timeframe.W1)
+
+        if len(w1_data.closes) < 2:
+            return False, computed
+
+        closes_52 = w1_data.closes[-52:] if len(w1_data.closes) >= 52 else w1_data.closes
+        cur = float(w1_data.closes[-1])
+
+        if ctype == "week52_new_high":
+            high_52 = float(np.max(closes_52[:-1])) if len(closes_52) > 1 else cur
+            result_val = 1.0 if cur >= high_52 else 0.0
+            computed["week52_new_high"] = result_val
+            return cur >= high_52, computed
+        else:
+            low_52 = float(np.min(closes_52[:-1])) if len(closes_52) > 1 else cur
+            result_val = 1.0 if cur <= low_52 else 0.0
+            computed["week52_new_low"] = result_val
+            return cur <= low_52, computed
+
+    # ── % distance from 52-week high / low ───────────────────────────────────
+    if ctype in ("pct_from_52w_high", "pct_from_52w_low"):
+        op = condition["op"]
+        value = float(condition["value"])
+
+        if timeframe == Timeframe.W1:
+            w1_data = data
+        else:
+            w1_data = await _load_bars(db, instrument.id, Timeframe.W1)
+
+        if len(w1_data.closes) < 2:
+            return False, computed
+
+        closes_52 = w1_data.closes[-52:] if len(w1_data.closes) >= 52 else w1_data.closes
+        cur = float(w1_data.closes[-1])
+
+        if ctype == "pct_from_52w_high":
+            high_52 = float(np.max(closes_52))
+            pct = (high_52 - cur) / high_52 if high_52 != 0 else 0.0
+            computed["pct_from_52w_high"] = pct
+            return _compare(pct, op, value), computed
+        else:
+            low_52 = float(np.min(closes_52))
+            pct = (cur - low_52) / low_52 if low_52 != 0 else 0.0
+            computed["pct_from_52w_low"] = pct
+            return _compare(pct, op, value), computed
+
+    # ── Stats filter (market_cap, pe_ratio, beta, avg_volume_30d, etc.) ──────
+    if ctype == "stats_filter":
+        field = condition.get("field")
+        op = condition.get("op", "gt")
+        value = condition.get("value")
+
+        stats = instrument.stats
+        if stats is None or field is None:
+            return False, computed
+
+        actual = getattr(stats, field, None)
+        if actual is None:
+            return False, computed
+
+        try:
+            numeric = float(actual)
+            threshold = float(value)
+            computed[f"stats_{field}"] = numeric
+            return _compare(numeric, op, threshold), computed
+        except (TypeError, ValueError):
+            return False, computed
+
     logger.warning(f"Unknown screener condition type: {ctype}")
     return False, computed
 
@@ -446,13 +568,12 @@ async def run_screener(
     error: str | None = None
 
     try:
-        # Bulk-load instruments with equity_detail so fundamental filters don't N+1
+        # Bulk-load instruments with equity_detail and stats so filters don't N+1
         instr_result = await db.execute(
             select(Instrument)
             .options(
-                __import__("sqlalchemy.orm", fromlist=["selectinload"]).selectinload(
-                    Instrument.equity_detail
-                )
+                selectinload(Instrument.equity_detail),
+                selectinload(Instrument.stats),
             )
             .where(Instrument.id.in_(instrument_ids))
         )
@@ -702,10 +823,13 @@ async def stream_screener(
     instrument_ids = await _get_universe(db, screener)
     total = len(instrument_ids)
 
-    # Bulk-load instruments (with equity_detail) to avoid N+1
+    # Bulk-load instruments (with equity_detail and stats) to avoid N+1
     instr_result = await db.execute(
         select(Instrument)
-        .options(selectinload(Instrument.equity_detail))
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.stats),
+        )
         .where(Instrument.id.in_(instrument_ids))
     )
     instruments: dict[int, Instrument] = {i.id: i for i in instr_result.scalars().all()}
