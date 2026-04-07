@@ -12,45 +12,53 @@
     <!-- ── Instrument info ───────────────────────────────────────────────── -->
     <InstrumentInfoPanel
       :instrument="chartStore.instrument ?? null"
+      :current-price="chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1].close : null"
       @select="symbol => emit('selectSymbol', symbol)"
     />
 
-    <!-- ── Membership ────────────────────────────────────────────────────── -->
-    <div v-if="membershipVisible" class="section" :class="{ collapsed: !membershipOpen }">
-      <div class="section-header" @click="membershipOpen = !membershipOpen">
-        <span class="section-title">Watchlists & Screeners</span>
-        <span class="section-chevron">{{ membershipOpen ? '▾' : '▸' }}</span>
+    <!-- ── Watchlists membership ─────────────────────────────────────────── -->
+    <div v-if="membership !== null" class="section" :class="{ collapsed: !watchlistsOpen }">
+      <div class="section-header" @click="watchlistsOpen = !watchlistsOpen">
+        <span class="section-title">Watchlists</span>
+        <span class="section-count">{{ membership!.watchlists.length }}</span>
+        <span class="section-chevron">{{ watchlistsOpen ? '▾' : '▸' }}</span>
       </div>
       <Transition name="slide">
-        <div class="section-body" v-if="membershipOpen">
-          <div v-if="membership!.watchlists.length" class="membership-group">
-            <div class="membership-label">Watchlists</div>
-            <div
-              v-for="wl in membership!.watchlists"
-              :key="wl.id"
-              class="membership-row membership-row--link"
-              @click="onWatchlistClick(wl.id)"
-            >
-              <span class="mem-icon">☰</span>
-              <span class="mem-name">{{ wl.name }}</span>
-              <span v-if="wl.is_managed" class="mem-badge">managed</span>
-            </div>
+        <div class="section-body" v-if="watchlistsOpen">
+          <div
+            v-for="wl in membership!.watchlists"
+            :key="wl.id"
+            class="list-row membership-row"
+            @click="onWatchlistClick(wl.id)"
+          >
+            <span class="mem-icon">☰</span>
+            <span class="row-name">{{ wl.name }}</span>
+            <span v-if="wl.is_managed" class="mem-badge">managed</span>
           </div>
-          <div v-if="activeScreeners.length" class="membership-group">
-            <div class="membership-label">Screeners</div>
-            <div
-              v-for="sc in activeScreeners"
-              :key="sc.id"
-              class="membership-row membership-row--link"
-              @click="onScreenerClick(sc.id)"
-            >
-              <span class="mem-icon">⊞</span>
-              <span class="mem-name">{{ sc.name }}</span>
-            </div>
+          <div v-if="!membership!.watchlists.length" class="empty-hint">Not in any watchlist</div>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- ── Screeners membership ───────────────────────────────────────────── -->
+    <div v-if="membership !== null" class="section" :class="{ collapsed: !screenersOpen }">
+      <div class="section-header" @click="screenersOpen = !screenersOpen">
+        <span class="section-title">Screeners</span>
+        <span class="section-count">{{ activeScreeners.length }}</span>
+        <span class="section-chevron">{{ screenersOpen ? '▾' : '▸' }}</span>
+      </div>
+      <Transition name="slide">
+        <div class="section-body" v-if="screenersOpen">
+          <div
+            v-for="sc in activeScreeners"
+            :key="sc.id"
+            class="list-row membership-row"
+            @click="onScreenerClick(sc.id)"
+          >
+            <span class="mem-icon">⊞</span>
+            <span class="row-name">{{ sc.name }}</span>
           </div>
-          <div v-if="!membership!.watchlists.length && !activeScreeners.length" class="empty-hint">
-            Not in any watchlist or screener
-          </div>
+          <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
         </div>
       </Transition>
     </div>
@@ -377,6 +385,13 @@
   </Teleport>
 </template>
 
+<script lang="ts">
+// Module-level cache — survives component re-mounts (e.g. panel switches in multi-layout mode)
+import type { InstrumentMembership } from '@/types'
+const _membershipCache = new Map<number, InstrumentMembership>()
+export {}
+</script>
+
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -388,7 +403,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
 import AlertForm from '@/components/alerts/AlertForm.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
-import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType, InstrumentMembership } from '@/types'
+import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 import { api } from '@/lib/api'
 
 const props = defineProps<{ panelId: string }>()
@@ -402,16 +417,12 @@ const drawStore      = useDrawingsStore()
 const presetsStore   = usePresetsStore()
 
 // ── Panel & section collapse state ───────────────────────────────────────────
-const isPanelOpen    = ref(true)
+const isPanelOpen    = ref(false)   // starts hidden until an instrument is loaded
 const alertsOpen     = ref(true)
 const indicatorsOpen = ref(true)
 const drawingsOpen   = ref(true)
-const membershipOpen = ref(true)
-
-// ── Instrument membership ─────────────────────────────────────────────────────
-// Module-level cache shared across all panel instances — avoids re-fetching the
-// same instrument when switching between multi-layout panels.
-const _membershipCache = new Map<number, InstrumentMembership>()
+const watchlistsOpen = ref(true)
+const screenersOpen  = ref(true)
 
 const membership = ref<InstrumentMembership | null>(null)
 
@@ -419,13 +430,10 @@ const activeScreeners = computed(() =>
   membership.value?.screeners.filter(s => s.in_current_results) ?? []
 )
 
-const membershipVisible = computed(() =>
-  membership.value !== null &&
-  (membership.value.watchlists.length > 0 || activeScreeners.value.length > 0)
-)
-
 watch(() => chartStore.instrument?.id, async (id) => {
-  if (!id) { membership.value = null; return }
+  if (!id) { membership.value = null; isPanelOpen.value = false; return }
+  // Auto-open panel when an instrument is first loaded
+  isPanelOpen.value = true
   if (_membershipCache.has(id)) {
     membership.value = _membershipCache.get(id)!
     return
@@ -757,15 +765,15 @@ function dateInputToTs(val: string): number {
   flex-shrink: 0;
   background: #0d0d0d;
   border: none;
-  border-right: 1px solid #1a1a1a;
+  border-left: 1px solid #1a1a1a;
   color: #444;
   cursor: pointer;
   font-size: 10px;
-  writing-mode: vertical-rl;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  align-self: stretch;
   transition: color 0.1s, background 0.1s;
 }
 .panel-toggle:hover { color: #aaa; background: #111; }
@@ -991,33 +999,10 @@ function dateInputToTs(val: string): number {
 .ed-apply { background: #1a3a5c; color: #64b5f6; border-color: #1a3a5c; }
 .ed-apply:hover { background: #1f4a7a; }
 
-/* ── Membership section ───────────────────────────────────────────────── */
-.membership-group { margin-bottom: 6px; }
-
-.membership-label {
-  font-size: 9px;
-  color: #444;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 4px 10px 2px;
-}
-
-.membership-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  font-size: 11px;
-}
-
-.membership-row--link {
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.membership-row--link:hover { background: #1a1a1a; }
+/* ── Membership badges ───────────────────────────────────────────────── */
+.membership-row { cursor: pointer; }
 
 .mem-icon { color: #444; font-size: 10px; flex-shrink: 0; }
-.mem-name { flex: 1; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .mem-badge {
   font-size: 9px;
@@ -1027,8 +1012,6 @@ function dateInputToTs(val: string): number {
   background: #1a1a1a;
   color: #555;
 }
-.mem-badge--in  { background: #1a3a1a; color: #66bb6a; }
-.mem-badge--out { background: #2a1a1a; color: #ef5350; }
 
 /* ── Transitions ──────────────────────────────────────────────────────── */
 .slide-enter-active, .slide-leave-active { transition: all 0.18s ease; overflow: hidden; }

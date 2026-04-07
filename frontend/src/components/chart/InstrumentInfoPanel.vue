@@ -105,7 +105,7 @@
 import { ref, computed } from 'vue'
 import type { Instrument } from '@/types'
 
-const props = defineProps<{ instrument: Instrument | null }>()
+const props = defineProps<{ instrument: Instrument | null; currentPrice?: number | null }>()
 const emit = defineEmits<{ select: [symbol: string] }>()
 
 const isOpen = ref(true)
@@ -115,11 +115,11 @@ const eq    = computed(() => props.instrument?.equity_detail ?? null)
 
 const rangePercent = computed(() => {
   const s = stats.value
-  if (!s || s.week52_high == null || s.week52_low == null) return 0
+  if (!s || s.week52_high == null || s.week52_low == null) return 50
   const range = s.week52_high - s.week52_low
   if (range <= 0) return 50
-  // We don't have current price here, show midpoint placeholder
-  return 50
+  const price = props.currentPrice ?? ((s.week52_high + s.week52_low) / 2)
+  return Math.min(100, Math.max(0, ((price - s.week52_low) / range) * 100))
 })
 
 function fmt(v: number | undefined | null): string {
