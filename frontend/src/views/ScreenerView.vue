@@ -90,7 +90,6 @@
               <td class="td-meta">{{ item.market_cap_tier || '—' }}</td>
               <td class="td-action">
                 <button
-                  v-if="editableWatchlists.length"
                   class="btn-add-wl"
                   title="Add to watchlist"
                   @click="showWlMenu(item.id, $event)"
@@ -208,6 +207,12 @@
               <option value="price_threshold">Price vs Value</option>
               <option value="price_change_period">Price % Change (period)</option>
               <option value="price_change">Price % Change (bars)</option>
+              <option value="performance">Performance (calendar)</option>
+              <option value="week52_new_high">52-Week New High</option>
+              <option value="week52_new_low">52-Week New Low</option>
+              <option value="pct_from_52w_high">% from 52W High</option>
+              <option value="pct_from_52w_low">% from 52W Low</option>
+              <option value="stats_filter">Stats Filter</option>
             </select>
 
             <template v-if="cond.type === 'indicator_threshold'">
@@ -275,6 +280,44 @@
                 <option value="gt">&gt;</option><option value="lt">&lt;</option>
               </select>
               <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.03" />
+            </template>
+
+            <template v-else-if="cond.type === 'performance'">
+              <span class="cond-label">over</span>
+              <select v-model="cond.period" class="form-select" style="width:70px">
+                <option v-for="p in PERIODS" :key="p" :value="p">{{ p }}</option>
+              </select>
+              <select v-model="cond.op" class="form-select cond-op">
+                <option value="gt">&gt;</option><option value="lt">&lt;</option>
+                <option value="gte">≥</option><option value="lte">≤</option>
+              </select>
+              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.05" />
+            </template>
+
+            <!-- 52-week new high/low: no extra controls needed -->
+            <template v-else-if="cond.type === 'week52_new_high' || cond.type === 'week52_new_low'">
+              <span class="cond-label" style="color:#888;font-style:italic">W1 bars · no parameters</span>
+            </template>
+
+            <template v-else-if="cond.type === 'pct_from_52w_high' || cond.type === 'pct_from_52w_low'">
+              <span class="cond-label">is</span>
+              <select v-model="cond.op" class="form-select cond-op">
+                <option value="lt">&lt;</option><option value="lte">≤</option>
+                <option value="gt">&gt;</option><option value="gte">≥</option>
+              </select>
+              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.05" />
+              <span class="cond-label">(as decimal, e.g. 0.05 = 5%)</span>
+            </template>
+
+            <template v-else-if="cond.type === 'stats_filter'">
+              <select v-model="cond.field" class="form-select cond-ind">
+                <option v-for="f in STATS_FIELDS" :key="f.value" :value="f.value">{{ f.label }}</option>
+              </select>
+              <select v-model="cond.op" class="form-select cond-op">
+                <option value="gt">&gt;</option><option value="lt">&lt;</option>
+                <option value="gte">≥</option><option value="lte">≤</option>
+              </select>
+              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="1" placeholder="value" />
             </template>
 
             <button class="btn-remove-cond" @click="draftConditions.splice(i, 1)">✕</button>
@@ -418,7 +461,6 @@
                 </td>
                 <td class="td-action">
                   <button
-                    v-if="editableWatchlists.length"
                     class="btn-add-wl"
                     title="Add to watchlist"
                     @click="showWlMenu(id, $event)"
@@ -454,7 +496,7 @@
       >
         {{ wl.name }}
       </div>
-      <div v-if="!editableWatchlists.length" class="wl-menu-empty">No writable watchlists</div>
+      <div class="wl-menu-item wl-menu-new" @click="createAndAddToWatchlist">+ New watchlist</div>
     </div>
   </div>
 </template>
@@ -659,7 +701,14 @@ const displayResult    = computed(() =>
 
 const TIMEFRAMES = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN']
 const INDICATOR_TYPES = ['rsi','sma','ema','macd','bb','vwap','avwap','atr','stoch','cci','adx']
-const PERIODS = ['1D','1W','1M','MTD','YTD','1Y']
+const PERIODS = ['1D','1W','1M','3M','6M','MTD','QTD','YTD','1Y']
+const STATS_FIELDS = [
+  { value: 'market_cap',    label: 'Market Cap' },
+  { value: 'pe_ratio',      label: 'P/E Ratio' },
+  { value: 'beta',          label: 'Beta' },
+  { value: 'avg_volume_30d',label: 'Avg Volume (30d)' },
+  { value: 'dividend_yield',label: 'Dividend Yield' },
+]
 
 // ── Draft state ───────────────────────────────────────────────────────────────
 
@@ -723,7 +772,7 @@ function addCondition() {
 }
 
 function onCondTypeChange(cond: any) {
-  if (cond.type === 'price_change_period') {
+  if (cond.type === 'price_change_period' || cond.type === 'performance') {
     cond.period = '1D'
     cond.op = 'gt'
     cond.value = 0
@@ -731,6 +780,13 @@ function onCondTypeChange(cond: any) {
     cond.indicator_a = { type: 'sma', params: { period: 20 } }
     cond.indicator_b = { type: 'sma', params: { period: 50 } }
     cond.op = 'crosses_above'
+  } else if (cond.type === 'pct_from_52w_high' || cond.type === 'pct_from_52w_low') {
+    cond.op = 'lt'
+    cond.value = 0.05
+  } else if (cond.type === 'stats_filter') {
+    cond.field = 'market_cap'
+    cond.op = 'gt'
+    cond.value = 0
   }
 }
 
@@ -879,6 +935,17 @@ function showWlMenu(instrId: number, event: MouseEvent) {
 async function addToWatchlist(watchlistId: number) {
   if (wlMenuInstrId.value === null) return
   await watchlistStore.addItem(watchlistId, wlMenuInstrId.value)
+  wlMenuInstrId.value = null
+}
+
+async function createAndAddToWatchlist() {
+  if (wlMenuInstrId.value === null) return
+  const instrId = wlMenuInstrId.value
+  const name = prompt('New watchlist name:')
+  if (!name?.trim()) return
+  const wl = await watchlistStore.createWatchlist(name.trim())
+  if (!wl) return
+  await watchlistStore.addItem(wl.id, instrId)
   wlMenuInstrId.value = null
 }
 
@@ -1218,7 +1285,7 @@ onUnmounted(() => {
 .wl-menu-title { padding: 6px 10px; font-size: 10px; color: #555; border-bottom: 1px solid #2a2a2a; text-transform: uppercase; }
 .wl-menu-item { padding: 7px 10px; cursor: pointer; font-size: 12px; color: #ccc; }
 .wl-menu-item:hover { background: #2a2a2a; color: #fff; }
-.wl-menu-empty { padding: 7px 10px; font-size: 11px; color: #555; font-style: italic; }
+.wl-menu-new { color: #64b5f6; border-top: 1px solid #222; margin-top: 2px; }
 
 .no-matches { color: #444; padding: 24px 0; font-style: italic; }
 .screener-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: #333; }
