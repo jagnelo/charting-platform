@@ -19,7 +19,7 @@ router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
 PAGE_SIZE = 500
 
 
-@router.get("/{symbol}/{timeframe}", response_model=list[OHLCVBarOut])
+@router.get("/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
 async def get_ohlcv(
     symbol: str,
     timeframe: Timeframe,

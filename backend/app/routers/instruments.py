@@ -381,7 +381,7 @@ async def get_instrument_membership(
     return InstrumentMembership(watchlists=watchlists, screeners=screeners)
 
 
-@router.get("/{symbol}/data-coverage")
+@router.get("/{symbol:path}/data-coverage")
 async def get_data_coverage(
     symbol: str,
     db: AsyncSession = Depends(get_db),
@@ -435,7 +435,7 @@ async def get_data_coverage(
     }
 
 
-@router.get("/{symbol}", response_model=InstrumentOut)
+@router.get("/{symbol:path}", response_model=InstrumentOut)
 async def get_instrument(
     symbol: str,
     background_tasks: BackgroundTasks,
@@ -461,6 +461,15 @@ async def get_instrument(
         # Auto-trigger bulk historical fetch as background task
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
 
+    # Compute 52-week hi/lo synchronously from OHLCV D1 bars if not already present.
+    # This works for all instrument types and is always available from our own data.
+    if not instrument.is_synthetic and (
+        instrument.stats is None
+        or instrument.stats.week52_high is None
+        or instrument.stats.week52_low is None
+    ):
+        instrument = await _ensure_52w_stats(instrument, db)
+
     return instrument
 
 
@@ -477,6 +486,63 @@ async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instr
         .where(Instrument.id == instrument_id)
     )
     return result.scalar_one()
+
+
+async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrument:
+    """
+    Compute 52-week high/low from D1 OHLCV bars (last 252 bars ≈ 1 trading year)
+    and persist to InstrumentStats synchronously so the first page load always has data.
+    Other stats fields (market_cap, pe_ratio, etc.) remain None until a separate backfill.
+    """
+    import logging
+
+    log = logging.getLogger(__name__)
+    try:
+        from datetime import UTC, datetime, timedelta
+
+        cutoff = datetime.now(UTC) - timedelta(days=366)
+        row = (
+            await db.execute(
+                select(
+                    func.max(OHLCVBar.close).label("week52_high"),
+                    func.min(OHLCVBar.close).label("week52_low"),
+                )
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == "D1",
+                    OHLCVBar.ts >= cutoff,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+            )
+        ).one_or_none()
+
+        if row is None or row.week52_high is None:
+            return instrument
+
+        if instrument.stats is None:
+            db.add(
+                InstrumentStats(
+                    instrument_id=instrument.id,
+                    week52_high=float(row.week52_high),
+                    week52_low=float(row.week52_low),
+                )
+            )
+        else:
+            instrument.stats.week52_high = float(row.week52_high)
+            instrument.stats.week52_low = float(row.week52_low)
+
+        await db.commit()
+        log.info(
+            "Computed 52w stats for %s: high=%.4f low=%.4f",
+            instrument.symbol,
+            row.week52_high,
+            row.week52_low,
+        )
+    except Exception as exc:
+        log.warning("Failed to compute 52w stats for %s: %s", instrument.symbol, exc)
+        return instrument
+
+    return await _reload_instrument_full(instrument.id, db)
 
 
 async def _enqueue_bulk_fetch(instrument_id: int):
