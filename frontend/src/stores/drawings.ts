@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 export const useDrawingsStore = defineStore('drawings', () => {
   const drawings = ref<ChartDrawing[]>([])
   const activeToolType = ref<DrawingType | null>(null)
+  const avwapDropActive = ref(false)
   const selectedId = ref<number | null>(null)
   const instrumentId = ref<number | null>(null)
   const currentTimeframe = ref<Timeframe | null>(null)
@@ -100,12 +101,19 @@ export const useDrawingsStore = defineStore('drawings', () => {
 
   function setActiveTool(tool: DrawingType | null) {
     activeToolType.value = tool
+    avwapDropActive.value = false
+    selectedId.value = null
+  }
+
+  function setAvwapDrop(active: boolean) {
+    avwapDropActive.value = active
+    if (active) activeToolType.value = null
     selectedId.value = null
   }
 
   return {
-    drawings, activeToolType, selectedId, renderableDrawings,
+    drawings, activeToolType, avwapDropActive, selectedId, renderableDrawings,
     loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
-    selectDrawing, setActiveTool,
+    selectDrawing, setActiveTool, setAvwapDrop,
   }
 })

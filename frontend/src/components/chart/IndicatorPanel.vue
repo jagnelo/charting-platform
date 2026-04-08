@@ -252,7 +252,16 @@
               <div class="ed-row">
                 <label>{{ paramLabel(key as string) }}</label>
                 <template v-if="key === 'anchorTime'">
+                  <!-- Date-only input for non-intraday timeframes -->
                   <input
+                    v-if="isNonIntradayTf"
+                    type="date"
+                    :value="tsToDateOnlyInput(indFields.params.anchorTime as number)"
+                    @input="e => indFields.params.anchorTime = dateOnlyInputToTs((e.target as HTMLInputElement).value)"
+                    class="ed-input"
+                  />
+                  <input
+                    v-else
                     type="datetime-local"
                     :value="tsToDateInput(indFields.params.anchorTime as number)"
                     @input="e => indFields.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
@@ -264,15 +273,32 @@
                 </template>
               </div>
             </template>
-            <!-- AVWAP without anchorTime yet -->
+            <!-- AVWAP without anchorTime yet (newly added via picker) -->
             <div class="ed-row" v-if="editingInd.type === 'avwap' && !('anchorTime' in editingInd.params)">
               <label>Anchor date</label>
               <input
+                v-if="isNonIntradayTf"
+                type="date"
+                :value="tsToDateOnlyInput(indFields.params.anchorTime as number)"
+                @input="e => indFields.params.anchorTime = dateOnlyInputToTs((e.target as HTMLInputElement).value)"
+                class="ed-input"
+              />
+              <input
+                v-else
                 type="datetime-local"
                 :value="tsToDateInput(indFields.params.anchorTime as number)"
                 @input="e => indFields.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
                 class="ed-input"
               />
+            </div>
+            <!-- AVWAP preset shortcuts -->
+            <div class="ed-row" v-if="editingInd.type === 'avwap'">
+              <label>Presets</label>
+              <div class="avwap-presets">
+                <button class="preset-chip" @click="setAvwapPreset('yesterday')" title="Start of yesterday">Yesterday</button>
+                <button class="preset-chip" @click="setAvwapPreset('mtd')" title="Start of current month">MTD</button>
+                <button class="preset-chip" @click="setAvwapPreset('ytd')" title="Start of current year">YTD</button>
+              </div>
             </div>
             <div class="ed-row" v-if="['rsi','macd'].includes(editingInd.type)">
               <label>Pane</label>
@@ -725,10 +751,13 @@ async function applyDrawEdit() {
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
+const NON_INTRADAY_TFS = new Set(['D1', 'W1', 'MN'])
+const isNonIntradayTf = computed(() => NON_INTRADAY_TFS.has(chartStore.timeframe))
+
 function paramLabel(key: string): string {
   const m: Record<string, string> = {
     period: 'Period', fast: 'Fast', slow: 'Slow',
-    signal: 'Signal', stdDev: 'Std dev', anchorTime: 'Anchor time',
+    signal: 'Signal', stdDev: 'Std dev', anchorTime: 'Anchor date',
   }
   return m[key] ?? key.charAt(0).toUpperCase() + key.slice(1)
 }
@@ -740,8 +769,35 @@ function tsToDateInput(ts: number | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function tsToDateOnlyInput(ts: number | undefined): string {
+  if (!ts) return ''
+  const d   = new Date(ts * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+}
+
 function dateInputToTs(val: string): number {
   return Math.floor(new Date(val).getTime() / 1000)
+}
+
+function dateOnlyInputToTs(val: string): number {
+  // Interpret as midnight UTC
+  return Math.floor(new Date(val + 'T00:00:00Z').getTime() / 1000)
+}
+
+function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
+  const now = new Date()
+  let d: Date
+  if (preset === 'yesterday') {
+    d = new Date(now)
+    d.setDate(d.getDate() - 1)
+    d.setHours(0, 0, 0, 0)
+  } else if (preset === 'mtd') {
+    d = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+  } else {
+    d = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0)
+  }
+  indFields.params.anchorTime = Math.floor(d.getTime() / 1000)
 }
 </script>
 
@@ -998,6 +1054,25 @@ function dateInputToTs(val: string): number {
 .ed-btn:hover { color: #aaa; }
 .ed-apply { background: #1a3a5c; color: #64b5f6; border-color: #1a3a5c; }
 .ed-apply:hover { background: #1f4a7a; }
+
+/* ── AVWAP presets ────────────────────────────────────────────────────── */
+.avwap-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.preset-chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #2a4a6a;
+  background: #0d1f2d;
+  color: #64b5f6;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: monospace;
+  transition: background 0.1s;
+}
+.preset-chip:hover { background: #1a3a5c; }
 
 /* ── Membership badges ───────────────────────────────────────────────── */
 .membership-row { cursor: pointer; }

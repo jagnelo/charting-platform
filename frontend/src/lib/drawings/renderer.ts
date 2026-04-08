@@ -4,7 +4,7 @@
  */
 import type uPlot from 'uplot'
 import type { AnyDrawing, FibonacciDrawing, RectangleDrawing, TextBoxDrawing, TrendlineDrawing, HorizontalLineDrawing } from './types'
-import { FIBO_DEFAULT_LEVELS, FIBO_LEVEL_COLORS } from './types'
+import { FIBO_RETRACEMENT_LEVELS, FIBO_EXTENSION_LEVELS, FIBO_LEVEL_COLORS } from './types'
 
 export class DrawingRenderer {
   private canvas: HTMLCanvasElement
@@ -162,30 +162,69 @@ export class DrawingRenderer {
     const p0 = d.points[0]
     const p1 = d.points[1]
     const priceRange = p1.price - p0.price
-    const levels = d.levels ?? FIBO_DEFAULT_LEVELS
+    const defaultLevels = d.type === 'fibonacci_extension'
+      ? FIBO_EXTENSION_LEVELS
+      : FIBO_RETRACEMENT_LEVELS
+    const levels = d.levels ?? defaultLevels
     const ctx = this.ctx
+    const W = this.canvas.width
+
+    // Draw vertical range markers at anchor points
+    const [x0] = this.toPixel(p0.time, p0.price)
+    const [x1] = this.toPixel(p1.time, p1.price)
+    const xLeft  = Math.min(x0, x1)
+    const xRight = Math.max(x0, x1)
 
     for (const level of levels) {
       const price = p0.price + priceRange * level
       const y = this.uplot!.valToPos(price, 'y')
-      const color = FIBO_LEVEL_COLORS[level] ?? '#888'
+      // Round level to avoid floating-point key mismatches (e.g. 0.9999999 vs 1)
+      const levelKey = String(Math.round(level * 10000) / 10000)
+      const color = FIBO_LEVEL_COLORS[levelKey] ?? d.style?.color ?? '#888'
 
       ctx.save()
       ctx.strokeStyle = color
-      ctx.lineWidth = 1
-      ctx.setLineDash([4, 3])
-      ctx.globalAlpha = 0.8
+      ctx.lineWidth = level === 0 || level === 1 ? 1.5 : 1
+      ctx.setLineDash(level === 0 || level === 1 ? [] : [4, 3])
+      ctx.globalAlpha = 0.85
       ctx.beginPath()
-      ctx.moveTo(0, y)
-      ctx.lineTo(this.canvas.width, y)
+      ctx.moveTo(xLeft, y)
+      ctx.lineTo(W, y)
       ctx.stroke()
 
+      // Label: "61.8%  1234.56" right-aligned with a small background
+      const pct = level * 100
+      const pctStr = Number.isInteger(pct) ? `${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`
+      const priceStr = price.toFixed(2)
+      const label = `${pctStr}  ${priceStr}`
+
       ctx.font = '10px monospace'
+      const labelW = ctx.measureText(label).width + 6
+      ctx.fillStyle = '#111'
+      ctx.globalAlpha = 0.75
+      ctx.fillRect(W - labelW - 2, y - 13, labelW + 2, 14)
       ctx.fillStyle = color
       ctx.globalAlpha = 1
       ctx.setLineDash([])
-      ctx.fillText(`${(level * 100).toFixed(1)}%  ${price.toFixed(2)}`, this.canvas.width - 100, y - 3)
+      ctx.fillText(label, W - labelW, y - 2)
       ctx.restore()
+    }
+
+    // Draw a vertical line at both anchor points to delineate the range
+    ctx.save()
+    ctx.strokeStyle = d.style?.color ?? '#666'
+    ctx.lineWidth = 1
+    ctx.setLineDash([2, 4])
+    ctx.globalAlpha = 0.4
+    const yTop    = this.uplot!.valToPos(Math.max(p0.price, p1.price), 'y')
+    const yBottom = this.uplot!.valToPos(Math.min(p0.price, p1.price), 'y')
+    ctx.beginPath(); ctx.moveTo(x0, yTop); ctx.lineTo(x0, yBottom); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x1, yTop); ctx.lineTo(x1, yBottom); ctx.stroke()
+    ctx.restore()
+
+    if (d.isSelected) {
+      this.drawHandle(x0, this.uplot!.valToPos(p0.price, 'y'))
+      this.drawHandle(x1, this.uplot!.valToPos(p1.price, 'y'))
     }
   }
 

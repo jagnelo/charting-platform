@@ -3,9 +3,9 @@
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
-          :class="{ 'cursor-crosshair-wrapper': !!drawStore.activeToolType }">
+          :class="{ 'cursor-crosshair-wrapper': !!drawStore.activeToolType || drawStore.avwapDropActive }">
       <canvas ref="drawingCanvasRef" class="drawing-canvas"
-              :class="{ 'cursor-crosshair': !!drawStore.activeToolType }" />
+              :class="{ 'cursor-crosshair': !!drawStore.activeToolType || drawStore.avwapDropActive }" />
       <div ref="chartRef" />
 
       <!-- TradingView-style OHLCV info — fixed top-left, not cursor-following -->
@@ -695,7 +695,7 @@ function setupInteraction(u: uPlot) {
 
   const onMouseDown = (e: MouseEvent) => {
     if (e.button !== 0) return
-    if (drawStore.activeToolType) return
+    if (drawStore.activeToolType || drawStore.avwapDropActive) return
     cachedRect = liveRect()
 
     if (isOnYAxis(e.clientX)) {
@@ -761,7 +761,7 @@ function setupInteraction(u: uPlot) {
   }
 
   const onHoverMove = (e: MouseEvent) => {
-    if (panActive || priceActive || xAxisActive || drawStore.activeToolType) return
+    if (panActive || priceActive || xAxisActive || drawStore.activeToolType || drawStore.avwapDropActive) return
     if (isOnYAxis(e.clientX))   { wrapper.style.cursor = 'ns-resize'; return }
     if (isOnXAxis(e.clientY))   { wrapper.style.cursor = 'ew-resize'; return }
     wrapper.style.cursor = ''
@@ -991,10 +991,25 @@ function setupDrawingInteraction(u: uPlot) {
   const over = u.over; if (!over) return
 
   over.addEventListener('pointerdown', (e) => {
+    const rect = over.getBoundingClientRect()
+    const idx  = u.posToVal(e.clientX - rect.left, 'x')
+
+    // ── AVWAP click-to-drop ──────────────────────────────────────────────
+    if (drawStore.avwapDropActive && e.button === 0) {
+      e.stopPropagation()
+      const anchorTime = barIndexToTime(idx) ?? 0
+      chartStore.addIndicator({
+        type: 'avwap',
+        params: { anchorTime },
+        style: { color: '#80cbc4', lineWidth: 2 },
+        pane: 'main',
+      })
+      drawStore.setAvwapDrop(false)
+      return
+    }
+
     if (!drawStore.activeToolType || e.button !== 0) return
     e.stopPropagation()  // prevent pan from also firing
-    const rect = over.getBoundingClientRect()
-    const idx = u.posToVal(e.clientX - rect.left, 'x')
     const pt = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
     if (drawStore.activeToolType === 'horizontal_line' || drawStore.activeToolType === 'vertical_line') {
       finishDrawing([pt], drawStore.activeToolType); return
@@ -1019,9 +1034,11 @@ function setupDrawingInteraction(u: uPlot) {
   })
 
   over.addEventListener('contextmenu', (e) => {
-    if (drawStore.activeToolType) {
+    if (drawStore.activeToolType || drawStore.avwapDropActive) {
       e.preventDefault(); e.stopPropagation()
-      drawingPoints = []; drawStore.setActiveTool(null)
+      drawingPoints = []
+      drawStore.setActiveTool(null)
+      drawStore.setAvwapDrop(false)
     }
   })
 }
@@ -1167,6 +1184,7 @@ watch(() => drawStore.renderableDrawings, () => {
 
 // Reset in-progress drawing points whenever the active tool changes
 watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
+watch(() => drawStore.avwapDropActive, () => { drawingPoints = [] })
 
 /** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
 function jumpToTs(isoTs: string) {
