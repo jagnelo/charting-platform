@@ -35,7 +35,9 @@ class WatchlistRead(BaseModel):
     is_managed: bool = False
     is_locked: bool = False
     screener_id: int | None = None
+    screener_name: str | None = None
     last_screener_run_at: datetime | None = None
+    position: int = 0
     created_at: datetime
     items: list[WatchlistItemRead] = []
 

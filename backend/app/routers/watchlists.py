@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
@@ -32,6 +33,9 @@ def _item_to_read(item: WatchlistItem, instr: Instrument | None) -> WatchlistIte
 
 
 def _wl_to_read(wl: Watchlist, items: list[WatchlistItemRead]) -> WatchlistRead:
+    screener_name: str | None = None
+    if wl.screener is not None:
+        screener_name = wl.screener.name
     return WatchlistRead(
         id=wl.id,
         name=wl.name,
@@ -40,7 +44,9 @@ def _wl_to_read(wl: Watchlist, items: list[WatchlistItemRead]) -> WatchlistRead:
         is_managed=wl.is_managed,
         is_locked=wl.is_locked,
         screener_id=wl.screener_id,
+        screener_name=screener_name,
         last_screener_run_at=wl.last_screener_run_at,
+        position=wl.position,
         created_at=wl.created_at,
         items=items,
     )
@@ -61,7 +67,9 @@ async def _load_items(db: AsyncSession, watchlist_id: int) -> list[WatchlistItem
 async def _get_own_watchlist(db: AsyncSession, user_id: int, watchlist_id: int) -> Watchlist:
     wl = (
         await db.execute(
-            select(Watchlist).where(Watchlist.id == watchlist_id, Watchlist.user_id == user_id)
+            select(Watchlist)
+            .where(Watchlist.id == watchlist_id, Watchlist.user_id == user_id)
+            .options(selectinload(Watchlist.screener))
         )
     ).scalar_one_or_none()
     if not wl:
@@ -79,7 +87,8 @@ async def get_watchlists(
             await db.execute(
                 select(Watchlist)
                 .where(Watchlist.user_id == current_user.id)
-                .order_by(Watchlist.created_at)
+                .options(selectinload(Watchlist.screener))
+                .order_by(Watchlist.position, Watchlist.created_at)
             )
         )
         .scalars()
@@ -89,16 +98,29 @@ async def get_watchlists(
     return [_wl_to_read(wl, await _load_items(db, wl.id)) for wl in watchlists]
 
 
-async def _assert_unique_name(db: AsyncSession, user_id: int, name: str, exclude_id: int | None = None) -> None:
-    stmt = select(func.count()).select_from(Watchlist).where(
-        Watchlist.user_id == user_id,
-        func.lower(Watchlist.name) == name.lower(),
+async def _assert_unique_name(
+    db: AsyncSession, user_id: int, name: str, exclude_id: int | None = None
+) -> None:
+    stmt = (
+        select(func.count())
+        .select_from(Watchlist)
+        .where(
+            Watchlist.user_id == user_id,
+            func.lower(Watchlist.name) == name.lower(),
+        )
     )
     if exclude_id is not None:
         stmt = stmt.where(Watchlist.id != exclude_id)
     count = (await db.execute(stmt)).scalar_one()
     if count > 0:
         raise HTTPException(409, f"A watchlist named '{name}' already exists")
+
+
+async def _next_watchlist_position(db: AsyncSession, user_id: int) -> int:
+    max_position = (
+        await db.execute(select(func.max(Watchlist.position)).where(Watchlist.user_id == user_id))
+    ).scalar_one()
+    return (max_position or 0) + 1
 
 
 @router.post("", response_model=WatchlistRead)
@@ -122,7 +144,12 @@ async def create_watchlist(
             raise HTTPException(404, "Screener not found")
         is_managed = True
 
-    wl = Watchlist(**body.model_dump(), user_id=current_user.id, is_managed=is_managed)
+    wl = Watchlist(
+        **body.model_dump(),
+        user_id=current_user.id,
+        is_managed=is_managed,
+        position=await _next_watchlist_position(db, current_user.id),
+    )
     db.add(wl)
     await db.flush()
     await db.refresh(wl)
@@ -226,7 +253,9 @@ async def seed_watchlist(
     existing_ids = set(
         (
             await db.execute(
-                select(WatchlistItem.instrument_id).where(WatchlistItem.watchlist_id == watchlist_id)
+                select(WatchlistItem.instrument_id).where(
+                    WatchlistItem.watchlist_id == watchlist_id
+                )
             )
         )
         .scalars()
@@ -288,6 +317,7 @@ async def copy_watchlist(
         description=src.description,
         is_managed=False,
         is_locked=False,
+        position=await _next_watchlist_position(db, current_user.id),
     )
     db.add(new_wl)
     await db.flush()
@@ -329,7 +359,38 @@ async def delete_watchlist(
     current_user: User = Depends(get_current_user),
 ):
     wl = await _get_own_watchlist(db, current_user.id, watchlist_id)
-    if wl.is_locked:
+    if wl.is_locked and not wl.is_managed:
         raise HTTPException(403, "Unlock the watchlist before deleting it")
     await db.delete(wl)
+    return {"ok": True}
+
+
+class ReorderBody(BaseModel):
+    ids: list[int]  # watchlist IDs in desired order
+
+
+@router.post("/reorder")
+async def reorder_watchlists(
+    body: ReorderBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist user-defined ordering of their watchlists."""
+    watchlists = (
+        (
+            await db.execute(
+                select(Watchlist).where(
+                    Watchlist.user_id == current_user.id,
+                    Watchlist.id.in_(body.ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    wl_by_id = {wl.id: wl for wl in watchlists}
+    for pos, wl_id in enumerate(body.ids):
+        if wl_id in wl_by_id:
+            wl_by_id[wl_id].position = pos
+    await db.commit()
     return {"ok": True}
