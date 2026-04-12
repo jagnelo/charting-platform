@@ -198,9 +198,7 @@ async def _fire_indicator_alert(
             "triggered_at": now.isoformat(),
         }
     )
-    logger.info(
-        f"Indicator alert {alert_id} fired: {symbol} {indicator_type}={val_a:.4f}"
-    )
+    logger.info(f"Indicator alert {alert_id} fired: {symbol} {indicator_type}={val_a:.4f}")
 
 
 async def run_alert_check():
@@ -255,6 +253,7 @@ async def run_alert_check():
         for alert in ind_alerts:
             try:
                 await db.refresh(alert, ["instrument"])
+                await db.refresh(alert.instrument, ["listings"])
                 data = await _load_ohlcv_series(db, alert.instrument, alert.timeframe)
                 if len(data.closes) < 2:
                     continue
