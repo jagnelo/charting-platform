@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +29,7 @@ async def get_drawings(
         )
     else:
         stmt = select(ChartDrawing).where(base)
-    result = await db.execute(stmt.order_by(ChartDrawing.created_at))
+    result = await db.execute(stmt.order_by(ChartDrawing.position))
     return result.scalars().all()
 
 
@@ -73,3 +74,34 @@ async def delete_drawing(
         raise HTTPException(status_code=404, detail="Drawing not found")
     await db.delete(drawing)
     await db.commit()
+
+
+class DrawingReorderBody(BaseModel):
+    ids: list[int]
+
+
+@router.post("/reorder")
+async def reorder_drawings(
+    body: DrawingReorderBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist user-defined ordering of drawings (top of list = highest z-index)."""
+    drawings = (
+        (
+            await db.execute(
+                select(ChartDrawing).where(
+                    ChartDrawing.user_id == current_user.id,
+                    ChartDrawing.id.in_(body.ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    d_by_id = {d.id: d for d in drawings}
+    for pos, d_id in enumerate(body.ids):
+        if d_id in d_by_id:
+            d_by_id[d_id].position = pos
+    await db.commit()
+    return {"ok": True}
