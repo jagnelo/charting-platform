@@ -13,84 +13,132 @@
         </div>
       </div>
 
-      <!-- Scrollable accordion -->
+      <!-- Scrollable accordion — DnD reorderable -->
       <div class="wlp-scroll">
         <template v-if="store.watchlists.length">
-          <div v-for="wl in store.watchlists" :key="wl.id" class="wlp-section">
-            <!-- Section header -->
-            <div class="wlp-section-hdr" @click="toggleSection(wl.id)">
-              <span class="wlp-section-arrow">{{ expanded.has(wl.id) ? '▾' : '▸' }}</span>
-              <span class="wlp-section-name">{{ wl.name }}</span>
-              <!-- Badges -->
-              <span v-if="wl.is_managed" class="wlp-badge wlp-badge--managed" title="Managed by screener">⊞</span>
-              <span class="wlp-section-count">{{ activeItemCount(wl) }}</span>
-              <!-- Copy button for managed watchlists -->
-              <button
-                v-if="wl.is_managed"
-                class="wlp-hdr-btn"
-                title="Copy as independent watchlist"
-                @click.stop="store.copyWatchlist(wl.id)"
-              >⎘</button>
-              <!-- Lock toggle for non-managed watchlists -->
-              <button
-                v-if="!wl.is_managed"
-                :class="['wlp-hdr-btn', wl.is_locked ? 'wlp-hdr-btn--locked' : 'wlp-hdr-btn--unlocked']"
-                :title="wl.is_locked ? 'Unlock watchlist' : 'Lock watchlist'"
-                @click.stop="wl.is_locked ? store.unlockWatchlist(wl.id) : store.lockWatchlist(wl.id)"
-              >{{ wl.is_locked ? '🔒' : '🔓' }}</button>
-            </div>
+          <VueDraggable
+            v-model="draggableWatchlists"
+            handle=".wlp-drag-handle"
+            ghost-class="wlp-ghost"
+            @end="onWlReorder"
+          >
+            <div v-for="wl in draggableWatchlists" :key="wl.id" class="wlp-section">
+                <!-- Section header -->
+                <div class="wlp-section-hdr" @click="toggleSection(wl.id)">
+                  <span class="wlp-drag-handle" title="Drag to reorder" @click.stop>⠿</span>
+                  <span class="wlp-section-arrow">{{ expanded.has(wl.id) ? '▾' : '▸' }}</span>
+                  <span class="wlp-section-name">{{ wl.name }}</span>
+                  <span v-if="wl.is_managed" class="wlp-badge wlp-badge--managed" title="Managed by screener">⊞</span>
+                  <span v-if="wl.is_locked" class="wlp-badge wlp-badge--locked" title="Locked">🔒</span>
+                  <span class="wlp-section-count">{{ activeItemCount(wl) }}</span>
 
-            <!-- Items (shown when expanded) -->
-            <div v-if="expanded.has(wl.id)" class="wlp-section-items">
-              <template v-for="item in sortedItems(wl)" :key="item.id">
-                <!-- Departed items: shown greyed out with a label -->
-                <div
-                  v-if="item.left_screener_at"
-                  class="wlp-item wlp-item--departed"
-                >
-                  <div class="wlpi-left">
-                    <span class="wlpi-sym">{{ item.symbol }}</span>
-                    <span class="wlpi-departed-label">Left screener {{ daysAgo(item.left_screener_at) }}d ago</span>
+                  <!-- ⋯ menu button -->
+                  <button
+                    class="wlp-hdr-btn wlp-menu-btn"
+                    title="More options"
+                    @click.stop="toggleMenu(wl.id)"
+                  >⋯</button>
+                </div>
+
+                <!-- Inline rename input (replaces header when renaming) -->
+                <div v-if="renamingId === wl.id" class="wlp-rename-row" @click.stop>
+                  <input
+                    ref="renameInputRef"
+                    v-model="renameValue"
+                    class="wlp-rename-input"
+                    @keydown.enter="commitRename(wl.id)"
+                    @keydown.escape="cancelRename"
+                    @click.stop
+                  />
+                  <button class="wlp-rename-confirm" @click.stop="commitRename(wl.id)">✓</button>
+                  <button class="wlp-rename-cancel"  @click.stop="cancelRename">✕</button>
+                </div>
+
+                <!-- ⋯ dropdown menu -->
+                <div v-if="menuOpenId === wl.id" class="wlp-dropdown" @click.stop>
+                  <button class="wlp-dd-item" @click.stop="startRename(wl)">Rename</button>
+                  <button v-if="canDeleteWatchlist(wl)" class="wlp-dd-item" @click.stop="startDelete(wl.id)">Delete</button>
+                  <button class="wlp-dd-item" @click.stop="doCopy(wl.id)">Copy</button>
+                  <template v-if="!wl.is_managed">
+                    <button v-if="wl.is_locked" class="wlp-dd-item" @click.stop="doUnlock(wl.id)">Unlock</button>
+                    <button v-else class="wlp-dd-item" @click.stop="doLock(wl.id)">Lock</button>
+                  </template>
+                  <!-- Managed badge with screener link -->
+                  <div v-if="wl.is_managed && wl.screener_id" class="wlp-dd-managed">
+                    Managed by
+                    <router-link :to="`/screener?selectedId=${wl.screener_id}`" class="wlp-screener-link" @click="closeMenu">
+                      {{ wl.screener_name || 'screener' }}
+                    </router-link>
                   </div>
                 </div>
-                <!-- Normal items -->
-                <div
-                  v-else
-                  :class="['wlp-item', { 'wlp-item--active': item.symbol === currentSymbol }]"
-                  @click="item.symbol && emit('select', item.symbol)"
-                >
-                  <div class="wlpi-left">
-                    <span class="wlpi-sym">{{ item.symbol }}</span>
-                    <div v-if="store.priceMap[item.symbol!]" class="wlpi-prices">
-                      <span class="wlpi-close">{{ fmt(store.priceMap[item.symbol!].close) }}</span>
-                      <span :class="['wlpi-pct', store.priceMap[item.symbol!].pct >= 0 ? 'up' : 'down']">
-                        {{ fmtPct(store.priceMap[item.symbol!].pct) }}
-                      </span>
+
+                <!-- Items (shown when expanded) -->
+                <div v-if="expanded.has(wl.id)" class="wlp-section-items">
+                  <template v-for="item in sortedItems(wl)" :key="item.id">
+                    <!-- Departed items: shown greyed out with a label -->
+                    <div
+                      v-if="item.left_screener_at"
+                      class="wlp-item wlp-item--departed"
+                    >
+                      <div class="wlpi-left">
+                        <span class="wlpi-sym">{{ item.symbol }}</span>
+                        <span class="wlpi-departed-label">Left screener {{ daysAgo(item.left_screener_at) }}d ago</span>
+                      </div>
                     </div>
-                  </div>
-                  <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlpi-spark" />
+                    <!-- Normal items -->
+                    <div
+                      v-else
+                      :class="['wlp-item', { 'wlp-item--active': item.symbol === currentSymbol }]"
+                      @click="item.symbol && emit('select', item.symbol)"
+                    >
+                      <div class="wlpi-left">
+                        <span class="wlpi-sym">{{ item.symbol }}</span>
+                        <div v-if="store.priceMap[item.symbol!]" class="wlpi-prices">
+                          <span class="wlpi-close">{{ fmt(store.priceMap[item.symbol!].close) }}</span>
+                          <span :class="['wlpi-pct', store.priceMap[item.symbol!].pct >= 0 ? 'up' : 'down']">
+                            {{ fmtPct(store.priceMap[item.symbol!].pct) }}
+                          </span>
+                        </div>
+                      </div>
+                      <Sparkline v-if="item.symbol" :symbol="item.symbol" class="wlpi-spark" />
+                    </div>
+                  </template>
+                  <div v-if="!wl.items.length" class="wlp-no-items">Empty</div>
                 </div>
-              </template>
-              <div v-if="!wl.items.length" class="wlp-no-items">Empty</div>
-            </div>
-          </div>
+              </div>
+          </VueDraggable>
         </template>
         <div v-else class="wlp-empty">
           <router-link to="/watchlist" class="wlp-create-link">+ Create a watchlist</router-link>
         </div>
       </div>
     </div>
+
     <!-- Toggle strip — on the right (inner) side, facing the chart -->
     <button
       class="wlp-toggle"
       :title="isOpen ? 'Hide watchlists' : 'Show watchlists'"
       @click="isOpen = !isOpen"
     >{{ isOpen ? '‹' : '›' }}</button>
+
+    <!-- Delete confirmation modal -->
+    <Teleport to="body">
+      <div v-if="deleteTargetId !== null" class="wlp-modal-overlay" @click.self="cancelDelete">
+        <div class="wlp-modal">
+          <p class="wlp-modal-msg">Delete watchlist "{{ store.watchlists.find(w => w.id === deleteTargetId)?.name }}"?</p>
+          <div class="wlp-modal-actions">
+            <button class="wlp-modal-cancel" @click="cancelDelete">Cancel</button>
+            <button class="wlp-modal-confirm" @click="confirmDelete">Delete</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive, onMounted } from 'vue'
+import { ref, computed, watch, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Watchlist } from '@/types'
 import Sparkline from '@/components/common/Sparkline.vue'
@@ -104,6 +152,20 @@ const isOpen = ref(true)
 
 /** Set of watchlist IDs that are currently expanded */
 const expanded = reactive(new Set<number>())
+
+function canDeleteWatchlist(wl: Watchlist) {
+  return wl.is_managed || !wl.is_locked
+}
+
+// DnD — mirror store.watchlists for vue-draggable-plus
+const draggableWatchlists = computed({
+  get: () => store.watchlists,
+  set: (val) => { store.watchlists.splice(0, store.watchlists.length, ...val) },
+})
+
+async function onWlReorder() {
+  await store.reorderWatchlists(store.watchlists.map(w => w.id))
+}
 
 const allExpanded = computed(() => store.watchlists.length > 0 && store.watchlists.every(w => expanded.has(w.id)))
 
@@ -149,6 +211,99 @@ function toggleAll() {
       }
     }
   }
+}
+
+// ── ⋯ dropdown menu ────────────────────────────────────────────────────────
+const menuOpenId = ref<number | null>(null)
+
+function toggleMenu(id: number) {
+  menuOpenId.value = menuOpenId.value === id ? null : id
+  cancelRename()
+}
+
+function closeMenu() {
+  menuOpenId.value = null
+}
+
+function handleDocClick() {
+  closeMenu()
+  cancelRename()
+}
+
+onMounted(() => document.addEventListener('click', handleDocClick))
+onUnmounted(() => document.removeEventListener('click', handleDocClick))
+
+// ── Rename ──────────────────────────────────────────────────────────────────
+const renamingId   = ref<number | null>(null)
+const renameValue  = ref('')
+const renameInputRef = ref<HTMLInputElement | HTMLInputElement[] | null>(null)
+const renameError  = ref('')
+
+function selectRenameInput() {
+  const input = Array.isArray(renameInputRef.value)
+    ? renameInputRef.value[0]
+    : renameInputRef.value
+  input?.select()
+}
+
+function startRename(wl: Watchlist) {
+  closeMenu()
+  renamingId.value  = wl.id
+  renameValue.value = wl.name
+  renameError.value = ''
+  nextTick(selectRenameInput)
+}
+
+function cancelRename() {
+  renamingId.value = null
+  renameValue.value = ''
+  renameError.value = ''
+}
+
+async function commitRename(id: number) {
+  const name = renameValue.value.trim()
+  if (!name) return
+  try {
+    await store.renameWatchlist(id, name)
+    cancelRename()
+  } catch (e: any) {
+    if (e?.status === 409) renameError.value = 'Name already exists'
+    else renameError.value = 'Rename failed'
+  }
+}
+
+// ── Delete ──────────────────────────────────────────────────────────────────
+const deleteTargetId = ref<number | null>(null)
+
+function startDelete(id: number) {
+  closeMenu()
+  deleteTargetId.value = id
+}
+
+function cancelDelete() {
+  deleteTargetId.value = null
+}
+
+async function confirmDelete() {
+  if (deleteTargetId.value === null) return
+  await store.deleteWatchlist(deleteTargetId.value)
+  deleteTargetId.value = null
+}
+
+// ── Copy / Lock / Unlock ────────────────────────────────────────────────────
+async function doCopy(id: number) {
+  closeMenu()
+  await store.copyWatchlist(id)
+}
+
+async function doLock(id: number) {
+  closeMenu()
+  await store.lockWatchlist(id)
+}
+
+async function doUnlock(id: number) {
+  closeMenu()
+  await store.unlockWatchlist(id)
 }
 
 watch(() => store.watchlists, () => {}, { immediate: true })
@@ -258,25 +413,36 @@ function fmtPct(v: number) {
 }
 
 /* ── Accordion section ─────────────────────────── */
-.wlp-section { border-bottom: 1px solid #111; }
+.wlp-section { border-bottom: 1px solid #111; position: relative; }
+.wlp-ghost { opacity: 0.35; background: #1a2a3a; }
 
 .wlp-section-hdr {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 8px;
+  gap: 4px;
+  padding: 5px 6px 5px 8px;
   cursor: pointer;
   user-select: none;
   transition: background 0.1s;
 }
 .wlp-section-hdr:hover { background: #141414; }
 
+.wlp-drag-handle {
+  color: #2a2a2a;
+  font-size: 11px;
+  cursor: grab;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0 1px;
+}
+.wlp-drag-handle:hover { color: #555; }
+
 .wlp-section-arrow { font-size: 9px; color: #555; flex-shrink: 0; }
 .wlp-section-name  { flex: 1; font-size: 11px; font-weight: 700; color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wlp-section-count { font-size: 10px; color: #444; background: #1a1a1a; border-radius: 8px; padding: 0 5px; flex-shrink: 0; }
 
 .wlp-badge {
-  font-size: 9px;
+  font-size: 10px;
   flex-shrink: 0;
 }
 .wlp-badge--managed { color: #64b5f6; }
@@ -287,16 +453,93 @@ function fmtPct(v: number) {
   border: none;
   color: #444;
   cursor: pointer;
-  font-size: 11px;
-  padding: 1px 3px;
+  font-size: 13px;
+  padding: 1px 4px;
   border-radius: 2px;
   flex-shrink: 0;
   transition: color 0.1s;
+  line-height: 1;
 }
 .wlp-hdr-btn:hover { color: #aaa; background: #222; }
-.wlp-hdr-btn--locked { color: #888; }
-.wlp-hdr-btn--unlocked { opacity: 0.2; }
-.wlp-hdr-btn--unlocked:hover { opacity: 0.6; }
+.wlp-menu-btn { letter-spacing: 0; }
+
+/* ── Rename row ────────────────────────────────── */
+.wlp-rename-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #111;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.wlp-rename-input {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 3px 6px;
+  outline: none;
+}
+.wlp-rename-input:focus { border-color: #64b5f6; }
+
+.wlp-rename-confirm,
+.wlp-rename-cancel {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.wlp-rename-confirm:hover { color: #26a69a; }
+.wlp-rename-cancel:hover  { color: #ef5350; }
+
+/* ── ⋯ dropdown ────────────────────────────────── */
+.wlp-dropdown {
+  position: absolute;
+  top: 28px;
+  right: 4px;
+  z-index: 300;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.wlp-dd-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.wlp-dd-item:hover { background: #2a2a2a; color: #fff; }
+
+.wlp-dd-managed {
+  padding: 6px 12px;
+  border-top: 1px solid #2a2a2a;
+  font-size: 10px;
+  color: #555;
+}
+
+.wlp-screener-link {
+  color: #64b5f6;
+  text-decoration: none;
+}
+.wlp-screener-link:hover { text-decoration: underline; }
 
 /* ── Items inside an expanded section ─────────── */
 .wlp-section-items { background: #0a0a0a; }
@@ -359,4 +602,50 @@ function fmtPct(v: number) {
   text-decoration: none;
 }
 .wlp-create-link:hover { text-decoration: underline; }
+
+/* ── Delete modal ──────────────────────────────── */
+.wlp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.wlp-modal {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 20px 24px;
+  min-width: 260px;
+}
+
+.wlp-modal-msg {
+  font-size: 13px;
+  color: #ccc;
+  margin: 0 0 16px;
+}
+
+.wlp-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wlp-modal-cancel,
+.wlp-modal-confirm {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.wlp-modal-cancel  { background: #2a2a2a; color: #aaa; }
+.wlp-modal-cancel:hover  { background: #333; color: #ccc; }
+.wlp-modal-confirm { background: #c62828; color: #fff; }
+.wlp-modal-confirm:hover { background: #e53935; }
 </style>
