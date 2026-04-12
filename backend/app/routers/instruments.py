@@ -247,7 +247,7 @@ async def resolve_expression(
     except ExpressionError as exc:
         raise HTTPException(400, str(exc))
 
-    if len(tickers) < 2 and not any(c in canonical for c in ('+', '-', '*', '/')):
+    if len(tickers) < 2 and not any(c in canonical for c in ("+", "-", "*", "/")):
         raise HTTPException(400, "Input does not look like an arithmetic expression")
 
     # Resolve / auto-create every constituent instrument
@@ -506,8 +506,7 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
                 select(
                     func.max(OHLCVBar.close).label("week52_high"),
                     func.min(OHLCVBar.close).label("week52_low"),
-                )
-                .where(
+                ).where(
                     OHLCVBar.instrument_id == instrument.id,
                     OHLCVBar.timeframe == "D1",
                     OHLCVBar.ts >= cutoff,
@@ -627,12 +626,12 @@ async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | N
 
     # Populate stats from yfinance info
     stats_kwargs = {
-        "week52_high":    info.get("fiftyTwoWeekHigh"),
-        "week52_low":     info.get("fiftyTwoWeekLow"),
+        "week52_high": info.get("fiftyTwoWeekHigh"),
+        "week52_low": info.get("fiftyTwoWeekLow"),
         "avg_volume_30d": info.get("averageVolume") or info.get("averageDailyVolume10Day"),
-        "pe_ratio":       info.get("trailingPE") or info.get("forwardPE"),
-        "market_cap":     info.get("marketCap"),
-        "beta":           info.get("beta"),
+        "pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
+        "market_cap": info.get("marketCap"),
+        "beta": info.get("beta"),
         "dividend_yield": info.get("dividendYield"),
     }
     if any(v is not None for v in stats_kwargs.values()):

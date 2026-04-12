@@ -161,7 +161,9 @@ async def recompute_synthetic_ohlcv(
                         bars = list((await db.execute(stmt)).scalars().all())
                     except Exception as e:
                         await db.rollback()
-                        logger.error(f"Failed to bootstrap bars for constituent {const_instr.symbol}: {e}")
+                        logger.error(
+                            f"Failed to bootstrap bars for constituent {const_instr.symbol}: {e}"
+                        )
         constituent_bars[c.ticker_alias.upper()] = bars
 
     if not constituent_bars:

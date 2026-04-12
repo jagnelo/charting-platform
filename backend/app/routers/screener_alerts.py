@@ -131,7 +131,9 @@ async def update_screener_alert(
         alert.notes = body.notes
     if body.status is not None:
         if body.status not in ("active", "triggered", "paused", "disabled"):
-            raise HTTPException(400, "status must be 'active', 'triggered', 'paused', or 'disabled'")
+            raise HTTPException(
+                400, "status must be 'active', 'triggered', 'paused', or 'disabled'"
+            )
         alert.status = body.status
 
     await db.commit()
