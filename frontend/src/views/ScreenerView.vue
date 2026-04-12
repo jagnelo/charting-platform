@@ -10,15 +10,25 @@
         </div>
       </div>
       <div class="screener-list">
-        <div
-          v-for="s in screeners"
-          :key="s.id"
-          :class="['screener-item', { active: selectedId === s.id }]"
-          @click="select(s)"
+        <VueDraggable
+          v-model="draggableScreeners"
+          handle=".si-drag-handle"
+          animation="150"
+          @end="onScreenerReorder"
         >
-          <div class="si-name">{{ s.name }}</div>
-          <div class="si-meta">{{ s.timeframe }} · {{ s.universe_type }}</div>
-        </div>
+          <div
+            v-for="s in draggableScreeners"
+            :key="s.id"
+            :class="['screener-item', { active: selectedId === s.id }]"
+            @click="select(s)"
+          >
+            <span class="si-drag-handle" @click.stop title="Drag to reorder">⠿</span>
+            <div class="si-content">
+              <div class="si-name">{{ s.name }}</div>
+              <div class="si-meta">{{ s.timeframe }} · {{ s.universe_type }}</div>
+            </div>
+          </div>
+        </VueDraggable>
         <div v-if="!screeners.length" class="empty-list">No screeners yet</div>
       </div>
     </div>
@@ -35,7 +45,7 @@
         <input
           v-model="browseQ"
           class="form-input browse-search"
-          placeholder="Search symbol or name…"
+          placeholder="Symbol…"
           @input="browsePage = 1; fetchBrowse()"
         />
         <select v-model="browseSector" class="form-select">
@@ -509,6 +519,7 @@ import { useWatchlistStore } from '@/stores/watchlist'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
+import { VueDraggable } from 'vue-draggable-plus'
 
 const route = useRoute()
 
@@ -615,6 +626,21 @@ watch([browseSector, browseIndustry, browseCountry, browseExchange, browseCurren
 const browsePages = computed(() => Math.ceil(browseTotal.value / BROWSE_PAGE_SIZE))
 
 const screeners   = ref<Screener[]>([])
+
+const draggableScreeners = computed({
+  get: () => screeners.value,
+  set: (val) => { screeners.value = val },
+})
+
+async function onScreenerReorder() {
+  const ids = screeners.value.map(s => s.id)
+  try {
+    await api.post('/screeners/reorder', { ids })
+  } catch (e) {
+    console.error('Failed to reorder screeners', e)
+  }
+}
+
 const selectedId  = ref<number | null>(null)
 const showBuilder = ref(false)
 const editingId   = ref<number | null>(null)
@@ -991,8 +1017,8 @@ onMounted(async () => {
     await fetchBrowse()
   }
 
-  // Select a screener if ?select=id is in the URL
-  const selectId = route.query.select ? Number(route.query.select) : null
+  // Select a screener if ?selectedId=id is in the URL
+  const selectId = route.query.selectedId ? Number(route.query.selectedId) : null
   if (selectId) {
     const s = screeners.value.find(sc => sc.id === selectId)
     if (s) select(s)
@@ -1035,9 +1061,12 @@ onUnmounted(() => {
   font-size: 11px;
 }
 .screener-list { flex: 1; overflow-y: auto; }
-.screener-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #111; }
+.screener-item { display: flex; align-items: center; padding: 10px 8px 10px 4px; cursor: pointer; border-bottom: 1px solid #111; gap: 4px; }
 .screener-item:hover { background: #111; }
 .screener-item.active { background: #0f1f30; border-left: 2px solid #64b5f6; }
+.si-drag-handle { color: #333; cursor: grab; padding: 0 4px; font-size: 14px; line-height: 1; flex-shrink: 0; user-select: none; }
+.si-drag-handle:hover { color: #666; }
+.si-content { flex: 1; min-width: 0; }
 .si-name { color: #ddd; font-weight: 500; }
 .si-meta { color: #555; font-size: 10px; margin-top: 2px; }
 .empty-list { padding: 16px 12px; color: #444; font-style: italic; }
