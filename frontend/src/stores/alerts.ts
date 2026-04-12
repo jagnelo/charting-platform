@@ -20,6 +20,8 @@ export const useAlertsStore = defineStore('alerts', () => {
   const alerts = ref<PriceAlert[]>([])
   const indicatorAlerts = ref<IndicatorAlert[]>([])
   const wsConnected = ref(false)
+  const selectedAlertId = ref<number | null>(null)
+  const editRequestAlertId = ref<number | null>(null)
   let ws: WebSocket | null = null
   let _loadedInstrumentId: number | undefined = undefined
 
@@ -157,13 +159,18 @@ export const useAlertsStore = defineStore('alerts', () => {
     ws = null
   }
 
+  function selectAlert(id: number | null) { selectedAlertId.value = id }
+  function requestEditAlert(id: number | null) { editRequestAlertId.value = id }
+
   return {
     alerts, indicatorAlerts, wsConnected, totalActiveCount,
+    selectedAlertId, editRequestAlertId,
     loadAlerts, createAlert, createIndicatorAlert,
     updateAlert, updateIndicatorAlert,
     deleteAlert, rearmAlert,
     deleteIndicatorAlert, rearmIndicatorAlert,
     activeCountForInstrument,
+    selectAlert, requestEditAlert,
     connectWebSocket, disconnectWebSocket,
   }
 })

@@ -9,6 +9,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
   const activeToolType = ref<DrawingType | null>(null)
   const avwapDropActive = ref(false)
   const selectedId = ref<number | null>(null)
+  const editRequestId = ref<number | null>(null)
   const instrumentId = ref<number | null>(null)
   const currentTimeframe = ref<Timeframe | null>(null)
 
@@ -100,6 +101,10 @@ export const useDrawingsStore = defineStore('drawings', () => {
     selectedId.value = id
   }
 
+  function requestEditDrawing(id: number | null) {
+    editRequestId.value = id
+  }
+
   function setActiveTool(tool: DrawingType | null) {
     activeToolType.value = tool
     avwapDropActive.value = false
@@ -126,8 +131,8 @@ export const useDrawingsStore = defineStore('drawings', () => {
   }
 
   return {
-    drawings, activeToolType, avwapDropActive, selectedId, renderableDrawings,
+    drawings, activeToolType, avwapDropActive, selectedId, editRequestId, renderableDrawings,
     loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
-    selectDrawing, setActiveTool, setAvwapDrop, reorderDrawings,
+    selectDrawing, requestEditDrawing, setActiveTool, setAvwapDrop, reorderDrawings,
   }
 })

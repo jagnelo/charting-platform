@@ -412,6 +412,56 @@ function buildData(): uPlot.AlignedData {
   return [barIdx, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
 }
 
+// ── Indicator selection highlight plugin ──────────────────────────────────────
+function indicatorHighlightPlugin(): uPlot.Plugin {
+  return {
+    hooks: {
+      draw: [(u: uPlot) => {
+        const selIdx = chartStore.selectedIndicatorIndex
+        if (selIdx == null) return
+
+        const mainInds = [...chartStore.activeIndicators]
+          .reverse()
+          .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+
+        const mi = mainInds.findIndex(ind => chartStore.indicators.indexOf(ind) === selIdx)
+        if (mi < 0) return
+
+        const ind = mainInds[mi]
+        const seriesData = (u.data as number[][])[6 + mi]
+        if (!seriesData) return
+
+        const dpr = devicePixelRatio || 1
+        const { ctx } = u
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height)
+        ctx.clip()
+
+        ctx.strokeStyle = ind.style.color
+        ctx.lineWidth   = ((ind.style.lineWidth ?? 1.5) + 1.5) * dpr
+        ctx.shadowColor = ind.style.color
+        ctx.shadowBlur  = 8
+        ctx.setLineDash([])
+        ctx.beginPath()
+
+        let started = false
+        for (let i = 0; i < seriesData.length; i++) {
+          const val = seriesData[i]
+          if (val == null || isNaN(val)) { started = false; continue }
+          const x = u.valToPos((u.data[0] as number[])[i], 'x', true)
+          const y = u.valToPos(val, 'y', true)
+          if (!started) { ctx.moveTo(x, y); started = true }
+          else ctx.lineTo(x, y)
+        }
+        ctx.stroke()
+        ctx.restore()
+      }],
+    },
+  }
+}
+
 // ── Build series ──────────────────────────────────────────────────────────────
 function buildSeries(): uPlot.Series[] {
   const base: uPlot.Series[] = [
@@ -465,15 +515,18 @@ async function initChart() {
 
   const plugins: uPlot.Plugin[] = [
     candlestickPlugin({ upColor: '#26a69a', downColor: '#ef5350' }),
-    alertLinesPlugin(() =>
-      alertsStore.alerts
+    alertLinesPlugin(
+      () => alertsStore.alerts
         .filter(a => a.status === 'active' || a.status === 'triggered')
         .map(a => ({
+          id:        a.id,
           price:     Number(a.threshold_price),
           label:     a.notes ?? undefined,
           triggered: a.status === 'triggered',
-        }))
+        })),
+      () => alertsStore.selectedAlertId,
     ),
+    indicatorHighlightPlugin(),
   ]
 
   // Add volume bars plugin if volume indicator is active
@@ -1085,15 +1138,64 @@ function setupHitDetection(u: uPlot) {
   over.addEventListener('pointerdown', (e) => {
     if (drawStore.activeToolType) return  // drawing tool handles its own events
     drawCtxMenu.visible = false
-    const rect = over.getBoundingClientRect()
-    const hit  = findHitDrawing(u, e.clientX - rect.left, e.clientY - rect.top)
-    if (hit) {
-      // Consume the event so pan/interaction doesn't also fire
+    const rect   = over.getBoundingClientRect()
+    const mx     = e.clientX - rect.left
+    const my     = e.clientY - rect.top
+    const hitDraw = findHitDrawing(u, mx, my)
+    if (hitDraw) {
       e.stopPropagation()
+      drawStore.selectDrawing(hitDraw.id ?? null)
+      alertsStore.selectAlert(null)
+      chartStore.selectIndicator(null)
+    } else {
+      drawStore.selectDrawing(null)
+      const alertId = findHitAlert(u, my)
+      if (alertId !== null) {
+        e.stopPropagation()
+        alertsStore.selectAlert(alertId)
+        chartStore.selectIndicator(null)
+      } else {
+        alertsStore.selectAlert(null)
+        const barIdx = Math.round(u.posToVal(mx, 'x'))
+        const indIdx = findHitIndicator(u, my, barIdx)
+        if (indIdx !== null) {
+          e.stopPropagation()
+          chartStore.selectIndicator(indIdx)
+        } else {
+          chartStore.selectIndicator(null)
+        }
+      }
     }
-    drawStore.selectDrawing(hit ? hit.id ?? null : null)
     drawingRenderer?.renderAll(drawStore.renderableDrawings)
   }, { capture: true })  // capture: true to fire before uPlot's own handlers
+
+  over.addEventListener('dblclick', (e) => {
+    if (drawStore.activeToolType || drawStore.avwapDropActive) return
+    const rect = over.getBoundingClientRect()
+    const mx   = e.clientX - rect.left
+    const my   = e.clientY - rect.top
+
+    const hitDraw = findHitDrawing(u, mx, my)
+    if (hitDraw?.id != null) {
+      e.stopPropagation()
+      drawStore.requestEditDrawing(hitDraw.id)
+      return
+    }
+
+    const alertId = findHitAlert(u, my)
+    if (alertId !== null) {
+      e.stopPropagation()
+      alertsStore.requestEditAlert(alertId)
+      return
+    }
+
+    const barIdx = Math.round(u.posToVal(mx, 'x'))
+    const indIdx = findHitIndicator(u, my, barIdx)
+    if (indIdx !== null) {
+      e.stopPropagation()
+      chartStore.requestEditIndicator(indIdx)
+    }
+  }, { capture: true })
 
   over.addEventListener('contextmenu', (e) => {
     const rect = over.getBoundingClientRect()
@@ -1107,6 +1209,33 @@ function setupHitDetection(u: uPlot) {
       drawCtxMenu.y = e.clientY - (wrapperRef.value?.getBoundingClientRect().top  ?? 0)
     }
   })
+}
+
+function findHitAlert(u: uPlot, my: number): number | null {
+  const HIT = 8
+  for (const alert of alertsStore.alerts) {
+    if (alert.status !== 'active' && alert.status !== 'triggered') continue
+    const py = u.valToPos(Number(alert.threshold_price), 'y')
+    if (Math.abs(my - py) < HIT) return alert.id
+  }
+  return null
+}
+
+function findHitIndicator(u: uPlot, my: number, barIdx: number): number | null {
+  const HIT = 8
+  // Main-pane, non-volume indicators in the same order they appear in uplot.data (series 6+)
+  const mainInds = [...chartStore.activeIndicators]
+    .reverse()
+    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+  for (let mi = 0; mi < mainInds.length; mi++) {
+    const val = (u.data as number[][])[6 + mi]?.[barIdx]
+    if (val == null || isNaN(val)) continue
+    const py = u.valToPos(val, 'y')
+    if (Math.abs(my - py) < HIT) {
+      return chartStore.indicators.indexOf(mainInds[mi])
+    }
+  }
+  return null
 }
 
 function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
@@ -1217,6 +1346,14 @@ watch(() => drawStore.renderableDrawings, () => {
 // Reset in-progress drawing points whenever the active tool changes
 watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
 watch(() => drawStore.avwapDropActive, () => { drawingPoints = [] })
+
+// Trigger a uPlot redraw when indicator/alert selection changes (so highlight plugin runs)
+watch(() => chartStore.selectedIndicatorIndex, () => {
+  if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+})
+watch(() => alertsStore.selectedAlertId, () => {
+  if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+})
 
 /** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
 function jumpToTs(isoTs: string) {

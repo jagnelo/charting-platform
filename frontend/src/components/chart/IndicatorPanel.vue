@@ -24,18 +24,20 @@
         <span class="section-chevron">{{ watchlistsOpen ? '▾' : '▸' }}</span>
       </div>
       <Transition name="slide">
-        <div class="section-body" v-if="watchlistsOpen">
-          <div
-            v-for="wl in membership!.watchlists"
-            :key="wl.id"
-            class="list-row membership-row"
-            @click="onWatchlistClick(wl.id)"
-          >
-            <span class="mem-icon">☰</span>
-            <span class="row-name">{{ wl.name }}</span>
-            <span v-if="wl.is_managed" class="mem-badge">managed</span>
+        <div class="section-content" v-if="watchlistsOpen">
+          <div class="section-body">
+            <div
+              v-for="wl in membership!.watchlists"
+              :key="wl.id"
+              class="list-row membership-row"
+              @click="onWatchlistClick(wl.id)"
+            >
+              <span class="mem-icon">☰</span>
+              <span class="row-name">{{ wl.name }}</span>
+              <span v-if="wl.is_managed" class="mem-badge">managed</span>
+            </div>
+            <div v-if="!membership!.watchlists.length" class="empty-hint">Not in any watchlist</div>
           </div>
-          <div v-if="!membership!.watchlists.length" class="empty-hint">Not in any watchlist</div>
         </div>
       </Transition>
     </div>
@@ -48,17 +50,19 @@
         <span class="section-chevron">{{ screenersOpen ? '▾' : '▸' }}</span>
       </div>
       <Transition name="slide">
-        <div class="section-body" v-if="screenersOpen">
-          <div
-            v-for="sc in activeScreeners"
-            :key="sc.id"
-            class="list-row membership-row"
-            @click="onScreenerClick(sc.id)"
-          >
-            <span class="mem-icon">⊞</span>
-            <span class="row-name">{{ sc.name }}</span>
+        <div class="section-content" v-if="screenersOpen">
+          <div class="section-body">
+            <div
+              v-for="sc in activeScreeners"
+              :key="sc.id"
+              class="list-row membership-row"
+              @click="onScreenerClick(sc.id)"
+            >
+              <span class="mem-icon">⊞</span>
+              <span class="row-name">{{ sc.name }}</span>
+            </div>
+            <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
           </div>
-          <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
         </div>
       </Transition>
     </div>
@@ -72,36 +76,40 @@
       </div>
 
       <Transition name="slide">
-        <div class="section-body" v-if="indicatorsOpen">
-          <div class="ind-list">
-            <VueDraggable
-              v-model="draggableIndicators"
-              handle=".ind-drag-handle"
-              animation="150"
-            >
-              <div
-                v-for="(ind, i) in draggableIndicators"
-                :key="displayName(ind) + i"
-                class="list-row"
-                :class="{ 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
-                :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
+        <div class="section-content" v-if="indicatorsOpen">
+          <div class="section-body">
+            <div class="ind-list">
+              <VueDraggable
+                v-model="draggableIndicators"
+                handle=".ind-drag-handle"
+                animation="150"
               >
-                <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
-                <span class="color-dot" :style="{ background: ind.style.color }" />
-                <span class="row-name">{{ displayName(ind) }}</span>
-                <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
-                <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
-                <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
-                <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
+                <div
+                  v-for="(ind, i) in draggableIndicators"
+                  :key="displayName(ind) + i"
+                  class="list-row"
+                  :class="{ 'row--selected': i === chartStore.selectedIndicatorIndex, 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
+                  :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
+                  @click.stop="chartStore.selectIndicator(i)"
+                  @dblclick.stop="openIndEditor(i)"
+                >
+                  <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
+                  <span class="color-dot" :style="{ background: ind.style.color }" />
+                  <span class="row-name">{{ displayName(ind) }}</span>
+                  <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
+                  <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
+                  <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
+                  <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
+                </div>
+              </VueDraggable>
+              <div v-if="!chartStore.indicators.length" class="empty-hint">
+                No indicators for this symbol
+                <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
               </div>
-            </VueDraggable>
-            <div v-if="!chartStore.indicators.length" class="empty-hint">
-              No indicators for this symbol
-              <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
             </div>
           </div>
 
-          <!-- Picker -->
+          <!-- Footer: add button + picker + presets (outside scrollable area) -->
           <div class="add-bar">
             <button class="add-btn" @click="showPicker = !showPicker">+ Add</button>
           </div>
@@ -113,8 +121,6 @@
               @click="addIndicator(t.type)"
             >{{ t.label }}</button>
           </div>
-
-          <!-- Presets -->
           <div class="preset-bar">
             <select v-model="selectedPresetId" class="preset-select">
               <option value="">— Preset —</option>
@@ -136,7 +142,8 @@
       </div>
 
       <Transition name="slide">
-        <div class="section-body" v-if="drawingsOpen">
+        <div class="section-content" v-if="drawingsOpen">
+          <div class="section-body">
           <div class="ind-list">
             <VueDraggable
               v-model="draggableDrawings"
@@ -150,6 +157,7 @@
                 class="list-row"
                 :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
                 @click="drawStore.selectDrawing(d.id)"
+                @dblclick.stop="openDrawEditor(d)"
               >
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
                 <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
@@ -176,6 +184,7 @@
             </VueDraggable>
             <div v-if="!drawStore.drawings.length" class="empty-hint">No drawings</div>
           </div>
+          </div>
         </div>
       </Transition>
     </div>
@@ -189,14 +198,17 @@
       </div>
 
       <Transition name="slide">
-        <div class="section-body" v-if="alertsOpen">
+        <div class="section-content" v-if="alertsOpen">
+          <div class="section-body">
           <div class="ind-list">
             <!-- Price alerts -->
             <div
               v-for="a in instrumentPriceAlerts"
               :key="'p'+a.id"
               class="list-row alert-row"
-              :class="`alert-row--${a.status}`"
+              :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
+              @click.stop="alertsStore.selectAlert(a.id)"
+              @dblclick.stop="openAlertEditor(a, null)"
             >
               <span class="alert-icon">¤</span>
               <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
@@ -216,8 +228,10 @@
               v-for="a in instrumentIndicatorAlerts"
               :key="'i'+a.id"
               class="list-row alert-row"
-              :class="`alert-row--${a.status}`"
+              :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
               :title="indAlertLabel(a)"
+              @click.stop="alertsStore.selectAlert(a.id)"
+              @dblclick.stop="openAlertEditor(null, a)"
             >
               <span class="alert-icon">≈</span>
               <span class="row-name">{{ indAlertLabel(a) }}</span>
@@ -233,6 +247,7 @@
               <button class="row-btn danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id)" title="Delete">✕</button>
             </div>
             <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this symbol</div>
+          </div>
           </div>
           <div class="add-bar">
             <button class="add-btn" @click="openAlertEditor(null, null)">+ Add Alert</button>
@@ -831,6 +846,28 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
   }
   indFields.params.anchorTime = Math.floor(d.getTime() / 1000)
 }
+
+// ── Chart-item double-click → open editor ─────────────────────────────────────
+watch(() => drawStore.editRequestId, (id) => {
+  if (id == null) return
+  const d = drawStore.drawings.find(x => x.id === id)
+  if (d) openDrawEditor(d)
+  drawStore.requestEditDrawing(null)
+})
+
+watch(() => alertsStore.editRequestAlertId, (id) => {
+  if (id == null) return
+  const pa = alertsStore.alerts.find(x => x.id === id)
+  if (pa) { openAlertEditor(pa, null); alertsStore.requestEditAlert(null); return }
+  const ia = alertsStore.indicatorAlerts.find(x => x.id === id)
+  if (ia) { openAlertEditor(null, ia); alertsStore.requestEditAlert(null) }
+})
+
+watch(() => chartStore.editRequestIndicatorIndex, (i) => {
+  if (i == null) return
+  openIndEditor(i)
+  chartStore.requestEditIndicator(null)
+})
 </script>
 
 <style scoped>
@@ -878,10 +915,8 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
 .section {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  flex: 1;
+  flex: 0 0 auto;
   border-bottom: 1px solid #1a1a1a;
-  transition: flex 0.2s ease;
 }
 .section.collapsed { flex: 0 0 auto; }
 
@@ -901,13 +936,15 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
 .section-count { background: #2a2a2a; color: #666; border-radius: 8px; padding: 0 5px; font-size: 10px; }
 .section-chevron { color: #444; font-size: 9px; }
 
-.section-body {
+.section-content {
   display: flex;
   flex-direction: column;
+}
+
+.section-body {
   overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  max-height: 240px;
+  max-height: 200px;
+  min-height: 32px;
 }
 
 .alert-row { cursor: default; }
@@ -1136,7 +1173,7 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
 /* ── Transitions ──────────────────────────────────────────────────────── */
 .slide-enter-active, .slide-leave-active { transition: all 0.18s ease; overflow: hidden; }
 .slide-enter-from, .slide-leave-to { opacity: 0; max-height: 0; }
-.slide-enter-to, .slide-leave-from { opacity: 1; max-height: 600px; }
+.slide-enter-to, .slide-leave-from { opacity: 1; max-height: 800px; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

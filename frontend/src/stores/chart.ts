@@ -17,6 +17,8 @@ function createChartStore(storeId: string) {
     const isLoadingMore  = ref(false)
     const hasReachedStart   = ref(false)
     const isFetchingHistory = ref(false)
+    const selectedIndicatorIndex    = ref<number | null>(null)
+    const editRequestIndicatorIndex = ref<number | null>(null)
 
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
@@ -80,6 +82,11 @@ function createChartStore(storeId: string) {
         const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(sym)}/${tf}`)
         bars.value = _mapBars(raw)
         if (raw.length < PAGE_SIZE) hasReachedStart.value = true
+        // For brand-new instruments the backend computes 52w stats only after D1
+        // bars are persisted. Reload instrument here so those stats are available.
+        if (instrument.value && !instrument.value.stats?.week52_high) {
+          await loadInstrument(sym)
+        }
       } catch (e: any) {
         error.value = e.message ?? 'Failed to load chart data'
       } finally {
@@ -129,6 +136,8 @@ function createChartStore(storeId: string) {
     function removeIndicator(index: number)            { indicators.value.splice(index, 1) }
     function updateIndicator(index: number, config: IndicatorConfig) { indicators.value[index] = config }
     function reorderIndicators(newOrder: IndicatorConfig[]) { indicators.value = newOrder }
+    function selectIndicator(i: number | null) { selectedIndicatorIndex.value = i }
+    function requestEditIndicator(i: number | null) { editRequestIndicatorIndex.value = i }
 
     async function _pollCoverage(sym: string) {
       _stopCoveragePoller()
@@ -166,8 +175,10 @@ function createChartStore(storeId: string) {
     return {
       symbol, timeframe, bars, instrument, indicators, activeIndicators,
       isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
+      selectedIndicatorIndex, editRequestIndicatorIndex,
       loadBars, loadMoreBars, loadInstrument,
       setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
+      selectIndicator, requestEditIndicator,
       saveIndicatorsForInstrument,
     }
   })
