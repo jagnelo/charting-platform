@@ -56,7 +56,7 @@ import { api } from '@/lib/api'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
 
-withDefaults(defineProps<{ placeholder?: string }>(), { placeholder: 'Search symbol or company…' })
+withDefaults(defineProps<{ placeholder?: string }>(), { placeholder: 'Symbol…' })
 const emit = defineEmits<{ select: [symbol: string] }>()
 
 const query            = ref('')
