@@ -35,6 +35,7 @@ class ChartDrawing(Base, TimestampMixin):
     style: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="drawings")
     instrument: Mapped["Instrument"] = relationship(back_populates="drawings")

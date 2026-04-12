@@ -26,6 +26,7 @@ class Watchlist(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Managed / locked flags
     is_managed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

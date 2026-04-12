@@ -84,6 +84,7 @@ class ScreenerDefinition(Base, TimestampMixin):
     conditions: Mapped[dict] = mapped_column(JSON, nullable=False)
     schedule: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="screener_definitions")
     results: Mapped[list["ScreenerResult"]] = relationship(
