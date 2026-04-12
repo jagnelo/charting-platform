@@ -441,6 +441,15 @@ function buildSeries(): uPlot.Series[] {
 // ── Init chart ────────────────────────────────────────────────────────────────
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
+
+  // Snapshot the current viewport before destroying so we can restore it after
+  // a rebuild (e.g. adding/modifying an indicator). Only falls back to
+  // setInitialView on the very first render when uplot doesn't exist yet.
+  const savedView = uplot ? {
+    xMin: uplot.scales.x.min,
+    xMax: uplot.scales.x.max,
+  } : null
+
   destroyAll()
   drawingPoints = []
   // Do NOT reset manualYMin/Max or autoY here — they survive rebuilds
@@ -552,7 +561,24 @@ async function initChart() {
   }
 
   uplot = new uPlot(opts, buildData(), chartRef.value)
-  setInitialView(uplot)
+  if (savedView?.xMin != null && savedView?.xMax != null) {
+    uplot.setScale('x', { min: savedView.xMin, max: savedView.xMax })
+    // Force an immediate, synchronous Y recompute against the restored X window.
+    // Without this, uPlot batches Y recalculation to the next RAF, leaving the
+    // internal Y scale state from the full-data initial render.  The result is
+    // a visible Y snap (or flash) on the very first user interaction after any
+    // rebuild — adding an indicator, toggling log scale, etc.
+    // This mirrors what setInitialView() does for the first-render path.
+    uplot.setData(uplot.data as uPlot.AlignedData)
+    // Keep isAtLatest in sync with the restored viewport
+    const [xArr] = uplot.data as number[][]
+    if (xArr?.length) {
+      const span = savedView.xMax! - savedView.xMin!
+      isAtLatest.value = savedView.xMax! >= xArr[xArr.length - 1] - span * 0.08
+    }
+  } else {
+    setInitialView(uplot)
+  }
   syncCanvasSize(w, h)
   await buildSubPanes()
   startLivePolling()
