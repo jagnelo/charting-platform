@@ -404,9 +404,11 @@ function buildData(): uPlot.AlignedData {
   const lows   = chartStore.bars.map(b => b.low)
   const closes = chartStore.bars.map(b => b.close)
   const vols   = chartStore.bars.map(b => b.volume ?? 0)
-  const extra = chartStore.activeIndicators
+  // Reversed: index 0 (top of UI list) → last series → highest z-index (drawn on top)
+  const mainInds = [...chartStore.activeIndicators]
+    .reverse()
     .filter(i => i.pane !== 'separate' && i.type !== 'volume')
-    .map(i => computeIndicatorSeries(closes, highs, lows, vols, ts, i))
+  const extra = mainInds.map(i => computeIndicatorSeries(closes, highs, lows, vols, ts, i))
   return [barIdx, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
 }
 
@@ -420,7 +422,11 @@ function buildSeries(): uPlot.Series[] {
     { label: 'Close',  scale: 'y',   show: false },
     { label: 'Volume', scale: 'vol', show: false },
   ]
-  for (const ind of chartStore.activeIndicators.filter(i => i.pane !== 'separate' && i.type !== 'volume')) {
+  // Reversed: index 0 (top of UI list) → last series → highest z-index (drawn on top)
+  const mainInds = [...chartStore.activeIndicators]
+    .reverse()
+    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+  for (const ind of mainInds) {
     base.push({
       label:  `${ind.type.toUpperCase()}(${Object.values(ind.params).join(',')})`,
       scale:  'y',
