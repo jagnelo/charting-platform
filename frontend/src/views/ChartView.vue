@@ -178,8 +178,9 @@ async function onSymbolSelect(symbol: string) {
     }
     lastClose.value = currentPrice.value
   } else {
-    // Multi-panel: broadcast symbol to every panel
+    // Multi-panel: broadcast symbol to linked panels only
     for (const p of layoutStore.panels) {
+      if (!p.linkedToGlobal) continue
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
       await pStore.loadBars(symbol, p.timeframe)
@@ -203,6 +204,7 @@ watch(currentTf, async (tf) => {
 watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
   if (oldLayout === '1' && newLayout !== '1' && chartStore.symbol) {
     for (const p of layoutStore.panels) {
+      if (!p.linkedToGlobal) continue
       layoutStore.updatePanel(p.id, { symbol: chartStore.symbol })
       const pStore = usePanelStore(p.id)
       await pStore.loadBars(chartStore.symbol, p.timeframe)
