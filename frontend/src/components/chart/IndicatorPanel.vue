@@ -74,20 +74,27 @@
       <Transition name="slide">
         <div class="section-body" v-if="indicatorsOpen">
           <div class="ind-list">
-            <div
-              v-for="(ind, i) in chartStore.indicators"
-              :key="i"
-              class="list-row"
-              :class="{ 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
-              :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
+            <VueDraggable
+              v-model="draggableIndicators"
+              handle=".ind-drag-handle"
+              animation="150"
             >
-              <span class="color-dot" :style="{ background: ind.style.color }" />
-              <span class="row-name">{{ displayName(ind) }}</span>
-              <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
-              <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
-              <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
-              <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
-            </div>
+              <div
+                v-for="(ind, i) in draggableIndicators"
+                :key="displayName(ind) + i"
+                class="list-row"
+                :class="{ 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
+                :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
+              >
+                <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
+                <span class="color-dot" :style="{ background: ind.style.color }" />
+                <span class="row-name">{{ displayName(ind) }}</span>
+                <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
+                <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
+                <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
+                <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
+              </div>
+            </VueDraggable>
             <div v-if="!chartStore.indicators.length" class="empty-hint">
               No indicators for this symbol
               <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
@@ -131,34 +138,42 @@
       <Transition name="slide">
         <div class="section-body" v-if="drawingsOpen">
           <div class="ind-list">
-            <div
-              v-for="d in drawStore.drawings"
-              :key="d.id"
-              class="list-row"
-              :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
-              @click="drawStore.selectDrawing(d.id)"
+            <VueDraggable
+              v-model="draggableDrawings"
+              handle=".draw-drag-handle"
+              animation="150"
+              @end="onDrawingsReorder"
             >
-              <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
-              <span class="row-name">{{ drawingLabel(d) }}</span>
-              <!-- Visibility toggle -->
-              <button
-                class="row-btn"
-                :class="{ 'btn--dim': !d.is_visible }"
-                @click.stop="toggleVisible(d)"
-                :title="d.is_visible ? 'Hide' : 'Show'"
-              >{{ d.is_visible ? '👁' : '🚫' }}</button>
-              <!-- Lock toggle -->
-              <button
-                class="row-btn"
-                :class="{ 'btn--active': d.is_locked }"
-                @click.stop="toggleLock(d)"
-                :title="d.is_locked ? 'Unlock' : 'Lock'"
-              >{{ d.is_locked ? '🔒' : '🔓' }}</button>
-              <!-- Edit -->
-              <button class="row-btn" @click.stop="openDrawEditor(d)" title="Edit">⚙</button>
-              <!-- Delete -->
-              <button class="row-btn danger" @click.stop="drawStore.deleteDrawing(d.id)" title="Delete">✕</button>
-            </div>
+              <div
+                v-for="d in draggableDrawings"
+                :key="d.id"
+                class="list-row"
+                :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
+                @click="drawStore.selectDrawing(d.id)"
+              >
+                <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
+                <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
+                <span class="row-name">{{ drawingLabel(d) }}</span>
+                <!-- Visibility toggle -->
+                <button
+                  class="row-btn"
+                  :class="{ 'btn--dim': !d.is_visible }"
+                  @click.stop="toggleVisible(d)"
+                  :title="d.is_visible ? 'Hide' : 'Show'"
+                >{{ d.is_visible ? '👁' : '🚫' }}</button>
+                <!-- Lock toggle -->
+                <button
+                  class="row-btn"
+                  :class="{ 'btn--active': d.is_locked }"
+                  @click.stop="toggleLock(d)"
+                  :title="d.is_locked ? 'Unlock' : 'Lock'"
+                >{{ d.is_locked ? '🔒' : '🔓' }}</button>
+                <!-- Edit -->
+                <button class="row-btn" @click.stop="openDrawEditor(d)" title="Edit">⚙</button>
+                <!-- Delete -->
+                <button class="row-btn danger" @click.stop="drawStore.deleteDrawing(d.id)" title="Delete">✕</button>
+              </div>
+            </VueDraggable>
             <div v-if="!drawStore.drawings.length" class="empty-hint">No drawings</div>
           </div>
         </div>
@@ -431,6 +446,7 @@ import AlertForm from '@/components/alerts/AlertForm.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 import { api } from '@/lib/api'
+import { VueDraggable } from 'vue-draggable-plus'
 
 const props = defineProps<{ panelId: string }>()
 const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
@@ -441,6 +457,22 @@ const watchlistStore = useWatchlistStore()
 const chartStore     = usePanelStore(props.panelId)
 const drawStore      = useDrawingsStore()
 const presetsStore   = usePresetsStore()
+
+// ── DnD wiring ────────────────────────────────────────────────────────────────
+const draggableIndicators = computed({
+  get: () => chartStore.indicators,
+  set: (val) => chartStore.reorderIndicators(val),
+})
+
+const draggableDrawings = computed({
+  get: () => drawStore.drawings,
+  set: (val) => { drawStore.drawings = val },
+})
+
+function onDrawingsReorder() {
+  const ids = drawStore.drawings.map(d => d.id)
+  api.post('/drawings/reorder', { ids }).catch(e => console.error('Failed to reorder drawings', e))
+}
 
 // ── Panel & section collapse state ───────────────────────────────────────────
 const isPanelOpen    = ref(false)   // starts hidden until an instrument is loaded
@@ -474,7 +506,7 @@ watch(() => chartStore.instrument?.id, async (id) => {
 }, { immediate: true })
 
 function onScreenerClick(scId: number) {
-  router.push(`/screener?select=${scId}`)
+  router.push(`/screener?selectedId=${scId}`)
 }
 
 function onWatchlistClick(wlId: number) {
@@ -906,6 +938,19 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
 .list-row.row--tf-inactive .color-dot { filter: grayscale(1); }
 
 .tf-lock-badge { font-size: 9px; opacity: 0.6; flex-shrink: 0; }
+
+.ind-drag-handle,
+.draw-drag-handle {
+  color: #2a2a2a;
+  cursor: grab;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0 1px;
+}
+.ind-drag-handle:hover,
+.draw-drag-handle:hover { color: #555; }
 
 .color-dot {
   width: 8px; height: 8px;
