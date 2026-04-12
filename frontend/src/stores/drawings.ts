@@ -12,9 +12,10 @@ export const useDrawingsStore = defineStore('drawings', () => {
   const instrumentId = ref<number | null>(null)
   const currentTimeframe = ref<Timeframe | null>(null)
 
-  // Convert server drawings to renderer-friendly format
+  // Convert server drawings to renderer-friendly format.
+  // Reversed so that index 0 (top of UI list) is rendered last → highest z-index.
   const renderableDrawings = computed<AnyDrawing[]>(() =>
-    drawings.value
+    [...drawings.value].reverse()
       .filter(d => d.is_visible)
       .map(d => ({
         id: d.id,
@@ -111,9 +112,22 @@ export const useDrawingsStore = defineStore('drawings', () => {
     selectedId.value = null
   }
 
+  async function reorderDrawings(ids: number[]) {
+    // Optimistically reorder locally
+    const byId = Object.fromEntries(drawings.value.map(d => [d.id, d]))
+    const reordered = ids.map(id => byId[id]).filter(Boolean)
+    const rest = drawings.value.filter(d => !ids.includes(d.id))
+    drawings.value = [...reordered, ...rest]
+    try {
+      await api.post('/drawings/reorder', { ids })
+    } catch (e) {
+      console.error('Failed to reorder drawings', e)
+    }
+  }
+
   return {
     drawings, activeToolType, avwapDropActive, selectedId, renderableDrawings,
     loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
-    selectDrawing, setActiveTool, setAvwapDrop,
+    selectDrawing, setActiveTool, setAvwapDrop, reorderDrawings,
   }
 })

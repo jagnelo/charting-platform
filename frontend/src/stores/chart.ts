@@ -128,6 +128,7 @@ function createChartStore(storeId: string) {
     function addIndicator(config: IndicatorConfig)     { indicators.value.push(config) }
     function removeIndicator(index: number)            { indicators.value.splice(index, 1) }
     function updateIndicator(index: number, config: IndicatorConfig) { indicators.value[index] = config }
+    function reorderIndicators(newOrder: IndicatorConfig[]) { indicators.value = newOrder }
 
     async function _pollCoverage(sym: string) {
       _stopCoveragePoller()
@@ -166,7 +167,7 @@ function createChartStore(storeId: string) {
       symbol, timeframe, bars, instrument, indicators, activeIndicators,
       isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
       loadBars, loadMoreBars, loadInstrument,
-      setIndicators, addIndicator, removeIndicator, updateIndicator,
+      setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
       saveIndicatorsForInstrument,
     }
   })

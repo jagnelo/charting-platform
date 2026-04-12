@@ -91,6 +91,7 @@ export interface ChartDrawing {
   style: DrawingStyle
   is_visible: boolean
   is_locked: boolean
+  position: number
   created_at: string
   updated_at: string
 }
@@ -183,7 +184,9 @@ export interface Watchlist {
   is_managed: boolean
   is_locked: boolean
   screener_id?: number | null
+  screener_name?: string | null
   last_screener_run_at?: string | null
+  position: number
   items: WatchlistItem[]
 }
 

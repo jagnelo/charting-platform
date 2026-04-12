@@ -19,6 +19,7 @@ export interface PanelConfig {
   id: string
   symbol: string
   timeframe: Timeframe
+  linkedToGlobal: boolean
 }
 
 const PRESET_PANEL_COUNT: Record<PresetLayout, number> = {
@@ -49,8 +50,9 @@ export function parseLayoutGrid(layout: LayoutType): { cols: number; rows: numbe
 function makePanels(count: number, current: PanelConfig[], fallbackSymbol = ''): PanelConfig[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `p${i}`,
-    symbol:    current[i]?.symbol    ?? fallbackSymbol,
-    timeframe: current[i]?.timeframe ?? DEFAULT_TIMEFRAMES[i] ?? 'D1',
+    symbol:         current[i]?.symbol         ?? fallbackSymbol,
+    timeframe:      current[i]?.timeframe      ?? DEFAULT_TIMEFRAMES[i] ?? 'D1',
+    linkedToGlobal: current[i]?.linkedToGlobal ?? true,
   }))
 }
 

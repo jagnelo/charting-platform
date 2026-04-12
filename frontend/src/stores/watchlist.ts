@@ -138,6 +138,20 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
+  async function reorderWatchlists(ids: number[]) {
+    // Optimistically reorder locally
+    const byId = Object.fromEntries(watchlists.value.map(w => [w.id, w]))
+    const reordered = ids.map(id => byId[id]).filter(Boolean)
+    // Keep any watchlists not in the ids list at the end
+    const rest = watchlists.value.filter(w => !ids.includes(w.id))
+    watchlists.value = [...reordered, ...rest]
+    try {
+      await api.post('/watchlists/reorder', { ids })
+    } catch (e) {
+      console.error('Failed to reorder watchlists', e)
+    }
+  }
+
   async function fetchPrices(symbols: string[]) {
     const toFetch = symbols.filter(s => s && !priceMap.value[s])
     if (!toFetch.length) return
@@ -184,6 +198,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     lockWatchlist,
     unlockWatchlist,
     copyWatchlist,
+    reorderWatchlists,
     fetchPrices,
   }
 })
