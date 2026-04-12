@@ -38,6 +38,7 @@ class ScreenerOut(BaseModel):
     conditions: dict
     schedule: str | None
     is_active: bool
+    position: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -66,9 +67,40 @@ async def list_screeners(
     result = await db.execute(
         select(ScreenerDefinition)
         .where(ScreenerDefinition.user_id == current_user.id)
-        .order_by(ScreenerDefinition.name)
+        .order_by(ScreenerDefinition.position, ScreenerDefinition.name)
     )
     return result.scalars().all()
+
+
+class ScreenerReorderBody(BaseModel):
+    ids: list[int]
+
+
+@router.post("/reorder")
+async def reorder_screeners(
+    body: ScreenerReorderBody,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist user-defined ordering of their screeners."""
+    screeners = (
+        (
+            await db.execute(
+                select(ScreenerDefinition).where(
+                    ScreenerDefinition.user_id == current_user.id,
+                    ScreenerDefinition.id.in_(body.ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    s_by_id = {s.id: s for s in screeners}
+    for pos, s_id in enumerate(body.ids):
+        if s_id in s_by_id:
+            s_by_id[s_id].position = pos
+    await db.commit()
+    return {"ok": True}
 
 
 @router.post("", response_model=ScreenerOut, status_code=201)
@@ -77,12 +109,16 @@ async def create_screener(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    existing = (await db.execute(
-        select(func.count()).select_from(ScreenerDefinition).where(
-            ScreenerDefinition.user_id == current_user.id,
-            func.lower(ScreenerDefinition.name) == body.name.lower(),
+    existing = (
+        await db.execute(
+            select(func.count())
+            .select_from(ScreenerDefinition)
+            .where(
+                ScreenerDefinition.user_id == current_user.id,
+                func.lower(ScreenerDefinition.name) == body.name.lower(),
+            )
         )
-    )).scalar_one()
+    ).scalar_one()
     if existing > 0:
         raise HTTPException(409, f"A screener named '{body.name}' already exists")
     screener = ScreenerDefinition(**body.model_dump(), user_id=current_user.id)
