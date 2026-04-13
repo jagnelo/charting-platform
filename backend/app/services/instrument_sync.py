@@ -29,23 +29,29 @@ Quote-type → AssetClass / InstrumentType taxonomy:
 """
 
 import asyncio
+import json
 import logging
+from datetime import UTC, datetime
 
 import httpx
 import yfinance as yf
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
-from app.models.instrument import EquityDetail, ForexDetail, Instrument
+from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
+from app.models.instrument_stats import InstrumentStats
+from app.models.instrument_sync_run import InstrumentSyncRun
+from app.models.listing import InstrumentListing
 
 logger = logging.getLogger(__name__)
 
 OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
 
 # Caps concurrent outbound calls to external APIs platform-wide.
-_ISIN_SEMAPHORE = asyncio.Semaphore(2)
-_FETCH_SEMAPHORE = asyncio.Semaphore(3)
+_ISIN_SEMAPHORE = asyncio.Semaphore(settings.YFINANCE_MAX_CONCURRENCY)
+_FETCH_SEMAPHORE = asyncio.Semaphore(settings.YFINANCE_MAX_CONCURRENCY)
 
 _YF_SCREENER_PAGE_SIZE = 250
 
@@ -175,26 +181,41 @@ def _screener_page_sync(quote_type: str, offset: int) -> dict:
     Returns the raw response dict with keys 'total' and 'quotes'.
     Uses a broad percentchange filter to match all active listings.
     """
+    body = {
+        "offset": offset,
+        "size": _YF_SCREENER_PAGE_SIZE,
+        "sortField": "ticker",
+        "sortType": "ASC",
+        "quoteType": quote_type,
+        "query": {
+            "operator": "AND",
+            "operands": [
+                {"operator": "gt", "operands": ["percentchange", -100]},
+            ],
+        },
+    }
+
     try:
-        from yfinance import Screener
+        from yfinance import Screener  # type: ignore[attr-defined]
 
         s = Screener()
-        s.set_body(
-            {
-                "offset": offset,
-                "size": _YF_SCREENER_PAGE_SIZE,
-                "sortField": "ticker",
-                "sortType": "ASC",
-                "quoteType": quote_type,
-                "query": {
-                    "operator": "AND",
-                    "operands": [
-                        {"operator": "gt", "operands": ["percentchange", -100]},
-                    ],
-                },
-            }
-        )
+        s.set_body(body)
         return s.response or {}
+    except Exception:
+        pass
+
+    try:
+        from yfinance.data import YfData
+        from yfinance.screener.screener import _SCREENER_URL_
+
+        params = {"corsDomain": "finance.yahoo.com", "formatted": "false", "lang": "en-US", "region": "US"}
+        response = YfData().post(
+            _SCREENER_URL_,
+            data=json.dumps(body, separators=(",", ":"), ensure_ascii=False),
+            params=params,
+        )
+        response.raise_for_status()
+        return response.json()["finance"]["result"][0]
     except Exception as exc:
         logger.debug(
             "yfinance screener page failed (type=%s offset=%d): %s", quote_type, offset, exc
@@ -215,6 +236,79 @@ def _parse_forex_pair(symbol: str) -> tuple[str, str] | None:
     return None
 
 
+def _first_present(payload: dict, *keys: str):
+    for key in keys:
+        value = payload.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+async def _upsert_listing(
+    db: AsyncSession,
+    instrument: Instrument,
+    symbol: str,
+    currency: str | None,
+) -> None:
+    listing = (
+        await db.execute(
+            select(InstrumentListing).where(
+                InstrumentListing.instrument_id == instrument.id,
+                InstrumentListing.ticker == symbol,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if listing is None:
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                ticker=symbol,
+                currency=currency,
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        return
+
+    listing.currency = currency or listing.currency
+    listing.is_active = True
+
+
+async def _upsert_stats(db: AsyncSession, instrument: Instrument, q: dict) -> None:
+    stats_values = {
+        "week52_high": q.get("fiftyTwoWeekHigh"),
+        "week52_low": q.get("fiftyTwoWeekLow"),
+        "avg_volume_30d": _first_present(
+            q,
+            "averageDailyVolume3Month",
+            "averageDailyVolume10Day",
+            "averageVolume",
+            "regularMarketVolume",
+        ),
+        "pe_ratio": _first_present(q, "trailingPE", "forwardPE"),
+        "market_cap": q.get("marketCap"),
+        "beta": q.get("beta"),
+        "dividend_yield": q.get("dividendYield"),
+    }
+    if not any(value is not None for value in stats_values.values()):
+        return
+
+    stats = (
+        await db.execute(
+            select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)
+        )
+    ).scalar_one_or_none()
+    if stats is None:
+        stats = InstrumentStats(instrument_id=instrument.id)
+        db.add(stats)
+
+    for attr, value in stats_values.items():
+        if value is not None:
+            setattr(stats, attr, value)
+    stats.computed_at = datetime.now(UTC)
+
+
 async def seed_universe(db: AsyncSession) -> dict:
     """
     Idempotent bootstrap of the full global instrument universe via the
@@ -226,10 +320,11 @@ async def seed_universe(db: AsyncSession) -> dict:
     call is required — the whole universe is seeded quickly and covers global
     markets (US, EU, Asia, etc.).
 
-    Detail rows created per quote type:
+    Detail/listing/stat rows created per quote type:
       EQUITY / ETF / MUTUALFUND / INDEX → EquityDetail (sector, industry, …)
       CURRENCY                          → ForexDetail  (base/quote currencies)
-      CRYPTOCURRENCY / FUTURE           → no detail row (screener lacks specifics)
+      FUTURE                            → FutureDetail with best-effort fields
+      all quote types                   → InstrumentListing + InstrumentStats when available
 
     Existing symbols have their metadata updated; new symbols get a new
     Instrument row.  Commits every page.
@@ -300,6 +395,11 @@ async def seed_universe(db: AsyncSession) -> dict:
                         inst.name = name
                     if currency:
                         inst.currency = currency
+                    inst.instrument_type_id = type_id
+                    inst.is_active = True
+
+                await _upsert_listing(db, inst, symbol, currency)
+                await _upsert_stats(db, inst, q)
 
                 # ── Detail rows ──────────────────────────────────────────────
                 if quote_type in _EQUITY_DETAIL_TYPES:
@@ -334,7 +434,21 @@ async def seed_universe(db: AsyncSession) -> dict:
                             )
                             db.add(fd)
 
-                # CRYPTOCURRENCY and FUTURE: no detail row from screener data
+                elif quote_type == "FUTURE":
+                    fut = (
+                        await db.execute(
+                            select(FutureDetail).where(FutureDetail.instrument_id == inst.id)
+                        )
+                    ).scalar_one_or_none()
+                    if fut is None:
+                        fut = FutureDetail(instrument_id=inst.id)
+                        db.add(fut)
+
+                    fut.underlying_name = name or fut.underlying_name
+                    fut.is_continuous = symbol.endswith("=F") or fut.is_continuous
+
+                # CRYPTOCURRENCY: no dedicated detail table yet; keep Instrument,
+                # listing, stats, currency, and OHLCV source identity.
 
                 updated += 1
 
@@ -352,7 +466,7 @@ async def seed_universe(db: AsyncSession) -> dict:
             if not quotes or offset >= (total or 0):
                 break
 
-            await asyncio.sleep(0.5)  # be polite to Yahoo Finance
+            await asyncio.sleep(settings.YFINANCE_SCREENER_PAGE_DELAY_SECONDS)
 
     logger.info("seed_universe complete: created=%d  updated=%d", created, updated)
     return {"created": created, "updated": updated, "total": created + updated}
@@ -361,7 +475,7 @@ async def seed_universe(db: AsyncSession) -> dict:
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 
-async def bootstrap_isins(db: AsyncSession) -> dict:
+async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
     """
     Populate the isin column for every active instrument that doesn't have one.
 
@@ -373,6 +487,9 @@ async def bootstrap_isins(db: AsyncSession) -> dict:
         Instrument.is_active.is_(True),
         Instrument.is_synthetic.is_(False),
     )
+    stmt = stmt.order_by(func.random())
+    if limit is not None:
+        stmt = stmt.limit(limit)
     result = await db.execute(stmt)
     instruments = list(result.scalars().all())
 
@@ -383,7 +500,7 @@ async def bootstrap_isins(db: AsyncSession) -> dict:
     for inst in instruments:
         async with _ISIN_SEMAPHORE:
             stable_id = await fetch_stable_id(inst.symbol)
-            await asyncio.sleep(0.5)  # respect rate limits
+            await asyncio.sleep(settings.YFINANCE_STABLE_ID_DELAY_SECONDS)
 
         if not stable_id:
             skipped += 1
@@ -425,7 +542,7 @@ async def bootstrap_isins(db: AsyncSession) -> dict:
 # ── Sync ─────────────────────────────────────────────────────────────────────
 
 
-async def sync_instruments(db: AsyncSession) -> dict:
+async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     """
     Refresh metadata for all active instruments and mark delistings.
 
@@ -440,10 +557,17 @@ async def sync_instruments(db: AsyncSession) -> dict:
          failures happen).  Two consecutive empty responses would be needed
          to confidently deactivate — for now we log and continue.
     """
-    stmt = select(Instrument).where(
-        Instrument.is_active.is_(True),
-        Instrument.is_synthetic.is_(False),  # synthetics don't have yfinance data
+    stmt = (
+        select(Instrument)
+        .outerjoin(InstrumentStats, InstrumentStats.instrument_id == Instrument.id)
+        .where(
+            Instrument.is_active.is_(True),
+            Instrument.is_synthetic.is_(False),  # synthetics don't have yfinance data
+        )
+        .order_by(InstrumentStats.computed_at.nullsfirst(), Instrument.updated_at, Instrument.id)
     )
+    if limit is not None:
+        stmt = stmt.limit(limit)
     result = await db.execute(stmt)
     instruments = list(result.scalars().all())
 
@@ -452,8 +576,9 @@ async def sync_instruments(db: AsyncSession) -> dict:
 
     for inst in instruments:
         loop = asyncio.get_event_loop()
-        info = await loop.run_in_executor(None, _fetch_yf_info_sync, inst.symbol)
-        await asyncio.sleep(0.3)
+        async with _FETCH_SEMAPHORE:
+            info = await loop.run_in_executor(None, _fetch_yf_info_sync, inst.symbol)
+            await asyncio.sleep(settings.YFINANCE_METADATA_DELAY_SECONDS)
 
         if not info:
             continue
@@ -478,35 +603,68 @@ async def sync_instruments(db: AsyncSession) -> dict:
             inst.currency = info["currency"]
             changed = True
 
-        # Upsert EquityDetail
         await db.flush()
-        ed = (
-            await db.execute(select(EquityDetail).where(EquityDetail.instrument_id == inst.id))
-        ).scalar_one_or_none()
-        if ed is None:
-            ed = EquityDetail(instrument_id=inst.id)
-            db.add(ed)
+        await _upsert_listing(db, inst, inst.symbol, info.get("currency"))
+        await _upsert_stats(db, inst, info)
 
-        for attr, key in [
-            ("sector", "sector"),
-            ("industry", "industry"),
-            ("country", "country"),
-            ("website", "website"),
-        ]:
-            val = info.get(key)
-            if val and val != getattr(ed, attr):
-                setattr(ed, attr, val)
+        quote_type = (info.get("quoteType") or "").upper()
+        if quote_type in {"EQUITY", "ETF", "MUTUALFUND", "INDEX", ""}:
+            ed = (
+                await db.execute(select(EquityDetail).where(EquityDetail.instrument_id == inst.id))
+            ).scalar_one_or_none()
+            if ed is None:
+                ed = EquityDetail(instrument_id=inst.id)
+                db.add(ed)
+
+            for attr, key in [
+                ("sector", "sector"),
+                ("industry", "industry"),
+                ("country", "country"),
+                ("website", "website"),
+            ]:
+                val = info.get(key)
+                if val and val != getattr(ed, attr):
+                    setattr(ed, attr, val)
+                    changed = True
+
+            cap_tier = _cap_tier(info.get("marketCap"))
+            if cap_tier and cap_tier != ed.market_cap_tier:
+                ed.market_cap_tier = cap_tier
                 changed = True
 
-        cap_tier = _cap_tier(info.get("marketCap"))
-        if cap_tier and cap_tier != ed.market_cap_tier:
-            ed.market_cap_tier = cap_tier
-            changed = True
+            employees = info.get("fullTimeEmployees")
+            if employees and employees != ed.employees:
+                ed.employees = employees
+                changed = True
 
-        employees = info.get("fullTimeEmployees")
-        if employees and employees != ed.employees:
-            ed.employees = employees
-            changed = True
+        elif quote_type == "CURRENCY":
+            pair = _parse_forex_pair(inst.symbol)
+            if pair:
+                fd = (
+                    await db.execute(
+                        select(ForexDetail).where(ForexDetail.instrument_id == inst.id)
+                    )
+                ).scalar_one_or_none()
+                if fd is None:
+                    db.add(
+                        ForexDetail(
+                            instrument_id=inst.id,
+                            base_currency=pair[0],
+                            quote_currency=pair[1],
+                        )
+                    )
+                    changed = True
+
+        elif quote_type == "FUTURE":
+            fut = (
+                await db.execute(select(FutureDetail).where(FutureDetail.instrument_id == inst.id))
+            ).scalar_one_or_none()
+            if fut is None:
+                fut = FutureDetail(instrument_id=inst.id)
+                db.add(fut)
+                changed = True
+            fut.underlying_name = new_name or fut.underlying_name
+            fut.is_continuous = inst.symbol.endswith("=F") or fut.is_continuous
 
         if changed:
             updated += 1
@@ -519,3 +677,49 @@ async def sync_instruments(db: AsyncSession) -> dict:
         len(instruments),
     )
     return {"updated": updated, "deactivated": deactivated, "total": len(instruments)}
+
+
+# ── Run tracking ─────────────────────────────────────────────────────────────
+
+
+async def run_tracked_sync(
+    db: AsyncSession,
+    operation: str,
+    *,
+    limit: int | None = None,
+) -> dict:
+    """Run an instrument maintenance operation and persist an audit record."""
+    run = InstrumentSyncRun(
+        operation=operation,
+        source="yfinance",
+        status="running",
+        started_at=datetime.now(UTC),
+    )
+    db.add(run)
+    await db.commit()
+
+    try:
+        if operation == "seed-universe":
+            result = await seed_universe(db)
+        elif operation == "sync-instruments":
+            result = await sync_instruments(db, limit=limit)
+        elif operation == "bootstrap-ids":
+            result = await bootstrap_isins(db, limit=limit)
+        else:
+            raise ValueError(f"Unknown instrument sync operation: {operation}")
+
+        run.status = "completed"
+        run.finished_at = datetime.now(UTC)
+        run.created_count = int(result.get("created", 0) or 0)
+        run.updated_count = int(result.get("updated", 0) or 0)
+        run.skipped_count = int(result.get("skipped", 0) or 0)
+        run.total_count = int(result.get("total", 0) or 0)
+        run.metrics = result
+        await db.commit()
+        return {"run_id": run.id, **result}
+    except Exception as exc:
+        run.status = "failed"
+        run.finished_at = datetime.now(UTC)
+        run.error = str(exc)
+        await db.commit()
+        raise

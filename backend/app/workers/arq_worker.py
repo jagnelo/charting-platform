@@ -10,6 +10,7 @@ in separate worker processes, keeping the FastAPI server non-blocking.
 import logging
 from datetime import UTC
 
+from arq import cron
 from arq.connections import RedisSettings
 
 from app.config import settings
@@ -88,6 +89,33 @@ async def scheduled_alert_check(ctx: dict):
     await _run_async()
 
 
+async def scheduled_weekly_seed(ctx: dict):
+    if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
+        logger.info("Instrument sync schedule disabled; skipping weekly seed")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.instrument_sync_tasks import seed_universe_task
+
+    return await seed_universe_task(ctx)
+
+
+async def scheduled_daily_metadata_sync(ctx: dict):
+    if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
+        logger.info("Instrument sync schedule disabled; skipping metadata sync")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.instrument_sync_tasks import sync_instruments_task
+
+    return await sync_instruments_task(ctx)
+
+
+async def scheduled_daily_id_bootstrap(ctx: dict):
+    if not settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED:
+        logger.info("Instrument sync schedule disabled; skipping stable ID bootstrap")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.instrument_sync_tasks import bootstrap_ids_task
+
+    return await bootstrap_ids_task(ctx)
+
+
 # ── Worker settings ───────────────────────────────────────────────────────────
 
 
@@ -97,9 +125,19 @@ class WorkerSettings:
         task_bulk_fetch_instrument,
         task_run_screener,
         task_refresh_instrument_data,
+        scheduled_weekly_seed,
+        scheduled_daily_metadata_sync,
+        scheduled_daily_id_bootstrap,
     ]
-    # Optional: move alert checking entirely to ARQ cron
-    # cron_jobs = [cron(scheduled_alert_check, minute=set(range(0, 60)))]
+    cron_jobs = (
+        [
+            cron(scheduled_weekly_seed, weekday=6, hour=2, minute=0),
+            cron(scheduled_daily_metadata_sync, hour=3, minute=0),
+            cron(scheduled_daily_id_bootstrap, hour=4, minute=0),
+        ]
+        if settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
+        else []
+    )
     max_jobs = 4
     job_timeout = 600  # 10 minutes max per job
     keep_result = 3600  # keep results for 1 hour

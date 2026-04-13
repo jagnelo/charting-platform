@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     PROXY_FILE: str = "proxies.txt"
     PROXY_ENABLED: bool = False
 
+    # yfinance universe maintenance
+    INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
+    YFINANCE_SCREENER_PAGE_DELAY_SECONDS: float = 0.75
+    YFINANCE_METADATA_DELAY_SECONDS: float = 1.0
+    YFINANCE_STABLE_ID_DELAY_SECONDS: float = 1.0
+    YFINANCE_DAILY_METADATA_CAP: int = 750
+    YFINANCE_DAILY_STABLE_ID_CAP: int = 250
+    YFINANCE_MAX_CONCURRENCY: int = 2
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors(cls, v):

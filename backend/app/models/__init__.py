@@ -9,6 +9,7 @@ from app.models.indicator_preset import IndicatorPreset
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument, OptionDetail
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 from app.models.instrument_stats import InstrumentStats
+from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
@@ -27,6 +28,7 @@ __all__ = [
     "Instrument",
     "InstrumentIndicatorConfig",
     "InstrumentStats",
+    "InstrumentSyncRun",
     "EquityDetail",
     "FutureDetail",
     "OptionDetail",
