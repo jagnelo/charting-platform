@@ -34,6 +34,9 @@ class User(Base, TimestampMixin):
     screener_definitions: Mapped[list["ScreenerDefinition"]] = relationship(back_populates="user")
     screener_alerts: Mapped[list["ScreenerAlert"]] = relationship(back_populates="user")
     watchlists: Mapped[list["Watchlist"]] = relationship(back_populates="user")
+    dashboards: Mapped[list["Dashboard"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     instrument_indicator_configs: Mapped[list["InstrumentIndicatorConfig"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

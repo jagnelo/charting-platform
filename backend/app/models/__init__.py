@@ -1,6 +1,7 @@
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.base import TimestampMixin
 from app.models.chart_drawing import ChartDrawing
+from app.models.dashboard import Dashboard, DashboardTab, DashboardWidget
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.indicator_alert import IndicatorAlert, IndicatorAlertCondition
@@ -42,6 +43,9 @@ __all__ = [
     "WatchlistItem",
     "IndicatorCache",
     "ChartDrawing",
+    "Dashboard",
+    "DashboardTab",
+    "DashboardWidget",
     "IndicatorPreset",
     "PriceAlert",
     "AlertCondition",

@@ -10,6 +10,7 @@ from app.database import Base, engine
 from app.routers import (
     alerts,
     auth,
+    dashboards,
     drawings,
     indicators,
     instrument_indicators,
@@ -71,6 +72,7 @@ PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)
+app.include_router(dashboards.router, prefix=PREFIX)
 app.include_router(drawings.router, prefix=PREFIX)
 app.include_router(presets.router, prefix=PREFIX)
 app.include_router(alerts.router, prefix=PREFIX)
