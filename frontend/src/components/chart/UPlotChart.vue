@@ -110,6 +110,14 @@
             <button class="ed-close" @click="showChartSettings = false">✕</button>
           </div>
           <div class="ed-body">
+            <div class="ed-section-title">Chart Type</div>
+            <label class="ed-field-row">
+              <span>Primary rendering</span>
+              <select v-model="userSettingsStore.chartType" class="ed-select">
+                <option value="candles">Candles</option>
+                <option value="line">Line</option>
+              </select>
+            </label>
             <div class="ed-section-title">Y-Axis Projections</div>
             <label class="ed-checkbox-row">
               <input type="checkbox" v-model="userSettingsStore.showCurrentPriceProjection" class="ed-checkbox" />
@@ -151,6 +159,10 @@ import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { DrawingType, IndicatorConfig, Timeframe } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
+const props = defineProps<{
+  chartType?: 'candles' | 'line'
+}>()
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_BARS_VISIBLE  = 150
 const ZOOM_FACTOR           = 1.08
@@ -168,6 +180,7 @@ const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
 const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
+const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 
 const rootRef          = ref<HTMLDivElement | null>(null)
 const wrapperRef       = ref<HTMLDivElement | null>(null)
@@ -703,12 +716,21 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
 
 // ── Build series ──────────────────────────────────────────────────────────────
 function buildSeries(): uPlot.Series[] {
+  const closeSeries: uPlot.Series = effectiveChartType.value === 'line'
+    ? {
+        label: 'Close',
+        scale: 'y',
+        stroke: '#64b5f6',
+        width: 1.6,
+        points: { show: false },
+      }
+    : { label: 'Close', scale: 'y', show: false }
   const base: uPlot.Series[] = [
     {},
     { label: 'Open',   scale: 'y',   show: false },
     { label: 'High',   scale: 'y',   show: false },
     { label: 'Low',    scale: 'y',   show: false },
-    { label: 'Close',  scale: 'y',   show: false },
+    closeSeries,
     { label: 'Volume', scale: 'vol', show: false },
   ]
   // Reversed: index 0 (top of UI list) → last series → highest z-index (drawn on top)
@@ -869,7 +891,6 @@ async function initChart() {
   lastSeriesCount = series.length
 
   const plugins: uPlot.Plugin[] = [
-    candlestickPlugin({ upColor: '#26a69a', downColor: '#ef5350' }),
     alertLinesPlugin(
       () => alertsStore.alerts
         .filter(a => a.status === 'active' || a.status === 'triggered')
@@ -884,6 +905,10 @@ async function initChart() {
     indicatorHighlightPlugin(),
     yAxisProjectionsPlugin(() => getProjectionItems()),
   ]
+
+  if (effectiveChartType.value === 'candles') {
+    plugins.unshift(candlestickPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
+  }
 
   // Add volume bars plugin if volume indicator is active
   if (hasVolumeIndicator.value) {
@@ -1937,6 +1962,7 @@ onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
 watch(() => chartStore.activeIndicators, async () => { await nextTick(); initChart() }, { deep: true })
+watch(effectiveChartType, async () => { await nextTick(); initChart() })
 watch(() => drawStore.renderableDrawings, () => {
   renderVisualOverlays()
 }, { deep: true })
@@ -2184,6 +2210,22 @@ defineExpose({ jumpToTs })
   color: #bbb;
 }
 .ed-checkbox { accent-color: #64b5f6; }
+.ed-field-row {
+  display: grid;
+  gap: 6px;
+  padding: 0 0 12px;
+  color: #bbb;
+  font-size: 12px;
+}
+.ed-select {
+  background: #0a0a0a;
+  color: #ccc;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: monospace;
+  font-size: 12px;
+}
 
 /* Shortcuts overlay */
 .shortcuts-overlay {

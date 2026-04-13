@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 interface ChartSettings {
   showCurrentPriceProjection?: boolean
   showHighLowProjection?: boolean
+  chartType?: 'candles' | 'line'
 }
 
 interface UserSettings {
@@ -14,6 +15,7 @@ interface UserSettings {
 export const useUserSettingsStore = defineStore('userSettings', () => {
   const showCurrentPriceProjection = ref(false)
   const showHighLowProjection = ref(false)
+  const chartType = ref<'candles' | 'line'>('candles')
   const loaded = ref(false)
   let saveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -21,6 +23,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
     const settings = await api.get<UserSettings>('/auth/settings')
     showCurrentPriceProjection.value = !!settings.chart?.showCurrentPriceProjection
     showHighLowProjection.value = !!settings.chart?.showHighLowProjection
+    chartType.value = settings.chart?.chartType === 'line' ? 'line' : 'candles'
     loaded.value = true
   }
 
@@ -30,12 +33,13 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
         chart: {
           showCurrentPriceProjection: showCurrentPriceProjection.value,
           showHighLowProjection: showHighLowProjection.value,
+          chartType: chartType.value,
         },
       },
     })
   }
 
-  watch([showCurrentPriceProjection, showHighLowProjection], () => {
+  watch([showCurrentPriceProjection, showHighLowProjection, chartType], () => {
     if (!loaded.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => { saveSettings().catch(console.error) }, 350)
@@ -44,6 +48,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   return {
     showCurrentPriceProjection,
     showHighLowProjection,
+    chartType,
     loadSettings,
     saveSettings,
   }
