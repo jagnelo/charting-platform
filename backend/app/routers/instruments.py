@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
@@ -469,6 +471,9 @@ async def get_instrument(
         # Auto-trigger bulk historical fetch as background task
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
 
+    if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
+        instrument = await _refresh_instrument_metadata(instrument, db)
+
     # Compute 52-week hi/lo synchronously from OHLCV D1 bars if not already present.
     # This works for all instrument types and is always available from our own data.
     if not instrument.is_synthetic and (
@@ -479,6 +484,25 @@ async def get_instrument(
         instrument = await _ensure_52w_stats(instrument, db)
 
     return instrument
+
+
+def _needs_metadata_refresh(instrument: Instrument) -> bool:
+    stats = instrument.stats
+    if stats and stats.computed_at:
+        computed_at = stats.computed_at
+        if computed_at.tzinfo is None:
+            computed_at = computed_at.replace(tzinfo=UTC)
+        if computed_at > datetime.now(UTC) - timedelta(days=7):
+            return False
+    return (
+        instrument.currency is None
+        or stats is None
+        or stats.market_cap is None
+        or stats.pe_ratio is None
+        or stats.beta is None
+        or stats.week52_high is None
+        or stats.week52_low is None
+    )
 
 
 async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instrument:
@@ -496,6 +520,77 @@ async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instr
     return result.scalar_one()
 
 
+async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession) -> Instrument:
+    """
+    Fill missing metadata for existing instruments from the current market-data source.
+
+    This is intentionally conservative: it only patches blank fields so user-visible
+    catalogue data seeded earlier is not churned on every dashboard/widget load.
+    """
+    info = get_instrument_info(instrument.symbol)
+    if not info:
+        return instrument
+
+    if instrument.currency is None and info.get("currency"):
+        instrument.currency = info.get("currency")
+    if not instrument.name or instrument.name == instrument.symbol:
+        instrument.name = info.get("longName") or info.get("shortName") or instrument.name
+    if not instrument.description and info.get("longBusinessSummary"):
+        instrument.description = info.get("longBusinessSummary")
+
+    quote_type = info.get("quoteType", "").upper()
+    if quote_type in ("EQUITY", "ETF"):
+        if instrument.equity_detail is None:
+            db.add(
+                EquityDetail(
+                    instrument_id=instrument.id,
+                    sector=info.get("sector"),
+                    industry=info.get("industry"),
+                    country=info.get("country"),
+                    exchange_mic=info.get("exchange"),
+                    website=info.get("website"),
+                )
+            )
+        else:
+            detail = instrument.equity_detail
+            if detail.sector is None and info.get("sector"):
+                detail.sector = info.get("sector")
+            if detail.industry is None and info.get("industry"):
+                detail.industry = info.get("industry")
+            if detail.country is None and info.get("country"):
+                detail.country = info.get("country")
+            if detail.exchange_mic is None and info.get("exchange"):
+                detail.exchange_mic = info.get("exchange")
+            if detail.website is None and info.get("website"):
+                detail.website = info.get("website")
+
+    stats_kwargs = {
+        "week52_high": info.get("fiftyTwoWeekHigh"),
+        "week52_low": info.get("fiftyTwoWeekLow"),
+        "avg_volume_30d": info.get("averageVolume") or info.get("averageDailyVolume10Day"),
+        "pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
+        "market_cap": info.get("marketCap"),
+        "beta": info.get("beta"),
+        "dividend_yield": info.get("dividendYield"),
+    }
+    if instrument.stats is None:
+        db.add(
+            InstrumentStats(
+                instrument_id=instrument.id,
+                computed_at=datetime.now(UTC),
+                **stats_kwargs,
+            )
+        )
+    else:
+        for field, value in stats_kwargs.items():
+            if value is not None and getattr(instrument.stats, field) is None:
+                setattr(instrument.stats, field, value)
+        instrument.stats.computed_at = datetime.now(UTC)
+
+    await db.flush()
+    return await _reload_instrument_full(instrument.id, db)
+
+
 async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrument:
     """
     Compute 52-week high/low from D1 OHLCV bars (last 252 bars ≈ 1 trading year)
@@ -506,8 +601,6 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
 
     log = logging.getLogger(__name__)
     try:
-        from datetime import UTC, datetime, timedelta
-
         cutoff = datetime.now(UTC) - timedelta(days=366)
         row = (
             await db.execute(
@@ -643,7 +736,7 @@ async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | N
         "dividend_yield": info.get("dividendYield"),
     }
     if any(v is not None for v in stats_kwargs.values()):
-        db.add(InstrumentStats(instrument_id=instrument.id, **stats_kwargs))
+        db.add(InstrumentStats(instrument_id=instrument.id, computed_at=datetime.now(UTC), **stats_kwargs))
 
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)
