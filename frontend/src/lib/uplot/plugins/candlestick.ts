@@ -38,6 +38,10 @@ export function candlestickPlugin(opts: CandlestickOptions = {}): uPlot.Plugin {
           if (!times?.length) return
 
           ctx.save()
+          // Clip to the plot area so candles don't bleed behind Y/X axes
+          ctx.beginPath()
+          ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height)
+          ctx.clip()
 
           // Width is based on current visible bar spacing, not the timeframe.
           const bodyWidth = getBodyWidthPx(u, 0.78, 2)

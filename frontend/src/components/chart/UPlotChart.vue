@@ -95,20 +95,51 @@
 
     <!-- Help button -->
     <button class="help-btn" @click="showShortcuts = !showShortcuts" title="Keyboard shortcuts">?</button>
+
+    <!-- Chart settings button (cog) -->
+    <button class="settings-btn" @click="showChartSettings = !showChartSettings" title="Chart settings">⚙</button>
   </div>
+
+  <!-- Chart settings popup -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div class="editor-backdrop" v-if="showChartSettings" @click.self="showChartSettings = false">
+        <div class="editor-box">
+          <div class="ed-header">
+            <span>Chart Settings</span>
+            <button class="ed-close" @click="showChartSettings = false">✕</button>
+          </div>
+          <div class="ed-body">
+            <div class="ed-section-title">Y-Axis Projections</div>
+            <label class="ed-checkbox-row">
+              <input type="checkbox" v-model="userSettingsStore.showCurrentPriceProjection" class="ed-checkbox" />
+              Show current price on Y axis
+            </label>
+            <label class="ed-checkbox-row">
+              <input type="checkbox" v-model="userSettingsStore.showHighLowProjection" class="ed-checkbox" />
+              Show visible high / low on Y axis
+            </label>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { usePanelStore }     from '@/stores/chart'
-import { useLayoutStore }    from '@/stores/layout'
-import { useDrawingsStore }  from '@/stores/drawings'
-import { useAlertsStore }    from '@/stores/alerts'
-import { candlestickPlugin } from '@/lib/uplot/plugins/candlestick'
-import { volumePlugin }      from '@/lib/uplot/plugins/volume'
-import { alertLinesPlugin }  from '@/lib/uplot/plugins/alert-lines'
+import { usePanelStore }        from '@/stores/chart'
+import { useLayoutStore }       from '@/stores/layout'
+import { useDrawingsStore }     from '@/stores/drawings'
+import { useAlertsStore }       from '@/stores/alerts'
+import { useUserSettingsStore } from '@/stores/userSettings'
+import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
+import { volumePlugin }            from '@/lib/uplot/plugins/volume'
+import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
+import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
+import type { ProjectionItem }     from '@/lib/uplot/plugins/y-axis-projections'
 import { DrawingRenderer }   from '@/lib/drawings/renderer'
 import type { MeasurementOverlay } from '@/lib/drawings/renderer'
 import { computeSMA }  from '@/lib/uplot/indicators/sma'
@@ -131,11 +162,12 @@ const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
 const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fires
 
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
-const panelId     = inject<string>('panelId', 'main')
-const chartStore  = usePanelStore(panelId)
-const layoutStore = useLayoutStore()
-const drawStore   = useDrawingsStore()
-const alertsStore = useAlertsStore()
+const panelId            = inject<string>('panelId', 'main')
+const chartStore         = usePanelStore(panelId)
+const layoutStore        = useLayoutStore()
+const drawStore          = useDrawingsStore()
+const alertsStore        = useAlertsStore()
+const userSettingsStore  = useUserSettingsStore()
 
 const rootRef          = ref<HTMLDivElement | null>(null)
 const wrapperRef       = ref<HTMLDivElement | null>(null)
@@ -218,10 +250,13 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
 }
 
 // ── UI state ──────────────────────────────────────────────────────────────────
-const isAtLatest    = ref(true)
-const showShortcuts = ref(false)
-const isLogScale    = ref(false)
-const autoY         = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
+const isAtLatest        = ref(true)
+const showShortcuts     = ref(false)
+const showChartSettings = ref(false)
+const isLogScale        = ref(false)
+const autoY             = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
+const showCurrentPriceProjection = computed(() => userSettingsStore.showCurrentPriceProjection)
+const showHighLowProjection = computed(() => userSettingsStore.showHighLowProjection)
 
 const barTimestamps = computed(() =>
   chartStore.bars.map(b => new Date(b.ts).getTime() / 1000)
@@ -249,37 +284,100 @@ function timeToBarIndex(ts: number): number {
   return Math.max(0, Math.min(times.length - 1, lo))
 }
 
-function formatXAxisTick(idx: number, u?: uPlot): string {
-  const ts = barIndexToTime(idx)
-  if (ts == null) return ''
-  const d = new Date(ts * 1000)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const mon = MONTHS[d.getMonth()]
-  const day = d.getDate()
-  const shortYear = `'${String(d.getFullYear()).slice(-2)}`
-  const visibleBars = u?.scales.x.min != null && u?.scales.x.max != null
+function formatXAxisTicks(u: uPlot, ticks: (number | null)[]): string[] {
+  const visibleBars = u.scales.x.min != null && u.scales.x.max != null
     ? Math.max(1, u.scales.x.max - u.scales.x.min)
     : DEFAULT_BARS_VISIBLE
-  const intraday = !['D1','W1','MN'].includes(chartStore.timeframe)
-  if (visibleBars > 1100) return String(d.getFullYear())
-  if (visibleBars > 260) return `${mon} ${shortYear}`
-  if (visibleBars > 80) return `${mon} ${day}`
-  if (intraday) return `${mon} ${day} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-  return `${mon} ${day}, ${shortYear}`
-}
+  const intraday = !['D1', 'W1', 'MN'].includes(chartStore.timeframe)
+  const pad = (n: number) => String(n).padStart(2, '0')
 
-function formatXAxisTicks(u: uPlot, ticks: (number | null)[]): string[] {
+  // Determine display granularity based on zoom level
+  // 'year'  — only show year label when year changes
+  // 'month' — show month (+ year when year changes)
+  // 'day'   — show day (+ month/year when they change)
+  // 'time'  — show H:MM (+ date components when they change)
+  type Gran = 'year' | 'month' | 'day' | 'time'
+  let gran: Gran
+  if (visibleBars > 1100)     gran = 'year'
+  else if (visibleBars > 260) gran = 'month'
+  else if (visibleBars > 80 || !intraday) gran = 'day'
+  else                        gran = 'time'
+
+  // Collect valid ticks with their parsed dates, filtering by pixel spacing
   let lastPx = -Infinity
+  const valid: Array<{ idx: number; px: number; d: Date }> = []
+  for (const t of ticks) {
+    if (t == null) continue
+    const idx = Math.round(t)
+    const ts = barIndexToTime(idx)
+    if (ts == null) continue
+    const px = u.valToPos(idx, 'x')
+    // Minimum gap: at least 44px between tick labels
+    if (px - lastPx < 44) continue
+    lastPx = px
+    valid.push({ idx, px, d: new Date(ts * 1000) })
+  }
+
+  // Build label per valid tick — only emit a component if it changed from the previous tick
+  const labelMap = new Map<number, string>()
+  let prevYear = -1, prevMonth = -1, prevDay = -1
+
+  for (let vi = 0; vi < valid.length; vi++) {
+    const { idx, d } = valid[vi]
+    const year  = d.getFullYear()
+    const month = d.getMonth()
+    const day   = d.getDate()
+    const mon   = MONTHS[month]
+    const shortY = `'${String(year).slice(-2)}`
+
+    let label = ''
+    if (gran === 'year') {
+      // Only show the year label when it changes
+      label = year !== prevYear ? String(year) : ''
+    } else if (gran === 'month') {
+      if (year !== prevYear) {
+        label = `${mon} ${String(year)}`
+      } else if (month !== prevMonth) {
+        label = mon
+      }
+      // else suppress — same month
+    } else if (gran === 'day') {
+      if (year !== prevYear) {
+        label = `${mon} ${day}, ${shortY}`
+      } else if (month !== prevMonth) {
+        label = `${mon} ${day}`
+      } else if (day !== prevDay) {
+        label = `${day}`
+      }
+      // else suppress — same day
+    } else {
+      // 'time' granularity — intraday
+      const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+      if (year !== prevYear) {
+        label = `${mon} ${day}, ${shortY} ${hhmm}`
+      } else if (month !== prevMonth || day !== prevDay) {
+        label = `${mon} ${day} ${hhmm}`
+      } else {
+        label = hhmm
+      }
+    }
+
+    labelMap.set(idx, label)
+    prevYear  = year
+    prevMonth = month
+    prevDay   = day
+  }
+
+  // Map back to full ticks array (return '' for suppressed/spaced-out ticks)
   return ticks.map(t => {
     if (t == null) return ''
-    const idx = Math.round(t)
-    const label = formatXAxisTick(idx, u)
-    const px = u.valToPos(idx, 'x')
-    const minGap = Math.max(42, label.length * 6 + 10)
-    if (px - lastPx < minGap) return ''
-    lastPx = px
-    return label
+    return labelMap.get(Math.round(t)) ?? ''
   })
+}
+
+function formatProjectionDate(ts: number): string {
+  const d = new Date(ts * 1000)
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, '${String(d.getFullYear()).slice(-2)}`
 }
 
 function toggleAutoY() {
@@ -629,6 +727,124 @@ function buildSeries(): uPlot.Series[] {
   return base
 }
 
+// ── Y-axis projection items ───────────────────────────────────────────────────
+const FIBO_TYPES = new Set(['fibonacci_retracement', 'fibonacci_extension'])
+
+const DRAWING_CHIP: Record<string, string> = {
+  horizontal_line: 'H Line',
+  trendline:       'TL',
+  ray:             'Ray',
+  arrow:           'Arrow',
+  rectangle:       'Rect',
+  circle:          'Circle',
+  half_circle:     'HCirc',
+  triangle:        'Tri',
+}
+
+function getProjectionItems(): ProjectionItem[] {
+  if (!uplot) return []
+  const u      = uplot
+  const xMin   = u.scales.x?.min ?? 0
+  const xMax   = u.scales.x?.max ?? 0
+  const items: ProjectionItem[] = []
+
+  // ── Main-pane indicators with showYProjection ────────────────────────────
+  const mainInds = [...chartStore.activeIndicators]
+    .reverse()
+    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+
+  for (let mi = 0; mi < mainInds.length; mi++) {
+    const ind = mainInds[mi]
+    if (!ind.showYProjection) continue
+    const seriesData = (u.data as number[][])[6 + mi]
+    if (!seriesData) continue
+    // Walk back from the rightmost visible bar to find the last non-null value
+    const rightIdx = Math.min(Math.floor(xMax), seriesData.length - 1)
+    let lastVal: number | null = null
+    let lastIdx = -1
+    for (let i = rightIdx; i >= 0; i--) {
+      if (seriesData[i] != null && !isNaN(seriesData[i])) {
+        lastVal = seriesData[i]; lastIdx = i; break
+      }
+    }
+    if (lastVal == null) continue
+    let label: string
+    if (ind.type === 'avwap') {
+      const anchorTime = Number(ind.params.anchorTime)
+      if (anchorTime) {
+        label = `AVWAP\n${formatProjectionDate(anchorTime)}`
+      } else {
+        label = 'AVWAP'
+      }
+    } else {
+      label = `${ind.type.toUpperCase()}(${Object.values(ind.params).join(',')})`
+    }
+    items.push({ price: lastVal, color: ind.style.color, chipLabel: label, originX: lastIdx })
+  }
+
+  // ── Price alerts with projection toggled on ──────────────────────────────
+  for (const alert of alertsStore.alerts) {
+    if (alert.status !== 'active' && alert.status !== 'triggered') continue
+    if (!alertsStore.getAlertProjection(alert.id)) continue
+    const color = alert.status === 'triggered' ? '#888888' : '#ffb74d'
+    items.push({ price: Number(alert.threshold_price), color, chipLabel: 'Alert' })
+  }
+
+  // ── Drawings (non-fib) with projection toggled on ────────────────────────
+  for (const d of drawStore.renderableDrawings) {
+    if (!d.id || FIBO_TYPES.has(d.type)) continue
+    if (!drawStore.getDrawingProjection(d.id)) continue
+    if (!d.points?.length) continue
+    if (d.type === 'vertical_line') continue  // no meaningful single price level
+    const color = d.style?.color ?? '#ffffff'
+    if (d.type === 'horizontal_line') {
+      // Full-width — the line is already infinite, projection just adds the chip
+      items.push({ price: d.points[0].price, color, chipLabel: 'H Line' })
+    } else {
+      // Use the rightmost point's price (last defined point)
+      const rightPt = d.points.length > 1 ? d.points[d.points.length - 1] : d.points[0]
+      const originX = timeToBarIndex(rightPt.time)
+      items.push({
+        price: rightPt.price,
+        color,
+        chipLabel: DRAWING_CHIP[d.type] ?? 'Draw',
+        originX,
+      })
+    }
+  }
+
+  // ── Current price (last close) ────────────────────────────────────────────
+  if (showCurrentPriceProjection.value) {
+    const closes = (u.data as number[][])[4]
+    if (closes?.length) {
+      const lastClose = closes[closes.length - 1]
+      if (lastClose != null && !isNaN(lastClose)) {
+        items.push({ price: lastClose, color: '#26a69a', chipLabel: 'Last' })
+      }
+    }
+  }
+
+  // ── Visible high / low ────────────────────────────────────────────────────
+  if (showHighLowProjection.value) {
+    const xArr  = (u.data as number[][])[0]
+    const highs = (u.data as number[][])[2]
+    const lows  = (u.data as number[][])[3]
+    if (xArr && highs && lows) {
+      let visHigh = -Infinity, visLow = Infinity
+      let highIdx = -1, lowIdx = -1
+      for (let i = 0; i < xArr.length; i++) {
+        if (i < xMin - 0.5 || i > xMax + 0.5) continue
+        if (highs[i] != null && highs[i] > visHigh) { visHigh = highs[i]; highIdx = i }
+        if (lows[i]  != null && lows[i]  < visLow)  { visLow  = lows[i];  lowIdx  = i }
+      }
+      if (highIdx >= 0) items.push({ price: visHigh, color: '#26a69a', chipLabel: 'High', originX: highIdx })
+      if (lowIdx  >= 0) items.push({ price: visLow,  color: '#ef5350', chipLabel: 'Low',  originX: lowIdx  })
+    }
+  }
+
+  return items
+}
+
 // ── Init chart ────────────────────────────────────────────────────────────────
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
@@ -666,6 +882,7 @@ async function initChart() {
       () => alertsStore.selectedAlertId,
     ),
     indicatorHighlightPlugin(),
+    yAxisProjectionsPlugin(() => getProjectionItems()),
   ]
 
   // Add volume bars plugin if volume indicator is active
@@ -1710,6 +1927,7 @@ function destroyAll() {
 }
 
 onMounted(async () => {
+  userSettingsStore.loadSettings().catch(console.error)
   await nextTick(); await initChart()
   resizeObserver = new ResizeObserver(handleResize)
   if (rootRef.value) resizeObserver.observe(rootRef.value)
@@ -1743,6 +1961,13 @@ watch(() => alertsStore.selectedAlertId, () => {
 watch(() => alertsStore.alerts, () => {
   redrawVisuals()
 }, { deep: true })
+
+// Redraw when any Y-projection toggle changes
+watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVisuals() })
+watch(() => alertsStore.alerts.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
+watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
+watch(showCurrentPriceProjection, () => { redrawVisuals() })
+watch(showHighLowProjection,      () => { redrawVisuals() })
 
 /** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
 function jumpToTs(isoTs: string) {
@@ -1907,6 +2132,58 @@ defineExpose({ jumpToTs })
   transition: color 0.15s, border-color 0.15s;
 }
 .help-btn:hover { color: #aaa; border-color: #555; }
+
+.settings-btn {
+  position: absolute; bottom: 26px; left: 42px; z-index: 30;
+  width: 22px; height: 22px;
+  background: rgba(20,20,20,0.7); border: 1px solid #2a2a2a; border-radius: 4px;
+  color: #555; font-size: 12px; cursor: pointer; line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
+}
+.settings-btn:hover { color: #aaa; border-color: #555; }
+
+.editor-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+}
+.editor-box {
+  width: min(360px, calc(100vw - 32px));
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.55);
+  color: #aaa;
+  font-family: monospace;
+}
+.ed-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #222;
+  color: #ddd;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ed-close {
+  background: none; border: none; color: #666; cursor: pointer;
+  font-size: 12px; padding: 2px 4px;
+}
+.ed-close:hover { color: #ddd; }
+.ed-body { padding: 12px; }
+.ed-section-title {
+  color: #777;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.ed-checkbox-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  color: #bbb;
+}
+.ed-checkbox { accent-color: #64b5f6; }
 
 /* Shortcuts overlay */
 .shortcuts-overlay {

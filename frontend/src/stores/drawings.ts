@@ -130,9 +130,28 @@ export const useDrawingsStore = defineStore('drawings', () => {
     }
   }
 
+  const drawingProjections = computed(() =>
+    drawings.value.map(d => `${d.id}:${!!(d.data as any)?.showProjection}`).join('|')
+  )
+
+  function getDrawingProjection(id: number): boolean {
+    const drawing = drawings.value.find(d => d.id === id)
+    return !!(drawing?.data as any)?.showProjection
+  }
+
+  function toggleDrawingProjection(id: number) {
+    const drawing = drawings.value.find(d => d.id === id)
+    if (!drawing) return
+    const data = { ...(drawing.data as any), showProjection: !getDrawingProjection(id) }
+    localUpdateDrawing(id, { data } as any)
+    updateDrawing(id, { data } as any)
+  }
+
   return {
     drawings, activeToolType, avwapDropActive, selectedId, editRequestId, renderableDrawings,
+    drawingProjections,
     loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
     selectDrawing, requestEditDrawing, setActiveTool, setAvwapDrop, reorderDrawings,
+    getDrawingProjection, toggleDrawingProjection,
   }
 })

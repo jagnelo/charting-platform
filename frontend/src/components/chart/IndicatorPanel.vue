@@ -97,9 +97,20 @@
                   <span class="color-dot" :style="{ background: ind.style.color }" />
                   <span class="row-name">{{ displayName(ind) }}</span>
                   <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked">🔒</span>
-                  <button class="row-btn" @click="alertForIndicator(i)" title="Create alert">🔔</button>
-                  <button class="row-btn" @click="openIndEditor(i)" title="Settings">⚙</button>
-                  <button class="row-btn danger" @click="chartStore.removeIndicator(i)" title="Remove">✕</button>
+                  <div class="row-menu-wrap">
+                    <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More">⋯</button>
+                    <Teleport to="body">
+                      <div v-if="menuOpenId === `ind-${i}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
+                        <button class="dd-item" @click.stop="openIndEditor(i); closeMenu()">⚙ Settings</button>
+                        <button class="dd-item" @click.stop="alertForIndicator(i); closeMenu()">🔔 Create alert</button>
+                        <button class="dd-item" @click.stop="toggleIndProjection(i); closeMenu()">
+                          {{ ind.showYProjection ? '◉' : '○' }} Y projection
+                        </button>
+                        <div class="dd-sep" />
+                        <button class="dd-item dd-item--danger" @click.stop="chartStore.removeIndicator(i); closeMenu()">✕ Remove</button>
+                      </div>
+                    </Teleport>
+                  </div>
                 </div>
               </VueDraggable>
               <div v-if="!chartStore.indicators.length" class="empty-hint">
@@ -162,24 +173,27 @@
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
                 <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
                 <span class="row-name">{{ drawingLabel(d) }}</span>
-                <!-- Visibility toggle -->
-                <button
-                  class="row-btn"
-                  :class="{ 'btn--dim': !d.is_visible }"
-                  @click.stop="toggleVisible(d)"
-                  :title="d.is_visible ? 'Hide' : 'Show'"
-                >{{ d.is_visible ? '👁' : '🚫' }}</button>
-                <!-- Lock toggle -->
-                <button
-                  class="row-btn"
-                  :class="{ 'btn--active': d.is_locked }"
-                  @click.stop="toggleLock(d)"
-                  :title="d.is_locked ? 'Unlock' : 'Lock'"
-                >{{ d.is_locked ? '🔒' : '🔓' }}</button>
-                <!-- Edit -->
-                <button class="row-btn" @click.stop="openDrawEditor(d)" title="Edit">⚙</button>
-                <!-- Delete -->
-                <button class="row-btn danger" @click.stop="drawStore.deleteDrawing(d.id)" title="Delete">✕</button>
+                <div class="row-menu-wrap">
+                  <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More">⋯</button>
+                  <Teleport to="body">
+                    <div v-if="menuOpenId === `draw-${d.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
+                      <button class="dd-item" @click.stop="toggleVisible(d); closeMenu()">
+                        {{ d.is_visible ? '👁 Hide' : '🚫 Show' }}
+                      </button>
+                      <button class="dd-item" @click.stop="toggleLock(d); closeMenu()">
+                        {{ d.is_locked ? '🔓 Unlock' : '🔒 Lock' }}
+                      </button>
+                      <button class="dd-item" @click.stop="openDrawEditor(d); closeMenu()">⚙ Edit</button>
+                      <template v-if="!['fibonacci_retracement','fibonacci_extension'].includes(d.drawing_type)">
+                        <button class="dd-item" @click.stop="drawStore.toggleDrawingProjection(d.id); closeMenu()">
+                          {{ drawStore.getDrawingProjection(d.id) ? '◉' : '○' }} Y projection
+                        </button>
+                      </template>
+                      <div class="dd-sep" />
+                      <button class="dd-item dd-item--danger" @click.stop="drawStore.deleteDrawing(d.id); closeMenu()">✕ Delete</button>
+                    </div>
+                  </Teleport>
+                </div>
               </div>
             </VueDraggable>
             <div v-if="!drawStore.drawings.length" class="empty-hint">No drawings</div>
@@ -212,16 +226,28 @@
             >
               <span class="alert-icon">¤</span>
               <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
-              <button class="row-btn" @click.stop="openAlertEditor(a, null)" title="Edit">⚙</button>
-              <button class="row-btn" :class="{ 'btn--active': a.repeat }"
-                      @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
-              <button class="row-btn" v-if="a.status==='active'"
-                      @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
-              <button class="row-btn" v-if="a.status==='paused'"
-                      @click.stop="alertsStore.updateAlert(a.id, { status: 'active' })" title="Resume">▶</button>
-              <button class="row-btn" v-if="a.status==='triggered'"
-                      @click.stop="alertsStore.rearmAlert(a.id)" title="Rearm">↺</button>
-              <button class="row-btn danger" @click.stop="alertsStore.deleteAlert(a.id)" title="Delete">✕</button>
+              <div class="row-menu-wrap">
+                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More">⋯</button>
+                <Teleport to="body">
+                  <div v-if="menuOpenId === `palert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
+                    <button class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()">⚙ Edit</button>
+                    <button class="dd-item" @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat }); closeMenu()">
+                      {{ a.repeat ? '◉' : '○' }} Repeat
+                    </button>
+                    <button class="dd-item" v-if="a.status === 'active'"
+                            @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' }); closeMenu()">⏸ Pause</button>
+                    <button class="dd-item" v-if="a.status === 'paused'"
+                            @click.stop="alertsStore.updateAlert(a.id, { status: 'active' }); closeMenu()">▶ Resume</button>
+                    <button class="dd-item" v-if="a.status === 'triggered'"
+                            @click.stop="alertsStore.rearmAlert(a.id); closeMenu()">↺ Rearm</button>
+                    <button class="dd-item" @click.stop="alertsStore.toggleAlertProjection(a.id); closeMenu()">
+                      {{ alertsStore.getAlertProjection(a.id) ? '◉' : '○' }} Y projection
+                    </button>
+                    <div class="dd-sep" />
+                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteAlert(a.id); closeMenu()">✕ Delete</button>
+                  </div>
+                </Teleport>
+              </div>
             </div>
             <!-- Indicator alerts -->
             <div
@@ -235,16 +261,25 @@
             >
               <span class="alert-icon">≈</span>
               <span class="row-name">{{ indAlertLabel(a) }}</span>
-              <button class="row-btn" @click.stop="openAlertEditor(null, a)" title="Edit">⚙</button>
-              <button class="row-btn" :class="{ 'btn--active': a.repeat }"
-                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat })" title="Toggle repeat">↺</button>
-              <button class="row-btn" v-if="a.status==='active'"
-                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' })" title="Pause">⏸</button>
-              <button class="row-btn" v-if="a.status==='paused'"
-                      @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' })" title="Resume">▶</button>
-              <button class="row-btn" v-if="a.status==='triggered'"
-                      @click.stop="alertsStore.rearmIndicatorAlert(a.id)" title="Rearm">↺</button>
-              <button class="row-btn danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id)" title="Delete">✕</button>
+              <div class="row-menu-wrap">
+                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More">⋯</button>
+                <Teleport to="body">
+                  <div v-if="menuOpenId === `ialert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
+                    <button class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()">⚙ Edit</button>
+                    <button class="dd-item" @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat }); closeMenu()">
+                      {{ a.repeat ? '◉' : '○' }} Repeat
+                    </button>
+                    <button class="dd-item" v-if="a.status === 'active'"
+                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' }); closeMenu()">⏸ Pause</button>
+                    <button class="dd-item" v-if="a.status === 'paused'"
+                            @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' }); closeMenu()">▶ Resume</button>
+                    <button class="dd-item" v-if="a.status === 'triggered'"
+                            @click.stop="alertsStore.rearmIndicatorAlert(a.id); closeMenu()">↺ Rearm</button>
+                    <div class="dd-sep" />
+                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id); closeMenu()">✕ Delete</button>
+                  </div>
+                </Teleport>
+              </div>
             </div>
             <div v-if="!instrumentAlerts.length" class="empty-hint">No alerts for this symbol</div>
           </div>
@@ -449,7 +484,7 @@ export {}
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -496,6 +531,52 @@ const indicatorsOpen = ref(true)
 const drawingsOpen   = ref(true)
 const watchlistsOpen = ref(true)
 const screenersOpen  = ref(true)
+
+// ── ⋯ row dropdown menu ───────────────────────────────────────────────────────
+const menuOpenId = ref<string | null>(null)
+const rowMenuStyle = ref<Record<string, string>>({})
+
+function toggleMenu(key: string, event: MouseEvent) {
+  if (menuOpenId.value === key) {
+    closeMenu()
+    return
+  }
+
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const menuH = estimateMenuHeight(key)
+  const menuW = 158
+  const gap = 6
+  const below = window.innerHeight - rect.bottom
+  const above = rect.top
+  const openUp = below < menuH + gap && above > below
+  const maxH = Math.max(96, Math.min(menuH, window.innerHeight - 16))
+  const top = openUp
+    ? Math.max(8, rect.top - maxH - gap)
+    : Math.min(window.innerHeight - maxH - 8, rect.bottom + gap)
+  const left = Math.max(8, Math.min(window.innerWidth - menuW - 8, rect.right - menuW))
+
+  rowMenuStyle.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${menuW}px`,
+    maxHeight: `${maxH}px`,
+  }
+  menuOpenId.value = key
+}
+
+function closeMenu() {
+  menuOpenId.value = null
+}
+
+function estimateMenuHeight(key: string): number {
+  if (key.startsWith('draw-')) return 174
+  if (key.startsWith('palert-')) return 198
+  if (key.startsWith('ialert-')) return 164
+  return 154
+}
+
+onMounted(() => document.addEventListener('click', closeMenu))
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 const membership = ref<InstrumentMembership | null>(null)
 
@@ -557,6 +638,12 @@ const DEFAULTS: Record<IndicatorType, IndicatorConfig> = {
 
 function isActiveOnCurrentTf(ind: IndicatorConfig): boolean {
   return !ind.lockedTimeframes?.length || ind.lockedTimeframes.includes(chartStore.timeframe)
+}
+
+function toggleIndProjection(i: number) {
+  const ind = chartStore.indicators[i]
+  if (!ind) return
+  chartStore.updateIndicator(i, { ...ind, showYProjection: !ind.showYProjection })
 }
 
 function displayName(ind: IndicatorConfig): string {
@@ -1019,6 +1106,61 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .row-btn.danger:hover { color: #ef5350; }
 .row-btn.btn--dim  { opacity: 0.35; }
 .row-btn.btn--active { color: #64b5f6; }
+
+/* ── Row ⋯ dropdown ────────────────────────────────────────────────────── */
+.row-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.row-menu-btn {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+.row-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 200;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  padding: 3px 0;
+}
+
+.row-dropdown--fixed {
+  position: fixed;
+  right: auto;
+  top: auto;
+  overflow-y: auto;
+}
+
+.dd-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #aaa;
+  text-align: left;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.dd-item:hover { background: #242424; color: #fff; }
+.dd-item--danger { color: #777; }
+.dd-item--danger:hover { background: #2a1515; color: #ef5350; }
+
+.dd-sep {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 3px 0;
+}
 
 .empty-hint { padding: 8px 10px; color: #333; font-style: italic; font-size: 11px; }
 

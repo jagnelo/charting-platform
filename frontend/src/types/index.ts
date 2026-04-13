@@ -117,6 +117,7 @@ export interface PriceAlert {
   reference_price?: number
   status: AlertStatus
   repeat: boolean
+  show_projection: boolean
   notes?: string
   triggered_at?: string
   trigger_count: number
@@ -155,6 +156,8 @@ export interface IndicatorConfig {
   pane?: 'main' | 'separate'
   /** Timeframes this indicator is active on. null/undefined = all timeframes. */
   lockedTimeframes?: Timeframe[] | null
+  /** Show a dashed horizontal projection line to the Y axis. */
+  showYProjection?: boolean
 }
 
 export type IndicatorType = 'sma' | 'ema' | 'vwap' | 'avwap' | 'rsi' | 'macd' | 'bb' | 'volume'

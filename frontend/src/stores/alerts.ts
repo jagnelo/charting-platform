@@ -58,7 +58,7 @@ export const useAlertsStore = defineStore('alerts', () => {
     return created
   }
 
-  async function updateAlert(id: number, patch: Partial<{ repeat: boolean; notes: string; status: string }>) {
+  async function updateAlert(id: number, patch: Partial<{ repeat: boolean; show_projection: boolean; notes: string; status: string }>) {
     const updated = await api.patch<PriceAlert>(`/alerts/price/${id}`, patch)
     const idx = alerts.value.findIndex(a => a.id === id)
     if (idx !== -1) alerts.value[idx] = updated
@@ -159,6 +159,14 @@ export const useAlertsStore = defineStore('alerts', () => {
     ws = null
   }
 
+  function getAlertProjection(id: number): boolean {
+    return alerts.value.find(a => a.id === id)?.show_projection ?? false
+  }
+
+  function toggleAlertProjection(id: number) {
+    updateAlert(id, { show_projection: !getAlertProjection(id) }).catch(console.error)
+  }
+
   function selectAlert(id: number | null) { selectedAlertId.value = id }
   function requestEditAlert(id: number | null) { editRequestAlertId.value = id }
 
@@ -171,6 +179,7 @@ export const useAlertsStore = defineStore('alerts', () => {
     deleteIndicatorAlert, rearmIndicatorAlert,
     activeCountForInstrument,
     selectAlert, requestEditAlert,
+    getAlertProjection, toggleAlertProjection,
     connectWebSocket, disconnectWebSocket,
   }
 })
