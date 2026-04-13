@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView     from '@/views/LoginView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import ChartView     from '@/views/ChartView.vue'
 import AlertsView    from '@/views/AlertsView.vue'
 import SettingsView  from '@/views/SettingsView.vue'
@@ -11,7 +12,8 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginView, meta: { public: true } },
-    { path: '/',              redirect: '/chart' },
+    { path: '/',              redirect: '/dashboard' },
+    { path: '/dashboard',     component: DashboardView },
     { path: '/chart',         component: ChartView },
     { path: '/chart/:symbol(.*)', component: ChartView },
     { path: '/alerts',        component: AlertsView },

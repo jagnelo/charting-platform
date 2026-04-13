@@ -195,7 +195,7 @@ export interface Watchlist {
 }
 
 export type ScreenerAlertTriggerType = 'entered' | 'left' | 'both'
-export type ScreenerAlertStatus = 'active' | 'triggered' | 'disabled'
+export type ScreenerAlertStatus = 'active' | 'triggered' | 'paused' | 'disabled'
 
 export interface ScreenerAlert {
   id: number
@@ -227,6 +227,64 @@ export interface InstrumentMembershipScreener {
 export interface InstrumentMembership {
   watchlists: InstrumentMembershipWatchlist[]
   screeners: InstrumentMembershipScreener[]
+}
+
+// ── Dashboards ───────────────────────────────────────────────────────────────
+
+export type DashboardWidgetType =
+  | 'notes'
+  | 'checklist'
+  | 'quote'
+  | 'simple_chart'
+  | 'watchlist'
+  | 'alerts'
+  | 'screener'
+  | 'instrument_details'
+  | 'advanced_chart'
+  | 'comparison_chart'
+  | 'ratio_chart'
+
+export interface DashboardWidgetLayout {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface DashboardWidget {
+  id: number
+  tab_id: number
+  widget_type: DashboardWidgetType | string
+  title?: string | null
+  layout: DashboardWidgetLayout
+  config: Record<string, any>
+  style: Record<string, any>
+  position: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DashboardTab {
+  id: number
+  dashboard_id: number
+  name: string
+  position: number
+  layout_settings: Record<string, any>
+  widgets: DashboardWidget[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Dashboard {
+  id: number
+  user_id: number
+  name: string
+  is_default: boolean
+  position: number
+  settings: Record<string, any>
+  tabs: DashboardTab[]
+  created_at: string
+  updated_at: string
 }
 
 // ── Screener ──────────────────────────────────────────────────────────────────

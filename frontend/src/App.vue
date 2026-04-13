@@ -5,6 +5,7 @@
         <div class="sidebar-logo" title="Charting Platform">
           <span class="logo-mark">◈</span>
         </div>
+        <router-link to="/dashboard" class="nav-link" title="Dashboard">▦</router-link>
         <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/chart') }" title="Chart">📈</router-link>
         <router-link to="/alerts"    class="nav-link" title="Alerts">🔔</router-link>
         <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
