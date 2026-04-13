@@ -167,13 +167,24 @@ async def _compute_indicator_cached(
 
 async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[int]:
     if screener.universe_type == "custom" and screener.universe_instrument_ids:
-        return screener.universe_instrument_ids
+        stmt = select(Instrument.id).where(
+            Instrument.id.in_(screener.universe_instrument_ids),
+            Instrument.is_active.is_(True),
+            Instrument.is_synthetic.is_(False),
+        )
+        return list((await db.execute(stmt)).scalars().all())
 
     if screener.universe_type == "watchlist" and screener.universe_watchlist_id:
         wl = await db.get(Watchlist, screener.universe_watchlist_id)
         if wl:
             items_result = await db.execute(
-                select(WatchlistItem.instrument_id).where(WatchlistItem.watchlist_id == wl.id)
+                select(WatchlistItem.instrument_id)
+                .join(Instrument, Instrument.id == WatchlistItem.instrument_id)
+                .where(
+                    WatchlistItem.watchlist_id == wl.id,
+                    Instrument.is_active.is_(True),
+                    Instrument.is_synthetic.is_(False),
+                )
             )
             return list(items_result.scalars().all())
 

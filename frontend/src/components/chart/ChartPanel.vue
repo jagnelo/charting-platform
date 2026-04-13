@@ -31,15 +31,26 @@
           />
           <div v-if="searchResults.length" class="panel-search-results">
             <div
-              v-for="(r, i) in searchResults"
-              :key="r.symbol"
-              :class="['psr-item', { highlighted: i === hlIdx }]"
-              @click="selectResult(r)"
-              @mouseenter="hlIdx = i"
+              v-if="isExpression"
+              :class="['psr-item', 'psr-item--expr', { highlighted: hlIdx === 0 }]"
+              @click="selectExpression"
+              @mouseenter="hlIdx = 0"
             >
-              <span class="psr-sym">{{ r.symbol }}</span>
-              <span class="psr-name">{{ r.name }}</span>
+              <span class="psr-sym">f(x)</span>
+              <span class="psr-name">Create expression chart: {{ searchQuery }}</span>
             </div>
+            <template v-else>
+              <div
+                v-for="(r, i) in searchResults"
+                :key="r.symbol"
+                :class="['psr-item', { highlighted: i === hlIdx }]"
+                @click="selectResult(r)"
+                @mouseenter="hlIdx = i"
+              >
+                <span class="psr-sym">{{ r.symbol }}</span>
+                <span class="psr-name">{{ r.name }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -57,7 +68,7 @@
 
       <span v-if="store.instrument?.name" class="psym-name">{{ store.instrument.name }}</span>
 
-      <TimeframeSelector v-model="localTf" class="panel-tf" />
+      <TimeframeSelector v-if="store.symbol" v-model="localTf" class="panel-tf" />
     </div>
 
     <!-- Chart area -->
@@ -78,6 +89,7 @@ import { ref, watch, computed, provide, onMounted, onUnmounted, nextTick } from 
 import { usePanelStore }   from '@/stores/chart'
 import { useLayoutStore }  from '@/stores/layout'
 import { useDrawingsStore } from '@/stores/drawings'
+import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
 import { api }           from '@/lib/api'
@@ -93,6 +105,7 @@ provide('panelId', props.panelId)
 const layoutStore = useLayoutStore()
 const store       = usePanelStore(props.panelId)
 const drawStore   = useDrawingsStore()
+const alertsStore = useAlertsStore()
 const chartRef    = ref<InstanceType<typeof UPlotChart> | null>(null)
 
 const panelConfig = computed(() => layoutStore.panels.find(p => p.id === props.panelId))
@@ -108,6 +121,9 @@ const hlIdx         = ref(0)
 const symWrapRef    = ref<HTMLDivElement | null>(null)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const isExpression = computed(() => EXPR_RE.test(searchQuery.value.trim()))
 
 async function toggleSearch() {
   if (searchOpen.value) { closeSearch(); return }
@@ -126,6 +142,11 @@ function closeSearch() {
 async function onSearchInput() {
   if (searchTimer) clearTimeout(searchTimer)
   if (!searchQuery.value) { searchResults.value = []; return }
+  if (isExpression.value) {
+    searchResults.value = [{ symbol: searchQuery.value.trim(), name: '', exchange: '', type: 'Synthetic' }]
+    hlIdx.value = 0
+    return
+  }
   searchTimer = setTimeout(async () => {
     try {
       searchResults.value = await api.get('/instruments/search', { q: searchQuery.value })
@@ -139,7 +160,20 @@ async function selectResult(r: SearchResult) {
   await onSymbolSelect(r.symbol)
 }
 
+async function selectExpression() {
+  const expr = searchQuery.value.trim()
+  if (!expr) return
+  try {
+    const instr = await api.post<{ symbol: string }>('/instruments/resolve-expression', { expression: expr })
+    closeSearch()
+    await onSymbolSelect(instr.symbol)
+  } catch (e) {
+    console.error('Failed to resolve expression', e)
+  }
+}
+
 function selectFirst() {
+  if (isExpression.value) { selectExpression(); return }
   if (searchResults.value.length) selectResult(searchResults.value[hlIdx.value])
 }
 
@@ -165,6 +199,7 @@ async function onSymbolSelect(symbol: string) {
   await store.loadBars(symbol, localTf.value)
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
+    await alertsStore.loadAlerts(store.instrument.id)
   }
 }
 
@@ -174,6 +209,7 @@ watch(localTf, async (tf) => {
   await store.loadBars(store.symbol, tf)
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, tf)
+    await alertsStore.loadAlerts(store.instrument.id)
   }
 })
 
@@ -194,6 +230,7 @@ onMounted(async () => {
     await store.loadBars(cfg.symbol, cfg.timeframe)
     if (store.instrument) {
       await drawStore.loadDrawings(store.instrument.id, cfg.timeframe)
+      await alertsStore.loadAlerts(store.instrument.id)
     }
   }
 })
@@ -279,6 +316,7 @@ onMounted(async () => {
   font-size: 11px;
 }
 .psr-item.highlighted { background: #1a2a3a; }
+.psr-item--expr { border-left: 2px solid #64b5f6; }
 .psr-sym { color: #64b5f6; font-weight: 700; min-width: 56px; font-family: monospace; }
 .psr-name { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

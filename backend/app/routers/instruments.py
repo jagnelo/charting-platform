@@ -20,6 +20,7 @@ from app.services.bulk_fetch import get_fetch_progress
 from app.services.expression_engine import (
     ExpressionError,
     extract_tickers,
+    is_expression,
     normalize_expression,
 )
 from app.services.market_data import get_instrument_info, search_ticker
@@ -33,13 +34,19 @@ async def search_instruments(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if is_expression(q):
+        return []
+
     result = await db.execute(
         select(Instrument)
         .options(
             selectinload(Instrument.equity_detail),
             selectinload(Instrument.instrument_type),
         )
-        .where(or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%")))
+        .where(
+            Instrument.is_synthetic.is_(False),
+            or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%")),
+        )
         .limit(5)
     )
     local = result.scalars().all()
@@ -88,6 +95,7 @@ async def browse_instruments(
             selectinload(Instrument.instrument_type),
         )
         .where(Instrument.is_active.is_(True))
+        .where(Instrument.is_synthetic.is_(False))
     )
 
     if ids:

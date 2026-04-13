@@ -65,15 +65,17 @@ const loading          = ref(false)
 const highlightIdx     = ref(0)
 const rootRef          = ref<HTMLDivElement | null>(null)
 const expressionSelected = ref(false)
+const dropdownDismissed  = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // Detect if the query looks like a math expression between ticker tokens
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
 const isExpression = computed(() => !expressionSelected.value && EXPR_RE.test(query.value.trim()))
-const showDropdown = computed(() => isExpression.value || results.value.length > 0)
+const showDropdown = computed(() => !dropdownDismissed.value && (isExpression.value || results.value.length > 0))
 
 async function onInput() {
   expressionSelected.value = false
+  dropdownDismissed.value = false
   if (debounceTimer) clearTimeout(debounceTimer)
   if (query.value.length < 1) { results.value = []; return }
   // Don't hit search API for expressions
@@ -93,6 +95,7 @@ function select(r: SearchResult) {
   emit('select', r.symbol)
   query.value = r.symbol
   results.value = []
+  dropdownDismissed.value = true
 }
 
 async function selectExpression() {
@@ -104,6 +107,7 @@ async function selectExpression() {
     query.value = instr.symbol
     results.value = []
     expressionSelected.value = true
+    dropdownDismissed.value = true
   } catch (e) {
     console.error('Failed to resolve expression', e)
   } finally {
@@ -118,10 +122,13 @@ function selectFirst() {
 
 function moveDown() { highlightIdx.value = Math.min(highlightIdx.value + 1, results.value.length - 1) }
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
-function clear()    { query.value = ''; results.value = []; expressionSelected.value = false }
+function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = false }
 
 function handleClickOutside(e: MouseEvent) {
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) results.value = []
+  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
+    results.value = []
+    dropdownDismissed.value = true
+  }
 }
 
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))

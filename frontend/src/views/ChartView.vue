@@ -47,7 +47,7 @@
         </div>
       </div>
       <!-- Single panel only: timeframe selector -->
-      <div class="header-center" v-if="layoutStore.layout === '1'">
+      <div class="header-center" v-if="layoutStore.layout === '1' && chartStore.symbol">
         <TimeframeSelector v-model="currentTf" />
       </div>
       <div class="header-right">
@@ -197,6 +197,7 @@ watch(currentTf, async (tf) => {
   await chartStore.loadBars(chartStore.symbol, tf)
   if (chartStore.instrument) {
     await drawStore.loadDrawings(chartStore.instrument.id, tf)
+    await alertsStore.loadAlerts(chartStore.instrument.id)
   }
 })
 
