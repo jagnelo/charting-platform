@@ -82,7 +82,7 @@
               <VueDraggable
                 v-model="draggableIndicators"
                 handle=".ind-drag-handle"
-                animation="150"
+                :animation="150"
               >
                 <div
                   v-for="(ind, i) in draggableIndicators"
@@ -159,7 +159,7 @@
             <VueDraggable
               v-model="draggableDrawings"
               handle=".draw-drag-handle"
-              animation="150"
+              :animation="150"
               @end="onDrawingsReorder"
             >
               <div

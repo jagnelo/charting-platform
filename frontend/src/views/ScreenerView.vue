@@ -13,7 +13,7 @@
         <VueDraggable
           v-model="draggableScreeners"
           handle=".si-drag-handle"
-          animation="150"
+          :animation="150"
           @end="onScreenerReorder"
         >
           <div
