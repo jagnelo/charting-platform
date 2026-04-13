@@ -49,6 +49,7 @@ class PriceAlert(Base, TimestampMixin):
         SAEnum(AlertStatus), nullable=False, default=AlertStatus.ACTIVE, index=True
     )
     repeat: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    show_projection: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

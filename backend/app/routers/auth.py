@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -41,6 +42,10 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserSettingsUpdate(BaseModel):
+    settings: dict[str, Any]
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
@@ -125,3 +130,29 @@ async def update_me(
         current_user.display_name = display_name
     await db.commit()
     return current_user
+
+
+@router.get("/settings", response_model=dict[str, Any])
+async def get_settings(current_user: User = Depends(get_current_user)):
+    return current_user.settings or {}
+
+
+@router.patch("/settings", response_model=dict[str, Any])
+async def update_settings(
+    body: UserSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.settings = _deep_merge(current_user.settings or {}, body.settings)
+    await db.commit()
+    return current_user.settings
+
+
+def _deep_merge(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    result = dict(base)
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
