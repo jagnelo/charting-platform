@@ -35,7 +35,7 @@ export interface FibonacciDrawing extends DrawingBase {
 }
 
 export interface RectangleDrawing extends DrawingBase {
-  type: 'rectangle'
+  type: 'rectangle' | 'circle' | 'half_circle'
   points: [DrawingPoint, DrawingPoint]
   filled?: boolean
 }

@@ -108,6 +108,7 @@ const toolGroups: GroupDef[] = [
     tools: [
       { type: 'rectangle', label: 'Rectangle',      icon: '▭' },
       { type: 'circle',    label: 'Circle/Ellipse', icon: '◯' },
+      { type: 'half_circle', label: 'Half Circle',  icon: '◒' },
     ],
   },
   {

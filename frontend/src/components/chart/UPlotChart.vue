@@ -83,6 +83,7 @@
           <div class="sc-row"><kbd>Esc</kbd> Deselect / cancel tool</div>
           <div class="sc-row sc-mouse"><b>Scroll</b> Zoom on cursor</div>
           <div class="sc-row sc-mouse"><b>Shift+Scroll</b> Pan</div>
+          <div class="sc-row sc-mouse"><b>Shift+Click</b> Measure</div>
           <div class="sc-row sc-mouse"><b>Drag</b> Pan</div>
           <div class="sc-row sc-mouse"><b>Price axis drag</b> Zoom Y</div>
           <div class="sc-row sc-mouse"><b>Price axis dblclick</b> Reset Y</div>
@@ -109,6 +110,7 @@ import { candlestickPlugin } from '@/lib/uplot/plugins/candlestick'
 import { volumePlugin }      from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }  from '@/lib/uplot/plugins/alert-lines'
 import { DrawingRenderer }   from '@/lib/drawings/renderer'
+import type { MeasurementOverlay } from '@/lib/drawings/renderer'
 import { computeSMA }  from '@/lib/uplot/indicators/sma'
 import { computeEMA }  from '@/lib/uplot/indicators/ema'
 import { computeRSI }  from '@/lib/uplot/indicators/rsi'
@@ -147,6 +149,25 @@ let subPlotsMap: Record<string, uPlot> = {}
 let drawingRenderer: DrawingRenderer | null = null
 let resizeObserver: ResizeObserver | null = null
 let lastSeriesCount = 0
+let firstRenderedBarTs: string | null = null
+
+interface MeasurementPoint {
+  index: number
+  time: number
+  price: number
+}
+
+const measurement = reactive<{
+  active: boolean
+  frozen: boolean
+  start: MeasurementPoint | null
+  end: MeasurementPoint | null
+}>({
+  active: false,
+  frozen: false,
+  start: null,
+  end: null,
+})
 
 // ── OHLCV tooltip (top-left, TradingView style) ────────────────────────────
 interface TooltipState {
@@ -161,6 +182,7 @@ const tooltip = ref<TooltipState>({
 
 const fmt    = (v: number) => v != null ? v.toFixed(4) : '—'
 const fmtVol = (v: number) => v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : String(Math.round(v))
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function formatDate(ts: number, tf: Timeframe): string {
   const d = new Date(ts * 1000)
@@ -227,10 +249,37 @@ function timeToBarIndex(ts: number): number {
   return Math.max(0, Math.min(times.length - 1, lo))
 }
 
-function formatXAxisTick(idx: number): string {
+function formatXAxisTick(idx: number, u?: uPlot): string {
   const ts = barIndexToTime(idx)
   if (ts == null) return ''
-  return formatDate(ts, chartStore.timeframe)
+  const d = new Date(ts * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const mon = MONTHS[d.getMonth()]
+  const day = d.getDate()
+  const shortYear = `'${String(d.getFullYear()).slice(-2)}`
+  const visibleBars = u?.scales.x.min != null && u?.scales.x.max != null
+    ? Math.max(1, u.scales.x.max - u.scales.x.min)
+    : DEFAULT_BARS_VISIBLE
+  const intraday = !['D1','W1','MN'].includes(chartStore.timeframe)
+  if (visibleBars > 1100) return String(d.getFullYear())
+  if (visibleBars > 260) return `${mon} ${shortYear}`
+  if (visibleBars > 80) return `${mon} ${day}`
+  if (intraday) return `${mon} ${day} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${mon} ${day}, ${shortYear}`
+}
+
+function formatXAxisTicks(u: uPlot, ticks: (number | null)[]): string[] {
+  let lastPx = -Infinity
+  return ticks.map(t => {
+    if (t == null) return ''
+    const idx = Math.round(t)
+    const label = formatXAxisTick(idx, u)
+    const px = u.valToPos(idx, 'x')
+    const minGap = Math.max(42, label.length * 6 + 10)
+    if (px - lastPx < minGap) return ''
+    lastPx = px
+    return label
+  })
 }
 
 function toggleAutoY() {
@@ -242,7 +291,7 @@ function toggleAutoY() {
     autoY.value   = true
     manualYMin    = null
     manualYMax    = null
-    if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+    refreshScalesPreservingX()
   }
 }
 const ctxMenu        = reactive({ visible: false, y: 0 })
@@ -259,6 +308,98 @@ let manualYMax: number | null = null
 let interactionCleanup: (() => void) | null = null
 let snapGuard = false
 let syncGuard = false
+let suppressNextMouseDown = false
+
+interface ViewSnapshot {
+  xMin?: number
+  xMax?: number
+  yMin?: number
+  yMax?: number
+}
+
+function captureView(): ViewSnapshot | null {
+  if (!uplot) return null
+  return {
+    xMin: uplot.scales.x.min,
+    xMax: uplot.scales.x.max,
+    yMin: uplot.scales.y.min,
+    yMax: uplot.scales.y.max,
+  }
+}
+
+function restoreView(view: ViewSnapshot | null, xOffset = 0) {
+  if (!uplot || !view) return
+  if (view.xMin != null && view.xMax != null) {
+    uplot.setScale('x', { min: view.xMin + xOffset, max: view.xMax + xOffset })
+  }
+  if (!autoY.value && view.yMin != null && view.yMax != null) {
+    manualYMin = view.yMin
+    manualYMax = view.yMax
+    uplot.setScale('y', { min: view.yMin, max: view.yMax })
+  }
+}
+
+function refreshScalesPreservingX() {
+  if (!uplot) return
+  const view = captureView()
+  uplot.setData(uplot.data as uPlot.AlignedData)
+  restoreView(view)
+}
+
+function redrawVisuals() {
+  renderVisualOverlays()
+  const redraw = (uplot as any)?.redraw
+  if (typeof redraw === 'function') redraw.call(uplot)
+}
+
+function renderVisualOverlays(drawings: AnyDrawing[] = drawingOverlayList()) {
+  drawingRenderer?.renderAll(drawings, measurementOverlay())
+}
+
+function drawingOverlayList(base: AnyDrawing[] = drawStore.renderableDrawings): AnyDrawing[] {
+  if (!drawStore.activeToolType || drawingPoints.length === 0 || !drawingPreviewPoint) return base
+  return [
+    ...base,
+    {
+      type: drawStore.activeToolType as DrawingType,
+      points: [drawingPoints[0], drawingPreviewPoint],
+      style: { color: '#ffffff88', lineWidth: 1 },
+      isVisible: true,
+    } as any,
+  ]
+}
+
+function measurementOverlay(): MeasurementOverlay | null {
+  if (!uplot || !measurement.start || !measurement.end) return null
+  const start = measurement.start
+  const end = measurement.end
+  const x1 = uplot.valToPos(start.index, 'x')
+  const x2 = uplot.valToPos(end.index, 'x')
+  const y1 = uplot.valToPos(start.price, 'y')
+  const y2 = uplot.valToPos(end.price, 'y')
+  const priceDiff = end.price - start.price
+  const pctDiff = start.price !== 0 ? (priceDiff / start.price) * 100 : 0
+  const bars = end.index - start.index
+  return {
+    x1, y1, x2, y2,
+    label: [
+      `${priceDiff >= 0 ? '+' : ''}${priceDiff.toFixed(4)} (${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(2)}%)`,
+      `${bars >= 0 ? '+' : ''}${bars} bars`,
+      formatElapsed(Math.abs(end.time - start.time)),
+    ],
+  }
+}
+
+function formatElapsed(seconds: number): string {
+  const minute = 60
+  const hour = minute * 60
+  const day = hour * 24
+  const year = day * 365
+  if (seconds >= year) return `${(seconds / year).toFixed(1)}y`
+  if (seconds >= day) return `${Math.round(seconds / day)}d`
+  if (seconds >= hour) return `${Math.round(seconds / hour)}h`
+  return `${Math.round(seconds / minute)}m`
+}
 
 // ── Live polling ───────────────────────────────────────────────────────────────
 // Minimum poll intervals by timeframe — daily+ bars don't change intraday
@@ -378,7 +519,7 @@ function resetPriceScale() {
   ctxMenu.visible = false
   manualYMin  = null; manualYMax = null
   autoY.value = true
-  if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+  refreshScalesPreservingX()
 }
 
 // ── Indicator computation ─────────────────────────────────────────────────────
@@ -495,13 +636,11 @@ async function initChart() {
   // Snapshot the current viewport before destroying so we can restore it after
   // a rebuild (e.g. adding/modifying an indicator). Only falls back to
   // setInitialView on the very first render when uplot doesn't exist yet.
-  const savedView = uplot ? {
-    xMin: uplot.scales.x.min,
-    xMax: uplot.scales.x.max,
-  } : null
+  const savedView = captureView()
 
   destroyAll()
   drawingPoints = []
+  drawingPreviewPoint = null
   // Do NOT reset manualYMin/Max or autoY here — they survive rebuilds
   // (log toggle, indicator changes). Only explicit user actions reset them.
 
@@ -550,7 +689,11 @@ async function initChart() {
     },
 
     scales: {
-      x: { time: false },
+      x: {
+        time: false,
+        min: savedView?.xMin,
+        max: savedView?.xMax,
+      },
       y: {
         auto:  true,
         dir:   1,
@@ -562,12 +705,12 @@ async function initChart() {
 
     axes: [
       {
-        scale: 'x', size: 22, stroke: '#555',
+        scale: 'x', size: 30, gap: 4, stroke: '#555', font: '10px monospace',
         ticks: { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
-        values: (_u, ticks) => ticks.map(t => t == null ? '' : formatXAxisTick(Math.round(t))),
+        values: (_u, ticks) => formatXAxisTicks(_u, ticks),
       },
       {
-        scale:  'y', side: 1, size: 65, stroke: '#888',
+        scale:  'y', side: 1, size: 65, gap: 6, stroke: '#888', font: '10px monospace',
         ticks:  { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
         values: (_u, ticks) => ticks.map(t => t == null ? '' : t >= 1000 ? t.toFixed(0) : t.toFixed(2)),
       },
@@ -578,7 +721,7 @@ async function initChart() {
 
     hooks: {
       draw: [(u) => {
-        drawingRenderer?.renderAll(drawStore.renderableDrawings)
+        renderVisualOverlays()
       }],
       setCursor: [(u) => {
         updateTooltip(u, u.cursor.idx)
@@ -614,8 +757,9 @@ async function initChart() {
   }
 
   uplot = new uPlot(opts, buildData(), chartRef.value)
+  firstRenderedBarTs = chartStore.bars[0]?.ts ?? null
   if (savedView?.xMin != null && savedView?.xMax != null) {
-    uplot.setScale('x', { min: savedView.xMin, max: savedView.xMax })
+    restoreView(savedView)
     // Force an immediate, synchronous Y recompute against the restored X window.
     // Without this, uPlot batches Y recalculation to the next RAF, leaving the
     // internal Y scale state from the full-data initial render.  The result is
@@ -623,11 +767,12 @@ async function initChart() {
     // rebuild — adding an indicator, toggling log scale, etc.
     // This mirrors what setInitialView() does for the first-render path.
     uplot.setData(uplot.data as uPlot.AlignedData)
+    restoreView(savedView)
     // Keep isAtLatest in sync with the restored viewport
     const [xArr] = uplot.data as number[][]
     if (xArr?.length) {
-      const span = savedView.xMax! - savedView.xMin!
-      isAtLatest.value = savedView.xMax! >= xArr[xArr.length - 1] - span * 0.08
+      const span = savedView.xMax - savedView.xMin
+      isAtLatest.value = savedView.xMax >= xArr[xArr.length - 1] - span * 0.08
     }
   } else {
     setInitialView(uplot)
@@ -660,6 +805,7 @@ function goToLatest() {
   const latest = x[x.length - 1]
   uplot.setScale('x', { min: latest - span + 0.5, max: latest + 0.5 })
   isAtLatest.value = true
+  renderVisualOverlays()
 }
 
 // ── setData fast path ─────────────────────────────────────────────────────────
@@ -673,19 +819,17 @@ function updateData() {
   // right by the number of new bars. Preserve the viewport by offsetting.
   const prevLen = (uplot.data[0] as number[]).length
   const newLen  = (newData[0] as number[]).length
-  const prepended = newLen - prevLen
+  const newFirstBarTs = chartStore.bars[0]?.ts ?? null
+  const prepended = firstRenderedBarTs && newFirstBarTs !== firstRenderedBarTs
+    ? Math.max(0, newLen - prevLen)
+    : 0
 
-  const xMin = uplot.scales.x.min
-  const xMax = uplot.scales.x.max
+  const view = captureView()
   uplot.setData(newData)
+  firstRenderedBarTs = newFirstBarTs
   lastSeriesCount = currentCount
-  if (xMin != null && xMax != null) {
-    uplot.setScale('x', {
-      min: xMin + prepended,
-      max: xMax + prepended,
-    })
-  }
-  drawingRenderer?.renderAll(drawStore.renderableDrawings)
+  restoreView(view, prepended)
+  renderVisualOverlays()
   updateSubPaneData()
   updateTooltip(uplot, uplot.cursor.idx)
 }
@@ -718,6 +862,7 @@ function setupInteraction(u: uPlot) {
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
     updateAtLatest()
+    renderVisualOverlays()
     // Trigger older-page load when viewport approaches the left edge of loaded data
     if (min < PREFETCH_THRESHOLD && !chartStore.hasReachedStart && !chartStore.isLoadingMore) {
       chartStore.loadMoreBars()
@@ -745,6 +890,7 @@ function setupInteraction(u: uPlot) {
       manualYMin  = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
       manualYMax  = mid + half * f
       u.setScale('y', { min: manualYMin, max: manualYMax })
+      renderVisualOverlays()
       return
     }
 
@@ -780,6 +926,10 @@ function setupInteraction(u: uPlot) {
 
   const onMouseDown = (e: MouseEvent) => {
     if (e.button !== 0) return
+    if (suppressNextMouseDown) {
+      suppressNextMouseDown = false
+      return
+    }
     if (drawStore.activeToolType || drawStore.avwapDropActive) return
     cachedRect = liveRect()
 
@@ -825,6 +975,7 @@ function setupInteraction(u: uPlot) {
       manualYMin  = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
       manualYMax  = mid + half
       u.setScale('y', { min: manualYMin, max: manualYMax })
+      renderVisualOverlays()
       return
     }
     if (xAxisActive) {
@@ -849,6 +1000,14 @@ function setupInteraction(u: uPlot) {
     if (panActive || priceActive || xAxisActive || drawStore.activeToolType || drawStore.avwapDropActive) return
     if (isOnYAxis(e.clientX))   { wrapper.style.cursor = 'ns-resize'; return }
     if (isOnXAxis(e.clientY))   { wrapper.style.cursor = 'ew-resize'; return }
+    const rect = liveRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const hit = findHitDrawing(u, mx, my)
+    if (hit && !hit.isLocked) {
+      wrapper.style.cursor = hitDrawingHandle(u, hit, mx, my) == null ? 'move' : 'grab'
+      return
+    }
     wrapper.style.cursor = ''
   }
 
@@ -858,7 +1017,7 @@ function setupInteraction(u: uPlot) {
     if (isOnYAxis(e.clientX)) {
       manualYMin  = null; manualYMax = null
       autoY.value = true
-      u.setData(u.data as uPlot.AlignedData)
+      refreshScalesPreservingX()
     }
   }
 
@@ -909,7 +1068,9 @@ function setupInteraction(u: uPlot) {
       case 'Escape':
         drawStore.selectDrawing(null)
         drawStore.setActiveTool(null)
+        clearMeasurement()
         drawingPoints = []
+        drawingPreviewPoint = null
         break
     }
   }
@@ -1041,7 +1202,7 @@ function setupDrawingCanvas(u: uPlot) {
   drawingRenderer.attach(u)
   drawingRenderer.setTimeToXMapper((time: number) => u.valToPos(timeToBarIndex(time), 'x'))
   alignDrawingCanvas(u)
-  drawingRenderer.renderAll(drawStore.renderableDrawings)
+  renderVisualOverlays()
 }
 
 // Position the drawing canvas to exactly cover u.over (the inner plot area),
@@ -1070,6 +1231,141 @@ function syncCanvasSize(_w: number, _h: number) {
 }
 
 let drawingPoints: DrawingPoint[] = []
+let drawingPreviewPoint: DrawingPoint | null = null
+
+type DrawingDragMode = 'move' | 'point'
+interface DrawingDragState {
+  id: number
+  mode: DrawingDragMode
+  pointIndex: number | null
+  startPoints: DrawingPoint[]
+  startPointer: DrawingPoint
+}
+let drawingDrag: DrawingDragState | null = null
+
+function pointerToDrawingPoint(u: uPlot, e: PointerEvent): DrawingPoint {
+  const rect = u.over.getBoundingClientRect()
+  const idx = u.posToVal(e.clientX - rect.left, 'x')
+  const times = barTimestamps.value
+  if (!times.length) return { time: 0, price: u.posToVal(e.clientY - rect.top, 'y') }
+  const clampedIdx = Math.max(0, Math.min(times.length - 1, Math.round(idx)))
+  return {
+    time: times[clampedIdx] ?? 0,
+    price: u.posToVal(e.clientY - rect.top, 'y'),
+  }
+}
+
+function pointerToMeasurementPoint(u: uPlot, e: PointerEvent): MeasurementPoint {
+  const rect = u.over.getBoundingClientRect()
+  const idx = u.posToVal(e.clientX - rect.left, 'x')
+  const times = barTimestamps.value
+  if (!times.length) return { index: 0, time: 0, price: u.posToVal(e.clientY - rect.top, 'y') }
+  const clampedIdx = Math.max(0, Math.min(times.length - 1, Math.round(idx)))
+  return {
+    index: clampedIdx,
+    time: times[clampedIdx] ?? 0,
+    price: u.posToVal(e.clientY - rect.top, 'y'),
+  }
+}
+
+function clearMeasurement() {
+  measurement.active = false
+  measurement.frozen = false
+  measurement.start = null
+  measurement.end = null
+  renderVisualOverlays()
+}
+
+function patchDrawingPoints(id: number, points: DrawingPoint[], persist = false) {
+  const d = drawStore.drawings.find(x => x.id === id)
+  if (!d) return
+  const data = { ...(d.data as any), points }
+  if (persist) drawStore.updateDrawing(id, { data } as any)
+  else drawStore.localUpdateDrawing(id, { data } as any)
+}
+
+function hitDrawingHandle(u: uPlot, d: AnyDrawing, mx: number, my: number): number | null {
+  const HIT = 9
+  if (!d.points?.length) return null
+  const toX = (time: number) => u.valToPos(timeToBarIndex(time), 'x')
+  if ((d.type === 'circle' || d.type === 'half_circle') && d.points.length >= 2) {
+    const p0 = d.points[0]!
+    const p1 = d.points[1]!
+    const x1 = toX(p0.time), y1 = u.valToPos(p0.price, 'y')
+    const x2 = toX(p1.time), y2 = u.valToPos(p1.price, 'y')
+    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2
+    const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2
+    const handles = d.type === 'half_circle'
+      ? [
+          [cx - rx, cy],
+          [cx + rx, cy],
+          [cx, y2 <= y1 ? cy - ry : cy + ry],
+        ]
+      : [
+          [cx - rx, cy],
+          [cx, cy - ry],
+          [cx + rx, cy],
+          [cx, cy + ry],
+        ]
+    for (let i = 0; i < handles.length; i++) {
+      const [x, y] = handles[i]!
+      if (Math.hypot(mx - x, my - y) <= HIT) return i
+    }
+    return null
+  }
+  const handleCount = d.points.length === 1 ? 1 : 2
+  for (let i = 0; i < handleCount; i++) {
+    const p = d.points[i]
+    if (!p) continue
+    const x = toX(p.time)
+    const y = u.valToPos(p.price, 'y')
+    if (Math.hypot(mx - x, my - y) <= HIT) return i
+  }
+  return null
+}
+
+function updateDrawingDrag(u: uPlot, e: PointerEvent, persist = false) {
+  if (!drawingDrag) return
+  const cur = pointerToDrawingPoint(u, e)
+  let points: DrawingPoint[]
+  const drawing = drawStore.renderableDrawings.find(d => d.id === drawingDrag?.id)
+  if (
+    drawingDrag.mode === 'point'
+    && drawingDrag.pointIndex != null
+    && (drawing?.type === 'circle' || drawing?.type === 'half_circle')
+    && drawingDrag.startPoints.length >= 2
+  ) {
+    const [p0, p1] = drawingDrag.startPoints
+    points = [{ ...p0! }, { ...p1! }]
+    const left = Math.min(p0!.time, p1!.time)
+    const right = Math.max(p0!.time, p1!.time)
+    const top = Math.max(p0!.price, p1!.price)
+    const bottom = Math.min(p0!.price, p1!.price)
+    if (drawing?.type === 'half_circle') {
+      if (drawingDrag.pointIndex === 0) points = [{ time: cur.time, price: top }, { time: right, price: bottom }]
+      else if (drawingDrag.pointIndex === 1) points = [{ time: left, price: top }, { time: cur.time, price: bottom }]
+      else points = [{ time: left, price: cur.price }, { time: right, price: bottom }]
+    } else if (drawingDrag.pointIndex === 0) {
+      points = [{ time: cur.time, price: top }, { time: right, price: bottom }]
+    } else if (drawingDrag.pointIndex === 1) {
+      points = [{ time: left, price: cur.price }, { time: right, price: bottom }]
+    } else if (drawingDrag.pointIndex === 2) {
+      points = [{ time: left, price: top }, { time: cur.time, price: bottom }]
+    } else {
+      points = [{ time: left, price: top }, { time: right, price: cur.price }]
+    }
+  } else if (drawingDrag.mode === 'point' && drawingDrag.pointIndex != null) {
+    points = drawingDrag.startPoints.map((p, i) =>
+      i === drawingDrag!.pointIndex ? cur : { ...p }
+    )
+  } else {
+    const dt = cur.time - drawingDrag.startPointer.time
+    const dp = cur.price - drawingDrag.startPointer.price
+    points = drawingDrag.startPoints.map(p => ({ time: p.time + dt, price: p.price + dp }))
+  }
+  patchDrawingPoints(drawingDrag.id, points, persist)
+  renderVisualOverlays()
+}
 
 function setupDrawingInteraction(u: uPlot) {
   // Use u.over so events fire regardless of drawing canvas pointer-events state
@@ -1100,9 +1396,11 @@ function setupDrawingInteraction(u: uPlot) {
       finishDrawing([pt], drawStore.activeToolType); return
     }
     drawingPoints.push(pt)
+    drawingPreviewPoint = pt
     if (drawingPoints.length >= 2) {
       finishDrawing([...drawingPoints], drawStore.activeToolType)
       drawingPoints = []
+      drawingPreviewPoint = null
     }
   }, { capture: true })
 
@@ -1111,17 +1409,15 @@ function setupDrawingInteraction(u: uPlot) {
     const rect = over.getBoundingClientRect()
     const idx = u.posToVal(e.clientX - rect.left, 'x')
     const cur = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
-    drawingRenderer?.renderAll([
-      ...drawStore.renderableDrawings,
-      { type: drawStore.activeToolType as DrawingType, points: [drawingPoints[0], cur],
-        style: { color: '#ffffff88', lineWidth: 1 }, isVisible: true } as any,
-    ])
+    drawingPreviewPoint = cur
+    renderVisualOverlays()
   })
 
   over.addEventListener('contextmenu', (e) => {
     if (drawStore.activeToolType || drawStore.avwapDropActive) {
       e.preventDefault(); e.stopPropagation()
       drawingPoints = []
+      drawingPreviewPoint = null
       drawStore.setActiveTool(null)
       drawStore.setAvwapDrop(false)
     }
@@ -1136,6 +1432,38 @@ function setupHitDetection(u: uPlot) {
   if (!over) return
 
   over.addEventListener('pointerdown', (e) => {
+    if (measurement.active && e.button === 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      measurement.active = false
+      measurement.frozen = true
+      measurement.end = pointerToMeasurementPoint(u, e)
+      suppressNextMouseDown = true
+      renderVisualOverlays()
+      return
+    }
+    if (measurement.frozen && e.button === 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      suppressNextMouseDown = true
+      clearMeasurement()
+      return
+    }
+    if (e.shiftKey && e.button === 0 && !drawStore.activeToolType && !drawStore.avwapDropActive) {
+      e.preventDefault()
+      e.stopPropagation()
+      const start = pointerToMeasurementPoint(u, e)
+      measurement.active = true
+      measurement.frozen = false
+      measurement.start = start
+      measurement.end = start
+      drawStore.selectDrawing(null)
+      alertsStore.selectAlert(null)
+      chartStore.selectIndicator(null)
+      suppressNextMouseDown = true
+      renderVisualOverlays()
+      return
+    }
     if (drawStore.activeToolType) return  // drawing tool handles its own events
     drawCtxMenu.visible = false
     const rect   = over.getBoundingClientRect()
@@ -1143,10 +1471,38 @@ function setupHitDetection(u: uPlot) {
     const my     = e.clientY - rect.top
     const hitDraw = findHitDrawing(u, mx, my)
     if (hitDraw) {
+      e.preventDefault()
       e.stopPropagation()
       drawStore.selectDrawing(hitDraw.id ?? null)
       alertsStore.selectAlert(null)
       chartStore.selectIndicator(null)
+      if (e.button === 0 && hitDraw.id != null && !hitDraw.isLocked) {
+        suppressNextMouseDown = true
+        const handleIndex = hitDrawingHandle(u, hitDraw, mx, my)
+        drawingDrag = {
+          id: hitDraw.id,
+          mode: handleIndex == null ? 'move' : 'point',
+          pointIndex: handleIndex,
+          startPoints: hitDraw.points.map(p => ({ ...p })),
+          startPointer: pointerToDrawingPoint(u, e),
+        }
+        try { over.setPointerCapture?.(e.pointerId) } catch { /* pointer already released */ }
+        const onPointerMove = (moveEvent: PointerEvent) => {
+          moveEvent.preventDefault()
+          updateDrawingDrag(u, moveEvent)
+        }
+        const onPointerUp = (upEvent: PointerEvent) => {
+          updateDrawingDrag(u, upEvent, true)
+          drawingDrag = null
+          try { over.releasePointerCapture?.(e.pointerId) } catch { /* pointer already released */ }
+          window.removeEventListener('pointermove', onPointerMove)
+          window.removeEventListener('pointerup', onPointerUp)
+          window.removeEventListener('pointercancel', onPointerUp)
+        }
+        window.addEventListener('pointermove', onPointerMove)
+        window.addEventListener('pointerup', onPointerUp)
+        window.addEventListener('pointercancel', onPointerUp)
+      }
     } else {
       drawStore.selectDrawing(null)
       const alertId = findHitAlert(u, my)
@@ -1166,8 +1522,14 @@ function setupHitDetection(u: uPlot) {
         }
       }
     }
-    drawingRenderer?.renderAll(drawStore.renderableDrawings)
+    renderVisualOverlays()
   }, { capture: true })  // capture: true to fire before uPlot's own handlers
+
+  over.addEventListener('pointermove', (e) => {
+    if (!measurement.active) return
+    measurement.end = pointerToMeasurementPoint(u, e)
+    renderVisualOverlays()
+  })
 
   over.addEventListener('dblclick', (e) => {
     if (drawStore.activeToolType || drawStore.avwapDropActive) return
@@ -1263,17 +1625,33 @@ function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
       const onRight  = Math.abs(mx - maxX) < HIT && my >= minY - HIT && my <= maxY + HIT
       const onTop    = Math.abs(my - minY) < HIT && mx >= minX - HIT && mx <= maxX + HIT
       const onBottom = Math.abs(my - maxY) < HIT && mx >= minX - HIT && mx <= maxX + HIT
-      if (onLeft || onRight || onTop || onBottom) return d
+      const inside = mx >= minX && mx <= maxX && my >= minY && my <= maxY
+      if (onLeft || onRight || onTop || onBottom || inside) return d
       continue
     }
-    if (d.type === 'circle') {
+    if (d.type === 'circle' || d.type === 'half_circle') {
       const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2
       const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2
       if (rx < 1 || ry < 1) continue
       const nx = (mx - cx) / rx, ny = (my - cy) / ry
       const dist = Math.sqrt(nx * nx + ny * ny)
       const tol  = HIT / Math.min(rx, ry)
-      if (Math.abs(dist - 1) < tol) return d
+      if (d.type === 'half_circle') {
+        const topHalf = y2 <= y1
+        const onVisibleHalf = topHalf ? my <= cy + HIT : my >= cy - HIT
+        const nearArc = Math.abs(dist - 1) < tol && onVisibleHalf
+        const nearDiameter = Math.abs(my - cy) < HIT && mx >= cx - rx - HIT && mx <= cx + rx + HIT
+        if (nearArc || nearDiameter) return d
+      } else if (Math.abs(dist - 1) < tol || dist < 1) return d
+      continue
+    }
+    if (d.type === 'text_box') {
+      const text = (d as any).text ?? d.label ?? ''
+      const w = Math.max(40, String(text).length * 8)
+      const h = 18
+      if (mx >= x1 - HIT && mx <= x1 + w + HIT && my >= y1 - h - HIT && my <= y1 + HIT) {
+        return d
+      }
       continue
     }
     if (d.type === 'fibonacci_retracement' || d.type === 'fibonacci_extension') {
@@ -1305,9 +1683,10 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType) {
     trendline: '#64b5f6', horizontal_line: '#ffb74d',
     fibonacci_retracement: '#81c784', rectangle: '#ba68c8',
     text_box: '#ffffff', circle: '#f06292', arrow: '#a5d6a7',
+    half_circle: '#f06292',
   }
   await drawStore.saveDrawing({ type, points, style: { color: colors[type] ?? '#fff', lineWidth: 1.5 } } as any)
-  drawingRenderer?.renderAll(drawStore.renderableDrawings)
+  renderVisualOverlays()
 }
 
 // ── Resize ────────────────────────────────────────────────────────────────────
@@ -1316,7 +1695,7 @@ function handleResize() {
   const w = wrapperRef.value.clientWidth
   const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
   uplot.setSize({ width: w, height: h }); syncCanvasSize(w, h)
-  drawingRenderer?.resize(); drawingRenderer?.renderAll(drawStore.renderableDrawings)
+  drawingRenderer?.resize(); renderVisualOverlays()
   for (const sp of Object.values(subPlotsMap)) sp.setSize({ width: w, height: 110 })
 }
 
@@ -1325,6 +1704,7 @@ function destroyAll() {
   stopLivePolling()
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null
+  firstRenderedBarTs = null
   for (const sp of Object.values(subPlotsMap)) sp.destroy()
   subPlotsMap = {}
 }
@@ -1340,20 +1720,29 @@ onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
 watch(() => chartStore.activeIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(() => drawStore.renderableDrawings, () => {
-  drawingRenderer?.renderAll(drawStore.renderableDrawings)
+  renderVisualOverlays()
 }, { deep: true })
 
 // Reset in-progress drawing points whenever the active tool changes
-watch(() => drawStore.activeToolType, () => { drawingPoints = [] })
-watch(() => drawStore.avwapDropActive, () => { drawingPoints = [] })
+watch(() => drawStore.activeToolType, () => {
+  drawingPoints = []
+  drawingPreviewPoint = null
+})
+watch(() => drawStore.avwapDropActive, () => {
+  drawingPoints = []
+  drawingPreviewPoint = null
+})
 
 // Trigger a uPlot redraw when indicator/alert selection changes (so highlight plugin runs)
 watch(() => chartStore.selectedIndicatorIndex, () => {
-  if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+  redrawVisuals()
 })
 watch(() => alertsStore.selectedAlertId, () => {
-  if (uplot) uplot.setData(uplot.data as uPlot.AlignedData)
+  redrawVisuals()
 })
+watch(() => alertsStore.alerts, () => {
+  redrawVisuals()
+}, { deep: true })
 
 /** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
 function jumpToTs(isoTs: string) {
@@ -1469,7 +1858,7 @@ defineExpose({ jumpToTs })
 /* Y axis A/L buttons — TradingView style, pinned to bottom of Y axis */
 .yaxis-btns {
   position: absolute;
-  bottom: 28px;
+  bottom: 5px;
   right: 0;
   width: 65px; /* matches axis size */
   display: flex;

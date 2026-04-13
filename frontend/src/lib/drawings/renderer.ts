@@ -6,6 +6,14 @@ import type uPlot from 'uplot'
 import type { AnyDrawing, FibonacciDrawing, RectangleDrawing, TextBoxDrawing, TrendlineDrawing, HorizontalLineDrawing } from './types'
 import { FIBO_RETRACEMENT_LEVELS, FIBO_EXTENSION_LEVELS, FIBO_LEVEL_COLORS } from './types'
 
+export interface MeasurementOverlay {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  label: string[]
+}
+
 export class DrawingRenderer {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
@@ -35,13 +43,14 @@ export class DrawingRenderer {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
   }
 
-  renderAll(drawings: AnyDrawing[]) {
+  renderAll(drawings: AnyDrawing[], measurement?: MeasurementOverlay | null) {
     this.clear()
     if (!this.uplot) return
     for (const drawing of drawings) {
       if (drawing.isVisible === false) continue
       this.render(drawing)
     }
+    if (measurement) this.renderMeasurement(measurement)
   }
 
   private toPixel(time: number, price: number): [number, number] {
@@ -94,6 +103,9 @@ export class DrawingRenderer {
       case 'circle':
         this.renderCircle(drawing as RectangleDrawing)
         break
+      case 'half_circle':
+        this.renderHalfCircle(drawing as RectangleDrawing)
+        break
       case 'text_box':
         this.renderTextBox(drawing as TextBoxDrawing)
         break
@@ -130,6 +142,32 @@ export class DrawingRenderer {
     if (d.isSelected) {
       this.drawHandle(x1, y1)
       this.drawHandle(x2, y2)
+    }
+  }
+
+  private renderHalfCircle(d: RectangleDrawing) {
+    if (d.points.length < 2) return
+    const [x1, y1] = this.toPixel(d.points[0].time, d.points[0].price)
+    const [x2, y2] = this.toPixel(d.points[1].time, d.points[1].price)
+
+    const cx = (x1 + x2) / 2
+    const cy = (y1 + y2) / 2
+    const rx = Math.abs(x2 - x1) / 2
+    const ry = Math.abs(y2 - y1) / 2
+    const drawTop = y2 <= y1
+
+    this.ctx.beginPath()
+    if (drawTop) {
+      this.ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, Math.PI * 2)
+    } else {
+      this.ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI)
+    }
+    this.ctx.stroke()
+
+    if (d.isSelected) {
+      this.drawHandle(cx - rx, cy)
+      this.drawHandle(cx + rx, cy)
+      this.drawHandle(cx, drawTop ? cy - ry : cy + ry)
     }
   }
 
@@ -242,6 +280,11 @@ export class DrawingRenderer {
       this.ctx.fillRect(rx, ry, rw, rh)
     }
     this.ctx.strokeRect(rx, ry, rw, rh)
+
+    if (d.isSelected) {
+      this.drawHandle(x1, y1)
+      this.drawHandle(x2, y2)
+    }
   }
 
   private renderCircle(d: RectangleDrawing) {
@@ -258,6 +301,10 @@ export class DrawingRenderer {
     this.ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
     if (d.filled ?? false) this.ctx.fill()
     this.ctx.stroke()
+
+    if (d.isSelected) {
+      this.drawCircleHandles(cx, cy, rx, ry)
+    }
   }
 
   private renderTextBox(d: TextBoxDrawing) {
@@ -289,6 +336,11 @@ export class DrawingRenderer {
     this.ctx.moveTo(x2, y2)
     this.ctx.lineTo(x2 - size * Math.cos(angle + Math.PI / 6), y2 - size * Math.sin(angle + Math.PI / 6))
     this.ctx.stroke()
+
+    if (d.isSelected) {
+      this.drawHandle(x1, y1)
+      this.drawHandle(x2, y2)
+    }
   }
 
   private drawHandle(x: number, y: number) {
@@ -303,5 +355,50 @@ export class DrawingRenderer {
     this.ctx.fill()
     this.ctx.stroke()
     this.ctx.restore()
+  }
+
+  private drawCircleHandles(cx: number, cy: number, rx: number, ry: number) {
+    this.drawHandle(cx - rx, cy)
+    this.drawHandle(cx, cy - ry)
+    this.drawHandle(cx + rx, cy)
+    this.drawHandle(cx, cy + ry)
+  }
+
+  private renderMeasurement(m: MeasurementOverlay) {
+    const ctx = this.ctx
+    ctx.save()
+    ctx.strokeStyle = '#64b5f6'
+    ctx.fillStyle = '#64b5f6'
+    ctx.lineWidth = 1.2
+    ctx.setLineDash([4, 4])
+    ctx.beginPath()
+    ctx.moveTo(m.x1, m.y1)
+    ctx.lineTo(m.x2, m.y2)
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.arc(m.x1, m.y1, 3, 0, Math.PI * 2)
+    ctx.arc(m.x2, m.y2, 3, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.font = '11px monospace'
+    const padding = 6
+    const lineH = 15
+    const labelW = Math.max(...m.label.map(line => ctx.measureText(line).width)) + padding * 2
+    const labelH = m.label.length * lineH + padding * 2 - 3
+    let x = m.x2 + 10
+    let y = m.y2 - labelH - 10
+    if (x + labelW > this.canvas.width - 4) x = m.x2 - labelW - 10
+    if (y < 4) y = m.y2 + 10
+    if (y + labelH > this.canvas.height - 4) y = this.canvas.height - labelH - 4
+
+    ctx.fillStyle = 'rgba(12,12,12,0.92)'
+    ctx.strokeStyle = '#2a2a2a'
+    ctx.lineWidth = 1
+    ctx.fillRect(x, y, labelW, labelH)
+    ctx.strokeRect(x, y, labelW, labelH)
+    ctx.fillStyle = '#d7e8ff'
+    m.label.forEach((line, i) => ctx.fillText(line, x + padding, y + padding + 10 + i * lineH))
+    ctx.restore()
   }
 }

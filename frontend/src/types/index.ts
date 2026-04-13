@@ -21,6 +21,7 @@ export type DrawingType =
   | 'fibonacci_extension'
   | 'rectangle'
   | 'circle'
+  | 'half_circle'
   | 'triangle'
   | 'text_box'
   | 'arrow'

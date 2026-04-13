@@ -594,7 +594,7 @@ async function saveAsPreset() {
 // ── Drawings helpers ──────────────────────────────────────────────────────────
 const DRAW_ICONS: Record<string, string> = {
   trendline: '╱', ray: '→', horizontal_line: '─', vertical_line: '│',
-  rectangle: '▭', circle: '○', fibonacci_retracement: 'φ',
+  rectangle: '▭', circle: '○', half_circle: '◒', fibonacci_retracement: 'φ',
   fibonacci_extension: 'φ+', arrow: '↗', text_box: 'T',
 }
 
@@ -779,7 +779,8 @@ function drawPointLabel(type: string, idx: number, total: number): string {
     rectangle: ['Top-left', 'Bottom-right'],
     fibonacci_retracement: ['Start', 'End'],
     fibonacci_extension: ['Start', 'End'],
-    circle: ['Top-left', 'Bottom-right'],
+    circle: ['Bounds start', 'Bounds end'],
+    half_circle: ['Bounds start', 'Bounds end'],
   }
   return labels[type]?.[idx] ?? `Point ${idx + 1}`
 }
