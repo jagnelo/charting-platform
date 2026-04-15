@@ -7,11 +7,11 @@ export interface IndicatorAlertCreate {
   instrument_id: number
   timeframe: string
   indicator_a_type: string
-  indicator_a_params: Record<string, number>
+  indicator_a_params: Record<string, unknown>
   condition: string
   threshold_value?: number
   indicator_b_type?: string
-  indicator_b_params?: Record<string, number>
+  indicator_b_params?: Record<string, unknown>
   repeat?: boolean
   notes?: string
 }
@@ -126,14 +126,22 @@ export const useAlertsStore = defineStore('alerts', () => {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data)
       if (msg.type === 'alert_triggered') {
-        // Update the alert status in our local list
-        const alert = alerts.value.find(a => a.id === msg.alert_id)
-        if (alert) {
-          alert.status = 'triggered'
-          alert.triggered_at = msg.triggered_at
-          alert.last_known_price = msg.current_price
+        if (msg.alert_kind === 'indicator') {
+          const alert = indicatorAlerts.value.find(a => a.id === msg.alert_id)
+          if (alert) {
+            alert.status = 'triggered'
+            alert.triggered_at = msg.triggered_at
+            alert.last_value_a = msg.value_a
+            alert.last_value_b = msg.value_b
+          }
+        } else {
+          const alert = alerts.value.find(a => a.id === msg.alert_id)
+          if (alert) {
+            alert.status = 'triggered'
+            alert.triggered_at = msg.triggered_at
+            alert.last_known_price = msg.current_price
+          }
         }
-        // Show in-app toast
         showAlertToast(msg)
       }
     }

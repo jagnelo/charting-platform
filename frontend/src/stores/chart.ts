@@ -1,14 +1,24 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig } from '@/types'
+import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
 import { api } from '@/lib/api'
 
 const PAGE_SIZE = 500  // must match backend PAGE_SIZE
+const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
+  'ohlc',
+  'heikin_ashi',
+  'area',
+  'baseline',
+  'renko',
+  'kagi',
+  'point_figure',
+])
 
 function createChartStore(storeId: string) {
   return defineStore(storeId, () => {
     const symbol     = ref<string>('')
     const timeframe  = ref<Timeframe>('D1')
+    const barType    = ref<ChartBarType>('candles')
     const bars       = ref<OHLCVBar[]>([])
     const instrument = ref<Instrument | null>(null)
     const indicators = ref<IndicatorConfig[]>([])
@@ -62,11 +72,34 @@ function createChartStore(storeId: string) {
       } catch { /* silent */ }
     }
 
-    async function loadBars(sym: string, tf: Timeframe) {
+    function setBarType(type: ChartBarType) {
+      barType.value = type
+    }
+
+    async function fetchBarsPage(
+      sym: string,
+      tf: Timeframe,
+      opts: { before?: string; limit?: number; type?: ChartBarType } = {},
+    ): Promise<OHLCVBar[]> {
+      const type = opts.type ?? barType.value
+      const params: Record<string, any> = {}
+      if (opts.before) params.before = opts.before
+      if (opts.limit) params.limit = opts.limit
+
+      const encoded = encodeURIComponent(sym)
+      const raw = SERVER_TRANSFORMED_TYPES.has(type)
+        ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, { ...params, bar_type: type })
+        : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, params)
+      return _mapBars(raw)
+    }
+
+    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value) {
+      if (!sym || !tf) return
       isLoading.value = true
       error.value = null
       symbol.value = sym
       timeframe.value = tf
+      barType.value = nextBarType
       hasReachedStart.value = false
       isLoadingMore.value = false
       _stopCoveragePoller()
@@ -79,9 +112,9 @@ function createChartStore(storeId: string) {
       }
 
       try {
-        const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(sym)}/${tf}`)
-        bars.value = _mapBars(raw)
-        if (raw.length < PAGE_SIZE) hasReachedStart.value = true
+        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })
+        bars.value = mapped
+        if (mapped.length < PAGE_SIZE) hasReachedStart.value = true
         // For brand-new instruments the backend computes 52w stats only after D1
         // bars are persisted. Reload instrument here so those stats are available.
         if (instrument.value && !instrument.value.stats?.week52_high) {
@@ -104,19 +137,24 @@ function createChartStore(storeId: string) {
       const sym = symbol.value
       const tf  = timeframe.value
       try {
-        const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(sym)}/${tf}`, { before: oldestTs })
-        if (!raw.length) {
+        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs })
+        if (!mapped.length) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
           return
         }
         if (symbol.value !== sym || timeframe.value !== tf) return
-        bars.value = [..._mapBars(raw), ...bars.value]
-        if (raw.length < PAGE_SIZE) {
+        bars.value = [...mapped, ...bars.value]
+        if (mapped.length < PAGE_SIZE) {
           if (!isFetchingHistory.value) hasReachedStart.value = true
         }
       } catch { /* silent */ } finally {
         isLoadingMore.value = false
       }
+    }
+
+    async function fetchLatestBars(): Promise<OHLCVBar[]> {
+      if (!symbol.value || !timeframe.value) return []
+      return fetchBarsPage(symbol.value, timeframe.value)
     }
 
     function _mapBars(raw: any[]): OHLCVBar[] {
@@ -174,9 +212,11 @@ function createChartStore(storeId: string) {
 
     return {
       symbol, timeframe, bars, instrument, indicators, activeIndicators,
-      isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
+      barType,
+      isLoading, loading: isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
       selectedIndicatorIndex, editRequestIndicatorIndex,
       loadBars, loadMoreBars, loadInstrument,
+      setBarType, fetchLatestBars,
       setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
       selectIndicator, requestEditIndicator,
       saveIndicatorsForInstrument,

@@ -42,11 +42,49 @@ function remove(id: number) {
 
 function handleAlertEvent(e: Event) {
   const detail = (e as CustomEvent).detail
+  const title = `${detail.symbol} alert`
+  const message = `${detail.condition?.replace(/_/g, ' ')} ${detail.threshold ?? ''} — current: ${detail.current_price?.toFixed?.(4) ?? detail.value_a?.toFixed?.(4) ?? 'n/a'}`
   add({
     type: 'alert',
-    title: `🔔 ${detail.symbol}`,
-    message: `${detail.condition?.replace(/_/g, ' ')} $${detail.threshold} — current: $${detail.current_price?.toFixed(4)}`,
+    title,
+    message,
   })
+  playAlertSound()
+  showDesktopNotification(title, message)
+}
+
+async function showDesktopNotification(title: string, body: string) {
+  if (!('Notification' in window)) return
+  try {
+    let permission = Notification.permission
+    if (permission === 'default') permission = await Notification.requestPermission()
+    if (permission === 'granted') {
+      new Notification(title, { body, silent: true })
+    }
+  } catch {
+    /* Browser denied or blocked notification access. */
+  }
+}
+
+function playAlertSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = 880
+    gain.gain.value = 0.001
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22)
+    osc.stop(ctx.currentTime + 0.24)
+  } catch {
+    /* Autoplay policies can block audio until the user interacts with the page. */
+  }
 }
 
 onMounted(() => window.addEventListener('chart:alert-triggered', handleAlertEvent))

@@ -22,6 +22,14 @@ export interface PanelConfig {
   linkedToGlobal: boolean
 }
 
+export interface LayoutProfile {
+  id: string
+  name: string
+  layout: LayoutType
+  panels: PanelConfig[]
+  createdAt: number
+}
+
 const PRESET_PANEL_COUNT: Record<PresetLayout, number> = {
   '1':  1,
   '2h': 2,
@@ -32,6 +40,16 @@ const PRESET_PANEL_COUNT: Record<PresetLayout, number> = {
 }
 
 const DEFAULT_TIMEFRAMES: Timeframe[] = ['D1', 'H4', 'H1', 'M15', 'M30', 'W1', 'M5', 'M1']
+const PROFILE_STORAGE_KEY = 'chart.layoutProfiles.v1'
+
+function loadProfiles(): LayoutProfile[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 export function parseLayoutPanelCount(layout: LayoutType): number {
   if (layout in PRESET_PANEL_COUNT) return PRESET_PANEL_COUNT[layout as PresetLayout]
@@ -60,6 +78,7 @@ export const useLayoutStore = defineStore('layout', () => {
   const layout        = ref<LayoutType>('1')
   const panels        = ref<PanelConfig[]>(makePanels(1, []))
   const activePanelId = ref<string>('p0')
+  const profiles      = ref<LayoutProfile[]>(loadProfiles())
 
   const syncedTs        = ref<string | null>(null)
   const syncSourcePanel = ref<string | null>(null)
@@ -95,10 +114,42 @@ export const useLayoutStore = defineStore('layout', () => {
     isSyncEnabled.value = !isSyncEnabled.value
   }
 
+  function persistProfiles() {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profiles.value))
+  }
+
+  function saveProfile(name: string) {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const profile: LayoutProfile = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: trimmed,
+      layout: layout.value,
+      panels: panels.value.map(panel => ({ ...panel })),
+      createdAt: Date.now(),
+    }
+    profiles.value = [profile, ...profiles.value.filter(p => p.name !== trimmed)].slice(0, 12)
+    persistProfiles()
+  }
+
+  function loadProfile(id: string) {
+    const profile = profiles.value.find(p => p.id === id)
+    if (!profile) return
+    layout.value = profile.layout
+    panels.value = makePanels(parseLayoutPanelCount(profile.layout), profile.panels)
+    activePanelId.value = panels.value[0]?.id ?? 'p0'
+  }
+
+  function deleteProfile(id: string) {
+    profiles.value = profiles.value.filter(p => p.id !== id)
+    persistProfiles()
+  }
+
   return {
-    layout, panels, activePanelId, panelCount,
+    layout, panels, activePanelId, panelCount, profiles,
     syncedTs, syncSourcePanel, isSyncEnabled,
     setLayout, setActivePanel, updatePanel,
     setSyncedTs, toggleSync,
+    saveProfile, loadProfile, deleteProfile,
   }
 })

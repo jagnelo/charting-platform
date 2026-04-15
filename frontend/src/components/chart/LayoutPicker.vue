@@ -65,6 +65,18 @@
         <circle cx="16" cy="7" r="1.5" fill="currentColor" stroke="none" />
       </svg>
     </button>
+
+    <div class="profile-wrap">
+      <button class="lp-btn" title="Layout profiles" @click="showProfiles = !showProfiles">P</button>
+      <div v-if="showProfiles" class="profile-menu" @click.stop>
+        <button class="profile-action" @click="saveProfile">Save current layout</button>
+        <div class="profile-empty" v-if="!layoutStore.profiles.length">No saved profiles</div>
+        <div v-for="profile in layoutStore.profiles" :key="profile.id" class="profile-row">
+          <button class="profile-load" @click="loadProfile(profile.id)">{{ profile.name }}</button>
+          <button class="profile-delete" title="Delete profile" @click="layoutStore.deleteProfile(profile.id)">x</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -75,10 +87,11 @@ import type { PresetLayout } from '@/stores/layout'
 
 const layoutStore = useLayoutStore()
 
-const MAX_COLS = 5
+const MAX_COLS = 6
 const MAX_ROWS = 4
 
 const showGrid  = ref(false)
+const showProfiles = ref(false)
 const hoverCell = ref<{ col: number; row: number } | null>(null)
 
 const isCustomActive = computed(() => /^\d+x\d+$/.test(layoutStore.layout))
@@ -94,6 +107,17 @@ function applyCustomGrid(cols: number, rows: number) {
   // Single cell = single panel preset
   if (cols === 1 && rows === 1) { layoutStore.setLayout('1'); return }
   layoutStore.setLayout(`${cols}x${rows}`)
+}
+
+function saveProfile() {
+  const name = prompt('Layout profile name:')
+  if (name?.trim()) layoutStore.saveProfile(name)
+  showProfiles.value = false
+}
+
+function loadProfile(id: string) {
+  layoutStore.loadProfile(id)
+  showProfiles.value = false
 }
 
 interface RectDef { x: number; y: number; width: number; height: number }
@@ -204,6 +228,67 @@ const presets: LayoutOption[] = [
   position: relative;
 }
 
+.profile-wrap {
+  position: relative;
+}
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 190px;
+  padding: 4px;
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.profile-action,
+.profile-load,
+.profile-delete {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+.profile-action {
+  width: 100%;
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid #242424;
+  color: #64b5f6;
+}
+.profile-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+}
+.profile-load {
+  min-width: 0;
+  padding: 7px 8px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-delete {
+  color: #555;
+  height: 24px;
+}
+.profile-action:hover,
+.profile-load:hover,
+.profile-delete:hover { background: #202020; color: #eee; }
+.profile-delete:hover { color: #ef5350; }
+.profile-empty {
+  padding: 8px;
+  color: #555;
+  font-size: 11px;
+}
+
 .grid-popup {
   position: absolute;
   top: calc(100% + 6px);
@@ -220,7 +305,7 @@ const presets: LayoutOption[] = [
 
 .grid-cells {
   display: grid;
-  grid-template-columns: repeat(5, 18px);
+  grid-template-columns: repeat(6, 18px);
   grid-template-rows: repeat(4, 18px);
   gap: 3px;
 }

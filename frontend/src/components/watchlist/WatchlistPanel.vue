@@ -93,10 +93,14 @@
                     >
                       <div class="wlpi-left">
                         <span class="wlpi-sym">{{ item.symbol }}</span>
-                        <div v-if="store.priceMap[item.symbol!]" class="wlpi-prices">
-                          <span class="wlpi-close">{{ fmt(store.priceMap[item.symbol!].close) }}</span>
-                          <span :class="['wlpi-pct', store.priceMap[item.symbol!].pct >= 0 ? 'up' : 'down']">
-                            {{ fmtPct(store.priceMap[item.symbol!].pct) }}
+                        <div v-if="quoteFor(item.symbol)" class="wlpi-prices">
+                          <span :class="['wlpi-close', tickClass(item.symbol)]">{{ fmt(quoteFor(item.symbol)!.close) }}</span>
+                          <span :class="['wlpi-pct', quoteFor(item.symbol)!.pct >= 0 ? 'up' : 'down']">
+                            {{ fmtPct(quoteFor(item.symbol)!.pct) }}
+                          </span>
+                          <span class="wlpi-vol">V {{ fmtCompact(quoteFor(item.symbol)!.volume) }}</span>
+                          <span class="wlpi-range">
+                            {{ fmtCompact(quoteFor(item.symbol)!.dayLow) }}-{{ fmtCompact(quoteFor(item.symbol)!.dayHigh) }}
                           </span>
                         </div>
                       </div>
@@ -152,6 +156,7 @@ const isOpen = ref(true)
 
 /** Set of watchlist IDs that are currently expanded */
 const expanded = reactive(new Set<number>())
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 function canDeleteWatchlist(wl: Watchlist) {
   return wl.is_managed || !wl.is_locked
@@ -189,12 +194,14 @@ function daysAgo(dateStr: string): number {
 function toggleSection(id: number) {
   if (expanded.has(id)) {
     expanded.delete(id)
+    restartPolling()
   } else {
     expanded.add(id)
     const wl = store.watchlists.find(w => w.id === id)
     if (wl) {
       const syms = wl.items.map(i => i.symbol).filter(Boolean) as string[]
       store.fetchPrices(syms)
+      restartPolling()
     }
   }
 }
@@ -211,6 +218,22 @@ function toggleAll() {
       }
     }
   }
+  restartPolling()
+}
+
+function expandedSymbols(): string[] {
+  return store.watchlists
+    .filter(wl => expanded.has(wl.id))
+    .flatMap(wl => wl.items.map(item => item.symbol).filter(Boolean) as string[])
+}
+
+function restartPolling() {
+  if (pollTimer) clearInterval(pollTimer)
+  const symbols = expandedSymbols()
+  if (!symbols.length) return
+  pollTimer = setInterval(() => {
+    store.fetchPrices(expandedSymbols(), true)
+  }, 15_000)
 }
 
 // ── ⋯ dropdown menu ────────────────────────────────────────────────────────
@@ -231,7 +254,10 @@ function handleDocClick() {
 }
 
 onMounted(() => document.addEventListener('click', handleDocClick))
-onUnmounted(() => document.removeEventListener('click', handleDocClick))
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocClick)
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 // ── Rename ──────────────────────────────────────────────────────────────────
 const renamingId   = ref<number | null>(null)
@@ -319,6 +345,7 @@ watch(() => store.focusRequest, (id) => {
     const syms = wl.items.map(i => i.symbol).filter(Boolean) as string[]
     store.fetchPrices(syms)
   }
+  restartPolling()
   store.clearFocusRequest()
 })
 
@@ -332,6 +359,22 @@ function fmt(v: number) {
 function fmtPct(v: number) {
   const sign = v >= 0 ? '+' : ''
   return `${sign}${(v * 100).toFixed(2)}%`
+}
+function fmtCompact(v?: number) {
+  if (v == null || !Number.isFinite(v)) return '--'
+  const abs = Math.abs(v)
+  if (abs >= 1e9) return `${(v / 1e9).toFixed(1)}B`
+  if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`
+  if (abs >= 1e3) return `${(v / 1e3).toFixed(0)}K`
+  return String(Math.round(v))
+}
+function quoteFor(symbol?: string | null) {
+  return symbol ? store.priceMap[symbol.toUpperCase()] : null
+}
+function tickClass(symbol?: string | null) {
+  if (!symbol) return ''
+  const flash = store.flashMap[symbol.toUpperCase()]
+  return flash ? `tick-${flash}` : ''
 }
 </script>
 
@@ -363,7 +406,7 @@ function fmtPct(v: number) {
 .wlp-toggle:hover { color: #aaa; background: #111; }
 
 .wlp-body {
-  width: 220px;
+  width: 300px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -545,7 +588,8 @@ function fmtPct(v: number) {
 .wlp-section-items { background: #0a0a0a; }
 
 .wlp-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px;
   align-items: center;
   padding: 5px 8px 5px 18px;
   cursor: pointer;
@@ -571,10 +615,38 @@ function fmtPct(v: number) {
   gap: 1px;
 }
 .wlpi-sym   { font-size: 12px; font-weight: 700; color: #ddd; }
-.wlpi-prices { display: flex; align-items: center; gap: 4px; }
+.wlpi-prices {
+  display: grid;
+  grid-template-columns: 62px 56px 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+}
 .wlpi-close { font-size: 10px; color: #aaa; }
 .wlpi-pct   { font-size: 10px; font-weight: 600; }
+.wlpi-vol,
+.wlpi-range {
+  font-size: 9px;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .wlpi-spark { flex-shrink: 0; }
+
+.tick-up {
+  animation: tickUp 0.85s ease;
+}
+.tick-down {
+  animation: tickDown 0.85s ease;
+}
+@keyframes tickUp {
+  0% { background: rgba(38,166,154,0.36); color: #d9fff8; }
+  100% { background: transparent; color: #aaa; }
+}
+@keyframes tickDown {
+  0% { background: rgba(239,83,80,0.34); color: #ffe1df; }
+  100% { background: transparent; color: #aaa; }
+}
 
 .wlpi-departed-label {
   font-size: 9px;

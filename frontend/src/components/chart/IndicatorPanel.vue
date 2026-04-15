@@ -313,49 +313,38 @@
               <input type="range" min="0.5" max="4" step="0.5" v-model.number="indFields.lineWidth" class="ed-range" />
               <span class="ed-val">{{ indFields.lineWidth }}px</span>
             </div>
-            <template v-for="(_, key) in editingInd.params" :key="key">
+            <template v-for="param in editorParamDefs" :key="param.key">
               <div class="ed-row">
-                <label>{{ paramLabel(key as string) }}</label>
-                <template v-if="key === 'anchorTime'">
+                <label>{{ param.label }}</label>
+                <template v-if="param.input === 'datetime'">
                   <!-- Date-only input for non-intraday timeframes -->
                   <input
                     v-if="isNonIntradayTf"
                     type="date"
-                    :value="tsToDateOnlyInput(indFields.params.anchorTime as number)"
-                    @input="e => indFields.params.anchorTime = dateOnlyInputToTs((e.target as HTMLInputElement).value)"
+                    :value="tsToDateOnlyInput(indFields.params[param.key] as number)"
+                    @input="e => indFields.params[param.key] = dateOnlyInputToTs((e.target as HTMLInputElement).value)"
                     class="ed-input"
                   />
                   <input
                     v-else
                     type="datetime-local"
-                    :value="tsToDateInput(indFields.params.anchorTime as number)"
-                    @input="e => indFields.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
+                    :value="tsToDateInput(indFields.params[param.key] as number)"
+                    @input="e => indFields.params[param.key] = dateInputToTs((e.target as HTMLInputElement).value)"
                     class="ed-input"
                   />
                 </template>
+                <select
+                  v-else-if="param.input === 'select'"
+                  v-model="indFields.params[param.key]"
+                  class="ed-input"
+                >
+                  <option v-for="opt in param.options ?? []" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
                 <template v-else>
-                  <input type="number" v-model.number="indFields.params[key as string]" min="1" class="ed-input ed-num" />
+                  <input type="number" v-model.number="indFields.params[param.key]" step="any" class="ed-input ed-num" />
                 </template>
               </div>
             </template>
-            <!-- AVWAP without anchorTime yet (newly added via picker) -->
-            <div class="ed-row" v-if="editingInd.type === 'avwap' && !('anchorTime' in editingInd.params)">
-              <label>Anchor date</label>
-              <input
-                v-if="isNonIntradayTf"
-                type="date"
-                :value="tsToDateOnlyInput(indFields.params.anchorTime as number)"
-                @input="e => indFields.params.anchorTime = dateOnlyInputToTs((e.target as HTMLInputElement).value)"
-                class="ed-input"
-              />
-              <input
-                v-else
-                type="datetime-local"
-                :value="tsToDateInput(indFields.params.anchorTime as number)"
-                @input="e => indFields.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
-                class="ed-input"
-              />
-            </div>
             <!-- AVWAP preset shortcuts -->
             <div class="ed-row" v-if="editingInd.type === 'avwap'">
               <label>Presets</label>
@@ -365,7 +354,7 @@
                 <button class="preset-chip" @click="setAvwapPreset('ytd')" title="Start of current year">YTD</button>
               </div>
             </div>
-            <div class="ed-row" v-if="['rsi','macd'].includes(editingInd.type)">
+            <div class="ed-row" v-if="editingInd.type !== 'volume'">
               <label>Pane</label>
               <select v-model="indFields.pane" class="ed-input">
                 <option value="main">Main chart</option>
@@ -494,6 +483,14 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { usePresetsStore }  from '@/stores/presets'
 import AlertForm from '@/components/alerts/AlertForm.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
+import {
+  INDICATOR_CATALOG,
+  INDICATOR_BY_TYPE,
+  cloneDefaultIndicator,
+  indicatorDisplayName,
+  normalizeIndicatorParams,
+} from '@/lib/indicators/catalog'
+import type { IndicatorParamDef } from '@/lib/indicators/catalog'
 import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, IndicatorType } from '@/types'
 import { api } from '@/lib/api'
 import { VueDraggable } from 'vue-draggable-plus'
@@ -613,28 +610,8 @@ function onWatchlistClick(wlId: number) {
 const showPicker       = ref(false)
 const selectedPresetId = ref<number | ''>('')
 
-const availableTypes: Array<{ type: IndicatorType; label: string }> = [
-  { type: 'sma',    label: 'SMA — Simple Moving Average'       },
-  { type: 'ema',    label: 'EMA — Exponential Moving Average'  },
-  { type: 'vwap',   label: 'VWAP — Volume Weighted Avg Price'  },
-  { type: 'avwap',  label: 'AVWAP — Anchored VWAP'             },
-  { type: 'rsi',    label: 'RSI — Relative Strength Index'     },
-  { type: 'bb',     label: 'BB — Bollinger Bands'              },
-  { type: 'macd',   label: 'MACD — Moving Avg Convergence Div' },
-  { type: 'volume', label: 'Volume bars'                       },
-]
-
-const DEFAULTS: Record<IndicatorType, IndicatorConfig> = {
-  sma:    { type: 'sma',    params: { period: 20 }, style: { color: '#ffb74d', lineWidth: 1.5 }, pane: 'main'     },
-  ema:    { type: 'ema',    params: { period: 50 }, style: { color: '#64b5f6', lineWidth: 1.5 }, pane: 'main'     },
-  vwap:   { type: 'vwap',   params: {},             style: { color: '#ce93d8', lineWidth: 2   }, pane: 'main'     },
-  avwap:  { type: 'avwap',  params: { anchorTime: Math.floor(Date.now() / 1000) - 86400 * 30 },
-                                                    style: { color: '#80cbc4', lineWidth: 2   }, pane: 'main'     },
-  rsi:    { type: 'rsi',    params: { period: 14 }, style: { color: '#ef9a9a', lineWidth: 1.5 }, pane: 'separate' },
-  bb:     { type: 'bb',     params: { period: 20, stdDev: 2 }, style: { color: '#a5d6a7', lineWidth: 1 }, pane: 'main' },
-  macd:   { type: 'macd',   params: { fast: 12, slow: 26, signal: 9 }, style: { color: '#ef5350', lineWidth: 1.5 }, pane: 'separate' },
-  volume: { type: 'volume', params: {},             style: { color: '#4db6ac', lineWidth: 1   }, pane: 'main'     },
-}
+const availableTypes: Array<{ type: IndicatorType; label: string }> =
+  INDICATOR_CATALOG.map(item => ({ type: item.type, label: item.pickerLabel }))
 
 function isActiveOnCurrentTf(ind: IndicatorConfig): boolean {
   return !ind.lockedTimeframes?.length || ind.lockedTimeframes.includes(chartStore.timeframe)
@@ -647,17 +624,11 @@ function toggleIndProjection(i: number) {
 }
 
 function displayName(ind: IndicatorConfig): string {
-  if (ind.type === 'avwap' && ind.params.anchorTime) {
-    const d = new Date((ind.params.anchorTime as number) * 1000)
-    const label = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    return `AVWAP(${label})`
-  }
-  const params = Object.values(ind.params).join(',')
-  return params ? `${ind.type.toUpperCase()}(${params})` : ind.type.toUpperCase()
+  return indicatorDisplayName(ind)
 }
 
 function addIndicator(type: IndicatorType) {
-  chartStore.addIndicator({ ...DEFAULTS[type], params: { ...DEFAULTS[type].params } })
+  chartStore.addIndicator(cloneDefaultIndicator(type))
   showPicker.value = false
 }
 
@@ -731,11 +702,18 @@ function openIndEditor(i: number) {
   indFields.color            = ind.style.color
   indFields.lineWidth        = ind.style.lineWidth ?? 1.5
   indFields.pane             = (ind.pane ?? 'main') as 'main'|'separate'
-  indFields.params           = { ...ind.params }
+  indFields.params           = normalizeIndicatorParams(ind.type, ind.params)
   indFields.lockedTimeframes = ind.lockedTimeframes ? [...ind.lockedTimeframes] : []
   indFields.tfMode           = indFields.lockedTimeframes.length ? 'locked' : 'all'
   indEditorOpen.value = true
 }
+
+const editorParamDefs = computed<IndicatorParamDef[]>(() => {
+  if (!editingInd.value) return []
+  const catalog = INDICATOR_BY_TYPE[editingInd.value.type]
+  if (catalog?.params.length) return catalog.params
+  return Object.keys(indFields.params).map(key => ({ key, label: paramLabel(key) }))
+})
 
 function alertForIndicator(i: number) {
   openAlertEditor(null, null, chartStore.indicators[i])
@@ -794,9 +772,7 @@ function fmtTs(ts: number): string {
 }
 
 function fmtIndParams(type: string, params: Record<string, unknown>): string {
-  if (!params || !Object.keys(params).length) return type.toUpperCase()
-  if (type === 'avwap' && params.anchorTime) return `AVWAP(${fmtTs(params.anchorTime as number)})`
-  return `${type.toUpperCase()}(${Object.values(params).join(',')})`
+  return indicatorDisplayName({ type: type as IndicatorType, params: params ?? {} })
 }
 
 function indAlertLabel(a: IndicatorAlert): string {
@@ -892,7 +868,10 @@ const isNonIntradayTf = computed(() => NON_INTRADAY_TFS.has(chartStore.timeframe
 function paramLabel(key: string): string {
   const m: Record<string, string> = {
     period: 'Period', fast: 'Fast', slow: 'Slow',
-    signal: 'Signal', stdDev: 'Std dev', anchorTime: 'Anchor date',
+    signal: 'Signal', std_dev: 'Std dev', anchor_timestamp: 'Anchor date',
+    atr_period: 'ATR period', senkou_b: 'Senkou B',
+    af_start: 'AF start', af_step: 'AF step', af_max: 'AF max',
+    k_period: '%K period', d_period: '%D period', smooth_k: '%K smooth',
   }
   return m[key] ?? key.charAt(0).toUpperCase() + key.slice(1)
 }
@@ -932,7 +911,7 @@ function setAvwapPreset(preset: 'yesterday' | 'mtd' | 'ytd') {
   } else {
     d = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0)
   }
-  indFields.params.anchorTime = Math.floor(d.getTime() / 1000)
+  indFields.params.anchor_timestamp = Math.floor(d.getTime() / 1000)
 }
 
 // ── Chart-item double-click → open editor ─────────────────────────────────────

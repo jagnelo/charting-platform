@@ -29,7 +29,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.watchlist import Watchlist, WatchlistItem
-from app.services.indicators import OHLCVSeries, compute_indicator
+from app.services.indicators import OHLCVSeries, compute_indicator, normalize_indicator_params
 
 GRACE_PERIOD_DAYS = 7
 
@@ -45,6 +45,7 @@ SCREENER_LOOKBACK_BARS = 300
 
 
 def _params_hash(indicator_type: str, params: dict) -> str:
+    params = normalize_indicator_params(indicator_type, params)
     canonical = json.dumps({"type": indicator_type, "params": params}, sort_keys=True)
     return hashlib.md5(canonical.encode()).hexdigest()
 

@@ -10,6 +10,7 @@ from app.database import Base, engine
 from app.routers import (
     alerts,
     auth,
+    calendar,
     dashboards,
     drawings,
     indicators,
@@ -81,6 +82,7 @@ app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)
 app.include_router(screener_alerts.router, prefix=PREFIX)
+app.include_router(calendar.router, prefix=PREFIX)
 
 
 @app.get("/health")

@@ -10,6 +10,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
+from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
 
 router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
@@ -61,3 +62,67 @@ async def get_ohlcv(
     # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
     return await fetch_ohlcv_latest(db, instrument, timeframe, page, adjusted)
+
+
+@router.get("/{symbol:path}/{timeframe}/transformed", response_model=list[OHLCVBarOut])
+async def get_ohlcv_transformed(
+    symbol: str,
+    timeframe: Timeframe,
+    bar_type: str = Query(..., description=f"Bar transformation type. One of: {', '.join(TRANSFORM_REGISTRY)}"),
+    brick_size: float | None = Query(None, description="Renko: fixed brick size (auto if omitted)"),
+    reversal_pct: float | None = Query(None, description="Kagi: reversal % (default 1.0)"),
+    box_size: float | None = Query(None, description="Point & Figure: box size (auto if omitted)"),
+    reversal: int | None = Query(None, description="Point & Figure: reversal boxes (default 3)"),
+    start: datetime | None = Query(None),
+    end: datetime | None = Query(None),
+    before: datetime | None = Query(None, description="Return a transformed page ending before this timestamp"),
+    limit: int | None = Query(None, ge=1),
+    adjusted: bool = Query(True),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return OHLCV bars transformed into the requested bar type.
+    Fetches the raw bars first (up to PAGE_SIZE * 3 to give transforms enough
+    source material), then applies the transform.
+    """
+    if bar_type not in TRANSFORM_REGISTRY:
+        raise HTTPException(400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}")
+
+    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    instrument = result.scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found.")
+
+    await db.refresh(instrument, ["listings"])
+
+    # Fetch enough raw bars to feed the transform (transforms may collapse bars)
+    fetch_limit = PAGE_SIZE * 3
+    if before is not None:
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=UTC)
+        raw_bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, fetch_limit, adjusted)
+    elif start is not None:
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=UTC)
+        if end and end.tzinfo is None:
+            end = end.replace(tzinfo=UTC)
+        raw_bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+    else:
+        raw_bars = await fetch_ohlcv_latest(db, instrument, timeframe, fetch_limit, adjusted)
+
+    # Build transform params from query string
+    params: dict = {}
+    if brick_size is not None:
+        params["brick_size"] = brick_size
+    if reversal_pct is not None:
+        params["reversal_pct"] = reversal_pct
+    if box_size is not None:
+        params["box_size"] = box_size
+    if reversal is not None:
+        params["reversal"] = reversal
+
+    transformed = apply_transform(bar_type, raw_bars, params or None)
+    if limit:
+        transformed = transformed[-limit:]
+    return transformed

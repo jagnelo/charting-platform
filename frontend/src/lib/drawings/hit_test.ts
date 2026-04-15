@@ -126,5 +126,6 @@ function hitTestPoint(d: AnyDrawing, cx: number, cy: number, u: uPlot, timeToX: 
   const p = d.points[0]
   if (!p) return false
   const [x, y] = toPixel(p.time, p.price, u, timeToX)
-  return Math.abs(cx - x) < HIT_RADIUS && Math.abs(cy - y) < HIT_RADIUS
+  const pointRadius = HIT_RADIUS * 1.5
+  return Math.abs(cx - x) <= pointRadius && Math.abs(cy - y) <= pointRadius
 }

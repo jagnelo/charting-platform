@@ -114,8 +114,7 @@
             <label class="ed-field-row">
               <span>Primary rendering</span>
               <select v-model="userSettingsStore.chartType" class="ed-select">
-                <option value="candles">Candles</option>
-                <option value="line">Line</option>
+                <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
             <div class="ed-section-title">Y-Axis Projections</div>
@@ -126,6 +125,10 @@
             <label class="ed-checkbox-row">
               <input type="checkbox" v-model="userSettingsStore.showHighLowProjection" class="ed-checkbox" />
               Show visible high / low on Y axis
+            </label>
+            <label class="ed-checkbox-row">
+              <input type="checkbox" v-model="userSettingsStore.showApproxVolumeProfile" class="ed-checkbox" />
+              Show approximate volume profile
             </label>
           </div>
         </div>
@@ -144,6 +147,9 @@ import { useDrawingsStore }     from '@/stores/drawings'
 import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
+import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
+import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
+import { approxVolumeProfilePlugin } from '@/lib/uplot/plugins/approx-volume-profile'
 import { volumePlugin }            from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
 import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
@@ -154,13 +160,29 @@ import { computeSMA }  from '@/lib/uplot/indicators/sma'
 import { computeEMA }  from '@/lib/uplot/indicators/ema'
 import { computeRSI }  from '@/lib/uplot/indicators/rsi'
 import { computeVWAP, computeAVWAP } from '@/lib/uplot/indicators/vwap'
-import { api }         from '@/lib/api'
+import { computeMACD } from '@/lib/uplot/indicators/macd'
+import {
+  computeWMA, computeHMA, computeDEMA, computeTEMA,
+  computeATR, computeOBV, computeCCI, computeWilliamsR,
+  computeMFI, computeROC, computeMomentum, computeStdDev,
+  computeCMF, computePSAR, computeTRIX, computePPO, computeVolumeRatio,
+  computeBB, computeKeltner, computeDonchian,
+  computeADX, computeStoch, computeAroon,
+  computeIchimoku, computePivotPoints,
+} from '@/lib/uplot/indicators/all'
+import {
+  getParamNumber,
+  getParamString,
+  indicatorDisplayName,
+  normalizeIndicatorParams,
+} from '@/lib/indicators/catalog'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { DrawingType, IndicatorConfig, Timeframe } from '@/types'
+import type { DrawingType, IndicatorConfig, Timeframe, ChartBarType } from '@/types'
+import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
 const props = defineProps<{
-  chartType?: 'candles' | 'line'
+  chartType?: ChartBarType
 }>()
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -270,6 +292,7 @@ const isLogScale        = ref(false)
 const autoY             = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
 const showCurrentPriceProjection = computed(() => userSettingsStore.showCurrentPriceProjection)
 const showHighLowProjection = computed(() => userSettingsStore.showHighLowProjection)
+const showApproxVolumeProfile = computed(() => userSettingsStore.showApproxVolumeProfile)
 
 const barTimestamps = computed(() =>
   chartStore.bars.map(b => new Date(b.ts).getTime() / 1000)
@@ -532,13 +555,7 @@ function startLivePolling() {
     if (!chartStore.symbol || !chartStore.timeframe) return
     try {
       // Only fetch the latest page; merge any genuinely new bars at the tail
-      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(chartStore.symbol)}/${chartStore.timeframe}`)
-      const mapped = raw.map((b: any) => ({
-        ...b,
-        open: Number(b.open), high: Number(b.high),
-        low:  Number(b.low),  close: Number(b.close),
-        volume: b.volume != null ? Number(b.volume) : undefined,
-      }))
+      const mapped = await chartStore.fetchLatestBars()
       const existingLatestTs = chartStore.bars[chartStore.bars.length - 1]?.ts ?? ''
       const newLatestTs      = mapped[mapped.length - 1]?.ts ?? ''
       if (newLatestTs !== existingLatestTs) {
@@ -578,7 +595,7 @@ const subPanes = computed(() =>
     .filter(i => i.pane === 'separate')
     .map(i => ({
       key:    `${i.type}_${JSON.stringify(i.params)}`,
-      label:  `${i.type.toUpperCase()}(${Object.values(i.params).join(',')})`,
+      label:  indicatorDisplayName(i),
       config: i,
     }))
 )
@@ -633,17 +650,132 @@ function resetPriceScale() {
   refreshScalesPreservingX()
 }
 
+// ── Indicator output key helpers ──────────────────────────────────────────────
+
+/** Returns the canonical output keys for a given indicator type. Single-output → ['_']. */
+function getIndicatorOutputKeys(type: string): string[] {
+  switch (type) {
+    case 'bb': case 'keltner': case 'donchian':
+      return ['upper', 'mid', 'lower']
+    case 'ichimoku':
+      return ['tenkanLine', 'kijunLine', 'senkouALine', 'senkouBLine', 'chikouLine']
+    case 'pivot_points':
+      return ['pp', 'r1', 'r2', 'r3', 's1', 's2', 's3']
+    default:
+      return ['_']
+  }
+}
+
+/** Derives a per-output colour based on the indicator's base colour. */
+function getOutputColor(ind: IndicatorConfig, key: string): string {
+  const base = ind.style.color
+  switch (key) {
+    case '_':         return base
+    case 'upper':     return base
+    case 'mid':       return base + '99'
+    case 'lower':     return base
+    case 'tenkanLine':  return '#ef5350'
+    case 'kijunLine':   return '#2196f3'
+    case 'senkouALine': return '#26a69a88'
+    case 'senkouBLine': return '#ef535088'
+    case 'chikouLine':  return '#ab47bc'
+    case 'pp': return base
+    case 'r1': return '#ef535088'
+    case 'r2': return '#ef5350bb'
+    case 'r3': return '#ef5350'
+    case 's1': return '#26a69a88'
+    case 's2': return '#26a69abb'
+    case 's3': return '#26a69a'
+    default:   return base
+  }
+}
+
+/** Builds a human-readable series label for a given indicator + output key. */
+function getSeriesLabel(ind: IndicatorConfig, key: string): string {
+  const base = indicatorDisplayName(ind)
+  if (key === '_') return base
+  const suffix: Record<string, string> = {
+    upper: 'U', mid: 'M', lower: 'L',
+    tenkanLine: 'Tenkan', kijunLine: 'Kijun',
+    senkouALine: 'Span A', senkouBLine: 'Span B', chikouLine: 'Chikou',
+    pp: 'PP', r1: 'R1', r2: 'R2', r3: 'R3', s1: 'S1', s2: 'S2', s3: 'S3',
+  }
+  return `${base} ${suffix[key] ?? key}`
+}
+
+/** One entry in the flattened (expanded) list of main-pane series. */
+interface MainSeriesMeta {
+  ind: IndicatorConfig
+  outputKey: string
+  color: string
+  label: string
+}
+
+/**
+ * Returns the flat expanded list of main-pane indicator series metadata.
+ * Multi-output indicators (BB → upper/mid/lower) produce multiple entries.
+ * Ordering matches buildData() and buildSeries(): reversed indicator list.
+ */
+function buildExpandedMainIndList(): MainSeriesMeta[] {
+  const mainInds = [...chartStore.activeIndicators]
+    .reverse()
+    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+
+  const result: MainSeriesMeta[] = []
+  for (const ind of mainInds) {
+    for (const key of getIndicatorOutputKeys(ind.type)) {
+      result.push({
+        ind,
+        outputKey: key,
+        color: getOutputColor(ind, key),
+        label: getSeriesLabel(ind, key),
+      })
+    }
+  }
+  return result
+}
+
 // ── Indicator computation ─────────────────────────────────────────────────────
-function computeIndicatorSeries(
+
+/** Computes ALL outputs for a single indicator. Returns a Record keyed by output key. */
+function computeAllIndicatorOutputs(
   closes: number[], highs: number[], lows: number[],
   vols: number[], ts: number[], ind: IndicatorConfig,
-): (number | null)[] {
+): Record<string, (number | null)[]> {
+  const p = normalizeIndicatorParams(ind.type, ind.params)
+  const nil = () => new Array(closes.length).fill(null)
   switch (ind.type) {
-    case 'sma':    return computeSMA(closes, (ind.params.period as number) ?? 20)
-    case 'ema':    return computeEMA(closes, (ind.params.period as number) ?? 20)
-    case 'vwap':   return computeVWAP(ts, highs, lows, closes, vols)
-    case 'avwap':  return computeAVWAP(ts, highs, lows, closes, vols, (ind.params.anchorTime as number) ?? ts[0] ?? 0)
-    default:       return new Array(closes.length).fill(null)
+    case 'sma':      return { '_': computeSMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'ema':      return { '_': computeEMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'wma':      return { '_': computeWMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'hma':      return { '_': computeHMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'dema':     return { '_': computeDEMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'tema':     return { '_': computeTEMA(closes, getParamNumber(p, 'period', 20)) }
+    case 'vwap':     return { '_': computeVWAP(ts, highs, lows, closes, vols) }
+    case 'avwap':    return { '_': computeAVWAP(ts, highs, lows, closes, vols, getParamNumber(p, 'anchor_timestamp', ts[0] ?? 0)) }
+    case 'volume_ratio': return { '_': computeVolumeRatio(vols, getParamNumber(p, 'period', 20)) }
+    case 'psar':     return { '_': computePSAR(highs, lows, getParamNumber(p, 'af_start', 0.02), getParamNumber(p, 'af_step', 0.02), getParamNumber(p, 'af_max', 0.2)) }
+    case 'bb': {
+      const r = computeBB(closes, getParamNumber(p, 'period', 20), getParamNumber(p, 'std_dev', 2))
+      return { upper: r.upper, mid: r.mid, lower: r.lower }
+    }
+    case 'keltner': {
+      const r = computeKeltner(highs, lows, closes, getParamNumber(p, 'period', 20), getParamNumber(p, 'atr_period', 10), getParamNumber(p, 'multiplier', 2))
+      return { upper: r.upper, mid: r.mid, lower: r.lower }
+    }
+    case 'donchian': {
+      const r = computeDonchian(highs, lows, getParamNumber(p, 'period', 20))
+      return { upper: r.upper, mid: r.mid, lower: r.lower }
+    }
+    case 'ichimoku': {
+      const r = computeIchimoku(highs, lows, closes, getParamNumber(p, 'tenkan', 9), getParamNumber(p, 'kijun', 26), getParamNumber(p, 'senkou_b', 52), getParamNumber(p, 'displacement', 26))
+      return { tenkanLine: r.tenkanLine, kijunLine: r.kijunLine, senkouALine: r.senkouALine, senkouBLine: r.senkouBLine, chikouLine: r.chikouLine }
+    }
+    case 'pivot_points': {
+      const r = computePivotPoints(highs, lows, closes, getParamString(p, 'method', 'classic') as 'classic' | 'fibonacci' | 'camarilla')
+      return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 }
+    }
+    default: return { '_': nil() }
   }
 }
 
@@ -656,12 +788,20 @@ function buildData(): uPlot.AlignedData {
   const lows   = chartStore.bars.map(b => b.low)
   const closes = chartStore.bars.map(b => b.close)
   const vols   = chartStore.bars.map(b => b.volume ?? 0)
-  // Reversed: index 0 (top of UI list) → last series → highest z-index (drawn on top)
-  const mainInds = [...chartStore.activeIndicators]
-    .reverse()
-    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
-  const extra = mainInds.map(i => computeIndicatorSeries(closes, highs, lows, vols, ts, i))
-  return [barIdx, opens, highs, lows, closes, vols, ...extra] as uPlot.AlignedData
+
+  // Build expanded flat list of main-pane series (multi-output indicators produce multiple entries)
+  const expandedList = buildExpandedMainIndList()
+  // Cache per-indicator computation to avoid redundant work for multi-output types
+  const outputCache = new Map<IndicatorConfig, Record<string, (number | null)[]>>()
+  const extraData = expandedList.map(meta => {
+    if (!outputCache.has(meta.ind)) {
+      outputCache.set(meta.ind, computeAllIndicatorOutputs(closes, highs, lows, vols, ts, meta.ind))
+    }
+    const outputs = outputCache.get(meta.ind)!
+    return (outputs[meta.outputKey] ?? new Array(closes.length).fill(null)) as (number | null)[]
+  })
+
+  return [barIdx, opens, highs, lows, closes, vols, ...extraData] as uPlot.AlignedData
 }
 
 // ── Indicator selection highlight plugin ──────────────────────────────────────
@@ -671,18 +811,10 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
       draw: [(u: uPlot) => {
         const selIdx = chartStore.selectedIndicatorIndex
         if (selIdx == null) return
+        const selInd = chartStore.indicators[selIdx]
+        if (!selInd) return
 
-        const mainInds = [...chartStore.activeIndicators]
-          .reverse()
-          .filter(i => i.pane !== 'separate' && i.type !== 'volume')
-
-        const mi = mainInds.findIndex(ind => chartStore.indicators.indexOf(ind) === selIdx)
-        if (mi < 0) return
-
-        const ind = mainInds[mi]
-        const seriesData = (u.data as number[][])[6 + mi]
-        if (!seriesData) return
-
+        const expandedList = buildExpandedMainIndList()
         const dpr = devicePixelRatio || 1
         const { ctx } = u
 
@@ -691,23 +823,31 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
         ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height)
         ctx.clip()
 
-        ctx.strokeStyle = ind.style.color
-        ctx.lineWidth   = ((ind.style.lineWidth ?? 1.5) + 1.5) * dpr
-        ctx.shadowColor = ind.style.color
-        ctx.shadowBlur  = 8
-        ctx.setLineDash([])
-        ctx.beginPath()
+        for (let ei = 0; ei < expandedList.length; ei++) {
+          const meta = expandedList[ei]
+          if (meta.ind !== selInd) continue
 
-        let started = false
-        for (let i = 0; i < seriesData.length; i++) {
-          const val = seriesData[i]
-          if (val == null || isNaN(val)) { started = false; continue }
-          const x = u.valToPos((u.data[0] as number[])[i], 'x', true)
-          const y = u.valToPos(val, 'y', true)
-          if (!started) { ctx.moveTo(x, y); started = true }
-          else ctx.lineTo(x, y)
+          const seriesData = (u.data as number[][])[6 + ei]
+          if (!seriesData) continue
+
+          ctx.strokeStyle = meta.color
+          ctx.lineWidth   = ((meta.ind.style.lineWidth ?? 1.5) + 1.5) * dpr
+          ctx.shadowColor = meta.color
+          ctx.shadowBlur  = 8
+          ctx.setLineDash([])
+          ctx.beginPath()
+
+          let started = false
+          for (let i = 0; i < seriesData.length; i++) {
+            const val = seriesData[i]
+            if (val == null || isNaN(val)) { started = false; continue }
+            const x = u.valToPos((u.data[0] as number[])[i], 'x', true)
+            const y = u.valToPos(val, 'y', true)
+            if (!started) { ctx.moveTo(x, y); started = true }
+            else ctx.lineTo(x, y)
+          }
+          ctx.stroke()
         }
-        ctx.stroke()
         ctx.restore()
       }],
     },
@@ -716,12 +856,15 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
 
 // ── Build series ──────────────────────────────────────────────────────────────
 function buildSeries(): uPlot.Series[] {
-  const closeSeries: uPlot.Series = effectiveChartType.value === 'line'
+  // area/baseline render as a visible close line; candlestick types hide it
+  const isLineBased = effectiveChartType.value === 'line' || effectiveChartType.value === 'area' || effectiveChartType.value === 'baseline'
+  const closeSeries: uPlot.Series = isLineBased
     ? {
         label: 'Close',
         scale: 'y',
         stroke: '#64b5f6',
         width: 1.6,
+        fill: effectiveChartType.value === 'area' ? 'rgba(100,181,246,0.12)' : undefined,
         points: { show: false },
       }
     : { label: 'Close', scale: 'y', show: false }
@@ -733,16 +876,13 @@ function buildSeries(): uPlot.Series[] {
     closeSeries,
     { label: 'Volume', scale: 'vol', show: false },
   ]
-  // Reversed: index 0 (top of UI list) → last series → highest z-index (drawn on top)
-  const mainInds = [...chartStore.activeIndicators]
-    .reverse()
-    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
-  for (const ind of mainInds) {
+  // Expanded flat list: multi-output indicators (BB, etc.) produce multiple series
+  for (const meta of buildExpandedMainIndList()) {
     base.push({
-      label:  `${ind.type.toUpperCase()}(${Object.values(ind.params).join(',')})`,
+      label:  meta.label,
       scale:  'y',
-      stroke: ind.style.color,
-      width:  ind.style.lineWidth ?? 1.5,
+      stroke: meta.color,
+      width:  meta.ind.style.lineWidth ?? 1.5,
       points: { show: false },
     })
   }
@@ -771,16 +911,19 @@ function getProjectionItems(): ProjectionItem[] {
   const items: ProjectionItem[] = []
 
   // ── Main-pane indicators with showYProjection ────────────────────────────
-  const mainInds = [...chartStore.activeIndicators]
-    .reverse()
-    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
+  // Use expanded list; project only the first output of each indicator to avoid duplicates.
+  const expandedList = buildExpandedMainIndList()
+  const projectedInds = new Set<IndicatorConfig>()
 
-  for (let mi = 0; mi < mainInds.length; mi++) {
-    const ind = mainInds[mi]
+  for (let ei = 0; ei < expandedList.length; ei++) {
+    const meta = expandedList[ei]
+    const ind = meta.ind
     if (!ind.showYProjection) continue
-    const seriesData = (u.data as number[][])[6 + mi]
+    if (projectedInds.has(ind)) continue  // already emitted a chip for this indicator
+    projectedInds.add(ind)
+
+    const seriesData = (u.data as number[][])[6 + ei]
     if (!seriesData) continue
-    // Walk back from the rightmost visible bar to find the last non-null value
     const rightIdx = Math.min(Math.floor(xMax), seriesData.length - 1)
     let lastVal: number | null = null
     let lastIdx = -1
@@ -792,14 +935,10 @@ function getProjectionItems(): ProjectionItem[] {
     if (lastVal == null) continue
     let label: string
     if (ind.type === 'avwap') {
-      const anchorTime = Number(ind.params.anchorTime)
-      if (anchorTime) {
-        label = `AVWAP\n${formatProjectionDate(anchorTime)}`
-      } else {
-        label = 'AVWAP'
-      }
+      const anchorTime = getParamNumber(ind.params, 'anchor_timestamp', 0)
+      label = anchorTime ? `AVWAP\n${formatProjectionDate(anchorTime)}` : 'AVWAP'
     } else {
-      label = `${ind.type.toUpperCase()}(${Object.values(ind.params).join(',')})`
+      label = indicatorDisplayName(ind)
     }
     items.push({ price: lastVal, color: ind.style.color, chipLabel: label, originX: lastIdx })
   }
@@ -906,7 +1045,17 @@ async function initChart() {
     yAxisProjectionsPlugin(() => getProjectionItems()),
   ]
 
-  if (effectiveChartType.value === 'candles') {
+  if (effectiveChartType.value === 'ohlc') {
+    plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
+  } else if (effectiveChartType.value === 'baseline') {
+    plugins.unshift(baselinePlugin())
+  } else if (
+    effectiveChartType.value === 'candles'
+    || effectiveChartType.value === 'heikin_ashi'
+    || effectiveChartType.value === 'renko'
+    || effectiveChartType.value === 'kagi'
+    || effectiveChartType.value === 'point_figure'
+  ) {
     plugins.unshift(candlestickPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
   }
 
@@ -917,6 +1066,10 @@ async function initChart() {
       downColor: 'rgba(239,83,80,0.35)',
       heightRatio: 0.18,
     }))
+  }
+
+  if (showApproxVolumeProfile.value) {
+    plugins.push(approxVolumeProfilePlugin())
   }
 
   const opts: uPlot.Options = {
@@ -1341,6 +1494,86 @@ function setupInteraction(u: uPlot) {
 }
 
 // ── Sub-panes ─────────────────────────────────────────────────────────────────
+
+interface SubPaneOutput {
+  key: string
+  values: (number | null)[]
+  color: string
+  label: string
+}
+
+/** Compute all output series for a sub-pane indicator. Multi-output types return multiple entries. */
+function computeSubPaneOutputs(
+  ind: IndicatorConfig,
+  closes: number[], highs: number[], lows: number[],
+  vols: number[], ts: number[],
+): SubPaneOutput[] {
+  const p = normalizeIndicatorParams(ind.type, ind.params)
+  const n = closes.length
+  const nil = (): (number | null)[] => new Array(n).fill(null)
+
+  switch (ind.type) {
+    case 'rsi':
+      return [{ key: '_', values: computeRSI(closes, getParamNumber(p, 'period', 14)), color: ind.style.color, label: `RSI(${getParamNumber(p, 'period', 14)})` }]
+    case 'macd': {
+      const r = computeMACD(closes, getParamNumber(p, 'fast', 12), getParamNumber(p, 'slow', 26), getParamNumber(p, 'signal', 9))
+      return [
+        { key: 'macd',      values: r.macd,      color: ind.style.color, label: 'MACD' },
+        { key: 'signal',    values: r.signal,    color: '#ffb74d',       label: 'Signal' },
+        { key: 'histogram', values: r.histogram, color: '#26a69a66',     label: 'Hist' },
+      ]
+    }
+    case 'adx': {
+      const r = computeADX(highs, lows, closes, getParamNumber(p, 'period', 14))
+      return [
+        { key: 'adx',      values: r.adx,      color: ind.style.color, label: 'ADX' },
+        { key: 'plus_di',  values: r.plus_di,  color: '#26a69a',       label: '+DI' },
+        { key: 'minus_di', values: r.minus_di, color: '#ef5350',       label: '-DI' },
+      ]
+    }
+    case 'stoch': {
+      const r = computeStoch(highs, lows, closes, getParamNumber(p, 'k_period', 14), getParamNumber(p, 'smooth_k', 3), getParamNumber(p, 'd_period', 3))
+      return [
+        { key: 'k', values: r.k, color: ind.style.color, label: '%K' },
+        { key: 'd', values: r.d, color: '#ffb74d',       label: '%D' },
+      ]
+    }
+    case 'aroon': {
+      const r = computeAroon(highs, lows, getParamNumber(p, 'period', 25))
+      return [
+        { key: 'up',   values: r.up,   color: '#26a69a', label: 'Aroon Up' },
+        { key: 'down', values: r.down, color: '#ef5350', label: 'Aroon Down' },
+      ]
+    }
+    case 'cci':
+      return [{ key: '_', values: computeCCI(highs, lows, closes, getParamNumber(p, 'period', 20)), color: ind.style.color, label: `CCI(${getParamNumber(p, 'period', 20)})` }]
+    case 'williams_r':
+      return [{ key: '_', values: computeWilliamsR(highs, lows, closes, getParamNumber(p, 'period', 14)), color: ind.style.color, label: `%R(${getParamNumber(p, 'period', 14)})` }]
+    case 'roc':
+      return [{ key: '_', values: computeROC(closes, getParamNumber(p, 'period', 10)), color: ind.style.color, label: `ROC(${getParamNumber(p, 'period', 10)})` }]
+    case 'momentum':
+      return [{ key: '_', values: computeMomentum(closes, getParamNumber(p, 'period', 10)), color: ind.style.color, label: `MOM(${getParamNumber(p, 'period', 10)})` }]
+    case 'mfi':
+      return [{ key: '_', values: computeMFI(highs, lows, closes, vols, getParamNumber(p, 'period', 14)), color: ind.style.color, label: `MFI(${getParamNumber(p, 'period', 14)})` }]
+    case 'cmf':
+      return [{ key: '_', values: computeCMF(highs, lows, closes, vols, getParamNumber(p, 'period', 20)), color: ind.style.color, label: `CMF(${getParamNumber(p, 'period', 20)})` }]
+    case 'obv':
+      return [{ key: '_', values: computeOBV(closes, vols), color: ind.style.color, label: 'OBV' }]
+    case 'volume_ratio':
+      return [{ key: '_', values: computeVolumeRatio(vols, getParamNumber(p, 'period', 20)), color: ind.style.color, label: `VolRatio(${getParamNumber(p, 'period', 20)})` }]
+    case 'atr':
+      return [{ key: '_', values: computeATR(highs, lows, closes, getParamNumber(p, 'period', 14)), color: ind.style.color, label: `ATR(${getParamNumber(p, 'period', 14)})` }]
+    case 'stddev':
+      return [{ key: '_', values: computeStdDev(closes, getParamNumber(p, 'period', 20)), color: ind.style.color, label: `StdDev(${getParamNumber(p, 'period', 20)})` }]
+    case 'trix':
+      return [{ key: '_', values: computeTRIX(closes, getParamNumber(p, 'period', 15)), color: ind.style.color, label: `TRIX(${getParamNumber(p, 'period', 15)})` }]
+    case 'ppo':
+      return [{ key: '_', values: computePPO(closes, getParamNumber(p, 'fast', 12), getParamNumber(p, 'slow', 26)), color: ind.style.color, label: `PPO(${getParamNumber(p, 'fast', 12)},${getParamNumber(p, 'slow', 26)})` }]
+    default:
+      return [{ key: '_', values: nil(), color: ind.style.color, label: ind.type.toUpperCase() }]
+  }
+}
+
 async function buildSubPanes() {
   await nextTick()
   const x = chartStore.bars.map((_, i) => i)
@@ -1354,7 +1587,8 @@ async function buildSubPanes() {
   for (const pane of subPanes.value) {
     const el = subPaneRefs[pane.key]
     if (!el) continue
-    const values = computeSubPaneSeries(pane.config, closes, highs, lows, vols, ts)
+
+    const outputs = computeSubPaneOutputs(pane.config, closes, highs, lows, vols, ts)
     const w = wrapperRef.value?.clientWidth || 900
 
     const subOpts: uPlot.Options = {
@@ -1370,13 +1604,19 @@ async function buildSubPanes() {
       ],
       series: [
         {},
-        { label: pane.label, stroke: pane.config.style.color, width: pane.config.style.lineWidth ?? 1.5, points: { show: false } },
+        ...outputs.map(o => ({
+          label:  o.label,
+          stroke: o.color,
+          width:  pane.config.style.lineWidth ?? 1.5,
+          points: { show: false },
+        })),
       ],
       plugins: getSubPaneRefLines(pane.config.type).length
         ? [refLinesPlugin(getSubPaneRefLines(pane.config.type))] : [],
     }
 
-    const sp = new uPlot(subOpts, [x, values] as uPlot.AlignedData, el)
+    const alignedData: uPlot.AlignedData = [x, ...outputs.map(o => o.values)] as uPlot.AlignedData
+    const sp = new uPlot(subOpts, alignedData, el)
     subPlotsMap[pane.key] = sp
 
     el.addEventListener('wheel', (e: WheelEvent) => {
@@ -1386,13 +1626,6 @@ async function buildSubPanes() {
         ctrlKey: e.ctrlKey, bubbles: true, cancelable: true,
       }))
     }, { passive: false, capture: true })
-  }
-}
-
-function computeSubPaneSeries(ind: IndicatorConfig, closes: number[], highs: number[], lows: number[], vols: number[], ts: number[]): (number | null)[] {
-  switch (ind.type) {
-    case 'rsi': return computeRSI(closes, (ind.params.period as number) ?? 14)
-    default:    return new Array(closes.length).fill(null)
   }
 }
 
@@ -1407,17 +1640,55 @@ function updateSubPaneData() {
   for (const pane of subPanes.value) {
     const sp = subPlotsMap[pane.key]
     if (!sp) continue
-    sp.setData([x, computeSubPaneSeries(pane.config, closes, highs, lows, vols, ts)] as uPlot.AlignedData)
+    const outputs = computeSubPaneOutputs(pane.config, closes, highs, lows, vols, ts)
+    sp.setData([x, ...outputs.map(o => o.values)] as uPlot.AlignedData)
   }
 }
 
 function getSubPaneRefLines(type: string): { value: number; color: string; label?: string }[] {
-  if (type === 'rsi') return [
-    { value: 70, color: '#ef535066', label: 'OB 70' },
-    { value: 30, color: '#26a69a66', label: 'OS 30' },
-    { value: 50, color: '#44444488' },
-  ]
-  return []
+  switch (type) {
+    case 'rsi':
+      return [
+        { value: 70, color: '#ef535066', label: 'OB 70' },
+        { value: 30, color: '#26a69a66', label: 'OS 30' },
+        { value: 50, color: '#44444488' },
+      ]
+    case 'stoch': case 'mfi':
+      return [
+        { value: 80, color: '#ef535066', label: '80' },
+        { value: 20, color: '#26a69a66', label: '20' },
+        { value: 50, color: '#44444488' },
+      ]
+    case 'adx':
+      return [{ value: 25, color: '#ffb74d88', label: '25' }]
+    case 'cci':
+      return [
+        { value:  100, color: '#ef535066', label: '100' },
+        { value: -100, color: '#26a69a66', label: '-100' },
+        { value:    0, color: '#44444488' },
+      ]
+    case 'williams_r':
+      return [
+        { value: -20, color: '#ef535066', label: 'OB -20' },
+        { value: -80, color: '#26a69a66', label: 'OS -80' },
+        { value: -50, color: '#44444488' },
+      ]
+    case 'aroon':
+      return [
+        { value: 70, color: '#26a69a66' },
+        { value: 30, color: '#ef535066' },
+        { value: 50, color: '#44444488' },
+      ]
+    case 'macd': case 'cmf': case 'trix': case 'ppo': case 'roc': case 'momentum':
+      return [{ value: 0, color: '#44444488' }]
+    case 'volume_ratio':
+      return [
+        { value: 1, color: '#44444488', label: 'Avg' },
+        { value: 2, color: '#ffb74d88', label: '2x' },
+      ]
+    default:
+      return []
+  }
 }
 
 function refLinesPlugin(lines: { value: number; color: string; label?: string }[]): uPlot.Plugin {
@@ -1623,7 +1894,7 @@ function setupDrawingInteraction(u: uPlot) {
       const anchorTime = barIndexToTime(idx) ?? 0
       chartStore.addIndicator({
         type: 'avwap',
-        params: { anchorTime },
+        params: { anchor_timestamp: anchorTime },
         style: { color: '#80cbc4', lineWidth: 2 },
         pane: 'main',
       })
@@ -1827,16 +2098,14 @@ function findHitAlert(u: uPlot, my: number): number | null {
 
 function findHitIndicator(u: uPlot, my: number, barIdx: number): number | null {
   const HIT = 8
-  // Main-pane, non-volume indicators in the same order they appear in uplot.data (series 6+)
-  const mainInds = [...chartStore.activeIndicators]
-    .reverse()
-    .filter(i => i.pane !== 'separate' && i.type !== 'volume')
-  for (let mi = 0; mi < mainInds.length; mi++) {
-    const val = (u.data as number[][])[6 + mi]?.[barIdx]
+  // Use expanded list — multi-output indicators occupy consecutive slots in u.data[6+]
+  const expandedList = buildExpandedMainIndList()
+  for (let ei = 0; ei < expandedList.length; ei++) {
+    const val = (u.data as number[][])[6 + ei]?.[barIdx]
     if (val == null || isNaN(val)) continue
     const py = u.valToPos(val, 'y')
     if (Math.abs(my - py) < HIT) {
-      return chartStore.indicators.indexOf(mainInds[mi])
+      return chartStore.indicators.indexOf(expandedList[ei].ind)
     }
   }
   return null
@@ -1953,6 +2222,12 @@ function destroyAll() {
 
 onMounted(async () => {
   userSettingsStore.loadSettings().catch(console.error)
+  const initialType = effectiveChartType.value
+  if (chartStore.symbol && chartStore.barType !== initialType) {
+    await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, initialType)
+  } else {
+    chartStore.setBarType(initialType)
+  }
   await nextTick(); await initChart()
   resizeObserver = new ResizeObserver(handleResize)
   if (rootRef.value) resizeObserver.observe(rootRef.value)
@@ -1962,7 +2237,15 @@ onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
 watch(() => chartStore.activeIndicators, async () => { await nextTick(); initChart() }, { deep: true })
-watch(effectiveChartType, async () => { await nextTick(); initChart() })
+watch(effectiveChartType, async (type) => {
+  if (chartStore.symbol && chartStore.barType !== type) {
+    await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type)
+  } else {
+    chartStore.setBarType(type)
+  }
+  await nextTick()
+  initChart()
+})
 watch(() => drawStore.renderableDrawings, () => {
   renderVisualOverlays()
 }, { deep: true })
@@ -1994,6 +2277,7 @@ watch(() => alertsStore.alerts.map(a => `${a.id}:${a.show_projection}`).join('|'
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })
+watch(showApproxVolumeProfile,    () => { initChart() })
 
 /** Move the cursor to the bar closest to the given ISO timestamp (cross-panel sync). */
 function jumpToTs(isoTs: string) {

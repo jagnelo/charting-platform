@@ -22,6 +22,7 @@ build/
 # Never commit secrets — use .env.dev for local dev, root .env for Docker
 .env
 backend/.env
+backend/.env.dev
 
 # ── Testing & coverage ────────────────────────────────────────────────────────
 .pytest_cache/
@@ -52,6 +53,7 @@ desktop.ini
 # ── IDE / editor ──────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~

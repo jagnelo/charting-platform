@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { router } from '@/router'
+import { api, clearTokens as clearStoredTokens, refreshAccessToken, setTokens as storeTokens } from '@/lib/api'
+import type { TokenPair } from '@/lib/api'
 
 interface User { id: number; username: string; email: string; display_name?: string; is_admin: boolean }
-interface TokenPair { access_token: string; refresh_token: string }
-
-const BASE = '/api/v1'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken  = ref<string | null>(localStorage.getItem('access_token'))
@@ -14,42 +13,35 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading    = ref(false)
 
   const isAuthenticated = computed(() => !!accessToken.value)
+  const isLoggedIn       = computed(() => !!accessToken.value)
+  const loading          = isLoading
 
   function setTokens(tokens: TokenPair) {
     accessToken.value  = tokens.access_token
     refreshToken.value = tokens.refresh_token
-    localStorage.setItem('access_token',  tokens.access_token)
-    localStorage.setItem('refresh_token', tokens.refresh_token)
+    storeTokens(tokens.access_token, tokens.refresh_token)
   }
 
   function clearTokens() {
     accessToken.value  = null
     refreshToken.value = null
     user.value = null
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    clearStoredTokens()
   }
 
   async function register(username: string, email: string, password: string) {
-    const res = await fetch(`${BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password }),
-    })
-    if (!res.ok) throw new Error((await res.json()).detail ?? 'Registration failed')
-    const tokens: TokenPair = await res.json()
-    setTokens(tokens)
+    const tokens = await api.post<Partial<TokenPair>>('/auth/register', { username, email, password })
+    if (tokens.access_token && tokens.refresh_token) {
+      setTokens(tokens as TokenPair)
+    } else {
+      await login(username, password)
+      return
+    }
     await fetchMe()
   }
 
   async function login(username: string, password: string) {
-    const res = await fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    })
-    if (!res.ok) throw new Error((await res.json()).detail ?? 'Invalid credentials')
-    const tokens: TokenPair = await res.json()
+    const tokens = await api.post<TokenPair>('/auth/login', { username, password })
     setTokens(tokens)
     await fetchMe()
   }
@@ -60,25 +52,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchMe() {
-    if (!accessToken.value) return
-    const res = await fetch(`${BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${accessToken.value}` },
-    })
-    if (res.ok) {
-      user.value = await res.json()
-    } else if (res.status === 401) {
-      await tryRefresh()
+    try {
+      user.value = await api.get<User>('/auth/me')
+      _syncTokensFromStorage(true)
+    } catch {
+      user.value = null
     }
   }
+  const loadMe = fetchMe
 
   async function tryRefresh(): Promise<boolean> {
     if (!refreshToken.value) { clearTokens(); return false }
-    const res = await fetch(`${BASE}/auth/refresh?refresh_token=${refreshToken.value}`, {
-      method: 'POST',
-    })
-    if (res.ok) {
-      const tokens: TokenPair = await res.json()
-      setTokens(tokens)
+    const token = await refreshAccessToken()
+    _syncTokensFromStorage(true)
+    if (token) {
       return true
     }
     clearTokens()
@@ -93,8 +80,15 @@ export const useAuthStore = defineStore('auth', () => {
     return null
   }
 
+  function _syncTokensFromStorage(preserveCurrent = false) {
+    const storedAccess = localStorage.getItem('access_token')
+    const storedRefresh = localStorage.getItem('refresh_token')
+    accessToken.value = storedAccess ?? (preserveCurrent ? accessToken.value : null)
+    refreshToken.value = storedRefresh ?? (preserveCurrent ? refreshToken.value : null)
+  }
+
   return {
-    accessToken, refreshToken, user, isLoading, isAuthenticated,
-    register, login, logout, fetchMe, handleUnauthorized,
+    accessToken, refreshToken, user, isLoading, loading, isAuthenticated, isLoggedIn,
+    register, login, logout, fetchMe, loadMe, handleUnauthorized,
   }
 })

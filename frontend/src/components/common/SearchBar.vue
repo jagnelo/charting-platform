@@ -9,6 +9,7 @@
         :placeholder="placeholder"
         class="search-input"
         @input="onInput"
+        @focus="onFocus"
         @keydown.escape="clear"
         @keydown.enter="selectFirst"
         @keydown.arrow-down.prevent="moveDown"
@@ -29,18 +30,34 @@
         <span class="r-type">Synthetic</span>
       </div>
       <template v-else>
-        <div
-          v-for="(r, i) in results"
-          :key="r.symbol"
-          :class="['result-item', { highlighted: i === highlightIdx }]"
-          @click="select(r)"
-          @mouseenter="highlightIdx = i"
-        >
-          <span class="r-symbol">{{ r.symbol }}</span>
-          <span class="r-name">{{ r.name }}</span>
-          <span class="r-type">{{ r.type }}</span>
-        </div>
-        <div class="screener-link-row">
+        <template v-if="query.trim()">
+          <div
+            v-for="(r, i) in results"
+            :key="r.symbol"
+            :class="['result-item', { highlighted: i === highlightIdx }]"
+            @click="select(r)"
+            @mouseenter="highlightIdx = i"
+          >
+            <span class="r-symbol">{{ r.symbol }}</span>
+            <span class="r-name">{{ r.name }}</span>
+            <span class="r-type">{{ r.type }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="recent-title">Recently viewed</div>
+          <div
+            v-for="(r, i) in recentStore.recent"
+            :key="r.symbol"
+            :class="['result-item', { highlighted: i === highlightIdx }]"
+            @click="selectRecent(r.symbol)"
+            @mouseenter="highlightIdx = i"
+          >
+            <span class="r-symbol">{{ r.symbol }}</span>
+            <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
+            <span class="r-type">Recent</span>
+          </div>
+        </template>
+        <div v-if="query.trim()" class="screener-link-row">
           <router-link :to="`/screener?q=${encodeURIComponent(query)}`" class="screener-link" @click="clear">
             Open in Screener →
           </router-link>
@@ -53,11 +70,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api } from '@/lib/api'
+import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
 
 withDefaults(defineProps<{ placeholder?: string }>(), { placeholder: 'Symbol…' })
 const emit = defineEmits<{ select: [symbol: string] }>()
+const recentStore = useRecentInstrumentsStore()
 
 const query            = ref('')
 const results          = ref<SearchResult[]>([])
@@ -71,7 +90,10 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 // Detect if the query looks like a math expression between ticker tokens
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
 const isExpression = computed(() => !expressionSelected.value && EXPR_RE.test(query.value.trim()))
-const showDropdown = computed(() => !dropdownDismissed.value && (isExpression.value || results.value.length > 0))
+const showDropdown = computed(() =>
+  !dropdownDismissed.value
+  && (isExpression.value || results.value.length > 0 || (!query.value.trim() && recentStore.recent.length > 0))
+)
 
 async function onInput() {
   expressionSelected.value = false
@@ -91,9 +113,23 @@ async function onInput() {
   }, 250)
 }
 
+function onFocus() {
+  dropdownDismissed.value = false
+  if (!query.value.trim()) highlightIdx.value = 0
+}
+
 function select(r: SearchResult) {
   emit('select', r.symbol)
+  recentStore.add(r.symbol, r.name)
   query.value = r.symbol
+  results.value = []
+  dropdownDismissed.value = true
+}
+
+function selectRecent(symbol: string) {
+  emit('select', symbol)
+  recentStore.add(symbol)
+  query.value = symbol
   results.value = []
   dropdownDismissed.value = true
 }
@@ -104,6 +140,7 @@ async function selectExpression() {
   try {
     const instr = await api.post<{ symbol: string }>('/instruments/resolve-expression', { expression: expr })
     emit('select', instr.symbol)
+    recentStore.add(instr.symbol, expr)
     query.value = instr.symbol
     results.value = []
     expressionSelected.value = true
@@ -118,9 +155,15 @@ async function selectExpression() {
 function selectFirst() {
   if (isExpression.value) { selectExpression(); return }
   if (results.value.length) select(results.value[highlightIdx.value])
+  else if (!query.value.trim() && recentStore.recent.length) {
+    selectRecent(recentStore.recent[highlightIdx.value]?.symbol ?? recentStore.recent[0].symbol)
+  }
 }
 
-function moveDown() { highlightIdx.value = Math.min(highlightIdx.value + 1, results.value.length - 1) }
+function moveDown() {
+  const len = query.value.trim() ? results.value.length : recentStore.recent.length
+  highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
+}
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
 function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = false }
 
@@ -194,6 +237,13 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 .result-item.highlighted { background: #1a2a3a; }
 .result-item--expr { border-left: 2px solid #64b5f6; }
 .result-item--expr em { color: #64b5f6; font-style: normal; font-family: 'JetBrains Mono', monospace; }
+.recent-title {
+  padding: 7px 10px 4px;
+  color: #555;
+  font-size: 10px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1d1d1d;
+}
 
 .r-symbol { color: #64b5f6; font-weight: 700; min-width: 60px; font-family: monospace; }
 .r-expr-icon { min-width: 44px; font-family: 'JetBrains Mono', monospace; }

@@ -122,6 +122,14 @@
                 :config="widget.config"
                 @patch-config="patchConfig(widget, $event)"
               />
+              <DashboardEconomicCalendarWidget
+                v-else-if="widget.widget_type === 'economic_calendar'"
+                :config="widget.config"
+              />
+              <DashboardHeatMapWidget
+                v-else-if="widget.widget_type === 'heat_map'"
+                :config="widget.config"
+              />
               <div v-else class="empty-small">Unsupported widget.</div>
             </div>
 
@@ -158,7 +166,7 @@
             </label>
 
             <label
-              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details'].includes(configWidget.widget_type)"
+              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar'].includes(configWidget.widget_type)"
               class="config-field"
             >
               <span>Instrument or expression</span>
@@ -209,8 +217,7 @@
                 :value="configWidget.config.chartType || 'candles'"
                 @change="patchConfig(configWidget, { chartType: inputValue($event) })"
               >
-                <option value="candles">Candles</option>
-                <option value="line">Line</option>
+                <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
 
@@ -255,6 +262,17 @@
               </select>
             </label>
 
+            <label v-if="configWidget.widget_type === 'heat_map'" class="config-field">
+              <span>Watchlist</span>
+              <select
+                :value="configWidget.config.watchlistId || ''"
+                @change="patchConfig(configWidget, { watchlistId: Number(inputValue($event)) || null })"
+              >
+                <option value="">First watchlist</option>
+                <option v-for="wl in watchlistStore.watchlists" :key="wl.id" :value="wl.id">{{ wl.name }}</option>
+              </select>
+            </label>
+
             <label v-if="['notes', 'checklist'].includes(configWidget.widget_type)" class="config-field">
               <span>Mode</span>
               <select
@@ -276,6 +294,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import DashboardAlertsWidget from '@/components/dashboard/DashboardAlertsWidget.vue'
 import DashboardAdvancedChartWidget from '@/components/dashboard/DashboardAdvancedChartWidget.vue'
+import DashboardEconomicCalendarWidget from '@/components/dashboard/DashboardEconomicCalendarWidget.vue'
+import DashboardHeatMapWidget from '@/components/dashboard/DashboardHeatMapWidget.vue'
 import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumentSearch.vue'
 import DashboardInstrumentDetailsWidget from '@/components/dashboard/DashboardInstrumentDetailsWidget.vue'
 import DashboardLineChartWidget from '@/components/dashboard/DashboardLineChartWidget.vue'
@@ -288,6 +308,7 @@ import { useAlertsStore } from '@/stores/alerts'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { CHART_BAR_TYPES } from '@/types'
 import type {
   DashboardTab,
   DashboardWidget,
@@ -332,6 +353,8 @@ const widgetCatalog: Array<{
   { type: 'watchlist', title: 'Watchlist', description: 'Saved symbols' },
   { type: 'alerts', title: 'Alerts', description: 'Price and indicator alerts' },
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
+  { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
+  { type: 'heat_map', title: 'Heat Map', description: 'Watchlist sector performance' },
   { type: 'instrument_details', title: 'Instrument Details', description: 'Metadata and stats' },
   { type: 'notes', title: 'Notes', description: 'Freeform text' },
   { type: 'checklist', title: 'Checklist', description: 'Reusable task list' },
@@ -460,6 +483,8 @@ function defaultLayout(type: DashboardWidgetType, spot: { x: number; y: number }
     watchlist: { w: 9, h: 10 },
     alerts: { w: 8, h: 8 },
     screener: { w: 10, h: 8 },
+    economic_calendar: { w: 10, h: 8 },
+    heat_map: { w: 12, h: 9 },
     instrument_details: { w: 8, h: 8 },
     notes: { w: 8, h: 6 },
     checklist: { w: 8, h: 7 },
@@ -481,7 +506,9 @@ function defaultConfig(type: DashboardWidgetType) {
   }
   if (type === 'ratio_chart') return { expression: 'SPY/GLD', timeframe: 'D1' }
   if (type === 'watchlist') return { watchlistId: null, showSparklines: true }
+  if (type === 'heat_map') return { watchlistId: null }
   if (type === 'screener') return { screenerId: null }
+  if (type === 'economic_calendar') return { symbol: 'SPY' }
   if (type === 'alerts') return {}
   if (type === 'notes') return { text: '' }
   if (type === 'checklist') {

@@ -68,7 +68,7 @@
 
     <!-- Main body: watchlist panel is always visible regardless of layout -->
     <div class="chart-body">
-      <WatchlistPanel :current-symbol="chartStore.symbol" @select="onSymbolSelect" />
+      <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" />
       <DrawingToolbar />
       <div v-if="layoutStore.layout === '1'" class="chart-workspace">
         <div class="chart-area">
@@ -105,6 +105,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChartStore, usePanelStore } from '@/stores/chart'
 import { useLayoutStore }    from '@/stores/layout'
+import { usePanelLinksStore } from '@/stores/panelLinks'
+import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
@@ -122,6 +124,8 @@ import type { Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
+const panelLinksStore = usePanelLinksStore()
+const recentStore     = useRecentInstrumentsStore()
 const watchlistStore  = useWatchlistStore()
 const drawStore       = useDrawingsStore()
 const alertsStore     = useAlertsStore()
@@ -167,6 +171,7 @@ const priceClass  = computed(() => {
 })
 
 async function onSymbolSelect(symbol: string) {
+  recentStore.add(symbol)
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value)
@@ -178,12 +183,19 @@ async function onSymbolSelect(symbol: string) {
     }
     lastClose.value = currentPrice.value
   } else {
-    // Multi-panel: broadcast symbol to linked panels only
-    for (const p of layoutStore.panels) {
-      if (!p.linkedToGlobal) continue
+    // Multi-panel: broadcast symbol to panels in the same colour link group.
+    const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
+    for (const panelId of targetIds) {
+      const p = layoutStore.panels.find(item => item.id === panelId)
+      if (!p) continue
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
       await pStore.loadBars(symbol, p.timeframe)
+    }
+    const activeStore = usePanelStore(layoutStore.activePanelId)
+    if (activeStore.instrument) {
+      await drawStore.loadDrawings(activeStore.instrument.id, activeStore.timeframe)
+      await alertsStore.loadAlerts(activeStore.instrument.id)
     }
   }
   if (route.params.symbol !== symbol) {

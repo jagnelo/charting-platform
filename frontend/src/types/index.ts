@@ -160,7 +160,44 @@ export interface IndicatorConfig {
   showYProjection?: boolean
 }
 
-export type IndicatorType = 'sma' | 'ema' | 'vwap' | 'avwap' | 'rsi' | 'macd' | 'bb' | 'volume'
+export type IndicatorType =
+  // Moving averages
+  | 'sma' | 'ema' | 'wma' | 'hma' | 'dema' | 'tema'
+  // Bands / channels
+  | 'bb' | 'keltner' | 'donchian'
+  // Volume / price-weighted
+  | 'vwap' | 'avwap' | 'volume' | 'volume_ratio' | 'obv' | 'mfi' | 'cmf'
+  // Oscillators / momentum
+  | 'rsi' | 'macd' | 'stoch' | 'cci' | 'williams_r' | 'roc' | 'momentum' | 'trix' | 'ppo'
+  // Trend / direction
+  | 'adx' | 'aroon' | 'psar' | 'ichimoku'
+  // Volatility
+  | 'atr' | 'stddev'
+  // Price levels
+  | 'pivot_points'
+
+export type ChartBarType =
+  | 'candles'
+  | 'line'
+  | 'ohlc'
+  | 'heikin_ashi'
+  | 'area'
+  | 'baseline'
+  | 'renko'
+  | 'kagi'
+  | 'point_figure'
+
+export const CHART_BAR_TYPES: { value: ChartBarType; label: string }[] = [
+  { value: 'candles',      label: 'Candles' },
+  { value: 'line',         label: 'Line' },
+  { value: 'ohlc',         label: 'OHLC Bars' },
+  { value: 'heikin_ashi',  label: 'Heikin-Ashi' },
+  { value: 'area',         label: 'Area' },
+  { value: 'baseline',     label: 'Baseline' },
+  { value: 'renko',        label: 'Renko' },
+  { value: 'kagi',         label: 'Kagi' },
+  { value: 'point_figure', label: 'Point & Figure' },
+]
 
 export interface IndicatorPreset {
   id: number
@@ -243,6 +280,8 @@ export type DashboardWidgetType =
   | 'advanced_chart'
   | 'comparison_chart'
   | 'ratio_chart'
+  | 'economic_calendar'
+  | 'heat_map'
 
 export interface DashboardWidgetLayout {
   x: number

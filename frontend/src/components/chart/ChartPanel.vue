@@ -55,16 +55,32 @@
         </div>
       </div>
 
-      <!-- Link toggle: chain icon -->
-      <button
-        class="panel-link-btn"
-        :class="{ linked: panelConfig?.linkedToGlobal }"
-        :title="panelConfig?.linkedToGlobal ? 'Unlink from global search' : 'Link to global search'"
-        @click.stop="toggleLink"
-      >
-        <span v-if="panelConfig?.linkedToGlobal" class="link-icon">⛓</span>
-        <span v-else class="link-icon unlinked">⛓‍💥</span>
-      </button>
+      <!-- Symbol link group -->
+      <div class="panel-link-wrap" ref="linkWrapRef">
+        <button
+          class="panel-link-btn"
+          :class="{ linked: !!linkGroup }"
+          :style="{ borderColor: linkGroup ? linkColor : undefined, color: linkGroup ? linkColor : undefined }"
+          :title="linkGroup ? `Symbol link group: ${linkGroup}` : 'Symbol link disabled'"
+          @click.stop="linkMenuOpen = !linkMenuOpen"
+        >
+          <span class="link-dot" :style="{ background: linkColor }" />
+        </button>
+        <div v-if="linkMenuOpen" class="panel-link-menu" @click.stop>
+          <button class="plm-item" :class="{ active: !linkGroup }" @click="setLinkGroup(null)">
+            <span class="plm-dot plm-dot--none" /> None
+          </button>
+          <button
+            v-for="group in PANEL_LINK_GROUPS"
+            :key="group.id"
+            class="plm-item"
+            :class="{ active: linkGroup === group.id }"
+            @click="setLinkGroup(group.id)"
+          >
+            <span class="plm-dot" :style="{ background: group.color }" /> {{ group.label }}
+          </button>
+        </div>
+      </div>
 
       <span v-if="store.instrument?.name" class="psym-name">{{ store.instrument.name }}</span>
 
@@ -88,6 +104,7 @@
 import { ref, watch, computed, provide, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePanelStore }   from '@/stores/chart'
 import { useLayoutStore }  from '@/stores/layout'
+import { usePanelLinksStore, PANEL_LINK_GROUPS } from '@/stores/panelLinks'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
@@ -103,6 +120,7 @@ const props = defineProps<{ panelId: string }>()
 provide('panelId', props.panelId)
 
 const layoutStore = useLayoutStore()
+const panelLinks  = usePanelLinksStore()
 const store       = usePanelStore(props.panelId)
 const drawStore   = useDrawingsStore()
 const alertsStore = useAlertsStore()
@@ -119,8 +137,13 @@ const searchQuery   = ref('')
 const searchResults = ref<SearchResult[]>([])
 const hlIdx         = ref(0)
 const symWrapRef    = ref<HTMLDivElement | null>(null)
+const linkWrapRef   = ref<HTMLDivElement | null>(null)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+const linkMenuOpen = ref(false)
+
+const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
+const linkColor = computed(() => panelLinks.colorFor(props.panelId))
 
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
 const isExpression = computed(() => EXPR_RE.test(searchQuery.value.trim()))
@@ -182,21 +205,28 @@ function moveUp()   { hlIdx.value = Math.max(hlIdx.value - 1, 0) }
 
 function handleClickOutside(e: MouseEvent) {
   if (symWrapRef.value && !symWrapRef.value.contains(e.target as Node)) closeSearch()
+  if (linkWrapRef.value && !linkWrapRef.value.contains(e.target as Node)) linkMenuOpen.value = false
 }
 
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))
 onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 
 // ── Symbol / link actions ──────────────────────────────────────────────────
-function toggleLink() {
-  const cfg = panelConfig.value
-  if (!cfg) return
-  layoutStore.updatePanel(props.panelId, { linkedToGlobal: !cfg.linkedToGlobal })
+function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
+  panelLinks.setPanelGroup(props.panelId, group)
+  linkMenuOpen.value = false
 }
 
 async function onSymbolSelect(symbol: string) {
-  layoutStore.updatePanel(props.panelId, { symbol, timeframe: localTf.value })
-  await store.loadBars(symbol, localTf.value)
+  const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
+  for (const id of targetIds) {
+    const panel = layoutStore.panels.find(p => p.id === id)
+    if (!panel) continue
+    const tf = id === props.panelId ? localTf.value : panel.timeframe
+    const pStore = id === props.panelId ? store : usePanelStore(id)
+    layoutStore.updatePanel(id, { symbol, timeframe: tf })
+    await pStore.loadBars(symbol, tf)
+  }
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
     await alertsStore.loadAlerts(store.instrument.id)
@@ -320,20 +350,73 @@ onMounted(async () => {
 .psr-sym { color: #64b5f6; font-weight: 700; min-width: 56px; font-family: monospace; }
 .psr-name { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.panel-link-wrap {
+  position: relative;
+}
+
 .panel-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 2px 5px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   cursor: pointer;
-  font-size: 13px;
   line-height: 1;
   opacity: 0.5;
   transition: opacity 0.15s, border-color 0.15s;
 }
 .panel-link-btn:hover { opacity: 1; border-color: #333; }
 .panel-link-btn.linked { opacity: 1; }
-.link-icon { display: block; }
+.link-dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.panel-link-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 210;
+  min-width: 104px;
+  padding: 3px 0;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+.plm-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 11px;
+  text-align: left;
+}
+.plm-item:hover,
+.plm-item.active { background: #1d1d1d; color: #ddd; }
+.plm-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.plm-dot--none {
+  background: transparent;
+  border: 1px solid #555;
+}
 
 .psym-name {
   font-size: 10px;

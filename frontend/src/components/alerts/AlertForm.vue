@@ -9,7 +9,7 @@
     <div class="alert-preview">{{ preview }}</div>
 
     <!-- ── LHS ──────────────────────────────────────────────── -->
-    <div class="expr-section">
+    <div v-if="condition !== 'volume_spike'" class="expr-section">
       <div class="expr-label">When</div>
       <div class="expr-row">
         <select v-model="lhs.sourceType" class="form-select" @change="onLhsTypeChange">
@@ -34,11 +34,14 @@
 
       <!-- Params for LHS if it's a non-active indicator -->
       <template v-if="lhs.isCustomIndicator">
-        <div class="param-row" v-for="(_, key) in lhsDefaultParams" :key="key">
-          <label>{{ paramLabel(key) }}</label>
-          <input v-if="String(key) !== 'anchorTime'" v-model.number="lhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
-          <input v-else type="datetime-local" :value="tsToDateInput(lhs.params.anchorTime as number)"
-                 @input="e => lhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
+        <div class="param-row" v-for="param in lhsParamDefs" :key="param.key">
+          <label>{{ param.label }}</label>
+          <select v-if="param.input === 'select'" v-model="lhs.params[param.key]" class="form-select">
+            <option v-for="opt in param.options ?? []" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <input v-else-if="param.input !== 'datetime'" v-model.number="lhs.params[param.key]" type="number" step="any" class="form-input form-input--sm" />
+          <input v-else type="datetime-local" :value="tsToDateInput(lhs.params[param.key] as number)"
+                 @input="e => lhs.params[param.key] = dateInputToTs((e.target as HTMLInputElement).value)"
                  class="form-input" />
         </div>
       </template>
@@ -67,10 +70,27 @@
         <input v-model.number="withinPct" type="number" min="0.01" step="0.1" class="form-input form-input--sm" />
         <span class="param-unit">%</span>
       </div>
+      <template v-if="condition === 'volume_spike'">
+        <div class="param-row">
+          <label>Timeframe</label>
+          <select v-model="lhs.timeframe" class="form-select">
+            <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label>Multiplier</label>
+          <input v-model.number="volumeSpikeMultiplier" type="number" min="1" step="0.1" class="form-input form-input--sm" />
+          <span class="param-unit">x</span>
+        </div>
+        <div class="param-row">
+          <label>Avg bars</label>
+          <input v-model.number="volumeSpikePeriod" type="number" min="2" step="1" class="form-input form-input--sm" />
+        </div>
+      </template>
     </div>
 
     <!-- ── RHS ──────────────────────────────────────────────── -->
-    <div class="expr-section">
+    <div v-if="condition !== 'volume_spike'" class="expr-section">
       <div class="expr-label">Target</div>
       <div class="expr-row">
         <select v-model="rhs.sourceType" class="form-select" @change="onRhsTypeChange">
@@ -102,11 +122,14 @@
 
       <!-- Params for RHS if it's a non-active indicator -->
       <template v-if="rhs.isCustomIndicator">
-        <div class="param-row" v-for="(_, key) in rhsDefaultParams" :key="key">
-          <label>{{ paramLabel(key) }}</label>
-          <input v-if="String(key) !== 'anchorTime'" v-model.number="rhs.params[key]" type="number" min="1" class="form-input form-input--sm" />
-          <input v-else type="datetime-local" :value="tsToDateInput(rhs.params.anchorTime as number)"
-                 @input="e => rhs.params.anchorTime = dateInputToTs((e.target as HTMLInputElement).value)"
+        <div class="param-row" v-for="param in rhsParamDefs" :key="param.key">
+          <label>{{ param.label }}</label>
+          <select v-if="param.input === 'select'" v-model="rhs.params[param.key]" class="form-select">
+            <option v-for="opt in param.options ?? []" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <input v-else-if="param.input !== 'datetime'" v-model.number="rhs.params[param.key]" type="number" step="any" class="form-input form-input--sm" />
+          <input v-else type="datetime-local" :value="tsToDateInput(rhs.params[param.key] as number)"
+                 @input="e => rhs.params[param.key] = dateInputToTs((e.target as HTMLInputElement).value)"
                  class="form-input" />
         </div>
       </template>
@@ -142,6 +165,12 @@
 import { ref, computed, reactive } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useChartStore } from '@/stores/chart'
+import {
+  INDICATOR_CATALOG,
+  INDICATOR_BY_TYPE,
+  indicatorDisplayName,
+  normalizeIndicatorParams,
+} from '@/lib/indicators/catalog'
 import type { Timeframe, IndicatorConfig, PriceAlert, IndicatorAlert } from '@/types'
 
 const props = defineProps<{
@@ -165,38 +194,20 @@ const chartStore  = useChartStore()
 const timeframes: Timeframe[] = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN']
 
 // ── Indicator type catalogue ──────────────────────────────────────────────────
-const allIndicatorTypes = [
-  { value: 'sma',   label: 'SMA'   },
-  { value: 'ema',   label: 'EMA'   },
-  { value: 'rsi',   label: 'RSI'   },
-  { value: 'vwap',  label: 'VWAP'  },
-  { value: 'avwap', label: 'AVWAP' },
-  { value: 'macd',  label: 'MACD'  },
-  { value: 'bb',    label: 'Bollinger Bands' },
-]
+const allIndicatorTypes = INDICATOR_CATALOG
+  .filter(item => !['volume'].includes(item.type))
+  .map(item => ({ value: item.type, label: item.label }))
 
-const DEFAULT_PARAMS: Record<string, Record<string, number>> = {
-  sma:   { period: 20 },
-  ema:   { period: 50 },
-  rsi:   { period: 14 },
-  vwap:  {},
-  avwap: { anchorTime: Math.floor(Date.now() / 1000) - 86400 * 30 },
-  macd:  { fast: 12, slow: 26, signal: 9 },
-  bb:    { period: 20, stdDev: 2 },
-}
+const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = Object.fromEntries(
+  INDICATOR_CATALOG.map(item => [item.type, item.defaultConfig.params]),
+)
 
 // ── Active indicators on the chart (for quick selection) ──────────────────────
 const activeIndicators = computed(() =>
   chartStore.indicators
     .filter(i => i.type !== 'volume')
     .map(i => {
-      const params = Object.entries(i.params)
-        .filter(([k]) => k !== 'anchorTime')
-        .map(([, v]) => v)
-        .join(',')
-      const label = i.type === 'avwap' && i.params.anchorTime
-        ? `AVWAP(${new Date((i.params.anchorTime as number)*1000).toLocaleDateString()})`
-        : `${i.type.toUpperCase()}${params ? `(${params})` : ''}`
+      const label = indicatorDisplayName(i)
       return { key: `active_${i.type}_${JSON.stringify(i.params)}`, label, config: i }
     })
 )
@@ -205,7 +216,7 @@ const activeIndicators = computed(() =>
 interface Source {
   sourceType: string   // 'value' | 'close'|'open'|'high'|'low' | 'active_*' | 'new_*'
   fixedValue: number
-  params: Record<string, number>
+  params: Record<string, unknown>
   timeframe: Timeframe
   isCustomIndicator: boolean
 }
@@ -232,12 +243,12 @@ function updateIsCustom(s: Source) {
   s.isCustomIndicator = s.sourceType.startsWith('new_')
   if (s.isCustomIndicator) {
     const type = s.sourceType.replace('new_', '')
-    s.params = { ...(DEFAULT_PARAMS[type] ?? {}) }
+    s.params = normalizeIndicatorParams(type, { ...(DEFAULT_PARAMS[type] ?? {}) })
   }
 }
 
-const lhsDefaultParams = computed(() => DEFAULT_PARAMS[lhs.sourceType.replace('new_', '')] ?? {})
-const rhsDefaultParams = computed(() => DEFAULT_PARAMS[rhs.sourceType.replace('new_', '')] ?? {})
+const lhsParamDefs = computed(() => INDICATOR_BY_TYPE[lhs.sourceType.replace('new_', '') as keyof typeof INDICATOR_BY_TYPE]?.params ?? [])
+const rhsParamDefs = computed(() => INDICATOR_BY_TYPE[rhs.sourceType.replace('new_', '') as keyof typeof INDICATOR_BY_TYPE]?.params ?? [])
 
 // ── Conditions ────────────────────────────────────────────────────────────────
 const conditions = [
@@ -249,10 +260,13 @@ const conditions = [
   { value: 'gte',           label: '≥ Greater/equal' },
   { value: 'lte',           label: '≤ Less/equal'    },
   { value: 'within_percent', label: '% Within %'     },
+  { value: 'volume_spike',   label: 'Volume spike'   },
 ]
 
 const condition  = ref('crosses_above')
 const withinPct  = ref(1)
+const volumeSpikeMultiplier = ref(2)
+const volumeSpikePeriod = ref(20)
 const repeat     = ref(false)
 const notes      = ref('')
 
@@ -277,7 +291,7 @@ if (props.editPriceAlert) {
     lhs.isCustomIndicator = false
   } else {
     lhs.sourceType = `new_${a.indicator_a_type}`
-    lhs.params = { ...(a.indicator_a_params as Record<string, number>) }
+    lhs.params = normalizeIndicatorParams(a.indicator_a_type, a.indicator_a_params as Record<string, unknown>)
     lhs.isCustomIndicator = true
   }
   lhs.timeframe = a.timeframe as Timeframe
@@ -288,7 +302,7 @@ if (props.editPriceAlert) {
       rhs.isCustomIndicator = false
     } else {
       rhs.sourceType = `new_${a.indicator_b_type}`
-      rhs.params = { ...(a.indicator_b_params as Record<string, number>) }
+      rhs.params = normalizeIndicatorParams(a.indicator_b_type, a.indicator_b_params as Record<string, unknown>)
       rhs.isCustomIndicator = true
     }
   } else {
@@ -311,16 +325,15 @@ function sourceLabel(s: Source): string {
   }
   if (s.sourceType.startsWith('new_')) {
     const type = s.sourceType.replace('new_', '')
-    if (type === 'avwap' && s.params.anchorTime) {
-      return `AVWAP(${tsToDateInput(s.params.anchorTime as number).split('T')[0]})`
-    }
-    const p = Object.values(s.params).join(',')
-    return p ? `${type.toUpperCase()}(${p})` : type.toUpperCase()
+    return indicatorDisplayName({ type: type as any, params: s.params })
   }
   return s.sourceType
 }
 
 const preview = computed(() => {
+  if (condition.value === 'volume_spike') {
+    return `${props.symbol}: volume > ${volumeSpikeMultiplier.value}x ${volumeSpikePeriod.value}-bar average · ${lhs.timeframe}`
+  }
   const l = sourceLabel(lhs)
   const r = sourceLabel(rhs)
   const c = condition.value === 'within_percent'
@@ -333,7 +346,7 @@ const preview = computed(() => {
 })
 
 function paramLabel(key: string): string {
-  const m: Record<string, string> = { period: 'Period', fast: 'Fast', slow: 'Slow', signal: 'Signal', stdDev: 'Std dev', anchorTime: 'Anchor' }
+  const m: Record<string, string> = { period: 'Period', fast: 'Fast', slow: 'Slow', signal: 'Signal', std_dev: 'Std dev', anchor_timestamp: 'Anchor' }
   return m[key] ?? key
 }
 
@@ -371,13 +384,13 @@ function resolveSource(s: Source): {
     const found = activeIndicators.value.find(i => i.key === s.sourceType)
     if (found) {
       return { isPriceField: false, isFixedValue: false, isIndicator: true,
-        indicatorType: found.config.type, indicatorParams: { ...found.config.params },
+        indicatorType: found.config.type, indicatorParams: normalizeIndicatorParams(found.config.type, found.config.params),
         indicatorTf: s.timeframe }
     }
   }
   if (s.sourceType.startsWith('new_')) {
     return { isPriceField: false, isFixedValue: false, isIndicator: true,
-      indicatorType: s.sourceType.replace('new_',''), indicatorParams: { ...s.params },
+      indicatorType: s.sourceType.replace('new_',''), indicatorParams: normalizeIndicatorParams(s.sourceType.replace('new_',''), s.params),
       indicatorTf: s.timeframe }
   }
   return { isPriceField: false, isFixedValue: false, isIndicator: false }
@@ -385,6 +398,7 @@ function resolveSource(s: Source): {
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const isValid = computed(() => {
+  if (condition.value === 'volume_spike') return volumeSpikeMultiplier.value > 0 && volumeSpikePeriod.value > 1
   if (rhs.sourceType === 'value' && !rhs.fixedValue) return false
   if (condition.value === 'within_percent' && withinPct.value <= 0) return false
   return true
@@ -401,6 +415,21 @@ function isPriceAlert(): boolean {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 async function submit() {
+  if (condition.value === 'volume_spike') {
+    await alertsStore.createIndicatorAlert({
+      instrument_id: props.instrumentId,
+      timeframe: lhs.timeframe,
+      indicator_a_type: 'volume_ratio',
+      indicator_a_params: { period: volumeSpikePeriod.value },
+      condition: 'gt',
+      threshold_value: volumeSpikeMultiplier.value,
+      repeat: repeat.value,
+      notes: notes.value || undefined,
+    })
+    emit('close')
+    return
+  }
+
   const l = resolveSource(lhs)
   const r = resolveSource(rhs)
 

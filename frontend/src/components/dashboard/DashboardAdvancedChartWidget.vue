@@ -17,7 +17,7 @@ import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { api } from '@/lib/api'
-import type { Timeframe } from '@/types'
+import type { ChartBarType, Timeframe } from '@/types'
 
 const props = defineProps<{
   widgetId: number
@@ -33,13 +33,13 @@ const alertsStore = useAlertsStore()
 
 const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
-const chartType = computed<'candles' | 'line'>(() => props.config.chartType === 'line' ? 'line' : 'candles')
+const chartType = computed<ChartBarType>(() => props.config.chartType ?? 'candles')
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
 
 async function refresh() {
   if (!symbol.value) return
   const target = await resolveTarget(symbol.value)
-  await store.loadBars(target, timeframe.value)
+  await store.loadBars(target, timeframe.value, chartType.value)
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, timeframe.value)
     await alertsStore.loadAlerts(store.instrument.id)

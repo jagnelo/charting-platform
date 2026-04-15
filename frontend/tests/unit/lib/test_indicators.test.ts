@@ -74,7 +74,7 @@ describe('computeEMA', () => {
   })
 
   it('EMA reacts faster than SMA on a spike', () => {
-    const closes = [...flat(30, 100), ...flat(10, 200)]
+    const closes = [...flat(30, 100), 200]
     const ema = computeEMA(closes, 10)
     const sma = computeSMA(closes, 10)
     const lastEma = ema[ema.length - 1]!

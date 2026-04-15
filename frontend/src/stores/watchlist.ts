@@ -3,10 +3,23 @@ import { ref } from 'vue'
 import type { Watchlist, WatchlistItem } from '@/types'
 import { api } from '@/lib/api'
 
+export interface WatchlistQuote {
+  close: number
+  prevClose: number
+  pct: number
+  open?: number
+  dayHigh?: number
+  dayLow?: number
+  volume?: number
+  avgVolume?: number
+  updatedAt: number
+}
+
 export const useWatchlistStore = defineStore('watchlist', () => {
   const watchlists = ref<Watchlist[]>([])
   const loading = ref(false)
-  const priceMap = ref<Record<string, { close: number; prevClose: number; pct: number }>>({})
+  const priceMap = ref<Record<string, WatchlistQuote>>({})
+  const flashMap = ref<Record<string, 'up' | 'down' | null>>({})
   /** When set, WatchlistPanel should open, collapse all others, and expand this watchlist. */
   const focusRequest = ref<number | null>(null)
 
@@ -152,20 +165,51 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     }
   }
 
-  async function fetchPrices(symbols: string[]) {
-    const toFetch = symbols.filter(s => s && !priceMap.value[s])
+  async function fetchPrices(symbols: string[], force = false) {
+    const unique = [...new Set(symbols.map(s => s?.toUpperCase()).filter(Boolean))]
+    const toFetch = unique.filter(s => force || !priceMap.value[s])
     if (!toFetch.length) return
     await Promise.allSettled(
       toFetch.map(async (symbol) => {
         try {
-          const bars: Array<{ close: number }> = await api.get(`/ohlcv/${symbol}/D1`, { limit: 2 })
+          const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = await api.get(`/ohlcv/${symbol}/D1`, { limit: 31 })
           if (bars.length >= 2) {
-            const close = bars[bars.length - 1].close
-            const prevClose = bars[bars.length - 2].close
-            priceMap.value[symbol] = { close, prevClose, pct: (close - prevClose) / prevClose }
+            const last = bars[bars.length - 1]
+            const prev = bars[bars.length - 2]
+            const close = Number(last.close)
+            const oldClose = priceMap.value[symbol]?.close
+            if (oldClose != null && oldClose !== close) {
+              flashMap.value[symbol] = close > oldClose ? 'up' : 'down'
+              setTimeout(() => { flashMap.value[symbol] = null }, 900)
+            }
+            const volumeBars = bars.slice(0, -1).map(b => Number(b.volume ?? 0)).filter(v => v > 0)
+            const avgVolume = volumeBars.length
+              ? volumeBars.reduce((sum, v) => sum + v, 0) / volumeBars.length
+              : undefined
+            priceMap.value[symbol] = {
+              close,
+              prevClose: Number(prev.close),
+              pct: Number(prev.close) ? (close - Number(prev.close)) / Number(prev.close) : 0,
+              open: Number(last.open),
+              dayHigh: Number(last.high),
+              dayLow: Number(last.low),
+              volume: Number(last.volume ?? 0),
+              avgVolume,
+              updatedAt: Date.now(),
+            }
           } else if (bars.length === 1) {
-            const close = bars[0].close
-            priceMap.value[symbol] = { close, prevClose: close, pct: 0 }
+            const last = bars[0]
+            const close = Number(last.close)
+            priceMap.value[symbol] = {
+              close,
+              prevClose: close,
+              pct: 0,
+              open: Number(last.open),
+              dayHigh: Number(last.high),
+              dayLow: Number(last.low),
+              volume: Number(last.volume ?? 0),
+              updatedAt: Date.now(),
+            }
           }
         } catch { /* no bars */ }
       })
@@ -184,6 +228,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     watchlists,
     loading,
     priceMap,
+    flashMap,
     focusRequest,
     requestFocusWatchlist,
     clearFocusRequest,

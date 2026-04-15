@@ -166,7 +166,7 @@ async def create_indicator_alert(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from app.services.indicators import INDICATOR_REGISTRY
+    from app.services.indicators import INDICATOR_REGISTRY, normalize_indicator_params
 
     if body.indicator_a_type not in INDICATOR_REGISTRY:
         raise HTTPException(400, f"Unknown indicator: {body.indicator_a_type}")
@@ -175,7 +175,16 @@ async def create_indicator_alert(
     if body.threshold_value is None and body.indicator_b_type is None:
         raise HTTPException(400, "Must provide either threshold_value or indicator_b_type")
 
-    alert = IndicatorAlert(**body.model_dump(), user_id=current_user.id)
+    payload = body.model_dump()
+    payload["indicator_a_params"] = normalize_indicator_params(
+        body.indicator_a_type, body.indicator_a_params
+    )
+    if body.indicator_b_type:
+        payload["indicator_b_params"] = normalize_indicator_params(
+            body.indicator_b_type, body.indicator_b_params or {}
+        )
+
+    alert = IndicatorAlert(**payload, user_id=current_user.id)
     db.add(alert)
     await db.commit()
     return await _get_indicator_alert_enriched(db, alert.id)

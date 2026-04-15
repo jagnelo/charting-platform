@@ -214,13 +214,14 @@ def _compute_atr(data: OHLCVSeries, period: int = 14) -> dict:
     return {"atr": atr.to_numpy()}
 
 
-def _compute_stoch(data: OHLCVSeries, k_period: int = 14, d_period: int = 3) -> dict:
+def _compute_stoch(data: OHLCVSeries, k_period: int = 14, d_period: int = 3, smooth_k: int = 3) -> dict:
     high = pd.Series(data.highs)
     low = pd.Series(data.lows)
     close = pd.Series(data.closes)
     lowest_low = low.rolling(window=k_period, min_periods=k_period).min()
     highest_high = high.rolling(window=k_period, min_periods=k_period).max()
-    k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
+    raw_k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
+    k = raw_k.rolling(window=smooth_k, min_periods=smooth_k).mean() if smooth_k > 1 else raw_k
     d = k.rolling(window=d_period, min_periods=d_period).mean()
     return {"stoch_k": k.to_numpy(), "stoch_d": d.to_numpy()}
 
@@ -245,6 +246,306 @@ def _compute_cci(data: OHLCVSeries, period: int = 20) -> dict:
 
 def _compute_volume(data: OHLCVSeries) -> dict:
     return {"volume": data.volumes.copy()}
+
+
+def _compute_volume_ratio(data: OHLCVSeries, period: int = 20) -> dict:
+    vol = pd.Series(data.volumes)
+    avg = vol.rolling(window=period, min_periods=period).mean()
+    ratio = vol / avg.replace(0, np.nan)
+    return {"volume_ratio": ratio.to_numpy()}
+
+
+def _compute_ichimoku(
+    data: OHLCVSeries,
+    tenkan: int = 9,
+    kijun: int = 26,
+    senkou_b: int = 52,
+    displacement: int = 26,
+) -> dict:
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    close = pd.Series(data.closes)
+
+    def _midpoint(highs: pd.Series, lows: pd.Series, period: int) -> pd.Series:
+        return (
+            highs.rolling(period, min_periods=period).max()
+            + lows.rolling(period, min_periods=period).min()
+        ) / 2
+
+    tenkan_sen = _midpoint(high, low, tenkan)
+    kijun_sen = _midpoint(high, low, kijun)
+    senkou_a = ((tenkan_sen + kijun_sen) / 2).shift(displacement)
+    senkou_b_line = _midpoint(high, low, senkou_b).shift(displacement)
+    chikou = close.shift(-displacement)
+
+    return {
+        "ichimoku_tenkan": tenkan_sen.to_numpy(),
+        "ichimoku_kijun": kijun_sen.to_numpy(),
+        "ichimoku_senkou_a": senkou_a.to_numpy(),
+        "ichimoku_senkou_b": senkou_b_line.to_numpy(),
+        "ichimoku_chikou": chikou.to_numpy(),
+    }
+
+
+def _compute_psar(data: OHLCVSeries, af_start: float = 0.02, af_step: float = 0.02, af_max: float = 0.2) -> dict:
+    high = data.highs
+    low = data.lows
+    n = len(high)
+    psar = np.full(n, np.nan)
+    if n < 2:
+        return {"psar": psar}
+
+    # Initialise: assume uptrend
+    bull = True
+    ep = high[0]  # extreme point
+    af = af_start
+    psar[0] = low[0]
+
+    for i in range(1, n):
+        prev_psar = psar[i - 1]
+        if bull:
+            psar[i] = prev_psar + af * (ep - prev_psar)
+            # SAR must be below prior two lows
+            if i >= 2:
+                psar[i] = min(psar[i], low[i - 1], low[i - 2])
+            if low[i] < psar[i]:
+                # Reversal to bearish
+                bull = False
+                psar[i] = ep
+                ep = low[i]
+                af = af_start
+            else:
+                if high[i] > ep:
+                    ep = high[i]
+                    af = min(af + af_step, af_max)
+        else:
+            psar[i] = prev_psar + af * (ep - prev_psar)
+            # SAR must be above prior two highs
+            if i >= 2:
+                psar[i] = max(psar[i], high[i - 1], high[i - 2])
+            if high[i] > psar[i]:
+                # Reversal to bullish
+                bull = True
+                psar[i] = ep
+                ep = high[i]
+                af = af_start
+            else:
+                if low[i] < ep:
+                    ep = low[i]
+                    af = min(af + af_step, af_max)
+
+    return {"psar": psar}
+
+
+def _compute_donchian(data: OHLCVSeries, period: int = 20) -> dict:
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    upper = high.rolling(window=period, min_periods=period).max()
+    lower = low.rolling(window=period, min_periods=period).min()
+    mid = (upper + lower) / 2
+    return {
+        "donchian_upper": upper.to_numpy(),
+        "donchian_mid": mid.to_numpy(),
+        "donchian_lower": lower.to_numpy(),
+    }
+
+
+def _compute_keltner(data: OHLCVSeries, period: int = 20, atr_period: int = 10, multiplier: float = 2.0) -> dict:
+    close = pd.Series(data.closes)
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    mid = close.ewm(span=period, adjust=False, min_periods=period).mean()
+    # ATR via EWM (same as _compute_atr)
+    close_prev = close.shift(1)
+    tr = pd.concat([(high - low), (high - close_prev).abs(), (low - close_prev).abs()], axis=1).max(axis=1)
+    atr = tr.ewm(alpha=1 / atr_period, adjust=False, min_periods=atr_period).mean()
+    return {
+        "keltner_upper": (mid + multiplier * atr).to_numpy(),
+        "keltner_mid": mid.to_numpy(),
+        "keltner_lower": (mid - multiplier * atr).to_numpy(),
+    }
+
+
+def _compute_williams_r(data: OHLCVSeries, period: int = 14) -> dict:
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    close = pd.Series(data.closes)
+    hh = high.rolling(window=period, min_periods=period).max()
+    ll = low.rolling(window=period, min_periods=period).min()
+    wr = -100 * (hh - close) / (hh - ll).replace(0, np.nan)
+    return {"williams_r": wr.to_numpy()}
+
+
+def _compute_hma(data: OHLCVSeries, period: int = 20) -> dict:
+    close = pd.Series(data.closes)
+    weights_half = np.arange(1, period // 2 + 1, dtype=np.float64)
+    weights_full = np.arange(1, period + 1, dtype=np.float64)
+    sqrt_period = int(np.sqrt(period))
+    weights_sqrt = np.arange(1, sqrt_period + 1, dtype=np.float64)
+
+    def _wma(s: pd.Series, w: np.ndarray) -> pd.Series:
+        p = len(w)
+        return s.rolling(window=p).apply(lambda x: np.dot(x, w) / w.sum(), raw=True)
+
+    wma_half = _wma(close, weights_half)
+    wma_full = _wma(close, weights_full)
+    raw = 2 * wma_half - wma_full
+    hma = _wma(raw, weights_sqrt)
+    return {"hma": hma.to_numpy()}
+
+
+def _compute_aroon(data: OHLCVSeries, period: int = 25) -> dict:
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    aroon_up = high.rolling(window=period + 1, min_periods=period + 1).apply(
+        lambda x: ((period - (period - np.argmax(x))) / period) * 100, raw=True
+    )
+    aroon_down = low.rolling(window=period + 1, min_periods=period + 1).apply(
+        lambda x: ((period - (period - np.argmin(x))) / period) * 100, raw=True
+    )
+    aroon_osc = aroon_up - aroon_down
+    return {
+        "aroon_up": aroon_up.to_numpy(),
+        "aroon_down": aroon_down.to_numpy(),
+        "aroon_osc": aroon_osc.to_numpy(),
+    }
+
+
+def _compute_mfi(data: OHLCVSeries, period: int = 14) -> dict:
+    typical = pd.Series((data.highs + data.lows + data.closes) / 3)
+    vol = pd.Series(data.volumes)
+    money_flow = typical * vol
+    tp_diff = typical.diff()
+
+    pos_flow = money_flow.where(tp_diff > 0, 0.0)
+    neg_flow = money_flow.where(tp_diff < 0, 0.0)
+
+    pos_sum = pos_flow.rolling(window=period, min_periods=period).sum()
+    neg_sum = neg_flow.rolling(window=period, min_periods=period).sum().abs()
+
+    mfr = pos_sum / neg_sum.replace(0, np.nan)
+    mfi = 100 - (100 / (1 + mfr))
+    return {"mfi": mfi.to_numpy()}
+
+
+def _compute_roc(data: OHLCVSeries, period: int = 10) -> dict:
+    close = pd.Series(data.closes)
+    roc = ((close - close.shift(period)) / close.shift(period).replace(0, np.nan)) * 100
+    return {"roc": roc.to_numpy()}
+
+
+def _compute_momentum(data: OHLCVSeries, period: int = 10) -> dict:
+    close = pd.Series(data.closes)
+    mom = close - close.shift(period)
+    return {"momentum": mom.to_numpy()}
+
+
+def _compute_stddev(data: OHLCVSeries, period: int = 20) -> dict:
+    close = pd.Series(data.closes)
+    std = close.rolling(window=period, min_periods=period).std()
+    return {"stddev": std.to_numpy()}
+
+
+def _compute_pivot_points(data: OHLCVSeries, method: str = "classic") -> dict:
+    """
+    Compute daily pivot points using the prior bar's H/L/C.
+    Returns PP, R1-R3, S1-S3 (or equivalent Fibonacci/Camarilla levels).
+    Values are projected forward until the next pivot bar.
+    """
+    high = data.highs
+    low = data.lows
+    close = data.closes
+    n = len(close)
+
+    pp = np.full(n, np.nan)
+    r1 = np.full(n, np.nan)
+    r2 = np.full(n, np.nan)
+    r3 = np.full(n, np.nan)
+    s1 = np.full(n, np.nan)
+    s2 = np.full(n, np.nan)
+    s3 = np.full(n, np.nan)
+
+    for i in range(1, n):
+        h, lo, c = float(high[i - 1]), float(low[i - 1]), float(close[i - 1])
+        pivot = (h + lo + c) / 3
+        rng = h - lo
+
+        if method == "fibonacci":
+            pp[i] = pivot
+            r1[i] = pivot + 0.382 * rng
+            r2[i] = pivot + 0.618 * rng
+            r3[i] = pivot + 1.000 * rng
+            s1[i] = pivot - 0.382 * rng
+            s2[i] = pivot - 0.618 * rng
+            s3[i] = pivot - 1.000 * rng
+        elif method == "camarilla":
+            pp[i] = pivot
+            r1[i] = c + rng * 1.1 / 12
+            r2[i] = c + rng * 1.1 / 6
+            r3[i] = c + rng * 1.1 / 4
+            s1[i] = c - rng * 1.1 / 12
+            s2[i] = c - rng * 1.1 / 6
+            s3[i] = c - rng * 1.1 / 4
+        else:  # classic
+            pp[i] = pivot
+            r1[i] = 2 * pivot - lo
+            r2[i] = pivot + rng
+            r3[i] = h + 2 * (pivot - lo)
+            s1[i] = 2 * pivot - h
+            s2[i] = pivot - rng
+            s3[i] = lo - 2 * (h - pivot)
+
+    return {"pp": pp, "r1": r1, "r2": r2, "r3": r3, "s1": s1, "s2": s2, "s3": s3}
+
+
+def _compute_cmf(data: OHLCVSeries, period: int = 20) -> dict:
+    high = pd.Series(data.highs)
+    low = pd.Series(data.lows)
+    close = pd.Series(data.closes)
+    vol = pd.Series(data.volumes)
+
+    clv = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
+    mf_vol = clv * vol
+
+    cmf = (
+        mf_vol.rolling(window=period, min_periods=period).sum()
+        / vol.rolling(window=period, min_periods=period).sum().replace(0, np.nan)
+    )
+    return {"cmf": cmf.to_numpy()}
+
+
+def _compute_dema(data: OHLCVSeries, period: int = 20) -> dict:
+    close = pd.Series(data.closes)
+    ema1 = close.ewm(span=period, adjust=False, min_periods=period).mean()
+    ema2 = ema1.ewm(span=period, adjust=False, min_periods=period).mean()
+    dema = 2 * ema1 - ema2
+    return {"dema": dema.to_numpy()}
+
+
+def _compute_tema(data: OHLCVSeries, period: int = 20) -> dict:
+    close = pd.Series(data.closes)
+    ema1 = close.ewm(span=period, adjust=False, min_periods=period).mean()
+    ema2 = ema1.ewm(span=period, adjust=False, min_periods=period).mean()
+    ema3 = ema2.ewm(span=period, adjust=False, min_periods=period).mean()
+    tema = 3 * ema1 - 3 * ema2 + ema3
+    return {"tema": tema.to_numpy()}
+
+
+def _compute_trix(data: OHLCVSeries, period: int = 15) -> dict:
+    close = pd.Series(data.closes)
+    ema1 = close.ewm(span=period, adjust=False, min_periods=period).mean()
+    ema2 = ema1.ewm(span=period, adjust=False, min_periods=period).mean()
+    ema3 = ema2.ewm(span=period, adjust=False, min_periods=period).mean()
+    trix = ema3.pct_change() * 100
+    return {"trix": trix.to_numpy()}
+
+
+def _compute_ppo(data: OHLCVSeries, fast: int = 12, slow: int = 26) -> dict:
+    close = pd.Series(data.closes)
+    ema_fast = close.ewm(span=fast, adjust=False, min_periods=fast).mean()
+    ema_slow = close.ewm(span=slow, adjust=False, min_periods=slow).mean()
+    ppo = 100 * (ema_fast - ema_slow) / ema_slow.replace(0, np.nan)
+    return {"ppo": ppo.to_numpy()}
 
 
 def _compute_adx(data: OHLCVSeries, period: int = 14) -> dict:
@@ -387,6 +688,7 @@ INDICATOR_REGISTRY: dict[str, IndicatorDef] = {
         description="Stochastic Oscillator (%K and %D)",
         params=[
             ParamDef("k_period", int, 14, "%K period", min_value=1),
+            ParamDef("smooth_k", int, 3, "%K smoothing", min_value=1),
             ParamDef("d_period", int, 3, "%D period", min_value=1),
         ],
         output_keys=["stoch_k", "stoch_d"],
@@ -433,6 +735,204 @@ INDICATOR_REGISTRY: dict[str, IndicatorDef] = {
         fn=_compute_volume,
         default_style={"color": "#4db6ac", "lineWidth": 1},
     ),
+    "volume_ratio": IndicatorDef(
+        type="volume_ratio",
+        label="Volume Spike Ratio",
+        pane="separate",
+        description="Current volume divided by rolling average volume",
+        params=[ParamDef("period", int, 20, "Average volume lookback", min_value=1)],
+        output_keys=["volume_ratio"],
+        fn=_compute_volume_ratio,
+        default_style={"color": "#4db6ac", "lineWidth": 1.5},
+    ),
+    "ichimoku": IndicatorDef(
+        type="ichimoku",
+        label="Ichimoku Cloud",
+        pane="main",
+        description="Ichimoku Kinko Hyo — Tenkan, Kijun, Senkou A/B, Chikou",
+        params=[
+            ParamDef("tenkan", int, 9, "Tenkan-sen (conversion) period", min_value=1),
+            ParamDef("kijun", int, 26, "Kijun-sen (base) period", min_value=1),
+            ParamDef("senkou_b", int, 52, "Senkou Span B period", min_value=1),
+            ParamDef("displacement", int, 26, "Cloud displacement (forward shift)", min_value=1),
+        ],
+        output_keys=["ichimoku_tenkan", "ichimoku_kijun", "ichimoku_senkou_a", "ichimoku_senkou_b", "ichimoku_chikou"],
+        fn=_compute_ichimoku,
+        default_style={"color": "#80cbc4", "lineWidth": 1.5},
+    ),
+    "psar": IndicatorDef(
+        type="psar",
+        label="Parabolic SAR",
+        pane="main",
+        description="Parabolic Stop and Reverse — trend-following indicator plotted as dots",
+        params=[
+            ParamDef("af_start", float, 0.02, "Initial acceleration factor", min_value=0.001, max_value=1.0),
+            ParamDef("af_step", float, 0.02, "Acceleration factor step", min_value=0.001, max_value=1.0),
+            ParamDef("af_max", float, 0.2, "Maximum acceleration factor", min_value=0.01, max_value=1.0),
+        ],
+        output_keys=["psar"],
+        fn=_compute_psar,
+        default_style={"color": "#ef9a9a", "lineWidth": 1},
+    ),
+    "donchian": IndicatorDef(
+        type="donchian",
+        label="Donchian Channels",
+        pane="main",
+        description="Donchian Channels — highest high / lowest low over a period",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=1)],
+        output_keys=["donchian_upper", "donchian_mid", "donchian_lower"],
+        fn=_compute_donchian,
+        default_style={"color": "#80deea", "lineWidth": 1},
+    ),
+    "keltner": IndicatorDef(
+        type="keltner",
+        label="Keltner Channels",
+        pane="main",
+        description="Keltner Channels — EMA ± ATR multiplier",
+        params=[
+            ParamDef("period", int, 20, "EMA period", min_value=1),
+            ParamDef("atr_period", int, 10, "ATR period", min_value=1),
+            ParamDef("multiplier", float, 2.0, "ATR multiplier", min_value=0.1),
+        ],
+        output_keys=["keltner_upper", "keltner_mid", "keltner_lower"],
+        fn=_compute_keltner,
+        default_style={"color": "#ce93d8", "lineWidth": 1},
+    ),
+    "williams_r": IndicatorDef(
+        type="williams_r",
+        label="Williams %R",
+        pane="separate",
+        description="Williams Percent Range — momentum oscillator (range: -100 to 0)",
+        params=[ParamDef("period", int, 14, "Lookback period", min_value=1)],
+        output_keys=["williams_r"],
+        fn=_compute_williams_r,
+        default_style={"color": "#ffcc80", "lineWidth": 1.5},
+    ),
+    "hma": IndicatorDef(
+        type="hma",
+        label="HMA",
+        pane="main",
+        description="Hull Moving Average — fast and smooth MA using WMA",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=4)],
+        output_keys=["hma"],
+        fn=_compute_hma,
+        default_style={"color": "#a5d6a7", "lineWidth": 1.5},
+    ),
+    "aroon": IndicatorDef(
+        type="aroon",
+        label="Aroon",
+        pane="separate",
+        description="Aroon Up/Down/Oscillator — identifies trend changes and strength",
+        params=[ParamDef("period", int, 25, "Lookback period", min_value=1)],
+        output_keys=["aroon_up", "aroon_down", "aroon_osc"],
+        fn=_compute_aroon,
+        default_style={"color": "#81d4fa", "lineWidth": 1.5},
+    ),
+    "mfi": IndicatorDef(
+        type="mfi",
+        label="MFI",
+        pane="separate",
+        description="Money Flow Index — volume-weighted RSI (range: 0 to 100)",
+        params=[ParamDef("period", int, 14, "Lookback period", min_value=2)],
+        output_keys=["mfi"],
+        fn=_compute_mfi,
+        default_style={"color": "#f48fb1", "lineWidth": 1.5},
+    ),
+    "roc": IndicatorDef(
+        type="roc",
+        label="ROC",
+        pane="separate",
+        description="Rate of Change — percentage change over N periods",
+        params=[ParamDef("period", int, 10, "Lookback period", min_value=1)],
+        output_keys=["roc"],
+        fn=_compute_roc,
+        default_style={"color": "#ffb74d", "lineWidth": 1.5},
+    ),
+    "momentum": IndicatorDef(
+        type="momentum",
+        label="Momentum",
+        pane="separate",
+        description="Momentum — price difference over N periods",
+        params=[ParamDef("period", int, 10, "Lookback period", min_value=1)],
+        output_keys=["momentum"],
+        fn=_compute_momentum,
+        default_style={"color": "#b39ddb", "lineWidth": 1.5},
+    ),
+    "stddev": IndicatorDef(
+        type="stddev",
+        label="Std Dev",
+        pane="separate",
+        description="Standard Deviation of closing price over N periods",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=2)],
+        output_keys=["stddev"],
+        fn=_compute_stddev,
+        default_style={"color": "#fff59d", "lineWidth": 1.5},
+    ),
+    "pivot_points": IndicatorDef(
+        type="pivot_points",
+        label="Pivot Points",
+        pane="main",
+        description="Pivot Points — support/resistance levels (Classic, Fibonacci, or Camarilla)",
+        params=[
+            ParamDef("method", str, "classic", "Method: classic | fibonacci | camarilla"),
+        ],
+        output_keys=["pp", "r1", "r2", "r3", "s1", "s2", "s3"],
+        fn=_compute_pivot_points,
+        default_style={"color": "#80cbc4", "lineWidth": 1},
+    ),
+    "cmf": IndicatorDef(
+        type="cmf",
+        label="CMF",
+        pane="separate",
+        description="Chaikin Money Flow — volume-weighted momentum oscillator",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=1)],
+        output_keys=["cmf"],
+        fn=_compute_cmf,
+        default_style={"color": "#80deea", "lineWidth": 1.5},
+    ),
+    "dema": IndicatorDef(
+        type="dema",
+        label="DEMA",
+        pane="main",
+        description="Double Exponential Moving Average — reduced lag EMA",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=1)],
+        output_keys=["dema"],
+        fn=_compute_dema,
+        default_style={"color": "#ffb74d", "lineWidth": 1.5},
+    ),
+    "tema": IndicatorDef(
+        type="tema",
+        label="TEMA",
+        pane="main",
+        description="Triple Exponential Moving Average — further reduced lag",
+        params=[ParamDef("period", int, 20, "Lookback period", min_value=1)],
+        output_keys=["tema"],
+        fn=_compute_tema,
+        default_style={"color": "#f48fb1", "lineWidth": 1.5},
+    ),
+    "trix": IndicatorDef(
+        type="trix",
+        label="TRIX",
+        pane="separate",
+        description="Triple Smoothed EMA ROC — filters noise, shows trend momentum",
+        params=[ParamDef("period", int, 15, "Lookback period", min_value=1)],
+        output_keys=["trix"],
+        fn=_compute_trix,
+        default_style={"color": "#a5d6a7", "lineWidth": 1.5},
+    ),
+    "ppo": IndicatorDef(
+        type="ppo",
+        label="PPO",
+        pane="separate",
+        description="Percentage Price Oscillator — like MACD but expressed as percentage",
+        params=[
+            ParamDef("fast", int, 12, "Fast EMA period", min_value=1),
+            ParamDef("slow", int, 26, "Slow EMA period", min_value=1),
+        ],
+        output_keys=["ppo"],
+        fn=_compute_ppo,
+        default_style={"color": "#ce93d8", "lineWidth": 1.5},
+    ),
 }
 
 # Price field pass-throughs — treated as indicators for alert purposes so that
@@ -453,6 +953,36 @@ for _field in ("open", "high", "low", "close"):
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+_PARAM_ALIASES = {
+    "anchorTime": "anchor_timestamp",
+    "stdDev": "std_dev",
+    "atrPeriod": "atr_period",
+    "senkouB": "senkou_b",
+    "afStart": "af_start",
+    "afStep": "af_step",
+    "afMax": "af_max",
+    "smoothK": "smooth_k",
+    "smoothD": "d_period",
+}
+
+
+def normalize_indicator_params(indicator_type: str, params: dict | None = None) -> dict:
+    """Accept legacy/camelCase frontend keys while keeping registry params snake_case."""
+    if not params:
+        return {}
+
+    normalized = {}
+    for key, value in params.items():
+        next_key = _PARAM_ALIASES.get(key, key)
+        if indicator_type == "bb" and key == "multiplier":
+            next_key = "std_dev"
+        normalized[next_key] = value
+
+    if indicator_type == "stoch" and "period" in normalized and "k_period" not in normalized:
+        normalized["k_period"] = normalized["period"]
+
+    return normalized
+
 
 def compute_indicator(
     indicator_type: str,
@@ -471,6 +1001,7 @@ def compute_indicator(
         )
 
     defn = INDICATOR_REGISTRY[indicator_type]
+    params = normalize_indicator_params(indicator_type, params)
     resolved_params = {}
     for p in defn.params:
         if params and p.name in params:

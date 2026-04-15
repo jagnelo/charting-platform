@@ -18,6 +18,7 @@
       </nav>
       <main class="main-content">
         <router-view />
+        <StatusBar />
       </main>
     </template>
     <template v-else>
@@ -33,6 +34,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
 import Notification from '@/components/common/Notification.vue'
+import StatusBar from '@/components/common/StatusBar.vue'
 
 const route      = useRoute()
 const authStore  = useAuthStore()
