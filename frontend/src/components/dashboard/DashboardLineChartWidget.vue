@@ -46,6 +46,7 @@ const loadedSeries = ref<LoadedSeries[]>([])
 const tooltip = ref<{ date: string; items: Array<{ label: string; value: string; color: string }> } | null>(null)
 let plot: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
+let refreshSeq = 0
 
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
 const normalize = computed(() =>
@@ -109,10 +110,13 @@ async function loadBars(target: string) {
 }
 
 async function refresh() {
+  const seq = ++refreshSeq
   destroyPlot()
   tooltip.value = null
   if (!targets.value.length) {
     loadedSeries.value = []
+    error.value = null
+    loading.value = false
     return
   }
   loading.value = true
@@ -132,14 +136,17 @@ async function refresh() {
         }
       }),
     )
+    if (seq !== refreshSeq) return
     loadedSeries.value = loaded.filter(item => item.bars.length)
     await nextTick()
-    buildPlot()
+    if (seq === refreshSeq) buildPlot()
   } catch (e: any) {
-    error.value = e?.message ?? 'Chart unavailable'
-    loadedSeries.value = []
+    if (seq === refreshSeq) {
+      error.value = e?.message ?? 'Chart unavailable'
+      loadedSeries.value = []
+    }
   } finally {
-    loading.value = false
+    if (seq === refreshSeq) loading.value = false
   }
 }
 
@@ -267,6 +274,7 @@ onMounted(() => {
   refresh()
 })
 onUnmounted(() => {
+  refreshSeq++
   resizeObserver?.disconnect()
   destroyPlot()
 })

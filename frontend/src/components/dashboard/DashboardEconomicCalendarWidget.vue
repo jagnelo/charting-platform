@@ -36,18 +36,28 @@ const symbol = computed(() => String(props.config.symbol ?? 'SPY').trim().toUppe
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const error = ref('')
+let loadSeq = 0
 
 async function load() {
-  if (!symbol.value) return
+  const seq = ++loadSeq
+  if (!symbol.value) {
+    events.value = []
+    error.value = ''
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = ''
   try {
-    events.value = await api.get(`/calendar/instruments/${encodeURIComponent(symbol.value)}/calendar`)
+    const loaded = await api.get<CalendarEvent[]>(`/calendar/instruments/${encodeURIComponent(symbol.value)}/calendar`)
+    if (seq === loadSeq) events.value = loaded
   } catch (e: any) {
-    error.value = e?.message ?? 'Calendar unavailable'
-    events.value = []
+    if (seq === loadSeq) {
+      error.value = e?.message ?? 'Calendar unavailable'
+      events.value = []
+    }
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 

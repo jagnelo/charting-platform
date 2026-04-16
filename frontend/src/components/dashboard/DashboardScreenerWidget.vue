@@ -16,7 +16,9 @@
       <span>{{ latest.matched_ids.length }} matches</span>
       <span>{{ new Date(latest.run_at).toLocaleString() }}</span>
     </div>
-    <div class="screener-list">
+    <div v-if="loading" class="empty-small">Loading screener...</div>
+    <div v-else-if="error" class="empty-small error">{{ error }}</div>
+    <div v-else class="screener-list">
       <div v-for="(id, index) in matchedIds" :key="id" class="screener-row">
         <span>{{ index + 1 }}</span>
         <b>{{ instrumentMap[id]?.symbol ?? id }}</b>
@@ -59,19 +61,44 @@ const screeners = ref<ScreenerOut[]>([])
 const latest = ref<ScreenerResultOut | null>(null)
 const instrumentMap = ref<Record<number, InstrumentInfo>>({})
 const running = ref(false)
+const loading = ref(false)
+const error = ref('')
+let loadSeq = 0
 
 const selectedId = computed(() => Number(props.config.screenerId) || screeners.value[0]?.id || null)
 const matchedIds = computed(() => latest.value?.matched_ids.slice(0, 80) ?? [])
 
 async function load() {
-  screeners.value = await api.get<ScreenerOut[]>('/screeners')
-  if (selectedId.value) await loadResults(selectedId.value)
+  const seq = ++loadSeq
+  loading.value = true
+  error.value = ''
+  try {
+    screeners.value = await api.get<ScreenerOut[]>('/screeners')
+    if (seq !== loadSeq) return
+    if (selectedId.value) await loadResults(selectedId.value, seq)
+  } catch (e: any) {
+    if (seq === loadSeq) error.value = e?.message ?? 'Screener unavailable'
+  } finally {
+    if (seq === loadSeq) loading.value = false
+  }
 }
 
-async function loadResults(id: number) {
-  const results = await api.get<ScreenerResultOut[]>(`/screeners/${id}/results`, { limit: 1 })
-  latest.value = results[0] ?? null
-  if (latest.value?.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids)
+async function loadResults(id: number, seq = ++loadSeq) {
+  loading.value = true
+  error.value = ''
+  try {
+    const results = await api.get<ScreenerResultOut[]>(`/screeners/${id}/results`, { limit: 1 })
+    if (seq !== loadSeq) return
+    latest.value = results[0] ?? null
+    if (latest.value?.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids)
+  } catch (e: any) {
+    if (seq === loadSeq) {
+      error.value = e?.message ?? 'Screener unavailable'
+      latest.value = null
+    }
+  } finally {
+    if (seq === loadSeq) loading.value = false
+  }
 }
 
 async function loadInstrumentInfo(ids: number[]) {
@@ -93,9 +120,14 @@ function selectScreener(event: Event) {
 async function runScreener() {
   if (!selectedId.value) return
   running.value = true
+  error.value = ''
+  const seq = ++loadSeq
   try {
     latest.value = await api.post<ScreenerResultOut>(`/screeners/${selectedId.value}/run`, {})
+    if (seq !== loadSeq) return
     if (latest.value.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids)
+  } catch (e: any) {
+    if (seq === loadSeq) error.value = e?.message ?? 'Screener run failed'
   } finally {
     running.value = false
   }
@@ -109,6 +141,7 @@ function formatValue(value: unknown) {
 
 watch(selectedId, id => {
   if (id) loadResults(id)
+  else latest.value = null
 })
 onMounted(load)
 </script>
@@ -191,4 +224,5 @@ onMounted(load)
   font-size: 12px;
   text-align: center;
 }
+.empty-small.error { color: #ef5350; font-size: 10px; }
 </style>

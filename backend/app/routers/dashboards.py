@@ -28,6 +28,14 @@ def _default_tab() -> DashboardTab:
     return DashboardTab(name="Home", position=0, layout_settings={})
 
 
+async def _ensure_dashboard_has_tab(db: AsyncSession, dashboard: Dashboard) -> Dashboard:
+    if dashboard.tabs:
+        return dashboard
+    dashboard.tabs.append(_default_tab())
+    await db.flush()
+    return await _load_dashboard(db, dashboard.id, dashboard.user_id)
+
+
 async def _load_dashboard(db: AsyncSession, dashboard_id: int, user_id: int) -> Dashboard:
     dashboard = (
         await db.execute(
@@ -79,7 +87,7 @@ async def _ensure_default_dashboard(db: AsyncSession, user: User) -> Dashboard:
         )
     ).scalar_one_or_none()
     if existing is not None:
-        return existing
+        return await _ensure_dashboard_has_tab(db, existing)
 
     any_dashboard = (
         await db.execute(
@@ -92,7 +100,7 @@ async def _ensure_default_dashboard(db: AsyncSession, user: User) -> Dashboard:
     if any_dashboard is not None:
         any_dashboard.is_default = True
         await db.flush()
-        return any_dashboard
+        return await _ensure_dashboard_has_tab(db, any_dashboard)
 
     dashboard = Dashboard(
         user_id=user.id,
@@ -235,6 +243,13 @@ async def delete_tab(
     current_user: User = Depends(get_current_user),
 ):
     tab = await _load_tab(db, tab_id, current_user.id)
+    sibling_count = (
+        await db.execute(
+            select(func.count(DashboardTab.id)).where(DashboardTab.dashboard_id == tab.dashboard_id)
+        )
+    ).scalar_one()
+    if sibling_count <= 1:
+        raise HTTPException(400, "Cannot delete the last dashboard tab")
     await db.delete(tab)
 
 

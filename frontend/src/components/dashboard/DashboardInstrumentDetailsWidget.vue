@@ -31,6 +31,7 @@ const error = ref<string | null>(null)
 const instrument = ref<Instrument | null>(null)
 const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+let refreshSeq = 0
 
 const rows = computed(() => {
   const detail = instrument.value?.equity_detail
@@ -62,23 +63,31 @@ function formatLarge(value?: number) {
 }
 
 async function refresh() {
-  if (!symbol.value) return
+  const seq = ++refreshSeq
+  if (!symbol.value) {
+    instrument.value = null
+    error.value = null
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = null
   try {
     const target = await resolveTarget(symbol.value)
+    if (seq !== refreshSeq) return
     instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
     if (
       !instrument.value.is_synthetic
       && (!instrument.value.stats?.week52_high || !instrument.value.stats?.week52_low)
     ) {
       await api.get(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 260 })
+      if (seq !== refreshSeq) return
       instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
     }
   } catch (e: any) {
-    error.value = e?.message ?? 'Instrument unavailable'
+    if (seq === refreshSeq) error.value = e?.message ?? 'Instrument unavailable'
   } finally {
-    loading.value = false
+    if (seq === refreshSeq) loading.value = false
   }
 }
 

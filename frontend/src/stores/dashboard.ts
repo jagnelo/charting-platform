@@ -38,11 +38,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function loadDefaultDashboard() {
     isLoading.value = true
     error.value = null
+    const previousTabId = activeTabId.value
     try {
       const dashboard = await api.get<Dashboard>('/dashboards/default')
       upsertDashboard(dashboard)
       activeDashboardId.value = dashboard.id
-      activeTabId.value = dashboard.tabs[0]?.id ?? null
+      activeTabId.value = dashboard.tabs.some(tab => tab.id === previousTabId)
+        ? previousTabId
+        : dashboard.tabs[0]?.id ?? null
       return dashboard
     } catch (e: any) {
       error.value = e?.message ?? 'Failed to load dashboard'
@@ -98,10 +101,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function updateWidget(widgetId: number, patch: Partial<DashboardWidget>) {
     const local = findWidget(widgetId)
+    const previous = local ? { ...local, layout: { ...local.layout }, config: { ...local.config }, style: { ...local.style } } : null
     if (local) Object.assign(local, patch)
-    const updated = await api.patch<DashboardWidget>(`/dashboards/widgets/${widgetId}`, patch)
-    if (local) Object.assign(local, updated)
-    return updated
+    try {
+      const updated = await api.patch<DashboardWidget>(`/dashboards/widgets/${widgetId}`, patch)
+      if (local) Object.assign(local, updated)
+      return updated
+    } catch (e) {
+      if (local && previous) Object.assign(local, previous)
+      throw e
+    }
   }
 
   async function deleteWidget(widgetId: number) {
@@ -113,10 +122,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function saveWidgetLayout(widgetId: number, layout: DashboardWidgetLayout) {
     const widget = findWidget(widgetId)
     if (!widget) return
+    const previous = { ...widget.layout }
     widget.layout = { ...layout }
-    await api.patch(`/dashboards/tabs/${widget.tab_id}/widgets/layout`, {
-      widgets: [{ id: widgetId, layout }],
-    })
+    try {
+      await api.patch(`/dashboards/tabs/${widget.tab_id}/widgets/layout`, {
+        widgets: [{ id: widgetId, layout }],
+      })
+    } catch (e) {
+      widget.layout = previous
+      throw e
+    }
   }
 
   function setActiveTab(tabId: number) {
@@ -128,9 +143,31 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   function upsertDashboard(dashboard: Dashboard) {
+    dashboard = normalizeDashboard(dashboard)
     const idx = dashboards.value.findIndex(d => d.id === dashboard.id)
     if (idx === -1) dashboards.value.push(dashboard)
     else dashboards.value[idx] = dashboard
+  }
+
+  function isRecord(value: unknown): value is Record<string, any> {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+  }
+
+  function normalizeDashboard(dashboard: Dashboard): Dashboard {
+    return {
+      ...dashboard,
+      settings: isRecord(dashboard.settings) ? dashboard.settings : {},
+      tabs: (dashboard.tabs ?? []).map(tab => ({
+        ...tab,
+        layout_settings: isRecord(tab.layout_settings) ? tab.layout_settings : {},
+        widgets: (tab.widgets ?? []).map(widget => ({
+          ...widget,
+          layout: isRecord(widget.layout) ? widget.layout as DashboardWidgetLayout : { x: 0, y: 0, w: 4, h: 4 },
+          config: isRecord(widget.config) ? widget.config : {},
+          style: isRecord(widget.style) ? widget.style : {},
+        })),
+      })),
+    }
   }
 
   function findTab(tabId: number) {

@@ -3,9 +3,9 @@
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
-          :class="{ 'cursor-crosshair-wrapper': !!drawStore.activeToolType || drawStore.avwapDropActive }">
+          :class="{ 'cursor-crosshair-wrapper': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }">
       <canvas ref="drawingCanvasRef" class="drawing-canvas"
-              :class="{ 'cursor-crosshair': !!drawStore.activeToolType || drawStore.avwapDropActive }" />
+              :class="{ 'cursor-crosshair': overlayInteractionsEnabled && (!!drawStore.activeToolType || drawStore.avwapDropActive) }" />
       <div ref="chartRef" />
 
       <!-- TradingView-style OHLCV info — fixed top-left, not cursor-following -->
@@ -46,7 +46,7 @@
       </div>
 
       <!-- Drawing context menu (right-click on selected drawing) -->
-      <div class="ctx-menu" v-if="drawCtxMenu.visible"
+      <div class="ctx-menu" v-if="overlayInteractionsEnabled && drawCtxMenu.visible"
            :style="{ top: drawCtxMenu.y + 'px', left: drawCtxMenu.x + 'px' }"
            @mouseleave="drawCtxMenu.visible = false">
         <button @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
@@ -94,10 +94,10 @@
     </Transition>
 
     <!-- Help button -->
-    <button class="help-btn" @click="showShortcuts = !showShortcuts" title="Keyboard shortcuts">?</button>
+    <button v-if="controlsEnabled" class="help-btn" @click="showShortcuts = !showShortcuts" title="Keyboard shortcuts">?</button>
 
     <!-- Chart settings button (cog) -->
-    <button class="settings-btn" @click="showChartSettings = !showChartSettings" title="Chart settings">⚙</button>
+    <button v-if="controlsEnabled" class="settings-btn" @click="showChartSettings = !showChartSettings" title="Chart settings">⚙</button>
   </div>
 
   <!-- Chart settings popup -->
@@ -177,13 +177,26 @@ import {
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { DrawingType, IndicatorConfig, Timeframe, ChartBarType } from '@/types'
+import type { ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   chartType?: ChartBarType
-}>()
+  overlayDrawings?: ChartDrawing[]
+  overlayAlerts?: PriceAlert[]
+  showIndicators?: boolean
+  showOverlays?: boolean
+  enableOverlayInteractions?: boolean
+  enableKeyboard?: boolean
+  showControls?: boolean
+}>(), {
+  showIndicators: true,
+  showOverlays: true,
+  enableOverlayInteractions: true,
+  enableKeyboard: true,
+  showControls: true,
+})
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_BARS_VISIBLE  = 150
@@ -203,6 +216,30 @@ const drawStore          = useDrawingsStore()
 const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
+const overlaysEnabled    = computed(() => props.showOverlays)
+const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
+const keyboardEnabled    = computed(() => props.enableKeyboard)
+const controlsEnabled    = computed(() => props.showControls)
+const visibleActiveIndicators = computed(() =>
+  props.showIndicators ? chartStore.activeIndicators : []
+)
+const visibleAlerts = computed(() => props.overlayAlerts ?? alertsStore.alerts)
+const renderableDrawings = computed<AnyDrawing[]>(() => {
+  if (!props.overlayDrawings) return drawStore.renderableDrawings
+  return [...props.overlayDrawings].reverse()
+    .filter(d => d.is_visible)
+    .map(d => ({
+      id: d.id,
+      type: d.drawing_type as DrawingType,
+      points: (d.data as any).points ?? [],
+      style: d.style,
+      label: d.label,
+      isSelected: false,
+      isLocked: true,
+      isVisible: d.is_visible,
+      ...(d.data as any),
+    }))
+})
 
 const rootRef          = ref<HTMLDivElement | null>(null)
 const wrapperRef       = ref<HTMLDivElement | null>(null)
@@ -433,6 +470,7 @@ const drawCtxMenu    = reactive({ visible: false, x: 0, y: 0 })
 
 function deleteSelectedDrawing() {
   drawCtxMenu.visible = false
+  if (!overlayInteractionsEnabled.value) return
   if (drawStore.selectedId != null) drawStore.deleteDrawing(drawStore.selectedId)
 }
 
@@ -490,7 +528,9 @@ function renderVisualOverlays(drawings: AnyDrawing[] = drawingOverlayList()) {
   drawingRenderer?.renderAll(drawings, measurementOverlay())
 }
 
-function drawingOverlayList(base: AnyDrawing[] = drawStore.renderableDrawings): AnyDrawing[] {
+function drawingOverlayList(base: AnyDrawing[] = renderableDrawings.value): AnyDrawing[] {
+  if (!overlaysEnabled.value) return []
+  if (!overlayInteractionsEnabled.value) return base
   if (!drawStore.activeToolType || drawingPoints.length === 0 || !drawingPreviewPoint) return base
   return [
     ...base,
@@ -591,7 +631,7 @@ function stopLivePolling() {
 
 // ── Sub-panes ─────────────────────────────────────────────────────────────────
 const subPanes = computed(() =>
-  chartStore.activeIndicators
+  visibleActiveIndicators.value
     .filter(i => i.pane === 'separate')
     .map(i => ({
       key:    `${i.type}_${JSON.stringify(i.params)}`,
@@ -601,7 +641,7 @@ const subPanes = computed(() =>
 )
 
 const hasVolumeIndicator = computed(() =>
-  chartStore.activeIndicators.some(i => i.type === 'volume' && i.pane !== 'separate')
+  visibleActiveIndicators.value.some(i => i.type === 'volume' && i.pane !== 'separate')
 )
 
 // ── Y-scale range ─────────────────────────────────────────────────────────────
@@ -717,7 +757,7 @@ interface MainSeriesMeta {
  * Ordering matches buildData() and buildSeries(): reversed indicator list.
  */
 function buildExpandedMainIndList(): MainSeriesMeta[] {
-  const mainInds = [...chartStore.activeIndicators]
+  const mainInds = [...visibleActiveIndicators.value]
     .reverse()
     .filter(i => i.pane !== 'separate' && i.type !== 'volume')
 
@@ -943,34 +983,36 @@ function getProjectionItems(): ProjectionItem[] {
     items.push({ price: lastVal, color: ind.style.color, chipLabel: label, originX: lastIdx })
   }
 
-  // ── Price alerts with projection toggled on ──────────────────────────────
-  for (const alert of alertsStore.alerts) {
-    if (alert.status !== 'active' && alert.status !== 'triggered') continue
-    if (!alertsStore.getAlertProjection(alert.id)) continue
-    const color = alert.status === 'triggered' ? '#888888' : '#ffb74d'
-    items.push({ price: Number(alert.threshold_price), color, chipLabel: 'Alert' })
-  }
+  if (overlaysEnabled.value) {
+    // ── Price alerts with projection toggled on ────────────────────────────
+    for (const alert of visibleAlerts.value) {
+      if (alert.status !== 'active' && alert.status !== 'triggered') continue
+      if (!getAlertProjection(alert)) continue
+      const color = alert.status === 'triggered' ? '#888888' : '#ffb74d'
+      items.push({ price: Number(alert.threshold_price), color, chipLabel: 'Alert' })
+    }
 
-  // ── Drawings (non-fib) with projection toggled on ────────────────────────
-  for (const d of drawStore.renderableDrawings) {
-    if (!d.id || FIBO_TYPES.has(d.type)) continue
-    if (!drawStore.getDrawingProjection(d.id)) continue
-    if (!d.points?.length) continue
-    if (d.type === 'vertical_line') continue  // no meaningful single price level
-    const color = d.style?.color ?? '#ffffff'
-    if (d.type === 'horizontal_line') {
-      // Full-width — the line is already infinite, projection just adds the chip
-      items.push({ price: d.points[0].price, color, chipLabel: 'H Line' })
-    } else {
-      // Use the rightmost point's price (last defined point)
-      const rightPt = d.points.length > 1 ? d.points[d.points.length - 1] : d.points[0]
-      const originX = timeToBarIndex(rightPt.time)
-      items.push({
-        price: rightPt.price,
-        color,
-        chipLabel: DRAWING_CHIP[d.type] ?? 'Draw',
-        originX,
-      })
+    // ── Drawings (non-fib) with projection toggled on ──────────────────────
+    for (const d of renderableDrawings.value) {
+      if (!d.id || FIBO_TYPES.has(d.type)) continue
+      if (!getDrawingProjection(d)) continue
+      if (!d.points?.length) continue
+      if (d.type === 'vertical_line') continue  // no meaningful single price level
+      const color = d.style?.color ?? '#ffffff'
+      if (d.type === 'horizontal_line') {
+        // Full-width — the line is already infinite, projection just adds the chip
+        items.push({ price: d.points[0].price, color, chipLabel: 'H Line' })
+      } else {
+        // Use the rightmost point's price (last defined point)
+        const rightPt = d.points.length > 1 ? d.points[d.points.length - 1] : d.points[0]
+        const originX = timeToBarIndex(rightPt.time)
+        items.push({
+          price: rightPt.price,
+          color,
+          chipLabel: DRAWING_CHIP[d.type] ?? 'Draw',
+          originX,
+        })
+      }
     }
   }
 
@@ -1006,6 +1048,15 @@ function getProjectionItems(): ProjectionItem[] {
   return items
 }
 
+function getAlertProjection(alert: PriceAlert): boolean {
+  return props.overlayAlerts ? !!alert.show_projection : alertsStore.getAlertProjection(alert.id)
+}
+
+function getDrawingProjection(drawing: AnyDrawing): boolean {
+  if (props.overlayDrawings) return !!(drawing as any).showProjection
+  return drawing.id != null ? drawStore.getDrawingProjection(drawing.id) : false
+}
+
 // ── Init chart ────────────────────────────────────────────────────────────────
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
@@ -1031,15 +1082,17 @@ async function initChart() {
 
   const plugins: uPlot.Plugin[] = [
     alertLinesPlugin(
-      () => alertsStore.alerts
-        .filter(a => a.status === 'active' || a.status === 'triggered')
-        .map(a => ({
-          id:        a.id,
-          price:     Number(a.threshold_price),
-          label:     a.notes ?? undefined,
-          triggered: a.status === 'triggered',
-        })),
-      () => alertsStore.selectedAlertId,
+      () => overlaysEnabled.value
+        ? visibleAlerts.value
+          .filter(a => a.status === 'active' || a.status === 'triggered')
+          .map(a => ({
+            id:        a.id,
+            price:     Number(a.threshold_price),
+            label:     a.notes ?? undefined,
+            triggered: a.status === 'triggered',
+          }))
+        : [],
+      () => overlayInteractionsEnabled.value ? alertsStore.selectedAlertId : null,
     ),
     indicatorHighlightPlugin(),
     yAxisProjectionsPlugin(() => getProjectionItems()),
@@ -1455,14 +1508,16 @@ function setupInteraction(u: uPlot) {
       case 'a': case 'A': toggleAutoY(); break
       case '?':           showShortcuts.value = !showShortcuts.value; break
       case 'Delete': case 'Backspace':
-        if (drawStore.selectedId != null) {
+        if (overlayInteractionsEnabled.value && drawStore.selectedId != null) {
           e.preventDefault()
           drawStore.deleteDrawing(drawStore.selectedId)
         }
         break
       case 'Escape':
-        drawStore.selectDrawing(null)
-        drawStore.setActiveTool(null)
+        if (overlayInteractionsEnabled.value) {
+          drawStore.selectDrawing(null)
+          drawStore.setActiveTool(null)
+        }
         clearMeasurement()
         drawingPoints = []
         drawingPreviewPoint = null
@@ -1477,7 +1532,7 @@ function setupInteraction(u: uPlot) {
   wrapper.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('mousemove',    onMouseMove)
   window.addEventListener('mouseup',      onMouseUp)
-  window.addEventListener('keydown',      onKeyDown)
+  if (keyboardEnabled.value) window.addEventListener('keydown', onKeyDown)
 
   interactionCleanup = () => {
     wrapper.removeEventListener('wheel',       onWheel,       true)
@@ -1487,7 +1542,7 @@ function setupInteraction(u: uPlot) {
     wrapper.removeEventListener('contextmenu', onContextMenu)
     window.removeEventListener('mousemove',    onMouseMove)
     window.removeEventListener('mouseup',      onMouseUp)
-    window.removeEventListener('keydown',      onKeyDown)
+    if (keyboardEnabled.value) window.removeEventListener('keydown', onKeyDown)
     _overDblClickCleanup()
     wrapper.style.cursor = ''
   }
@@ -1881,6 +1936,7 @@ function updateDrawingDrag(u: uPlot, e: PointerEvent, persist = false) {
 }
 
 function setupDrawingInteraction(u: uPlot) {
+  if (!overlayInteractionsEnabled.value) return
   // Use u.over so events fire regardless of drawing canvas pointer-events state
   const over = u.over; if (!over) return
 
@@ -1962,7 +2018,7 @@ function setupHitDetection(u: uPlot) {
       clearMeasurement()
       return
     }
-    if (e.shiftKey && e.button === 0 && !drawStore.activeToolType && !drawStore.avwapDropActive) {
+    if (e.shiftKey && e.button === 0 && (!overlayInteractionsEnabled.value || (!drawStore.activeToolType && !drawStore.avwapDropActive))) {
       e.preventDefault()
       e.stopPropagation()
       const start = pointerToMeasurementPoint(u, e)
@@ -1970,19 +2026,21 @@ function setupHitDetection(u: uPlot) {
       measurement.frozen = false
       measurement.start = start
       measurement.end = start
-      drawStore.selectDrawing(null)
-      alertsStore.selectAlert(null)
+      if (overlayInteractionsEnabled.value) {
+        drawStore.selectDrawing(null)
+        alertsStore.selectAlert(null)
+      }
       chartStore.selectIndicator(null)
       suppressNextMouseDown = true
       renderVisualOverlays()
       return
     }
-    if (drawStore.activeToolType) return  // drawing tool handles its own events
+    if (overlayInteractionsEnabled.value && drawStore.activeToolType) return  // drawing tool handles its own events
     drawCtxMenu.visible = false
     const rect   = over.getBoundingClientRect()
     const mx     = e.clientX - rect.left
     const my     = e.clientY - rect.top
-    const hitDraw = findHitDrawing(u, mx, my)
+    const hitDraw = overlayInteractionsEnabled.value ? findHitDrawing(u, mx, my) : null
     if (hitDraw) {
       e.preventDefault()
       e.stopPropagation()
@@ -2017,14 +2075,14 @@ function setupHitDetection(u: uPlot) {
         window.addEventListener('pointercancel', onPointerUp)
       }
     } else {
-      drawStore.selectDrawing(null)
+      if (overlayInteractionsEnabled.value) drawStore.selectDrawing(null)
       const alertId = findHitAlert(u, my)
       if (alertId !== null) {
         e.stopPropagation()
         alertsStore.selectAlert(alertId)
         chartStore.selectIndicator(null)
       } else {
-        alertsStore.selectAlert(null)
+        if (overlayInteractionsEnabled.value) alertsStore.selectAlert(null)
         const barIdx = Math.round(u.posToVal(mx, 'x'))
         const indIdx = findHitIndicator(u, my, barIdx)
         if (indIdx !== null) {
@@ -2045,12 +2103,12 @@ function setupHitDetection(u: uPlot) {
   })
 
   over.addEventListener('dblclick', (e) => {
-    if (drawStore.activeToolType || drawStore.avwapDropActive) return
+    if (overlayInteractionsEnabled.value && (drawStore.activeToolType || drawStore.avwapDropActive)) return
     const rect = over.getBoundingClientRect()
     const mx   = e.clientX - rect.left
     const my   = e.clientY - rect.top
 
-    const hitDraw = findHitDrawing(u, mx, my)
+    const hitDraw = overlayInteractionsEnabled.value ? findHitDrawing(u, mx, my) : null
     if (hitDraw?.id != null) {
       e.stopPropagation()
       drawStore.requestEditDrawing(hitDraw.id)
@@ -2073,6 +2131,7 @@ function setupHitDetection(u: uPlot) {
   }, { capture: true })
 
   over.addEventListener('contextmenu', (e) => {
+    if (!overlayInteractionsEnabled.value) return
     const rect = over.getBoundingClientRect()
     const hit  = findHitDrawing(u, e.clientX - rect.left, e.clientY - rect.top)
     if (hit) {
@@ -2087,8 +2146,9 @@ function setupHitDetection(u: uPlot) {
 }
 
 function findHitAlert(u: uPlot, my: number): number | null {
+  if (!overlayInteractionsEnabled.value) return null
   const HIT = 8
-  for (const alert of alertsStore.alerts) {
+  for (const alert of visibleAlerts.value) {
     if (alert.status !== 'active' && alert.status !== 'triggered') continue
     const py = u.valToPos(Number(alert.threshold_price), 'y')
     if (Math.abs(my - py) < HIT) return alert.id
@@ -2112,8 +2172,9 @@ function findHitIndicator(u: uPlot, my: number, barIdx: number): number | null {
 }
 
 function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
+  if (!overlayInteractionsEnabled.value) return null
   const HIT = 8
-  for (const d of [...drawStore.renderableDrawings].reverse()) {
+  for (const d of [...renderableDrawings.value].reverse()) {
     if (!d.points?.length) continue
     const toX = (time: number) => u.valToPos(timeToBarIndex(time), 'x')
     if (d.type === 'horizontal_line') {
@@ -2236,7 +2297,7 @@ onMounted(async () => {
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
-watch(() => chartStore.activeIndicators, async () => { await nextTick(); initChart() }, { deep: true })
+watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type)
@@ -2246,7 +2307,7 @@ watch(effectiveChartType, async (type) => {
   await nextTick()
   initChart()
 })
-watch(() => drawStore.renderableDrawings, () => {
+watch(renderableDrawings, () => {
   renderVisualOverlays()
 }, { deep: true })
 
@@ -2267,13 +2328,13 @@ watch(() => chartStore.selectedIndicatorIndex, () => {
 watch(() => alertsStore.selectedAlertId, () => {
   redrawVisuals()
 })
-watch(() => alertsStore.alerts, () => {
+watch(visibleAlerts, () => {
   redrawVisuals()
 }, { deep: true })
 
 // Redraw when any Y-projection toggle changes
 watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVisuals() })
-watch(() => alertsStore.alerts.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
+watch(() => visibleAlerts.value.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })

@@ -50,11 +50,15 @@ function createChartStore(storeId: string) {
       return [barIndex, opens, highs, lows, closes, volumes]
     })
 
-    async function loadInstrument(sym: string) {
+    async function loadInstrument(sym: string): Promise<Instrument | null> {
       try {
-        instrument.value = await api.get(`/instruments/${encodeURIComponent(sym)}`)
+        const loaded = await api.get<Instrument>(`/instruments/${encodeURIComponent(sym)}`)
+        instrument.value = loaded
+        return loaded
       } catch {
         // Auto-creates from yfinance on first visit
+        instrument.value = null
+        return null
       }
     }
 
@@ -100,15 +104,17 @@ function createChartStore(storeId: string) {
       symbol.value = sym
       timeframe.value = tf
       barType.value = nextBarType
+      instrument.value = null
+      indicators.value = []
       hasReachedStart.value = false
       isLoadingMore.value = false
       _stopCoveragePoller()
       isFetchingHistory.value = false
 
-      await loadInstrument(sym)
+      const loadedInstrument = await loadInstrument(sym)
 
-      if (instrument.value) {
-        await loadIndicatorsForInstrument(instrument.value.id)
+      if (loadedInstrument) {
+        await loadIndicatorsForInstrument(loadedInstrument.id)
       }
 
       try {
@@ -117,7 +123,8 @@ function createChartStore(storeId: string) {
         if (mapped.length < PAGE_SIZE) hasReachedStart.value = true
         // For brand-new instruments the backend computes 52w stats only after D1
         // bars are persisted. Reload instrument here so those stats are available.
-        if (instrument.value && !instrument.value.stats?.week52_high) {
+        const currentInstrument = instrument.value as Instrument | null
+        if (currentInstrument && !currentInstrument.stats?.week52_high) {
           await loadInstrument(sym)
         }
       } catch (e: any) {

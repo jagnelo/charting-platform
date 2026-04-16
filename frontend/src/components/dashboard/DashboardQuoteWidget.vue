@@ -39,27 +39,38 @@ const prevClose = ref<number | null>(null)
 
 const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+let refreshSeq = 0
 const changePct = computed(() => {
   if (lastClose.value == null || prevClose.value == null || prevClose.value === 0) return 0
   return (lastClose.value - prevClose.value) / prevClose.value
 })
 
 async function refresh() {
-  if (!symbol.value) return
+  const seq = ++refreshSeq
+  if (!symbol.value) {
+    instrument.value = null
+    lastClose.value = null
+    prevClose.value = null
+    error.value = null
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = null
   try {
     const target = await resolveTarget(symbol.value)
+    if (seq !== refreshSeq) return
     instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
     const bars = await api.get<Array<{ close: number }>>(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 2 })
+    if (seq !== refreshSeq) return
     const latest = bars[bars.length - 1]
     const prev = bars[bars.length - 2] ?? latest
     lastClose.value = latest ? Number(latest.close) : null
     prevClose.value = prev ? Number(prev.close) : null
   } catch (e: any) {
-    error.value = e?.message ?? 'Quote unavailable'
+    if (seq === refreshSeq) error.value = e?.message ?? 'Quote unavailable'
   } finally {
-    loading.value = false
+    if (seq === refreshSeq) loading.value = false
   }
 }
 

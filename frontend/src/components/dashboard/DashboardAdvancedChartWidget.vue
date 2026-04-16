@@ -3,7 +3,17 @@
     <div v-if="!symbol" class="widget-state">Choose an instrument</div>
     <div v-else-if="store.isLoading" class="widget-state">Loading {{ symbol }}...</div>
     <div v-else-if="store.error" class="widget-state error">{{ store.error }}</div>
-    <UPlotChart v-else-if="store.symbol" :chart-type="chartType" />
+    <UPlotChart
+      v-else-if="store.symbol"
+      :chart-type="chartType"
+      :overlay-drawings="showDrawings ? drawings : []"
+      :overlay-alerts="showAlerts ? priceAlerts : []"
+      :show-indicators="showIndicators"
+      :show-overlays="showDrawings || showAlerts"
+      :enable-overlay-interactions="false"
+      :enable-keyboard="false"
+      :show-controls="false"
+    />
     <div v-if="symbol" class="chart-link">
       <router-link :to="`/chart/${encodeURIComponent(symbol)}`">Open in chart</router-link>
     </div>
@@ -11,13 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, provide, watch } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { usePanelStore } from '@/stores/chart'
-import { useDrawingsStore } from '@/stores/drawings'
-import { useAlertsStore } from '@/stores/alerts'
 import { api } from '@/lib/api'
-import type { ChartBarType, Timeframe } from '@/types'
+import type { ChartBarType, ChartDrawing, PriceAlert, Timeframe } from '@/types'
 
 const props = defineProps<{
   widgetId: number
@@ -28,22 +36,57 @@ const panelId = `dashboard-${props.widgetId}`
 provide('panelId', panelId)
 
 const store = usePanelStore(panelId)
-const drawStore = useDrawingsStore()
-const alertsStore = useAlertsStore()
 
 const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
 const chartType = computed<ChartBarType>(() => props.config.chartType ?? 'candles')
+const showIndicators = computed(() => props.config.showIndicators !== false)
+const showDrawings = computed(() => props.config.showDrawings !== false)
+const showAlerts = computed(() => props.config.showAlerts !== false)
+const drawings = ref<ChartDrawing[]>([])
+const priceAlerts = ref<PriceAlert[]>([])
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+let refreshSeq = 0
 
 async function refresh() {
-  if (!symbol.value) return
-  const target = await resolveTarget(symbol.value)
-  await store.loadBars(target, timeframe.value, chartType.value)
-  if (store.instrument) {
-    await drawStore.loadDrawings(store.instrument.id, timeframe.value)
-    await alertsStore.loadAlerts(store.instrument.id)
+  const seq = ++refreshSeq
+  if (!symbol.value) {
+    store.symbol = ''
+    store.bars = []
+    drawings.value = []
+    priceAlerts.value = []
+    return
   }
+  try {
+    const target = await resolveTarget(symbol.value)
+    if (seq !== refreshSeq) return
+    await store.loadBars(target, timeframe.value, chartType.value)
+    if (seq !== refreshSeq) return
+    await loadReadOnlyOverlays(seq)
+  } catch (e: any) {
+    if (seq === refreshSeq) store.error = e?.message ?? 'Chart unavailable'
+  }
+}
+
+async function loadReadOnlyOverlays(seq: number) {
+  const instrumentId = store.instrument?.id
+  if (!instrumentId) {
+    drawings.value = []
+    priceAlerts.value = []
+    return
+  }
+
+  const [loadedDrawings, loadedAlerts] = await Promise.all([
+    showDrawings.value
+      ? api.get<ChartDrawing[]>('/drawings', { instrument_id: instrumentId }).catch(() => [])
+      : Promise.resolve([]),
+    showAlerts.value
+      ? api.get<PriceAlert[]>('/alerts/price', { instrument_id: instrumentId }).catch(() => [])
+      : Promise.resolve([]),
+  ])
+  if (seq !== refreshSeq) return
+  drawings.value = loadedDrawings
+  priceAlerts.value = loadedAlerts
 }
 
 async function resolveTarget(target: string) {
@@ -54,7 +97,7 @@ async function resolveTarget(target: string) {
   return instrument.symbol
 }
 
-watch(() => [symbol.value, timeframe.value, chartType.value], refresh)
+watch(() => [symbol.value, timeframe.value, chartType.value, showDrawings.value, showAlerts.value], refresh)
 onMounted(refresh)
 </script>
 

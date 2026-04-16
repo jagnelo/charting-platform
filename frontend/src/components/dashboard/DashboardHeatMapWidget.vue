@@ -1,6 +1,7 @@
 <template>
   <div class="heatmap-widget">
     <div v-if="loading" class="widget-state">Loading heat map...</div>
+    <div v-else-if="error" class="widget-state error">{{ error }}</div>
     <div v-else-if="!rows.length" class="widget-state">No watchlist symbols available</div>
     <div v-else class="sector-wrap">
       <section v-for="group in sectorGroups" :key="group.sector" class="sector-group">
@@ -39,6 +40,8 @@ const props = defineProps<{ config: Record<string, any> }>()
 const watchlistStore = useWatchlistStore()
 const rows = ref<HeatRow[]>([])
 const loading = ref(false)
+const error = ref('')
+let loadSeq = 0
 
 const selectedWatchlist = computed<Watchlist | null>(() => {
   const id = Number(props.config.watchlistId)
@@ -59,16 +62,20 @@ const sectorGroups = computed(() => {
 })
 
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
+  error.value = ''
   try {
     if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+    if (seq !== loadSeq) return
     const wl = selectedWatchlist.value
-    const symbols = wl?.items.map(i => i.symbol).filter(Boolean) as string[] | undefined
+    const symbols = [...new Set(wl?.items.map(i => i.symbol).filter(Boolean) as string[] | undefined)]
     if (!symbols?.length) {
       rows.value = []
       return
     }
     await watchlistStore.fetchPrices(symbols, true)
+    if (seq !== loadSeq) return
     const instruments = await Promise.all(symbols.map(async symbol => {
       try {
         return await api.get<Instrument>(`/instruments/${encodeURIComponent(symbol)}`)
@@ -76,6 +83,7 @@ async function load() {
         return null
       }
     }))
+    if (seq !== loadSeq) return
     rows.value = instruments
       .filter((instrument): instrument is Instrument => !!instrument)
       .map(instrument => ({
@@ -84,8 +92,13 @@ async function load() {
         pct: watchlistStore.priceMap[instrument.symbol]?.pct ?? 0,
         marketCap: Number(instrument.stats?.market_cap ?? 1),
       }))
+  } catch (e: any) {
+    if (seq === loadSeq) {
+      error.value = e?.message ?? 'Heat map unavailable'
+      rows.value = []
+    }
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 
@@ -160,4 +173,5 @@ onMounted(load)
   font-size: 12px;
   text-align: center;
 }
+.widget-state.error { color: #ef5350; font-size: 10px; }
 </style>

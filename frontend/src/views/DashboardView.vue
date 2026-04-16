@@ -166,12 +166,12 @@
             </label>
 
             <label
-              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar'].includes(configWidget.widget_type)"
+              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart'].includes(configWidget.widget_type)"
               class="config-field"
             >
               <span>Instrument or expression</span>
               <DashboardInstrumentSearch
-                :model-value="configWidget.config.symbol || ''"
+                :model-value="configWidget.config.symbol || configWidget.config.expression || ''"
                 @select="patchConfig(configWidget, { symbol: $event })"
                 @update:model-value="patchConfigLocal(configWidget, { symbol: $event })"
               />
@@ -220,6 +220,33 @@
                 <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
+
+            <template v-if="configWidget.widget_type === 'advanced_chart'">
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.showIndicators !== false"
+                  @change="patchConfig(configWidget, { showIndicators: checkboxValue($event) })"
+                />
+                <span>Show instrument indicators</span>
+              </label>
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.showDrawings !== false"
+                  @change="patchConfig(configWidget, { showDrawings: checkboxValue($event) })"
+                />
+                <span>Show instrument drawings</span>
+              </label>
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.showAlerts !== false"
+                  @change="patchConfig(configWidget, { showAlerts: checkboxValue($event) })"
+                />
+                <span>Show price alert levels</span>
+              </label>
+            </template>
 
             <label v-if="['simple_chart', 'comparison_chart'].includes(configWidget.widget_type)" class="config-check">
               <input
@@ -391,8 +418,12 @@ let activeDrag:
   | null = null
 
 async function reload() {
-  await Promise.all([
-    dashboardStore.loadDefaultDashboard(),
+  try {
+    await dashboardStore.loadDefaultDashboard()
+  } catch {
+    return
+  }
+  await Promise.allSettled([
     watchlistStore.loadWatchlists(),
     alertsStore.loadAlerts(),
     screenerAlertsStore.loadAlerts(),
@@ -416,12 +447,17 @@ function widgetTitle(type: string) {
   return widgetCatalog.find(item => item.type === type)?.title ?? type
 }
 
+function finiteNumber(value: unknown, fallback: number) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
 function normalizedLayout(layout: Partial<DashboardWidgetLayout> = {}) {
   return {
-    x: Number.isFinite(layout.x) ? Number(layout.x) : 0,
-    y: Number.isFinite(layout.y) ? Number(layout.y) : 0,
-    w: Math.max(MIN_W, Number.isFinite(layout.w) ? Number(layout.w) : 3),
-    h: Math.max(MIN_H, Number.isFinite(layout.h) ? Number(layout.h) : 3),
+    x: Math.max(0, Math.round(finiteNumber(layout.x, 0))),
+    y: Math.max(0, Math.round(finiteNumber(layout.y, 0))),
+    w: Math.max(MIN_W, Math.round(finiteNumber(layout.w, MIN_W))),
+    h: Math.max(MIN_H, Math.round(finiteNumber(layout.h, MIN_H))),
   }
 }
 
@@ -520,7 +556,17 @@ function defaultConfig(type: DashboardWidgetType) {
       ],
     }
   }
-  return { symbol: 'SPY', timeframe: 'D1', chartType: type === 'advanced_chart' ? 'candles' : 'line' }
+  if (type === 'advanced_chart') {
+    return {
+      symbol: 'SPY',
+      timeframe: 'D1',
+      chartType: 'candles',
+      showIndicators: true,
+      showDrawings: true,
+      showAlerts: true,
+    }
+  }
+  return { symbol: 'SPY', timeframe: 'D1', chartType: 'line' }
 }
 
 async function duplicateWidget(widget: DashboardWidget) {
@@ -643,7 +689,11 @@ async function onPointerUp() {
   const { widget } = activeDrag
   activeDrag = null
   window.removeEventListener('pointermove', onPointerMove)
-  await dashboardStore.saveWidgetLayout(widget.id, normalizedLayout(widget.layout))
+  try {
+    await dashboardStore.saveWidgetLayout(widget.id, normalizedLayout(widget.layout))
+  } catch (e) {
+    console.error('Failed to save dashboard widget layout', e)
+  }
 }
 
 onMounted(reload)

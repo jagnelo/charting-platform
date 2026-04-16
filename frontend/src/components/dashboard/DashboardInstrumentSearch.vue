@@ -88,6 +88,7 @@ const highlightIdx = ref(0)
 const rootRef = ref<HTMLDivElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
+let searchSeq = 0
 
 const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
 const trimmedQuery = computed(() => query.value.trim())
@@ -115,17 +116,27 @@ async function onInput() {
   emit('update:modelValue', query.value)
   if (timer) clearTimeout(timer)
   if (!trimmedQuery.value || isExpression.value) {
+    searchSeq++
     results.value = []
     highlightIdx.value = 0
     return
   }
+  const seq = ++searchSeq
   timer = setTimeout(async () => {
     loading.value = true
     try {
-      results.value = await api.get<SearchResult[]>('/instruments/search', { q: trimmedQuery.value })
-      highlightIdx.value = 0
+      const loaded = await api.get<SearchResult[]>('/instruments/search', { q: trimmedQuery.value })
+      if (seq === searchSeq) {
+        results.value = loaded
+        highlightIdx.value = 0
+      }
+    } catch (e: any) {
+      if (seq === searchSeq) {
+        error.value = e?.message ?? 'Search unavailable'
+        results.value = []
+      }
     } finally {
-      loading.value = false
+      if (seq === searchSeq) loading.value = false
     }
   }, 220)
 }
