@@ -129,6 +129,7 @@
               <DashboardHeatMapWidget
                 v-else-if="widget.widget_type === 'heat_map'"
                 :config="widget.config"
+                @patch-config="patchConfig(widget, $event)"
               />
               <div v-else class="empty-small">Unsupported widget.</div>
             </div>
@@ -289,16 +290,92 @@
               </select>
             </label>
 
-            <label v-if="configWidget.widget_type === 'heat_map'" class="config-field">
-              <span>Watchlist</span>
-              <select
-                :value="configWidget.config.watchlistId || ''"
-                @change="patchConfig(configWidget, { watchlistId: Number(inputValue($event)) || null })"
-              >
-                <option value="">First watchlist</option>
-                <option v-for="wl in watchlistStore.watchlists" :key="wl.id" :value="wl.id">{{ wl.name }}</option>
-              </select>
-            </label>
+            <template v-if="configWidget.widget_type === 'heat_map'">
+              <label class="config-field">
+                <span>Universe</span>
+                <select
+                  :value="configWidget.config.universeType || 'watchlist'"
+                  @change="patchConfig(configWidget, { universeType: inputValue($event) })"
+                >
+                  <option value="watchlist">Watchlist</option>
+                  <option value="screener">Screener</option>
+                </select>
+              </label>
+
+              <label v-if="(configWidget.config.universeType || 'watchlist') === 'watchlist'" class="config-field">
+                <span>Watchlist</span>
+                <select
+                  :value="configWidget.config.watchlistId || ''"
+                  @change="patchConfig(configWidget, { watchlistId: Number(inputValue($event)) || null })"
+                >
+                  <option value="">First watchlist</option>
+                  <option v-for="wl in watchlistStore.watchlists" :key="wl.id" :value="wl.id">{{ wl.name }}</option>
+                </select>
+              </label>
+
+              <label v-if="configWidget.config.universeType === 'screener'" class="config-field">
+                <span>Screener</span>
+                <select
+                  :value="configWidget.config.screenerId || ''"
+                  @change="patchConfig(configWidget, { screenerId: Number(inputValue($event)) || null })"
+                >
+                  <option value="">First screener</option>
+                  <option v-for="s in screeners" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </select>
+              </label>
+
+              <label class="config-field">
+                <span>Color by</span>
+                <select
+                  :value="configWidget.config.colorMetric || 'perf_1d'"
+                  @change="patchConfig(configWidget, { colorMetric: inputValue($event) })"
+                >
+                  <option value="perf_1d">1D Performance</option>
+                  <option value="perf_1w">1W Performance</option>
+                  <option value="perf_1m">1M Performance</option>
+                  <option value="perf_mtd">MTD Performance</option>
+                  <option value="perf_ytd">YTD Performance</option>
+                  <option value="perf_1y">1Y Performance</option>
+                  <option value="rsi_14">RSI (14)</option>
+                  <option value="rel_volume">Relative Volume</option>
+                  <option value="dist_52w_high">Distance to 52w High</option>
+                  <option value="dist_52w_low">Distance to 52w Low</option>
+                </select>
+              </label>
+
+              <label class="config-field">
+                <span>Size by</span>
+                <select
+                  :value="configWidget.config.sizeMetric || 'market_cap'"
+                  @change="patchConfig(configWidget, { sizeMetric: inputValue($event) })"
+                >
+                  <option value="market_cap">Market Cap</option>
+                  <option value="avg_volume_30d">Avg Volume (30d)</option>
+                  <option value="equal">Equal Weight</option>
+                </select>
+              </label>
+
+              <label class="config-field">
+                <span>Group by</span>
+                <select
+                  :value="configWidget.config.groupBy || 'sector'"
+                  @change="patchConfig(configWidget, { groupBy: inputValue($event) })"
+                >
+                  <option value="sector">Sector</option>
+                  <option value="industry">Industry</option>
+                  <option value="none">None (flat)</option>
+                </select>
+              </label>
+
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.showAlertBadges !== false"
+                  @change="patchConfig(configWidget, { showAlertBadges: checkboxValue($event) })"
+                />
+                <span>Show alert badges</span>
+              </label>
+            </template>
 
             <label v-if="['notes', 'checklist'].includes(configWidget.widget_type)" class="config-field">
               <span>Mode</span>
@@ -381,7 +458,7 @@ const widgetCatalog: Array<{
   { type: 'alerts', title: 'Alerts', description: 'Price and indicator alerts' },
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
   { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
-  { type: 'heat_map', title: 'Heat Map', description: 'Watchlist sector performance' },
+  { type: 'heat_map', title: 'Heat Map', description: 'Treemap — perf, RSI, volume, 52w range' },
   { type: 'instrument_details', title: 'Instrument Details', description: 'Metadata and stats' },
   { type: 'notes', title: 'Notes', description: 'Freeform text' },
   { type: 'checklist', title: 'Checklist', description: 'Reusable task list' },
@@ -520,7 +597,7 @@ function defaultLayout(type: DashboardWidgetType, spot: { x: number; y: number }
     alerts: { w: 8, h: 8 },
     screener: { w: 10, h: 8 },
     economic_calendar: { w: 10, h: 8 },
-    heat_map: { w: 12, h: 9 },
+    heat_map: { w: 16, h: 14 },
     instrument_details: { w: 8, h: 8 },
     notes: { w: 8, h: 6 },
     checklist: { w: 8, h: 7 },
@@ -542,7 +619,15 @@ function defaultConfig(type: DashboardWidgetType) {
   }
   if (type === 'ratio_chart') return { expression: 'SPY/GLD', timeframe: 'D1' }
   if (type === 'watchlist') return { watchlistId: null, showSparklines: true }
-  if (type === 'heat_map') return { watchlistId: null }
+  if (type === 'heat_map') return {
+    universeType: 'watchlist',
+    watchlistId: null,
+    screenerId: null,
+    colorMetric: 'perf_1d',
+    sizeMetric: 'market_cap',
+    groupBy: 'sector',
+    showAlertBadges: true,
+  }
   if (type === 'screener') return { screenerId: null }
   if (type === 'economic_calendar') return { symbol: 'SPY' }
   if (type === 'alerts') return {}

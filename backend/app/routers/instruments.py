@@ -232,6 +232,10 @@ async def get_filter_options(
     }
 
 
+class HeatmapRequest(BaseModel):
+    instrument_ids: list[int]
+
+
 class ResolveExpressionBody(BaseModel):
     expression: str
 
@@ -326,6 +330,180 @@ async def resolve_expression(
 
     await db.commit()
     return await _reload_instrument_full(synth.id, db)
+
+
+@router.post("/heatmap-data")
+async def get_heatmap_data(
+    body: HeatmapRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Batch-compute heatmap metrics for a list of instrument IDs.
+    Returns one row per instrument with performance, RSI, relative-volume,
+    distance to 52w high/low, and a 20-point sparkline.
+    """
+    from collections import defaultdict
+
+    if not body.instrument_ids:
+        return []
+
+    instrument_ids = list(dict.fromkeys(body.instrument_ids))[:500]  # dedup, cap at 500
+
+    # ── 1. Load instrument metadata ──────────────────────────────────────────
+    instr_result = await db.execute(
+        select(Instrument)
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.stats),
+        )
+        .where(Instrument.id.in_(instrument_ids))
+    )
+    instruments: dict[int, Instrument] = {i.id: i for i in instr_result.scalars().all()}
+
+    # ── 2. Batch-fetch D1 bars (last ~400 calendar days ≈ 280 trading days) ─
+    cutoff = datetime.now(UTC) - timedelta(days=400)
+    bars_result = await db.execute(
+        select(OHLCVBar)
+        .where(
+            OHLCVBar.instrument_id.in_(instrument_ids),
+            OHLCVBar.timeframe == "D1",
+            OHLCVBar.ts >= cutoff,
+            OHLCVBar.is_adjusted.is_(True),
+        )
+        .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+    )
+    bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
+    for bar in bars_result.scalars().all():
+        bars_by_id[bar.instrument_id].append(bar)
+
+    # ── 3. Compute metrics per instrument ─────────────────────────────────────
+    today_utc = datetime.now(UTC).date()
+    month_start = today_utc.replace(day=1)
+    year_start = today_utc.replace(month=1, day=1)
+
+    def _pct(base: float | None, end: float | None) -> float | None:
+        if base and end and base > 0:
+            return (end - base) / base
+        return None
+
+    def _find_base_before(bars: list[OHLCVBar], cutoff_date) -> float | None:
+        """Return the close of the last bar whose date is strictly before cutoff_date."""
+        for bar in reversed(bars):
+            bar_date = bar.ts.date() if hasattr(bar.ts, "date") else bar.ts
+            if bar_date < cutoff_date:
+                return float(bar.close)
+        return None
+
+    rows = []
+    for instr_id in instrument_ids:
+        inst = instruments.get(instr_id)
+        if inst is None:
+            continue
+
+        bars = bars_by_id.get(instr_id, [])
+        eq = inst.equity_detail
+        stats = inst.stats
+        n = len(bars)
+
+        # Base metadata
+        market_cap = float(stats.market_cap) if stats and stats.market_cap else None
+        avg_vol_30d = float(stats.avg_volume_30d) if stats and stats.avg_volume_30d else None
+        week52_high = float(stats.week52_high) if stats and stats.week52_high else None
+        week52_low = float(stats.week52_low) if stats and stats.week52_low else None
+
+        if not bars:
+            rows.append({
+                "instrument_id": instr_id,
+                "symbol": inst.symbol,
+                "name": inst.name or inst.symbol,
+                "sector": eq.sector if eq else None,
+                "industry": eq.industry if eq else None,
+                "market_cap": market_cap,
+                "avg_volume_30d": avg_vol_30d,
+                "current_price": None,
+                "perf_1d": None, "perf_1w": None, "perf_1m": None,
+                "perf_mtd": None, "perf_ytd": None, "perf_1y": None,
+                "rsi_14": None, "rel_volume": None,
+                "dist_52w_high": None, "dist_52w_low": None,
+                "sparkline": [],
+            })
+            continue
+
+        closes = [float(b.close) for b in bars]
+        volumes = [float(b.volume) if b.volume is not None else 0.0 for b in bars]
+        current_price = closes[-1]
+
+        # Performance
+        perf_1d = _pct(closes[-2], closes[-1]) if n >= 2 else None
+        perf_1w = _pct(closes[-6], closes[-1]) if n >= 6 else None
+        perf_1m = _pct(closes[-22], closes[-1]) if n >= 22 else None
+        perf_1y = _pct(closes[-252], closes[-1]) if n >= 252 else None
+        perf_mtd = _pct(_find_base_before(bars, month_start), current_price)
+        perf_ytd = _pct(_find_base_before(bars, year_start), current_price)
+
+        # RSI-14 (Wilder smoothing) — need at least 15 price changes
+        rsi_14: float | None = None
+        if n >= 15:
+            changes = [closes[i] - closes[i - 1] for i in range(1, n)]
+            gains = [max(c, 0.0) for c in changes]
+            losses = [max(-c, 0.0) for c in changes]
+            avg_gain = sum(gains[:14]) / 14.0
+            avg_loss = sum(losses[:14]) / 14.0
+            for i in range(14, len(changes)):
+                avg_gain = (avg_gain * 13.0 + gains[i]) / 14.0
+                avg_loss = (avg_loss * 13.0 + losses[i]) / 14.0
+            if avg_loss == 0.0:
+                rsi_14 = 100.0
+            else:
+                rsi_14 = round(100.0 - 100.0 / (1.0 + avg_gain / avg_loss), 2)
+
+        # Relative volume (today's volume vs 30-day avg)
+        rel_volume: float | None = None
+        if avg_vol_30d and avg_vol_30d > 0 and volumes:
+            rel_volume = round(volumes[-1] / avg_vol_30d, 3)
+
+        # Distance to 52-week high / low
+        dist_52w_high: float | None = None
+        dist_52w_low: float | None = None
+        if week52_high and week52_high > 0:
+            dist_52w_high = round((current_price - week52_high) / week52_high, 4)
+        if week52_low and week52_low > 0:
+            dist_52w_low = round((current_price - week52_low) / week52_low, 4)
+
+        # Sparkline — last 20 closes, normalised to [0,1] within the range
+        spark_raw = closes[-20:] if n >= 20 else closes
+        spark_min = min(spark_raw)
+        spark_range = max(spark_raw) - spark_min
+        sparkline = (
+            [round((v - spark_min) / spark_range, 4) for v in spark_raw]
+            if spark_range > 0
+            else [0.5] * len(spark_raw)
+        )
+
+        rows.append({
+            "instrument_id": instr_id,
+            "symbol": inst.symbol,
+            "name": inst.name or inst.symbol,
+            "sector": eq.sector if eq else None,
+            "industry": eq.industry if eq else None,
+            "market_cap": market_cap,
+            "avg_volume_30d": avg_vol_30d,
+            "current_price": current_price,
+            "perf_1d": perf_1d,
+            "perf_1w": perf_1w,
+            "perf_1m": perf_1m,
+            "perf_mtd": perf_mtd,
+            "perf_ytd": perf_ytd,
+            "perf_1y": perf_1y,
+            "rsi_14": rsi_14,
+            "rel_volume": rel_volume,
+            "dist_52w_high": dist_52w_high,
+            "dist_52w_low": dist_52w_low,
+            "sparkline": sparkline,
+        })
+
+    return rows
 
 
 @router.get("/{instrument_id}/membership", response_model=InstrumentMembership)
