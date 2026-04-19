@@ -145,7 +145,7 @@ const linkMenuOpen = ref(false)
 const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
 const linkColor = computed(() => panelLinks.colorFor(props.panelId))
 
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const EXPR_RE = /^\s*=/
 const isExpression = computed(() => EXPR_RE.test(searchQuery.value.trim()))
 
 async function toggleSearch() {

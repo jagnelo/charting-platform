@@ -45,6 +45,40 @@
             <div class="wqm-item wqm-new" @click="createAndAddToWatchlist">+ New watchlist</div>
           </div>
         </div>
+        <div v-if="layoutStore.layout === '1' && chartStore.symbol" class="compare-wrap">
+          <button
+            class="compare-btn"
+            :class="{ active: showCompareInput || comparisonTargets.length }"
+            @click="showCompareInput = !showCompareInput"
+          >
+            Compare
+          </button>
+          <form v-if="showCompareInput" class="compare-form" @submit.prevent="addComparison">
+            <input
+              v-model="compareDraft"
+              class="compare-input"
+              placeholder="Symbol or =expression"
+              @keydown.escape="showCompareInput = false"
+            />
+            <button type="submit">Add</button>
+          </form>
+          <div v-if="comparisonLegend.length" class="compare-chips">
+            <button
+              v-for="target in comparisonLegend"
+              :key="target.symbol"
+              class="compare-chip"
+              :title="target.label"
+              @click="removeComparison(target.symbol)"
+            >
+              <span class="compare-color" :style="{ background: target.color }" />
+              <span>{{ target.symbol }}</span>
+              <b :class="(target.percentChange ?? 0) >= 0 ? 'up' : 'dn'">
+                {{ formatPercent(target.percentChange) }}
+              </b>
+              <small>×</small>
+            </button>
+          </div>
+        </div>
       </div>
       <!-- Single panel only: timeframe selector -->
       <div class="header-center" v-if="layoutStore.layout === '1' && chartStore.symbol">
@@ -72,19 +106,21 @@
       <DrawingToolbar />
       <div v-if="layoutStore.layout === '1'" class="chart-workspace">
         <div class="chart-area">
-          <div v-if="chartStore.isLoading" class="chart-loading">
-            <div class="loading-spinner">Loading {{ chartStore.symbol }}…</div>
-          </div>
-          <div v-else-if="chartStore.error" class="chart-error">
-            {{ chartStore.error }}
-          </div>
-          <div v-else-if="!chartStore.symbol" class="chart-empty">
+          <div v-if="!chartStore.symbol" class="chart-empty">
             <div class="empty-msg">
               <p class="empty-title">Search for a symbol to begin</p>
               <p class="empty-sub">Stocks, ETFs, Futures, Forex, Crypto</p>
             </div>
           </div>
-          <UPlotChart v-else />
+          <template v-else>
+            <div v-if="chartStore.isLoading" class="chart-overlay chart-loading">
+              <div class="loading-spinner">Loading {{ chartStore.symbol }}…</div>
+            </div>
+            <div v-else-if="chartStore.error" class="chart-overlay chart-error">
+              {{ chartStore.error }}
+            </div>
+            <UPlotChart :comparison-series="comparisonSeries" />
+          </template>
         </div>
       </div>
       <div v-else class="chart-workspace">
@@ -112,6 +148,7 @@ import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
+import { api } from '@/lib/api'
 import SearchBar            from '@/components/common/SearchBar.vue'
 import TimeframeSelector    from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart           from '@/components/chart/UPlotChart.vue'
@@ -120,7 +157,7 @@ import IndicatorPanel       from '@/components/chart/IndicatorPanel.vue'
 import LayoutPicker         from '@/components/chart/LayoutPicker.vue'
 import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
 import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
-import type { Timeframe } from '@/types'
+import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
@@ -152,6 +189,18 @@ const router = useRouter()
 const currentTf     = ref<Timeframe>('D1')
 const showWlMenu    = ref(false)
 const wlStarRef     = ref<HTMLElement | null>(null)
+const showCompareInput = ref(false)
+const compareDraft = ref('')
+const comparisonTargets = ref<Array<{
+  symbol: string
+  label: string
+  color: string
+  bars: OHLCVBar[]
+}>>([])
+let comparisonSeq = 0
+
+const COMPARE_COLORS = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
+const EXPR_RE = /^\s*=/
 
 function onDocClick(e: MouseEvent) {
   if (showWlMenu.value && wlStarRef.value && !wlStarRef.value.contains(e.target as Node)) {
@@ -170,18 +219,137 @@ const priceClass  = computed(() => {
   return currentPrice.value >= lastClose.value ? 'price-up' : 'price-down'
 })
 
+const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
+  const mainBars = chartStore.bars
+  const mainAnchor = mainBars.find(bar => Number.isFinite(bar.close) && bar.close > 0)?.close ?? null
+  if (!mainBars.length || mainAnchor == null) return []
+  return comparisonTargets.value.map(target => {
+    const compareByTs = new Map(target.bars.map(bar => [bar.ts, bar.close]))
+    const alignedRaw = mainBars.map(bar => compareByTs.get(bar.ts) ?? null)
+    const compareAnchor = alignedRaw.find(value => value != null && Number.isFinite(value) && value > 0) ?? null
+    const values = compareAnchor == null
+      ? mainBars.map(() => null)
+      : alignedRaw.map(value => (
+          value != null && Number.isFinite(value)
+            ? mainAnchor * (value / compareAnchor)
+            : null
+        ))
+    let last: number | null = null
+    for (let i = alignedRaw.length - 1; i >= 0; i--) {
+      const value = alignedRaw[i]
+      if (value != null && Number.isFinite(value) && value > 0) {
+        last = value
+        break
+      }
+    }
+    const percentChange = compareAnchor != null && last != null
+      ? ((last - compareAnchor) / compareAnchor) * 100
+      : null
+    return {
+      symbol: target.symbol,
+      label: target.label,
+      color: target.color,
+      values,
+      percentChange,
+    }
+  })
+})
+
+const comparisonLegend = computed(() =>
+  comparisonTargets.value.map(target => ({
+    ...target,
+    percentChange: comparisonSeries.value.find(series => series.symbol === target.symbol)?.percentChange ?? null,
+  }))
+)
+
+function formatPercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+}
+
+async function resolveComparisonTarget(raw: string): Promise<string> {
+  const trimmed = raw.trim()
+  if (!trimmed) throw new Error('Empty symbol')
+  if (EXPR_RE.test(trimmed)) {
+    const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
+      expression: trimmed,
+    })
+    return instrument.symbol
+  }
+  await api.get(`/instruments/${encodeURIComponent(trimmed.toUpperCase())}`)
+  return trimmed.toUpperCase()
+}
+
+async function addComparison() {
+  const raw = compareDraft.value.trim()
+  if (!raw) return
+  let symbol = ''
+  try {
+    symbol = await resolveComparisonTarget(raw)
+  } catch {
+    return
+  }
+  if (symbol === chartStore.symbol || comparisonTargets.value.some(target => target.symbol === symbol)) {
+    compareDraft.value = ''
+    return
+  }
+  const color = COMPARE_COLORS[comparisonTargets.value.length % COMPARE_COLORS.length]
+  comparisonTargets.value.push({ symbol, label: symbol, color, bars: [] })
+  compareDraft.value = ''
+  await loadComparisonBars()
+}
+
+function removeComparison(symbol: string) {
+  comparisonTargets.value = comparisonTargets.value.filter(target => target.symbol !== symbol)
+}
+
+async function loadComparisonBars() {
+  if (!chartStore.symbol || !comparisonTargets.value.length) return
+  const seq = ++comparisonSeq
+  const tf = currentTf.value
+  const targets = [...comparisonTargets.value]
+  const loaded = await Promise.all(targets.map(async target => {
+    try {
+      const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(target.symbol)}/${tf}`, {
+        limit: Math.max(chartStore.bars.length, 500),
+      })
+      return {
+        symbol: target.symbol,
+        bars: raw.map(bar => ({
+          ...bar,
+          open: Number(bar.open),
+          high: Number(bar.high),
+          low: Number(bar.low),
+          close: Number(bar.close),
+          volume: bar.volume != null ? Number(bar.volume) : undefined,
+          vwap: bar.vwap != null ? Number(bar.vwap) : undefined,
+        })) as OHLCVBar[],
+      }
+    } catch {
+      return { symbol: target.symbol, bars: [] as OHLCVBar[] }
+    }
+  }))
+  if (seq !== comparisonSeq) return
+  comparisonTargets.value = comparisonTargets.value.map(target => ({
+    ...target,
+    bars: loaded.find(item => item.symbol === target.symbol)?.bars ?? [],
+  }))
+}
+
 async function onSymbolSelect(symbol: string) {
   recentStore.add(symbol)
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value)
-    if (chartStore.instrument) {
-      await drawStore.loadDrawings(chartStore.instrument.id, currentTf.value)
-      await alertsStore.loadAlerts(chartStore.instrument.id)
+    const inst = chartStore.instrument
+    if (inst) {
+      await drawStore.loadDrawings(inst.id, currentTf.value)
+      await alertsStore.loadAlerts(inst.id)
       const def = presetsStore.getDefault()
       if (def) chartStore.setIndicators([...def.indicators])
     }
     lastClose.value = currentPrice.value
+    await loadComparisonBars()
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
     const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
@@ -193,9 +361,10 @@ async function onSymbolSelect(symbol: string) {
       await pStore.loadBars(symbol, p.timeframe)
     }
     const activeStore = usePanelStore(layoutStore.activePanelId)
-    if (activeStore.instrument) {
-      await drawStore.loadDrawings(activeStore.instrument.id, activeStore.timeframe)
-      await alertsStore.loadAlerts(activeStore.instrument.id)
+    const activeInst = activeStore.instrument
+    if (activeInst) {
+      await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
+      await alertsStore.loadAlerts(activeInst.id)
     }
   }
   if (route.params.symbol !== symbol) {
@@ -207,10 +376,16 @@ watch(currentTf, async (tf) => {
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
   await chartStore.loadBars(chartStore.symbol, tf)
-  if (chartStore.instrument) {
-    await drawStore.loadDrawings(chartStore.instrument.id, tf)
-    await alertsStore.loadAlerts(chartStore.instrument.id)
+  const inst = chartStore.instrument
+  if (inst) {
+    await drawStore.loadDrawings(inst.id, tf)
+    await alertsStore.loadAlerts(inst.id)
   }
+  await loadComparisonBars()
+})
+
+watch(() => chartStore.bars.length, () => {
+  if (comparisonTargets.value.length) loadComparisonBars()
 })
 
 // When switching from single to multi-panel, carry the current symbol into all panels
@@ -229,9 +404,10 @@ watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
 watch(() => layoutStore.activePanelId, async (panelId) => {
   if (layoutStore.layout === '1') return
   const pStore = usePanelStore(panelId)
-  if (pStore.instrument) {
-    await drawStore.loadDrawings(pStore.instrument.id, pStore.timeframe)
-    await alertsStore.loadAlerts(pStore.instrument.id)
+  const inst = pStore.instrument
+  if (inst) {
+    await drawStore.loadDrawings(inst.id, pStore.timeframe)
+    await alertsStore.loadAlerts(inst.id)
   }
 })
 
@@ -256,7 +432,6 @@ async function createAndAddToWatchlist() {
 
 onMounted(async () => {
   document.addEventListener('click', onDocClick, true)
-  alertsStore.connectWebSocket()
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
@@ -315,6 +490,80 @@ onUnmounted(() => {
   transition: color 0.15s, border-color 0.15s;
 }
 .wl-star:hover, .wl-star.active { color: #ffd54f; border-color: #ffd54f; }
+
+.compare-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.compare-btn,
+.compare-form button,
+.compare-chip {
+  border: 1px solid #333;
+  background: #151515;
+  color: #999;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.compare-btn {
+  padding: 4px 8px;
+}
+.compare-btn:hover,
+.compare-btn.active {
+  border-color: #64b5f6;
+  color: #d8ecff;
+}
+.compare-form {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.compare-input {
+  width: 150px;
+  background: #080808;
+  color: #ccc;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-family: inherit;
+  font-size: 11px;
+}
+.compare-form button {
+  padding: 4px 7px;
+}
+.compare-chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  max-width: 170px;
+}
+.compare-chip span:not(.compare-color) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compare-chip b {
+  font-weight: 600;
+}
+.compare-chip b.up { color: #26a69a; }
+.compare-chip b.dn { color: #ef5350; }
+.compare-chip small { color: #666; }
+.compare-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
 .wl-quick-menu {
   position: absolute;
@@ -434,6 +683,13 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   color: #444;
+}
+
+.chart-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(10, 10, 10, 0.75);
 }
 
 .loading-spinner {

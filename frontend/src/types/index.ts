@@ -80,6 +80,14 @@ export interface OHLCVBar {
   is_adjusted: boolean
 }
 
+export interface ChartComparisonSeries {
+  symbol: string
+  label: string
+  color: string
+  values: Array<number | null>
+  percentChange?: number | null
+}
+
 export interface ChartDrawing {
   id: number
   instrument_id: number
@@ -282,6 +290,7 @@ export type DashboardWidgetType =
   | 'ratio_chart'
   | 'economic_calendar'
   | 'heat_map'
+  | 'seasonality'
 
 export interface DashboardWidgetLayout {
   x: number

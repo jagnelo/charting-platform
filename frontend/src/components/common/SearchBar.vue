@@ -84,11 +84,11 @@ const loading          = ref(false)
 const highlightIdx     = ref(0)
 const rootRef          = ref<HTMLDivElement | null>(null)
 const expressionSelected = ref(false)
-const dropdownDismissed  = ref(false)
+const dropdownDismissed  = ref(true)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // Detect if the query looks like a math expression between ticker tokens
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const EXPR_RE = /^\s*=/
 const isExpression = computed(() => !expressionSelected.value && EXPR_RE.test(query.value.trim()))
 const showDropdown = computed(() =>
   !dropdownDismissed.value
@@ -165,7 +165,7 @@ function moveDown() {
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
-function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = false }
+function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = true }
 
 function handleClickOutside(e: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(e.target as Node)) {

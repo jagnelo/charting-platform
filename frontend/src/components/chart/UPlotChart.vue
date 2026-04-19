@@ -52,6 +52,24 @@
         <button @click="deleteSelectedDrawing">🗑 Delete Drawing</button>
         <button @click="drawCtxMenu.visible = false; drawStore.selectDrawing(null)">Deselect</button>
       </div>
+
+      <div
+        v-if="eventPopover"
+        class="event-popover"
+        :style="{ left: eventPopover.x + 'px', top: eventPopover.y + 'px' }"
+      >
+        <div class="event-popover-head">
+          <strong>{{ eventPopover.event.symbol }} {{ eventLabel(eventPopover.event) }}</strong>
+          <button @click="eventPopover = null">x</button>
+        </div>
+        <div class="event-popover-date">{{ formatEventTime(eventPopover.event) }}</div>
+        <div class="event-popover-grid">
+          <template v-for="row in eventRows(eventPopover.event)" :key="row.label">
+            <span>{{ row.label }}</span>
+            <b>{{ row.value }}</b>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- Sub-panes: one per separate-pane indicator -->
@@ -141,6 +159,7 @@
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, inject } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
+import { api } from '@/lib/api'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
@@ -177,7 +196,7 @@ import {
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
+import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
@@ -190,6 +209,7 @@ const props = withDefaults(defineProps<{
   enableOverlayInteractions?: boolean
   enableKeyboard?: boolean
   showControls?: boolean
+  comparisonSeries?: ChartComparisonSeries[]
 }>(), {
   showIndicators: true,
   showOverlays: true,
@@ -205,6 +225,10 @@ const PRICE_DRAG_EXPO       = 0.004
 const WHEEL_AXIS_DOMINANCE  = 1.25
 const WHEEL_PAN_SENSITIVITY = 0.65
 const LIVE_POLL_MULTIPLIER  = 1.0   // poll every 1× bar duration
+const LATEST_RIGHT_MARGIN_MIN = 36
+const LATEST_RIGHT_MARGIN_MAX = 180
+const LATEST_RIGHT_MARGIN_RATIO = 0.3
+const RIGHT_OVERSCROLL_RATIO = 0.85
 
 const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fires
 
@@ -222,6 +246,9 @@ const keyboardEnabled    = computed(() => props.enableKeyboard)
 const controlsEnabled    = computed(() => props.showControls)
 const visibleActiveIndicators = computed(() =>
   props.showIndicators ? chartStore.activeIndicators : []
+)
+const visibleComparisonSeries = computed(() =>
+  (props.comparisonSeries ?? []).filter(series => series.values.some(v => v != null && Number.isFinite(v)))
 )
 const visibleAlerts = computed(() => props.overlayAlerts ?? alertsStore.alerts)
 const renderableDrawings = computed<AnyDrawing[]>(() => {
@@ -283,6 +310,34 @@ interface TooltipState {
 const tooltip = ref<TooltipState>({
   hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null,
 })
+
+interface InstrumentEvent {
+  id: number
+  date: string
+  event_time: string
+  event_type: string
+  symbol: string
+  title: string
+  value?: number | null
+  actual?: number | null
+  eps_estimate?: number | null
+  eps_actual?: number | null
+  eps_surprise?: number | null
+  eps_surprise_pct?: number | null
+  dividend_amount?: number | null
+  split_ratio?: number | null
+  time_hint: string
+  source: string
+  is_estimate: boolean
+}
+
+const instrumentEvents = ref<InstrumentEvent[]>([])
+const EVENT_POPOVER_WIDTH = 238
+const EVENT_POPOVER_HEIGHT = 178
+const eventPopover = ref<{ event: InstrumentEvent; x: number; y: number } | null>(null)
+let eventMarkers: Array<{ event: InstrumentEvent; x: number; y: number; r: number }> = []
+let eventLoadSeq = 0
+let eventRangeKey = ''
 
 const fmt    = (v: number) => v != null ? v.toFixed(4) : '—'
 const fmtVol = (v: number) => v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : String(Math.round(v))
@@ -355,6 +410,53 @@ function timeToBarIndex(ts: number): number {
   }
 
   return Math.max(0, Math.min(times.length - 1, lo))
+}
+
+function estimatedBarStepSeconds(): number {
+  const times = barTimestamps.value
+  if (times.length < 2) return 86_400
+  const samples: number[] = []
+  for (let i = Math.max(1, times.length - 40); i < times.length; i++) {
+    const diff = times[i] - times[i - 1]
+    if (Number.isFinite(diff) && diff > 0) samples.push(diff)
+  }
+  if (!samples.length) return 86_400
+  samples.sort((a, b) => a - b)
+  return samples[Math.floor(samples.length / 2)]
+}
+
+function eventTimeToChartIndex(ts: number): number {
+  const times = barTimestamps.value
+  if (!times.length) return 0
+  const first = times[0]
+  const last = times[times.length - 1]
+  if (ts <= first) return timeToBarIndex(ts)
+  if (ts <= last) return timeToBarIndex(ts)
+  return times.length - 1 + (ts - last) / estimatedBarStepSeconds()
+}
+
+// ── Y-axis dynamic width ───────────────────────────────────────────────────────
+let _yMeasureCtx: CanvasRenderingContext2D | null = null
+function getYMeasureCtx(): CanvasRenderingContext2D {
+  if (!_yMeasureCtx) {
+    const canvas = document.createElement('canvas')
+    _yMeasureCtx = canvas.getContext('2d')!
+    _yMeasureCtx.font = '10px monospace'
+  }
+  return _yMeasureCtx
+}
+
+function yAxisSize(_u: uPlot, values: string[] | null | undefined): number {
+  if (!values?.length) return 52
+  const ctx = getYMeasureCtx()
+  let maxW = 0
+  for (const v of values) {
+    if (v) {
+      const w = ctx.measureText(v).width
+      if (w > maxW) maxW = w
+    }
+  }
+  return Math.max(52, Math.ceil(maxW) + 14)
 }
 
 function formatXAxisTicks(u: uPlot, ticks: (number | null)[]): string[] {
@@ -453,6 +555,48 @@ function formatProjectionDate(ts: number): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, '${String(d.getFullYear()).slice(-2)}`
 }
 
+function eventLabel(event: InstrumentEvent): string {
+  if (event.event_type.startsWith('earnings')) return 'Earnings'
+  if (event.event_type === 'dividend' || event.event_type === 'ex_dividend') return 'Dividend'
+  if (event.event_type === 'split') return 'Split'
+  return event.event_type.replace(/_/g, ' ')
+}
+
+function eventGlyph(event: InstrumentEvent): string {
+  if (event.event_type.startsWith('earnings')) return 'E'
+  if (event.event_type === 'dividend' || event.event_type === 'ex_dividend') return 'D'
+  if (event.event_type === 'split') return 'S'
+  return '•'
+}
+
+function eventColor(event: InstrumentEvent): string {
+  if (event.event_type.startsWith('earnings')) return '#ffb74d'
+  if (event.event_type === 'dividend' || event.event_type === 'ex_dividend') return '#26a69a'
+  if (event.event_type === 'split') return '#64b5f6'
+  return '#aaa'
+}
+
+function formatEventTime(event: InstrumentEvent): string {
+  const hint = event.time_hint && event.time_hint !== 'unknown'
+    ? ` · ${event.time_hint.replace(/_/g, ' ')}`
+    : ''
+  return `${new Date(event.event_time).toLocaleString()}${hint}`
+}
+
+function eventRows(event: InstrumentEvent) {
+  const rows: Array<{ label: string; value: string }> = []
+  const pct = (v?: number | null) => v == null ? '' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`
+  const num = (v?: number | null) => v == null ? '' : v.toFixed(4)
+  if (event.eps_estimate != null) rows.push({ label: 'EPS estimate', value: num(event.eps_estimate) })
+  if (event.eps_actual != null) rows.push({ label: 'EPS actual', value: num(event.eps_actual) })
+  if (event.eps_surprise != null) rows.push({ label: 'EPS surprise', value: num(event.eps_surprise) })
+  if (event.eps_surprise_pct != null) rows.push({ label: 'Surprise %', value: pct(event.eps_surprise_pct) })
+  if (event.dividend_amount != null) rows.push({ label: 'Dividend', value: num(event.dividend_amount) })
+  if (event.split_ratio != null) rows.push({ label: 'Split ratio', value: num(event.split_ratio) })
+  rows.push({ label: 'Source', value: event.source })
+  return rows
+}
+
 function toggleAutoY() {
   if (autoY.value) {
     // Lock to current range
@@ -518,10 +662,118 @@ function refreshScalesPreservingX() {
   restoreView(view)
 }
 
+function latestRightMargin(span: number): number {
+  return Math.max(
+    LATEST_RIGHT_MARGIN_MIN,
+    Math.min(LATEST_RIGHT_MARGIN_MAX, span * LATEST_RIGHT_MARGIN_RATIO),
+  )
+}
+
+function rightOverscroll(span: number): number {
+  return Math.max(latestRightMargin(span), span * RIGHT_OVERSCROLL_RATIO)
+}
+
+function latestXRange(latest: number, span: number): { min: number; max: number } {
+  const margin = latestRightMargin(span)
+  return { min: latest - span + margin, max: latest + margin }
+}
+
 function redrawVisuals() {
   renderVisualOverlays()
   const redraw = (uplot as any)?.redraw
   if (typeof redraw === 'function') redraw.call(uplot)
+}
+
+async function loadInstrumentEvents() {
+  const symbol = chartStore.symbol
+  const bars = chartStore.bars
+  const instrument = chartStore.instrument
+  if (!symbol || !bars.length || !instrument || instrument.symbol !== symbol) {
+    instrumentEvents.value = []
+    eventRangeKey = ''
+    return
+  }
+  const start = bars[0].ts
+  const lastTs = new Date(bars[bars.length - 1].ts).getTime()
+  const end = Number.isFinite(lastTs)
+    ? new Date(lastTs + 370 * 86_400_000).toISOString()
+    : bars[bars.length - 1].ts
+  const key = `${symbol}:${start}:${end}`
+  if (key === eventRangeKey) return
+  eventRangeKey = key
+  const seq = ++eventLoadSeq
+  try {
+    const loaded = await api.get<InstrumentEvent[]>(
+      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
+      { start, end },
+    )
+    if (seq === eventLoadSeq && symbol === chartStore.symbol) {
+      instrumentEvents.value = loaded
+      redrawVisuals()
+    }
+  } catch {
+    if (seq === eventLoadSeq && symbol === chartStore.symbol) instrumentEvents.value = []
+  }
+}
+
+function renderEventMarkers(u: uPlot) {
+  eventMarkers = []
+  if (!instrumentEvents.value.length) return
+  const { ctx, bbox } = u
+  const dpr = devicePixelRatio || 1
+  const baseY = bbox.top + bbox.height - dpr * 11
+
+  ctx.save()
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `bold ${Math.round(9 * dpr)}px monospace`
+
+  for (const event of instrumentEvents.value) {
+    const ts = new Date(event.event_time).getTime() / 1000
+    if (!Number.isFinite(ts)) continue
+    const idx = eventTimeToChartIndex(ts)
+    const x = u.valToPos(idx, 'x', true)
+    if (x < bbox.left || x > bbox.left + bbox.width) continue
+    const r = dpr * 8
+    const color = eventColor(event)
+    ctx.beginPath()
+    ctx.fillStyle = '#0b0b0b'
+    ctx.strokeStyle = color
+    ctx.lineWidth = dpr * 1.5
+    ctx.arc(x, baseY, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = color
+    ctx.fillText(eventGlyph(event), x, baseY + dpr * 0.5)
+    eventMarkers.push({ event, x: x / dpr, y: baseY / dpr, r: r / dpr + 3 })
+  }
+
+  ctx.restore()
+}
+
+function eventAt(mx: number, my: number): InstrumentEvent | null {
+  for (const marker of eventMarkers) {
+    if (Math.hypot(mx - marker.x, my - marker.y) <= marker.r) return marker.event
+  }
+  return null
+}
+
+function positionEventPopover(clientX: number, clientY: number): { x: number; y: number } {
+  const wrapper = wrapperRef.value
+  if (!wrapper) return { x: 8, y: 8 }
+  const rect = wrapper.getBoundingClientRect()
+  const margin = 8
+  const clickX = clientX - rect.left
+  const clickY = clientY - rect.top
+  const maxX = Math.max(margin, wrapper.clientWidth - EVENT_POPOVER_WIDTH - margin)
+  const maxY = Math.max(margin, wrapper.clientHeight - EVENT_POPOVER_HEIGHT - margin)
+  const x = Math.max(margin, Math.min(clickX + 12, maxX))
+  const preferredAbove = clickY - EVENT_POPOVER_HEIGHT - 12
+  const preferredBelow = clickY + 12
+  const y = preferredAbove >= margin
+    ? preferredAbove
+    : Math.min(Math.max(margin, preferredBelow), maxY)
+  return { x, y }
 }
 
 function renderVisualOverlays(drawings: AnyDrawing[] = drawingOverlayList()) {
@@ -611,10 +863,9 @@ function startLivePolling() {
         if (wasAtLatest && uplot) {
           const [tArr] = uplot.data as number[][]
           if (tArr?.length) {
-            const barD   = tArr.length > 1 ? tArr[1] - tArr[0] : 86400
             const latest = tArr[tArr.length - 1]
             const span   = uplot.scales.x.max! - uplot.scales.x.min!
-            uplot.setScale('x', { min: latest - span + barD, max: latest + barD * 5 })
+            uplot.setScale('x', latestXRange(latest, span))
           }
         }
       }
@@ -665,6 +916,15 @@ function yRangeFn(u: uPlot): [number, number] {
     if (i >= xMin && i <= xMax) {
       if (highs[i] != null && highs[i] > hi) hi = highs[i]
       if (lows[i]  != null && lows[i]  < lo) lo = lows[i]
+    }
+  }
+  for (const series of visibleComparisonSeries.value) {
+    for (let i = 0; i < series.values.length; i++) {
+      if (i < xMin || i > xMax) continue
+      const v = series.values[i]
+      if (v == null || !Number.isFinite(v)) continue
+      if (v > hi) hi = v
+      if (v < lo) lo = v
     }
   }
   if (lo === Infinity || lo <= 0) return [1, 2]
@@ -840,8 +1100,11 @@ function buildData(): uPlot.AlignedData {
     const outputs = outputCache.get(meta.ind)!
     return (outputs[meta.outputKey] ?? new Array(closes.length).fill(null)) as (number | null)[]
   })
+  const comparisonData = visibleComparisonSeries.value.map(series =>
+    series.values.slice(0, closes.length).concat(new Array(Math.max(0, closes.length - series.values.length)).fill(null))
+  )
 
-  return [barIdx, opens, highs, lows, closes, vols, ...extraData] as uPlot.AlignedData
+  return [barIdx, opens, highs, lows, closes, vols, ...extraData, ...comparisonData] as uPlot.AlignedData
 }
 
 // ── Indicator selection highlight plugin ──────────────────────────────────────
@@ -923,6 +1186,15 @@ function buildSeries(): uPlot.Series[] {
       scale:  'y',
       stroke: meta.color,
       width:  meta.ind.style.lineWidth ?? 1.5,
+      points: { show: false },
+    })
+  }
+  for (const series of visibleComparisonSeries.value) {
+    base.push({
+      label: series.label || series.symbol,
+      scale: 'y',
+      stroke: series.color,
+      width: 1.4,
       points: { show: false },
     })
   }
@@ -1022,7 +1294,7 @@ function getProjectionItems(): ProjectionItem[] {
     if (closes?.length) {
       const lastClose = closes[closes.length - 1]
       if (lastClose != null && !isNaN(lastClose)) {
-        items.push({ price: lastClose, color: '#26a69a', chipLabel: 'Last' })
+        items.push({ price: lastClose, color: '#26a69a', chipLabel: 'Last', originX: closes.length - 1 })
       }
     }
   }
@@ -1158,7 +1430,7 @@ async function initChart() {
         values: (_u, ticks) => formatXAxisTicks(_u, ticks),
       },
       {
-        scale:  'y', side: 1, size: 65, gap: 6, stroke: '#888', font: '10px monospace',
+        scale:  'y', side: 1, size: yAxisSize, gap: 6, stroke: '#888', font: '10px monospace',
         ticks:  { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
         values: (_u, ticks) => ticks.map(t => t == null ? '' : t >= 1000 ? t.toFixed(0) : t.toFixed(2)),
       },
@@ -1170,6 +1442,7 @@ async function initChart() {
     hooks: {
       draw: [(u) => {
         renderVisualOverlays()
+        renderEventMarkers(u)
       }],
       setCursor: [(u) => {
         updateTooltip(u, u.cursor.idx)
@@ -1200,6 +1473,7 @@ async function initChart() {
         setupHitDetection(u)
         setupInteraction(u)
         updateTooltip(u, null)
+        loadInstrumentEvents()
       }],
     },
   }
@@ -1235,9 +1509,10 @@ function setInitialView(u: uPlot) {
   const [x] = u.data as number[][]
   if (!x?.length) return
   const latest = x[x.length - 1]
+  const span = Math.min(DEFAULT_BARS_VISIBLE, Math.max(1, x.length))
   u.setScale('x', {
-    min: Math.max(-0.5, latest - DEFAULT_BARS_VISIBLE + 0.5),
-    max: latest + 0.5,
+    min: Math.max(-0.5, latestXRange(latest, span).min),
+    max: latestXRange(latest, span).max,
   })
   // Recompute the auto Y range against the initial X window so the first
   // user interaction does not snap to a different vertical scale.
@@ -1251,7 +1526,7 @@ function goToLatest() {
   if (!x?.length) return
   const span   = uplot.scales.x.max! - uplot.scales.x.min!
   const latest = x[x.length - 1]
-  uplot.setScale('x', { min: latest - span + 0.5, max: latest + 0.5 })
+  uplot.setScale('x', latestXRange(latest, span))
   isAtLatest.value = true
   renderVisualOverlays()
 }
@@ -1280,6 +1555,7 @@ function updateData() {
   renderVisualOverlays()
   updateSubPaneData()
   updateTooltip(uplot, uplot.cursor.idx)
+  loadInstrumentEvents()
 }
 
 // ── Interaction ────────────────────────────────────────────────────────────────
@@ -1289,6 +1565,7 @@ function setupInteraction(u: uPlot) {
   let cachedRect: DOMRect | null = null
 
   const liveRect    = () => u.over.getBoundingClientRect()
+  const rootRect    = () => ((u.root as HTMLElement | undefined)?.getBoundingClientRect?.() ?? liveRect())
   const getRect     = () => cachedRect ?? liveRect()
   const isOnYAxis   = (cx: number) => cx > getRect().right
   const isOnXAxis   = (cy: number) => cy > getRect().bottom
@@ -1305,7 +1582,7 @@ function setupInteraction(u: uPlot) {
     if (!x?.length) return
     const span   = max - min
     const lBound = -0.5
-    const rBound = x[x.length - 1] + 0.5
+    const rBound = x[x.length - 1] + rightOverscroll(span)
     if (min < lBound) { min = lBound; max = min + span }
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
@@ -1444,10 +1721,32 @@ function setupInteraction(u: uPlot) {
     cachedRect = null; wrapper.style.cursor = ''
   }
 
+  const onClick = (e: MouseEvent) => {
+    const rect = rootRect()
+    const event = eventAt(e.clientX - rect.left, e.clientY - rect.top)
+    if (!event) {
+      eventPopover.value = null
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    const pos = positionEventPopover(e.clientX, e.clientY)
+    eventPopover.value = {
+      event,
+      x: pos.x,
+      y: pos.y,
+    }
+  }
+
   const onHoverMove = (e: MouseEvent) => {
     if (panActive || priceActive || xAxisActive || drawStore.activeToolType || drawStore.avwapDropActive) return
     if (isOnYAxis(e.clientX))   { wrapper.style.cursor = 'ns-resize'; return }
     if (isOnXAxis(e.clientY))   { wrapper.style.cursor = 'ew-resize'; return }
+    const chartRect = rootRect()
+    if (eventAt(e.clientX - chartRect.left, e.clientY - chartRect.top)) {
+      wrapper.style.cursor = 'pointer'
+      return
+    }
     const rect = liveRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
@@ -1528,6 +1827,7 @@ function setupInteraction(u: uPlot) {
   wrapper.addEventListener('wheel',       onWheel,       { passive: false, capture: true })
   wrapper.addEventListener('mousedown',   onMouseDown)
   wrapper.addEventListener('mousemove',   onHoverMove)
+  wrapper.addEventListener('click',       onClick)
   wrapper.addEventListener('dblclick',    onDblClick)
   wrapper.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('mousemove',    onMouseMove)
@@ -1538,6 +1838,7 @@ function setupInteraction(u: uPlot) {
     wrapper.removeEventListener('wheel',       onWheel,       true)
     wrapper.removeEventListener('mousedown',   onMouseDown)
     wrapper.removeEventListener('mousemove',   onHoverMove)
+    wrapper.removeEventListener('click',       onClick)
     wrapper.removeEventListener('dblclick',    onDblClick)
     wrapper.removeEventListener('contextmenu', onContextMenu)
     window.removeEventListener('mousemove',    onMouseMove)
@@ -1653,7 +1954,7 @@ async function buildSubPanes() {
       scales: { x: { time: false }, y: { auto: true } },
       axes: [
         { scale: 'x', show: false },
-        { scale: 'y', side: 1, stroke: '#888', size: 65,
+        { scale: 'y', side: 1, stroke: '#888', size: yAxisSize,
           ticks: { stroke: '#2a2a2a' }, grid: { stroke: '#1a1a1a', width: 1 },
           values: (_u, ticks) => ticks.map(t => t.toFixed(1)) },
       ],
@@ -2282,7 +2583,7 @@ function destroyAll() {
 }
 
 onMounted(async () => {
-  userSettingsStore.loadSettings().catch(console.error)
+  try { await userSettingsStore.loadSettings() } catch {}
   const initialType = effectiveChartType.value
   if (chartStore.symbol && chartStore.barType !== initialType) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, initialType)
@@ -2297,6 +2598,8 @@ onMounted(async () => {
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
+watch(() => chartStore.instrument?.id, () => { loadInstrumentEvents() })
+watch(visibleComparisonSeries, () => { if (uplot) updateData(); else initChart() }, { deep: true })
 watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {
@@ -2439,6 +2742,57 @@ defineExpose({ jumpToTs })
   padding: 8px 14px; text-align: left; cursor: pointer;
 }
 .ctx-menu button:hover { background: #2a2a2a; color: #fff; }
+
+.event-popover {
+  position: absolute;
+  z-index: 80;
+  width: 238px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: rgba(12, 12, 12, 0.96);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  color: #bbb;
+  font-size: 10px;
+  pointer-events: auto;
+}
+.event-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border-bottom: 1px solid #1f1f1f;
+}
+.event-popover-head strong { color: #eee; font-size: 11px; }
+.event-popover-head button {
+  background: transparent;
+  border: 0;
+  color: #666;
+  cursor: pointer;
+  font-family: inherit;
+}
+.event-popover-date {
+  padding: 6px 8px 2px;
+  color: #777;
+  text-transform: capitalize;
+}
+.event-popover-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  padding: 7px 8px 9px;
+}
+.event-popover-grid span { color: #666; }
+.event-popover-grid b {
+  color: #ddd;
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .sub-pane {
   position: relative; height: 120px;

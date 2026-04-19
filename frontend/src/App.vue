@@ -17,7 +17,9 @@
         </div>
       </nav>
       <main class="main-content">
-        <router-view />
+        <div class="route-frame">
+          <router-view />
+        </div>
         <StatusBar />
       </main>
     </template>
@@ -29,16 +31,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
+import { useAlertsStore } from '@/stores/alerts'
 import Notification from '@/components/common/Notification.vue'
 import StatusBar from '@/components/common/StatusBar.vue'
 
-const route      = useRoute()
-const authStore  = useAuthStore()
-const chartStore = useChartStore()
+const route       = useRoute()
+const authStore   = useAuthStore()
+const chartStore  = useChartStore()
+const alertsStore = useAlertsStore()
+
+onMounted(() => {
+  alertsStore.connectWebSocket()
+})
 
 const isLoginPage  = computed(() => route.path === '/login')
 const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
@@ -107,5 +115,21 @@ body {
 }
 .user-avatar:hover { background: #1e4a7a; }
 
-.main-content { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
+.main-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.route-frame {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.route-frame > * {
+  height: 100%;
+}
 </style>

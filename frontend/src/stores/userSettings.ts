@@ -25,6 +25,7 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   let saveTimer: ReturnType<typeof setTimeout> | null = null
 
   async function loadSettings() {
+    if (loaded.value) return
     const settings = await api.get<UserSettings>('/auth/settings')
     showCurrentPriceProjection.value = !!settings.chart?.showCurrentPriceProjection
     showHighLowProjection.value = !!settings.chart?.showHighLowProjection

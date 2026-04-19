@@ -83,15 +83,18 @@ export function yAxisProjectionsPlugin(
           const { ctx } = u
           const bbox   = u.bbox
 
-          // Y axis sits to the right of the plot bbox
+          // Y axis sits to the right of the plot bbox. Keep chips over the same
+          // fixed text lane as tick values instead of sizing each chip to text.
           const yAxisW   = u.width * dpr - (bbox.left + bbox.width)
-          const chipX    = bbox.left + bbox.width   // flush with plot edge
-          const maxChipW = Math.max(20 * dpr, yAxisW - dpr * 4)  // 2px padding each side
+          const tickLaneOffset = dpr * 5
+          const chipX    = bbox.left + bbox.width + tickLaneOffset
+          const chipW    = Math.max(20 * dpr, yAxisW - tickLaneOffset)
+          const maxChipW = chipW
 
           const fontSize    = Math.round(10 * dpr)
           const smallFontSz = Math.round(9 * dpr)
           const lineH       = fontSize + dpr * 2
-          const padX        = dpr * 5
+          const padX        = dpr * 3
           const padV        = dpr * 3   // vertical padding inside chip
 
           ctx.save()
@@ -121,15 +124,6 @@ export function yAxisProjectionsPlugin(
               : []
             const lines      = [valueText, ...labelLines]
 
-            // Measure widest line to determine chip width
-            let maxW = 0
-            for (let li = 0; li < lines.length; li++) {
-              ctx.font = li === 0
-                ? `bold ${fontSize}px monospace`
-                : `${smallFontSz}px monospace`
-              maxW = Math.max(maxW, ctx.measureText(lines[li]).width)
-            }
-            const chipW = Math.min(maxW + padX * 2, maxChipW)
             const chipH = lineH * lines.length + padV * 2
 
             chips.push({ item, trueY, lines, chipH, chipW, displayY: trueY })
@@ -167,7 +161,7 @@ export function yAxisProjectionsPlugin(
             const xStart = item.originX != null
               ? Math.max(u.valToPos(item.originX, 'x', true), bbox.left)
               : bbox.left
-            const lineEnd = bbox.left + bbox.width
+            const lineEnd = chipX
 
             ctx.beginPath()
             ctx.strokeStyle  = item.color
@@ -195,7 +189,7 @@ export function yAxisProjectionsPlugin(
 
             // Chip background
             ctx.fillStyle   = item.color
-            ctx.globalAlpha = 0.9
+            ctx.globalAlpha = 1
             ctx.beginPath()
             const r = dpr * 2
             ctx.roundRect(chipX, Math.round(chipTop) + 0.5, chipW, chipH, r)

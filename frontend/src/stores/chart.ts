@@ -106,6 +106,7 @@ function createChartStore(storeId: string) {
       barType.value = nextBarType
       instrument.value = null
       indicators.value = []
+      bars.value = []
       hasReachedStart.value = false
       isLoadingMore.value = false
       _stopCoveragePoller()
@@ -120,7 +121,10 @@ function createChartStore(storeId: string) {
       try {
         const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })
         bars.value = mapped
-        if (mapped.length < PAGE_SIZE) hasReachedStart.value = true
+        // A short initial page can mean either "brand-new listing" or "cache is
+        // currently incomplete". Let the older-page path make that decision so
+        // partial caches can self-repair when the user scrolls left.
+        if (!mapped.length) hasReachedStart.value = true
         // For brand-new instruments the backend computes 52w stats only after D1
         // bars are persisted. Reload instrument here so those stats are available.
         const currentInstrument = instrument.value as Instrument | null

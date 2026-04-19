@@ -6,10 +6,10 @@
     <span :class="['status-pill', serverOk ? 'ok' : 'warn']">
       API {{ serverOk ? 'ok' : 'checking' }}
     </span>
-    <span v-if="chartStore.symbol" class="status-item">
+    <span v-if="showChartContext && chartStore.symbol" class="status-item">
       {{ chartStore.symbol }} · {{ chartStore.timeframe }} · {{ chartStore.barType.replace('_', ' ') }}
     </span>
-    <span v-if="lastBarTime" class="status-item">Last bar {{ lastBarTime }}</span>
+    <span v-if="showChartContext && lastBarTime" class="status-item">Last bar {{ lastBarTime }}</span>
     <span class="status-spacer" />
     <span class="status-item">{{ clock }}</span>
   </footer>
@@ -17,16 +17,20 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useChartStore } from '@/stores/chart'
 
 const alertsStore = useAlertsStore()
 const chartStore = useChartStore()
+const route = useRoute()
 
 const clock = ref(formatClock())
 const serverOk = ref(false)
 let clockTimer: ReturnType<typeof setInterval> | null = null
 let healthTimer: ReturnType<typeof setInterval> | null = null
+
+const showChartContext = computed(() => route.path.startsWith('/chart'))
 
 const lastBarTime = computed(() => {
   const ts = chartStore.bars[chartStore.bars.length - 1]?.ts
