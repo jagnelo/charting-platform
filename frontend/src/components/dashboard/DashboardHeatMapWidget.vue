@@ -50,8 +50,13 @@
         <span v-if="tile.alertCount" class="hm-alert-badge">{{ tile.alertCount }}</span>
 
         <span class="hm-sym">{{ tile.symbol }}</span>
-        <svg v-if="tile.sparkline.length > 1 && tile.h > 52" class="hm-spark" :viewBox="`0 0 ${tile.sparkline.length - 1} 20`" preserveAspectRatio="none">
-          <polyline :points="sparkPoints(tile.sparkline)" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" />
+        <svg
+          v-if="showSparklines && tile.sparkline.length > 1 && tile.h > 52"
+          class="hm-spark"
+          viewBox="0 0 100 28"
+          preserveAspectRatio="none"
+        >
+          <polyline :points="sparkPoints(tile.sparkline)" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.6" vector-effect="non-scaling-stroke" />
         </svg>
         <span v-if="tile.h > 44" class="hm-val">{{ formatMetricValue(tile.metricValue) }}</span>
       </router-link>
@@ -82,7 +87,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
-import type { Watchlist } from '@/types'
+import type { Timeframe, Watchlist } from '@/types'
 
 // ── Props / emits ─────────────────────────────────────────────────────────────
 const props = defineProps<{
@@ -170,6 +175,8 @@ const colorMetric = computed<string>(() => props.config.colorMetric ?? 'perf_1d'
 const sizeMetric  = computed<string>(() => props.config.sizeMetric  ?? 'market_cap')
 const groupBy     = computed<string>(() => props.config.groupBy     ?? 'sector')
 const showAlertBadges = computed<boolean>(() => props.config.showAlertBadges !== false)
+const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
+const showSparklines = computed<boolean>(() => props.config.showSparklines === true)
 
 function setColorMetric(value: string) {
   emit('patchConfig', { colorMetric: value })
@@ -215,6 +222,9 @@ async function load() {
 
     const data = await api.post<HeatRow[]>('/instruments/heatmap-data', {
       instrument_ids: ids,
+      timeframe: timeframe.value,
+      sparkline_bars: 40,
+      include_sparklines: showSparklines.value,
     })
     if (seq !== loadSeq) return
 
@@ -521,9 +531,20 @@ function tileStyle(tile: Tile): Record<string, string> {
 
 // ── Sparkline helpers ─────────────────────────────────────────────────────────
 function sparkPoints(data: number[]): string {
-  const h = 20
-  return data
-    .map((v, i) => `${i},${((1 - v) * (h - 2) + 1).toFixed(1)}`)
+  const values = data.filter(v => Number.isFinite(v))
+  if (values.length < 2) return ''
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min
+  const w = 100
+  const h = 28
+  const xStep = values.length > 1 ? w / (values.length - 1) : 0
+  return values
+    .map((v, i) => {
+      const x = i * xStep
+      const y = range <= 0 ? h / 2 : h - 3 - ((v - min) / range) * (h - 6)
+      return `${x.toFixed(2)},${y.toFixed(2)}`
+    })
     .join(' ')
 }
 
@@ -601,7 +622,10 @@ function measureCanvas() {
 }
 
 // ── Watchers / lifecycle ──────────────────────────────────────────────────────
-watch(() => [props.config.universeType, props.config.watchlistId, props.config.screenerId], load)
+watch(
+  () => [props.config.universeType, props.config.watchlistId, props.config.screenerId, props.config.timeframe, props.config.showSparklines],
+  load,
+)
 watch(() => watchlistStore.priceMap, () => {
   // refresh live 1D pct values reactively
   if (!rows.value.length) return
@@ -754,9 +778,15 @@ onUnmounted(() => {
   color: rgba(255,255,255,0.8);
 }
 .hm-spark {
-  width: 80%;
-  height: 20px;
-  overflow: visible;
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 19px;
+  width: 84%;
+  height: 24px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 /* ── Tooltip ── */

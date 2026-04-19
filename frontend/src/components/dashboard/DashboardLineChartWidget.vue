@@ -25,6 +25,7 @@ import type { OHLCVBar, Timeframe } from '@/types'
 const props = defineProps<{
   type: string
   config: Record<string, any>
+  overrideSymbol?: string
 }>()
 
 interface LoadedSeries {
@@ -36,7 +37,7 @@ interface LoadedSeries {
 }
 
 const DEFAULT_COLORS = ['#64b5f6', '#81c784', '#ffb74d', '#ba68c8', '#f06292', '#4dd0e1']
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const EXPR_RE = /^\s*=/
 
 const rootRef = ref<HTMLDivElement | null>(null)
 const chartRef = ref<HTMLDivElement | null>(null)
@@ -49,6 +50,11 @@ let resizeObserver: ResizeObserver | null = null
 let refreshSeq = 0
 
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
+const barLimit = computed(() => {
+  const value = Number(props.config.barLimit ?? 300)
+  if (!Number.isFinite(value)) return 300
+  return Math.max(50, Math.min(5000, Math.round(value)))
+})
 const normalize = computed(() =>
   props.type === 'comparison_chart' ? props.config.normalize !== false : props.config.normalize === true
 )
@@ -75,7 +81,7 @@ const targets = computed(() => {
       .filter(target => target.symbol)
       .slice(0, 6)
   }
-  const symbol = String(props.config.symbol ?? props.config.expression ?? '').trim()
+  const symbol = (props.overrideSymbol?.trim() || String(props.config.symbol ?? props.config.expression ?? '').trim())
   return symbol ? [{ symbol, label: symbol, color: props.config.color ?? DEFAULT_COLORS[0] }] : []
 })
 const displayTarget = computed(() => targets.value.map(t => t.label || t.symbol).join(', '))
@@ -94,10 +100,12 @@ async function ensureTarget(target: string) {
 
 async function loadBars(target: string) {
   const symbol = await ensureTarget(target)
-  const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe.value}`)
+  const raw = await api.get<any[]>(`/ohlcv/${encodeURIComponent(symbol)}/${timeframe.value}`, {
+    limit: barLimit.value,
+  })
   return {
     symbol,
-    bars: raw.slice(-300).map(b => ({
+    bars: raw.slice(-barLimit.value).map(b => ({
       ...b,
       open: Number(b.open),
       high: Number(b.high),
@@ -138,15 +146,15 @@ async function refresh() {
     )
     if (seq !== refreshSeq) return
     loadedSeries.value = loaded.filter(item => item.bars.length)
+    loading.value = false
     await nextTick()
     if (seq === refreshSeq) buildPlot()
   } catch (e: any) {
     if (seq === refreshSeq) {
       error.value = e?.message ?? 'Chart unavailable'
       loadedSeries.value = []
+      loading.value = false
     }
-  } finally {
-    if (seq === refreshSeq) loading.value = false
   }
 }
 
@@ -233,7 +241,11 @@ function destroyPlot() {
 }
 
 function resizePlot() {
-  if (!plot || !rootRef.value) return
+  if (!rootRef.value) return
+  if (!plot) {
+    if (loadedSeries.value.length && chartRef.value) buildPlot()
+    return
+  }
   plot.setSize({
     width: Math.max(220, rootRef.value.clientWidth),
     height: Math.max(120, rootRef.value.clientHeight),
@@ -267,7 +279,7 @@ function formatValue(value: number) {
   return value.toFixed(4)
 }
 
-watch(() => [props.type, JSON.stringify(props.config)], refresh)
+watch(() => [props.type, props.overrideSymbol, JSON.stringify(props.config)], refresh)
 onMounted(() => {
   resizeObserver = new ResizeObserver(resizePlot)
   if (rootRef.value) resizeObserver.observe(rootRef.value)

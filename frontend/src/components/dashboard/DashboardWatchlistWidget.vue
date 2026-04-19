@@ -30,7 +30,7 @@
     <div v-if="watchlist && !watchlist.is_locked && !watchlist.is_managed" class="add-row">
       <DashboardInstrumentSearch
         v-model="addSymbol"
-        placeholder="Add symbol or expression..."
+        placeholder="Add symbol or =expression..."
         @select="addToWatchlist"
       />
     </div>

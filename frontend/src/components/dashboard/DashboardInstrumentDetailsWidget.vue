@@ -24,13 +24,15 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import type { Instrument } from '@/types'
 
-const props = defineProps<{ config: Record<string, any> }>()
+const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
 
 const loading = ref(false)
 const error = ref<string | null>(null)
 const instrument = ref<Instrument | null>(null)
-const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const symbol = computed(() =>
+  (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
+)
+const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 
 const rows = computed(() => {
@@ -42,24 +44,28 @@ const rows = computed(() => {
     { label: 'Industry', value: detail?.industry },
     { label: 'Country', value: detail?.country },
     { label: 'Market Cap', value: formatLarge(stats?.market_cap) },
-    { label: 'P/E', value: stats?.pe_ratio?.toFixed(2) },
-    { label: 'Beta', value: stats?.beta?.toFixed(2) },
+    { label: 'P/E', value: stats?.pe_ratio != null ? Number(stats.pe_ratio).toFixed(2) : '' },
+    { label: 'Beta', value: stats?.beta != null ? Number(stats.beta).toFixed(2) : '' },
     { label: '52W High', value: formatNumber(stats?.week52_high) },
     { label: '52W Low', value: formatNumber(stats?.week52_low) },
   ]
 })
 
-function formatNumber(value?: number) {
+function formatNumber(value?: number | string | null) {
   if (value == null) return ''
-  return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  const n = Number(value)
+  if (!Number.isFinite(n)) return ''
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
 }
 
-function formatLarge(value?: number) {
+function formatLarge(value?: number | string | null) {
   if (value == null) return ''
-  if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`
-  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
-  return formatNumber(value)
+  const n = Number(value)
+  if (!Number.isFinite(n)) return ''
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`
+  return formatNumber(n)
 }
 
 async function refresh() {

@@ -29,7 +29,7 @@ import { api } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import type { Instrument } from '@/types'
 
-const props = defineProps<{ config: Record<string, any> }>()
+const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -37,8 +37,10 @@ const instrument = ref<Instrument | null>(null)
 const lastClose = ref<number | null>(null)
 const prevClose = ref<number | null>(null)
 
-const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const symbol = computed(() =>
+  (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
+)
+const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 const changePct = computed(() => {
   if (lastClose.value == null || prevClose.value == null || prevClose.value === 0) return 0

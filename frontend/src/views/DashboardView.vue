@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-view">
+  <div class="dashboard-view" @click="onDashboardClick">
     <header class="dashboard-header">
       <div class="header-left">
         <div>
@@ -79,7 +79,23 @@
             :style="widgetStyle(widget)"
           >
             <div class="widget-header" @pointerdown="startMove($event, widget)">
-              <div class="widget-title">{{ widget.title || widgetTitle(widget.widget_type) }}</div>
+              <div class="widget-title">
+                <div
+                  v-if="isLinkableWidget(widget) && (dashboardStore.editMode || widget.config.linkGroup)"
+                  class="quick-link-wrap"
+                >
+                  <button
+                    type="button"
+                    class="link-dot quick-link-dot"
+                    :class="{ unlinked: !widget.config.linkGroup }"
+                    :style="widget.config.linkGroup ? { background: linkGroupColor(widget.config.linkGroup) } : undefined"
+                    :title="quickLinkTitle(widget)"
+                    @click.stop="toggleQuickLinkMenu(widget, $event)"
+                    @pointerdown.stop
+                  />
+                </div>
+                {{ widget.title || widgetTitle(widget.widget_type) }}
+              </div>
               <div class="widget-tools" v-if="dashboardStore.editMode">
                 <button @click.stop="configWidget = widget">Configure</button>
                 <button @click.stop="duplicateWidget(widget)">Copy</button>
@@ -96,20 +112,24 @@
               <DashboardQuoteWidget
                 v-else-if="widget.widget_type === 'quote'"
                 :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
               />
               <DashboardLineChartWidget
                 v-else-if="['simple_chart', 'comparison_chart', 'ratio_chart'].includes(widget.widget_type)"
                 :type="widget.widget_type"
                 :config="widget.config"
+                :override-symbol="LINKABLE_TYPES.includes(widget.widget_type) ? effectiveSymbol(widget) : undefined"
               />
               <DashboardAdvancedChartWidget
                 v-else-if="widget.widget_type === 'advanced_chart'"
                 :widget-id="widget.id"
                 :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
               />
               <DashboardInstrumentDetailsWidget
                 v-else-if="widget.widget_type === 'instrument_details'"
                 :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
               />
               <DashboardWatchlistWidget
                 v-else-if="widget.widget_type === 'watchlist'"
@@ -125,11 +145,17 @@
               <DashboardEconomicCalendarWidget
                 v-else-if="widget.widget_type === 'economic_calendar'"
                 :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
               />
               <DashboardHeatMapWidget
                 v-else-if="widget.widget_type === 'heat_map'"
                 :config="widget.config"
                 @patch-config="patchConfig(widget, $event)"
+              />
+              <DashboardSeasonalityWidget
+                v-else-if="widget.widget_type === 'seasonality'"
+                :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
               />
               <div v-else class="empty-small">Unsupported widget.</div>
             </div>
@@ -166,12 +192,54 @@
               />
             </label>
 
+            <label v-if="LINKABLE_TYPES.includes(configWidget.widget_type)" class="config-field">
+              <span>Tab link group</span>
+              <small class="config-help">Links are scoped to this dashboard tab. Widgets in the same group follow the same selected instrument.</small>
+              <div class="link-group-picker">
+                <button
+                  type="button"
+                  class="link-unlinked-btn"
+                  :class="{ active: !configWidget.config.linkGroup }"
+                  @click="patchConfig(configWidget, { linkGroup: null })"
+                >
+                  Unlinked
+                </button>
+                <button
+                  v-for="group in activeLinkGroups"
+                  :key="group.id"
+                  type="button"
+                  class="link-group-btn"
+                  :class="{ active: configWidget.config.linkGroup === group.id }"
+                  :title="`${group.label}${group.symbol ? `: ${group.symbol}` : ''}`"
+                  @click="patchConfig(configWidget, { linkGroup: group.id })"
+                >
+                  <span class="link-swatch" :style="{ background: group.color }" />
+                  <span>{{ group.label }}</span>
+                  <small v-if="group.symbol">{{ group.symbol }}</small>
+                </button>
+                <button
+                  v-if="canCreateLinkGroupFromCurrent(configWidget)"
+                  type="button"
+                  class="link-new-btn"
+                  @click="createLinkGroup(configWidget)"
+                >
+                  + New from current
+                </button>
+              </div>
+            </label>
+
             <label
-              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart'].includes(configWidget.widget_type)"
+              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart', 'seasonality'].includes(configWidget.widget_type)"
               class="config-field"
             >
               <span>Instrument or expression</span>
+              <div v-if="isWidgetLinked(configWidget)" class="linked-instrument-summary">
+                <span class="link-swatch" :style="{ background: linkGroupColor(configWidget.config.linkGroup) }" />
+                <strong>{{ linkedInstrumentText(configWidget) }}</strong>
+                <small>Controlled by {{ dashboardLinkGroupLabel(configWidget.config.linkGroup) }} in this tab. Unlink the widget to edit its own instrument.</small>
+              </div>
               <DashboardInstrumentSearch
+                v-else
                 :model-value="configWidget.config.symbol || configWidget.config.expression || ''"
                 @select="patchConfig(configWidget, { symbol: $event })"
                 @update:model-value="patchConfigLocal(configWidget, { symbol: $event })"
@@ -209,6 +277,18 @@
                 @change="patchConfig(configWidget, { timeframe: inputValue($event) })"
               >
                 <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+              </select>
+            </label>
+
+            <label v-if="lineChartWidgetTypes.includes(configWidget.widget_type)" class="config-field">
+              <span>Visible history</span>
+              <select
+                :value="configWidget.config.barLimit || 300"
+                @change="patchConfig(configWidget, { barLimit: Number(inputValue($event)) })"
+              >
+                <option v-for="option in chartHistoryOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </label>
 
@@ -325,6 +405,16 @@
               </label>
 
               <label class="config-field">
+                <span>Sparkline timeframe</span>
+                <select
+                  :value="configWidget.config.timeframe || 'D1'"
+                  @change="patchConfig(configWidget, { timeframe: inputValue($event) })"
+                >
+                  <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+                </select>
+              </label>
+
+              <label class="config-field">
                 <span>Color by</span>
                 <select
                   :value="configWidget.config.colorMetric || 'perf_1d'"
@@ -375,6 +465,14 @@
                 />
                 <span>Show alert badges</span>
               </label>
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.showSparklines === true"
+                  @change="patchConfig(configWidget, { showSparklines: checkboxValue($event) })"
+                />
+                <span>Show tile sparklines</span>
+              </label>
             </template>
 
             <label v-if="['notes', 'checklist'].includes(configWidget.widget_type)" class="config-field">
@@ -389,6 +487,47 @@
             </label>
           </div>
         </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="quickLinkWidget && dashboardStore.editMode"
+        class="quick-link-menu"
+        :style="{ left: quickLinkMenuPos.x + 'px', top: quickLinkMenuPos.y + 'px' }"
+        @click.stop
+        @pointerdown.stop
+      >
+        <div class="quick-link-title">Link group</div>
+        <button
+          type="button"
+          class="quick-link-item"
+          :class="{ active: !quickLinkWidget.config.linkGroup }"
+          @click="selectQuickLinkGroup(quickLinkWidget, null)"
+        >
+          <span class="quick-link-none" />
+          <span>Unlinked</span>
+        </button>
+        <button
+          v-for="group in activeLinkGroups"
+          :key="group.id"
+          type="button"
+          class="quick-link-item"
+          :class="{ active: quickLinkWidget.config.linkGroup === group.id }"
+          @click="selectQuickLinkGroup(quickLinkWidget, group.id)"
+        >
+          <span class="link-swatch" :style="{ background: group.color }" />
+          <span>{{ group.label }}</span>
+          <small v-if="group.symbol">{{ group.symbol }}</small>
+        </button>
+        <button
+          v-if="canCreateLinkGroupFromCurrent(quickLinkWidget)"
+          type="button"
+          class="quick-link-item quick-link-new"
+          @click="selectQuickNewGroup(quickLinkWidget)"
+        >
+          + New from current
+        </button>
       </div>
     </Teleport>
   </div>
@@ -406,10 +545,16 @@ import DashboardLineChartWidget from '@/components/dashboard/DashboardLineChartW
 import DashboardNotesWidget from '@/components/dashboard/DashboardNotesWidget.vue'
 import DashboardQuoteWidget from '@/components/dashboard/DashboardQuoteWidget.vue'
 import DashboardScreenerWidget from '@/components/dashboard/DashboardScreenerWidget.vue'
+import DashboardSeasonalityWidget from '@/components/dashboard/DashboardSeasonalityWidget.vue'
 import DashboardWatchlistWidget from '@/components/dashboard/DashboardWatchlistWidget.vue'
 import { api } from '@/lib/api'
 import { useAlertsStore } from '@/stores/alerts'
 import { useDashboardStore } from '@/stores/dashboard'
+import {
+  dashboardLinkGroupColor,
+  dashboardLinkGroupLabel,
+  useDashboardLinksStore,
+} from '@/stores/dashboardLinks'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { CHART_BAR_TYPES } from '@/types'
@@ -437,13 +582,24 @@ const dashboardStore = useDashboardStore()
 const watchlistStore = useWatchlistStore()
 const alertsStore = useAlertsStore()
 const screenerAlertsStore = useScreenerAlertsStore()
+const linksStore = useDashboardLinksStore()
 const screeners = ref<ScreenerOut[]>([])
 const renamingTabId = ref<number | null>(null)
 const tabRenameDraft = ref('')
 const configWidget = ref<DashboardWidget | null>(null)
+const quickLinkWidgetId = ref<number | null>(null)
+const quickLinkMenuPos = ref({ x: 0, y: 0 })
 
 const timeframes: Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1', 'MN']
 const chartWidgetTypes = ['simple_chart', 'advanced_chart', 'comparison_chart', 'ratio_chart']
+const lineChartWidgetTypes = ['simple_chart', 'comparison_chart', 'ratio_chart']
+const chartHistoryOptions = [
+  { value: 100, label: 'Last 100 bars' },
+  { value: 300, label: 'Last 300 bars' },
+  { value: 500, label: 'Last 500 bars' },
+  { value: 1000, label: 'Last 1,000 bars' },
+  { value: 2000, label: 'Last 2,000 bars' },
+]
 
 const widgetCatalog: Array<{
   type: DashboardWidgetType
@@ -459,6 +615,7 @@ const widgetCatalog: Array<{
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
   { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
   { type: 'heat_map', title: 'Heat Map', description: 'Treemap — perf, RSI, volume, 52w range' },
+  { type: 'seasonality', title: 'Seasonality', description: 'Monthly performance patterns' },
   { type: 'instrument_details', title: 'Instrument Details', description: 'Metadata and stats' },
   { type: 'notes', title: 'Notes', description: 'Freeform text' },
   { type: 'checklist', title: 'Checklist', description: 'Reusable task list' },
@@ -466,6 +623,10 @@ const widgetCatalog: Array<{
 
 const widgets = computed(() =>
   [...(dashboardStore.activeTab?.widgets ?? [])].sort((a, b) => a.position - b.position || a.id - b.id)
+)
+
+const quickLinkWidget = computed(() =>
+  widgets.value.find(widget => widget.id === quickLinkWidgetId.value) ?? null
 )
 
 const canvasStyle = computed(() => {
@@ -510,6 +671,7 @@ async function reload() {
 
 function toggleEdit() {
   dashboardStore.setEditMode(!dashboardStore.editMode)
+  quickLinkWidgetId.value = null
 }
 
 async function loadScreeners() {
@@ -598,6 +760,7 @@ function defaultLayout(type: DashboardWidgetType, spot: { x: number; y: number }
     screener: { w: 10, h: 8 },
     economic_calendar: { w: 10, h: 8 },
     heat_map: { w: 16, h: 14 },
+    seasonality: { w: 12, h: 10 },
     instrument_details: { w: 8, h: 8 },
     notes: { w: 8, h: 6 },
     checklist: { w: 8, h: 7 },
@@ -614,10 +777,11 @@ function defaultConfig(type: DashboardWidgetType) {
         { symbol: 'DIA', label: 'DIA', color: '#ffb74d' },
       ],
       timeframe: 'D1',
+      barLimit: 300,
       normalize: true,
     }
   }
-  if (type === 'ratio_chart') return { expression: 'SPY/GLD', timeframe: 'D1' }
+  if (type === 'ratio_chart') return { expression: '=SPY/GLD', timeframe: 'D1', barLimit: 300 }
   if (type === 'watchlist') return { watchlistId: null, showSparklines: true }
   if (type === 'heat_map') return {
     universeType: 'watchlist',
@@ -626,10 +790,13 @@ function defaultConfig(type: DashboardWidgetType) {
     colorMetric: 'perf_1d',
     sizeMetric: 'market_cap',
     groupBy: 'sector',
+    timeframe: 'D1',
     showAlertBadges: true,
+    showSparklines: false,
   }
   if (type === 'screener') return { screenerId: null }
   if (type === 'economic_calendar') return { symbol: 'SPY' }
+  if (type === 'seasonality') return { symbol: 'SPY' }
   if (type === 'alerts') return {}
   if (type === 'notes') return { text: '' }
   if (type === 'checklist') {
@@ -651,7 +818,7 @@ function defaultConfig(type: DashboardWidgetType) {
       showAlerts: true,
     }
   }
-  return { symbol: 'SPY', timeframe: 'D1', chartType: 'line' }
+  return { symbol: 'SPY', timeframe: 'D1', chartType: 'line', barLimit: 300 }
 }
 
 async function duplicateWidget(widget: DashboardWidget) {
@@ -669,9 +836,182 @@ async function patchWidget(widget: DashboardWidget, patch: Partial<DashboardWidg
   await dashboardStore.updateWidget(widget.id, patch)
 }
 
+// ── Link group helpers ─────────────────────────────────────────────────────────
+const LINKABLE_TYPES = ['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'seasonality', 'ratio_chart']
+
+const linkScope = computed(() => dashboardStore.activeTab?.id ?? 'dashboard')
+const activeLinkGroups = computed(() => {
+  const counts = new Map<string, number>()
+  for (const widget of widgets.value) {
+    if (!isLinkableWidget(widget)) continue
+    const group = normalizedLinkGroup(widget.config.linkGroup)
+    if (group) {
+      counts.set(group, (counts.get(group) ?? 0) + 1)
+    }
+  }
+
+  return [...counts.keys()]
+    .sort(compareLinkGroups)
+    .map(group => ({
+      id: group,
+      label: dashboardLinkGroupLabel(group),
+      color: dashboardLinkGroupColor(group),
+      count: counts.get(group) ?? 0,
+      symbol: resolvedLinkSymbol(group),
+    }))
+})
+
+function normalizedLinkGroup(group: unknown): string {
+  return typeof group === 'string' ? group.trim() : ''
+}
+
+function isLinkableWidget(widget: DashboardWidget): boolean {
+  return LINKABLE_TYPES.includes(widget.widget_type)
+}
+
+function effectiveSymbol(widget: DashboardWidget): string | undefined {
+  if (!isLinkableWidget(widget)) return undefined
+  const group = normalizedLinkGroup(widget.config.linkGroup)
+  if (!group) return undefined
+  return resolvedLinkSymbol(group) || undefined
+}
+
+function linkGroupColor(group: string | undefined): string {
+  return dashboardLinkGroupColor(group)
+}
+
+function linkGroupTitle(widget: DashboardWidget): string {
+  const group = normalizedLinkGroup(widget.config.linkGroup)
+  const symbol = group ? resolvedLinkSymbol(group) : ''
+  return symbol
+    ? `${dashboardLinkGroupLabel(group)} in this tab: ${symbol}`
+    : `${dashboardLinkGroupLabel(group)} in this tab`
+}
+
+function quickLinkTitle(widget: DashboardWidget): string {
+  if (!dashboardStore.editMode) return linkGroupTitle(widget)
+  const group = normalizedLinkGroup(widget.config.linkGroup)
+  return group ? `${linkGroupTitle(widget)}. Click to change.` : 'Unlinked. Click to choose a link group.'
+}
+
+function toggleQuickLinkMenu(widget: DashboardWidget, event: MouseEvent) {
+  if (!dashboardStore.editMode || !isLinkableWidget(widget)) return
+  if (quickLinkWidgetId.value === widget.id) {
+    quickLinkWidgetId.value = null
+    return
+  }
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const menuW = 172
+  const menuH = 220
+  quickLinkMenuPos.value = {
+    x: Math.max(8, Math.min(rect.left - 4, window.innerWidth - menuW - 8)),
+    y: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - menuH - 8)),
+  }
+  quickLinkWidgetId.value = widget.id
+}
+
+async function selectQuickLinkGroup(widget: DashboardWidget, group: string | null) {
+  quickLinkWidgetId.value = null
+  await patchConfig(widget, { linkGroup: group })
+}
+
+async function selectQuickNewGroup(widget: DashboardWidget) {
+  quickLinkWidgetId.value = null
+  await createLinkGroup(widget)
+}
+
+function isWidgetLinked(widget: DashboardWidget): boolean {
+  return !!normalizedLinkGroup(widget.config.linkGroup)
+}
+
+function linkedInstrumentText(widget: DashboardWidget): string {
+  const group = normalizedLinkGroup(widget.config.linkGroup)
+  if (!group) return 'Unlinked'
+  return resolvedLinkSymbol(group) || configTargetSymbol(widget) || 'No instrument selected'
+}
+
+function resolvedLinkSymbol(group: string): string {
+  return linksStore.getGroupSymbol(linkScope.value, group) || firstConfiguredGroupSymbol(group)
+}
+
+function firstConfiguredGroupSymbol(group: string): string {
+  for (const widget of widgets.value) {
+    if (!isLinkableWidget(widget)) continue
+    if (normalizedLinkGroup(widget.config.linkGroup) !== group) continue
+    const symbol = configTargetSymbol(widget)
+    if (symbol) return symbol
+  }
+  return ''
+}
+
+function compareLinkGroups(a: string, b: string): number {
+  const ai = linkGroupNumber(a)
+  const bi = linkGroupNumber(b)
+  if (ai != null && bi != null) return ai - bi
+  if (ai != null) return -1
+  if (bi != null) return 1
+  return a.localeCompare(b)
+}
+
+function linkGroupNumber(group: string): number | null {
+  const match = group.match(/^group-(\d+)$/)
+  return match ? Number(match[1]) : null
+}
+
+function nextLinkGroupId() {
+  const used = new Set(activeLinkGroups.value.map(group => group.id))
+  let index = 1
+  while (used.has(`group-${index}`)) index += 1
+  return `group-${index}`
+}
+
+function groupForInstrumentSymbol(symbol: string, excludedGroup = ''): string | null {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) return null
+
+  for (const group of activeLinkGroups.value) {
+    if (group.id === excludedGroup) continue
+    if (group.symbol.trim().toUpperCase() === normalized) return group.id
+  }
+  return null
+}
+
+function canCreateLinkGroupFromCurrent(widget: DashboardWidget | null): boolean {
+  if (!widget || normalizedLinkGroup(widget.config.linkGroup)) return false
+
+  const symbol = configTargetSymbol(widget)
+  return !!symbol && !groupForInstrumentSymbol(symbol)
+}
+
+async function createLinkGroup(widget: DashboardWidget) {
+  const symbol = configTargetSymbol(widget)
+  if (!symbol) return
+
+  await patchConfig(widget, { linkGroup: groupForInstrumentSymbol(symbol) ?? nextLinkGroupId() })
+}
+
+function configTargetSymbol(widget: DashboardWidget, config: Record<string, any> = widget.config): string {
+  const raw = config.symbol ?? config.expression ?? ''
+  return String(raw).trim().toUpperCase()
+}
+
 async function patchConfig(widget: DashboardWidget, patch: Record<string, any>) {
+  const nextConfig = { ...widget.config, ...patch }
+  if (!isLinkableWidget(widget)) {
+    delete nextConfig.linkGroup
+  }
+
+  const nextGroup = isLinkableWidget(widget) ? normalizedLinkGroup(nextConfig.linkGroup) : ''
+  if (nextGroup) {
+    const symbol = patch.symbol
+      ? String(patch.symbol).trim().toUpperCase()
+      : resolvedLinkSymbol(nextGroup) || configTargetSymbol(widget, nextConfig)
+    if (symbol && (!linksStore.getGroupSymbol(linkScope.value, nextGroup) || patch.symbol)) {
+      linksStore.setGroupSymbol(linkScope.value, nextGroup, symbol)
+    }
+  }
   await dashboardStore.updateWidget(widget.id, {
-    config: { ...widget.config, ...patch },
+    config: nextConfig,
   })
 }
 
@@ -785,6 +1125,10 @@ onMounted(reload)
 onUnmounted(() => {
   window.removeEventListener('pointermove', onPointerMove)
 })
+
+function onDashboardClick() {
+  quickLinkWidgetId.value = null
+}
 </script>
 
 <style scoped>
@@ -849,8 +1193,13 @@ onUnmounted(() => {
   border-bottom: 1px solid #171717;
   background: #0a0a0a;
   flex-shrink: 0;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
 }
 .tab-btn {
+  flex-shrink: 0;
   height: 28px;
   min-width: 84px;
   padding: 0 12px;
@@ -985,6 +1334,9 @@ onUnmounted(() => {
 }
 .editing .widget-header { cursor: move; }
 .widget-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   color: #ddd;
   font-size: 11px;
   font-weight: 700;
@@ -1128,6 +1480,11 @@ onUnmounted(() => {
   color: #777;
   font-size: 10px;
 }
+.config-help {
+  color: #666;
+  font-size: 10px;
+  line-height: 1.35;
+}
 .config-field > input,
 .config-field > select {
   width: 100%;
@@ -1138,6 +1495,28 @@ onUnmounted(() => {
   padding: 7px 8px;
   font-family: inherit;
   font-size: 11px;
+}
+.linked-instrument-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 7px;
+  align-items: center;
+  background: #070707;
+  border: 1px solid #242424;
+  border-radius: 4px;
+  padding: 7px 8px;
+  color: #b8b8b8;
+}
+.linked-instrument-summary strong {
+  color: #e0e0e0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.linked-instrument-summary small {
+  grid-column: 2;
+  color: #777;
+  line-height: 1.35;
 }
 .config-check {
   display: flex;
@@ -1160,5 +1539,146 @@ onUnmounted(() => {
   background: #050505;
   border: 1px solid #282828;
   border-radius: 4px;
+}
+.link-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.quick-link-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.quick-link-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  cursor: default;
+}
+.editing .quick-link-dot {
+  cursor: pointer;
+}
+.quick-link-dot.unlinked {
+  background: transparent;
+  border: 1px solid #4a4a4a;
+}
+.quick-link-dot:hover {
+  box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.12);
+}
+.quick-link-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 172px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #101010;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.55);
+  padding: 6px;
+}
+.quick-link-title {
+  color: #666;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 5px 6px;
+}
+.quick-link-item {
+  width: 100%;
+  min-height: 25px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #aaa;
+  font-family: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+  padding: 4px 5px;
+}
+.quick-link-item:hover,
+.quick-link-item.active {
+  background: #1b1b1b;
+  color: #eee;
+}
+.quick-link-item small {
+  color: #777;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-link-none {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid #555;
+}
+.quick-link-new {
+  display: block;
+  color: #8bbfe8;
+  border-top: 1px solid #202020;
+  margin-top: 4px;
+  padding-top: 7px;
+}
+.link-group-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  padding: 4px 0;
+}
+.link-group-btn,
+.link-unlinked-btn,
+.link-new-btn {
+  min-height: 26px;
+  border-radius: 4px;
+  border: 1px solid #282828;
+  background: #151515;
+  color: #aaa;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.link-group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+}
+.link-group-btn small {
+  color: #777;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.link-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.link-unlinked-btn,
+.link-new-btn {
+  padding: 4px 8px;
+}
+.link-group-btn.active,
+.link-unlinked-btn.active {
+  color: #f0f0f0;
+  border-color: #64b5f6;
+  background: #101a22;
+}
+.link-group-btn:hover,
+.link-unlinked-btn:hover,
+.link-new-btn:hover {
+  border-color: #3a3a3a;
+  background: #1b1b1b;
 }
 </style>

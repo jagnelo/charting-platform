@@ -30,9 +30,11 @@ interface CalendarEvent {
   is_estimate: boolean
 }
 
-const props = defineProps<{ config: Record<string, any> }>()
+const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
 
-const symbol = computed(() => String(props.config.symbol ?? 'SPY').trim().toUpperCase())
+const symbol = computed(() =>
+  (props.overrideSymbol?.trim() || String(props.config.symbol ?? 'SPY').trim()).toUpperCase()
+)
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const error = ref('')

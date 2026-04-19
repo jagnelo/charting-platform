@@ -13,45 +13,47 @@
       @keydown.arrow-up.prevent="moveUp"
     />
     <span v-if="loading" class="dash-search-spin">...</span>
-    <div v-if="showDropdown" class="dash-search-results">
-      <button
-        v-if="isExpression"
-        type="button"
-        :class="['dash-search-item', 'expr', { highlighted: highlightIdx === 0 }]"
-        @click="selectExpression"
-        @mouseenter="highlightIdx = 0"
-      >
-        <b>f(x)</b>
-        <span>Create {{ trimmedQuery }}</span>
-        <small>Expression</small>
-      </button>
-      <template v-else>
+    <Teleport to="body">
+      <div v-if="showDropdown" class="dash-search-results" :style="dropdownStyle">
         <button
-          v-for="(result, i) in results"
-          :key="result.symbol"
+          v-if="isExpression"
           type="button"
-          :class="['dash-search-item', { highlighted: i === highlightIdx }]"
-          @click="selectResult(result)"
-          @mouseenter="highlightIdx = i"
+          :class="['dash-search-item', 'expr', { highlighted: highlightIdx === 0 }]"
+          @click="selectExpression"
+          @mouseenter="highlightIdx = 0"
         >
-          <b>{{ result.symbol }}</b>
-          <span>{{ result.name }}</span>
-          <small>{{ result.type || result.exchange }}</small>
+          <b>f(x)</b>
+          <span>Create {{ trimmedQuery }}</span>
+          <small>Expression</small>
         </button>
-        <button
-          v-if="trimmedQuery"
-          type="button"
-          :class="['dash-search-item', 'expr', { highlighted: highlightIdx === results.length }]"
-          @click="selectRawSymbol"
-          @mouseenter="highlightIdx = results.length"
-        >
-          <b>{{ trimmedQuery.toUpperCase() }}</b>
-          <span>Try this symbol</span>
-          <small>Yahoo</small>
-        </button>
-      </template>
-      <div v-if="error" class="dash-search-error">{{ error }}</div>
-    </div>
+        <template v-else>
+          <button
+            v-for="(result, i) in results"
+            :key="result.symbol"
+            type="button"
+            :class="['dash-search-item', { highlighted: i === highlightIdx }]"
+            @click="selectResult(result)"
+            @mouseenter="highlightIdx = i"
+          >
+            <b>{{ result.symbol }}</b>
+            <span>{{ result.name }}</span>
+            <small>{{ result.type || result.exchange }}</small>
+          </button>
+          <button
+            v-if="trimmedQuery"
+            type="button"
+            :class="['dash-search-item', 'expr', { highlighted: highlightIdx === results.length }]"
+            @click="selectRawSymbol"
+            @mouseenter="highlightIdx = results.length"
+          >
+            <b>{{ trimmedQuery.toUpperCase() }}</b>
+            <span>Try this symbol</span>
+            <small>Yahoo</small>
+          </button>
+        </template>
+        <div v-if="error" class="dash-search-error">{{ error }}</div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -71,7 +73,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
 }>(), {
   modelValue: '',
-  placeholder: 'Symbol or expression...',
+  placeholder: 'Symbol or =expression...',
 })
 
 const emit = defineEmits<{
@@ -90,7 +92,22 @@ const inputRef = ref<HTMLInputElement | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let searchSeq = 0
 
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const dropdownPos = ref({ top: 0, left: 0, width: 0 })
+const dropdownStyle = computed(() => ({
+  position: 'fixed' as const,
+  top: `${dropdownPos.value.top}px`,
+  left: `${dropdownPos.value.left}px`,
+  width: `${dropdownPos.value.width}px`,
+  zIndex: 9999,
+}))
+
+function updateDropdownPos() {
+  if (!inputRef.value) return
+  const rect = inputRef.value.getBoundingClientRect()
+  dropdownPos.value = { top: rect.bottom + 4, left: rect.left, width: rect.width }
+}
+
+const EXPR_RE = /^\s*=/
 const trimmedQuery = computed(() => query.value.trim())
 const isExpression = computed(() => EXPR_RE.test(trimmedQuery.value))
 const showDropdown = computed(() =>
@@ -99,6 +116,10 @@ const showDropdown = computed(() =>
 
 watch(() => props.modelValue, value => {
   if (value !== query.value) query.value = value ?? ''
+})
+
+watch(showDropdown, (val) => {
+  if (val) updateDropdownPos()
 })
 
 function open() {
@@ -241,11 +262,6 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
   font-size: 10px;
 }
 .dash-search-results {
-  position: absolute;
-  z-index: 500;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
   max-height: 230px;
   overflow-y: auto;
   border: 1px solid #333;

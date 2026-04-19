@@ -30,6 +30,7 @@ import type { ChartBarType, ChartDrawing, PriceAlert, Timeframe } from '@/types'
 const props = defineProps<{
   widgetId: number
   config: Record<string, any>
+  overrideSymbol?: string
 }>()
 
 const panelId = `dashboard-${props.widgetId}`
@@ -37,7 +38,9 @@ provide('panelId', panelId)
 
 const store = usePanelStore(panelId)
 
-const symbol = computed(() => String(props.config.symbol ?? '').trim().toUpperCase())
+const symbol = computed(() =>
+  (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
+)
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
 const chartType = computed<ChartBarType>(() => props.config.chartType ?? 'candles')
 const showIndicators = computed(() => props.config.showIndicators !== false)
@@ -45,7 +48,7 @@ const showDrawings = computed(() => props.config.showDrawings !== false)
 const showAlerts = computed(() => props.config.showAlerts !== false)
 const drawings = ref<ChartDrawing[]>([])
 const priceAlerts = ref<PriceAlert[]>([])
-const EXPR_RE = /^[A-Z0-9.^]+(\s*[+\-*/]\s*[A-Z0-9.^]+)+$/i
+const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 
 async function refresh() {
