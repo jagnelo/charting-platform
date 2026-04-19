@@ -56,6 +56,10 @@ class Instrument(Base, TimestampMixin):
     drawings: Mapped[list["ChartDrawing"]] = relationship(back_populates="instrument")
     price_alerts: Mapped[list["PriceAlert"]] = relationship(back_populates="instrument")
     indicator_alerts: Mapped[list["IndicatorAlert"]] = relationship(back_populates="instrument")
+    events: Mapped[list["InstrumentEvent"]] = relationship(
+        back_populates="instrument",
+        cascade="all, delete-orphan",
+    )
 
     equity_detail: Mapped[Optional["EquityDetail"]] = relationship(
         back_populates="instrument", uselist=False, foreign_keys="[EquityDetail.instrument_id]"

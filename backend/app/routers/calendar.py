@@ -1,195 +1,121 @@
 """
-Economic calendar endpoint.
+Persisted instrument economic events.
 
-Extracts event data from yfinance for a given symbol:
-  - Earnings dates (historical + estimates)
-  - Dividends (historical)
-  - Splits
-  - Calendar events (next earnings, ex-dividend date, etc.)
-
-Returns a unified list of CalendarEvent objects sorted by date.
+The read path is database-first. External data is fetched only when an
+instrument has no stored event data yet, or when an explicit refresh is
+requested by an operator/user action.
 """
 
 from __future__ import annotations
 
-import asyncio
-import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
-import yfinance as yf
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.database import get_db
+from app.models.instrument import Instrument
+from app.models.instrument_event import InstrumentEvent
 from app.models.user import User
-
-logger = logging.getLogger(__name__)
+from app.services.instrument_events import ensure_instrument_events_loaded, query_instrument_events
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
 
 class CalendarEvent(BaseModel):
-    date: str          # ISO date string (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)
-    event_type: str    # 'earnings' | 'dividend' | 'split' | 'ex_dividend' | 'earnings_estimate'
+    id: int
+    date: str
+    event_time: datetime
+    event_type: str
     symbol: str
     title: str
-    value: float | None = None    # EPS estimate, dividend amount, split ratio, etc.
-    actual: float | None = None   # Actual EPS (if reported)
+    value: float | None = None
+    actual: float | None = None
+    eps_estimate: float | None = None
+    eps_actual: float | None = None
+    eps_surprise: float | None = None
+    eps_surprise_pct: float | None = None
+    dividend_amount: float | None = None
+    split_ratio: float | None = None
     currency: str | None = None
+    time_hint: str
+    source: str
     is_estimate: bool = False
 
 
-def _safe_float(val) -> float | None:
-    try:
-        f = float(val)
-        return None if (f != f) else f  # NaN check
-    except (TypeError, ValueError):
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
         return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
-def _to_iso(dt) -> str | None:
-    """Convert various date types to ISO string."""
-    if dt is None:
-        return None
-    if hasattr(dt, "isoformat"):
-        s = dt.isoformat()
-        # Ensure timezone suffix for datetime objects
-        if isinstance(dt, datetime) and dt.tzinfo is None:
-            s += "Z"
-        return s
-    return str(dt)
+def _num(value) -> float | None:
+    return float(value) if value is not None else None
 
 
-def _fetch_calendar_sync(symbol: str) -> list[dict]:
-    """Synchronous yfinance fetch — runs in a thread pool."""
-    ticker = yf.Ticker(symbol)
-    events: list[dict] = []
+def _event_out(event: InstrumentEvent, symbol: str) -> CalendarEvent:
+    event_type = event.event_type.value
+    return CalendarEvent(
+        id=event.id,
+        date=event.event_time.date().isoformat(),
+        event_time=event.event_time,
+        event_type=event_type,
+        symbol=symbol,
+        title=event.title,
+        value=_num(event.value),
+        actual=_num(event.actual),
+        eps_estimate=_num(event.eps_estimate),
+        eps_actual=_num(event.eps_actual),
+        eps_surprise=_num(event.eps_surprise),
+        eps_surprise_pct=_num(event.eps_surprise_pct),
+        dividend_amount=_num(event.dividend_amount),
+        split_ratio=_num(event.split_ratio),
+        currency=event.currency,
+        time_hint=event.time_hint.value,
+        source=event.source,
+        is_estimate=event_type.endswith("_estimate"),
+    )
 
-    # ── Next calendar events (earnings window, ex-div, etc.) ─────────────────
-    try:
-        cal = ticker.calendar
-        if isinstance(cal, dict):
-            # yfinance ≥ 0.2 returns a dict
-            earnings_date = cal.get("Earnings Date")
-            if earnings_date:
-                dates = earnings_date if isinstance(earnings_date, list) else [earnings_date]
-                for d in dates:
-                    iso = _to_iso(d)
-                    if iso:
-                        events.append({
-                            "date": iso[:10],
-                            "event_type": "earnings_estimate",
-                            "symbol": symbol,
-                            "title": f"{symbol} Earnings (estimated)",
-                            "is_estimate": True,
-                            "value": _safe_float(cal.get("Earnings Average")),
-                            "actual": None,
-                        })
 
-            ex_div = cal.get("Ex-Dividend Date")
-            if ex_div:
-                iso = _to_iso(ex_div)
-                if iso:
-                    events.append({
-                        "date": iso[:10],
-                        "event_type": "ex_dividend",
-                        "symbol": symbol,
-                        "title": f"{symbol} Ex-Dividend",
-                        "is_estimate": False,
-                        "value": _safe_float(cal.get("Dividend Amount")),
-                        "actual": None,
-                    })
-    except Exception as e:
-        logger.debug("calendar fetch failed for %s: %s", symbol, e)
+async def _load_instrument(db: AsyncSession, symbol: str) -> Instrument:
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    ).scalar_one_or_none()
+    if instrument is None:
+        from app.routers.instruments import _create_from_yfinance
 
-    # ── Historical earnings ───────────────────────────────────────────────────
-    try:
-        earnings = ticker.earnings_dates
-        if earnings is not None and not earnings.empty:
-            for idx, row in earnings.iterrows():
-                iso = _to_iso(idx)
-                if not iso:
-                    continue
-                eps_estimate = _safe_float(row.get("EPS Estimate"))
-                eps_actual = _safe_float(row.get("Reported EPS"))
-                is_estimate = eps_actual is None
-                events.append({
-                    "date": iso[:10],
-                    "event_type": "earnings_estimate" if is_estimate else "earnings",
-                    "symbol": symbol,
-                    "title": f"{symbol} Earnings",
-                    "is_estimate": is_estimate,
-                    "value": eps_estimate,
-                    "actual": eps_actual,
-                })
-    except Exception as e:
-        logger.debug("earnings_dates fetch failed for %s: %s", symbol, e)
-
-    # ── Dividends ─────────────────────────────────────────────────────────────
-    try:
-        divs = ticker.dividends
-        if divs is not None and not divs.empty:
-            for idx, amount in divs.items():
-                iso = _to_iso(idx)
-                if not iso:
-                    continue
-                events.append({
-                    "date": iso[:10],
-                    "event_type": "dividend",
-                    "symbol": symbol,
-                    "title": f"{symbol} Dividend",
-                    "is_estimate": False,
-                    "value": _safe_float(amount),
-                    "actual": _safe_float(amount),
-                })
-    except Exception as e:
-        logger.debug("dividends fetch failed for %s: %s", symbol, e)
-
-    # ── Splits ────────────────────────────────────────────────────────────────
-    try:
-        splits = ticker.splits
-        if splits is not None and not splits.empty:
-            for idx, ratio in splits.items():
-                iso = _to_iso(idx)
-                if not iso:
-                    continue
-                events.append({
-                    "date": iso[:10],
-                    "event_type": "split",
-                    "symbol": symbol,
-                    "title": f"{symbol} Stock Split ({ratio:.0f}:1)",
-                    "is_estimate": False,
-                    "value": _safe_float(ratio),
-                    "actual": _safe_float(ratio),
-                })
-    except Exception as e:
-        logger.debug("splits fetch failed for %s: %s", symbol, e)
-
-    # Deduplicate by (date, event_type) — keep last (most specific) entry
-    seen: dict[tuple, dict] = {}
-    for ev in events:
-        key = (ev["date"], ev["event_type"])
-        seen[key] = ev
-
-    # Sort by date descending (most recent first)
-    result = sorted(seen.values(), key=lambda e: e["date"], reverse=True)
-    return result
+        instrument = await _create_from_yfinance(symbol.upper(), db)
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found")
+    return instrument
 
 
 @router.get("/instruments/{symbol}/calendar", response_model=list[CalendarEvent])
 async def get_instrument_calendar(
     symbol: str,
+    start: datetime | None = Query(None),
+    end: datetime | None = Query(None),
+    refresh: bool = Query(False, description="Explicitly refresh source data before returning stored events"),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Return economic calendar events for a symbol sourced from Yahoo Finance.
-    Includes: earnings (historical + estimates), dividends, splits, ex-dividend dates.
+    Return stored economic/corporate events for a symbol.
+
+    First access for an instrument bootstraps from the configured data source and
+    persists the result. Later reads are served from the DB unless refresh=true.
     """
-    try:
-        raw = await asyncio.get_event_loop().run_in_executor(
-            None, _fetch_calendar_sync, symbol.upper()
-        )
-        return [CalendarEvent(**ev) for ev in raw]
-    except Exception as e:
-        logger.error("Calendar fetch error for %s: %s", symbol, e)
-        raise HTTPException(500, f"Failed to fetch calendar for {symbol}: {e}")
+    instrument = await _load_instrument(db, symbol)
+    await ensure_instrument_events_loaded(db, instrument, refresh=refresh)
+    events = await query_instrument_events(
+        db,
+        instrument,
+        start=_as_utc(start),
+        end=_as_utc(end),
+    )
+    return [_event_out(event, instrument.symbol) for event in events]

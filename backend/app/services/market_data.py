@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
-from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +440,48 @@ async def fetch_ohlcv_latest(
             except Exception as e:
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
-    elif _needs_fetch(rows, timeframe):
+    elif len(rows) < limit:
+        # DB has a fresh but incomplete latest page. This can happen if an
+        # earlier background fetch only inserted a small recent slice; without
+        # this repair the frontend assumes those few bars are the full history.
+        oldest_ts = min(b.ts for b in rows)
+        if oldest_ts.tzinfo is None:
+            oldest_ts = oldest_ts.replace(tzinfo=UTC)
+        repair_start = _latest_window_start(timeframe, limit)
+        repair_end = oldest_ts - timedelta(seconds=1)
+        if repair_end > repair_start:
+            datasource = await _get_or_create_datasource(db)
+            repair_bars = _fetch_yfinance(
+                instrument,
+                timeframe,
+                repair_start,
+                repair_end,
+                adjusted,
+                datasource,
+            )
+            if repair_bars:
+                try:
+                    await db.execute(
+                        pg_insert(OHLCVBar).on_conflict_do_update(
+                            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                            set_={
+                                "open": pg_insert(OHLCVBar).excluded.open,
+                                "high": pg_insert(OHLCVBar).excluded.high,
+                                "low": pg_insert(OHLCVBar).excluded.low,
+                                "close": pg_insert(OHLCVBar).excluded.close,
+                                "volume": pg_insert(OHLCVBar).excluded.volume,
+                                "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                            },
+                        ),
+                        [_bar_as_dict(b) for b in repair_bars],
+                    )
+                    await db.commit()
+                    rows = list((await db.execute(stmt)).scalars().all())
+                    rows.sort(key=lambda b: b.ts)
+                except Exception as e:
+                    await db.rollback()
+                    logger.error(f"Failed to repair incomplete latest bars: {e}")
+    if rows and _needs_fetch(rows, timeframe):
         # DB has data but it's stale — fetch from the latest DB bar onwards
         latest_ts = max(b.ts for b in rows)
         if latest_ts.tzinfo is None:
@@ -560,15 +601,20 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
 
 def _fetch_yfinance_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
     """Fetch approximately `limit` recent bars from yfinance when DB is cold."""
-    # Estimate the time window needed to cover `limit` bars
-    from app.models.ohlcv import TIMEFRAME_SECONDS
-
-    tf_secs = TIMEFRAME_SECONDS.get(timeframe, 86400)
-    # Request 2× to account for weekends/holidays
-    days_needed = max(7, int(tf_secs * limit * 2 / 86400))
-    start = datetime.now(UTC) - timedelta(days=days_needed)
+    start = _latest_window_start(timeframe, limit)
     bars = _fetch_yfinance(instrument, timeframe, start, datetime.now(UTC), adjusted, datasource)
     return bars[-limit:] if len(bars) > limit else bars
+
+
+def _latest_window_start(timeframe: Timeframe, limit: int) -> datetime:
+    """Return a conservative start date for fetching approximately `limit` recent bars."""
+    tf_secs = TIMEFRAME_SECONDS.get(timeframe, 86400)
+    # Request 2× to account for weekends/holidays and sparse trading calendars.
+    days_needed = max(7, int(tf_secs * limit * 2 / 86400))
+    max_lookback = TF_MAX_LOOKBACK_DAYS.get(timeframe)
+    if max_lookback is not None:
+        days_needed = min(days_needed, max_lookback)
+    return datetime.now(UTC) - timedelta(days=days_needed)
 
 
 def get_current_price(ticker: str) -> float | None:

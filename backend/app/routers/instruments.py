@@ -1,18 +1,20 @@
+import math
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
-from app.database import get_db
+from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
-from app.models.ohlcv import OHLCVBar
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
@@ -25,7 +27,8 @@ from app.services.expression_engine import (
     is_expression,
     normalize_expression,
 )
-from app.services.market_data import get_instrument_info, search_ticker
+from app.services.instrument_events import ensure_instrument_events_loaded
+from app.services.market_data import fetch_ohlcv_latest, get_instrument_info, search_ticker
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -234,6 +237,43 @@ async def get_filter_options(
 
 class HeatmapRequest(BaseModel):
     instrument_ids: list[int]
+    timeframe: Timeframe = Timeframe.D1
+    sparkline_bars: int = Field(20, ge=2, le=120)
+    include_sparklines: bool = True
+
+
+class SeasonalityRecord(BaseModel):
+    year: int
+    month: int
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float | None = None
+    performance: float
+    high_low_range: float
+    volatility: float
+    volume_change: float | None = None
+
+
+class SeasonalityMonth(BaseModel):
+    month: int
+    label: str
+    sample_count: int
+    avg_performance: float | None
+    median_performance: float | None
+    win_rate: float | None
+    best: float | None
+    worst: float | None
+    avg_high_low_range: float | None
+    avg_volatility: float | None
+    avg_volume_change: float | None
+    records: list[SeasonalityRecord]
+
+
+class SeasonalityResponse(BaseModel):
+    symbol: str
+    months: list[SeasonalityMonth]
 
 
 class ResolveExpressionBody(BaseModel):
@@ -340,8 +380,8 @@ async def get_heatmap_data(
 ):
     """
     Batch-compute heatmap metrics for a list of instrument IDs.
-    Returns one row per instrument with performance, RSI, relative-volume,
-    distance to 52w high/low, and a 20-point sparkline.
+    Returns one row per instrument with daily performance, RSI, relative-volume,
+    distance to 52w high/low, and a timeframe-aware sparkline.
     """
     from collections import defaultdict
 
@@ -361,13 +401,13 @@ async def get_heatmap_data(
     )
     instruments: dict[int, Instrument] = {i.id: i for i in instr_result.scalars().all()}
 
-    # ── 2. Batch-fetch D1 bars (last ~400 calendar days ≈ 280 trading days) ─
+    # ── 2. Batch-fetch D1 bars for calendar-style metrics ──────────────────
     cutoff = datetime.now(UTC) - timedelta(days=400)
     bars_result = await db.execute(
         select(OHLCVBar)
         .where(
             OHLCVBar.instrument_id.in_(instrument_ids),
-            OHLCVBar.timeframe == "D1",
+            OHLCVBar.timeframe == Timeframe.D1,
             OHLCVBar.ts >= cutoff,
             OHLCVBar.is_adjusted.is_(True),
         )
@@ -376,6 +416,27 @@ async def get_heatmap_data(
     bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     for bar in bars_result.scalars().all():
         bars_by_id[bar.instrument_id].append(bar)
+
+    # ── 2b. Fetch selected timeframe bars through the normal OHLCV cache path.
+    # This keeps heatmap sparklines DB-first but still populates missing W1/MN
+    # bars instead of silently reusing daily data.
+    sparkline_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
+    if body.include_sparklines:
+        for instr_id in instrument_ids:
+            inst = instruments.get(instr_id)
+            if inst is None:
+                continue
+            try:
+                sparkline_bars_by_id[instr_id] = await fetch_ohlcv_latest(
+                    db,
+                    inst,
+                    body.timeframe,
+                    body.sparkline_bars,
+                    True,
+                )
+            except Exception:
+                if body.timeframe == Timeframe.D1:
+                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[-body.sparkline_bars :]
 
     # ── 3. Compute metrics per instrument ─────────────────────────────────────
     today_utc = datetime.now(UTC).date()
@@ -394,6 +455,13 @@ async def get_heatmap_data(
             if bar_date < cutoff_date:
                 return float(bar.close)
         return None
+
+    def _sparkline_for(instr_id: int) -> list[float]:
+        """Return raw selected-timeframe closes; the client scales per tile."""
+        spark_bars = sparkline_bars_by_id.get(instr_id, [])
+        spark_closes = [float(b.close) for b in spark_bars]
+        spark_raw = spark_closes[-body.sparkline_bars :]
+        return [round(v, 6) for v in spark_raw]
 
     rows = []
     for instr_id in instrument_ids:
@@ -426,7 +494,7 @@ async def get_heatmap_data(
                 "perf_mtd": None, "perf_ytd": None, "perf_1y": None,
                 "rsi_14": None, "rel_volume": None,
                 "dist_52w_high": None, "dist_52w_low": None,
-                "sparkline": [],
+                "sparkline": _sparkline_for(instr_id),
             })
             continue
 
@@ -471,16 +539,6 @@ async def get_heatmap_data(
         if week52_low and week52_low > 0:
             dist_52w_low = round((current_price - week52_low) / week52_low, 4)
 
-        # Sparkline — last 20 closes, normalised to [0,1] within the range
-        spark_raw = closes[-20:] if n >= 20 else closes
-        spark_min = min(spark_raw)
-        spark_range = max(spark_raw) - spark_min
-        sparkline = (
-            [round((v - spark_min) / spark_range, 4) for v in spark_raw]
-            if spark_range > 0
-            else [0.5] * len(spark_raw)
-        )
-
         rows.append({
             "instrument_id": instr_id,
             "symbol": inst.symbol,
@@ -500,10 +558,106 @@ async def get_heatmap_data(
             "rel_volume": rel_volume,
             "dist_52w_high": dist_52w_high,
             "dist_52w_low": dist_52w_low,
-            "sparkline": sparkline,
+            "sparkline": _sparkline_for(instr_id),
         })
 
     return rows
+
+
+MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def _median(values: list[float]) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def _avg(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
+@router.get("/{symbol:path}/seasonality/monthly", response_model=SeasonalityResponse)
+async def get_monthly_seasonality(
+    symbol: str,
+    limit: int = Query(480, ge=24, le=1200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    instrument = result.scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found")
+    await db.refresh(instrument, ["listings"])
+
+    bars = await fetch_ohlcv_latest(db, instrument, Timeframe.MN, limit, True)
+    records_by_month: dict[int, list[SeasonalityRecord]] = {m: [] for m in range(1, 13)}
+
+    previous_volume: float | None = None
+    for bar in bars:
+        open_ = float(bar.open)
+        high = float(bar.high)
+        low = float(bar.low)
+        close = float(bar.close)
+        volume = float(bar.volume) if bar.volume is not None else None
+        if open_ <= 0:
+            previous_volume = volume
+            continue
+        performance = (close - open_) / open_
+        high_low_range = (high - low) / open_ if open_ else 0.0
+        volatility = abs(math.log(close / open_)) if close > 0 else abs(performance)
+        volume_change = (
+            (volume - previous_volume) / previous_volume
+            if volume is not None and previous_volume not in (None, 0)
+            else None
+        )
+        month = bar.ts.month
+        records_by_month[month].append(
+            SeasonalityRecord(
+                year=bar.ts.year,
+                month=month,
+                open=open_,
+                high=high,
+                low=low,
+                close=close,
+                volume=volume,
+                performance=performance,
+                high_low_range=high_low_range,
+                volatility=volatility,
+                volume_change=volume_change,
+            )
+        )
+        previous_volume = volume
+
+    months: list[SeasonalityMonth] = []
+    for month in range(1, 13):
+        records = sorted(records_by_month[month], key=lambda r: r.year, reverse=True)
+        performances = [r.performance for r in records]
+        ranges = [r.high_low_range for r in records]
+        vols = [r.volatility for r in records]
+        volume_changes = [r.volume_change for r in records if r.volume_change is not None]
+        months.append(
+            SeasonalityMonth(
+                month=month,
+                label=MONTH_LABELS[month - 1],
+                sample_count=len(records),
+                avg_performance=_avg(performances),
+                median_performance=_median(performances),
+                win_rate=_avg([1.0 if v > 0 else 0.0 for v in performances]),
+                best=max(performances) if performances else None,
+                worst=min(performances) if performances else None,
+                avg_high_low_range=_avg(ranges),
+                avg_volatility=_avg(vols),
+                avg_volume_change=_avg(volume_changes),
+                records=records,
+            )
+        )
+
+    return SeasonalityResponse(symbol=instrument.symbol, months=months)
 
 
 @router.get("/{instrument_id}/membership", response_model=InstrumentMembership)
@@ -642,12 +796,15 @@ async def get_instrument(
     )
     instrument = result.scalar_one_or_none()
 
+    created = False
     if instrument is None:
         instrument = await _create_from_yfinance(symbol.upper(), db)
         if instrument is None:
             raise HTTPException(404, f"Instrument '{symbol}' not found")
+        created = True
         # Auto-trigger bulk historical fetch as background task
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
+        background_tasks.add_task(_sync_instrument_events, instrument.id)
 
     if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
         instrument = await _refresh_instrument_metadata(instrument, db)
@@ -661,7 +818,19 @@ async def get_instrument(
     ):
         instrument = await _ensure_52w_stats(instrument, db)
 
+    if not created and not instrument.is_synthetic:
+        background_tasks.add_task(_sync_instrument_events, instrument.id)
+
     return instrument
+
+
+async def _sync_instrument_events(instrument_id: int) -> None:
+    async with AsyncSessionLocal() as session:
+        instrument = await session.get(Instrument, instrument_id)
+        if instrument is None:
+            return
+        await ensure_instrument_events_loaded(session, instrument)
+        await session.commit()
 
 
 def _needs_metadata_refresh(instrument: Instrument) -> bool:
@@ -778,6 +947,7 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
     import logging
 
     log = logging.getLogger(__name__)
+    symbol = instrument.__dict__.get("symbol", "?")
     try:
         cutoff = datetime.now(UTC) - timedelta(days=366)
         row = (
@@ -797,27 +967,27 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         if row is None or row.week52_high is None:
             return instrument
 
-        if instrument.stats is None:
-            db.add(
-                InstrumentStats(
-                    instrument_id=instrument.id,
-                    week52_high=float(row.week52_high),
-                    week52_low=float(row.week52_low),
-                )
-            )
-        else:
-            instrument.stats.week52_high = float(row.week52_high)
-            instrument.stats.week52_low = float(row.week52_low)
+        week52_high = float(row.week52_high)
+        week52_low = float(row.week52_low)
 
-        await db.commit()
-        log.info(
-            "Computed 52w stats for %s: high=%.4f low=%.4f",
-            instrument.symbol,
-            row.week52_high,
-            row.week52_low,
+        stmt = (
+            pg_insert(InstrumentStats)
+            .values(
+                instrument_id=instrument.id,
+                week52_high=week52_high,
+                week52_low=week52_low,
+            )
+            .on_conflict_do_update(
+                index_elements=["instrument_id"],
+                set_=dict(week52_high=week52_high, week52_low=week52_low),
+            )
         )
+        await db.execute(stmt)
+        await db.commit()
+        log.info("Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low)
     except Exception as exc:
-        log.warning("Failed to compute 52w stats for %s: %s", instrument.symbol, exc)
+        await db.rollback()
+        log.warning("Failed to compute 52w stats for %s: %s", symbol, exc)
         return instrument
 
     return await _reload_instrument_full(instrument.id, db)

@@ -61,15 +61,20 @@ def normalize_expression(raw: str) -> str:
 
     Raises ExpressionError if the expression is invalid.
     """
+    raw = raw.strip()
+    if not is_expression(raw):
+        raise ExpressionError("Synthetic expressions must start with '='")
+    body = raw[1:].strip()
+
     # Parse first to validate
-    tickers = extract_tickers(raw)
+    tickers = extract_tickers(body)
     # Upper-case all tickers in the raw string (case-insensitive replacement)
-    result = raw.strip()
+    result = body
     for t in tickers:
         result = re.sub(r"\b" + re.escape(t) + r"\b", t.upper(), result, flags=re.IGNORECASE)
     # Remove all spaces for a compact canonical form
     result = re.sub(r"\s+", "", result)
-    return result
+    return f"={result}"
 
 
 def extract_tickers(expression: str) -> list[str]:
@@ -91,8 +96,11 @@ def extract_tickers(expression: str) -> list[str]:
 
 def _parse(expression: str) -> ast.Expression:
     """Parse the expression and validate that it only uses safe AST nodes."""
+    expression = expression.strip()
+    if expression.startswith("="):
+        expression = expression[1:].strip()
     try:
-        tree = ast.parse(expression.strip(), mode="eval")
+        tree = ast.parse(expression, mode="eval")
     except SyntaxError as e:
         raise ExpressionError(f"Syntax error in expression '{expression}': {e}") from e
 
@@ -171,14 +179,7 @@ def compute_synthetic_ohlcv(
 
 def is_expression(text: str) -> bool:
     """
-    Heuristic check: does this string look like an arithmetic expression rather
-    than a plain ticker symbol?
-
-    Returns True if the string contains an arithmetic operator (+, -, *, /)
-    surrounded by ticker-like tokens.
+    Explicit check: user-authored synthetic expressions must start with '='.
+    Provider symbols may contain arithmetic-looking characters such as '-'.
     """
-    # A plain symbol is only letters, digits, dots, hyphens, underscores, equals
-    if re.fullmatch(r"[A-Za-z0-9.\-_=^]+", text.strip()):
-        return False
-    # Contains an arithmetic operator between identifier-like tokens
-    return bool(re.search(r"[A-Za-z0-9_]\s*[+\-*/]\s*[A-Za-z0-9_(]", text))
+    return text.strip().startswith("=")
