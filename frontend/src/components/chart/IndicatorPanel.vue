@@ -172,7 +172,10 @@
               >
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
                 <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
-                <span class="row-name">{{ drawingLabel(d) }}</span>
+                <span class="row-name">
+                  {{ drawingLabel(d) }}
+                  <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
+                </span>
                 <div class="row-menu-wrap">
                   <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More">⋯</button>
                   <Teleport to="body">
@@ -1073,6 +1076,19 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.draw-pane-tag {
+  margin-left: 5px;
+  font-size: 9px;
+  font-family: monospace;
+  color: #555;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  padding: 0 3px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
 }
 
 .row-btn {

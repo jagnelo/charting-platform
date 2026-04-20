@@ -93,6 +93,7 @@ export interface ChartDrawing {
   instrument_id: number
   timeframe?: Timeframe
   pin_to_all: boolean
+  indicator_key?: string | null
   drawing_type: DrawingType
   label?: string
   notes?: string

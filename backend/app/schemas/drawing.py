@@ -9,6 +9,7 @@ class ChartDrawingCreate(BaseModel):
     instrument_id: int
     timeframe: Timeframe | None = None
     pin_to_all: bool = False
+    indicator_key: str | None = None
     drawing_type: str
     label: str | None = None
     notes: str | None = None
@@ -21,6 +22,7 @@ class ChartDrawingCreate(BaseModel):
 class ChartDrawingUpdate(BaseModel):
     timeframe: Timeframe | None = None
     pin_to_all: bool | None = None
+    indicator_key: str | None = None
     label: str | None = None
     notes: str | None = None
     data: dict | None = None
@@ -35,6 +37,7 @@ class ChartDrawingOut(BaseModel):
     instrument_id: int
     timeframe: Timeframe | None = None
     pin_to_all: bool
+    indicator_key: str | None = None
     drawing_type: str
     label: str | None = None
     notes: str | None = None

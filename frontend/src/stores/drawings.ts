@@ -13,11 +13,9 @@ export const useDrawingsStore = defineStore('drawings', () => {
   const instrumentId = ref<number | null>(null)
   const currentTimeframe = ref<Timeframe | null>(null)
 
-  // Convert server drawings to renderer-friendly format.
-  // Reversed so that index 0 (top of UI list) is rendered last → highest z-index.
-  const renderableDrawings = computed<AnyDrawing[]>(() =>
-    [...drawings.value].reverse()
-      .filter(d => d.is_visible)
+  function renderableDrawingsFor(indicatorKey: string | null): AnyDrawing[] {
+    return [...drawings.value].reverse()
+      .filter(d => d.is_visible && (d.indicator_key ?? null) === indicatorKey)
       .map(d => ({
         id: d.id,
         type: d.drawing_type as DrawingType,
@@ -29,7 +27,11 @@ export const useDrawingsStore = defineStore('drawings', () => {
         isVisible: d.is_visible,
         ...(d.data as any),
       }))
-  )
+  }
+
+  // Main-pane drawings only (indicator_key === null).
+  // Reversed so that index 0 (top of UI list) is rendered last → highest z-index.
+  const renderableDrawings = computed<AnyDrawing[]>(() => renderableDrawingsFor(null))
 
   async function loadDrawings(instId: number, tf: Timeframe) {
     // Skip fetch if we already have this instrument's drawings loaded
@@ -48,7 +50,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
     }
   }
 
-  async function saveDrawing(drawing: AnyDrawing, pinToAll = false): Promise<ChartDrawing | null> {
+  async function saveDrawing(drawing: AnyDrawing, pinToAll = false, indicatorKey: string | null = null): Promise<ChartDrawing | null> {
     if (!instrumentId.value) return null
     const { points, style, type, label, isSelected, isLocked, ...rest } = drawing
     try {
@@ -56,6 +58,7 @@ export const useDrawingsStore = defineStore('drawings', () => {
         instrument_id: instrumentId.value,
         timeframe: pinToAll ? null : currentTimeframe.value,
         pin_to_all: pinToAll,
+        indicator_key: indicatorKey,
         drawing_type: type,
         label: label,
         data: { points, ...rest },
@@ -152,6 +155,6 @@ export const useDrawingsStore = defineStore('drawings', () => {
     drawingProjections,
     loadDrawings, saveDrawing, updateDrawing, localUpdateDrawing, deleteDrawing,
     selectDrawing, requestEditDrawing, setActiveTool, setAvwapDrop, reorderDrawings,
-    getDrawingProjection, toggleDrawingProjection,
+    getDrawingProjection, toggleDrawingProjection, renderableDrawingsFor,
   }
 })

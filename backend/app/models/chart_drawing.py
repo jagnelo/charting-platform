@@ -28,6 +28,8 @@ class ChartDrawing(Base, TimestampMixin):
     )
     pin_to_all: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    indicator_key: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+
     drawing_type: Mapped[str] = mapped_column(String(50), nullable=False)
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

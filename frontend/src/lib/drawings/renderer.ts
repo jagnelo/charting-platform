@@ -62,7 +62,7 @@ export class DrawingRenderer {
     const s = drawing.style
     this.ctx.strokeStyle = s.color ?? '#ffffff'
     this.ctx.fillStyle = (s.color ?? '#ffffff') + '33'  // 20% alpha fill
-    this.ctx.lineWidth = s.lineWidth ?? 1.5
+    this.ctx.lineWidth = Math.max(0.5, s.lineWidth ?? 1.5)
     this.ctx.globalAlpha = s.opacity ?? 1
     if (s.dashPattern?.length) {
       this.ctx.setLineDash(s.dashPattern)
@@ -123,13 +123,18 @@ export class DrawingRenderer {
     const [x2, y2] = this.toPixel(d.points[1].time, d.points[1].price)
 
     if (d.extendRight) {
-      // Extend to right edge of canvas
-      const slope = (y2 - y1) / (x2 - x1)
+      // Extend to right edge of canvas; guard against vertical lines (undefined slope)
+      const dx = x2 - x1
       const xEnd = this.canvas.width
-      const yEnd = y1 + slope * (xEnd - x1)
       this.ctx.beginPath()
       this.ctx.moveTo(x1, y1)
-      this.ctx.lineTo(xEnd, yEnd)
+      if (Math.abs(dx) < 0.5) {
+        // Vertical ray — draw straight down/up to canvas edge
+        this.ctx.lineTo(x1, dx >= 0 ? this.canvas.height : 0)
+      } else {
+        const slope = (y2 - y1) / dx
+        this.ctx.lineTo(xEnd, y1 + slope * (xEnd - x1))
+      }
       this.ctx.stroke()
     } else {
       this.ctx.beginPath()
