@@ -14,6 +14,7 @@ const props = defineProps<{
   min?: number
   max?: number
   value: number
+  inverted?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,9 +30,8 @@ function onPointerDown(e: PointerEvent) {
   const startVal = props.value
 
   const onMove = (ev: PointerEvent) => {
-    const delta = props.direction === 'horizontal'
-      ? ev.clientX - startPos
-      : ev.clientY - startPos
+    const raw = props.direction === 'horizontal' ? ev.clientX - startPos : ev.clientY - startPos
+    const delta = props.inverted ? -raw : raw
     let next = startVal + delta
     if (props.min != null) next = Math.max(props.min, next)
     if (props.max != null) next = Math.min(props.max, next)

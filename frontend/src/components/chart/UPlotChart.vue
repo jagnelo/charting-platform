@@ -77,6 +77,7 @@
     <template v-for="pane in subPanes" :key="pane.key">
       <ResizeHandle
         direction="vertical"
+        inverted
         :value="subPaneHeights[pane.key] ?? SUB_PANE_DEFAULT_H"
         :min="SUB_PANE_MIN_H"
         :max="SUB_PANE_MAX_H"

@@ -127,7 +127,7 @@
       <div v-else class="chart-workspace">
         <MultiChartLayout />
       </div>
-      <ResizeHandle direction="horizontal" :value="layoutStore.panelWidths.indicatorPanel" :min="150" :max="500" @change="v => layoutStore.setPanelWidth('indicatorPanel', v)" />
+      <ResizeHandle direction="horizontal" inverted :value="layoutStore.panelWidths.indicatorPanel" :min="150" :max="500" @change="v => layoutStore.setPanelWidth('indicatorPanel', v)" />
       <!-- IndicatorPanel is always visible; key forces re-mount on active panel switch -->
       <IndicatorPanel
         :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
