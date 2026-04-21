@@ -74,16 +74,24 @@
     </div>
 
     <!-- Sub-panes: one per separate-pane indicator -->
-    <div
-      v-for="pane in subPanes"
-      :key="pane.key"
-      class="sub-pane"
-      :class="{ 'cursor-crosshair-wrapper': overlayInteractionsEnabled && !!drawStore.activeToolType }"
-      :ref="el => subPaneRefs[pane.key] = el as HTMLElement"
-    >
-      <div class="sub-pane-label">{{ pane.label }}</div>
-      <canvas :ref="el => subPaneCanvasRefs[pane.key] = el as HTMLCanvasElement" class="drawing-canvas" />
-    </div>
+    <template v-for="pane in subPanes" :key="pane.key">
+      <ResizeHandle
+        direction="vertical"
+        :value="subPaneHeights[pane.key] ?? SUB_PANE_DEFAULT_H"
+        :min="SUB_PANE_MIN_H"
+        :max="SUB_PANE_MAX_H"
+        @change="v => { subPaneHeights[pane.key] = v; handleResize() }"
+      />
+      <div
+        class="sub-pane"
+        :class="{ 'cursor-crosshair-wrapper': overlayInteractionsEnabled && !!drawStore.activeToolType }"
+        :ref="el => subPaneRefs[pane.key] = el as HTMLElement"
+        :style="{ height: `${subPaneHeights[pane.key] ?? SUB_PANE_DEFAULT_H}px` }"
+      >
+        <div class="sub-pane-label">{{ pane.label }}</div>
+        <canvas :ref="el => subPaneCanvasRefs[pane.key] = el as HTMLCanvasElement" class="drawing-canvas" />
+      </div>
+    </template>
 
     <!-- Go to latest button -->
     <button v-if="!isAtLatest" class="go-to-latest" @click="goToLatest">
@@ -176,6 +184,7 @@ import { volumePlugin }            from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
 import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
 import type { ProjectionItem }     from '@/lib/uplot/plugins/y-axis-projections'
+import ResizeHandle          from '@/components/common/ResizeHandle.vue'
 import { DrawingRenderer }   from '@/lib/drawings/renderer'
 import type { MeasurementOverlay } from '@/lib/drawings/renderer'
 import { computeSMA }  from '@/lib/uplot/indicators/sma'
@@ -277,6 +286,10 @@ const chartRef         = ref<HTMLDivElement | null>(null)
 const drawingCanvasRef = ref<HTMLCanvasElement | null>(null)
 const subPaneRefs: Record<string, HTMLElement | null> = reactive({})
 const subPaneCanvasRefs: Record<string, HTMLCanvasElement | null> = reactive({})
+const SUB_PANE_DEFAULT_H = 120
+const SUB_PANE_MIN_H     = 60
+const SUB_PANE_MAX_H     = 400
+const subPaneHeights     = reactive<Record<string, number>>({})
 
 // ── uPlot instances ───────────────────────────────────────────────────────────
 let uplot: uPlot | null = null
@@ -451,6 +464,19 @@ function estimatedBarStepSeconds(): number {
   if (!samples.length) return 86_400
   samples.sort((a, b) => a - b)
   return samples[Math.floor(samples.length / 2)]
+}
+
+function barIndexToDrawingTime(idx: number): number {
+  const times = barTimestamps.value
+  if (!times.length) return 0
+  const step = estimatedBarStepSeconds()
+  const last = times.length - 1
+  if (idx <= 0) return times[0]! + idx * step
+  if (idx >= last) return times[last]! + (idx - last) * step
+  const lo = Math.floor(idx)
+  const hi = lo + 1
+  const frac = idx - lo
+  return times[lo]! + frac * (times[hi]! - times[lo]!)
 }
 
 function eventTimeToChartIndex(ts: number): number {
@@ -833,11 +859,14 @@ function drawingOverlayList(indicatorKey: string | null): AnyDrawing[] {
   // Show live preview only in the pane currently being drawn on
   if (activeDrawingPaneKey !== indicatorKey) return base
   if (!drawStore.activeToolType || drawingPoints.length === 0 || !drawingPreviewPoint) return base
+  const previewPoints = drawStore.activeToolType === 'freehand'
+    ? [...drawingPoints]
+    : [drawingPoints[0], drawingPreviewPoint]
   return [
     ...base,
     {
       type: drawStore.activeToolType as DrawingType,
-      points: [drawingPoints[0], drawingPreviewPoint],
+      points: previewPoints,
       style: { color: '#ffffff88', lineWidth: 1 },
       isVisible: true,
     } as any,
@@ -1397,7 +1426,8 @@ async function initChart() {
   if (!data[0]?.length) return
 
   const w = wrapperRef.value.clientWidth || 900
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
+  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
+  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
   const series = buildSeries()
   lastSeriesCount = series.length
 
@@ -2344,9 +2374,14 @@ function updateDrawingDrag(u: uPlot, e: PointerEvent, persist = false) {
       i === drawingDrag!.pointIndex ? cur : { ...p }
     )
   } else {
-    const dt = cur.time - drawingDrag.startPointer.time
-    const dp = cur.price - drawingDrag.startPointer.price
-    points = drawingDrag.startPoints.map(p => ({ time: p.time + dt, price: p.price + dp }))
+    const startIdx = drawingTimeToBarIndex(drawingDrag.startPointer.time)
+    const curIdx   = drawingTimeToBarIndex(cur.time)
+    const dIdx     = curIdx - startIdx
+    const dp       = cur.price - drawingDrag.startPointer.price
+    points = drawingDrag.startPoints.map(p => ({
+      time:  barIndexToDrawingTime(drawingTimeToBarIndex(p.time) + dIdx),
+      price: p.price + dp,
+    }))
   }
   patchDrawingPoints(drawingDrag.id, points, persist)
   renderVisualOverlays()
@@ -2377,7 +2412,31 @@ function setupDrawingInteraction(u: uPlot) {
 
     if (!drawStore.activeToolType || e.button !== 0) return
     e.stopPropagation()  // prevent pan from also firing
-    const pt = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
+    const pt = pointerToDrawingPoint(u, e)
+
+    // Freehand: start on pointerdown, collect points on move, finish on pointerup
+    if (drawStore.activeToolType === 'freehand') {
+      drawingPoints = [pt]
+      drawingPreviewPoint = pt
+      activeDrawingPaneKey = null
+      const onMove = (ev: PointerEvent) => {
+        drawingPoints.push(pointerToDrawingPoint(u, ev))
+        renderVisualOverlays()
+      }
+      const onUp = () => {
+        if (drawingPoints.length >= 2) {
+          finishDrawing([...drawingPoints], 'freehand')
+        }
+        drawingPoints = []
+        drawingPreviewPoint = null
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      return
+    }
+
     if (drawStore.activeToolType === 'horizontal_line' || drawStore.activeToolType === 'vertical_line') {
       finishDrawing([pt], drawStore.activeToolType); return
     }
@@ -2392,9 +2451,8 @@ function setupDrawingInteraction(u: uPlot) {
 
   over.addEventListener('pointermove', (e) => {
     if (!drawStore.activeToolType || drawingPoints.length === 0) return
-    const rect = over.getBoundingClientRect()
-    const idx = u.posToVal(e.clientX - rect.left, 'x')
-    const cur = { time: barIndexToTime(idx) ?? 0, price: u.posToVal(e.clientY - rect.top, 'y') }
+    if (drawStore.activeToolType === 'freehand') return  // handled separately above
+    const cur = pointerToDrawingPoint(u, e)
     drawingPreviewPoint = cur
     renderVisualOverlays()
   })
@@ -2572,6 +2630,27 @@ function setupSubPaneDrawingInteraction(sp: uPlot, paneKey: string, indicatorKey
     const idx  = sp.posToVal(e.clientX - rect.left, 'x')
     const pt = { time: barIndexToTime(idx) ?? 0, price: sp.posToVal(e.clientY - rect.top, 'y') }
     activeDrawingPaneKey = indicatorKey
+
+    if (drawStore.activeToolType === 'freehand') {
+      drawingPoints = [pt]
+      drawingPreviewPoint = pt
+      const onMove = (ev: PointerEvent) => {
+        const r = over.getBoundingClientRect()
+        const i = sp.posToVal(ev.clientX - r.left, 'x')
+        drawingPoints.push({ time: barIndexToTime(i) ?? 0, price: sp.posToVal(ev.clientY - r.top, 'y') })
+        renderVisualOverlays()
+      }
+      const onUp = () => {
+        if (drawingPoints.length >= 2) finishDrawing([...drawingPoints], 'freehand', indicatorKey)
+        drawingPoints = []; drawingPreviewPoint = null
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      return
+    }
+
     if (drawStore.activeToolType === 'horizontal_line' || drawStore.activeToolType === 'vertical_line') {
       finishDrawing([pt], drawStore.activeToolType, indicatorKey); return
     }
@@ -2586,6 +2665,7 @@ function setupSubPaneDrawingInteraction(sp: uPlot, paneKey: string, indicatorKey
 
   over.addEventListener('pointermove', (e) => {
     if (!drawStore.activeToolType || drawingPoints.length === 0 || activeDrawingPaneKey !== indicatorKey) return
+    if (drawStore.activeToolType === 'freehand') return
     const rect = over.getBoundingClientRect()
     const idx  = sp.posToVal(e.clientX - rect.left, 'x')
     drawingPreviewPoint = { time: barIndexToTime(idx) ?? 0, price: sp.posToVal(e.clientY - rect.top, 'y') }
@@ -2804,12 +2884,14 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType, indicato
 function handleResize() {
   if (!uplot || !wrapperRef.value) return
   const w = wrapperRef.value.clientWidth
-  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - subPanes.value.length * 120 - 20)
+  const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
+  const h = Math.max(80, (rootRef.value?.clientHeight ?? 600) - totalSubPaneH - subPanes.value.length * 4 - 20)
   uplot.setSize({ width: w, height: h }); syncCanvasSize(w, h)
   drawingRenderer?.resize(); renderVisualOverlays()
   for (const pane of subPanes.value) {
     const sp = subPlotsMap[pane.key]
-    if (sp) sp.setSize({ width: w, height: 110 })
+    const paneH = (subPaneHeights[pane.key] ?? SUB_PANE_DEFAULT_H) - 10
+    if (sp) sp.setSize({ width: w, height: Math.max(50, paneH) })
     const canvas = subPaneCanvasRefs[pane.key]
     const el = subPaneRefs[pane.key]
     if (canvas && el && sp) alignSubPaneCanvas(canvas, el, sp)
@@ -2838,7 +2920,11 @@ onMounted(async () => {
   }
   await nextTick(); await initChart()
   resizeObserver = new ResizeObserver(handleResize)
-  if (rootRef.value) resizeObserver.observe(rootRef.value)
+  if (rootRef.value) {
+    resizeObserver.observe(rootRef.value)
+    // Prevent browser back/forward navigation gestures when over the chart
+    rootRef.value.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true })
+  }
 })
 
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })

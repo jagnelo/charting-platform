@@ -46,12 +46,18 @@ export interface TextBoxDrawing extends DrawingBase {
   text: string
 }
 
+export interface FreehandDrawing extends DrawingBase {
+  type: 'freehand'
+  points: DrawingPoint[]
+}
+
 export type AnyDrawing =
   | TrendlineDrawing
   | HorizontalLineDrawing
   | FibonacciDrawing
   | RectangleDrawing
   | TextBoxDrawing
+  | FreehandDrawing
   | DrawingBase
 
 /** Standard Fibonacci retracement levels (0%–100% of the selected range) */

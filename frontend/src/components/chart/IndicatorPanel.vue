@@ -1,5 +1,5 @@
 <template>
-  <div :class="['side-panel', { 'side-panel--collapsed': !isPanelOpen }]">
+  <div :class="['side-panel', { 'side-panel--collapsed': !isPanelOpen }]" :style="isPanelOpen && props.panelWidth ? { width: `${props.panelWidth}px` } : undefined">
     <!-- Collapse toggle strip -->
     <button
       class="panel-toggle"
@@ -357,13 +357,6 @@
                 <button class="preset-chip" @click="setAvwapPreset('ytd')" title="Start of current year">YTD</button>
               </div>
             </div>
-            <div class="ed-row" v-if="editingInd.type !== 'volume'">
-              <label>Pane</label>
-              <select v-model="indFields.pane" class="ed-input">
-                <option value="main">Main chart</option>
-                <option value="separate">Separate subplot</option>
-              </select>
-            </div>
             <div class="ed-sep" />
             <div class="ed-row">
               <label>Timeframes</label>
@@ -491,6 +484,7 @@ import {
   INDICATOR_BY_TYPE,
   cloneDefaultIndicator,
   indicatorDisplayName,
+  indicatorDefaultPane,
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
 import type { IndicatorParamDef } from '@/lib/indicators/catalog'
@@ -498,7 +492,7 @@ import type { ChartDrawing, IndicatorAlert, PriceAlert, IndicatorConfig, Indicat
 import { api } from '@/lib/api'
 import { VueDraggable } from 'vue-draggable-plus'
 
-const props = defineProps<{ panelId: string }>()
+const props = defineProps<{ panelId: string; panelWidth?: number }>()
 const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
 
 const router         = useRouter()
@@ -691,7 +685,6 @@ const allTimeframes = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN'
 const indFields  = reactive({
   color: '#fff',
   lineWidth: 1.5,
-  pane: 'main' as 'main'|'separate',
   params: {} as Record<string, unknown>,
   tfMode: 'all' as 'all'|'locked',
   lockedTimeframes: [] as string[],
@@ -704,7 +697,6 @@ function openIndEditor(i: number) {
   editingInd.value = ind
   indFields.color            = ind.style.color
   indFields.lineWidth        = ind.style.lineWidth ?? 1.5
-  indFields.pane             = (ind.pane ?? 'main') as 'main'|'separate'
   indFields.params           = normalizeIndicatorParams(ind.type, ind.params)
   indFields.lockedTimeframes = ind.lockedTimeframes ? [...ind.lockedTimeframes] : []
   indFields.tfMode           = indFields.lockedTimeframes.length ? 'locked' : 'all'
@@ -729,7 +721,7 @@ function applyIndEdit() {
   chartStore.updateIndicator(editingIndIdx, {
     ...chartStore.indicators[editingIndIdx],
     style:            { ...chartStore.indicators[editingIndIdx].style, color: indFields.color, lineWidth: indFields.lineWidth },
-    pane:             indFields.pane,
+    pane:             indicatorDefaultPane(chartStore.indicators[editingIndIdx].type as import('@/types').IndicatorType),
     params:           { ...indFields.params },
     lockedTimeframes: indFields.tfMode === 'locked' && indFields.lockedTimeframes.length
       ? [...indFields.lockedTimeframes] as import('@/types').Timeframe[]

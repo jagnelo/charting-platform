@@ -1,7 +1,7 @@
 <template>
   <div :class="['wl-panel', { 'wl-panel--open': isOpen }]">
     <!-- Panel body -->
-    <div v-show="isOpen" class="wlp-body">
+    <div v-show="isOpen" class="wlp-body" :style="props.bodyWidth ? { width: `${props.bodyWidth}px` } : undefined">
       <!-- Top bar: title + collapse-all + TF selector -->
       <div class="wlp-topbar">
         <span class="wlp-panel-title">Watchlists</span>
@@ -148,7 +148,7 @@ import type { Watchlist } from '@/types'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
 
-const props = defineProps<{ currentSymbol?: string | null }>()
+const props = defineProps<{ currentSymbol?: string | null; bodyWidth?: number }>()
 const emit  = defineEmits<{ select: [symbol: string] }>()
 
 const store  = useWatchlistStore()

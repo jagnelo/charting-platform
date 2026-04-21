@@ -311,6 +311,10 @@ export function indicatorDisplayName(ind: Pick<IndicatorConfig, 'type' | 'params
   return params ? `${label.toUpperCase()}(${params})` : label.toUpperCase()
 }
 
+export function indicatorDefaultPane(type: IndicatorType): 'main' | 'separate' {
+  return INDICATOR_BY_TYPE[type]?.defaultConfig.pane ?? 'main'
+}
+
 export function cloneDefaultIndicator(type: IndicatorType): IndicatorConfig {
   const cfg = INDICATOR_BY_TYPE[type].defaultConfig
   const params = { ...cfg.params }

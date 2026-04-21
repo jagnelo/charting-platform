@@ -3,7 +3,7 @@
  * positioned absolutely over the uPlot chart.
  */
 import type uPlot from 'uplot'
-import type { AnyDrawing, FibonacciDrawing, RectangleDrawing, TextBoxDrawing, TrendlineDrawing, HorizontalLineDrawing } from './types'
+import type { AnyDrawing, FibonacciDrawing, FreehandDrawing, RectangleDrawing, TextBoxDrawing, TrendlineDrawing, HorizontalLineDrawing } from './types'
 import { FIBO_RETRACEMENT_LEVELS, FIBO_EXTENSION_LEVELS, FIBO_LEVEL_COLORS } from './types'
 
 export interface MeasurementOverlay {
@@ -111,6 +111,9 @@ export class DrawingRenderer {
         break
       case 'arrow':
         this.renderArrow(drawing as TrendlineDrawing)
+        break
+      case 'freehand':
+        this.renderFreehand(drawing as FreehandDrawing)
         break
     }
 
@@ -319,7 +322,7 @@ export class DrawingRenderer {
     this.ctx.font = `${fontSize}px ${font}`
     this.ctx.fillStyle = d.style.color ?? '#fff'
     this.ctx.globalAlpha = 1
-    this.ctx.fillText(d.text, x, y)
+    this.ctx.fillText(d.label ?? d.text ?? '', x, y)
   }
 
   private renderArrow(d: TrendlineDrawing) {
@@ -346,6 +349,18 @@ export class DrawingRenderer {
       this.drawHandle(x1, y1)
       this.drawHandle(x2, y2)
     }
+  }
+
+  private renderFreehand(d: FreehandDrawing) {
+    if (d.points.length < 2) return
+    this.ctx.beginPath()
+    const [fx, fy] = this.toPixel(d.points[0].time, d.points[0].price)
+    this.ctx.moveTo(fx, fy)
+    for (let i = 1; i < d.points.length; i++) {
+      const [px, py] = this.toPixel(d.points[i].time, d.points[i].price)
+      this.ctx.lineTo(px, py)
+    }
+    this.ctx.stroke()
   }
 
   private drawHandle(x: number, y: number) {

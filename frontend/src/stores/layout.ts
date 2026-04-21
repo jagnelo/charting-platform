@@ -40,7 +40,25 @@ const PRESET_PANEL_COUNT: Record<PresetLayout, number> = {
 }
 
 const DEFAULT_TIMEFRAMES: Timeframe[] = ['D1', 'H4', 'H1', 'M15', 'M30', 'W1', 'M5', 'M1']
-const PROFILE_STORAGE_KEY = 'chart.layoutProfiles.v1'
+const PROFILE_STORAGE_KEY  = 'chart.layoutProfiles.v1'
+const WIDTHS_STORAGE_KEY   = 'chart.panelWidths.v1'
+
+export interface PanelWidths {
+  watchlist: number
+  indicatorPanel: number
+}
+
+function loadPanelWidths(): PanelWidths {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(WIDTHS_STORAGE_KEY) ?? '{}')
+    return {
+      watchlist:      typeof parsed.watchlist      === 'number' ? parsed.watchlist      : 300,
+      indicatorPanel: typeof parsed.indicatorPanel === 'number' ? parsed.indicatorPanel : 220,
+    }
+  } catch {
+    return { watchlist: 300, indicatorPanel: 220 }
+  }
+}
 
 function loadProfiles(): LayoutProfile[] {
   try {
@@ -79,6 +97,7 @@ export const useLayoutStore = defineStore('layout', () => {
   const panels        = ref<PanelConfig[]>(makePanels(1, []))
   const activePanelId = ref<string>('p0')
   const profiles      = ref<LayoutProfile[]>(loadProfiles())
+  const panelWidths   = ref<PanelWidths>(loadPanelWidths())
 
   const syncedTs        = ref<string | null>(null)
   const syncSourcePanel = ref<string | null>(null)
@@ -114,6 +133,11 @@ export const useLayoutStore = defineStore('layout', () => {
     isSyncEnabled.value = !isSyncEnabled.value
   }
 
+  function setPanelWidth(key: keyof PanelWidths, value: number) {
+    panelWidths.value[key] = value
+    localStorage.setItem(WIDTHS_STORAGE_KEY, JSON.stringify(panelWidths.value))
+  }
+
   function persistProfiles() {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profiles.value))
   }
@@ -146,10 +170,11 @@ export const useLayoutStore = defineStore('layout', () => {
   }
 
   return {
-    layout, panels, activePanelId, panelCount, profiles,
+    layout, panels, activePanelId, panelCount, profiles, panelWidths,
     syncedTs, syncSourcePanel, isSyncEnabled,
     setLayout, setActivePanel, updatePanel,
     setSyncedTs, toggleSync,
     saveProfile, loadProfile, deleteProfile,
+    setPanelWidth,
   }
 })

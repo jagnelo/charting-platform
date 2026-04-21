@@ -25,6 +25,7 @@ export type DrawingType =
   | 'triangle'
   | 'text_box'
   | 'arrow'
+  | 'freehand'
 
 // ── Domain models ─────────────────────────────────────────────────────────────
 

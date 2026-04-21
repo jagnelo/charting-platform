@@ -103,7 +103,7 @@
               </div>
             </div>
 
-            <div class="widget-body">
+            <div class="widget-body" :style="widget.config.fontSize ? { fontSize: `${widget.config.fontSize}px` } : undefined">
               <DashboardNotesWidget
                 v-if="['notes', 'checklist'].includes(widget.widget_type)"
                 :config="widget.config"
@@ -483,6 +483,22 @@
               >
                 <option value="notes">Notes</option>
                 <option value="checklist">Checklist</option>
+              </select>
+            </label>
+
+            <label class="config-field">
+              <span>Font size</span>
+              <select
+                :value="configWidget.config.fontSize || 'default'"
+                @change="patchConfig(configWidget, { fontSize: inputValue($event) === 'default' ? null : inputValue($event) })"
+              >
+                <option value="default">Default</option>
+                <option value="10">10px (very compact)</option>
+                <option value="11">11px (compact)</option>
+                <option value="12">12px (small)</option>
+                <option value="13">13px (medium)</option>
+                <option value="14">14px (large)</option>
+                <option value="16">16px (x-large)</option>
               </select>
             </label>
           </div>

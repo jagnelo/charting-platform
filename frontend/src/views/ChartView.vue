@@ -102,7 +102,8 @@
 
     <!-- Main body: watchlist panel is always visible regardless of layout -->
     <div class="chart-body">
-      <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" />
+      <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" :body-width="layoutStore.panelWidths.watchlist" />
+      <ResizeHandle direction="horizontal" :value="layoutStore.panelWidths.watchlist" :min="160" :max="600" @change="v => layoutStore.setPanelWidth('watchlist', v)" />
       <DrawingToolbar />
       <div v-if="layoutStore.layout === '1'" class="chart-workspace">
         <div class="chart-area">
@@ -126,10 +127,12 @@
       <div v-else class="chart-workspace">
         <MultiChartLayout />
       </div>
+      <ResizeHandle direction="horizontal" :value="layoutStore.panelWidths.indicatorPanel" :min="150" :max="500" @change="v => layoutStore.setPanelWidth('indicatorPanel', v)" />
       <!-- IndicatorPanel is always visible; key forces re-mount on active panel switch -->
       <IndicatorPanel
         :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :key="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
+        :panel-width="layoutStore.panelWidths.indicatorPanel"
         @select-symbol="onSymbolSelect"
       />
     </div>
@@ -149,6 +152,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
 import { api } from '@/lib/api'
+import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
 import TimeframeSelector    from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart           from '@/components/chart/UPlotChart.vue'

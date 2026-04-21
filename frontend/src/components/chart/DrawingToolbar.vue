@@ -116,8 +116,9 @@ const toolGroups: GroupDef[] = [
     label: 'Annotations',
     icon: 'T',
     tools: [
-      { type: 'arrow',    label: 'Arrow', icon: '↗' },
-      { type: 'text_box', label: 'Text',  icon: 'T' },
+      { type: 'arrow',    label: 'Arrow',    icon: '↗' },
+      { type: 'text_box', label: 'Text',     icon: 'T' },
+      { type: 'freehand', label: 'Freehand', icon: '✏' },
     ],
   },
 ]
