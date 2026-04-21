@@ -1222,6 +1222,8 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .editor-box {
   background: #141414; border: 1px solid #2a2a2a; border-radius: 6px;
   min-width: 300px; max-width: 360px; width: 100%;
+  max-height: calc(100vh - 80px);
+  display: flex; flex-direction: column;
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.6);
 }
@@ -1232,7 +1234,7 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 }
 .ed-close { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; }
 .ed-close:hover { color: #aaa; }
-.ed-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ed-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; min-height: 0; }
 .ed-row { display: flex; align-items: center; gap: 10px; }
 .ed-row label { color: #666; min-width: 90px; font-size: 11px; }
 .ed-color { width: 30px; height: 22px; border: 1px solid #333; border-radius: 3px; background: none; cursor: pointer; padding: 0; }

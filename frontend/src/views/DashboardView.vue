@@ -103,7 +103,7 @@
               </div>
             </div>
 
-            <div class="widget-body" :style="widget.config.fontSize ? { fontSize: `${widget.config.fontSize}px` } : undefined">
+            <div class="widget-body" :data-fsize="widget.config.fontSize || undefined" :style="widget.config.fontSize ? { '--wfs': `${widget.config.fontSize}px` } : undefined">
               <DashboardNotesWidget
                 v-if="['notes', 'checklist'].includes(widget.widget_type)"
                 :config="widget.config"
@@ -1696,5 +1696,12 @@ function onDashboardClick() {
 .link-new-btn:hover {
   border-color: #3a3a3a;
   background: #1b1b1b;
+}
+</style>
+
+<style>
+/* Override descendant font sizes only when an explicit font size is configured */
+[data-fsize] * {
+  font-size: var(--wfs) !important;
 }
 </style>

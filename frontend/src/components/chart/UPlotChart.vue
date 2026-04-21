@@ -2303,6 +2303,7 @@ function patchDrawingPoints(id: number, points: DrawingPoint[], persist = false)
 function hitDrawingHandle(u: uPlot, d: AnyDrawing, mx: number, my: number): number | null {
   const HIT = 9
   if (!d.points?.length) return null
+  if (d.type === 'freehand') return null  // freehand has no handles — always move
   const toX = (time: number) => u.valToPos(drawingTimeToBarIndex(time), 'x')
   if ((d.type === 'circle' || d.type === 'half_circle') && d.points.length >= 2) {
     const p0 = d.points[0]!
@@ -2853,6 +2854,14 @@ function findHitDrawingInList(u: uPlot, drawings: AnyDrawing[], mx: number, my: 
       for (const lvl of levels) {
         const price = p0.price + priceRange * lvl
         if (Math.abs(my - u.valToPos(price, 'y')) < HIT) return d
+      }
+      continue
+    }
+    if (d.type === 'freehand') {
+      for (let i = 1; i < d.points.length; i++) {
+        const ax = toX(d.points[i - 1].time), ay = u.valToPos(d.points[i - 1].price, 'y')
+        const bx = toX(d.points[i].time),     by = u.valToPos(d.points[i].price, 'y')
+        if (distToSeg(mx, my, ax, ay, bx, by) < HIT) return d
       }
       continue
     }
