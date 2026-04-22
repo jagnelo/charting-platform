@@ -20,6 +20,9 @@ set -e
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
+DEV_STACK_HELPER="$ROOT/scripts/dev-stack.sh"
+DEV_COMPOSE_PROJECT="$("$DEV_STACK_HELPER" project-name)"
+DEV_BRANCH_NAME="$("$DEV_STACK_HELPER" branch-name)"
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -48,12 +51,15 @@ check_prerequisites() {
 
 # ── Infrastructure ─────────────────────────────────────────────────────────────
 start_infra() {
-    log "Starting Postgres + Redis..."
-    docker compose -f "$ROOT/docker-compose.dev.yml" up -d
+    log "Starting branch-scoped Postgres + Redis..."
+    log "Branch: $DEV_BRANCH_NAME"
+    log "Docker project: $DEV_COMPOSE_PROJECT"
+    "$DEV_STACK_HELPER" stop-others "$ROOT/docker-compose.dev.yml"
+    COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" up -d
 
     log "Waiting for Postgres to be ready..."
     for i in $(seq 1 30); do
-        docker compose -f "$ROOT/docker-compose.dev.yml" exec postgres \
+        COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" exec postgres \
             pg_isready -U postgres -q 2>/dev/null && break
         sleep 1
     done
@@ -62,6 +68,7 @@ start_infra() {
     log "Running DB migrations..."
     cd "$BACKEND" && ENV_FILE=.env.dev uv run alembic upgrade head
     ok "Migrations applied"
+    ok "Branch-isolated dev data is attached to Docker project $DEV_COMPOSE_PROJECT"
 }
 
 # ── Process launchers ──────────────────────────────────────────────────────────

@@ -30,6 +30,9 @@
 # ENV_FILE is passed to every local backend command so pydantic-settings
 # loads backend/.env.dev instead of looking for a .env file.
 BACKEND_ENV := ENV_FILE=.env.dev
+DEV_STACK_HELPER := ./scripts/dev-stack.sh
+DEV_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name)
+DEV_BRANCH_NAME := $(shell $(DEV_STACK_HELPER) branch-name)
 
 # ── Dev environment ────────────────────────────────────────────────────────────
 
@@ -48,19 +51,24 @@ dev-install:
 	@echo "    make dev         # start everything with hot-reload"
 
 dev-infra:
-	@echo "▶  Starting Postgres + Redis..."
-	docker compose -f docker-compose.dev.yml up -d
+	@echo "▶  Starting branch-scoped Postgres + Redis..."
+	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
+	@echo "   Project →  $(DEV_COMPOSE_PROJECT)"
+	@$(DEV_STACK_HELPER) stop-others docker-compose.dev.yml
+	COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml up -d
 	@echo "▶  Waiting for Postgres to be ready..."
 	@for i in $$(seq 1 30); do \
-	  docker compose -f docker-compose.dev.yml exec postgres pg_isready -U postgres -q 2>/dev/null && break; \
+	  COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml exec postgres pg_isready -U postgres -q 2>/dev/null && break; \
 	  sleep 1; \
 	done
 	@echo "▶  Applying migrations..."
 	cd backend && $(BACKEND_ENV) uv run alembic upgrade head
 	@echo "✅  Infrastructure ready — Postgres :5432, Redis :6379"
+	@echo "   Data is isolated under Docker project $(DEV_COMPOSE_PROJECT)"
 
 dev-infra-stop:
-	docker compose -f docker-compose.dev.yml down
+	@echo "▶  Stopping branch-scoped dev stack $(DEV_COMPOSE_PROJECT)"
+	COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml down
 
 dev-backend:
 	cd backend && $(BACKEND_ENV) uv run uvicorn app.main:app \

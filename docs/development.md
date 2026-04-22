@@ -51,6 +51,14 @@ make dev-infra
 ```
 
 Starts Postgres (port 5432) and Redis (port 6379) via `docker-compose.dev.yml`, then runs `alembic upgrade head`.
+The dev infrastructure is isolated per git branch using a branch-scoped Docker Compose project name, so each branch keeps its own persisted Postgres and Redis state.
+
+When you switch branches and run `make dev-infra`, the tooling:
+- stops any other running `charting-dev-*` dev stack without deleting its data
+- starts the current branch's stack
+- reconnects your local backend to the same localhost ports (`5432`, `6379`)
+
+That means Alembic history and DB data stay separated by branch, while the local backend/frontend config stays simple.
 
 ### 4. Start everything
 
@@ -127,7 +135,7 @@ Create `.vscode/launch.json`:
 
 ```bash
 # psql via Docker
-docker compose -f docker-compose.dev.yml exec postgres psql -U postgres chartingdb
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name)" docker compose -f docker-compose.dev.yml exec postgres psql -U postgres chartingdb
 
 # Or with a GUI tool — connect to:
 #   Host:     localhost
@@ -196,8 +204,8 @@ The `uv.lock` file is committed to git. Other developers get identical versions 
 # Stop infrastructure (containers) — data preserved in volumes
 make dev-infra-stop
 
-# Stop infrastructure AND delete all dev data (full reset)
-docker compose -f docker-compose.dev.yml down -v
+# Stop infrastructure AND delete the current branch's dev data (full reset)
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name)" docker compose -f docker-compose.dev.yml down -v
 ```
 
 The backend and frontend stop when you Ctrl+C the `make dev` terminal.
