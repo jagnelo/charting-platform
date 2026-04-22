@@ -33,7 +33,7 @@ from app.services.indicators import OHLCVSeries, compute_indicator, normalize_in
 
 GRACE_PERIOD_DAYS = 7
 
-# Global semaphore: caps concurrent yfinance fetches during screener Pass 2.
+# Global semaphore: caps concurrent provider fetches during screener Pass 2.
 _FETCH_SEMAPHORE = asyncio.Semaphore(3)
 
 logger = logging.getLogger(__name__)
@@ -818,7 +818,7 @@ async def stream_screener(
 
     Pass 1 — instruments with OHLCV already in the DB: fast, emits matches
               immediately without any outbound network calls.
-    Pass 2 — instruments with no cached OHLCV: fetches from yfinance
+    Pass 2 — instruments with no cached OHLCV: fetches from the configured provider
               (rate-limited via _FETCH_SEMAPHORE), then evaluates.
 
     Yielded event shapes:

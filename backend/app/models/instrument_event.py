@@ -51,7 +51,7 @@ class InstrumentEvent(Base, TimestampMixin):
     split_ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
-    source: Mapped[str] = mapped_column(String(50), nullable=False, default="yfinance")
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown")
     source_event_key: Mapped[str] = mapped_column(String(240), nullable=False)
     raw_payload: Mapped[str | None] = mapped_column(Text, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -73,7 +73,7 @@ class InstrumentEventFetchState(Base, TimestampMixin):
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    source: Mapped[str] = mapped_column(String(50), nullable=False, default="yfinance")
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown")
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     earnings_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -4,7 +4,7 @@ Integration tests for background tasks:
   - Bulk data fetching pipeline
   - Screener task runner
 
-These tests patch yfinance and OneSignal but use a real DB.
+These tests patch provider-facing market data calls and OneSignal while using a real DB.
 """
 
 from decimal import Decimal
@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, patch
 class TestAlertEngineFullCycle:
     @patch("app.tasks.alert_tasks.send_alert_notification", new_callable=AsyncMock)
     @patch("app.tasks.alert_tasks.get_current_price")
-    @patch("app.tasks.alert_tasks._ticker_for_instrument")
+    @patch("app.tasks.alert_tasks.resolve_provider_symbol_for_instrument")
     async def test_price_alert_fires_when_condition_met(
         self, mock_ticker, mock_price, mock_notif, db, user, instrument
     ):
@@ -53,7 +53,7 @@ class TestAlertEngineFullCycle:
 
     @patch("app.tasks.alert_tasks.send_alert_notification", new_callable=AsyncMock)
     @patch("app.tasks.alert_tasks.get_current_price")
-    @patch("app.tasks.alert_tasks._ticker_for_instrument")
+    @patch("app.tasks.alert_tasks.resolve_provider_symbol_for_instrument")
     async def test_price_alert_does_not_fire_when_not_met(
         self, mock_ticker, mock_price, mock_notif, db, user, instrument
     ):
@@ -85,7 +85,7 @@ class TestAlertEngineFullCycle:
 
     @patch("app.tasks.alert_tasks.send_alert_notification", new_callable=AsyncMock)
     @patch("app.tasks.alert_tasks.get_current_price")
-    @patch("app.tasks.alert_tasks._ticker_for_instrument")
+    @patch("app.tasks.alert_tasks.resolve_provider_symbol_for_instrument")
     async def test_repeat_alert_stays_active_after_trigger(
         self, mock_ticker, mock_price, mock_notif, db, user, instrument
     ):
@@ -155,11 +155,11 @@ class TestAlertEngineFullCycle:
         assert alert.triggered_at is not None
 
     @patch("app.tasks.alert_tasks.get_current_price")
-    @patch("app.tasks.alert_tasks._ticker_for_instrument")
+    @patch("app.tasks.alert_tasks.resolve_provider_symbol_for_instrument")
     async def test_engine_handles_price_fetch_failure_gracefully(
         self, mock_ticker, mock_price, db, user, instrument
     ):
-        """Engine should not crash if yfinance returns None."""
+        """Engine should not crash if the configured provider returns no price."""
         from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
         from app.tasks.alert_tasks import check_all_alerts
 

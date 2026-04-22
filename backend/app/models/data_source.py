@@ -7,7 +7,7 @@ from app.models.base import TimestampMixin
 
 class DataSource(Base, TimestampMixin):
     """
-    Represents an external source of market data (yfinance, Alpha Vantage, etc.)
+    Represents an external source of market data.
     Configuration is stored as JSON for flexibility.
     """
 

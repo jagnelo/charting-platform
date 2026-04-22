@@ -223,7 +223,8 @@ async def stream_screener_run(
                            "duration_ms": N, "result_id": N}
 
     Pass 1 evaluates instruments already in the DB (fast).
-    Pass 2 fetches missing OHLCV from yfinance then evaluates (slow, rate-limited).
+    Pass 2 fetches missing OHLCV from the configured provider then evaluates
+    (slow, rate-limited).
     """
     screener = await db.get(ScreenerDefinition, screener_id)
     if screener is None or screener.user_id != current_user.id:
@@ -240,4 +241,3 @@ async def stream_screener_run(
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-

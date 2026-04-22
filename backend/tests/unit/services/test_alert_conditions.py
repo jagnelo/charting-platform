@@ -2,7 +2,7 @@
 Unit tests for alert condition evaluation logic.
 
 Tests the pure condition-matching functions in isolation —
-no DB, no network, no yfinance calls.
+no DB, no network, no external provider calls.
 """
 
 from decimal import Decimal

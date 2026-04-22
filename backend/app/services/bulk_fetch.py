@@ -5,7 +5,7 @@ Pulls the maximum available OHLCV history for an instrument from the configured
 provider and stores it in the local DB for all supported timeframes.
 
 Design principles:
-  - Source-agnostic: no hardcoded "30 year" or "yfinance limit" assumptions.
+  - Source-agnostic: no hardcoded source-specific history-window assumptions.
   - We always attempt to start from EPOCH (Unix timestamp 0) and let the data
     source tell us how far back it can actually go.
   - If a source returns nothing for a timeframe after coarser timeframes have
@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers import ensure_data_source, get_default_market_data_provider
-from app.services.market_data import _ticker_for_instrument
+from app.services.market_data import resolve_provider_symbol_for_instrument
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ async def bulk_fetch_instrument(
     if timeframes is None:
         timeframes = BULK_FETCH_TIMEFRAMES
 
-    ticker_sym = _ticker_for_instrument(instrument)
+    ticker_sym = resolve_provider_symbol_for_instrument(instrument)
     provider = get_default_market_data_provider()
     datasource = await ensure_data_source(db, provider.name)
     summary: dict[str, Any] = {}

@@ -36,7 +36,7 @@ docker compose up -d
 open http://localhost:4173
 ```
 
-Register an account and start searching for symbols. Market data is sourced from yfinance (free, ~15 min delay).
+Register an account and start searching for symbols. Market data comes from whichever provider is configured for the current environment.
 
 ---
 
@@ -115,7 +115,7 @@ Saved screens with AND/OR logic, combining price conditions and indicator condit
 Full JWT auth — access tokens (60 min) + refresh tokens (30 days) with silent auto-refresh. All data is strictly isolated per user.
 
 ### Data Pipeline
-- OHLCV bars cached in Postgres — yfinance is only called for missing date ranges or stale data
+- OHLCV bars cached in Postgres — the configured provider is only called for missing date ranges or stale data
 - Bulk historical fetch triggered automatically when a new instrument is first registered (ARQ background task)
 - Nightly refresh job keeps all instruments current
 

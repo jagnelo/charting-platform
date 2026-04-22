@@ -1,7 +1,7 @@
 """
 Integration tests for /instruments and /ohlcv endpoints.
-yfinance calls are mocked throughout — we test caching, gap-filling,
-and API contract, not the external data source.
+Provider calls are mocked throughout — we test caching, gap-filling,
+and API contract, not the external source implementation.
 """
 
 from datetime import UTC, datetime
@@ -12,7 +12,7 @@ import pandas as pd
 
 
 def _make_yf_df(symbol: str, days: int = 10, start_price: float = 150.0):
-    """Build a fake yfinance DataFrame."""
+    """Build a fake provider history DataFrame."""
     dates = pd.date_range(start=datetime(2024, 1, 1, tzinfo=UTC), periods=days, freq="D")
     rng = np.random.RandomState(hash(symbol) % (2**31))
     prices = start_price + np.cumsum(rng.randn(days))
@@ -47,11 +47,11 @@ def _make_yf_ticker_mock(symbol: str = "AAPL"):
 
 
 class TestInstruments:
-    @patch("app.services.market_data.yf.Ticker")
+    @patch("app.providers.yfinance.yf.Ticker")
     def test_get_instrument_auto_creates(
         self, mock_ticker, client, auth_headers, instrument_type, asset_class
     ):
-        """GET /instruments/TSLA should create the instrument from yfinance if not in DB."""
+        """GET /instruments/TSLA should create the instrument from the provider if absent."""
         mock_ticker.return_value = _make_yf_ticker_mock("TSLA")
         res = client.get("/api/v1/instruments/TSLA", headers=auth_headers)
         # Even if creation fails (incomplete mock), we test the happy path
@@ -74,7 +74,7 @@ class TestInstruments:
 
 class TestOHLCV:
     def test_get_ohlcv_cached_data(self, client, auth_headers, instrument, ohlcv_bars):
-        """When bars exist in DB, no yfinance call should be needed."""
+        """When bars exist in DB, no provider call should be needed."""
         start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()
         end = datetime(2024, 4, 30, tzinfo=UTC).isoformat()
         res = client.get(
@@ -118,11 +118,11 @@ class TestOHLCV:
                 bar["low"]
             ), f"Bar {bar['ts']}: high {bar['high']} < low {bar['low']}"
 
-    @patch("app.services.market_data.yf.Ticker")
+    @patch("app.providers.yfinance.yf.Ticker")
     def test_ohlcv_fetches_and_caches_missing_data(
         self, mock_ticker, client, auth_headers, instrument
     ):
-        """For a date range with no cached bars, fetches from yfinance and stores."""
+        """For a date range with no cached bars, fetches from the provider and stores."""
         mock = _make_yf_ticker_mock("AAPL")
         mock.history.return_value = _make_yf_df("AAPL", days=20)
         mock_ticker.return_value = mock
@@ -130,13 +130,13 @@ class TestOHLCV:
         far_future = datetime(2030, 1, 1, tzinfo=UTC).isoformat()
         far_future_end = datetime(2030, 1, 31, tzinfo=UTC).isoformat()
 
-        # First call — should hit yfinance
+        # First call — should hit the provider adapter
         res1 = client.get(
             f"/api/v1/ohlcv/{instrument.symbol}/D1",
             params={"start": far_future, "end": far_future_end},
             headers=auth_headers,
         )
-        # Second call — should use cache (yfinance call count stays same)
+        # Second call — should use cache (provider call count stays same)
         res2 = client.get(
             f"/api/v1/ohlcv/{instrument.symbol}/D1",
             params={"start": far_future, "end": far_future_end},

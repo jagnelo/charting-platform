@@ -27,6 +27,7 @@ from app.providers import (
     get_default_discovery_provider,
     get_default_metadata_provider,
     get_identifier_provider_chain,
+    get_provider,
 )
 from app.providers.base import IdentifierRecord
 from app.providers.openfigi import OpenFigiIdentifierProvider
@@ -40,12 +41,10 @@ from app.services.instrument_mastering import (
 logger = logging.getLogger(__name__)
 
 # Caps concurrent outbound calls to external APIs platform-wide.
-_ISIN_SEMAPHORE = asyncio.Semaphore(settings.YFINANCE_MAX_CONCURRENCY)
-_FETCH_SEMAPHORE = asyncio.Semaphore(settings.YFINANCE_MAX_CONCURRENCY)
+_IDENTIFIER_SEMAPHORE = asyncio.Semaphore(settings.PROVIDER_MAX_CONCURRENCY)
+_METADATA_SEMAPHORE = asyncio.Semaphore(settings.PROVIDER_MAX_CONCURRENCY)
 
-_YF_SCREENER_PAGE_SIZE = 250
-
-# All yfinance quote types we enumerate.  Maps quote_type → (AssetClass, InstrumentType).
+# External quote-type → internal taxonomy normalization.
 _QUOTE_TYPE_TAXONOMY: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
     "ETF": ("Equity", "ETF"),
@@ -55,8 +54,6 @@ _QUOTE_TYPE_TAXONOMY: dict[str, tuple[str, str]] = {
     "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
     "FUTURE": ("Commodity", "Future"),
 }
-
-_YF_QUOTE_TYPES = list(_QUOTE_TYPE_TAXONOMY.keys())
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -107,7 +104,7 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
 # ── Identifier fetchers ───────────────────────────────────────────────────────
 
 
-def _yfinance_isin_sync(symbol: str) -> str | None:
+def _provider_isin_sync(symbol: str) -> str | None:
     provider = get_default_metadata_provider()
     for identifier in provider.fetch_stable_identifiers(symbol):
         if identifier.identifier_type.upper() == "ISIN":
@@ -115,9 +112,9 @@ def _yfinance_isin_sync(symbol: str) -> str | None:
     return None
 
 
-async def _yfinance_isin(symbol: str) -> str | None:
+async def _provider_isin(symbol: str) -> str | None:
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _yfinance_isin_sync, symbol)
+    return await loop.run_in_executor(None, _provider_isin_sync, symbol)
 
 
 async def _openfigi_figi(symbol: str) -> str | None:
@@ -131,21 +128,29 @@ async def _openfigi_figi(symbol: str) -> str | None:
 async def fetch_stable_id(symbol: str) -> str | None:
     """Return a stable immutable identifier for *symbol* using the configured chain."""
     for provider_name in get_identifier_provider_chain():
-        if provider_name == "yfinance":
-            identifier = await _yfinance_isin(symbol)
-            if identifier:
-                return identifier
-        elif provider_name == "openfigi":
+        if provider_name == "openfigi":
             identifier = await _openfigi_figi(symbol)
             if identifier:
                 return identifier
+            continue
+
+        try:
+            provider = get_provider(provider_name)
+        except KeyError:
+            continue
+
+        identifiers = provider.fetch_stable_identifiers(symbol)
+        if not identifiers:
+            continue
+        primary = next((item for item in identifiers if item.is_primary), identifiers[0])
+        return primary.identifier_value
     return None
 
 
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
 
-def _fetch_yf_info_sync(symbol: str) -> dict:
+def _fetch_provider_profile_sync(symbol: str) -> dict:
     provider = get_default_metadata_provider()
     profile = provider.get_instrument_profile(symbol)
     return profile.raw_payload if profile and profile.raw_payload else {}
@@ -158,9 +163,9 @@ def _screener_page_sync(quote_type: str, offset: int) -> dict:
 
 def _parse_forex_pair(symbol: str) -> tuple[str, str] | None:
     """
-    Attempt to extract base/quote currencies from a yfinance forex symbol.
+    Attempt to extract base/quote currencies from a provider symbol.
 
-    yfinance uses formats like "EURUSD=X" or "EUR/USD".
+    Common formats include "EURUSD=X" and "EUR/USD".
     Returns (base, quote) or None if the symbol cannot be parsed.
     """
     s = symbol.upper().replace("=X", "").replace("/", "")
@@ -247,7 +252,7 @@ async def seed_universe(db: AsyncSession) -> dict:
     Idempotent bootstrap of the full global instrument universe via the
     configured discovery provider.
 
-    For every quote type in _YF_QUOTE_TYPES the screener is paged in batches
+    For every supported discovery type the provider is paged in batches
     of 250. Each page response contains all the metadata needed (name, sector,
     industry, country, exchange, currency, marketCap) so no per-instrument info
     call is required — the whole universe is seeded quickly and covers global
@@ -283,7 +288,7 @@ async def seed_universe(db: AsyncSession) -> dict:
     updated = 0
     loop = asyncio.get_event_loop()
 
-    for quote_type in _YF_QUOTE_TYPES:
+    for quote_type in get_default_discovery_provider().supported_discovery_types():
         type_id = type_id_map[quote_type]
         offset = 0
         total = None
@@ -410,7 +415,7 @@ async def seed_universe(db: AsyncSession) -> dict:
             if not quotes or offset >= (total or 0):
                 break
 
-            await asyncio.sleep(settings.YFINANCE_SCREENER_PAGE_DELAY_SECONDS)
+            await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
 
     logger.info("seed_universe complete: created=%d  updated=%d", created, updated)
     return {"created": created, "updated": updated, "total": created + updated}
@@ -423,7 +428,7 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
     """
     Populate the primary stable identifier for every active instrument that doesn't have one.
 
-    Rate-limited via _ISIN_SEMAPHORE + a small sleep between calls.
+    Rate-limited via _IDENTIFIER_SEMAPHORE + a small sleep between calls.
     Safe to run multiple times — already-populated rows are skipped.
     """
     stmt = select(Instrument).where(
@@ -443,9 +448,9 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
     skipped = 0
 
     for inst in instruments:
-        async with _ISIN_SEMAPHORE:
+        async with _IDENTIFIER_SEMAPHORE:
             stable_id = await fetch_stable_id(inst.symbol)
-            await asyncio.sleep(settings.YFINANCE_STABLE_ID_DELAY_SECONDS)
+            await asyncio.sleep(settings.INSTRUMENT_IDENTIFIER_DELAY_SECONDS)
 
         if not stable_id:
             skipped += 1
@@ -471,7 +476,7 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
         await register_identifier(
             db,
             inst,
-            "yfinance" if identifier_type == "ISIN" else "openfigi",
+            get_default_metadata_provider().name if identifier_type == "ISIN" else "openfigi",
             IdentifierRecord(
                 identifier_type=identifier_type,
                 identifier_value=stable_id,
@@ -502,13 +507,8 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     """
     Refresh metadata for all active instruments via the configured metadata provider.
 
-    Matching strategy (in order):
-      1. Instruments with an isin: match by isin.  A symbol change updates
-         the symbol column in place — a true rename is tracked correctly.
-      2. Instruments without an isin: matched by symbol only.  If yfinance
-         returns no data, we *do not* immediately deactivate (transient API
-         failures happen).  Two consecutive empty responses would be needed
-         to confidently deactivate — for now we log and continue.
+    If the metadata provider returns no data, we do not immediately deactivate
+    the instrument. Transient provider failures happen, so the sync remains conservative.
     """
     stmt = (
         select(Instrument)
@@ -529,13 +529,13 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
 
     for inst in instruments:
         loop = asyncio.get_event_loop()
-        async with _FETCH_SEMAPHORE:
+        async with _METADATA_SEMAPHORE:
             profile = await loop.run_in_executor(
                 None,
                 get_default_metadata_provider().get_instrument_profile,
                 inst.symbol,
             )
-            await asyncio.sleep(settings.YFINANCE_METADATA_DELAY_SECONDS)
+            await asyncio.sleep(settings.INSTRUMENT_METADATA_DELAY_SECONDS)
 
         if profile is None:
             continue

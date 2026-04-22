@@ -619,6 +619,17 @@ class YFinanceProvider:
             )
             return {}
 
+    def supported_discovery_types(self) -> list[str]:
+        return [
+            "EQUITY",
+            "ETF",
+            "MUTUALFUND",
+            "INDEX",
+            "CURRENCY",
+            "CRYPTOCURRENCY",
+            "FUTURE",
+        ]
+
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         tf_seconds = {
             Timeframe.M1: 60,

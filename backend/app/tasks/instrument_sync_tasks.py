@@ -18,14 +18,14 @@ async def seed_universe_task(ctx: dict) -> dict:
 async def sync_instruments_task(ctx: dict, limit: int | None = None) -> dict:
     """Daily capped metadata refresh across the stalest known instruments."""
     async with AsyncSessionLocal() as db:
-        cap = limit if limit is not None else settings.YFINANCE_DAILY_METADATA_CAP
+        cap = limit if limit is not None else settings.INSTRUMENT_DAILY_METADATA_CAP
         return await run_tracked_sync(db, "sync-instruments", limit=cap)
 
 
 async def bootstrap_ids_task(ctx: dict, limit: int | None = None) -> dict:
     """Daily capped stable identifier enrichment for instruments missing external IDs."""
     async with AsyncSessionLocal() as db:
-        cap = limit if limit is not None else settings.YFINANCE_DAILY_STABLE_ID_CAP
+        cap = limit if limit is not None else settings.INSTRUMENT_DAILY_IDENTIFIER_CAP
         return await run_tracked_sync(db, "bootstrap-ids", limit=cap)
 
 

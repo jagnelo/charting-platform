@@ -114,7 +114,7 @@ POST /auth/change-password?old_password=OldPass123!&new_password=NewPass456!
 ## Instruments
 
 ### GET /instruments/{symbol}
-Retrieve an instrument by ticker symbol. If not in the database, the backend attempts to fetch metadata from yfinance and register it automatically.
+Retrieve an instrument by ticker symbol. If not in the database, the backend attempts to fetch metadata from the configured provider and register it automatically.
 
 **Response** `200 OK`
 ```json
@@ -132,14 +132,14 @@ Retrieve an instrument by ticker symbol. If not in the database, the backend att
 }
 ```
 
-**Errors** `404` symbol not found in yfinance
+**Errors** `404` symbol not found by the configured provider
 
 ---
 
 ## OHLCV Bars
 
 ### GET /ohlcv/{symbol}/{timeframe}
-Fetch OHLCV bars for a symbol and timeframe. Bars are served from the database cache; gaps are filled automatically from yfinance.
+Fetch OHLCV bars for a symbol and timeframe. Bars are served from the database cache; gaps are filled automatically from the configured market-data provider.
 
 **Timeframes:** `M1` `M5` `M15` `M30` `H1` `H2` `H4` `H12` `D1` `W1` `MN`
 

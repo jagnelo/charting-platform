@@ -26,7 +26,6 @@ from app.providers import (
     get_default_metadata_provider,
     provider_symbol_for_instrument,
 )
-from app.providers.yfinance import TF_MAX_LOOKBACK_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ def _get_or_create_datasource_sync(db):
 _get_or_create_datasource_async = _get_or_create_datasource
 
 
-def _ticker_for_instrument(instrument: Instrument) -> str:
+def resolve_provider_symbol_for_instrument(instrument: Instrument) -> str:
     return provider_symbol_for_instrument(instrument, settings.DEFAULT_MARKET_DATA_PROVIDER)
 
 
@@ -326,7 +325,7 @@ def _fetch_provider(
     datasource,
 ) -> list[OHLCVBar]:
     provider = get_default_market_data_provider()
-    provider_symbol = _ticker_for_instrument(instrument)
+    provider_symbol = resolve_provider_symbol_for_instrument(instrument)
     bars = provider.fetch_ohlcv(
         provider_symbol,
         timeframe,
@@ -393,7 +392,7 @@ async def fetch_ohlcv_latest(
         oldest_ts = min(b.ts for b in rows)
         if oldest_ts.tzinfo is None:
             oldest_ts = oldest_ts.replace(tzinfo=UTC)
-        repair_start = _latest_window_start(timeframe, limit)
+        repair_start = get_default_market_data_provider().latest_window_start(timeframe, limit)
         repair_end = oldest_ts - timedelta(seconds=1)
         if repair_end > repair_start:
             datasource = await _get_or_create_datasource(db)
@@ -548,7 +547,7 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
 def _fetch_provider_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
     """Fetch approximately `limit` recent bars from the configured provider when DB is cold."""
     provider = get_default_market_data_provider()
-    provider_symbol = _ticker_for_instrument(instrument)
+    provider_symbol = resolve_provider_symbol_for_instrument(instrument)
     bars = provider.fetch_latest_ohlcv(
         provider_symbol,
         timeframe,
@@ -560,23 +559,12 @@ def _fetch_provider_latest(instrument, timeframe, limit, adjusted, datasource) -
     return bars[-limit:] if len(bars) > limit else bars
 
 
-def _latest_window_start(timeframe: Timeframe, limit: int) -> datetime:
-    """Return a conservative start date for fetching approximately `limit` recent bars."""
-    tf_secs = TIMEFRAME_SECONDS.get(timeframe, 86400)
-    # Request 2× to account for weekends/holidays and sparse trading calendars.
-    days_needed = max(7, int(tf_secs * limit * 2 / 86400))
-    max_lookback = TF_MAX_LOOKBACK_DAYS.get(timeframe)
-    if max_lookback is not None:
-        days_needed = min(days_needed, max_lookback)
-    return datetime.now(UTC) - timedelta(days=days_needed)
-
-
-def get_current_price(ticker: str) -> float | None:
+def get_current_price(provider_symbol: str) -> float | None:
     provider = get_default_market_data_provider()
-    return provider.get_current_price(ticker)
+    return provider.get_current_price(provider_symbol)
 
 
-def search_ticker(query: str) -> list[dict]:
+def search_provider_instruments(query: str) -> list[dict]:
     provider = get_default_metadata_provider()
     return [
         {
@@ -589,9 +577,9 @@ def search_ticker(query: str) -> list[dict]:
     ]
 
 
-def get_instrument_info(ticker: str) -> dict:
+def get_provider_instrument_info(provider_symbol: str) -> dict:
     provider = get_default_metadata_provider()
-    profile = provider.get_instrument_profile(ticker)
+    profile = provider.get_instrument_profile(provider_symbol)
     if profile is None:
         return {}
     return profile.raw_payload or {}

@@ -29,7 +29,7 @@ from app.services.expression_engine import (
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import apply_profile_to_instrument
-from app.services.market_data import fetch_ohlcv_latest, search_ticker
+from app.services.market_data import fetch_ohlcv_latest, search_provider_instruments
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -66,7 +66,7 @@ async def search_instruments(
         for i in local
     ]
     if len(out) < 10:
-        provider_results = search_ticker(q)
+        provider_results = search_provider_instruments(q)
         existing = {r.symbol for r in out}
         for r in provider_results:
             if r["symbol"] not in existing:
@@ -962,7 +962,3 @@ async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | N
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)
 
-
-async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | None:
-    # Backward-compat alias for older call sites.
-    return await _create_from_provider(symbol, db)

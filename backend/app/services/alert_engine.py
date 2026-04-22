@@ -16,7 +16,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.services.indicators import OHLCVSeries, get_latest_value
-from app.services.market_data import _ticker_for_instrument, fetch_ohlcv, get_current_price
+from app.services.market_data import fetch_ohlcv, get_current_price, resolve_provider_symbol_for_instrument
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
 
@@ -220,7 +220,7 @@ async def run_alert_check():
             if not instrument:
                 continue
             await db.refresh(instrument, ["listings"])
-            ticker = _ticker_for_instrument(instrument)
+            ticker = resolve_provider_symbol_for_instrument(instrument)
             current_price = get_current_price(ticker)
             if current_price is None:
                 continue

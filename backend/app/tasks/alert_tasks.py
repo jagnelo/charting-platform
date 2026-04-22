@@ -12,7 +12,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.services import indicators as ind_engine
-from app.services.market_data import _ticker_for_instrument, get_current_price
+from app.services.market_data import get_current_price, resolve_provider_symbol_for_instrument
 from app.services.onesignal import send_alert_notification
 from app.websocket.manager import ws_manager
 
@@ -178,7 +178,7 @@ async def check_all_alerts(ctx: dict) -> dict:
                 instrument = await db.get(Instrument, iid)
                 if instrument is None:
                     continue
-                ticker = _ticker_for_instrument(instrument)
+                ticker = resolve_provider_symbol_for_instrument(instrument)
                 price = get_current_price(ticker)
                 if price is None:
                     continue

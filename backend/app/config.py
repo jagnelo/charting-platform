@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     PROXY_FILE: str = "proxies.txt"
     PROXY_ENABLED: bool = False
 
-    # yfinance universe maintenance
+    # Provider-backed universe maintenance
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
     DEFAULT_MARKET_DATA_PROVIDER: str = "yfinance"
     DEFAULT_METADATA_PROVIDER: str = "yfinance"
@@ -48,12 +48,12 @@ class Settings(BaseSettings):
     OPENFIGI_API_KEY: str = ""
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
-    YFINANCE_SCREENER_PAGE_DELAY_SECONDS: float = 0.75
-    YFINANCE_METADATA_DELAY_SECONDS: float = 1.0
-    YFINANCE_STABLE_ID_DELAY_SECONDS: float = 1.0
-    YFINANCE_DAILY_METADATA_CAP: int = 750
-    YFINANCE_DAILY_STABLE_ID_CAP: int = 250
-    YFINANCE_MAX_CONCURRENCY: int = 2
+    INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
+    INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
+    INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0
+    INSTRUMENT_DAILY_METADATA_CAP: int = 750
+    INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
+    PROVIDER_MAX_CONCURRENCY: int = 2
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

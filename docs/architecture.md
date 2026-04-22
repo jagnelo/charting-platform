@@ -22,7 +22,7 @@ asset_class (Equity, Fixed Income, Crypto, ...)
 
 exchange (MIC code, timezone, market hours)
 instrument_listing  (ticker per exchange — AAPL on NASDAQ vs XETR)
-data_source (yfinance, extensible)
+data_source (provider-backed, extensible)
 
 ohlcv_bar
   ├── instrument_id  (FK → instrument)
@@ -66,7 +66,7 @@ Backend: check DB for bars in range
            │ All bars present            │ Gaps or stale (>20 min)
            │ and fresh                   │
            ▼                             ▼
-    Return from DB             Fetch gaps from yfinance
+    Return from DB             Fetch gaps from provider
                                          │
                                Store new bars (upsert)
                                          │
@@ -82,7 +82,7 @@ The caching key is `(instrument_id, timeframe, ts, is_adjusted)`. The unique con
 The alert engine runs as an APScheduler job inside the FastAPI process (configurable interval, default 60s). On each tick:
 
 1. Load all `ACTIVE` price alerts from DB, grouped by instrument
-2. For each instrument, fetch current price from yfinance via `fast_info.last_price` (single ticker info call)
+2. For each instrument, fetch current price from the configured market-data provider
 3. Evaluate each alert's condition using `last_known_price` for crossing detection
 4. On trigger: update DB, send OneSignal push notification, broadcast WebSocket message
 5. Update `last_known_price` for all alerts (even those that didn't trigger)

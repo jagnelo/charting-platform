@@ -14,7 +14,7 @@ class InstrumentSyncRun(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     operation: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
-    source: Mapped[str] = mapped_column(String(50), nullable=False, default="yfinance", index=True)
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown", index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="running", index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
