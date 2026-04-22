@@ -4,10 +4,13 @@ Use `current_user = Depends(get_current_user)` on any protected endpoint.
 Use `Depends(require_admin)` for admin-only endpoints.
 """
 
+from inspect import isawaitable
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.auth.jwt import decode_token
 from app.database import get_db
@@ -18,7 +21,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession | Session = Depends(get_db),
 ) -> User:
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -33,7 +36,9 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
 
-    user = await db.get(User, user_id)
+    user = db.get(User, user_id)
+    if isawaitable(user):
+        user = await user
     if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive"

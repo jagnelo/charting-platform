@@ -71,7 +71,13 @@ class ScreenerDefinition(Base, TimestampMixin):
 
     universe_type: Mapped[str] = mapped_column(String(20), nullable=False, default="all")
     universe_watchlist_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("watchlist.id"), nullable=True
+        Integer,
+        ForeignKey(
+            "watchlist.id",
+            name="fk_screener_definition_universe_watchlist_id",
+            use_alter=True,
+        ),
+        nullable=True,
     )
     universe_asset_class_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("asset_class.id"), nullable=True

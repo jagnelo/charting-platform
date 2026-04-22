@@ -32,7 +32,14 @@ class Watchlist(Base, TimestampMixin):
     is_managed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     screener_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("screener_definition.id", ondelete="SET NULL"), nullable=True
+        Integer,
+        ForeignKey(
+            "screener_definition.id",
+            ondelete="SET NULL",
+            name="fk_watchlist_screener_id",
+            use_alter=True,
+        ),
+        nullable=True,
     )
     last_screener_run_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

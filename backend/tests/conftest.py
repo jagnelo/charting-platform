@@ -21,6 +21,44 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+
+class AsyncSessionAdapter:
+    """Small async facade so FastAPI async dependencies can use the sync test session."""
+
+    def __init__(self, session: Session):
+        self._session = session
+
+    async def execute(self, *args, **kwargs):
+        return self._session.execute(*args, **kwargs)
+
+    async def get(self, *args, **kwargs):
+        return self._session.get(*args, **kwargs)
+
+    async def commit(self):
+        self._session.commit()
+
+    async def rollback(self):
+        self._session.rollback()
+
+    async def flush(self, *args, **kwargs):
+        self._session.flush(*args, **kwargs)
+
+    async def refresh(self, *args, **kwargs):
+        self._session.refresh(*args, **kwargs)
+
+    async def delete(self, *args, **kwargs):
+        self._session.delete(*args, **kwargs)
+
+    def add(self, *args, **kwargs):
+        return self._session.add(*args, **kwargs)
+
+    def add_all(self, *args, **kwargs):
+        return self._session.add_all(*args, **kwargs)
+
+    def __getattr__(self, item):
+        return getattr(self._session, item)
+
+
 # ── Containers (session-scoped) ────────────────────────────────────────────────
 
 
@@ -101,8 +139,10 @@ def app(db, redis_url, monkeypatch):
 
     monkeypatch.setattr(settings, "REDIS_URL", redis_url)
 
+    async_db = AsyncSessionAdapter(db)
+
     def _override():
-        yield db
+        yield async_db
 
     _app.dependency_overrides[get_db] = _override
     yield _app
