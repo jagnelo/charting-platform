@@ -45,6 +45,8 @@ class Instrument(Base, TimestampMixin):
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     isin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    primary_identifier_type: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    primary_identifier_value: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
 
     # Synthetic/expression instruments
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -57,6 +59,14 @@ class Instrument(Base, TimestampMixin):
     price_alerts: Mapped[list["PriceAlert"]] = relationship(back_populates="instrument")
     indicator_alerts: Mapped[list["IndicatorAlert"]] = relationship(back_populates="instrument")
     events: Mapped[list["InstrumentEvent"]] = relationship(
+        back_populates="instrument",
+        cascade="all, delete-orphan",
+    )
+    identifiers: Mapped[list["InstrumentIdentifier"]] = relationship(
+        back_populates="instrument",
+        cascade="all, delete-orphan",
+    )
+    provider_symbols: Mapped[list["InstrumentProviderSymbol"]] = relationship(
         back_populates="instrument",
         cascade="all, delete-orphan",
     )

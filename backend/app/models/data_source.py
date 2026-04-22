@@ -21,6 +21,12 @@ class DataSource(Base, TimestampMixin):
     config: Mapped[dict] = mapped_column(JSON, nullable=True)  # API keys, headers, rate limits
 
     ohlcv_bars: Mapped[list["OHLCVBar"]] = relationship(back_populates="data_source")
+    instrument_identifiers: Mapped[list["InstrumentIdentifier"]] = relationship(
+        back_populates="data_source"
+    )
+    provider_symbols: Mapped[list["InstrumentProviderSymbol"]] = relationship(
+        back_populates="data_source"
+    )
 
     def __repr__(self) -> str:
         return f"<DataSource name={self.name}>"

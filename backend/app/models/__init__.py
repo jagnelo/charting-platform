@@ -8,8 +8,18 @@ from app.models.indicator_alert import IndicatorAlert, IndicatorAlertCondition
 from app.models.indicator_cache import IndicatorCache
 from app.models.indicator_preset import IndicatorPreset
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument, OptionDetail
+from app.models.instrument_event import (
+    EventTimeHint,
+    InstrumentEvent,
+    InstrumentEventFetchState,
+    InstrumentEventType,
+)
+from app.models.instrument_identity import (
+    InstrumentIdentifier,
+    InstrumentIdentifierType,
+    InstrumentProviderSymbol,
+)
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
-from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventFetchState, InstrumentEventType
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
@@ -28,7 +38,10 @@ __all__ = [
     "AssetClass",
     "InstrumentType",
     "Instrument",
+    "InstrumentIdentifier",
+    "InstrumentIdentifierType",
     "InstrumentIndicatorConfig",
+    "InstrumentProviderSymbol",
     "InstrumentEvent",
     "InstrumentEventFetchState",
     "InstrumentEventType",

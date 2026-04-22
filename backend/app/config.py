@@ -40,6 +40,14 @@ class Settings(BaseSettings):
 
     # yfinance universe maintenance
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
+    DEFAULT_MARKET_DATA_PROVIDER: str = "yfinance"
+    DEFAULT_METADATA_PROVIDER: str = "yfinance"
+    DEFAULT_EVENT_PROVIDER: str = "yfinance"
+    DEFAULT_DISCOVERY_PROVIDER: str = "yfinance"
+    IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["yfinance", "openfigi"]
+    OPENFIGI_API_KEY: str = ""
+    MARKETDATA_API_KEY: str = ""
+    FMP_API_KEY: str = ""
     YFINANCE_SCREENER_PAGE_DELAY_SECONDS: float = 0.75
     YFINANCE_METADATA_DELAY_SECONDS: float = 1.0
     YFINANCE_STABLE_ID_DELAY_SECONDS: float = 1.0
@@ -50,6 +58,13 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator("IDENTIFIER_PROVIDER_PRIORITY", mode="before")
+    @classmethod
+    def parse_identifier_provider_priority(cls, v):
         if isinstance(v, str):
             return json.loads(v)
         return v
