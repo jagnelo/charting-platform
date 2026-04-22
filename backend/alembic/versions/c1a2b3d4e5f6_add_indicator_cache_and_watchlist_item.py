@@ -54,11 +54,19 @@ def upgrade() -> None:
             sa.Column('position', sa.Integer(), nullable=False, server_default='0'),
             sa.Column('added_at', sa.DateTime(timezone=True), nullable=False),
             sa.Column('notes', sa.Text(), nullable=True),
+            sa.Column('left_screener_at', sa.DateTime(timezone=True), nullable=True),
             sa.ForeignKeyConstraint(['instrument_id'], ['instrument.id'], ondelete='CASCADE'),
             sa.ForeignKeyConstraint(['watchlist_id'], ['watchlist.id'], ondelete='CASCADE'),
             sa.PrimaryKeyConstraint('id'),
         )
         op.create_index('ix_watchlist_item_watchlist_id', 'watchlist_item', ['watchlist_id'])
+    else:
+        watchlist_item_cols = {c['name'] for c in inspector.get_columns('watchlist_item')}
+        if 'left_screener_at' not in watchlist_item_cols:
+            op.add_column(
+                'watchlist_item',
+                sa.Column('left_screener_at', sa.DateTime(timezone=True), nullable=True),
+            )
 
     if 'watchlist_instrument' in existing_tables:
         op.drop_table('watchlist_instrument')

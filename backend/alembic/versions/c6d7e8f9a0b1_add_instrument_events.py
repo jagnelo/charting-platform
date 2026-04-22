@@ -8,6 +8,7 @@ Create Date: 2026-04-17 00:00:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -22,25 +23,40 @@ def upgrade() -> None:
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
 
-    event_type = sa.Enum(
+    event_type = postgresql.ENUM(
         "EARNINGS",
         "EARNINGS_ESTIMATE",
         "DIVIDEND",
         "EX_DIVIDEND",
         "SPLIT",
         name="instrumenteventtype",
+        create_type=False,
     )
-    time_hint = sa.Enum(
+    time_hint = postgresql.ENUM(
         "PRE_MARKET",
         "POST_MARKET",
         "DURING_MARKET",
         "UNKNOWN",
         name="eventtimehint",
+        create_type=False,
     )
 
     if "instrument_event" not in tables:
-        event_type.create(bind, checkfirst=True)
-        time_hint.create(bind, checkfirst=True)
+        postgresql.ENUM(
+            "EARNINGS",
+            "EARNINGS_ESTIMATE",
+            "DIVIDEND",
+            "EX_DIVIDEND",
+            "SPLIT",
+            name="instrumenteventtype",
+        ).create(bind, checkfirst=True)
+        postgresql.ENUM(
+            "PRE_MARKET",
+            "POST_MARKET",
+            "DURING_MARKET",
+            "UNKNOWN",
+            name="eventtimehint",
+        ).create(bind, checkfirst=True)
         op.create_table(
             "instrument_event",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -126,5 +142,5 @@ def downgrade() -> None:
         op.drop_index("ix_instrument_event_instrument_id", table_name="instrument_event")
         op.drop_table("instrument_event")
 
-    sa.Enum(name="eventtimehint").drop(bind, checkfirst=True)
-    sa.Enum(name="instrumenteventtype").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="eventtimehint").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="instrumenteventtype").drop(bind, checkfirst=True)

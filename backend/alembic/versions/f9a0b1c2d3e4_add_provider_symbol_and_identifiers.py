@@ -7,8 +7,9 @@ Create Date: 2026-04-21 00:00:00.000000
 
 from typing import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+from alembic import op
 
 
 revision: str = "f9a0b1c2d3e4"
@@ -17,7 +18,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-identifier_type = sa.Enum(
+identifier_type = postgresql.ENUM(
     "ISIN",
     "FIGI",
     "COMPOSITE_FIGI",
@@ -26,6 +27,7 @@ identifier_type = sa.Enum(
     "LEI",
     "INTERNAL",
     name="instrumentidentifiertype",
+    create_type=False,
 )
 
 
@@ -34,7 +36,16 @@ def upgrade() -> None:
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
 
-    identifier_type.create(bind, checkfirst=True)
+    postgresql.ENUM(
+        "ISIN",
+        "FIGI",
+        "COMPOSITE_FIGI",
+        "CUSIP",
+        "SEDOL",
+        "LEI",
+        "INTERNAL",
+        name="instrumentidentifiertype",
+    ).create(bind, checkfirst=True)
 
     if "instrument" in tables:
         columns = {column["name"] for column in inspector.get_columns("instrument")}

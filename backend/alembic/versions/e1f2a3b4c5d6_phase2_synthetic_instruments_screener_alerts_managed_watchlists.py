@@ -17,6 +17,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+
     # ── instrument: add synthetic fields ─────────────────────────────────────
     op.add_column('instrument', sa.Column('is_synthetic', sa.Boolean(), nullable=False, server_default='false'))
     op.add_column('instrument', sa.Column('expression', sa.Text(), nullable=True))
@@ -57,7 +61,10 @@ def upgrade() -> None:
     op.add_column('watchlist', sa.Column('last_screener_run_at', sa.DateTime(timezone=True), nullable=True))
 
     # ── watchlist_item: grace-period tracking ────────────────────────────────
-    op.add_column('watchlist_item', sa.Column('left_screener_at', sa.DateTime(timezone=True), nullable=True))
+    if 'watchlist_item' in existing_tables:
+        watchlist_item_cols = {c['name'] for c in inspector.get_columns('watchlist_item')}
+        if 'left_screener_at' not in watchlist_item_cols:
+            op.add_column('watchlist_item', sa.Column('left_screener_at', sa.DateTime(timezone=True), nullable=True))
 
     # ── screener_alert table ─────────────────────────────────────────────────
     op.create_table(
@@ -78,7 +85,13 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('screener_alert')
-    op.drop_column('watchlist_item', 'left_screener_at')
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+    if 'watchlist_item' in existing_tables:
+        watchlist_item_cols = {c['name'] for c in inspector.get_columns('watchlist_item')}
+        if 'left_screener_at' in watchlist_item_cols:
+            op.drop_column('watchlist_item', 'left_screener_at')
     op.drop_column('watchlist', 'last_screener_run_at')
     op.drop_column('watchlist', 'screener_id')
     op.drop_column('watchlist', 'is_locked')
