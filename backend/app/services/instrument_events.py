@@ -19,11 +19,11 @@ from app.models.instrument_event import (
     InstrumentEventFetchState,
     InstrumentEventType,
 )
+from app.providers import get_default_event_provider
 
 logger = logging.getLogger(__name__)
 
-YFINANCE_EVENT_SOURCE = "yfinance"
-YFINANCE_EVENT_FETCH_VERSION = 2
+EVENT_FETCH_VERSION = 2
 _fetch_state_schema_checked = False
 
 
@@ -384,14 +384,15 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
     if instrument.is_synthetic:
         return 0
     await _ensure_fetch_state_schema(db)
+    provider = get_default_event_provider()
 
     events = await asyncio.get_event_loop().run_in_executor(
         None,
-        _fetch_yfinance_events_sync,
+        provider.fetch_instrument_events,
         instrument.symbol,
     )
-    fetched_at = max((event["fetched_at"] for event in events), default=datetime.now(UTC))
-    earnings_count = sum(1 for event in events if event["event_type"] in {
+    fetched_at = max((event.fetched_at for event in events), default=datetime.now(UTC))
+    earnings_count = sum(1 for event in events if event.event_type in {
         InstrumentEventType.EARNINGS,
         InstrumentEventType.EARNINGS_ESTIMATE,
     })
@@ -399,9 +400,23 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
     inserted = 0
     for event in events:
         values = {
-            **event,
+            "event_type": event.event_type,
+            "event_time": event.event_time,
+            "time_hint": event.time_hint,
+            "title": event.title,
+            "value": event.value,
+            "actual": event.actual,
+            "eps_estimate": event.eps_estimate,
+            "eps_actual": event.eps_actual,
+            "eps_surprise": event.eps_surprise,
+            "eps_surprise_pct": event.eps_surprise_pct,
+            "dividend_amount": event.dividend_amount,
+            "split_ratio": event.split_ratio,
+            "source_event_key": event.source_event_key,
+            "raw_payload": event.raw_payload,
+            "fetched_at": event.fetched_at,
             "instrument_id": instrument.id,
-            "source": YFINANCE_EVENT_SOURCE,
+            "source": provider.name,
             "currency": instrument.currency,
         }
         stmt = (
@@ -435,11 +450,11 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         pg_insert(InstrumentEventFetchState)
         .values(
             instrument_id=instrument.id,
-            source=YFINANCE_EVENT_SOURCE,
+            source=provider.name,
             fetched_at=fetched_at,
             event_count=len(events),
             earnings_count=earnings_count,
-            fetch_version=YFINANCE_EVENT_FETCH_VERSION,
+            fetch_version=EVENT_FETCH_VERSION,
         )
         .on_conflict_do_update(
             constraint="uq_instrument_event_fetch_state_source",
@@ -447,7 +462,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
                 "fetched_at": fetched_at,
                 "event_count": len(events),
                 "earnings_count": earnings_count,
-                "fetch_version": YFINANCE_EVENT_FETCH_VERSION,
+                "fetch_version": EVENT_FETCH_VERSION,
             },
         )
     )
@@ -465,15 +480,16 @@ async def ensure_instrument_events_loaded(
     if instrument.is_synthetic:
         return
     await _ensure_fetch_state_schema(db)
+    provider = get_default_event_provider()
     state = (
         await db.execute(
             select(InstrumentEventFetchState).where(
                 InstrumentEventFetchState.instrument_id == instrument.id,
-                InstrumentEventFetchState.source == YFINANCE_EVENT_SOURCE,
+                InstrumentEventFetchState.source == provider.name,
             )
         )
     ).scalar_one_or_none()
-    if refresh or state is None or state.fetch_version < YFINANCE_EVENT_FETCH_VERSION:
+    if refresh or state is None or state.fetch_version < EVENT_FETCH_VERSION:
         await fetch_and_store_instrument_events(db, instrument)
 
 

@@ -56,7 +56,7 @@ function createChartStore(storeId: string) {
         instrument.value = loaded
         return loaded
       } catch {
-        // Auto-creates from yfinance on first visit
+        // Auto-creates from the configured metadata provider on first visit
         instrument.value = null
         return null
       }

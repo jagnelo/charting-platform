@@ -87,9 +87,9 @@ async def _load_instrument(db: AsyncSession, symbol: str) -> Instrument:
         await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     ).scalar_one_or_none()
     if instrument is None:
-        from app.routers.instruments import _create_from_yfinance
+        from app.routers.instruments import _create_from_provider
 
-        instrument = await _create_from_yfinance(symbol.upper(), db)
+        instrument = await _create_from_provider(symbol.upper(), db)
     if instrument is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found")
     return instrument

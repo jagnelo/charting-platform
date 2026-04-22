@@ -1,4 +1,4 @@
-"""Scheduled/operator tasks for yfinance instrument universe maintenance."""
+"""Scheduled/operator tasks for provider-backed instrument universe maintenance."""
 
 import logging
 
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def seed_universe_task(ctx: dict) -> dict:
-    """Weekly broad yfinance discovery pass; cheap paginated screener calls only."""
+    """Weekly broad discovery pass using the configured universe provider."""
     async with AsyncSessionLocal() as db:
         return await run_tracked_sync(db, "seed-universe")
 
@@ -23,7 +23,7 @@ async def sync_instruments_task(ctx: dict, limit: int | None = None) -> dict:
 
 
 async def bootstrap_ids_task(ctx: dict, limit: int | None = None) -> dict:
-    """Daily capped stable identifier enrichment for instruments missing IDs."""
+    """Daily capped stable identifier enrichment for instruments missing external IDs."""
     async with AsyncSessionLocal() as db:
         cap = limit if limit is not None else settings.YFINANCE_DAILY_STABLE_ID_CAP
         return await run_tracked_sync(db, "bootstrap-ids", limit=cap)

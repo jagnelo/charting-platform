@@ -13,12 +13,12 @@ from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
-from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.providers import get_default_metadata_provider
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.expression_engine import (
@@ -28,7 +28,8 @@ from app.services.expression_engine import (
     normalize_expression,
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
-from app.services.market_data import fetch_ohlcv_latest, get_instrument_info, search_ticker
+from app.services.instrument_mastering import apply_profile_to_instrument
+from app.services.market_data import fetch_ohlcv_latest, search_ticker
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -65,9 +66,9 @@ async def search_instruments(
         for i in local
     ]
     if len(out) < 10:
-        yf_results = search_ticker(q)
+        provider_results = search_ticker(q)
         existing = {r.symbol for r in out}
-        for r in yf_results:
+        for r in provider_results:
             if r["symbol"] not in existing:
                 out.append(InstrumentSearchResult(**r))
     return out[:10]
@@ -291,7 +292,7 @@ async def resolve_expression(
     (e.g. 'SPY/GLD', '(SPY*0.5)/QQQ').
 
     - Normalises the expression to a canonical upper-case form.
-    - Verifies every constituent ticker exists (auto-creates from yfinance if needed).
+    - Verifies every constituent ticker exists (auto-creates from the configured provider if needed).
     - If a synthetic instrument with the same normalised expression already exists,
       returns the existing row.  Otherwise creates a new one.
     """
@@ -314,7 +315,7 @@ async def resolve_expression(
         )
         inst = result.scalar_one_or_none()
         if inst is None:
-            inst = await _create_from_yfinance(ticker, db)
+            inst = await _create_from_provider(ticker, db)
             if inst is None:
                 raise HTTPException(404, f"Constituent instrument '{ticker}' not found")
         constituents[ticker] = inst
@@ -798,7 +799,7 @@ async def get_instrument(
 
     created = False
     if instrument is None:
-        instrument = await _create_from_yfinance(symbol.upper(), db)
+        instrument = await _create_from_provider(symbol.upper(), db)
         if instrument is None:
             raise HTTPException(404, f"Instrument '{symbol}' not found")
         created = True
@@ -874,66 +875,10 @@ async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession)
     This is intentionally conservative: it only patches blank fields so user-visible
     catalogue data seeded earlier is not churned on every dashboard/widget load.
     """
-    info = get_instrument_info(instrument.symbol)
-    if not info:
+    profile = get_default_metadata_provider().get_instrument_profile(instrument.symbol)
+    if profile is None:
         return instrument
-
-    if instrument.currency is None and info.get("currency"):
-        instrument.currency = info.get("currency")
-    if not instrument.name or instrument.name == instrument.symbol:
-        instrument.name = info.get("longName") or info.get("shortName") or instrument.name
-    if not instrument.description and info.get("longBusinessSummary"):
-        instrument.description = info.get("longBusinessSummary")
-
-    quote_type = info.get("quoteType", "").upper()
-    if quote_type in ("EQUITY", "ETF"):
-        if instrument.equity_detail is None:
-            db.add(
-                EquityDetail(
-                    instrument_id=instrument.id,
-                    sector=info.get("sector"),
-                    industry=info.get("industry"),
-                    country=info.get("country"),
-                    exchange_mic=info.get("exchange"),
-                    website=info.get("website"),
-                )
-            )
-        else:
-            detail = instrument.equity_detail
-            if detail.sector is None and info.get("sector"):
-                detail.sector = info.get("sector")
-            if detail.industry is None and info.get("industry"):
-                detail.industry = info.get("industry")
-            if detail.country is None and info.get("country"):
-                detail.country = info.get("country")
-            if detail.exchange_mic is None and info.get("exchange"):
-                detail.exchange_mic = info.get("exchange")
-            if detail.website is None and info.get("website"):
-                detail.website = info.get("website")
-
-    stats_kwargs = {
-        "week52_high": info.get("fiftyTwoWeekHigh"),
-        "week52_low": info.get("fiftyTwoWeekLow"),
-        "avg_volume_30d": info.get("averageVolume") or info.get("averageDailyVolume10Day"),
-        "pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
-        "market_cap": info.get("marketCap"),
-        "beta": info.get("beta"),
-        "dividend_yield": info.get("dividendYield"),
-    }
-    if instrument.stats is None:
-        db.add(
-            InstrumentStats(
-                instrument_id=instrument.id,
-                computed_at=datetime.now(UTC),
-                **stats_kwargs,
-            )
-        )
-    else:
-        for field, value in stats_kwargs.items():
-            if value is not None and getattr(instrument.stats, field) is None:
-                setattr(instrument.stats, field, value)
-        instrument.stats.computed_at = datetime.now(UTC)
-
+    await apply_profile_to_instrument(db, profile, instrument=instrument)
     await db.flush()
     return await _reload_instrument_full(instrument.id, db)
 
@@ -1009,82 +954,15 @@ async def _enqueue_bulk_fetch(instrument_id: int):
         logging.getLogger(__name__).warning(f"Could not enqueue bulk fetch: {e}")
 
 
-async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | None:
-    info = get_instrument_info(symbol)
-    if not info:
+async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | None:
+    profile = get_default_metadata_provider().get_instrument_profile(symbol)
+    if profile is None:
         return None
-
-    quote_type = info.get("quoteType", "EQUITY").upper()
-    type_map = {
-        "EQUITY": ("Equity", "Stock"),
-        "ETF": ("Equity", "ETF"),
-        "FUTURE": ("Commodity", "Future"),
-        "OPTION": ("Derivative", "Option"),
-        "CURRENCY": ("Currency", "Forex Pair"),
-        "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
-        "INDEX": ("Index", "Index"),
-    }
-    ac_name, it_name = type_map.get(quote_type, ("Equity", "Stock"))
-
-    result = await db.execute(select(AssetClass).where(AssetClass.name == ac_name))
-    asset_class = result.scalar_one_or_none()
-    if asset_class is None:
-        asset_class = AssetClass(name=ac_name)
-        db.add(asset_class)
-        await db.flush()
-
-    result = await db.execute(select(InstrumentType).where(InstrumentType.name == it_name))
-    instr_type = result.scalar_one_or_none()
-    if instr_type is None:
-        instr_type = InstrumentType(name=it_name, asset_class_id=asset_class.id)
-        db.add(instr_type)
-        await db.flush()
-
-    instrument = Instrument(
-        symbol=symbol,
-        name=info.get("longName") or info.get("shortName") or symbol,
-        description=info.get("longBusinessSummary"),
-        currency=info.get("currency"),
-        instrument_type_id=instr_type.id,
-        is_active=True,
-    )
-    db.add(instrument)
-    await db.flush()
-
-    if quote_type in ("EQUITY", "ETF"):
-        db.add(
-            EquityDetail(
-                instrument_id=instrument.id,
-                sector=info.get("sector"),
-                industry=info.get("industry"),
-                country=info.get("country"),
-                exchange_mic=info.get("exchange"),
-                website=info.get("website"),
-            )
-        )
-
-    db.add(
-        InstrumentListing(
-            instrument_id=instrument.id,
-            ticker=symbol,
-            currency=info.get("currency"),
-            is_primary=True,
-            is_active=True,
-        )
-    )
-
-    # Populate stats from yfinance info
-    stats_kwargs = {
-        "week52_high": info.get("fiftyTwoWeekHigh"),
-        "week52_low": info.get("fiftyTwoWeekLow"),
-        "avg_volume_30d": info.get("averageVolume") or info.get("averageDailyVolume10Day"),
-        "pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
-        "market_cap": info.get("marketCap"),
-        "beta": info.get("beta"),
-        "dividend_yield": info.get("dividendYield"),
-    }
-    if any(v is not None for v in stats_kwargs.values()):
-        db.add(InstrumentStats(instrument_id=instrument.id, computed_at=datetime.now(UTC), **stats_kwargs))
-
+    instrument = await apply_profile_to_instrument(db, profile)
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)
+
+
+async def _create_from_yfinance(symbol: str, db: AsyncSession) -> Instrument | None:
+    # Backward-compat alias for older call sites.
+    return await _create_from_provider(symbol, db)

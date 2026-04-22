@@ -1,10 +1,10 @@
 """
-Market data service — async yfinance wrapper with local OHLCV cache.
+Market data service with a provider-agnostic cache boundary.
 
 Synthetic instruments (is_synthetic=True) are routed through the expression
-engine rather than fetched from yfinance.  Their OHLCV is computed from
-constituent bars and written to the standard ohlcv_bar table so the rest of
-the system (chart, alert, indicator, screener) reads them transparently.
+engine rather than fetched from an external provider. Their OHLCV is computed
+from constituent bars and written to the standard ohlcv_bar table so the rest
+of the system (chart, alert, indicator, screener) reads them transparently.
 """
 
 import logging
@@ -12,76 +12,45 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
-import pandas as pd
-import yfinance as yf
 from sqlalchemy import and_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.providers import (
+    ensure_data_source,
+    get_default_market_data_provider,
+    get_default_metadata_provider,
+    provider_symbol_for_instrument,
+)
+from app.providers.yfinance import TF_MAX_LOOKBACK_DAYS
 
 logger = logging.getLogger(__name__)
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
-TF_TO_YF: dict[Timeframe, str] = {
-    Timeframe.M1: "1m",
-    Timeframe.M5: "5m",
-    Timeframe.M15: "15m",
-    Timeframe.M30: "30m",
-    Timeframe.H1: "1h",
-    Timeframe.H2: "2h",
-    Timeframe.H4: "4h",
-    Timeframe.H12: "1h",
-    Timeframe.D1: "1d",
-    Timeframe.W1: "1wk",
-    Timeframe.MN: "1mo",
-}
-TF_MAX_LOOKBACK_DAYS: dict[Timeframe, int | None] = {
-    Timeframe.M1: 7,
-    Timeframe.M5: 60,
-    Timeframe.M15: 60,
-    Timeframe.M30: 60,
-    Timeframe.H1: 730,
-    Timeframe.H2: 730,
-    Timeframe.H4: 730,
-    Timeframe.H12: 730,
-    Timeframe.D1: None,
-    Timeframe.W1: None,
-    Timeframe.MN: None,
-}
-YFINANCE_SOURCE_NAME = "yfinance"
-
 
 async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
-    result = await db.execute(select(DataSource).where(DataSource.name == YFINANCE_SOURCE_NAME))
-    src = result.scalar_one_or_none()
-    if src is None:
-        src = DataSource(
-            name=YFINANCE_SOURCE_NAME,
-            base_url="https://finance.yahoo.com",
-            description="Yahoo Finance via yfinance",
-            is_active=True,
-        )
-        db.add(src)
-        await db.flush()
-    return src
+    provider = get_default_market_data_provider()
+    return await ensure_data_source(db, provider.name)
 
 
 # Sync version for alert engine (runs in thread)
 def _get_or_create_datasource_sync(db):
     from sqlalchemy import select as sa_select
 
+    provider = get_default_market_data_provider()
     src = db.execute(
-        sa_select(DataSource).where(DataSource.name == YFINANCE_SOURCE_NAME)
+        sa_select(DataSource).where(DataSource.name == provider.name)
     ).scalar_one_or_none()
     if src is None:
         src = DataSource(
-            name=YFINANCE_SOURCE_NAME,
-            base_url="https://finance.yahoo.com",
-            description="Yahoo Finance via yfinance",
+            name=provider.name,
+            base_url=provider.base_url,
+            description=provider.description,
             is_active=True,
         )
         db.add(src)
@@ -93,10 +62,7 @@ _get_or_create_datasource_async = _get_or_create_datasource
 
 
 def _ticker_for_instrument(instrument: Instrument) -> str:
-    for listing in instrument.listings:
-        if listing.is_primary and listing.is_active:
-            return listing.ticker
-    return instrument.symbol
+    return provider_symbol_for_instrument(instrument, settings.DEFAULT_MARKET_DATA_PROVIDER)
 
 
 async def recompute_synthetic_ohlcv(
@@ -129,7 +95,8 @@ async def recompute_synthetic_ohlcv(
     if not constituents:
         return []
 
-    # Fetch each constituent's bars for the timeframe, falling back to yfinance if DB is cold
+    # Fetch each constituent's bars for the timeframe, falling back to the configured
+    # market-data provider if the DB is cold.
     constituent_bars: dict[str, list[OHLCVBar]] = {}
     datasource = await _get_or_create_datasource(db)
     for c in constituents:
@@ -144,11 +111,11 @@ async def recompute_synthetic_ohlcv(
         )
         bars = list((await db.execute(stmt)).scalars().all())
         if not bars:
-            # DB is cold for this constituent — bootstrap from yfinance
+            # DB is cold for this constituent — bootstrap from the default provider.
             const_instr = await db.get(Instrument, c.constituent_instrument_id)
             if const_instr is not None:
                 await db.refresh(const_instr, ["listings"])
-                new_bars = _fetch_yfinance_latest(const_instr, timeframe, 500, True, datasource)
+                new_bars = _fetch_provider_latest(const_instr, timeframe, 500, True, datasource)
                 if new_bars:
                     try:
                         await db.execute(
@@ -261,7 +228,7 @@ async def fetch_ohlcv(
     end: datetime | None = None,
     adjusted: bool = True,
 ) -> list[OHLCVBar]:
-    # Synthetic instruments use computed OHLCV, not yfinance
+    # Synthetic instruments use computed OHLCV, not an external provider.
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         if end is None:
@@ -287,7 +254,7 @@ async def fetch_ohlcv(
     cached = list((await db.execute(stmt)).scalars().all())
 
     if _needs_fetch(cached, timeframe):
-        new_bars = _fetch_yfinance(
+        new_bars = _fetch_provider(
             instrument, timeframe, start, end, adjusted, await _get_or_create_datasource(db)
         )
         if new_bars:
@@ -350,47 +317,26 @@ def _needs_fetch(cached: list[OHLCVBar], timeframe: Timeframe) -> bool:
     return (datetime.now(UTC) - latest) > threshold
 
 
-def _fetch_yfinance(instrument, timeframe, start, end, adjusted, datasource) -> list[OHLCVBar]:
-    ticker_sym = _ticker_for_instrument(instrument)
-    yf_interval = TF_TO_YF.get(timeframe, "1d")
-    try:
-        t = yf.Ticker(ticker_sym)
-        yf_end = (end + timedelta(days=1)).strftime("%Y-%m-%d")
-        df = t.history(
-            start=start.strftime("%Y-%m-%d"),
-            end=yf_end,
-            interval=yf_interval,
-            auto_adjust=adjusted,
-            actions=False,
-        )
-    except Exception as e:
-        logger.error(f"yfinance fetch failed for {ticker_sym}: {e}")
-        return []
-
-    if df is None or df.empty:
-        return []
-
-    bars = []
-    for ts, row in df.iterrows():
-        if hasattr(ts, "tzinfo") and ts.tzinfo is None:
-            ts = ts.replace(tzinfo=UTC)
-        bars.append(
-            OHLCVBar(
-                instrument_id=instrument.id,
-                data_source_id=datasource.id,
-                timeframe=timeframe,
-                ts=ts,
-                open=Decimal(str(row["Open"])),
-                high=Decimal(str(row["High"])),
-                low=Decimal(str(row["Low"])),
-                close=Decimal(str(row["Close"])),
-                volume=Decimal(str(row["Volume"]))
-                if "Volume" in row and pd.notna(row["Volume"])
-                else None,
-                is_adjusted=adjusted,
-            )
-        )
-    logger.info(f"Fetched {len(bars)} bars for {ticker_sym} {timeframe.value}")
+def _fetch_provider(
+    instrument,
+    timeframe,
+    start,
+    end,
+    adjusted,
+    datasource,
+) -> list[OHLCVBar]:
+    provider = get_default_market_data_provider()
+    provider_symbol = _ticker_for_instrument(instrument)
+    bars = provider.fetch_ohlcv(
+        provider_symbol,
+        timeframe,
+        start,
+        end,
+        adjusted=adjusted,
+        instrument_id=instrument.id,
+        data_source_id=datasource.id,
+    )
+    logger.info("Fetched %d bars for %s %s via %s", len(bars), provider_symbol, timeframe.value, provider.name)
     return bars
 
 
@@ -401,7 +347,7 @@ async def fetch_ohlcv_latest(
     limit: int,
     adjusted: bool = True,
 ) -> list[OHLCVBar]:
-    """Return the most recent `limit` bars from the DB, refreshing from yfinance if stale.
+    """Return the most recent `limit` bars from the DB, refreshing from the configured provider if stale.
 
     For synthetic instruments the full computed series is returned (limit applied).
     """
@@ -422,8 +368,8 @@ async def fetch_ohlcv_latest(
     rows.sort(key=lambda b: b.ts)  # return chronological order
 
     if not rows:
-        # DB is cold — fetch the full recent window from yfinance
-        new_bars = _fetch_yfinance_latest(
+        # DB is cold — fetch the full recent window from the configured provider.
+        new_bars = _fetch_provider_latest(
             instrument, timeframe, limit, adjusted, await _get_or_create_datasource(db)
         )
         if new_bars:
@@ -451,7 +397,7 @@ async def fetch_ohlcv_latest(
         repair_end = oldest_ts - timedelta(seconds=1)
         if repair_end > repair_start:
             datasource = await _get_or_create_datasource(db)
-            repair_bars = _fetch_yfinance(
+            repair_bars = _fetch_provider(
                 instrument,
                 timeframe,
                 repair_start,
@@ -487,7 +433,7 @@ async def fetch_ohlcv_latest(
         if latest_ts.tzinfo is None:
             latest_ts = latest_ts.replace(tzinfo=UTC)
         datasource = await _get_or_create_datasource(db)
-        new_bars = _fetch_yfinance(
+        new_bars = _fetch_provider(
             instrument, timeframe, latest_ts, datetime.now(UTC), adjusted, datasource
         )
         if new_bars:
@@ -528,7 +474,7 @@ async def fetch_ohlcv_page_before(
     Return up to `limit` bars strictly before `before`.
 
     For synthetic instruments the full computed series is filtered instead of
-    hitting yfinance.
+    hitting the external provider.
     """
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
@@ -537,7 +483,7 @@ async def fetch_ohlcv_page_before(
 
     """
     DB-first: queries the local cache. If the DB has fewer rows than requested,
-    falls back to a live yfinance fetch for the missing historical range
+    falls back to a live provider fetch for the missing historical range
     (EPOCH → before), stores the results, then re-queries. This ensures
     pagination works correctly even when the background bulk fetch hasn't
     finished writing all historical bars yet.
@@ -561,7 +507,7 @@ async def fetch_ohlcv_page_before(
         # running, but fetching on-demand here is safe: the upsert uses
         # on_conflict_do_nothing so there are no duplicates.
         datasource = await _get_or_create_datasource(db)
-        fetched = _fetch_yfinance(instrument, timeframe, _EPOCH, before, adjusted, datasource)
+        fetched = _fetch_provider(instrument, timeframe, _EPOCH, before, adjusted, datasource)
         if fetched:
             try:
                 await db.execute(
@@ -599,10 +545,18 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
     }
 
 
-def _fetch_yfinance_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
-    """Fetch approximately `limit` recent bars from yfinance when DB is cold."""
-    start = _latest_window_start(timeframe, limit)
-    bars = _fetch_yfinance(instrument, timeframe, start, datetime.now(UTC), adjusted, datasource)
+def _fetch_provider_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
+    """Fetch approximately `limit` recent bars from the configured provider when DB is cold."""
+    provider = get_default_market_data_provider()
+    provider_symbol = _ticker_for_instrument(instrument)
+    bars = provider.fetch_latest_ohlcv(
+        provider_symbol,
+        timeframe,
+        limit,
+        adjusted=adjusted,
+        instrument_id=instrument.id,
+        data_source_id=datasource.id,
+    )
     return bars[-limit:] if len(bars) > limit else bars
 
 
@@ -618,40 +572,26 @@ def _latest_window_start(timeframe: Timeframe, limit: int) -> datetime:
 
 
 def get_current_price(ticker: str) -> float | None:
-    try:
-        t = yf.Ticker(ticker)
-        data = t.history(period="1d", interval="1m")
-        if data is not None and not data.empty:
-            return float(data["Close"].iloc[-1])
-        fi = t.fast_info
-        return float(fi.last_price) if hasattr(fi, "last_price") else None
-    except Exception as e:
-        logger.error(f"Failed to get price for {ticker}: {e}")
-        return None
+    provider = get_default_market_data_provider()
+    return provider.get_current_price(ticker)
 
 
 def search_ticker(query: str) -> list[dict]:
-    try:
-        results = yf.Search(query, max_results=10)
-        quotes = results.quotes if hasattr(results, "quotes") else []
-        return [
-            {
-                "symbol": q.get("symbol", ""),
-                "name": q.get("longname") or q.get("shortname", ""),
-                "exchange": q.get("exchange", ""),
-                "type": q.get("quoteType", ""),
-            }
-            for q in quotes
-            if q.get("symbol")
-        ]
-    except Exception as e:
-        logger.error(f"Ticker search failed for '{query}': {e}")
-        return []
+    provider = get_default_metadata_provider()
+    return [
+        {
+            "symbol": result.symbol,
+            "name": result.name,
+            "exchange": result.exchange,
+            "type": result.instrument_type,
+        }
+        for result in provider.search_instruments(query, limit=10)
+    ]
 
 
 def get_instrument_info(ticker: str) -> dict:
-    try:
-        return yf.Ticker(ticker).info or {}
-    except Exception as e:
-        logger.error(f"Failed to get info for {ticker}: {e}")
+    provider = get_default_metadata_provider()
+    profile = provider.get_instrument_profile(ticker)
+    if profile is None:
         return {}
+    return profile.raw_payload or {}

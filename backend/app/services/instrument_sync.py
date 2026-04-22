@@ -2,52 +2,42 @@
 Instrument sync service.
 
 Three responsibilities:
-  1. Seed:      Page through the yfinance screener for all supported quote
-                types globally, create Instrument + detail rows for every
-                result.  Metadata comes directly from screener response — no
-                per-ticker info calls.  Safe to re-run; existing symbols are
-                updated.
-  2. Bootstrap: Fetch stable identifiers (ISIN or compositeFIGI) for all
-                instruments already in the DB that don't have one yet.
-  3. Sync:      Detect delistings and update stale metadata (name, currency,
-                sector, industry, country, market-cap tier).
-
-Identifier resolution order (bootstrap):
-  1. yfinance Ticker.isin  — ISIN (12-char alphanumeric, gold standard)
-  2. OpenFIGI compositeFIGI — globally unique, immutable, good substitute
-  3. None — a rename whose final name bears no relation to the original is
-     treated as a delisting + new listing; no heuristics attempted.
-
-Quote-type → AssetClass / InstrumentType taxonomy:
-  EQUITY       → Equity / Stock
-  ETF          → Equity / ETF
-  MUTUALFUND   → Equity / Mutual Fund
-  INDEX        → Index  / Index
-  CURRENCY     → Currency / Forex Pair    (symbol like "EURUSD=X")
-  CRYPTOCURRENCY → Cryptocurrency / Crypto Spot
-  FUTURE       → Commodity / Future
+  1. Seed:      Page through the configured discovery provider's universe and
+                create/update Instrument rows.
+  2. Bootstrap: Fetch stable identifiers for instruments that still lack one.
+  3. Sync:      Refresh metadata for active instruments through the configured
+                metadata provider.
 """
 
 import asyncio
-import json
 import logging
 from datetime import UTC, datetime
 
-import httpx
-import yfinance as yf
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
+from app.models.instrument_identity import InstrumentIdentifier
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
+from app.providers import (
+    get_default_discovery_provider,
+    get_default_metadata_provider,
+    get_identifier_provider_chain,
+)
+from app.providers.base import IdentifierRecord
+from app.providers.openfigi import OpenFigiIdentifierProvider
+from app.services.instrument_mastering import (
+    apply_profile_to_instrument,
+    ensure_internal_identifier,
+    register_identifier,
+    register_provider_symbol,
+)
 
 logger = logging.getLogger(__name__)
-
-OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
 
 # Caps concurrent outbound calls to external APIs platform-wide.
 _ISIN_SEMAPHORE = asyncio.Semaphore(settings.YFINANCE_MAX_CONCURRENCY)
@@ -118,12 +108,11 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
 
 
 def _yfinance_isin_sync(symbol: str) -> str | None:
-    try:
-        val = yf.Ticker(symbol).isin
-        return val if val and val not in ("-", "None", "") else None
-    except Exception as exc:
-        logger.debug("yfinance ISIN fetch failed for %s: %s", symbol, exc)
-        return None
+    provider = get_default_metadata_provider()
+    for identifier in provider.fetch_stable_identifiers(symbol):
+        if identifier.identifier_type.upper() == "ISIN":
+            return identifier.identifier_value
+    return None
 
 
 async def _yfinance_isin(symbol: str) -> str | None:
@@ -132,95 +121,39 @@ async def _yfinance_isin(symbol: str) -> str | None:
 
 
 async def _openfigi_figi(symbol: str) -> str | None:
-    """
-    Fetch compositeFIGI from OpenFIGI for *symbol*.
-
-    OpenFIGI's free tier: 25 req/min without an API key.
-    We store the compositeFIGI in the isin column because it is equally
-    stable and immutable — it just isn't technically an ISIN.
-    """
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                OPENFIGI_URL,
-                json=[{"idType": "TICKER", "idValue": symbol}],
-                headers={"Content-Type": "application/json"},
-            )
-        if resp.status_code != 200:
-            return None
-        data = resp.json()
-        if data and isinstance(data, list) and data[0].get("data"):
-            return data[0]["data"][0].get("compositeFIGI")
-    except Exception as exc:
-        logger.debug("OpenFIGI lookup failed for %s: %s", symbol, exc)
+    identifiers = await OpenFigiIdentifierProvider().map_ticker(symbol)
+    for identifier in identifiers:
+        if identifier.identifier_type.upper() == "COMPOSITE_FIGI":
+            return identifier.identifier_value
     return None
 
 
 async def fetch_stable_id(symbol: str) -> str | None:
-    """Return a stable immutable identifier for *symbol* (ISIN or FIGI)."""
-    isin = await _yfinance_isin(symbol)
-    if isin:
-        return isin
-    return await _openfigi_figi(symbol)
+    """Return a stable immutable identifier for *symbol* using the configured chain."""
+    for provider_name in get_identifier_provider_chain():
+        if provider_name == "yfinance":
+            identifier = await _yfinance_isin(symbol)
+            if identifier:
+                return identifier
+        elif provider_name == "openfigi":
+            identifier = await _openfigi_figi(symbol)
+            if identifier:
+                return identifier
+    return None
 
 
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
 
 def _fetch_yf_info_sync(symbol: str) -> dict:
-    try:
-        return yf.Ticker(symbol).info or {}
-    except Exception:
-        return {}
+    provider = get_default_metadata_provider()
+    profile = provider.get_instrument_profile(symbol)
+    return profile.raw_payload if profile and profile.raw_payload else {}
 
 
 def _screener_page_sync(quote_type: str, offset: int) -> dict:
-    """
-    Fetch one page from the yfinance global screener synchronously.
-
-    Returns the raw response dict with keys 'total' and 'quotes'.
-    Uses a broad percentchange filter to match all active listings.
-    """
-    body = {
-        "offset": offset,
-        "size": _YF_SCREENER_PAGE_SIZE,
-        "sortField": "ticker",
-        "sortType": "ASC",
-        "quoteType": quote_type,
-        "query": {
-            "operator": "AND",
-            "operands": [
-                {"operator": "gt", "operands": ["percentchange", -100]},
-            ],
-        },
-    }
-
-    try:
-        from yfinance import Screener  # type: ignore[attr-defined]
-
-        s = Screener()
-        s.set_body(body)
-        return s.response or {}
-    except Exception:
-        pass
-
-    try:
-        from yfinance.data import YfData
-        from yfinance.screener.screener import _SCREENER_URL_
-
-        params = {"corsDomain": "finance.yahoo.com", "formatted": "false", "lang": "en-US", "region": "US"}
-        response = YfData().post(
-            _SCREENER_URL_,
-            data=json.dumps(body, separators=(",", ":"), ensure_ascii=False),
-            params=params,
-        )
-        response.raise_for_status()
-        return response.json()["finance"]["result"][0]
-    except Exception as exc:
-        logger.debug(
-            "yfinance screener page failed (type=%s offset=%d): %s", quote_type, offset, exc
-        )
-        return {}
+    provider = get_default_discovery_provider()
+    return provider.discover_universe_page(quote_type, offset)
 
 
 def _parse_forex_pair(symbol: str) -> tuple[str, str] | None:
@@ -312,11 +245,11 @@ async def _upsert_stats(db: AsyncSession, instrument: Instrument, q: dict) -> No
 async def seed_universe(db: AsyncSession) -> dict:
     """
     Idempotent bootstrap of the full global instrument universe via the
-    yfinance screener.
+    configured discovery provider.
 
     For every quote type in _YF_QUOTE_TYPES the screener is paged in batches
-    of 250.  Each page response contains all the metadata needed (name, sector,
-    industry, country, exchange, currency, marketCap) so no per-ticker info
+    of 250. Each page response contains all the metadata needed (name, sector,
+    industry, country, exchange, currency, marketCap) so no per-instrument info
     call is required — the whole universe is seeded quickly and covers global
     markets (US, EU, Asia, etc.).
 
@@ -399,7 +332,18 @@ async def seed_universe(db: AsyncSession) -> dict:
                     inst.is_active = True
 
                 await _upsert_listing(db, inst, symbol, currency)
+                await register_provider_symbol(
+                    db,
+                    inst,
+                    get_default_discovery_provider().name,
+                    symbol,
+                    provider_exchange_code=exchange,
+                    provider_instrument_type=quote_type,
+                    currency=currency,
+                    is_primary=True,
+                )
                 await _upsert_stats(db, inst, q)
+                await ensure_internal_identifier(db, inst)
 
                 # ── Detail rows ──────────────────────────────────────────────
                 if quote_type in _EQUITY_DETAIL_TYPES:
@@ -477,13 +421,14 @@ async def seed_universe(db: AsyncSession) -> dict:
 
 async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
     """
-    Populate the isin column for every active instrument that doesn't have one.
+    Populate the primary stable identifier for every active instrument that doesn't have one.
 
     Rate-limited via _ISIN_SEMAPHORE + a small sleep between calls.
     Safe to run multiple times — already-populated rows are skipped.
     """
     stmt = select(Instrument).where(
-        Instrument.isin.is_(None),
+        (Instrument.primary_identifier_value.is_(None))
+        | (Instrument.primary_identifier_type == "internal"),
         Instrument.is_active.is_(True),
         Instrument.is_synthetic.is_(False),
     )
@@ -508,9 +453,9 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
 
         # Check for conflicts — another instrument already holds this ID
         conflict = await db.execute(
-            select(Instrument).where(
-                Instrument.isin == stable_id,
-                Instrument.id != inst.id,
+            select(InstrumentIdentifier).where(
+                InstrumentIdentifier.identifier_value == stable_id,
+                InstrumentIdentifier.instrument_id != inst.id,
             )
         )
         if conflict.scalar_one_or_none() is not None:
@@ -522,7 +467,18 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
             skipped += 1
             continue
 
-        inst.isin = stable_id
+        identifier_type = "ISIN" if len(stable_id) == 12 and stable_id[:2].isalpha() else "COMPOSITE_FIGI"
+        await register_identifier(
+            db,
+            inst,
+            "yfinance" if identifier_type == "ISIN" else "openfigi",
+            IdentifierRecord(
+                identifier_type=identifier_type,
+                identifier_value=stable_id,
+                is_primary=True,
+            ),
+        )
+        await ensure_internal_identifier(db, inst)
         updated += 1
 
         if (updated + skipped) % 50 == 0:
@@ -544,10 +500,7 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
 
 async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     """
-    Refresh metadata for all active instruments and mark delistings.
-
-    Updates Instrument (name, currency) and EquityDetail (sector, industry,
-    country, exchange_mic, market_cap_tier) from yfinance.
+    Refresh metadata for all active instruments via the configured metadata provider.
 
     Matching strategy (in order):
       1. Instruments with an isin: match by isin.  A symbol change updates
@@ -562,7 +515,7 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
         .outerjoin(InstrumentStats, InstrumentStats.instrument_id == Instrument.id)
         .where(
             Instrument.is_active.is_(True),
-            Instrument.is_synthetic.is_(False),  # synthetics don't have yfinance data
+            Instrument.is_synthetic.is_(False),
         )
         .order_by(InstrumentStats.computed_at.nullsfirst(), Instrument.updated_at, Instrument.id)
     )
@@ -577,16 +530,21 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     for inst in instruments:
         loop = asyncio.get_event_loop()
         async with _FETCH_SEMAPHORE:
-            info = await loop.run_in_executor(None, _fetch_yf_info_sync, inst.symbol)
+            profile = await loop.run_in_executor(
+                None,
+                get_default_metadata_provider().get_instrument_profile,
+                inst.symbol,
+            )
             await asyncio.sleep(settings.YFINANCE_METADATA_DELAY_SECONDS)
 
-        if not info:
+        if profile is None:
             continue
+        info = profile.raw_payload or {}
 
         has_price = (
-            info.get("regularMarketPrice") is not None
-            or info.get("currentPrice") is not None
-            or info.get("previousClose") is not None
+            profile.extra.get("regular_market_price") is not None
+            or profile.extra.get("current_price") is not None
+            or profile.extra.get("previous_close") is not None
         )
         if not has_price:
             logger.info("No price data for %s — may be delisted", inst.symbol)
@@ -604,8 +562,8 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
             changed = True
 
         await db.flush()
-        await _upsert_listing(db, inst, inst.symbol, info.get("currency"))
-        await _upsert_stats(db, inst, info)
+        await apply_profile_to_instrument(db, profile, instrument=inst)
+        await ensure_internal_identifier(db, inst)
 
         quote_type = (info.get("quoteType") or "").upper()
         if quote_type in {"EQUITY", "ETF", "MUTUALFUND", "INDEX", ""}:
@@ -691,7 +649,13 @@ async def run_tracked_sync(
     """Run an instrument maintenance operation and persist an audit record."""
     run = InstrumentSyncRun(
         operation=operation,
-        source="yfinance",
+        source=(
+            get_default_discovery_provider().name
+            if operation == "seed-universe"
+            else ",".join(get_identifier_provider_chain())
+            if operation == "bootstrap-ids"
+            else get_default_metadata_provider().name
+        ),
         status="running",
         started_at=datetime.now(UTC),
     )

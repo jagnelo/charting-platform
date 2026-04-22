@@ -2,7 +2,7 @@
 Bulk historical data fetcher.
 
 Pulls the maximum available OHLCV history for an instrument from the configured
-data source and stores it in the local DB for all supported timeframes.
+provider and stores it in the local DB for all supported timeframes.
 
 Design principles:
   - Source-agnostic: no hardcoded "30 year" or "yfinance limit" assumptions.
@@ -20,22 +20,15 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
-from decimal import Decimal
 from typing import Any
 
-import pandas as pd
-import yfinance as yf
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.services.market_data import (
-    TF_TO_YF,
-    YFINANCE_SOURCE_NAME,
-    _ticker_for_instrument,
-)
+from app.providers import ensure_data_source, get_default_market_data_provider
+from app.services.market_data import _ticker_for_instrument
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +84,8 @@ async def bulk_fetch_instrument(
         timeframes = BULK_FETCH_TIMEFRAMES
 
     ticker_sym = _ticker_for_instrument(instrument)
-    datasource = await _get_or_create_datasource(db)
+    provider = get_default_market_data_provider()
+    datasource = await ensure_data_source(db, provider.name)
     summary: dict[str, Any] = {}
 
     await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
@@ -165,14 +159,12 @@ async def _fetch_one_timeframe(
     datasource_id: int,
     adjusted: bool,
 ) -> int | str:
-    yf_interval = TF_TO_YF.get(timeframe, "1d")
     try:
         return await _do_fetch_and_store(
             db=db,
             instrument=instrument,
             ticker_sym=ticker_sym,
             timeframe=timeframe,
-            yf_interval=yf_interval,
             datasource_id=datasource_id,
             adjusted=adjusted,
         )
@@ -186,33 +178,32 @@ async def _do_fetch_and_store(
     instrument: Instrument,
     ticker_sym: str,
     timeframe: Timeframe,
-    yf_interval: str,
     datasource_id: int,
     adjusted: bool,
 ) -> int:
     """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
-    ticker = yf.Ticker(ticker_sym)
-
-    df = ticker.history(
-        start=EPOCH_START.strftime("%Y-%m-%d"),
-        interval=yf_interval,
-        auto_adjust=adjusted,
-        actions=False,
+    provider = get_default_market_data_provider()
+    bars = provider.fetch_ohlcv(
+        ticker_sym,
+        timeframe,
+        EPOCH_START,
+        datetime.now(UTC),
+        adjusted=adjusted,
+        instrument_id=instrument.id,
+        data_source_id=datasource_id,
     )
-
-    if df is None or df.empty:
+    if not bars:
         return 0
 
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
 
     new_bars: list[OHLCVBar] = []
-    for ts, row in df.iterrows():
-        ts_utc = _to_utc(ts)
+    for bar in bars:
+        ts_utc = _to_utc(bar.ts)
         if ts_utc in existing_ts:
             continue
-        bar = _make_bar(row, instrument.id, datasource_id, timeframe, ts_utc, adjusted)
-        if bar is not None:
-            new_bars.append(bar)
+        bar.ts = ts_utc
+        new_bars.append(bar)
 
     if new_bars:
         db.add_all(new_bars)
@@ -231,34 +222,6 @@ async def _existing_timestamps(
     )
     rows = (await db.execute(stmt)).scalars().all()
     return {_to_utc(ts) for ts in rows}
-
-
-def _make_bar(
-    row: Any,
-    instrument_id: int,
-    datasource_id: int,
-    timeframe: Timeframe,
-    ts_utc: datetime,
-    adjusted: bool,
-) -> OHLCVBar | None:
-    try:
-        return OHLCVBar(
-            instrument_id=instrument_id,
-            data_source_id=datasource_id,
-            timeframe=timeframe,
-            ts=ts_utc,
-            open=Decimal(str(row["Open"])),
-            high=Decimal(str(row["High"])),
-            low=Decimal(str(row["Low"])),
-            close=Decimal(str(row["Close"])),
-            volume=(
-                Decimal(str(row["Volume"])) if "Volume" in row and pd.notna(row["Volume"]) else None
-            ),
-            is_adjusted=adjusted,
-        )
-    except Exception as e:
-        logger.debug(f"Skipping malformed bar at {ts_utc}: {e}")
-        return None
 
 
 def _to_utc(ts: Any) -> datetime:
@@ -309,22 +272,3 @@ async def _publish_progress(
         await redis.set(key, payload, ex=_REDIS_TTL_SECONDS)
     except Exception as e:
         logger.warning(f"Could not write fetch progress to Redis: {e}")
-
-
-async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
-    result = await db.execute(select(DataSource).where(DataSource.name == YFINANCE_SOURCE_NAME))
-    src = result.scalar_one_or_none()
-    if src is None:
-        src = DataSource(
-            name=YFINANCE_SOURCE_NAME,
-            base_url="https://finance.yahoo.com",
-            description="Yahoo Finance via yfinance",
-            is_active=True,
-        )
-        db.add(src)
-        await db.flush()
-    return src
-
-
-# Backward-compat alias
-_get_or_create_datasource_async = _get_or_create_datasource
