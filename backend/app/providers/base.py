@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -71,15 +71,47 @@ class InstrumentEventRecord:
     raw_payload: str | None = None
 
 
-class MarketDataProvider(Protocol):
+@dataclass(slots=True)
+class OptionContractRecord:
+    provider_symbol: str
+    underlying_symbol: str
+    expiry_date: date
+    strike: Decimal
+    right: str
+    currency: str | None = None
+    contract_size: Decimal | None = None
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    last_price: Decimal | None = None
+    volume: Decimal | None = None
+    open_interest: Decimal | None = None
+    implied_vol: Decimal | None = None
+    delta: Decimal | None = None
+    gamma: Decimal | None = None
+    theta: Decimal | None = None
+    vega: Decimal | None = None
+    raw_payload: dict[str, Any] | None = None
+
+
+@runtime_checkable
+class ProviderDescriptor(Protocol):
     name: str
     base_url: str | None
     description: str | None
 
+
+@runtime_checkable
+class InstrumentSearchProvider(ProviderDescriptor, Protocol):
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]: ...
 
+
+@runtime_checkable
+class InstrumentMetadataProvider(ProviderDescriptor, Protocol):
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None: ...
 
+
+@runtime_checkable
+class PriceHistoryProvider(ProviderDescriptor, Protocol):
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -92,6 +124,55 @@ class MarketDataProvider(Protocol):
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]: ...
 
+    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime: ...
+
+
+@runtime_checkable
+class LatestPriceProvider(ProviderDescriptor, Protocol):
+    def get_current_price(self, symbol: str) -> float | None: ...
+
+
+@runtime_checkable
+class EventProvider(ProviderDescriptor, Protocol):
+    def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]: ...
+
+
+@runtime_checkable
+class IdentifierProvider(ProviderDescriptor, Protocol):
+    def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]: ...
+
+
+@runtime_checkable
+class DiscoveryProvider(ProviderDescriptor, Protocol):
+    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]: ...
+
+    def supported_discovery_types(self) -> list[str]: ...
+
+
+@runtime_checkable
+class OptionChainProvider(ProviderDescriptor, Protocol):
+    def list_option_expirations(self, symbol: str) -> list[date]: ...
+
+    def fetch_option_chain(
+        self,
+        symbol: str,
+        *,
+        expiration: date | None = None,
+    ) -> list[OptionContractRecord]: ...
+
+
+class MarketDataProvider(
+    InstrumentSearchProvider,
+    InstrumentMetadataProvider,
+    PriceHistoryProvider,
+    LatestPriceProvider,
+    EventProvider,
+    IdentifierProvider,
+    DiscoveryProvider,
+    Protocol,
+):
+    """Convenience composite used by all-in-one providers such as yfinance."""
+
     def fetch_latest_ohlcv(
         self,
         symbol: str,
@@ -102,15 +183,3 @@ class MarketDataProvider(Protocol):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]: ...
-
-    def get_current_price(self, symbol: str) -> float | None: ...
-
-    def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]: ...
-
-    def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]: ...
-
-    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]: ...
-
-    def supported_discovery_types(self) -> list[str]: ...
-
-    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime: ...

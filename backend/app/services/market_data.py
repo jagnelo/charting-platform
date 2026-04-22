@@ -24,6 +24,8 @@ from app.providers import (
     ensure_data_source,
     get_default_market_data_provider,
     get_default_metadata_provider,
+    get_default_quote_provider,
+    get_default_search_provider,
     provider_symbol_for_instrument,
 )
 
@@ -560,12 +562,12 @@ def _fetch_provider_latest(instrument, timeframe, limit, adjusted, datasource) -
 
 
 def get_current_price(provider_symbol: str) -> float | None:
-    provider = get_default_market_data_provider()
+    provider = get_default_quote_provider()
     return provider.get_current_price(provider_symbol)
 
 
 def search_provider_instruments(query: str) -> list[dict]:
-    provider = get_default_metadata_provider()
+    provider = get_default_search_provider()
     return [
         {
             "symbol": result.symbol,

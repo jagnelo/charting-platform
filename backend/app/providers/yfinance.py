@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -16,6 +16,7 @@ from app.providers.base import (
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
+    OptionContractRecord,
     ProviderSearchResult,
 )
 
@@ -568,6 +569,74 @@ class YFinanceProvider:
                 )
             )
         return identifiers
+
+    def list_option_expirations(self, symbol: str) -> list[date]:
+        try:
+            expirations = yf.Ticker(symbol).options or []
+        except Exception as exc:
+            logger.debug("yfinance option expirations fetch failed for %s: %s", symbol, exc)
+            return []
+
+        parsed: list[date] = []
+        for expiration in expirations:
+            try:
+                parsed.append(date.fromisoformat(str(expiration)))
+            except ValueError:
+                continue
+        return parsed
+
+    def fetch_option_chain(
+        self,
+        symbol: str,
+        *,
+        expiration: date | None = None,
+    ) -> list[OptionContractRecord]:
+        expirations = self.list_option_expirations(symbol)
+        if expiration is None:
+            if not expirations:
+                return []
+            expiration = expirations[0]
+
+        try:
+            chain = yf.Ticker(symbol).option_chain(expiration.isoformat())
+        except Exception as exc:
+            logger.debug(
+                "yfinance option chain fetch failed for %s %s: %s",
+                symbol,
+                expiration.isoformat(),
+                exc,
+            )
+            return []
+
+        contracts: list[OptionContractRecord] = []
+        for side_name, right in (("calls", "call"), ("puts", "put")):
+            frame = getattr(chain, side_name, None)
+            if frame is None or frame.empty:
+                continue
+            for _, row in frame.iterrows():
+                row_dict = row.to_dict()
+                provider_symbol = str(row_dict.get("contractSymbol") or "")
+                if not provider_symbol:
+                    continue
+                contracts.append(
+                    OptionContractRecord(
+                        provider_symbol=provider_symbol,
+                        underlying_symbol=symbol,
+                        expiry_date=expiration,
+                        strike=_safe_decimal(row_dict.get("strike")) or Decimal("0"),
+                        right=right,
+                        currency=row_dict.get("currency"),
+                        contract_size=_safe_decimal(row_dict.get("contractSize")),
+                        bid=_safe_decimal(row_dict.get("bid")),
+                        ask=_safe_decimal(row_dict.get("ask")),
+                        last_price=_safe_decimal(row_dict.get("lastPrice")),
+                        volume=_safe_decimal(row_dict.get("volume")),
+                        open_interest=_safe_decimal(row_dict.get("openInterest")),
+                        implied_vol=_safe_decimal(row_dict.get("impliedVolatility")),
+                        raw_payload={k: _jsonable(v) for k, v in row_dict.items()},
+                    )
+                )
+        return contracts
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         body = {

@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instrument
-from app.models.instrument_identity import InstrumentIdentifier
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
@@ -27,14 +26,11 @@ from app.providers import (
     get_default_discovery_provider,
     get_default_metadata_provider,
     get_identifier_provider_chain,
-    get_provider,
 )
-from app.providers.base import IdentifierRecord
-from app.providers.openfigi import OpenFigiIdentifierProvider
 from app.services.instrument_mastering import (
     apply_profile_to_instrument,
+    ensure_external_identifier,
     ensure_internal_identifier,
-    register_identifier,
     register_provider_symbol,
 )
 
@@ -101,59 +97,7 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
     return it.id
 
 
-# ── Identifier fetchers ───────────────────────────────────────────────────────
-
-
-def _provider_isin_sync(symbol: str) -> str | None:
-    provider = get_default_metadata_provider()
-    for identifier in provider.fetch_stable_identifiers(symbol):
-        if identifier.identifier_type.upper() == "ISIN":
-            return identifier.identifier_value
-    return None
-
-
-async def _provider_isin(symbol: str) -> str | None:
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _provider_isin_sync, symbol)
-
-
-async def _openfigi_figi(symbol: str) -> str | None:
-    identifiers = await OpenFigiIdentifierProvider().map_ticker(symbol)
-    for identifier in identifiers:
-        if identifier.identifier_type.upper() == "COMPOSITE_FIGI":
-            return identifier.identifier_value
-    return None
-
-
-async def fetch_stable_id(symbol: str) -> str | None:
-    """Return a stable immutable identifier for *symbol* using the configured chain."""
-    for provider_name in get_identifier_provider_chain():
-        if provider_name == "openfigi":
-            identifier = await _openfigi_figi(symbol)
-            if identifier:
-                return identifier
-            continue
-
-        try:
-            provider = get_provider(provider_name)
-        except KeyError:
-            continue
-
-        identifiers = provider.fetch_stable_identifiers(symbol)
-        if not identifiers:
-            continue
-        primary = next((item for item in identifiers if item.is_primary), identifiers[0])
-        return primary.identifier_value
-    return None
-
-
 # ── Seed ──────────────────────────────────────────────────────────────────────
-
-
-def _fetch_provider_profile_sync(symbol: str) -> dict:
-    provider = get_default_metadata_provider()
-    profile = provider.get_instrument_profile(symbol)
-    return profile.raw_payload if profile and profile.raw_payload else {}
 
 
 def _screener_page_sync(quote_type: str, offset: int) -> dict:
@@ -241,9 +185,16 @@ async def _upsert_stats(db: AsyncSession, instrument: Instrument, q: dict) -> No
         stats = InstrumentStats(instrument_id=instrument.id)
         db.add(stats)
 
+    provenance = dict(stats.field_provenance or {})
     for attr, value in stats_values.items():
         if value is not None:
             setattr(stats, attr, value)
+            provenance[attr] = {
+                "source": get_default_discovery_provider().name,
+                "fetched_at": datetime.now(UTC).isoformat(),
+                "provider_symbol": instrument.symbol,
+            }
+    stats.field_provenance = provenance or None
     stats.computed_at = datetime.now(UTC)
 
 
@@ -314,6 +265,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                 name = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
                 currency = q.get("currency")
                 exchange = q.get("exchange") or q.get("fullExchangeName")
+                fetched_at = datetime.now(UTC)
 
                 inst = existing.get(symbol)
                 if inst is None:
@@ -335,6 +287,26 @@ async def seed_universe(db: AsyncSession) -> dict:
                         inst.currency = currency
                     inst.instrument_type_id = type_id
                     inst.is_active = True
+
+                provenance = dict(inst.field_provenance or {})
+                provenance["symbol"] = {
+                    "source": get_default_discovery_provider().name,
+                    "fetched_at": fetched_at.isoformat(),
+                    "provider_symbol": symbol,
+                }
+                if name:
+                    provenance["name"] = {
+                        "source": get_default_discovery_provider().name,
+                        "fetched_at": fetched_at.isoformat(),
+                        "provider_symbol": symbol,
+                    }
+                if currency:
+                    provenance["currency"] = {
+                        "source": get_default_discovery_provider().name,
+                        "fetched_at": fetched_at.isoformat(),
+                        "provider_symbol": symbol,
+                    }
+                inst.field_provenance = provenance
 
                 await _upsert_listing(db, inst, symbol, currency)
                 await register_provider_symbol(
@@ -366,6 +338,21 @@ async def seed_universe(db: AsyncSession) -> dict:
                     ed.country = q.get("country") or ed.country
                     ed.exchange_mic = exchange or ed.exchange_mic
                     ed.market_cap_tier = _cap_tier(q.get("marketCap")) or ed.market_cap_tier
+                    field_provenance = dict(ed.field_provenance or {})
+                    for field_name, value in [
+                        ("sector", q.get("sector") or q.get("sectorDisplay")),
+                        ("industry", q.get("industry") or q.get("industryDisplay")),
+                        ("country", q.get("country")),
+                        ("exchange_mic", exchange),
+                        ("market_cap_tier", _cap_tier(q.get("marketCap"))),
+                    ]:
+                        if value is not None:
+                            field_provenance[field_name] = {
+                                "source": get_default_discovery_provider().name,
+                                "fetched_at": fetched_at.isoformat(),
+                                "provider_symbol": symbol,
+                            }
+                    ed.field_provenance = field_provenance or None
 
                 elif quote_type == "CURRENCY":
                     pair = _parse_forex_pair(symbol)
@@ -382,6 +369,18 @@ async def seed_universe(db: AsyncSession) -> dict:
                                 quote_currency=pair[1],
                             )
                             db.add(fd)
+                        field_provenance = dict(fd.field_provenance or {})
+                        field_provenance["base_currency"] = {
+                            "source": get_default_discovery_provider().name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                        field_provenance["quote_currency"] = {
+                            "source": get_default_discovery_provider().name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                        fd.field_provenance = field_provenance
 
                 elif quote_type == "FUTURE":
                     fut = (
@@ -395,6 +394,20 @@ async def seed_universe(db: AsyncSession) -> dict:
 
                     fut.underlying_name = name or fut.underlying_name
                     fut.is_continuous = symbol.endswith("=F") or fut.is_continuous
+                    field_provenance = dict(fut.field_provenance or {})
+                    if name:
+                        field_provenance["underlying_name"] = {
+                            "source": get_default_discovery_provider().name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                    if symbol.endswith("=F"):
+                        field_provenance["is_continuous"] = {
+                            "source": get_default_discovery_provider().name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                    fut.field_provenance = field_provenance or None
 
                 # CRYPTOCURRENCY: no dedicated detail table yet; keep Instrument,
                 # listing, stats, currency, and OHLCV source identity.
@@ -449,40 +462,15 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
 
     for inst in instruments:
         async with _IDENTIFIER_SEMAPHORE:
-            stable_id = await fetch_stable_id(inst.symbol)
+            before_identifier = inst.primary_identifier_value
+            before_type = inst.primary_identifier_type
+            changed = await ensure_external_identifier(db, inst)
             await asyncio.sleep(settings.INSTRUMENT_IDENTIFIER_DELAY_SECONDS)
 
-        if not stable_id:
+        if not changed and inst.primary_identifier_value == before_identifier and inst.primary_identifier_type == before_type:
             skipped += 1
             continue
 
-        # Check for conflicts — another instrument already holds this ID
-        conflict = await db.execute(
-            select(InstrumentIdentifier).where(
-                InstrumentIdentifier.identifier_value == stable_id,
-                InstrumentIdentifier.instrument_id != inst.id,
-            )
-        )
-        if conflict.scalar_one_or_none() is not None:
-            logger.warning(
-                "ISIN conflict: %s already assigned, skipping %s",
-                stable_id,
-                inst.symbol,
-            )
-            skipped += 1
-            continue
-
-        identifier_type = "ISIN" if len(stable_id) == 12 and stable_id[:2].isalpha() else "COMPOSITE_FIGI"
-        await register_identifier(
-            db,
-            inst,
-            get_default_metadata_provider().name if identifier_type == "ISIN" else "openfigi",
-            IdentifierRecord(
-                identifier_type=identifier_type,
-                identifier_value=stable_id,
-                is_primary=True,
-            ),
-        )
         await ensure_internal_identifier(db, inst)
         updated += 1
 

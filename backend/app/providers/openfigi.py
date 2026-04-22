@@ -9,27 +9,28 @@ from app.providers.base import IdentifierRecord
 
 logger = logging.getLogger(__name__)
 
-OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
 
-
-class OpenFigiIdentifierProvider:
+class OpenFigiProvider:
     name = "openfigi"
+    base_url = "https://api.openfigi.com"
+    description = "OpenFIGI mapping API for stable instrument identifiers"
 
-    async def map_ticker(self, symbol: str) -> list[IdentifierRecord]:
+    def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]:
         headers = {"Content-Type": "application/json"}
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
 
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(
-                    OPENFIGI_URL,
+            with httpx.Client(timeout=settings.OPENFIGI_TIMEOUT_SECONDS) as client:
+                response = client.post(
+                    f"{self.base_url}/v3/mapping",
                     json=[{"idType": "TICKER", "idValue": symbol}],
                     headers=headers,
                 )
-            if resp.status_code != 200:
+            if response.status_code != 200:
                 return []
-            payload = resp.json()
+
+            payload = response.json()
             if not payload or not isinstance(payload, list):
                 return []
             results = payload[0].get("data") or []
@@ -40,6 +41,9 @@ class OpenFigiIdentifierProvider:
             identifiers: list[IdentifierRecord] = []
             composite_figi = first.get("compositeFIGI")
             figi = first.get("figi")
+            ticker = first.get("ticker")
+            exch_code = first.get("exchCode")
+
             if composite_figi:
                 identifiers.append(
                     IdentifierRecord(
@@ -47,6 +51,12 @@ class OpenFigiIdentifierProvider:
                         identifier_value=str(composite_figi),
                         is_primary=True,
                         source=self.name,
+                        extra_data={
+                            "ticker": ticker,
+                            "exchange_code": exch_code,
+                            "security_type": first.get("securityType"),
+                            "market_sector": first.get("marketSector"),
+                        },
                     )
                 )
             if figi:
@@ -55,6 +65,12 @@ class OpenFigiIdentifierProvider:
                         identifier_type="FIGI",
                         identifier_value=str(figi),
                         source=self.name,
+                        extra_data={
+                            "ticker": ticker,
+                            "exchange_code": exch_code,
+                            "name": first.get("name"),
+                            "share_class_figi": first.get("shareClassFIGI"),
+                        },
                     )
                 )
             return identifiers

@@ -15,8 +15,8 @@ from app.models.instrument_identity import (
 )
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
+from app.providers import ensure_data_source, get_identifier_providers, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
-from app.providers.registry import ensure_data_source
 
 TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
@@ -28,6 +28,47 @@ TYPE_MAP: dict[str, tuple[str, str]] = {
     "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
     "INDEX": ("Index", "Index"),
 }
+
+
+def _now_utc() -> datetime:
+    return datetime.now(UTC)
+
+
+def _provenance_entry(
+    *,
+    source: str,
+    fetched_at: datetime,
+    provider_symbol: str | None = None,
+    note: str | None = None,
+) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "source": source,
+        "fetched_at": fetched_at.isoformat(),
+    }
+    if provider_symbol:
+        entry["provider_symbol"] = provider_symbol
+    if note:
+        entry["note"] = note
+    return entry
+
+
+def _mark_field_provenance(
+    target: Any,
+    field_name: str,
+    *,
+    source: str,
+    fetched_at: datetime,
+    provider_symbol: str | None = None,
+    note: str | None = None,
+) -> None:
+    provenance = dict(getattr(target, "field_provenance", None) or {})
+    provenance[field_name] = _provenance_entry(
+        source=source,
+        fetched_at=fetched_at,
+        provider_symbol=provider_symbol,
+        note=note,
+    )
+    setattr(target, "field_provenance", provenance)
 
 
 def _cap_tier(cap: float | None) -> str | None:
@@ -128,7 +169,10 @@ async def register_provider_symbol(
     existing.provider_instrument_type = provider_instrument_type or existing.provider_instrument_type
     existing.is_active = True
     existing.is_primary = is_primary or existing.is_primary
-    existing.extra_data = extra_data or existing.extra_data
+    existing.extra_data = {
+        **(existing.extra_data or {}),
+        **(extra_data or {}),
+    } or None
 
     listing = (
         await db.execute(
@@ -185,14 +229,38 @@ async def register_identifier(
 
     existing.is_active = True
     existing.is_primary = identifier.is_primary or existing.is_primary
-    existing.extra_data = identifier.extra_data or existing.extra_data
+    existing.extra_data = {
+        **(existing.extra_data or {}),
+        **(identifier.extra_data or {}),
+    } or None
 
     if existing.identifier_type == InstrumentIdentifierType.ISIN:
         instrument.isin = identifier.identifier_value
+        _mark_field_provenance(
+            instrument,
+            "isin",
+            source=provider_name,
+            fetched_at=_now_utc(),
+            note=existing.identifier_type.value,
+        )
 
     if identifier.is_primary or instrument.primary_identifier_value is None:
         instrument.primary_identifier_type = existing.identifier_type.value
         instrument.primary_identifier_value = identifier.identifier_value
+        _mark_field_provenance(
+            instrument,
+            "primary_identifier_type",
+            source=provider_name,
+            fetched_at=_now_utc(),
+            note=existing.identifier_type.value,
+        )
+        _mark_field_provenance(
+            instrument,
+            "primary_identifier_value",
+            source=provider_name,
+            fetched_at=_now_utc(),
+            note=existing.identifier_type.value,
+        )
 
 
 async def ensure_internal_identifier(
@@ -224,10 +292,53 @@ async def ensure_internal_identifier(
         instrument.primary_identifier_value = internal_value
 
 
+def has_external_identifier(instrument: Instrument) -> bool:
+    return bool(
+        instrument.primary_identifier_value
+        and instrument.primary_identifier_type
+        and instrument.primary_identifier_type != InstrumentIdentifierType.INTERNAL.value
+    )
+
+
+async def ensure_external_identifier(
+    db: AsyncSession,
+    instrument: Instrument,
+) -> bool:
+    if has_external_identifier(instrument):
+        return False
+
+    identifier_added = False
+    for provider in get_identifier_providers():
+        symbol = instrument.symbol
+        if "provider_symbols" in instrument.__dict__ or "listings" in instrument.__dict__:
+            symbol = provider_symbol_for_instrument(instrument, provider.name)
+        identifiers = provider.fetch_stable_identifiers(symbol)
+        if not identifiers:
+            continue
+        for identifier in identifiers:
+            await register_identifier(db, instrument, provider.name, identifier)
+            identifier_added = True
+        if has_external_identifier(instrument):
+            _mark_field_provenance(
+                instrument,
+                "primary_identifier_value",
+                source=provider.name,
+                fetched_at=_now_utc(),
+                provider_symbol=symbol,
+                note=instrument.primary_identifier_type,
+            )
+            break
+    return identifier_added
+
+
 async def upsert_instrument_stats(
     db: AsyncSession,
     instrument: Instrument,
     extra: dict[str, Any],
+    *,
+    source: str,
+    fetched_at: datetime,
+    provider_symbol: str | None = None,
 ) -> None:
     stats_values = {
         "week52_high": extra.get("fifty_two_week_high"),
@@ -253,7 +364,14 @@ async def upsert_instrument_stats(
     for attr, value in stats_values.items():
         if value is not None:
             setattr(stats, attr, value)
-    stats.computed_at = datetime.now(UTC)
+            _mark_field_provenance(
+                stats,
+                attr,
+                source=source,
+                fetched_at=fetched_at,
+                provider_symbol=provider_symbol,
+            )
+    stats.computed_at = fetched_at
 
 
 async def apply_profile_to_instrument(
@@ -265,6 +383,7 @@ async def apply_profile_to_instrument(
     quote_type = (profile.quote_type or "EQUITY").upper()
     asset_class_name, type_name = TYPE_MAP.get(quote_type, ("Equity", "Stock"))
     instrument_type_id = await ensure_instrument_type(db, asset_class_name, type_name)
+    fetched_at = _now_utc()
 
     if instrument is None:
         instrument = Instrument(
@@ -284,6 +403,39 @@ async def apply_profile_to_instrument(
         instrument.currency = profile.currency or instrument.currency
         instrument.instrument_type_id = instrument_type_id
         instrument.is_active = True
+
+    if profile.canonical_symbol:
+        _mark_field_provenance(
+            instrument,
+            "symbol",
+            source=profile.provider,
+            fetched_at=fetched_at,
+            provider_symbol=profile.symbol,
+        )
+    if profile.name:
+        _mark_field_provenance(
+            instrument,
+            "name",
+            source=profile.provider,
+            fetched_at=fetched_at,
+            provider_symbol=profile.symbol,
+        )
+    if profile.description:
+        _mark_field_provenance(
+            instrument,
+            "description",
+            source=profile.provider,
+            fetched_at=fetched_at,
+            provider_symbol=profile.symbol,
+        )
+    if profile.currency:
+        _mark_field_provenance(
+            instrument,
+            "currency",
+            source=profile.provider,
+            fetched_at=fetched_at,
+            provider_symbol=profile.symbol,
+        )
 
     for listing in profile.listings or []:
         await register_provider_symbol(
@@ -314,7 +466,15 @@ async def apply_profile_to_instrument(
         await register_identifier(db, instrument, profile.provider, identifier)
 
     await ensure_internal_identifier(db, instrument)
-    await upsert_instrument_stats(db, instrument, profile.extra)
+    await ensure_external_identifier(db, instrument)
+    await upsert_instrument_stats(
+        db,
+        instrument,
+        profile.extra,
+        source=profile.provider,
+        fetched_at=fetched_at,
+        provider_symbol=profile.symbol,
+    )
 
     if quote_type in {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}:
         detail = (
@@ -331,6 +491,23 @@ async def apply_profile_to_instrument(
         detail.market_cap_tier = _cap_tier(profile.extra.get("market_cap")) or detail.market_cap_tier
         if profile.extra.get("employees") is not None:
             detail.employees = profile.extra["employees"]
+        for field_name, value in [
+            ("sector", profile.extra.get("sector")),
+            ("industry", profile.extra.get("industry")),
+            ("country", profile.extra.get("country")),
+            ("exchange_mic", profile.exchange),
+            ("website", profile.extra.get("website")),
+            ("market_cap_tier", _cap_tier(profile.extra.get("market_cap"))),
+            ("employees", profile.extra.get("employees")),
+        ]:
+            if value is not None:
+                _mark_field_provenance(
+                    detail,
+                    field_name,
+                    source=profile.provider,
+                    fetched_at=fetched_at,
+                    provider_symbol=profile.symbol,
+                )
 
     elif quote_type == "CURRENCY":
         pair = _parse_forex_pair(profile.canonical_symbol)
@@ -345,6 +522,17 @@ async def apply_profile_to_instrument(
                     quote_currency=pair[1],
                 )
                 db.add(detail)
+            for field_name, value in [
+                ("base_currency", pair[0]),
+                ("quote_currency", pair[1]),
+            ]:
+                _mark_field_provenance(
+                    detail,
+                    field_name,
+                    source=profile.provider,
+                    fetched_at=fetched_at,
+                    provider_symbol=profile.symbol,
+                )
 
     elif quote_type == "FUTURE":
         detail = (
@@ -355,5 +543,21 @@ async def apply_profile_to_instrument(
             db.add(detail)
         detail.underlying_name = profile.name or detail.underlying_name
         detail.is_continuous = profile.canonical_symbol.endswith("=F") or detail.is_continuous
+        if profile.name:
+            _mark_field_provenance(
+                detail,
+                "underlying_name",
+                source=profile.provider,
+                fetched_at=fetched_at,
+                provider_symbol=profile.symbol,
+            )
+        if profile.canonical_symbol.endswith("=F"):
+            _mark_field_provenance(
+                detail,
+                "is_continuous",
+                source=profile.provider,
+                fetched_at=fetched_at,
+                provider_symbol=profile.symbol,
+            )
 
     return instrument

@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -29,6 +29,7 @@ class InstrumentStats(Base):
     beta: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
     dividend_yield: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(  # type: ignore[name-defined]
         back_populates="stats", foreign_keys=[instrument_id]

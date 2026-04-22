@@ -8,7 +8,7 @@ from app.models.base import TimestampMixin
 class DataSource(Base, TimestampMixin):
     """
     Represents an external source of market data.
-    Configuration is stored as JSON for flexibility.
+    Configuration and declared capabilities are stored as JSON for flexibility.
     """
 
     __tablename__ = "data_source"
@@ -19,6 +19,7 @@ class DataSource(Base, TimestampMixin):
     description: Mapped[str] = mapped_column(String(300), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     config: Mapped[dict] = mapped_column(JSON, nullable=True)  # API keys, headers, rate limits
+    supported_capabilities: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     ohlcv_bars: Mapped[list["OHLCVBar"]] = relationship(back_populates="data_source")
     instrument_identifiers: Mapped[list["InstrumentIdentifier"]] = relationship(

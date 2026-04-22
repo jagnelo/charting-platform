@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +47,7 @@ class Instrument(Base, TimestampMixin):
     isin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     primary_identifier_type: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
     primary_identifier_value: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Synthetic/expression instruments
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -115,6 +116,7 @@ class EquityDetail(Base, TimestampMixin):
     employees: Mapped[int | None] = mapped_column(Integer, nullable=True)
     website: Mapped[str | None] = mapped_column(String(300), nullable=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(back_populates="equity_detail")
 
 
@@ -136,6 +138,7 @@ class FutureDetail(Base, TimestampMixin):
     first_notice_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     last_trading_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_continuous: Mapped[bool] = mapped_column(Boolean, default=False)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(
         back_populates="future_detail", foreign_keys=[instrument_id]
     )
@@ -167,6 +170,7 @@ class OptionDetail(Base, TimestampMixin):
     theta: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     vega: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     implied_vol: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(
         back_populates="option_detail", foreign_keys=[instrument_id]
     )
@@ -184,4 +188,5 @@ class ForexDetail(Base, TimestampMixin):
     base_currency: Mapped[str] = mapped_column(String(10), nullable=False)
     quote_currency: Mapped[str] = mapped_column(String(10), nullable=False)
     pip_size: Mapped[Decimal | None] = mapped_column(Numeric(18, 8), nullable=True)
+    field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(back_populates="forex_detail")

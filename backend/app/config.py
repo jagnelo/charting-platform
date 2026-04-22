@@ -44,8 +44,10 @@ class Settings(BaseSettings):
     DEFAULT_METADATA_PROVIDER: str = "yfinance"
     DEFAULT_EVENT_PROVIDER: str = "yfinance"
     DEFAULT_DISCOVERY_PROVIDER: str = "yfinance"
+    DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["yfinance", "openfigi"]
     OPENFIGI_API_KEY: str = ""
+    OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75

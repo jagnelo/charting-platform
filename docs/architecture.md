@@ -23,6 +23,7 @@ asset_class (Equity, Fixed Income, Crypto, ...)
 exchange (MIC code, timezone, market hours)
 instrument_listing  (ticker per exchange — AAPL on NASDAQ vs XETR)
 data_source (provider-backed, extensible)
+  └── supported_capabilities (price_history, instrument_metadata, option_chain, ...)
 
 ohlcv_bar
   ├── instrument_id  (FK → instrument)
@@ -52,6 +53,10 @@ user
 **`instrument_listing` separates instrument from exchange** — AAPL on NASDAQ and AAPL on XETR are the same `instrument` but different `instrument_listing` rows. Price data is fetched via the listing's ticker symbol on its exchange.
 
 **`chart_drawing.timeframe` is nullable + `pin_to_all`** — a drawing with `pin_to_all=True` appears on all timeframes for that instrument. `timeframe=None` with `pin_to_all=False` is invalid by convention.
+
+**Provider capabilities are split, not monolithic** — the registry resolves price history, latest price, metadata, discovery, identifier, event, and option-chain capabilities independently. One provider may implement several capabilities, but the app no longer assumes that every provider does everything.
+
+**Field provenance is persisted with mastered metadata** — canonical instrument/detail/stat rows keep JSON provenance per field so the app can explain which provider last supplied a value and when it was refreshed.
 
 ---
 

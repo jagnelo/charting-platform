@@ -15,6 +15,7 @@ from app.models.instrument_event import (
     InstrumentEventType,
 )
 from app.providers import get_default_event_provider
+from app.services.instrument_mastering import ensure_external_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,7 @@ async def ensure_instrument_events_loaded(
     if instrument.is_synthetic:
         return
     await _ensure_fetch_state_schema(db)
+    await ensure_external_identifier(db, instrument)
     provider = get_default_event_provider()
     state = (
         await db.execute(

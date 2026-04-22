@@ -118,6 +118,7 @@ Full JWT auth — access tokens (60 min) + refresh tokens (30 days) with silent 
 - OHLCV bars cached in Postgres — the configured provider is only called for missing date ranges or stale data
 - Bulk historical fetch triggered automatically when a new instrument is first registered (ARQ background task)
 - Nightly refresh job keeps all instruments current
+- Identifier enrichment is opportunistic — instruments missing an external ID are backfilled naturally on profile/event access and scheduled maintenance
 
 ---
 
@@ -138,9 +139,25 @@ CORS_ORIGINS=["http://localhost:4173","http://your-nas-ip:4173"]
 
 # Alert engine poll interval in seconds
 ALERT_POLL_INTERVAL=60
+
+# Provider routing
+DEFAULT_MARKET_DATA_PROVIDER=yfinance
+DEFAULT_METADATA_PROVIDER=yfinance
+DEFAULT_EVENT_PROVIDER=yfinance
+DEFAULT_DISCOVERY_PROVIDER=yfinance
+DEFAULT_OPTIONS_PROVIDER=yfinance
+IDENTIFIER_PROVIDER_PRIORITY=["yfinance","openfigi"]
+
+# Provider credentials / tuning
+OPENFIGI_API_KEY=
+OPENFIGI_TIMEOUT_SECONDS=10
+MARKETDATA_API_KEY=
+FMP_API_KEY=
 ```
 
 The database and Redis URLs are pre-configured for the Docker Compose network and do not need to be changed for local/NAS deployment.
+
+Provider responsibilities are capability-based. A single source can handle price history, metadata, events, discovery, and options, or those capabilities can be split across different providers. Provider provenance is persisted alongside mastered instrument fields so it remains clear where key metadata came from and when it was refreshed.
 
 ---
 

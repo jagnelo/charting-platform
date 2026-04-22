@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,7 +27,11 @@ from app.services.expression_engine import (
     normalize_expression,
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
-from app.services.instrument_mastering import apply_profile_to_instrument
+from app.services.instrument_mastering import (
+    apply_profile_to_instrument,
+    ensure_external_identifier,
+    has_external_identifier,
+)
 from app.services.market_data import fetch_ohlcv_latest, search_provider_instruments
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
@@ -821,6 +824,8 @@ async def get_instrument(
 
     if not created and not instrument.is_synthetic:
         background_tasks.add_task(_sync_instrument_events, instrument.id)
+        if not has_external_identifier(instrument):
+            background_tasks.add_task(_sync_instrument_identifier, instrument.id)
 
     return instrument
 
@@ -831,6 +836,15 @@ async def _sync_instrument_events(instrument_id: int) -> None:
         if instrument is None:
             return
         await ensure_instrument_events_loaded(session, instrument)
+        await session.commit()
+
+
+async def _sync_instrument_identifier(instrument_id: int) -> None:
+    async with AsyncSessionLocal() as session:
+        instrument = await session.get(Instrument, instrument_id)
+        if instrument is None:
+            return
+        await ensure_external_identifier(session, instrument)
         await session.commit()
 
 
@@ -915,19 +929,29 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         week52_high = float(row.week52_high)
         week52_low = float(row.week52_low)
 
-        stmt = (
-            pg_insert(InstrumentStats)
-            .values(
-                instrument_id=instrument.id,
-                week52_high=week52_high,
-                week52_low=week52_low,
+        fetched_at = datetime.now(UTC).isoformat()
+        stats = (
+            await db.execute(
+                select(InstrumentStats).where(InstrumentStats.instrument_id == instrument.id)
             )
-            .on_conflict_do_update(
-                index_elements=["instrument_id"],
-                set_=dict(week52_high=week52_high, week52_low=week52_low),
-            )
-        )
-        await db.execute(stmt)
+        ).scalar_one_or_none()
+        if stats is None:
+            stats = InstrumentStats(instrument_id=instrument.id)
+            db.add(stats)
+        stats.week52_high = week52_high
+        stats.week52_low = week52_low
+        field_provenance = dict(stats.field_provenance or {})
+        field_provenance["week52_high"] = {
+            "source": "internal_ohlcv_52w",
+            "fetched_at": fetched_at,
+            "provider_symbol": instrument.symbol,
+        }
+        field_provenance["week52_low"] = {
+            "source": "internal_ohlcv_52w",
+            "fetched_at": fetched_at,
+            "provider_symbol": instrument.symbol,
+        }
+        stats.field_provenance = field_provenance
         await db.commit()
         log.info("Computed 52w stats for %s: high=%.4f low=%.4f", symbol, week52_high, week52_low)
     except Exception as exc:
@@ -961,4 +985,3 @@ async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | N
     instrument = await apply_profile_to_instrument(db, profile)
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)
-
