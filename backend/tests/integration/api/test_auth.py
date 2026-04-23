@@ -17,29 +17,39 @@ class TestRegister:
         )
         assert res.status_code == 201
         data = res.json()
-        assert data["username"] == "newuser"
-        assert data["email"] == "newuser@example.com"
-        assert "hashed_password" not in data
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
 
-    def test_register_creates_default_watchlist(self, client, db):
-        client.post(
+    def test_register_returns_no_sensitive_fields(self, client):
+        res = client.post(
             "/api/v1/auth/register",
             json={
-                "username": "wluser",
-                "email": "wluser@example.com",
+                "username": "safeuser",
+                "email": "safeuser@example.com",
                 "password": "Password123!",
             },
         )
-        from sqlalchemy import select
+        assert res.status_code == 201
+        data = res.json()
+        assert "hashed_password" not in data
+        assert "password" not in data
 
-        from app.models.user import User
-        from app.models.watchlist import Watchlist
-
-        user = db.execute(select(User).where(User.username == "wluser")).scalar_one_or_none()
-        assert user is not None
-        wl = db.execute(select(Watchlist).where(Watchlist.user_id == user.id)).scalar_one_or_none()
-        assert wl is not None
-        assert wl.is_default is True
+    def test_register_token_grants_access(self, client):
+        """The returned access token should authenticate subsequent requests."""
+        res = client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "tokenuser",
+                "email": "tokenuser@example.com",
+                "password": "Password123!",
+            },
+        )
+        assert res.status_code == 201
+        token = res.json()["access_token"]
+        me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert me.status_code == 200
+        assert me.json()["username"] == "tokenuser"
 
     def test_register_duplicate_username_fails(self, client, user):
         res = client.post(
@@ -50,7 +60,7 @@ class TestRegister:
                 "password": "Password123!",
             },
         )
-        assert res.status_code == 400
+        assert res.status_code == 409
 
     def test_register_duplicate_email_fails(self, client, user):
         res = client.post(
@@ -61,7 +71,7 @@ class TestRegister:
                 "password": "Password123!",
             },
         )
-        assert res.status_code == 400
+        assert res.status_code == 409
 
 
 class TestLogin:
@@ -110,7 +120,7 @@ class TestGetMe:
 
     def test_get_me_unauthenticated(self, client):
         res = client.get("/api/v1/auth/me")
-        assert res.status_code == 403  # HTTPBearer returns 403 when no header
+        assert res.status_code == 401
 
     def test_get_me_invalid_token(self, client):
         res = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer badtoken"})
@@ -135,31 +145,24 @@ class TestRefreshToken:
         assert res.status_code == 401
 
 
-class TestChangePassword:
-    def test_change_password_success(self, client, user, auth_headers):
-        res = client.post(
-            "/api/v1/auth/change-password",
-            params={"old_password": "Password123!", "new_password": "NewPass456!"},
+class TestUserSettings:
+    def test_get_settings_empty(self, client, auth_headers):
+        res = client.get("/api/v1/auth/settings", headers=auth_headers)
+        assert res.status_code == 200
+        assert isinstance(res.json(), dict)
+
+    def test_patch_settings_merges(self, client, auth_headers):
+        client.patch(
+            "/api/v1/auth/settings",
             headers=auth_headers,
+            json={"settings": {"theme": "dark", "locale": "en"}},
         )
-        assert res.status_code == 204
-
-        # Old password no longer works
-        login = client.post(
-            "/api/v1/auth/login", json={"username": "testuser", "password": "Password123!"}
-        )
-        assert login.status_code == 401
-
-        # New password works
-        login2 = client.post(
-            "/api/v1/auth/login", json={"username": "testuser", "password": "NewPass456!"}
-        )
-        assert login2.status_code == 200
-
-    def test_change_password_wrong_old(self, client, auth_headers):
-        res = client.post(
-            "/api/v1/auth/change-password",
-            params={"old_password": "wrongold", "new_password": "NewPass456!"},
+        res = client.patch(
+            "/api/v1/auth/settings",
             headers=auth_headers,
+            json={"settings": {"theme": "light"}},
         )
-        assert res.status_code == 400
+        assert res.status_code == 200
+        data = res.json()
+        assert data["theme"] == "light"
+        assert data["locale"] == "en"  # preserved from first patch

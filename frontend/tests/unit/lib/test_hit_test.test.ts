@@ -115,6 +115,85 @@ describe('hitTest — text_box', () => {
   })
 })
 
+describe('hitTest — ray / arrow (treated as line)', () => {
+  const d = makeDrawing('ray', [
+    { time: 50, price: 50 },
+    { time: 300, price: 50 },
+  ])
+
+  it('hits on the segment', () => {
+    expect(hitTest(d, 175, 50, u)).toBe(true)
+  })
+
+  it('misses off the segment', () => {
+    expect(hitTest(d, 175, 80, u)).toBe(false)
+  })
+
+  it('arrow type also hits', () => {
+    const arrow = makeDrawing('arrow', [
+      { time: 50, price: 50 },
+      { time: 300, price: 50 },
+    ])
+    expect(hitTest(arrow, 175, 50, u)).toBe(true)
+  })
+})
+
+describe('hitTest — fibonacci_retracement', () => {
+  // Range from (100,0) to (400,100); levels 0, 0.5, 1.0 → prices 0, 50, 100
+  const d = makeDrawing('fibonacci_retracement', [
+    { time: 100, price: 0 },
+    { time: 400, price: 100 },
+  ])
+
+  it('hits near the 0.5 level (price=50, y=50)', () => {
+    expect(hitTest(d, 250, 50, u)).toBe(true)
+  })
+
+  it('hits near the 0 level (price=0, y=0)', () => {
+    expect(hitTest(d, 250, 0, u)).toBe(true)
+  })
+
+  it('misses a cx outside the horizontal range', () => {
+    expect(hitTest(d, 50, 50, u)).toBe(false)
+  })
+
+  it('misses between fib levels (>8px from any level)', () => {
+    // Levels at y=0, 23.6, 38.2, 50 … gap [0,23.6] → midpoint 11.8 is 11.8px from nearest level
+    expect(hitTest(d, 250, 12, u)).toBe(false)
+  })
+})
+
+describe('hitTest — circle', () => {
+  // Circle inscribed in bounding box (0,0) → (200,200); center (100,100) radius 100
+  const d = makeDrawing('circle', [
+    { time: 0,   price: 0   },
+    { time: 200, price: 200 },
+  ])
+
+  it('hits near the top of the circle', () => {
+    expect(hitTest(d, 100, 0, u)).toBe(true)
+  })
+
+  it('hits near the right of the circle', () => {
+    expect(hitTest(d, 200, 100, u)).toBe(true)
+  })
+
+  it('misses the center (hollow)', () => {
+    expect(hitTest(d, 100, 100, u)).toBe(false)
+  })
+})
+
+describe('hitTest — freehand', () => {
+  it('returns false (freehand hit detection lives in UPlotChart, not hit_test module)', () => {
+    const d = makeDrawing('freehand', [
+      { time: 100, price: 100 },
+      { time: 200, price: 200 },
+    ])
+    // hitTest falls through to default → false
+    expect(hitTest(d, 150, 150, u)).toBe(false)
+  })
+})
+
 describe('hitTest — unknown type', () => {
   it('returns false for unknown drawing types', () => {
     const d = makeDrawing('unknown_future_type', [{ time: 100, price: 100 }])

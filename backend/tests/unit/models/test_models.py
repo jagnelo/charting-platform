@@ -43,7 +43,7 @@ class TestUserModel:
         db.flush()
         assert u.is_active is True
         assert u.is_admin is False
-        assert u.last_login is None
+        assert u.last_login_at is None
 
     def test_user_cascade_deletes_drawings(self, db, user, instrument):
         from app.models.chart_drawing import ChartDrawing
@@ -134,37 +134,28 @@ class TestOHLCVBarModel:
 
 
 class TestScreenerModel:
-    def test_screener_cascade_deletes_conditions(self, db, user):
-        from app.models.ohlcv import Timeframe
-        from app.models.screener import (
-            ConditionOperator,
-            ConditionSubject,
-            Screener,
-            ScreenerCondition,
-            ScreenerLogic,
-        )
+    def test_screener_conditions_tree_stored(self, db, user):
+        """ScreenerDefinition persists a JSON conditions tree correctly."""
+        from app.models.screener import ScreenerDefinition
 
-        s = Screener(user_id=user.id, name="CascadeTest", logic=ScreenerLogic.AND)
+        tree = {
+            "operator": "AND",
+            "conditions": [
+                {"type": "price_threshold", "field": "close", "op": "gt", "value": 50}
+            ],
+        }
+        s = ScreenerDefinition(
+            user_id=user.id,
+            name="TreeTest",
+            conditions=tree,
+            universe_type="all",
+            timeframe="D1",
+        )
         db.add(s)
         db.flush()
-
-        cond = ScreenerCondition(
-            screener_id=s.id,
-            position=0,
-            subject=ConditionSubject.PRICE,
-            timeframe=Timeframe.D1,
-            operator=ConditionOperator.GREATER_THAN,
-            threshold_value=Decimal("100"),
-        )
-        db.add(cond)
-        db.flush()
-        cond_id = cond.id
-
-        db.delete(s)
-        db.flush()
-
-        result = db.get(ScreenerCondition, cond_id)
-        assert result is None
+        db.refresh(s)
+        assert s.conditions["operator"] == "AND"
+        assert len(s.conditions["conditions"]) == 1
 
     def test_screener_result_cascade_delete(self, db, screener):
         from app.models.screener import ScreenerResult
@@ -172,8 +163,8 @@ class TestScreenerModel:
         result = ScreenerResult(
             screener_id=screener.id,
             run_at=datetime.now(UTC),
-            matched_instrument_ids=[1, 2, 3],
-            total_scanned=10,
+            matched_ids=[1, 2, 3],
+            result_data={"1": {"close": 145.2}},
         )
         db.add(result)
         db.flush()
@@ -183,6 +174,30 @@ class TestScreenerModel:
         db.flush()
 
         assert db.get(ScreenerResult, result_id) is None
+
+    def test_screener_cascade_deletes_on_user_delete(self, db, user):
+        """Deleting a user cascades to their screener definitions."""
+        from sqlalchemy import select
+
+        from app.models.screener import ScreenerDefinition
+
+        s = ScreenerDefinition(
+            user_id=user.id,
+            name="UserCascadeTest",
+            conditions={"operator": "AND", "conditions": []},
+            universe_type="all",
+            timeframe="D1",
+        )
+        db.add(s)
+        db.flush()
+        s_id = s.id
+
+        db.delete(user)
+        db.flush()
+
+        assert db.execute(
+            select(ScreenerDefinition).where(ScreenerDefinition.id == s_id)
+        ).scalar_one_or_none() is None
 
 
 class TestWatchlistModel:

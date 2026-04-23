@@ -69,7 +69,7 @@ class TestInstruments:
 
     def test_instruments_requires_auth(self, client, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.symbol}")
-        assert res.status_code == 403
+        assert res.status_code == 401
 
 
 class TestOHLCV:
@@ -92,7 +92,7 @@ class TestOHLCV:
 
     def test_ohlcv_requires_auth(self, client, instrument, ohlcv_bars):
         res = client.get(f"/api/v1/ohlcv/{instrument.symbol}/D1")
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_ohlcv_returns_sorted_asc(self, client, auth_headers, instrument, ohlcv_bars):
         start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()
@@ -148,20 +148,20 @@ class TestOHLCV:
 
 class TestIndicatorsEndpoint:
     def test_list_indicators_no_auth_needed(self, client):
-        """Indicator metadata is public — no auth required for the list."""
-        res = client.get("/api/v1/indicators/")
+        """Indicator registry is public — no auth required."""
+        res = client.get("/api/v1/indicators/registry")
         assert res.status_code == 200
-        names = {i["name"] for i in res.json()}
-        assert "rsi" in names
-        assert "sma" in names
-        assert "macd" in names
+        types = {i["type"] for i in res.json()}
+        assert "rsi" in types
+        assert "sma" in types
+        assert "macd" in types
 
     def test_compute_indicator_requires_auth(self, client, instrument):
         res = client.get(
             f"/api/v1/indicators/compute/{instrument.symbol}/D1",
             params={"indicator": "sma", "params": '{"period": 20}'},
         )
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_compute_sma_returns_values(self, client, auth_headers, instrument, ohlcv_bars):
         res = client.get(

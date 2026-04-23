@@ -321,9 +321,15 @@ def price_alert(db, user, instrument):
 
 @pytest.fixture()
 def screener(db, user):
-    from app.models.screener import Screener, ScreenerLogic
+    from app.models.screener import ScreenerDefinition
 
-    s = Screener(user_id=user.id, name="Test Screener", logic=ScreenerLogic.AND)
+    s = ScreenerDefinition(
+        user_id=user.id,
+        name="Test Screener",
+        conditions={"operator": "AND", "conditions": []},
+        universe_type="all",
+        timeframe="D1",
+    )
     db.add(s)
     db.flush()
     return s

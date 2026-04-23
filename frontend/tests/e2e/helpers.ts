@@ -89,19 +89,42 @@ export class ScreenerPage {
   }
 }
 
+// ── Page object: DashboardPage ────────────────────────────────────────────────
+
+export class DashboardPage {
+  constructor(private page: Page) {}
+
+  async goto()                { await this.page.goto('/dashboard') }
+
+  async addWidget(type: string) {
+    await this.page.click('button:has-text("Add Widget"), .add-widget-btn')
+    await this.page.click(`[data-widget-type="${type}"], button:has-text("${type}")`)
+    await this.page.waitForTimeout(300)
+  }
+
+  async openWidgetConfig(index = 0) {
+    const widgets = this.page.locator('.dashboard-widget, .widget-container')
+    await widgets.nth(index).hover()
+    await widgets.nth(index).locator('button[title*="Configure"], .widget-config-btn').click()
+    await this.page.waitForTimeout(200)
+  }
+}
+
 // ── Custom test fixture ────────────────────────────────────────────────────────
 
 type Fixtures = {
-  loginPage:   LoginPage
-  chartPage:   ChartPage
-  screenerPage: ScreenerPage
-  loggedIn:    void
+  loginPage:     LoginPage
+  chartPage:     ChartPage
+  screenerPage:  ScreenerPage
+  dashboardPage: DashboardPage
+  loggedIn:      void
 }
 
 export const test = base.extend<Fixtures>({
-  loginPage:    async ({ page }, use) => use(new LoginPage(page)),
-  chartPage:    async ({ page }, use) => use(new ChartPage(page)),
-  screenerPage: async ({ page }, use) => use(new ScreenerPage(page)),
+  loginPage:     async ({ page }, use) => use(new LoginPage(page)),
+  chartPage:     async ({ page }, use) => use(new ChartPage(page)),
+  screenerPage:  async ({ page }, use) => use(new ScreenerPage(page)),
+  dashboardPage: async ({ page }, use) => use(new DashboardPage(page)),
 
   loggedIn: async ({ page }, use) => {
     const lp = new LoginPage(page)
