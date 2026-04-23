@@ -105,7 +105,7 @@
       <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" :body-width="layoutStore.panelWidths.watchlist" />
       <ResizeHandle direction="horizontal" :value="layoutStore.panelWidths.watchlist" :min="160" :max="600" @change="v => layoutStore.setPanelWidth('watchlist', v)" />
       <DrawingToolbar />
-      <div v-if="layoutStore.layout === '1'" class="chart-workspace">
+      <div v-if="layoutStore.layout === '1'" class="chart-workspace single-workspace">
         <div class="chart-area">
           <div v-if="!chartStore.symbol" class="chart-empty">
             <div class="empty-msg">
@@ -122,6 +122,13 @@
             </div>
             <UPlotChart :comparison-series="comparisonSeries" />
           </template>
+        </div>
+        <div v-if="showOptionsPanel" class="options-shell">
+          <OptionsChainPanel
+            :symbol="chartStore.symbol"
+            title="Options Chain"
+            @open-symbol="onSymbolSelect"
+          />
         </div>
       </div>
       <div v-else class="chart-workspace">
@@ -161,6 +168,7 @@ import IndicatorPanel       from '@/components/chart/IndicatorPanel.vue'
 import LayoutPicker         from '@/components/chart/LayoutPicker.vue'
 import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
 import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
+import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
@@ -258,6 +266,12 @@ const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
     }
   })
 })
+
+const showOptionsPanel = computed(() =>
+  !!chartStore.symbol
+  && !chartStore.instrument?.is_synthetic
+  && !chartStore.instrument?.option_detail
+)
 
 const comparisonLegend = computed(() =>
   comparisonTargets.value.map(target => ({
@@ -671,6 +685,10 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.single-workspace {
+  flex-direction: column;
+}
+
 .chart-area {
   flex: 1;
   display: flex;
@@ -678,6 +696,14 @@ onUnmounted(() => {
   justify-content: center;
   overflow: hidden;
   position: relative;
+}
+
+.options-shell {
+  height: 230px;
+  border-top: 1px solid #171717;
+  background: #0c0c0c;
+  flex-shrink: 0;
+  min-height: 0;
 }
 
 .chart-loading, .chart-error, .chart-empty {

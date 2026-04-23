@@ -38,11 +38,55 @@ export interface InstrumentStats {
   beta?: number
   dividend_yield?: number
   computed_at?: string
+  field_provenance?: Record<string, FieldProvenance>
 }
 
 export interface SyntheticConstituent {
   ticker_alias: string
   constituent_instrument_id: number
+}
+
+export interface FieldProvenance {
+  source: string
+  fetched_at?: string | null
+  observed_at?: string | null
+  provider_symbol?: string | null
+  selection_reason?: string | null
+  quality_score?: number | null
+  note?: string | null
+}
+
+export interface InstrumentIdentifier {
+  identifier_type: string
+  identifier_value: string
+  is_primary: boolean
+  is_active: boolean
+  extra_data?: Record<string, unknown> | null
+}
+
+export interface InstrumentListing {
+  ticker: string
+  currency?: string | null
+  is_primary: boolean
+  is_active: boolean
+}
+
+export interface OptionDetail {
+  underlying_instrument_id: number
+  right: string
+  style: string
+  contract_key?: string | null
+  venue_code?: string | null
+  strike: number
+  expiry_date: string
+  contract_size?: number | null
+  delta?: number | null
+  gamma?: number | null
+  theta?: number | null
+  vega?: number | null
+  rho?: number | null
+  implied_vol?: number | null
+  field_provenance?: Record<string, FieldProvenance>
 }
 
 export interface Instrument {
@@ -54,8 +98,14 @@ export interface Instrument {
   is_active: boolean
   is_synthetic?: boolean
   expression?: string
+  primary_identifier_type?: string | null
+  primary_identifier_value?: string | null
+  field_provenance?: Record<string, FieldProvenance>
   equity_detail?: EquityDetail
+  option_detail?: OptionDetail
   stats?: InstrumentStats
+  identifiers?: InstrumentIdentifier[]
+  listings?: InstrumentListing[]
   synthetic_constituents?: SyntheticConstituent[]
 }
 
@@ -68,6 +118,7 @@ export interface EquityDetail {
   employees?: number
   website?: string
   logo_url?: string
+  field_provenance?: Record<string, FieldProvenance>
 }
 
 export interface OHLCVBar {
@@ -276,6 +327,131 @@ export interface InstrumentMembership {
   screeners: InstrumentMembershipScreener[]
 }
 
+export interface ProviderPolicyStatus {
+  provider: string
+  capability: string
+  supported_capabilities: string[]
+  is_enabled: boolean
+  is_pinned: boolean
+  auto_weight_enabled: boolean
+  base_priority: number
+  effective_score: number
+  learned_weight: number
+  max_concurrency: number
+  tokens_per_minute: number
+  burst_capacity: number
+  cooldown_seconds: number
+  freshness_seconds: number
+  failure_streak: number
+  last_success_at?: string | null
+  last_failure_at?: string | null
+  circuit_open_until?: string | null
+  ewma_latency_ms: number
+  ewma_success_rate: number
+  ewma_completeness: number
+  ewma_freshness: number
+  ewma_consistency: number
+  last_error_type?: string | null
+  last_error_message?: string | null
+}
+
+export interface ProviderHealth {
+  provider: string
+  capability: string
+  failure_streak: number
+  last_success_at?: string | null
+  last_failure_at?: string | null
+  circuit_open_until?: string | null
+  ewma_latency_ms: number
+  ewma_success_rate: number
+  ewma_completeness: number
+  ewma_freshness: number
+  ewma_consistency: number
+  last_error_type?: string | null
+  last_error_message?: string | null
+}
+
+export interface OptionExpirationResponse {
+  symbol: string
+  expirations: string[]
+}
+
+export interface OptionChainRow {
+  instrument_id: number
+  symbol: string
+  name: string
+  currency?: string | null
+  right: string
+  style: string
+  strike: number
+  expiry_date: string
+  contract_size?: number | null
+  contract_key?: string | null
+  bid?: number | null
+  ask?: number | null
+  mark?: number | null
+  last?: number | null
+  volume?: number | null
+  open_interest?: number | null
+  implied_vol?: number | null
+  delta?: number | null
+  gamma?: number | null
+  theta?: number | null
+  vega?: number | null
+  rho?: number | null
+  observed_at?: string | null
+  provider_symbol?: string | null
+  provenance?: Record<string, FieldProvenance>
+}
+
+export interface OptionChainSnapshotSummary {
+  id: number
+  observed_at: string
+  fetched_at: string
+  provider?: string | null
+  contract_count: number
+}
+
+export interface OptionChainResponse {
+  symbol: string
+  expiration?: string | null
+  available_expirations: string[]
+  snapshot?: OptionChainSnapshotSummary | null
+  rows: OptionChainRow[]
+}
+
+export interface OptionContractSummary {
+  id: number
+  symbol: string
+  name: string
+  currency?: string | null
+  contract_key?: string | null
+  right: string
+  style: string
+  strike: number
+  expiry_date: string
+  contract_size?: number | null
+  underlying_instrument_id: number
+  provenance?: Record<string, FieldProvenance>
+}
+
+export interface OptionQuotePoint {
+  observed_at: string
+  bid?: number | null
+  ask?: number | null
+  mark?: number | null
+  last?: number | null
+  volume?: number | null
+  open_interest?: number | null
+  implied_vol?: number | null
+  delta?: number | null
+  gamma?: number | null
+  theta?: number | null
+  vega?: number | null
+  rho?: number | null
+  provider_symbol?: string | null
+}
+
 // ── Dashboards ───────────────────────────────────────────────────────────────
 
 export type DashboardWidgetType =
@@ -291,6 +467,7 @@ export type DashboardWidgetType =
   | 'comparison_chart'
   | 'ratio_chart'
   | 'economic_calendar'
+  | 'options_chain'
   | 'heat_map'
   | 'seasonality'
 

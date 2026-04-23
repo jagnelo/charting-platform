@@ -39,25 +39,25 @@
         </template>
 
         <!-- Stats grid -->
-        <div class="stats-grid">
+          <div class="stats-grid">
           <div v-if="stats?.avg_volume_30d != null" class="stat-item">
-            <span class="stat-label">Avg Vol</span>
+            <span class="stat-label">Avg Vol <ProvenanceHint :provenance="stats?.field_provenance?.avg_volume_30d" label="Avg Vol" /></span>
             <span class="stat-val">{{ fmtVol(stats.avg_volume_30d) }}</span>
           </div>
           <div v-if="stats?.market_cap != null" class="stat-item">
-            <span class="stat-label">Mkt Cap</span>
+            <span class="stat-label">Mkt Cap <ProvenanceHint :provenance="stats?.field_provenance?.market_cap" label="Market Cap" /></span>
             <span class="stat-val">{{ fmtCap(stats.market_cap) }}</span>
           </div>
           <div v-if="stats?.pe_ratio != null" class="stat-item">
-            <span class="stat-label">P/E</span>
+            <span class="stat-label">P/E <ProvenanceHint :provenance="stats?.field_provenance?.pe_ratio" label="P/E" /></span>
             <span class="stat-val">{{ fmt(stats.pe_ratio) }}</span>
           </div>
           <div v-if="stats?.beta != null" class="stat-item">
-            <span class="stat-label">Beta</span>
+            <span class="stat-label">Beta <ProvenanceHint :provenance="stats?.field_provenance?.beta" label="Beta" /></span>
             <span class="stat-val">{{ fmt(stats.beta) }}</span>
           </div>
           <div v-if="stats?.dividend_yield != null" class="stat-item">
-            <span class="stat-label">Div Yield</span>
+            <span class="stat-label">Div Yield <ProvenanceHint :provenance="stats?.field_provenance?.dividend_yield" label="Dividend Yield" /></span>
             <span class="stat-val">{{ fmtPct(stats.dividend_yield) }}</span>
           </div>
         </div>
@@ -65,15 +65,15 @@
         <!-- Equity fundamentals -->
         <template v-if="eq">
           <div class="info-fund-row" v-if="eq.sector">
-            <span class="fund-label">Sector</span>
+            <span class="fund-label">Sector <ProvenanceHint :provenance="eq.field_provenance?.sector" label="Sector" /></span>
             <span class="fund-val">{{ eq.sector }}</span>
           </div>
           <div class="info-fund-row" v-if="eq.industry">
-            <span class="fund-label">Industry</span>
+            <span class="fund-label">Industry <ProvenanceHint :provenance="eq.field_provenance?.industry" label="Industry" /></span>
             <span class="fund-val">{{ eq.industry }}</span>
           </div>
           <div class="info-fund-row" v-if="eq.country">
-            <span class="fund-label">Country</span>
+            <span class="fund-label">Country <ProvenanceHint :provenance="eq.field_provenance?.country" label="Country" /></span>
             <span class="fund-val">{{ eq.country }}</span>
           </div>
           <div class="info-fund-row" v-if="eq.market_cap_tier">
@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ instrument: Instrument | null; currentPrice?: number | null }>()

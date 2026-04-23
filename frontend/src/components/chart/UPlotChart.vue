@@ -187,6 +187,7 @@ import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
 import type { ProjectionItem }     from '@/lib/uplot/plugins/y-axis-projections'
 import ResizeHandle          from '@/components/common/ResizeHandle.vue'
 import { DrawingRenderer }   from '@/lib/drawings/renderer'
+import { estimatedBarStep as _estimatedBarStep, drawingTimeToBarIndex as _drawingTimeToBarIndex, barIndexToDrawingTime as _barIndexToDrawingTime } from '@/lib/drawings/coords'
 import type { MeasurementOverlay } from '@/lib/drawings/renderer'
 import { computeSMA }  from '@/lib/uplot/indicators/sma'
 import { computeEMA }  from '@/lib/uplot/indicators/ema'
@@ -335,6 +336,7 @@ interface InstrumentEvent {
   id: number
   date: string
   event_time: string
+  fetched_at: string
   event_type: string
   symbol: string
   title: string
@@ -432,52 +434,16 @@ function timeToBarIndex(ts: number): number {
   return Math.max(0, Math.min(times.length - 1, lo))
 }
 
-/** Converts a timestamp to a fractional bar index for drawing rendering and hit-testing.
- *  Uses linear interpolation within the data range and linear extrapolation outside it,
- *  so pixel positions are always consistent regardless of which side of the boundary
- *  a drawing point sits on (no distortion when crossing the last-bar boundary). */
-function drawingTimeToBarIndex(ts: number): number {
-  const times = barTimestamps.value
-  if (!times.length) return 0
-  const first = times[0]!
-  const last  = times[times.length - 1]!
-  const step  = estimatedBarStepSeconds()
-  if (ts <= first) return (ts - first) / step
-  if (ts >= last)  return (times.length - 1) + (ts - last) / step
-  // Fractional interpolation between the two surrounding bars
-  let lo = 0, hi = times.length - 1
-  while (lo < hi - 1) {
-    const mid = (lo + hi) >> 1
-    if (times[mid]! <= ts) lo = mid
-    else hi = mid
-  }
-  return lo + (ts - times[lo]!) / (times[hi]! - times[lo]!)
+function estimatedBarStepSeconds(): number {
+  return _estimatedBarStep(barTimestamps.value)
 }
 
-function estimatedBarStepSeconds(): number {
-  const times = barTimestamps.value
-  if (times.length < 2) return 86_400
-  const samples: number[] = []
-  for (let i = Math.max(1, times.length - 40); i < times.length; i++) {
-    const diff = times[i] - times[i - 1]
-    if (Number.isFinite(diff) && diff > 0) samples.push(diff)
-  }
-  if (!samples.length) return 86_400
-  samples.sort((a, b) => a - b)
-  return samples[Math.floor(samples.length / 2)]
+function drawingTimeToBarIndex(ts: number): number {
+  return _drawingTimeToBarIndex(ts, barTimestamps.value)
 }
 
 function barIndexToDrawingTime(idx: number): number {
-  const times = barTimestamps.value
-  if (!times.length) return 0
-  const step = estimatedBarStepSeconds()
-  const last = times.length - 1
-  if (idx <= 0) return times[0]! + idx * step
-  if (idx >= last) return times[last]! + (idx - last) * step
-  const lo = Math.floor(idx)
-  const hi = lo + 1
-  const frac = idx - lo
-  return times[lo]! + frac * (times[hi]! - times[lo]!)
+  return _barIndexToDrawingTime(idx, barTimestamps.value)
 }
 
 function eventTimeToChartIndex(ts: number): number {
@@ -485,7 +451,6 @@ function eventTimeToChartIndex(ts: number): number {
   if (!times.length) return 0
   const first = times[0]
   const last = times[times.length - 1]
-  if (ts <= first) return timeToBarIndex(ts)
   if (ts <= last) return timeToBarIndex(ts)
   return times.length - 1 + (ts - last) / estimatedBarStepSeconds()
 }
@@ -649,6 +614,7 @@ function eventRows(event: InstrumentEvent) {
   if (event.dividend_amount != null) rows.push({ label: 'Dividend', value: num(event.dividend_amount) })
   if (event.split_ratio != null) rows.push({ label: 'Split ratio', value: num(event.split_ratio) })
   rows.push({ label: 'Source', value: event.source })
+  rows.push({ label: 'Fetched', value: new Date(event.fetched_at).toLocaleString() })
   return rows
 }
 

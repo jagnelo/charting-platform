@@ -147,6 +147,11 @@
                 :config="widget.config"
                 :override-symbol="effectiveSymbol(widget)"
               />
+              <DashboardOptionsChainWidget
+                v-else-if="widget.widget_type === 'options_chain'"
+                :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
+              />
               <DashboardHeatMapWidget
                 v-else-if="widget.widget_type === 'heat_map'"
                 :config="widget.config"
@@ -229,7 +234,7 @@
             </label>
 
             <label
-              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart', 'seasonality'].includes(configWidget.widget_type)"
+              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart', 'seasonality', 'options_chain'].includes(configWidget.widget_type)"
               class="config-field"
             >
               <span>Instrument or expression</span>
@@ -559,6 +564,7 @@ import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumen
 import DashboardInstrumentDetailsWidget from '@/components/dashboard/DashboardInstrumentDetailsWidget.vue'
 import DashboardLineChartWidget from '@/components/dashboard/DashboardLineChartWidget.vue'
 import DashboardNotesWidget from '@/components/dashboard/DashboardNotesWidget.vue'
+import DashboardOptionsChainWidget from '@/components/dashboard/DashboardOptionsChainWidget.vue'
 import DashboardQuoteWidget from '@/components/dashboard/DashboardQuoteWidget.vue'
 import DashboardScreenerWidget from '@/components/dashboard/DashboardScreenerWidget.vue'
 import DashboardSeasonalityWidget from '@/components/dashboard/DashboardSeasonalityWidget.vue'
@@ -630,6 +636,7 @@ const widgetCatalog: Array<{
   { type: 'alerts', title: 'Alerts', description: 'Price and indicator alerts' },
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
   { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
+  { type: 'options_chain', title: 'Options Chain', description: 'Calls, puts, IV, OI, greeks' },
   { type: 'heat_map', title: 'Heat Map', description: 'Treemap — perf, RSI, volume, 52w range' },
   { type: 'seasonality', title: 'Seasonality', description: 'Monthly performance patterns' },
   { type: 'instrument_details', title: 'Instrument Details', description: 'Metadata and stats' },
@@ -775,6 +782,7 @@ function defaultLayout(type: DashboardWidgetType, spot: { x: number; y: number }
     alerts: { w: 8, h: 8 },
     screener: { w: 10, h: 8 },
     economic_calendar: { w: 10, h: 8 },
+    options_chain: { w: 16, h: 10 },
     heat_map: { w: 16, h: 14 },
     seasonality: { w: 12, h: 10 },
     instrument_details: { w: 8, h: 8 },
@@ -812,6 +820,7 @@ function defaultConfig(type: DashboardWidgetType) {
   }
   if (type === 'screener') return { screenerId: null }
   if (type === 'economic_calendar') return { symbol: 'SPY' }
+  if (type === 'options_chain') return { symbol: 'SPY' }
   if (type === 'seasonality') return { symbol: 'SPY' }
   if (type === 'alerts') return {}
   if (type === 'notes') return { text: '' }
@@ -853,7 +862,7 @@ async function patchWidget(widget: DashboardWidget, patch: Partial<DashboardWidg
 }
 
 // ── Link group helpers ─────────────────────────────────────────────────────────
-const LINKABLE_TYPES = ['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'seasonality', 'ratio_chart']
+const LINKABLE_TYPES = ['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'seasonality', 'ratio_chart', 'options_chain']
 
 const linkScope = computed(() => dashboardStore.activeTab?.id ?? 'dashboard')
 const activeLinkGroups = computed(() => {

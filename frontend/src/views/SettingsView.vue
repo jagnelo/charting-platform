@@ -37,18 +37,87 @@
       </div>
       <div v-if="!presetsStore.presets.length" class="empty-hint">No presets saved yet. Create them from the chart view.</div>
     </section>
+
+    <section class="settings-section">
+      <h3>Providers</h3>
+      <p class="hint">Capability routing, fallback health, and rate limits.</p>
+      <div v-if="providersLoading" class="empty-hint">Loading provider policies...</div>
+      <div v-else-if="providerError" class="push-status err">{{ providerError }}</div>
+      <div v-else class="provider-list">
+        <div v-for="group in groupedPolicies" :key="group.provider" class="provider-card">
+          <div class="provider-card-head">
+            <strong>{{ group.provider }}</strong>
+            <span>{{ group.capabilities.length }} capabilities</span>
+          </div>
+          <div v-for="policy in group.capabilities" :key="`${policy.provider}:${policy.capability}`" class="provider-row">
+            <div class="provider-main">
+              <strong>{{ policy.capability }}</strong>
+              <small>
+                score {{ policy.effective_score.toFixed(2) }} · latency {{ policy.ewma_latency_ms.toFixed(0) }}ms · failures {{ policy.failure_streak }}
+              </small>
+            </div>
+            <label class="provider-check">
+              <input type="checkbox" :checked="policy.is_enabled" @change="patchPolicy(policy, { is_enabled: checkboxValue($event) })" />
+              <span>Enabled</span>
+            </label>
+            <label class="provider-check">
+              <input type="checkbox" :checked="policy.is_pinned" @change="patchPolicy(policy, { is_pinned: checkboxValue($event) })" />
+              <span>Pinned</span>
+            </label>
+            <label class="provider-check">
+              <input type="checkbox" :checked="policy.auto_weight_enabled" @change="patchPolicy(policy, { auto_weight_enabled: checkboxValue($event) })" />
+              <span>Auto</span>
+            </label>
+            <label class="provider-inline">
+              <span>Priority</span>
+              <input type="number" :value="policy.base_priority" @change="patchPolicy(policy, { base_priority: Number(inputValue($event)) })" />
+            </label>
+            <label class="provider-inline">
+              <span>TPM</span>
+              <input type="number" :value="policy.tokens_per_minute" @change="patchPolicy(policy, { tokens_per_minute: Number(inputValue($event)) })" />
+            </label>
+            <label class="provider-inline">
+              <span>Burst</span>
+              <input type="number" :value="policy.burst_capacity" @change="patchPolicy(policy, { burst_capacity: Number(inputValue($event)) })" />
+            </label>
+            <label class="provider-inline">
+              <span>Fresh</span>
+              <input type="number" :value="policy.freshness_seconds" @change="patchPolicy(policy, { freshness_seconds: Number(inputValue($event)) })" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { api } from '@/lib/api'
 import { usePresetsStore } from '@/stores/presets'
+import type { ProviderPolicyStatus } from '@/types'
 
 const presetsStore = usePresetsStore()
 const oneSignalAppId = ref(localStorage.getItem('onesignal_app_id') ?? '')
 const apiBase = ref(localStorage.getItem('api_base') ?? '')
 const pushStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const connStatus = ref<{ ok: boolean; msg: string } | null>(null)
+const providerPolicies = ref<ProviderPolicyStatus[]>([])
+const providersLoading = ref(false)
+const providerError = ref<string | null>(null)
+
+const groupedPolicies = computed(() => {
+  const groups = new Map<string, ProviderPolicyStatus[]>()
+  for (const policy of providerPolicies.value) {
+    const current = groups.get(policy.provider) ?? []
+    current.push(policy)
+    groups.set(policy.provider, current)
+  }
+  return [...groups.entries()].map(([provider, capabilities]) => ({
+    provider,
+    capabilities: capabilities.sort((a, b) => a.base_priority - b.base_priority || a.capability.localeCompare(b.capability)),
+  }))
+})
 
 async function initOneSignal() {
   if (!oneSignalAppId.value) { pushStatus.value = { ok: false, msg: 'Please enter an App ID' }; return }
@@ -79,7 +148,39 @@ async function testConnection() {
   }
 }
 
-onMounted(() => presetsStore.loadPresets())
+function inputValue(event: Event) {
+  return (event.target as HTMLInputElement).value
+}
+
+function checkboxValue(event: Event) {
+  return (event.target as HTMLInputElement).checked
+}
+
+async function loadProviderPolicies() {
+  providersLoading.value = true
+  providerError.value = null
+  try {
+    providerPolicies.value = await api.get<ProviderPolicyStatus[]>('/providers/policies')
+  } catch (e: any) {
+    providerError.value = e?.message ?? 'Failed to load providers'
+  } finally {
+    providersLoading.value = false
+  }
+}
+
+async function patchPolicy(policy: ProviderPolicyStatus, patch: Record<string, unknown>) {
+  try {
+    await api.patch(`/providers/policies/${encodeURIComponent(policy.provider)}/${encodeURIComponent(policy.capability)}`, patch)
+    await loadProviderPolicies()
+  } catch (e: any) {
+    providerError.value = e?.message ?? 'Failed to update provider policy'
+  }
+}
+
+onMounted(async () => {
+  presetsStore.loadPresets()
+  await loadProviderPolicies()
+})
 </script>
 
 <style scoped>
@@ -129,4 +230,77 @@ onMounted(() => presetsStore.loadPresets())
 .preset-row .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
 .empty-hint { color: #444; font-size: 12px; font-style: italic; }
+
+.provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.provider-card {
+  border: 1px solid #202020;
+  border-radius: 6px;
+  padding: 10px;
+  background: #101010;
+}
+
+.provider-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #d7d7d7;
+  font-size: 12px;
+}
+
+.provider-card-head span {
+  color: #666;
+  font-size: 11px;
+}
+
+.provider-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid #1a1a1a;
+}
+
+.provider-main {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.provider-main strong {
+  color: #efefef;
+  font-size: 12px;
+}
+
+.provider-main small {
+  color: #666;
+  font-size: 10px;
+}
+
+.provider-check,
+.provider-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #8a8a8a;
+}
+
+.provider-inline input {
+  width: 72px;
+  background: #181818;
+  border: 1px solid #313131;
+  color: #d4d4d4;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+}
 </style>
