@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -69,6 +69,9 @@ class WatchlistItem(Base):
     """
 
     __tablename__ = "watchlist_item"
+    __table_args__ = (
+        UniqueConstraint("watchlist_id", "instrument_id", name="uq_watchlist_item_watchlist_instrument"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     watchlist_id: Mapped[int] = mapped_column(

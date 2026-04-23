@@ -71,7 +71,16 @@ async def compute_for_chart(
     bars.reverse()
 
     data = OHLCVSeries.from_orm_bars(bars)
-    result = compute_indicator(indicator, data, parsed_params)
+    try:
+        result = compute_indicator(indicator, data, parsed_params)
+    except KeyError as exc:
+        return {
+            "symbol": symbol.upper(),
+            "timeframe": timeframe.value,
+            "indicator": indicator,
+            "params": parsed_params,
+            "error": str(exc),
+        }
 
     # Convert numpy arrays to lists, replacing NaN with null
     return {

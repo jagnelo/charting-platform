@@ -27,13 +27,21 @@ class User(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships to user-owned resources
-    drawings: Mapped[list["ChartDrawing"]] = relationship(back_populates="user")
-    price_alerts: Mapped[list["PriceAlert"]] = relationship(back_populates="user")
+    drawings: Mapped[list["ChartDrawing"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+    price_alerts: Mapped[list["PriceAlert"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
     indicator_alerts: Mapped[list["IndicatorAlert"]] = relationship(back_populates="user")
     indicator_presets: Mapped[list["IndicatorPreset"]] = relationship(back_populates="user")
-    screener_definitions: Mapped[list["ScreenerDefinition"]] = relationship(back_populates="user")
+    screener_definitions: Mapped[list["ScreenerDefinition"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
     screener_alerts: Mapped[list["ScreenerAlert"]] = relationship(back_populates="user")
-    watchlists: Mapped[list["Watchlist"]] = relationship(back_populates="user")
+    watchlists: Mapped[list["Watchlist"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
     dashboards: Mapped[list["Dashboard"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

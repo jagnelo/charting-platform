@@ -129,6 +129,9 @@ def _compute_rsi(data: OHLCVSeries, period: int = 14) -> dict:
     avg_loss = loss.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
     rs = avg_gain / avg_loss.replace(0, np.nan)
     rsi = 100 - (100 / (1 + rs))
+    rsi = rsi.where(avg_loss != 0, 100.0)
+    rsi = rsi.where(avg_gain != 0, 0.0)
+    rsi = rsi.where(~((avg_gain == 0) & (avg_loss == 0)), 50.0)
     return {"rsi": rsi.to_numpy()}
 
 
@@ -984,9 +987,15 @@ def normalize_indicator_params(indicator_type: str, params: dict | None = None) 
     return normalized
 
 
+def _coerce_series(data: OHLCVSeries | list) -> OHLCVSeries:
+    if isinstance(data, OHLCVSeries):
+        return data
+    return OHLCVSeries.from_orm_bars(data)
+
+
 def compute_indicator(
     indicator_type: str,
-    data: OHLCVSeries,
+    data: OHLCVSeries | list,
     params: dict | None = None,
 ) -> dict[str, np.ndarray]:
     """
@@ -1000,26 +1009,26 @@ def compute_indicator(
             f"Unknown indicator: '{indicator_type}'. Available: {list(INDICATOR_REGISTRY)}"
         )
 
+    series = _coerce_series(data)
     defn = INDICATOR_REGISTRY[indicator_type]
     params = normalize_indicator_params(indicator_type, params)
     resolved_params = {}
-    for p in defn.params:
-        if params and p.name in params:
-            resolved_params[p.name] = p.type(params[p.name])
-        else:
-            resolved_params[p.name] = p.default
-
     try:
-        return defn.fn(data, **resolved_params)
+        for p in defn.params:
+            if params and p.name in params:
+                resolved_params[p.name] = p.type(params[p.name])
+            else:
+                resolved_params[p.name] = p.default
+        return defn.fn(series, **resolved_params)
     except Exception as e:
         logger.error(f"Indicator computation failed for {indicator_type}: {e}")
-        empty = np.full(len(data.closes), np.nan)
+        empty = np.full(len(series.closes), np.nan)
         return {k: empty.copy() for k in defn.output_keys}
 
 
 def get_latest_value(
     indicator_type: str,
-    data: OHLCVSeries,
+    data: OHLCVSeries | list,
     params: dict | None = None,
     output_key: str | None = None,
 ) -> float | None:
@@ -1036,6 +1045,16 @@ def get_latest_value(
         if not np.isnan(val):
             return float(val)
     return None
+
+
+def get_last_value(
+    indicator_type: str,
+    data: OHLCVSeries | list,
+    params: dict | None = None,
+    output_key: str | None = None,
+) -> float | None:
+    """Backward-compatible alias for older callers/tests."""
+    return get_latest_value(indicator_type, data, params, output_key)
 
 
 def list_indicators() -> list[dict]:

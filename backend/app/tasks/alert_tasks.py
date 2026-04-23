@@ -126,9 +126,10 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
     alert.status = AlertStatus.ACTIVE if alert.repeat else AlertStatus.TRIGGERED
 
     symbol = alert.instrument.symbol
+    condition = getattr(alert.condition, "value", alert.condition)
     notif_id = await send_alert_notification(
         symbol=symbol,
-        condition=alert.condition.value,
+        condition=condition,
         threshold=float(alert.threshold_value or current_b or 0),
         current_price=current_val,
         alert_id=alert.id,
@@ -144,8 +145,8 @@ async def _fire_indicator_alert(db, alert, current_val, current_b=None):
             "alert_id": alert.id,
             "user_id": alert.user_id,
             "symbol": symbol,
-            "indicator": alert.indicator_type,
-            "condition": alert.condition.value,
+            "indicator": alert.indicator_a_type,
+            "condition": condition,
             "current_value": current_val,
             "triggered_at": now.isoformat(),
         }
@@ -217,22 +218,22 @@ async def check_all_alerts(ctx: dict) -> dict:
                     continue
 
                 current_val = ind_engine.get_last_value(
-                    alert.indicator_type, bars, alert.indicator_params or {}
+                    alert.indicator_a_type, bars, alert.indicator_a_params or {}
                 )
                 if current_val is None:
                     continue
 
                 current_b = None
                 prev_b = None
-                if alert.compare_indicator_type:
+                if alert.indicator_b_type:
                     current_b = ind_engine.get_last_value(
-                        alert.compare_indicator_type, bars, alert.compare_indicator_params or {}
+                        alert.indicator_b_type, bars, alert.indicator_b_params or {}
                     )
                     prev_b = (
                         ind_engine.get_last_value(
-                            alert.compare_indicator_type,
+                            alert.indicator_b_type,
                             bars[:-1],
-                            alert.compare_indicator_params or {},
+                            alert.indicator_b_params or {},
                         )
                         if len(bars) > 1
                         else None
@@ -240,7 +241,7 @@ async def check_all_alerts(ctx: dict) -> dict:
 
                 prev_val = (
                     ind_engine.get_last_value(
-                        alert.indicator_type, bars[:-1], alert.indicator_params or {}
+                        alert.indicator_a_type, bars[:-1], alert.indicator_a_params or {}
                     )
                     if len(bars) > 1
                     else None
@@ -252,9 +253,9 @@ async def check_all_alerts(ctx: dict) -> dict:
                     await _fire_indicator_alert(db, alert, current_val, current_b)
                     indicator_fired += 1
                 else:
-                    alert.last_indicator_value = Decimal(str(current_val))
+                    alert.last_value_a = Decimal(str(current_val))
                     if current_b is not None:
-                        alert.last_compare_value = Decimal(str(current_b))
+                        alert.last_value_b = Decimal(str(current_b))
             await db.commit()
 
         except Exception as e:

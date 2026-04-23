@@ -1,3 +1,4 @@
+import logging
 import math
 from datetime import UTC, datetime, timedelta
 
@@ -38,6 +39,8 @@ from app.services.market_data import (
     get_provider_profile_async,
     search_provider_instruments_async,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -927,21 +930,27 @@ async def get_instrument(
 
 
 async def _sync_instrument_events(instrument_id: int) -> None:
-    async with AsyncSessionLocal() as session:
-        instrument = await session.get(Instrument, instrument_id)
-        if instrument is None:
-            return
-        await ensure_instrument_events_loaded(session, instrument)
-        await session.commit()
+    try:
+        async with AsyncSessionLocal() as session:
+            instrument = await session.get(Instrument, instrument_id)
+            if instrument is None:
+                return
+            await ensure_instrument_events_loaded(session, instrument)
+            await session.commit()
+    except Exception as exc:
+        logger.warning("Background instrument event sync failed for %s: %s", instrument_id, exc)
 
 
 async def _sync_instrument_identifier(instrument_id: int) -> None:
-    async with AsyncSessionLocal() as session:
-        instrument = await session.get(Instrument, instrument_id)
-        if instrument is None:
-            return
-        await ensure_external_identifier(session, instrument)
-        await session.commit()
+    try:
+        async with AsyncSessionLocal() as session:
+            instrument = await session.get(Instrument, instrument_id)
+            if instrument is None:
+                return
+            await ensure_external_identifier(session, instrument)
+            await session.commit()
+    except Exception as exc:
+        logger.warning("Background identifier sync failed for %s: %s", instrument_id, exc)
 
 
 def _needs_metadata_refresh(instrument: Instrument) -> bool:

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 
@@ -65,8 +66,9 @@ class TestUserModel:
 
         db.delete(user)
         db.flush()
+        db.expire_all()
 
-        result = db.get(ChartDrawing, drawing_id)
+        result = db.execute(select(ChartDrawing).where(ChartDrawing.id == drawing_id)).scalar_one_or_none()
         assert result is None
 
     def test_user_cascade_deletes_alerts(self, db, user, instrument):
@@ -84,8 +86,9 @@ class TestUserModel:
 
         db.delete(user)
         db.flush()
+        db.expire_all()
 
-        result = db.get(PriceAlert, alert_id)
+        result = db.execute(select(PriceAlert).where(PriceAlert.id == alert_id)).scalar_one_or_none()
         assert result is None
 
 
@@ -116,8 +119,6 @@ class TestOHLCVBarModel:
             assert bar.high >= bar.low, f"Bar {bar.ts}: high < low"
 
     def test_bars_ordered_by_ts(self, db, instrument, ohlcv_bars):
-        from sqlalchemy import select
-
         from app.models.ohlcv import OHLCVBar, Timeframe
 
         bars = (

@@ -1,379 +1,298 @@
 """
-Unit tests for the indicator engine (services/indicators.py).
+Unit tests for the current function-based indicator engine.
 
-All tests are pure computation — no DB, no network.
-The indicator engine is the most critical service in the application:
-it drives alert evaluation, screener conditions, and chart display.
+These tests cover the backend indicator API used by charts, alerts, and
+screeners: OHLCVSeries normalisation, metadata listing, parameter alias
+normalisation, indicator computation, and latest-value extraction.
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from app.services.indicators import (
-    BaseIndicator,
-    SMAIndicator,
-    bars_to_dataframe,
-    compute,
-    get_indicator,
-    get_last_value,
+    INDICATOR_REGISTRY,
+    OHLCVSeries,
+    compute_indicator,
+    get_latest_value,
     list_indicators,
-    register_indicator,
+    normalize_indicator_params,
 )
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+
+@dataclass
+class FakeBar:
+    ts: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
 
 
-def make_bars_df(closes: list[float], *, seed: int = 0) -> pd.DataFrame:
-    """Build a minimal DataFrame that looks like bars_to_dataframe() output."""
+def make_series(
+    closes: list[float],
+    *,
+    seed: int = 0,
+    start: datetime | None = None,
+    step: timedelta = timedelta(days=1),
+) -> OHLCVSeries:
     rng = np.random.RandomState(seed)
-    n = len(closes)
-    closes_arr = np.array(closes)
-    highs = closes_arr + rng.uniform(0.5, 2.0, n)
-    lows = closes_arr - rng.uniform(0.5, 2.0, n)
-    opens = closes_arr - rng.uniform(-1.0, 1.0, n)
-    vols = rng.randint(1_000_000, 50_000_000, n).astype(float)
-    base = datetime(2024, 1, 1, tzinfo=UTC)
-    index = [base + timedelta(days=i) for i in range(n)]
-    return pd.DataFrame(
-        {"open": opens, "high": highs, "low": lows, "close": closes_arr, "volume": vols},
-        index=index,
-    ).rename_axis("ts")
+    start = start or datetime(2024, 1, 1, tzinfo=UTC)
+    closes_arr = np.array(closes, dtype=np.float64)
+    highs = closes_arr + rng.uniform(0.5, 2.0, len(closes))
+    lows = closes_arr - rng.uniform(0.5, 2.0, len(closes))
+    opens = closes_arr + rng.uniform(-1.0, 1.0, len(closes))
+    volumes = rng.randint(1_000_000, 5_000_000, len(closes)).astype(np.float64)
+    timestamps = np.array(
+        [int((start + i * step).timestamp()) for i in range(len(closes))],
+        dtype=np.int64,
+    )
+    return OHLCVSeries(
+        timestamps=timestamps,
+        opens=opens,
+        highs=highs,
+        lows=lows,
+        closes=closes_arr,
+        volumes=volumes,
+    )
 
 
-def rising_closes(n=50, start=100.0, step=1.0) -> list[float]:
+def rising_closes(n: int = 80, start: float = 100.0, step: float = 1.0) -> list[float]:
     return [start + i * step for i in range(n)]
 
 
-def flat_closes(n=50, value=150.0) -> list[float]:
+def falling_closes(n: int = 80, start: float = 180.0, step: float = 1.0) -> list[float]:
+    return [start - i * step for i in range(n)]
+
+
+def flat_closes(n: int = 80, value: float = 150.0) -> list[float]:
     return [value] * n
 
 
-# ── Registry ───────────────────────────────────────────────────────────────────
+class TestOHLCVSeries:
+    def test_from_orm_bars_empty(self):
+        series = OHLCVSeries.from_orm_bars([])
+        assert len(series.timestamps) == 0
+        assert len(series.closes) == 0
+
+    def test_from_orm_bars_maps_values(self):
+        bars = [
+            FakeBar(
+                ts=datetime(2024, 1, 1, tzinfo=UTC) + timedelta(days=i),
+                open=100 + i,
+                high=101 + i,
+                low=99 + i,
+                close=100.5 + i,
+                volume=1_000_000 + i,
+            )
+            for i in range(3)
+        ]
+        series = OHLCVSeries.from_orm_bars(bars)
+        assert series.timestamps.dtype == np.int64
+        assert series.opens.dtype == np.float64
+        assert series.closes.tolist() == pytest.approx([100.5, 101.5, 102.5])
+
+    def test_to_dataframe_has_expected_columns(self):
+        series = make_series(rising_closes(5))
+        df = series.to_dataframe()
+        assert list(df.columns) == ["ts", "open", "high", "low", "close", "volume"]
+        assert len(df) == 5
 
 
-class TestRegistry:
-    def test_list_indicators_returns_all(self):
-        result = list_indicators()
-        names = {r["name"] for r in result}
+class TestIndicatorMetadata:
+    def test_registry_contains_expected_high_value_indicators(self):
         expected = {
             "sma",
             "ema",
-            "wma",
-            "bb",
             "rsi",
             "macd",
-            "stoch",
-            "cci",
-            "roc",
+            "bb",
             "vwap",
             "avwap",
-            "obv",
-            "volume_sma",
             "atr",
-            "atr_pct",
+            "stoch",
+            "obv",
+            "adx",
+            "ichimoku",
+            "psar",
+            "donchian",
+            "keltner",
+            "williams_r",
+            "mfi",
+            "roc",
+            "pivot_points",
+            "cmf",
+            "ppo",
         }
-        assert expected.issubset(names)
+        assert expected.issubset(set(INDICATOR_REGISTRY))
 
-    def test_list_indicators_schema_fields(self):
-        for ind in list_indicators():
-            assert "name" in ind
-            assert "display_name" in ind
-            assert "params_schema" in ind
-            assert "output_columns" in ind
-            assert "pane" in ind
+    def test_list_indicators_exposes_expected_shape(self):
+        items = list_indicators()
+        assert items
+        first = items[0]
+        assert "type" in first
+        assert "label" in first
+        assert "description" in first
+        assert "pane" in first
+        assert "output_keys" in first
+        assert "params" in first
 
-    def test_get_indicator_unknown_raises(self):
-        with pytest.raises(ValueError, match="Unknown indicator"):
-            get_indicator("nonexistent_xyz")
-
-    def test_get_indicator_case_insensitive(self):
-        ind = get_indicator("SMA")
-        assert isinstance(ind, SMAIndicator)
-
-    def test_custom_indicator_registration(self):
-        @register_indicator("test_constant")
-        class ConstantIndicator(BaseIndicator):
-            display_name = "Constant"
-            description = "Always returns 42"
-            output_columns = ["val"]
-            params_schema = {}
-
-            def compute(self, bars, params):
-                return pd.Series(42.0, index=bars.index, name="val")
-
-        ind = get_indicator("test_constant")
-        df = make_bars_df(flat_closes(10))
-        result = ind.compute(df, {})
-        assert (result == 42.0).all()
+    def test_list_indicators_matches_registry(self):
+        listed = {item["type"] for item in list_indicators()}
+        assert listed == set(INDICATOR_REGISTRY)
 
 
-# ── SMA ────────────────────────────────────────────────────────────────────────
+class TestParamNormalisation:
+    def test_bb_multiplier_alias_maps_to_std_dev(self):
+        params = normalize_indicator_params("bb", {"multiplier": 2.5})
+        assert params == {"std_dev": 2.5}
 
-
-class TestSMA:
-    def test_basic_values(self):
-        closes = [1.0, 2.0, 3.0, 4.0, 5.0]
-        df = make_bars_df(closes)
-        result = compute("sma", df, {"period": 3})
-        assert result["sma"].isna().sum() == 2  # first 2 are NaN
-        assert result["sma"].iloc[2] == pytest.approx(2.0)
-        assert result["sma"].iloc[4] == pytest.approx(4.0)
-
-    def test_flat_series(self):
-        df = make_bars_df(flat_closes(30, 100.0))
-        result = compute("sma", df, {"period": 10})
-        valid = result["sma"].dropna()
-        assert (valid == pytest.approx(100.0)).all()
-
-    def test_rising_series(self):
-        df = make_bars_df(rising_closes(20, 100.0, 1.0))
-        result = compute("sma", df, {"period": 5})
-        # SMA(5) of a linear series should itself be linear
-        valid = result["sma"].dropna()
-        diffs = valid.diff().dropna()
-        assert (diffs == pytest.approx(1.0, abs=1e-9)).all()
-
-    def test_period_1_equals_close(self):
-        closes = [10.0, 20.0, 30.0]
-        df = make_bars_df(closes)
-        result = compute("sma", df, {"period": 1})
-        assert list(result["sma"]) == pytest.approx(closes)
-
-    def test_output_length_matches_input(self):
-        df = make_bars_df(rising_closes(40))
-        assert len(compute("sma", df, {"period": 10})) == 40
-
-    def test_default_period_used_when_not_provided(self):
-        df = make_bars_df(rising_closes(50))
-        result = compute("sma", df, {})
-        assert result["sma"].notna().sum() == 31  # 50 - 20 + 1 = 31 valid
-
-
-# ── EMA ────────────────────────────────────────────────────────────────────────
-
-
-class TestEMA:
-    def test_ema_more_reactive_than_sma(self):
-        """EMA should respond faster to price changes than SMA."""
-        closes = flat_closes(30, 100.0) + [200.0] * 10
-        df = make_bars_df(closes)
-        ema = compute("ema", df, {"period": 10})["ema"]
-        sma = compute("sma", df, {"period": 10})["sma"]
-        # After spike, EMA should be higher than SMA
-        assert ema.iloc[-1] > sma.iloc[-1]
-
-    def test_flat_series_convergence(self):
-        df = make_bars_df(flat_closes(50, 150.0))
-        result = compute("ema", df, {"period": 10})["ema"].dropna()
-        assert (result == pytest.approx(150.0, abs=1e-6)).all()
-
-    def test_output_columns(self):
-        df = make_bars_df(rising_closes(20))
-        result = compute("ema", df, {"period": 5})
-        assert "ema" in result.columns
-
-
-# ── Bollinger Bands ────────────────────────────────────────────────────────────
-
-
-class TestBollingerBands:
-    def test_band_structure(self):
-        df = make_bars_df(rising_closes(50))
-        result = compute("bb", df, {"period": 20, "std_dev": 2.0})
-        assert set(result.columns) == {"bb_upper", "bb_mid", "bb_lower", "bb_bandwidth", "bb_pct_b"}
-
-    def test_upper_above_mid_above_lower(self):
-        df = make_bars_df(rising_closes(50))
-        result = compute("bb", df, {"period": 20, "std_dev": 2.0}).dropna()
-        assert (result["bb_upper"] > result["bb_mid"]).all()
-        assert (result["bb_mid"] > result["bb_lower"]).all()
-
-    def test_flat_series_zero_bandwidth(self):
-        df = make_bars_df(flat_closes(30, 100.0))
-        result = compute("bb", df, {"period": 10}).dropna()
-        assert (result["bb_bandwidth"] == pytest.approx(0.0, abs=1e-9)).all()
-        assert (result["bb_upper"] == pytest.approx(100.0)).all()
-
-    def test_wider_std_dev_widens_bands(self):
-        df = make_bars_df(rising_closes(50))
-        r1 = compute("bb", df, {"period": 20, "std_dev": 1.0}).dropna()
-        r2 = compute("bb", df, {"period": 20, "std_dev": 2.0}).dropna()
-        assert (r2["bb_bandwidth"] > r1["bb_bandwidth"]).all()
-
-
-# ── RSI ────────────────────────────────────────────────────────────────────────
-
-
-class TestRSI:
-    def test_range_0_to_100(self):
-        rng = np.random.RandomState(7)
-        closes = list(100 + np.cumsum(rng.randn(200)))
-        df = make_bars_df(closes)
-        result = compute("rsi", df, {"period": 14})["rsi"].dropna()
-        assert (result >= 0).all()
-        assert (result <= 100).all()
-
-    def test_all_gains_gives_near_100(self):
-        df = make_bars_df(rising_closes(100, 100.0, 1.0))
-        result = compute("rsi", df, {"period": 14})["rsi"].dropna()
-        assert result.iloc[-1] > 90.0
-
-    def test_all_losses_gives_near_0(self):
-        closes = [100.0 - i * 1.0 for i in range(80)]
-        df = make_bars_df(closes)
-        result = compute("rsi", df, {"period": 14})["rsi"].dropna()
-        assert result.iloc[-1] < 10.0
-
-    def test_flat_series_is_nan_or_50(self):
-        # Flat = 0 gains, 0 losses → avg_loss = 0 → RS = NaN or infinite
-        df = make_bars_df(flat_closes(50, 100.0))
-        result = compute("rsi", df, {"period": 14})["rsi"]
-        # Either NaN (0/0) or close to 100 depending on implementation
-        valid = result.dropna()
-        if len(valid):
-            assert ((valid >= 0) & (valid <= 100)).all()
-
-    def test_pane_is_separate(self):
-        ind = get_indicator("rsi")
-        assert ind.default_pane == "separate"
-
-
-# ── MACD ───────────────────────────────────────────────────────────────────────
-
-
-class TestMACD:
-    def test_output_columns(self):
-        df = make_bars_df(rising_closes(60))
-        result = compute("macd", df, {"fast": 12, "slow": 26, "signal": 9})
-        assert set(result.columns) == {"macd_line", "macd_signal", "macd_histogram"}
-
-    def test_histogram_is_line_minus_signal(self):
-        df = make_bars_df(rising_closes(60))
-        result = compute("macd", df, {})
-        diff = result["macd_line"] - result["macd_signal"]
-        assert (
-            diff.equals(result["macd_histogram"])
-            or (diff - result["macd_histogram"]).abs().max() < 1e-9
+    def test_camel_case_aliases_are_normalized(self):
+        params = normalize_indicator_params(
+            "ichimoku",
+            {"senkouB": 60, "afStart": 0.01, "afStep": 0.03, "afMax": 0.25},
         )
+        assert params["senkou_b"] == 60
+        assert params["af_start"] == 0.01
+        assert params["af_step"] == 0.03
+        assert params["af_max"] == 0.25
 
-    def test_rising_series_positive_macd(self):
-        df = make_bars_df(rising_closes(80, 100.0, 2.0))
-        result = compute("macd", df, {})
-        # Fast EMA > Slow EMA on a sustained uptrend → positive MACD
-        assert result["macd_line"].iloc[-1] > 0
-
-
-# ── ATR ────────────────────────────────────────────────────────────────────────
-
-
-class TestATR:
-    def test_always_non_negative(self):
-        rng = np.random.RandomState(3)
-        closes = list(100 + np.cumsum(rng.randn(100)))
-        df = make_bars_df(closes)
-        result = compute("atr", df, {"period": 14})["atr"].dropna()
-        assert (result >= 0).all()
-
-    def test_higher_volatility_higher_atr(self):
-        quiet = make_bars_df(flat_closes(50, 100.0))
-        rng = np.random.RandomState(1)
-        noisy_closes = list(100 + np.cumsum(rng.randn(50) * 5))
-        noisy = make_bars_df(noisy_closes)
-        atr_q = compute("atr", quiet, {"period": 14})["atr"].dropna().mean()
-        atr_n = compute("atr", noisy, {"period": 14})["atr"].dropna().mean()
-        assert atr_n > atr_q
-
-    def test_atr_pct_scales_with_price(self):
-        df_low = make_bars_df(flat_closes(50, 10.0))
-        df_high = make_bars_df(flat_closes(50, 1000.0))
-        pct_low = compute("atr_pct", df_low, {"period": 14})["atr_pct"].dropna()
-        pct_high = compute("atr_pct", df_high, {"period": 14})["atr_pct"].dropna()
-        # Both flat → ATR % should both be near 0 regardless of price level
-        assert pct_low.mean() < 1.0
-        assert pct_high.mean() < 1.0
+    def test_stoch_period_alias_maps_to_k_period(self):
+        params = normalize_indicator_params("stoch", {"period": 21, "smoothK": 5})
+        assert params["k_period"] == 21
+        assert params["smooth_k"] == 5
 
 
-# ── VWAP ───────────────────────────────────────────────────────────────────────
+class TestIndicatorComputation:
+    def test_unknown_indicator_raises_key_error(self):
+        with pytest.raises(KeyError):
+            compute_indicator("does_not_exist", make_series(rising_closes(20)))
 
+    def test_sma_period_one_equals_close(self):
+        closes = [10.0, 20.0, 30.0, 40.0]
+        result = compute_indicator("sma", make_series(closes), {"period": 1})["sma"]
+        assert result.tolist() == pytest.approx(closes)
 
-class TestVWAP:
-    def test_vwap_within_high_low_range(self):
-        rng = np.random.RandomState(9)
-        closes = list(100 + np.cumsum(rng.randn(60)))
-        df = make_bars_df(closes)
-        result = compute("vwap", df, {})["vwap"].dropna()
-        # VWAP must be between daily low and high
-        assert (result >= df["low"].min() * 0.9).all()
-        assert (result <= df["high"].max() * 1.1).all()
+    def test_ema_reacts_faster_than_sma_after_jump(self):
+        closes = flat_closes(40, 100.0) + flat_closes(3, 200.0)
+        data = make_series(closes)
+        ema = compute_indicator("ema", data, {"period": 10})["ema"]
+        sma = compute_indicator("sma", data, {"period": 10})["sma"]
+        assert ema[-1] > sma[-1]
 
-    def test_vwap_flat_price_equals_price(self):
-        """With constant price and equal volumes, VWAP == price."""
-        n = 20
-        base = datetime(2024, 1, 1, tzinfo=UTC)
-        index = [base + timedelta(days=i) for i in range(n)]
-        df = pd.DataFrame(
-            {
-                "open": [100.0] * n,
-                "high": [100.0] * n,
-                "low": [100.0] * n,
-                "close": [100.0] * n,
-                "volume": [1_000_000.0] * n,
-            },
-            index=index,
+    def test_rsi_uptrend_finishes_high(self):
+        rsi = compute_indicator("rsi", make_series(rising_closes(120)), {"period": 14})["rsi"]
+        assert np.nanmax(rsi) <= 100
+        assert np.nanmin(rsi) >= 0
+        assert rsi[~np.isnan(rsi)][-1] > 90
+
+    def test_rsi_downtrend_finishes_low(self):
+        rsi = compute_indicator("rsi", make_series(falling_closes(120)), {"period": 14})["rsi"]
+        assert rsi[~np.isnan(rsi)][-1] < 10
+
+    def test_macd_histogram_matches_difference(self):
+        result = compute_indicator("macd", make_series(rising_closes(120)))
+        diff = result["macd"] - result["signal"]
+        mask = ~(np.isnan(diff) | np.isnan(result["histogram"]))
+        assert np.allclose(diff[mask], result["histogram"][mask])
+
+    def test_bollinger_band_ordering(self):
+        result = compute_indicator("bb", make_series(rising_closes(80)), {"period": 20, "std_dev": 2.0})
+        upper = result["bb_upper"]
+        mid = result["bb_mid"]
+        lower = result["bb_lower"]
+        mask = ~(np.isnan(upper) | np.isnan(mid) | np.isnan(lower))
+        assert np.all(upper[mask] > mid[mask])
+        assert np.all(mid[mask] > lower[mask])
+
+    def test_vwap_flat_series_matches_price(self):
+        price = np.full(30, 100.0)
+        timestamps = np.array(
+            [int((datetime(2024, 1, 1, tzinfo=UTC) + timedelta(minutes=i)).timestamp()) for i in range(30)],
+            dtype=np.int64,
         )
-        result = compute("vwap", df, {})["vwap"].dropna()
-        assert (result == pytest.approx(100.0)).all()
+        series = OHLCVSeries(
+            timestamps=timestamps,
+            opens=price.copy(),
+            highs=price.copy(),
+            lows=price.copy(),
+            closes=price.copy(),
+            volumes=np.full(30, 1_000_000.0),
+        )
+        vwap = compute_indicator("vwap", series)["vwap"]
+        assert np.allclose(vwap, np.full(30, 100.0))
+
+    def test_avwap_before_anchor_is_nan(self):
+        series = make_series(rising_closes(20))
+        anchor = int(series.timestamps[10])
+        avwap = compute_indicator("avwap", series, {"anchor_timestamp": anchor})["avwap"]
+        assert np.isnan(avwap[:10]).all()
+        assert not np.isnan(avwap[10:]).all()
+
+    def test_atr_is_non_negative(self):
+        atr = compute_indicator("atr", make_series(rising_closes(80)), {"period": 14})["atr"]
+        valid = atr[~np.isnan(atr)]
+        assert np.all(valid >= 0)
+
+    def test_stoch_outputs_in_expected_range(self):
+        result = compute_indicator("stoch", make_series(rising_closes(80)))
+        for key in ("stoch_k", "stoch_d"):
+            vals = result[key][~np.isnan(result[key])]
+            assert np.all(vals >= 0)
+            assert np.all(vals <= 100)
+
+    def test_obv_returns_full_length_series(self):
+        obv = compute_indicator("obv", make_series(rising_closes(25)))["obv"]
+        assert len(obv) == 25
+        assert not np.isnan(obv).all()
+
+    def test_adx_returns_all_expected_series(self):
+        result = compute_indicator("adx", make_series(rising_closes(120)))
+        assert set(result) == {"adx", "plus_di", "minus_di"}
+
+    def test_ichimoku_returns_all_expected_series(self):
+        result = compute_indicator("ichimoku", make_series(rising_closes(120)))
+        assert set(result) == {
+            "ichimoku_tenkan",
+            "ichimoku_kijun",
+            "ichimoku_senkou_a",
+            "ichimoku_senkou_b",
+            "ichimoku_chikou",
+        }
+
+    def test_pivot_points_output_shape(self):
+        result = compute_indicator("pivot_points", make_series(rising_closes(40)))
+        assert set(result) == {"pp", "r1", "r2", "r3", "s1", "s2", "s3"}
+
+    def test_raw_price_indicator_matches_input(self):
+        series = make_series(rising_closes(10))
+        close = compute_indicator("close", series)["close"]
+        assert np.array_equal(close, series.closes)
+
+    def test_invalid_param_type_falls_back_to_nan_series(self):
+        series = make_series(rising_closes(10))
+        result = compute_indicator("sma", series, {"period": "not_an_int"})
+        assert set(result) == {"sma"}
+        assert np.isnan(result["sma"]).all()
 
 
-# ── get_last_value ─────────────────────────────────────────────────────────────
+class TestGetLatestValue:
+    def test_returns_latest_non_nan_value(self):
+        series = make_series(rising_closes(60))
+        latest = get_latest_value("sma", series, {"period": 20})
+        expected = np.mean(series.closes[-20:])
+        assert latest == pytest.approx(expected)
 
+    def test_output_key_selects_secondary_series(self):
+        series = make_series(rising_closes(120))
+        latest_hist = get_latest_value("macd", series, output_key="histogram")
+        assert latest_hist is not None
 
-class TestGetLastValue:
-    def test_returns_float(self, ohlcv_bars):
-        val = get_last_value("rsi", ohlcv_bars, {"period": 14})
-        assert isinstance(val, float)
-        assert 0 <= val <= 100
-
-    def test_returns_none_for_empty(self):
-        val = get_last_value("sma", [], {"period": 20})
-        assert val is None
-
-    def test_returns_none_for_insufficient_data(self, ohlcv_bars):
-        # Only 5 bars, period 100 → not enough
-        val = get_last_value("sma", ohlcv_bars[:5], {"period": 100})
-        assert val is None
-
-    def test_unknown_indicator_returns_none(self, ohlcv_bars):
-        val = get_last_value("does_not_exist", ohlcv_bars, {})
-        assert val is None
-
-
-# ── bars_to_dataframe ──────────────────────────────────────────────────────────
-
-
-class TestBarsToDataframe:
-    def test_empty_returns_empty_df(self):
-        result = bars_to_dataframe([])
-        assert result.empty
-        assert set(result.columns) == {"open", "high", "low", "close", "volume"}
-
-    def test_column_types(self, ohlcv_bars):
-        df = bars_to_dataframe(ohlcv_bars)
-        for col in ["open", "high", "low", "close", "volume"]:
-            assert df[col].dtype in (np.float64, float)
-
-    def test_sorted_by_timestamp(self, ohlcv_bars):
-        # Shuffle and check it's re-sorted
-        import random
-
-        shuffled = ohlcv_bars.copy()
-        random.shuffle(shuffled)
-        df = bars_to_dataframe(shuffled)
-        assert df.index.is_monotonic_increasing
-
-    def test_length_matches_input(self, ohlcv_bars):
-        df = bars_to_dataframe(ohlcv_bars)
-        assert len(df) == len(ohlcv_bars)
+    def test_all_nan_returns_none(self):
+        series = make_series(flat_closes(5, 100.0))
+        assert get_latest_value("sma", series, {"period": 50}) is None

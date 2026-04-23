@@ -334,7 +334,7 @@ async def fetch_ohlcv(
     )
     cached = list((await db.execute(stmt)).scalars().all())
 
-    if _needs_fetch(cached, timeframe):
+    if _needs_fetch_for_range(cached, timeframe, start, end):
         new_bars = await _fetch_provider(db, instrument, timeframe, start, end, adjusted)
         if new_bars:
             try:
@@ -394,6 +394,42 @@ def _needs_fetch(cached: list[OHLCVBar], timeframe: Timeframe) -> bool:
         latest = latest.replace(tzinfo=UTC)
     threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     return (datetime.now(UTC) - latest) > threshold
+
+
+def _needs_fetch_for_range(
+    cached: list[OHLCVBar],
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> bool:
+    """
+    Decide whether an explicit range query should trigger a provider fetch.
+
+    Historical ranges that are already covered in the local DB should not be
+    considered "stale" just because their latest cached bar is old relative to
+    the current wall clock. We only fall back to freshness logic when the range
+    extends into the recent live window or coverage is obviously incomplete.
+    """
+    if not cached:
+        return True
+
+    first_cached = min(bar.ts for bar in cached)
+    last_cached = max(bar.ts for bar in cached)
+    if first_cached.tzinfo is None:
+        first_cached = first_cached.replace(tzinfo=UTC)
+    if last_cached.tzinfo is None:
+        last_cached = last_cached.replace(tzinfo=UTC)
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=UTC)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=UTC)
+
+    fully_covered = first_cached <= start and last_cached >= end
+    threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
+    range_is_historical = end <= (datetime.now(UTC) - threshold)
+    if fully_covered and range_is_historical:
+        return False
+    return _needs_fetch(cached, timeframe)
 
 
 async def _fetch_provider(

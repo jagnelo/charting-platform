@@ -104,15 +104,21 @@ def _effective_score(policy: ProviderPolicy, health: ProviderHealthState) -> Dec
     if not policy.auto_weight_enabled:
         return max(policy.score_floor, min(policy.score_ceiling, base_score))
 
-    latency_penalty = min(Decimal("30"), health.ewma_latency_ms / Decimal("1000"))
+    success_rate = health.ewma_success_rate or Decimal("0")
+    completeness = health.ewma_completeness or Decimal("0")
+    freshness = health.ewma_freshness or Decimal("0")
+    consistency = health.ewma_consistency or Decimal("0")
+    learned_weight = policy.learned_weight or Decimal("0")
+    latency_ms = health.ewma_latency_ms or Decimal("0")
+    latency_penalty = min(Decimal("30"), latency_ms / Decimal("1000"))
     health_bonus = (
-        (health.ewma_success_rate * Decimal("25"))
-        + (health.ewma_completeness * Decimal("20"))
-        + (health.ewma_freshness * Decimal("10"))
-        + (health.ewma_consistency * Decimal("10"))
+        (success_rate * Decimal("25"))
+        + (completeness * Decimal("20"))
+        + (freshness * Decimal("10"))
+        + (consistency * Decimal("10"))
         - latency_penalty
     )
-    candidate = base_score + policy.learned_weight + health_bonus
+    candidate = base_score + learned_weight + health_bonus
     return max(policy.score_floor, min(policy.score_ceiling, candidate))
 
 

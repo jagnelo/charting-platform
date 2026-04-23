@@ -31,6 +31,7 @@ def _make_yf_df(symbol: str, days: int = 10, start_price: float = 150.0):
 def _make_yf_ticker_mock(symbol: str = "AAPL"):
     mock = MagicMock()
     mock.ticker = symbol
+    mock.isin = None
     mock.info = {
         "longName": "Apple Inc.",
         "sector": "Technology",
