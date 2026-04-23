@@ -28,6 +28,28 @@ class DataSource(Base, TimestampMixin):
     provider_symbols: Mapped[list["InstrumentProviderSymbol"]] = relationship(
         back_populates="data_source"
     )
+    provider_policies: Mapped[list["ProviderPolicy"]] = relationship(back_populates="data_source")
+    provider_health_states: Mapped[list["ProviderHealthState"]] = relationship(
+        back_populates="data_source"
+    )
+    provider_request_logs: Mapped[list["ProviderRequestLog"]] = relationship(
+        back_populates="data_source"
+    )
+    dataset_states: Mapped[list["InstrumentDatasetState"]] = relationship(
+        back_populates="data_source"
+    )
+    profile_snapshots: Mapped[list["InstrumentProfileSnapshot"]] = relationship(
+        back_populates="data_source"
+    )
+    bar_observations: Mapped[list["MarketBarObservation"]] = relationship(
+        back_populates="data_source"
+    )
+    option_chain_snapshots: Mapped[list["OptionChainSnapshot"]] = relationship(
+        back_populates="data_source"
+    )
+    option_quote_points: Mapped[list["OptionQuotePoint"]] = relationship(
+        back_populates="data_source"
+    )
 
     def __repr__(self) -> str:
         return f"<DataSource name={self.name}>"

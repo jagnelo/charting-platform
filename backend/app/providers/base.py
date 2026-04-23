@@ -82,6 +82,7 @@ class OptionContractRecord:
     contract_size: Decimal | None = None
     bid: Decimal | None = None
     ask: Decimal | None = None
+    mark: Decimal | None = None
     last_price: Decimal | None = None
     volume: Decimal | None = None
     open_interest: Decimal | None = None
@@ -90,6 +91,29 @@ class OptionContractRecord:
     gamma: Decimal | None = None
     theta: Decimal | None = None
     vega: Decimal | None = None
+    rho: Decimal | None = None
+    observed_at: datetime | None = None
+    extra_greeks: dict[str, Decimal | None] | None = None
+    raw_payload: dict[str, Any] | None = None
+
+
+@dataclass(slots=True)
+class OptionQuotePointRecord:
+    provider_symbol: str
+    observed_at: datetime
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    mark: Decimal | None = None
+    last: Decimal | None = None
+    volume: Decimal | None = None
+    open_interest: Decimal | None = None
+    implied_vol: Decimal | None = None
+    delta: Decimal | None = None
+    gamma: Decimal | None = None
+    theta: Decimal | None = None
+    vega: Decimal | None = None
+    rho: Decimal | None = None
+    extra_greeks: dict[str, Decimal | None] | None = None
     raw_payload: dict[str, Any] | None = None
 
 
@@ -159,6 +183,17 @@ class OptionChainProvider(ProviderDescriptor, Protocol):
         *,
         expiration: date | None = None,
     ) -> list[OptionContractRecord]: ...
+
+
+@runtime_checkable
+class OptionQuoteHistoryProvider(ProviderDescriptor, Protocol):
+    def fetch_option_quote_history(
+        self,
+        symbol: str,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> list[OptionQuotePointRecord]: ...
 
 
 class MarketDataProvider(

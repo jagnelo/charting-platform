@@ -26,9 +26,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
+from app.models.provider_runtime import ProviderCapability
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers import ensure_data_source, get_default_market_data_provider
-from app.services.market_data import resolve_provider_symbol_for_instrument
+from app.providers import provider_symbol_for_instrument
+from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
+from app.services.provider_runtime import execute_provider_call
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +85,7 @@ async def bulk_fetch_instrument(
     if timeframes is None:
         timeframes = BULK_FETCH_TIMEFRAMES
 
-    ticker_sym = resolve_provider_symbol_for_instrument(instrument)
-    provider = get_default_market_data_provider()
-    datasource = await ensure_data_source(db, provider.name)
+    ticker_sym = instrument.symbol
     summary: dict[str, Any] = {}
 
     await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
@@ -112,7 +112,6 @@ async def bulk_fetch_instrument(
             instrument=instrument,
             ticker_sym=ticker_sym,
             timeframe=tf,
-            datasource_id=datasource.id,
             adjusted=adjusted,
         )
         summary[tf.value] = result
@@ -156,7 +155,6 @@ async def _fetch_one_timeframe(
     instrument: Instrument,
     ticker_sym: str,
     timeframe: Timeframe,
-    datasource_id: int,
     adjusted: bool,
 ) -> int | str:
     try:
@@ -165,7 +163,6 @@ async def _fetch_one_timeframe(
             instrument=instrument,
             ticker_sym=ticker_sym,
             timeframe=timeframe,
-            datasource_id=datasource_id,
             adjusted=adjusted,
         )
     except Exception as e:
@@ -178,21 +175,37 @@ async def _do_fetch_and_store(
     instrument: Instrument,
     ticker_sym: str,
     timeframe: Timeframe,
-    datasource_id: int,
     adjusted: bool,
 ) -> int:
     """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
-    provider = get_default_market_data_provider()
-    bars = provider.fetch_ohlcv(
-        ticker_sym,
-        timeframe,
-        EPOCH_START,
-        datetime.now(UTC),
-        adjusted=adjusted,
+    execution = await execute_provider_call(
+        db,
+        ProviderCapability.PRICE_HISTORY,
+        f"bulk_fetch:{timeframe.value}",
         instrument_id=instrument.id,
-        data_source_id=datasource_id,
+        invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
+            provider_symbol_for_instrument(instrument, provider.name),
+            timeframe,
+            EPOCH_START,
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument.id,
+            data_source_id=0,
+        ),
+        response_items=lambda result: len(result),
+        treat_empty_as_failure=False,
     )
+    bars = execution.result
     if not bars:
+        await _touch_ohlcv_dataset_state(
+            db,
+            instrument,
+            data_source_id=execution.data_source.id,
+            timeframe=timeframe,
+            adjusted=adjusted,
+            bars=[],
+        )
+        await db.commit()
         return 0
 
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
@@ -202,12 +215,34 @@ async def _do_fetch_and_store(
         ts_utc = _to_utc(bar.ts)
         if ts_utc in existing_ts:
             continue
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
         bar.ts = ts_utc
         new_bars.append(bar)
 
+    for bar in bars:
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
+        bar.ts = _to_utc(bar.ts)
+
+    await _record_bar_observations(
+        db,
+        bars,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol_for_instrument(instrument, execution.provider_name),
+    )
+    await _touch_ohlcv_dataset_state(
+        db,
+        instrument,
+        data_source_id=execution.data_source.id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        bars=bars,
+    )
+
     if new_bars:
         db.add_all(new_bars)
-        await db.commit()
+    await db.commit()
 
     return len(new_bars)
 

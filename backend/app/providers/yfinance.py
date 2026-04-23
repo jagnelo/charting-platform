@@ -629,10 +629,21 @@ class YFinanceProvider:
                         contract_size=_safe_decimal(row_dict.get("contractSize")),
                         bid=_safe_decimal(row_dict.get("bid")),
                         ask=_safe_decimal(row_dict.get("ask")),
+                        mark=(
+                            (
+                                (_safe_decimal(row_dict.get("bid")) or Decimal("0"))
+                                + (_safe_decimal(row_dict.get("ask")) or Decimal("0"))
+                            )
+                            / Decimal("2")
+                            if _safe_decimal(row_dict.get("bid")) is not None
+                            and _safe_decimal(row_dict.get("ask")) is not None
+                            else None
+                        ),
                         last_price=_safe_decimal(row_dict.get("lastPrice")),
                         volume=_safe_decimal(row_dict.get("volume")),
                         open_interest=_safe_decimal(row_dict.get("openInterest")),
                         implied_vol=_safe_decimal(row_dict.get("impliedVolatility")),
+                        observed_at=datetime.now(UTC),
                         raw_payload={k: _jsonable(v) for k, v in row_dict.items()},
                     )
                 )

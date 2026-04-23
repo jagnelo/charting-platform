@@ -19,6 +19,20 @@ from app.models.instrument_identity import (
     InstrumentIdentifierType,
     InstrumentProviderSymbol,
 )
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    InstrumentProfileSnapshot,
+    MarketBarObservation,
+    OptionChainSnapshot,
+    OptionQuotePoint,
+)
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderHealthState,
+    ProviderPolicy,
+    ProviderRequestLog,
+)
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
@@ -42,6 +56,16 @@ __all__ = [
     "InstrumentIdentifierType",
     "InstrumentIndicatorConfig",
     "InstrumentProviderSymbol",
+    "ProviderCapability",
+    "ProviderPolicy",
+    "ProviderHealthState",
+    "ProviderRequestLog",
+    "DatasetStatus",
+    "InstrumentDatasetState",
+    "InstrumentProfileSnapshot",
+    "MarketBarObservation",
+    "OptionChainSnapshot",
+    "OptionQuotePoint",
     "InstrumentEvent",
     "InstrumentEventFetchState",
     "InstrumentEventType",

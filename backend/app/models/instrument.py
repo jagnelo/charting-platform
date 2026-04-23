@@ -160,6 +160,8 @@ class OptionDetail(Base, TimestampMixin):
     style: Mapped[OptionStyle] = mapped_column(
         SAEnum(OptionStyle), nullable=False, default=OptionStyle.AMERICAN
     )
+    contract_key: Mapped[str | None] = mapped_column(String(160), nullable=True, unique=True, index=True)
+    venue_code: Mapped[str | None] = mapped_column(String(30), nullable=True)
     strike: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     expiry_date: Mapped[date] = mapped_column(Date, nullable=False)
     contract_size: Mapped[Decimal | None] = mapped_column(
@@ -169,6 +171,7 @@ class OptionDetail(Base, TimestampMixin):
     gamma: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     theta: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     vega: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
+    rho: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     implied_vol: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(

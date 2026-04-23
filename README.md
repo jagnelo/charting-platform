@@ -36,7 +36,7 @@ docker compose up -d
 open http://localhost:4173
 ```
 
-Register an account and start searching for symbols. Market data comes from whichever provider is configured for the current environment.
+Register an account and start searching for symbols. Market data comes from the active provider policy chain for each capability and is persisted locally before it is served back to the UI.
 
 ---
 
@@ -116,9 +116,11 @@ Full JWT auth — access tokens (60 min) + refresh tokens (30 days) with silent 
 
 ### Data Pipeline
 - OHLCV bars cached in Postgres — the configured provider is only called for missing date ranges or stale data
+- Raw provider observations are persisted alongside canonical read models so alternate provider copies are not lost
 - Bulk historical fetch triggered automatically when a new instrument is first registered (ARQ background task)
 - Nightly refresh job keeps all instruments current
 - Identifier enrichment is opportunistic — instruments missing an external ID are backfilled naturally on profile/event access and scheduled maintenance
+- Option contracts are canonical instruments with persisted chain snapshots and quote points (bid/ask/OI/IV/greeks as timeseries)
 
 ---
 
@@ -147,6 +149,11 @@ DEFAULT_EVENT_PROVIDER=yfinance
 DEFAULT_DISCOVERY_PROVIDER=yfinance
 DEFAULT_OPTIONS_PROVIDER=yfinance
 IDENTIFIER_PROVIDER_PRIORITY=["yfinance","openfigi"]
+OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
+PROVIDER_CHAIN_SEEDS={}
+PROVIDER_RATE_LIMIT_SEEDS={}
+PROVIDER_FRESHNESS_SEEDS={}
+OPTION_CHAIN_REFRESH_HORIZON_DAYS=45
 
 # Provider credentials / tuning
 OPENFIGI_API_KEY=
@@ -157,7 +164,18 @@ FMP_API_KEY=
 
 The database and Redis URLs are pre-configured for the Docker Compose network and do not need to be changed for local/NAS deployment.
 
-Provider responsibilities are capability-based. A single source can handle price history, metadata, events, discovery, and options, or those capabilities can be split across different providers. Provider provenance is persisted alongside mastered instrument fields so it remains clear where key metadata came from and when it was refreshed.
+Provider responsibilities are capability-based. A single source can handle price history, metadata, events, discovery, and options, or those capabilities can be split across different providers. The `DEFAULT_*` variables are only seed values used to initialize DB-backed provider policies on first boot; after that, runtime routing and fallback are controlled from the database and the Settings UI.
+
+Useful provider envs:
+
+- `IDENTIFIER_PROVIDER_PRIORITY`: seed order for identifier enrichment.
+- `OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY`: seed order for option quote-history providers.
+- `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["openfigi","yfinance"]}`.
+- `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider, for example `{"yfinance":{"tokens_per_minute":30,"burst_capacity":10}}`.
+- `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
+- `OPTION_CHAIN_REFRESH_HORIZON_DAYS`: refresh horizon for tracked-interest options maintenance.
+
+Provider provenance is persisted alongside mastered instrument/detail/stat fields so it remains clear where key metadata came from, when it was observed, and why a given provider won field selection.
 
 ---
 

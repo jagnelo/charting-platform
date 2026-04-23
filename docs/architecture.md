@@ -24,6 +24,9 @@ exchange (MIC code, timezone, market hours)
 instrument_listing  (ticker per exchange — AAPL on NASDAQ vs XETR)
 data_source (provider-backed, extensible)
   └── supported_capabilities (price_history, instrument_metadata, option_chain, ...)
+provider_policy / provider_health_state / provider_request_log
+instrument_profile_snapshot / market_bar_observation / instrument_dataset_state
+option_chain_snapshot / option_quote_point
 
 ohlcv_bar
   ├── instrument_id  (FK → instrument)
@@ -58,6 +61,10 @@ user
 
 **Field provenance is persisted with mastered metadata** — canonical instrument/detail/stat rows keep JSON provenance per field so the app can explain which provider last supplied a value and when it was refreshed.
 
+**Raw observations and canonical read models are separate** — provider snapshots and observations are stored first (`instrument_profile_snapshot`, `market_bar_observation`, `option_chain_snapshot`, `option_quote_point`), then reconciled into canonical rows such as `instrument`, `instrument_stats`, `ohlcv_bar`, and `instrument_event`.
+
+**Provider routing is DB-controlled at runtime** — env vars seed the initial provider chain, rate limits, and freshness windows, but day-to-day ordering, pinning, and auto-weighting live in `provider_policy` and `provider_health_state`.
+
 ---
 
 ## OHLCV Caching Flow
@@ -71,9 +78,11 @@ Backend: check DB for bars in range
            │ All bars present            │ Gaps or stale (>20 min)
            │ and fresh                   │
            ▼                             ▼
-    Return from DB             Fetch gaps from provider
+    Return from DB         Fetch gaps via provider executor
                                          │
-                               Store new bars (upsert)
+                          Persist provider observations first
+                                         │
+                           Reconcile/update canonical bars
                                          │
                                Return merged dataset
 ```
@@ -87,7 +96,7 @@ The caching key is `(instrument_id, timeframe, ts, is_adjusted)`. The unique con
 The alert engine runs as an APScheduler job inside the FastAPI process (configurable interval, default 60s). On each tick:
 
 1. Load all `ACTIVE` price alerts from DB, grouped by instrument
-2. For each instrument, fetch current price from the configured market-data provider
+2. For each instrument, resolve the active latest-price provider chain and fetch through the provider executor
 3. Evaluate each alert's condition using `last_known_price` for crossing detection
 4. On trigger: update DB, send OneSignal push notification, broadcast WebSocket message
 5. Update `last_known_price` for all alerts (even those that didn't trigger)

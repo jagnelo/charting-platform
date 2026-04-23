@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -13,10 +15,13 @@ from app.models.instrument_identity import (
     InstrumentIdentifierType,
     InstrumentProviderSymbol,
 )
+from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_runtime import ProviderCapability
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
-from app.providers import ensure_data_source, get_identifier_providers, provider_symbol_for_instrument
+from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
+from app.services.provider_runtime import resolve_provider_chain
 
 TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
@@ -38,15 +43,23 @@ def _provenance_entry(
     *,
     source: str,
     fetched_at: datetime,
+    observed_at: datetime | None = None,
     provider_symbol: str | None = None,
+    selection_reason: str | None = None,
+    quality_score: float | None = None,
     note: str | None = None,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "source": source,
         "fetched_at": fetched_at.isoformat(),
+        "observed_at": (observed_at or fetched_at).isoformat(),
     }
     if provider_symbol:
         entry["provider_symbol"] = provider_symbol
+    if selection_reason:
+        entry["selection_reason"] = selection_reason
+    if quality_score is not None:
+        entry["quality_score"] = quality_score
     if note:
         entry["note"] = note
     return entry
@@ -58,17 +71,233 @@ def _mark_field_provenance(
     *,
     source: str,
     fetched_at: datetime,
+    observed_at: datetime | None = None,
     provider_symbol: str | None = None,
+    selection_reason: str | None = None,
+    quality_score: float | None = None,
     note: str | None = None,
 ) -> None:
     provenance = dict(getattr(target, "field_provenance", None) or {})
     provenance[field_name] = _provenance_entry(
         source=source,
         fetched_at=fetched_at,
+        observed_at=observed_at,
         provider_symbol=provider_symbol,
+        selection_reason=selection_reason,
+        quality_score=quality_score,
         note=note,
     )
     setattr(target, "field_provenance", provenance)
+
+
+def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]:
+    return {
+        "provider": profile.provider,
+        "symbol": profile.symbol,
+        "canonical_symbol": profile.canonical_symbol,
+        "name": profile.name,
+        "description": profile.description,
+        "currency": profile.currency,
+        "quote_type": profile.quote_type,
+        "exchange": profile.exchange,
+        "identifiers": [
+            {
+                "identifier_type": record.identifier_type,
+                "identifier_value": record.identifier_value,
+                "is_primary": record.is_primary,
+                "source": record.source,
+                "extra_data": record.extra_data,
+            }
+            for record in profile.identifiers
+        ],
+        "listings": [
+            {
+                "provider_symbol": listing.provider_symbol,
+                "exchange_code": listing.exchange_code,
+                "currency": listing.currency,
+                "provider_instrument_type": listing.provider_instrument_type,
+                "is_primary": listing.is_primary,
+                "extra_data": listing.extra_data,
+            }
+            for listing in profile.listings
+        ],
+        "raw_payload": profile.raw_payload or {},
+        "extra": profile.extra or {},
+    }
+
+
+def _payload_hash(payload: dict[str, Any]) -> str:
+    normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+async def store_profile_snapshot(
+    db: AsyncSession,
+    instrument: Instrument,
+    profile: InstrumentProfile,
+    *,
+    observed_at: datetime | None = None,
+    fetched_at: datetime | None = None,
+) -> InstrumentProfileSnapshot:
+    observed_at = observed_at or _now_utc()
+    fetched_at = fetched_at or observed_at
+    payload = build_profile_snapshot_payload(profile)
+    profile_hash = _payload_hash(payload)
+    data_source = await ensure_data_source(db, profile.provider)
+    existing = (
+        await db.execute(
+            select(InstrumentProfileSnapshot).where(
+                InstrumentProfileSnapshot.instrument_id == instrument.id,
+                InstrumentProfileSnapshot.data_source_id == data_source.id,
+                InstrumentProfileSnapshot.profile_hash == profile_hash,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        existing.observed_at = observed_at
+        existing.fetched_at = fetched_at
+        existing.provider_symbol = profile.symbol
+        existing.payload = payload
+        return existing
+
+    snapshot = InstrumentProfileSnapshot(
+        instrument_id=instrument.id,
+        data_source_id=data_source.id,
+        provider_symbol=profile.symbol,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        profile_hash=profile_hash,
+        payload=payload,
+    )
+    db.add(snapshot)
+    await db.flush()
+    return snapshot
+
+
+def _value_from_snapshot(payload: dict[str, Any], field_name: str) -> Any:
+    if field_name in payload:
+        return payload.get(field_name)
+    extra = payload.get("extra") or {}
+    if field_name in extra:
+        return extra.get(field_name)
+    return None
+
+
+async def reconcile_instrument_profile(db: AsyncSession, instrument: Instrument) -> InstrumentProfile | None:
+    snapshots = (
+        await db.execute(
+            select(InstrumentProfileSnapshot).where(
+                InstrumentProfileSnapshot.instrument_id == instrument.id
+            ).order_by(InstrumentProfileSnapshot.observed_at.desc())
+        )
+    ).scalars().all()
+    if not snapshots:
+        return None
+
+    provider_scores = {
+        resolved.provider_name: float(resolved.policy.effective_score)
+        for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
+    }
+
+    def pick_field(field_name: str, default: Any = None):
+        candidates: list[tuple[float, datetime, Any]] = []
+        for snapshot in snapshots:
+            value = _value_from_snapshot(snapshot.payload, field_name)
+            if value is None or value == "":
+                continue
+            score = provider_scores.get(snapshot.payload.get("provider", ""), 0.0)
+            candidates.append((score, snapshot.observed_at, value))
+        if not candidates:
+            return default
+        candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return candidates[0][2]
+
+    latest = snapshots[0].payload
+    identifiers = []
+    seen_identifiers: set[tuple[str, str]] = set()
+    listings = []
+    seen_listings: set[tuple[str, str | None]] = set()
+    for snapshot in snapshots:
+        for item in snapshot.payload.get("identifiers") or []:
+            key = (str(item.get("identifier_type")), str(item.get("identifier_value")))
+            if key in seen_identifiers:
+                continue
+            seen_identifiers.add(key)
+            identifiers.append(
+                IdentifierRecord(
+                    identifier_type=item.get("identifier_type") or "internal",
+                    identifier_value=item.get("identifier_value") or "",
+                    is_primary=bool(item.get("is_primary")),
+                    source=item.get("source"),
+                    extra_data=item.get("extra_data"),
+                )
+            )
+        for item in snapshot.payload.get("listings") or []:
+            key = (str(item.get("provider_symbol")), item.get("exchange_code"))
+            if key in seen_listings:
+                continue
+            seen_listings.add(key)
+            from app.providers.base import ListingRecord
+
+            listings.append(
+                ListingRecord(
+                    provider_symbol=item.get("provider_symbol") or "",
+                    exchange_code=item.get("exchange_code"),
+                    currency=item.get("currency"),
+                    provider_instrument_type=item.get("provider_instrument_type"),
+                    is_primary=bool(item.get("is_primary")),
+                    extra_data=item.get("extra_data"),
+                )
+            )
+
+    return InstrumentProfile(
+        provider=latest.get("provider") or "unknown",
+        symbol=pick_field("symbol", instrument.symbol),
+        canonical_symbol=pick_field("canonical_symbol", instrument.symbol),
+        name=pick_field("name", instrument.name),
+        description=pick_field("description", instrument.description),
+        currency=pick_field("currency", instrument.currency),
+        quote_type=pick_field("quote_type", None),
+        exchange=pick_field("exchange", None),
+        identifiers=identifiers,
+        listings=listings,
+        raw_payload=latest.get("raw_payload") or {},
+        extra={
+            field: pick_field(field, None)
+            for field in [
+                "sector",
+                "industry",
+                "country",
+                "website",
+                "market_cap",
+                "fifty_two_week_high",
+                "fifty_two_week_low",
+                "average_volume",
+                "trailing_pe",
+                "forward_pe",
+                "beta",
+                "dividend_yield",
+                "employees",
+                "regular_market_price",
+                "current_price",
+                "previous_close",
+            ]
+        },
+    )
+
+
+async def ingest_provider_profile(
+    db: AsyncSession,
+    profile: InstrumentProfile,
+    *,
+    instrument: Instrument | None = None,
+) -> Instrument:
+    instrument = await apply_profile_to_instrument(db, profile, instrument=instrument)
+    await store_profile_snapshot(db, instrument, profile)
+    merged_profile = await reconcile_instrument_profile(db, instrument)
+    if merged_profile is not None:
+        instrument = await apply_profile_to_instrument(db, merged_profile, instrument=instrument)
+    return instrument
 
 
 def _cap_tier(cap: float | None) -> str | None:
@@ -171,6 +400,7 @@ async def register_provider_symbol(
     existing.is_primary = is_primary or existing.is_primary
     existing.extra_data = {
         **(existing.extra_data or {}),
+        "provider_name": provider_name,
         **(extra_data or {}),
     } or None
 
@@ -308,7 +538,8 @@ async def ensure_external_identifier(
         return False
 
     identifier_added = False
-    for provider in get_identifier_providers():
+    for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_IDENTIFIERS):
+        provider = resolved.provider
         symbol = instrument.symbol
         if "provider_symbols" in instrument.__dict__ or "listings" in instrument.__dict__:
             symbol = provider_symbol_for_instrument(instrument, provider.name)

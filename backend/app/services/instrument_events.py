@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import inspect, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -14,8 +13,11 @@ from app.models.instrument_event import (
     InstrumentEventFetchState,
     InstrumentEventType,
 )
-from app.providers import get_default_event_provider
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.provider_runtime import ProviderCapability
+from app.providers import provider_symbol_for_instrument
 from app.services.instrument_mastering import ensure_external_identifier
+from app.services.provider_runtime import execute_provider_call
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +55,19 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
     if instrument.is_synthetic:
         return 0
     await _ensure_fetch_state_schema(db)
-    provider = get_default_event_provider()
-
-    events = await asyncio.get_event_loop().run_in_executor(
-        None,
-        provider.fetch_instrument_events,
-        instrument.symbol,
+    execution = await execute_provider_call(
+        db,
+        ProviderCapability.INSTRUMENT_EVENTS,
+        "fetch_instrument_events",
+        instrument_id=instrument.id,
+        invoke=lambda provider, _provider_symbol: provider.fetch_instrument_events(
+            provider_symbol_for_instrument(instrument, provider.name)
+        ),
+        response_items=lambda result: len(result),
+        treat_empty_as_failure=False,
     )
+
+    events = execution.result
     fetched_at = max((event.fetched_at for event in events), default=datetime.now(UTC))
     earnings_count = sum(
         1
@@ -86,7 +94,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
             "raw_payload": event.raw_payload,
             "fetched_at": event.fetched_at,
             "instrument_id": instrument.id,
-            "source": provider.name,
+            "source": execution.provider_name,
             "currency": instrument.currency,
         }
         stmt = (
@@ -120,7 +128,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         pg_insert(InstrumentEventFetchState)
         .values(
             instrument_id=instrument.id,
-            source=provider.name,
+            source=execution.provider_name,
             fetched_at=fetched_at,
             event_count=len(events),
             earnings_count=earnings_count,
@@ -137,6 +145,34 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         )
     )
     await db.execute(state_stmt)
+
+    dataset_state = (
+        await db.execute(
+            select(InstrumentDatasetState).where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.data_source_id == execution.data_source.id,
+                InstrumentDatasetState.dataset_type == "events",
+                InstrumentDatasetState.dataset_key == "calendar",
+            )
+        )
+    ).scalar_one_or_none()
+    if dataset_state is None:
+        dataset_state = InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=execution.data_source.id,
+            dataset_type="events",
+            dataset_key="calendar",
+        )
+        db.add(dataset_state)
+    dataset_state.status = DatasetStatus.FRESH if events else DatasetStatus.PENDING
+    dataset_state.observed_at = fetched_at
+    dataset_state.fetched_at = fetched_at
+    dataset_state.stale_after = fetched_at + timedelta(days=1)
+    dataset_state.extra_data = {
+        "provider": execution.provider_name,
+        "event_count": len(events),
+        "earnings_count": earnings_count,
+    }
     await db.flush()
     return inserted
 
@@ -151,16 +187,30 @@ async def ensure_instrument_events_loaded(
         return
     await _ensure_fetch_state_schema(db)
     await ensure_external_identifier(db, instrument)
-    provider = get_default_event_provider()
-    state = (
+
+    fresh_dataset = (
         await db.execute(
-            select(InstrumentEventFetchState).where(
-                InstrumentEventFetchState.instrument_id == instrument.id,
-                InstrumentEventFetchState.source == provider.name,
+            select(InstrumentDatasetState).where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.dataset_type == "events",
+                InstrumentDatasetState.dataset_key == "calendar",
+                InstrumentDatasetState.status == DatasetStatus.FRESH,
+                InstrumentDatasetState.stale_after.is_not(None),
+                InstrumentDatasetState.stale_after > datetime.now(UTC),
             )
         )
     ).scalar_one_or_none()
-    if refresh or state is None or state.fetch_version < EVENT_FETCH_VERSION:
+    if fresh_dataset is not None and not refresh:
+        return
+
+    state = (
+        await db.execute(
+            select(InstrumentEventFetchState).where(
+                InstrumentEventFetchState.instrument_id == instrument.id
+            )
+        )
+    ).scalar_one_or_none()
+    if refresh or state is None or state.fetch_version < EVENT_FETCH_VERSION or fresh_dataset is None:
         await fetch_and_store_instrument_events(db, instrument)
 
 

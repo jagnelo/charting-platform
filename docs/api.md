@@ -114,7 +114,7 @@ POST /auth/change-password?old_password=OldPass123!&new_password=NewPass456!
 ## Instruments
 
 ### GET /instruments/{symbol}
-Retrieve an instrument by ticker symbol. If not in the database, the backend attempts to fetch metadata from the configured provider and register it automatically.
+Retrieve an instrument by ticker symbol. If not in the database, the backend attempts to fetch metadata through the active provider chain and register it automatically.
 
 **Response** `200 OK`
 ```json
@@ -132,14 +132,19 @@ Retrieve an instrument by ticker symbol. If not in the database, the backend att
 }
 ```
 
-**Errors** `404` symbol not found by the configured provider
+**Errors** `404` symbol not found by any enabled metadata provider
+
+---
+
+### GET /instruments/{symbol}/provenance
+Return field-level provenance, listings, identifiers, and recent provider snapshots for a canonical instrument.
 
 ---
 
 ## OHLCV Bars
 
 ### GET /ohlcv/{symbol}/{timeframe}
-Fetch OHLCV bars for a symbol and timeframe. Bars are served from the database cache; gaps are filled automatically from the configured market-data provider.
+Fetch OHLCV bars for a symbol and timeframe. Bars are served from the database cache; gaps are filled automatically through the active market-data provider chain.
 
 **Timeframes:** `M1` `M5` `M15` `M30` `H1` `H2` `H4` `H12` `D1` `W1` `MN`
 
@@ -170,6 +175,38 @@ GET /ohlcv/AAPL/D1?start=2024-01-01T00:00:00Z&end=2024-12-31T23:59:59Z
   }
 ]
 ```
+
+---
+
+## Providers
+
+### GET /providers
+List registered providers plus their supported capabilities.
+
+### GET /providers/policies
+List runtime provider policy rows, including current scores, rate limits, freshness windows, and health metrics.
+
+### GET /providers/health
+List provider health telemetry per capability.
+
+### PATCH /providers/policies/{provider_name}/{capability}
+Update a provider policy row, for example enabling/disabling, pinning, or changing token limits.
+
+---
+
+## Options
+
+### GET /instruments/{symbol}/options/expirations
+Return stored option expirations for an underlying. If needed, the backend refreshes from the active option-chain provider chain first.
+
+### GET /instruments/{symbol}/options/chain
+Return a persisted option-chain snapshot for an underlying and expiration, including bid/ask/mark/last/volume/open interest/implied vol and greeks.
+
+### GET /options/contracts/{instrument_id}
+Return canonical metadata for a stored option contract.
+
+### GET /options/contracts/{instrument_id}/quote-history
+Return persisted option quote points for a contract. If a quote-history provider exists and the requested coverage is stale or missing, the backend can ingest before returning rows.
 
 ---
 

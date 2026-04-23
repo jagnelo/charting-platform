@@ -27,6 +27,7 @@ class EquityDetailOut(BaseModel):
     employees: int | None = None
     website: str | None = None
     logo_url: str | None = None
+    field_provenance: dict | None = None
 
 
 class InstrumentStatsOut(BaseModel):
@@ -39,6 +40,53 @@ class InstrumentStatsOut(BaseModel):
     beta: Decimal | None = None
     dividend_yield: Decimal | None = None
     computed_at: datetime | None = None
+    field_provenance: dict | None = None
+
+
+class FieldProvenanceOut(BaseModel):
+    source: str
+    fetched_at: datetime | str | None = None
+    observed_at: datetime | str | None = None
+    provider_symbol: str | None = None
+    selection_reason: str | None = None
+    quality_score: float | None = None
+    note: str | None = None
+
+
+class InstrumentIdentifierOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    identifier_type: str
+    identifier_value: str
+    is_primary: bool
+    is_active: bool
+    extra_data: dict | None = None
+
+
+class InstrumentListingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    ticker: str
+    currency: str | None = None
+    is_primary: bool
+    is_active: bool
+
+
+class OptionDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    underlying_instrument_id: int
+    right: str
+    style: str
+    contract_key: str | None = None
+    venue_code: str | None = None
+    strike: Decimal
+    expiry_date: date
+    contract_size: Decimal | None = None
+    delta: Decimal | None = None
+    gamma: Decimal | None = None
+    theta: Decimal | None = None
+    vega: Decimal | None = None
+    rho: Decimal | None = None
+    implied_vol: Decimal | None = None
+    field_provenance: dict | None = None
 
 
 class SyntheticConstituentOut(BaseModel):
@@ -57,8 +105,14 @@ class InstrumentOut(BaseModel):
     is_active: bool
     is_synthetic: bool = False
     expression: str | None = None
+    primary_identifier_type: str | None = None
+    primary_identifier_value: str | None = None
+    field_provenance: dict | None = None
     equity_detail: EquityDetailOut | None = None
+    option_detail: OptionDetailOut | None = None
     stats: InstrumentStatsOut | None = None
+    identifiers: list[InstrumentIdentifierOut] = []
+    listings: list[InstrumentListingOut] = []
     synthetic_constituents: list[SyntheticConstituentOut] = []
 
 

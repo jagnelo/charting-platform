@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import AsyncSessionLocal, Base, engine
 from app.routers import (
     alerts,
     auth,
@@ -16,13 +16,16 @@ from app.routers import (
     indicators,
     instrument_indicators,
     instruments,
+    options,
     ohlcv,
     presets,
+    providers,
     screener,
     screener_alerts,
     watchlists,
 )
 from app.services.alert_engine import run_alert_check
+from app.services.provider_runtime import seed_provider_runtime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +40,10 @@ async def lifespan(app: FastAPI):
     logger.info("Creating DB tables…")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    async with AsyncSessionLocal() as db:
+        await seed_provider_runtime(db)
+        await db.commit()
 
     logger.info(f"Starting alert scheduler (every {settings.ALERT_POLL_INTERVAL}s)")
     scheduler.add_job(
@@ -71,7 +78,9 @@ app.add_middleware(
 
 PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=PREFIX)
+app.include_router(options.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
+app.include_router(providers.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)
 app.include_router(dashboards.router, prefix=PREFIX)
 app.include_router(drawings.router, prefix=PREFIX)

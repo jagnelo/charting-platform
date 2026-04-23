@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     DEFAULT_DISCOVERY_PROVIDER: str = "yfinance"
     DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["yfinance", "openfigi"]
+    OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
+    PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {}
+    PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
+    PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MARKETDATA_API_KEY: str = ""
@@ -56,6 +60,7 @@ class Settings(BaseSettings):
     INSTRUMENT_DAILY_METADATA_CAP: int = 750
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
     PROVIDER_MAX_CONCURRENCY: int = 2
+    OPTION_CHAIN_REFRESH_HORIZON_DAYS: int = 45
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -67,6 +72,19 @@ class Settings(BaseSettings):
     @field_validator("IDENTIFIER_PROVIDER_PRIORITY", mode="before")
     @classmethod
     def parse_identifier_provider_priority(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator(
+        "OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY",
+        "PROVIDER_CHAIN_SEEDS",
+        "PROVIDER_RATE_LIMIT_SEEDS",
+        "PROVIDER_FRESHNESS_SEEDS",
+        mode="before",
+    )
+    @classmethod
+    def parse_jsonish(cls, v):
         if isinstance(v, str):
             return json.loads(v)
         return v

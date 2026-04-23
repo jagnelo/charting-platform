@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
@@ -22,17 +23,15 @@ from app.models.instrument import EquityDetail, ForexDetail, FutureDetail, Instr
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
-from app.providers import (
-    get_default_discovery_provider,
-    get_default_metadata_provider,
-    get_identifier_provider_chain,
-)
+from app.models.provider_runtime import ProviderCapability
+from app.providers import provider_symbol_for_instrument
 from app.services.instrument_mastering import (
-    apply_profile_to_instrument,
     ensure_external_identifier,
     ensure_internal_identifier,
+    ingest_provider_profile,
     register_provider_symbol,
 )
+from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +99,7 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
 
-def _screener_page_sync(quote_type: str, offset: int) -> dict:
-    provider = get_default_discovery_provider()
+def _screener_page_sync(provider, quote_type: str, offset: int) -> dict:
     return provider.discover_universe_page(quote_type, offset)
 
 
@@ -157,7 +155,13 @@ async def _upsert_listing(
     listing.is_active = True
 
 
-async def _upsert_stats(db: AsyncSession, instrument: Instrument, q: dict) -> None:
+async def _upsert_stats(
+    db: AsyncSession,
+    instrument: Instrument,
+    q: dict,
+    *,
+    source_provider: str,
+) -> None:
     stats_values = {
         "week52_high": q.get("fiftyTwoWeekHigh"),
         "week52_low": q.get("fiftyTwoWeekLow"),
@@ -190,12 +194,17 @@ async def _upsert_stats(db: AsyncSession, instrument: Instrument, q: dict) -> No
         if value is not None:
             setattr(stats, attr, value)
             provenance[attr] = {
-                "source": get_default_discovery_provider().name,
+                "source": source_provider,
                 "fetched_at": datetime.now(UTC).isoformat(),
                 "provider_symbol": instrument.symbol,
             }
     stats.field_provenance = provenance or None
     stats.computed_at = datetime.now(UTC)
+
+
+async def _provider_chain_label(db: AsyncSession, capability: ProviderCapability) -> str:
+    chain = await resolve_provider_chain(db, capability)
+    return ",".join(item.provider_name for item in chain) if chain else "none"
 
 
 async def seed_universe(db: AsyncSession) -> dict:
@@ -238,8 +247,14 @@ async def seed_universe(db: AsyncSession) -> dict:
     created = 0
     updated = 0
     loop = asyncio.get_event_loop()
+    discovery_chain = await resolve_provider_chain(db, ProviderCapability.UNIVERSE_DISCOVERY)
+    if not discovery_chain:
+        raise RuntimeError("No enabled universe discovery providers are available")
+    discovery = discovery_chain[0]
+    discovery_provider = discovery.provider
+    discovery_provider_name = discovery.provider_name
 
-    for quote_type in get_default_discovery_provider().supported_discovery_types():
+    for quote_type in discovery_provider.supported_discovery_types():
         type_id = type_id_map[quote_type]
         offset = 0
         total = None
@@ -247,7 +262,13 @@ async def seed_universe(db: AsyncSession) -> dict:
         logger.info("seed_universe: scanning %s…", quote_type)
 
         while True:
-            page = await loop.run_in_executor(None, _screener_page_sync, quote_type, offset)
+            page = await loop.run_in_executor(
+                None,
+                _screener_page_sync,
+                discovery_provider,
+                quote_type,
+                offset,
+            )
             quotes = page.get("quotes") or []
 
             if total is None:
@@ -290,19 +311,19 @@ async def seed_universe(db: AsyncSession) -> dict:
 
                 provenance = dict(inst.field_provenance or {})
                 provenance["symbol"] = {
-                    "source": get_default_discovery_provider().name,
+                    "source": discovery_provider_name,
                     "fetched_at": fetched_at.isoformat(),
                     "provider_symbol": symbol,
                 }
                 if name:
                     provenance["name"] = {
-                        "source": get_default_discovery_provider().name,
+                        "source": discovery_provider_name,
                         "fetched_at": fetched_at.isoformat(),
                         "provider_symbol": symbol,
                     }
                 if currency:
                     provenance["currency"] = {
-                        "source": get_default_discovery_provider().name,
+                        "source": discovery_provider_name,
                         "fetched_at": fetched_at.isoformat(),
                         "provider_symbol": symbol,
                     }
@@ -312,14 +333,14 @@ async def seed_universe(db: AsyncSession) -> dict:
                 await register_provider_symbol(
                     db,
                     inst,
-                    get_default_discovery_provider().name,
+                    discovery_provider_name,
                     symbol,
                     provider_exchange_code=exchange,
                     provider_instrument_type=quote_type,
                     currency=currency,
                     is_primary=True,
                 )
-                await _upsert_stats(db, inst, q)
+                await _upsert_stats(db, inst, q, source_provider=discovery_provider_name)
                 await ensure_internal_identifier(db, inst)
 
                 # ── Detail rows ──────────────────────────────────────────────
@@ -348,7 +369,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                     ]:
                         if value is not None:
                             field_provenance[field_name] = {
-                                "source": get_default_discovery_provider().name,
+                                "source": discovery_provider_name,
                                 "fetched_at": fetched_at.isoformat(),
                                 "provider_symbol": symbol,
                             }
@@ -371,12 +392,12 @@ async def seed_universe(db: AsyncSession) -> dict:
                             db.add(fd)
                         field_provenance = dict(fd.field_provenance or {})
                         field_provenance["base_currency"] = {
-                            "source": get_default_discovery_provider().name,
+                            "source": discovery_provider_name,
                             "fetched_at": fetched_at.isoformat(),
                             "provider_symbol": symbol,
                         }
                         field_provenance["quote_currency"] = {
-                            "source": get_default_discovery_provider().name,
+                            "source": discovery_provider_name,
                             "fetched_at": fetched_at.isoformat(),
                             "provider_symbol": symbol,
                         }
@@ -397,13 +418,13 @@ async def seed_universe(db: AsyncSession) -> dict:
                     field_provenance = dict(fut.field_provenance or {})
                     if name:
                         field_provenance["underlying_name"] = {
-                            "source": get_default_discovery_provider().name,
+                            "source": discovery_provider_name,
                             "fetched_at": fetched_at.isoformat(),
                             "provider_symbol": symbol,
                         }
                     if symbol.endswith("=F"):
                         field_provenance["is_continuous"] = {
-                            "source": get_default_discovery_provider().name,
+                            "source": discovery_provider_name,
                             "fetched_at": fetched_at.isoformat(),
                             "provider_symbol": symbol,
                         }
@@ -500,6 +521,7 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     """
     stmt = (
         select(Instrument)
+        .options(selectinload(Instrument.provider_symbols))
         .outerjoin(InstrumentStats, InstrumentStats.instrument_id == Instrument.id)
         .where(
             Instrument.is_active.is_(True),
@@ -516,13 +538,23 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
     updated = 0
 
     for inst in instruments:
-        loop = asyncio.get_event_loop()
         async with _METADATA_SEMAPHORE:
-            profile = await loop.run_in_executor(
-                None,
-                get_default_metadata_provider().get_instrument_profile,
-                inst.symbol,
-            )
+            try:
+                execution = await execute_provider_call(
+                    db,
+                    ProviderCapability.INSTRUMENT_METADATA,
+                    "sync_instrument_profile",
+                    instrument_id=inst.id,
+                    invoke=lambda provider, _provider_symbol: provider.get_instrument_profile(
+                        provider_symbol_for_instrument(inst, provider.name)
+                    ),
+                    response_items=lambda result: 1 if result is not None else 0,
+                    treat_empty_as_failure=True,
+                )
+                profile = execution.result
+            except Exception as exc:
+                logger.info("No metadata refresh available for %s: %s", inst.symbol, exc)
+                profile = None
             await asyncio.sleep(settings.INSTRUMENT_METADATA_DELAY_SECONDS)
 
         if profile is None:
@@ -550,7 +582,7 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
             changed = True
 
         await db.flush()
-        await apply_profile_to_instrument(db, profile, instrument=inst)
+        await ingest_provider_profile(db, profile, instrument=inst)
         await ensure_internal_identifier(db, inst)
 
         quote_type = (info.get("quoteType") or "").upper()
@@ -638,11 +670,11 @@ async def run_tracked_sync(
     run = InstrumentSyncRun(
         operation=operation,
         source=(
-            get_default_discovery_provider().name
+            await _provider_chain_label(db, ProviderCapability.UNIVERSE_DISCOVERY)
             if operation == "seed-universe"
-            else ",".join(get_identifier_provider_chain())
+            else await _provider_chain_label(db, ProviderCapability.INSTRUMENT_IDENTIFIERS)
             if operation == "bootstrap-ids"
-            else get_default_metadata_provider().name
+            else await _provider_chain_label(db, ProviderCapability.INSTRUMENT_METADATA)
         ),
         status="running",
         started_at=datetime.now(UTC),

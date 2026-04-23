@@ -29,6 +29,7 @@ class CalendarEvent(BaseModel):
     id: int
     date: str
     event_time: datetime
+    fetched_at: datetime
     event_type: str
     symbol: str
     title: str
@@ -64,6 +65,7 @@ def _event_out(event: InstrumentEvent, symbol: str) -> CalendarEvent:
         id=event.id,
         date=event.event_time.date().isoformat(),
         event_time=event.event_time,
+        fetched_at=event.fetched_at,
         event_type=event_type,
         symbol=symbol,
         title=event.title,

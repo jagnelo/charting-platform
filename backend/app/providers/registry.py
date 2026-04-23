@@ -17,6 +17,7 @@ from app.providers.base import (
     InstrumentSearchProvider,
     LatestPriceProvider,
     OptionChainProvider,
+    OptionQuoteHistoryProvider,
     PriceHistoryProvider,
     ProviderDescriptor,
 )
@@ -41,6 +42,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("fetch_stable_identifiers",), "instrument_identifiers"),
         (("discover_universe_page", "supported_discovery_types"), "universe_discovery"),
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
+        (("fetch_option_quote_history",), "option_quote_history"),
     ]
     return [name for required_methods, name in capabilities if _supports(provider, *required_methods)]
 
@@ -115,6 +117,14 @@ def get_option_chain_provider(name: str) -> OptionChainProvider:
     )
 
 
+def get_option_quote_history_provider(name: str) -> OptionQuoteHistoryProvider:
+    return _require_capability(
+        name,
+        ("fetch_option_quote_history",),
+        "option quote history",
+    )
+
+
 def get_default_market_data_provider() -> PriceHistoryProvider:
     return get_price_history_provider(settings.DEFAULT_MARKET_DATA_PROVIDER)
 
@@ -141,6 +151,11 @@ def get_default_discovery_provider() -> DiscoveryProvider:
 
 def get_default_options_provider() -> OptionChainProvider:
     return get_option_chain_provider(settings.DEFAULT_OPTIONS_PROVIDER)
+
+
+def get_option_quote_history_provider_chain() -> list[str]:
+    providers = [name for name in settings.OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY if name]
+    return providers or [settings.DEFAULT_OPTIONS_PROVIDER]
 
 
 def get_identifier_provider_chain() -> list[str]:
@@ -198,8 +213,17 @@ def provider_symbol_for_instrument(
 
         for provider_symbol in provider_symbols:
             data_source = provider_symbol.__dict__.get("data_source")
+            extra_data = provider_symbol.extra_data or {}
+            hinted_provider_name = (
+                extra_data.get("provider_name") if isinstance(extra_data, dict) else None
+            )
             if provider_name is not None and data_source is not None and data_source.name != provider_name:
                 continue
+            if provider_name is not None and data_source is None:
+                if hinted_provider_name and hinted_provider_name != provider_name:
+                    continue
+                if hinted_provider_name is None and len(provider_symbols) > 1:
+                    continue
             if provider_name is None or data_source is not None:
                 if provider_symbol.is_active and provider_symbol.is_primary:
                     primary_active.append(provider_symbol.provider_symbol)

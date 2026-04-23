@@ -11,13 +11,14 @@ from app.auth.dependencies import get_current_user
 from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
+from app.models.provider_observation import InstrumentDatasetState, InstrumentProfileSnapshot
 from app.models.instrument_stats import InstrumentStats
+from app.models.provider_runtime import ProviderCapability
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
-from app.providers import get_default_metadata_provider
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.expression_engine import (
@@ -28,11 +29,15 @@ from app.services.expression_engine import (
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
-    apply_profile_to_instrument,
     ensure_external_identifier,
     has_external_identifier,
+    ingest_provider_profile,
 )
-from app.services.market_data import fetch_ohlcv_latest, search_provider_instruments
+from app.services.market_data import (
+    fetch_ohlcv_latest,
+    get_provider_profile_async,
+    search_provider_instruments_async,
+)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -69,7 +74,7 @@ async def search_instruments(
         for i in local
     ]
     if len(out) < 10:
-        provider_results = search_provider_instruments(q)
+        provider_results = await search_provider_instruments_async(db, q)
         existing = {r.symbol for r in out}
         for r in provider_results:
             if r["symbol"] not in existing:
@@ -781,6 +786,97 @@ async def get_data_coverage(
     }
 
 
+@router.get("/{symbol:path}/provenance")
+async def get_instrument_provenance(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Instrument)
+        .options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.stats),
+            selectinload(Instrument.option_detail),
+            selectinload(Instrument.identifiers),
+            selectinload(Instrument.listings),
+        )
+        .where(Instrument.symbol == symbol.upper())
+    )
+    instrument = result.scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found")
+
+    snapshots = (
+        await db.execute(
+            select(InstrumentProfileSnapshot)
+            .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+            .order_by(InstrumentProfileSnapshot.observed_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
+    dataset_states = (
+        await db.execute(
+            select(InstrumentDatasetState)
+            .where(InstrumentDatasetState.instrument_id == instrument.id)
+            .order_by(InstrumentDatasetState.updated_at.desc())
+        )
+    ).scalars().all()
+
+    return {
+        "instrument_id": instrument.id,
+        "symbol": instrument.symbol,
+        "field_provenance": instrument.field_provenance or {},
+        "equity_detail": instrument.equity_detail.field_provenance if instrument.equity_detail else {},
+        "stats": instrument.stats.field_provenance if instrument.stats else {},
+        "option_detail": instrument.option_detail.field_provenance if instrument.option_detail else {},
+        "identifiers": [
+            {
+                "identifier_type": row.identifier_type.value,
+                "identifier_value": row.identifier_value,
+                "is_primary": row.is_primary,
+                "is_active": row.is_active,
+                "data_source_id": row.data_source_id,
+                "extra_data": row.extra_data,
+            }
+            for row in instrument.identifiers
+        ],
+        "listings": [
+            {
+                "ticker": row.ticker,
+                "currency": row.currency,
+                "is_primary": row.is_primary,
+                "is_active": row.is_active,
+            }
+            for row in instrument.listings
+        ],
+        "profile_snapshots": [
+            {
+                "provider_symbol": row.provider_symbol,
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
+                "profile_hash": row.profile_hash,
+                "payload": row.payload,
+            }
+            for row in snapshots
+        ],
+        "dataset_states": [
+            {
+                "dataset_type": row.dataset_type,
+                "dataset_key": row.dataset_key,
+                "status": row.status.value,
+                "coverage_start": row.coverage_start,
+                "coverage_end": row.coverage_end,
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
+                "stale_after": row.stale_after,
+                "extra_data": row.extra_data,
+            }
+            for row in dataset_states
+        ],
+    }
+
+
 @router.get("/{symbol:path}", response_model=InstrumentOut)
 async def get_instrument(
     symbol: str,
@@ -794,6 +890,9 @@ async def get_instrument(
             selectinload(Instrument.equity_detail),
             selectinload(Instrument.instrument_type),
             selectinload(Instrument.stats),
+            selectinload(Instrument.identifiers),
+            selectinload(Instrument.listings),
+            selectinload(Instrument.option_detail),
             selectinload(Instrument.synthetic_constituents),
         )
         .where(Instrument.symbol == symbol.upper())
@@ -806,15 +905,12 @@ async def get_instrument(
         if instrument is None:
             raise HTTPException(404, f"Instrument '{symbol}' not found")
         created = True
-        # Auto-trigger bulk historical fetch as background task
         background_tasks.add_task(_enqueue_bulk_fetch, instrument.id)
         background_tasks.add_task(_sync_instrument_events, instrument.id)
 
     if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
         instrument = await _refresh_instrument_metadata(instrument, db)
 
-    # Compute 52-week hi/lo synchronously from OHLCV D1 bars if not already present.
-    # This works for all instrument types and is always available from our own data.
     if not instrument.is_synthetic and (
         instrument.stats is None
         or instrument.stats.week52_high is None
@@ -875,6 +971,9 @@ async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instr
             selectinload(Instrument.equity_detail),
             selectinload(Instrument.instrument_type),
             selectinload(Instrument.stats),
+            selectinload(Instrument.identifiers),
+            selectinload(Instrument.listings),
+            selectinload(Instrument.option_detail),
             selectinload(Instrument.synthetic_constituents),
         )
         .where(Instrument.id == instrument_id)
@@ -889,10 +988,10 @@ async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession)
     This is intentionally conservative: it only patches blank fields so user-visible
     catalogue data seeded earlier is not churned on every dashboard/widget load.
     """
-    profile = get_default_metadata_provider().get_instrument_profile(instrument.symbol)
+    profile = await get_provider_profile_async(db, instrument.symbol, instrument_id=instrument.id)
     if profile is None:
         return instrument
-    await apply_profile_to_instrument(db, profile, instrument=instrument)
+    await ingest_provider_profile(db, profile, instrument=instrument)
     await db.flush()
     return await _reload_instrument_full(instrument.id, db)
 
@@ -979,9 +1078,9 @@ async def _enqueue_bulk_fetch(instrument_id: int):
 
 
 async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | None:
-    profile = get_default_metadata_provider().get_instrument_profile(symbol)
+    profile = await get_provider_profile_async(db, symbol)
     if profile is None:
         return None
-    instrument = await apply_profile_to_instrument(db, profile)
+    instrument = await ingest_provider_profile(db, profile)
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)

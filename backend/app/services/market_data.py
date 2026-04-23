@@ -19,15 +19,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState, MarketBarObservation
+from app.models.provider_runtime import ProviderCapability
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.providers import (
     ensure_data_source,
-    get_default_market_data_provider,
-    get_default_metadata_provider,
-    get_default_quote_provider,
-    get_default_search_provider,
+    get_quote_provider,
     provider_symbol_for_instrument,
 )
+from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 logger = logging.getLogger(__name__)
 
@@ -35,35 +35,115 @@ _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
-    provider = get_default_market_data_provider()
-    return await ensure_data_source(db, provider.name)
+    chain = await resolve_provider_chain(db, ProviderCapability.PRICE_HISTORY)
+    if chain:
+        return chain[0].data_source
+    provider_name = settings.PROVIDER_CHAIN_SEEDS.get("price_history", [settings.DEFAULT_MARKET_DATA_PROVIDER])[0]
+    return await ensure_data_source(db, provider_name)
 
 
-# Sync version for alert engine (runs in thread)
-def _get_or_create_datasource_sync(db):
-    from sqlalchemy import select as sa_select
-
-    provider = get_default_market_data_provider()
-    src = db.execute(
-        sa_select(DataSource).where(DataSource.name == provider.name)
-    ).scalar_one_or_none()
-    if src is None:
-        src = DataSource(
-            name=provider.name,
-            base_url=provider.base_url,
-            description=provider.description,
-            is_active=True,
-        )
-        db.add(src)
-        db.flush()
-    return src
-
-
-_get_or_create_datasource_async = _get_or_create_datasource
+async def _latest_window_start(
+    db: AsyncSession,
+    timeframe: Timeframe,
+    limit: int,
+) -> datetime:
+    chain = await resolve_provider_chain(db, ProviderCapability.PRICE_HISTORY)
+    if chain:
+        return chain[0].provider.latest_window_start(timeframe, limit)
+    return datetime.now(UTC) - timedelta(seconds=TIMEFRAME_SECONDS[timeframe] * limit)
 
 
 def resolve_provider_symbol_for_instrument(instrument: Instrument) -> str:
-    return provider_symbol_for_instrument(instrument, settings.DEFAULT_MARKET_DATA_PROVIDER)
+    provider_names = settings.PROVIDER_CHAIN_SEEDS.get("price_history") or [
+        settings.DEFAULT_MARKET_DATA_PROVIDER
+    ]
+    return provider_symbol_for_instrument(instrument, provider_names[0])
+
+
+async def _record_bar_observations(
+    db: AsyncSession,
+    bars: list[OHLCVBar],
+    *,
+    data_source_id: int,
+    provider_symbol: str | None,
+    observed_at: datetime | None = None,
+) -> None:
+    if not bars:
+        return
+    observed_at = observed_at or datetime.now(UTC)
+    await db.execute(
+        pg_insert(MarketBarObservation).on_conflict_do_update(
+            constraint="uq_market_bar_observation",
+            set_={
+                "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
+                "observed_at": pg_insert(MarketBarObservation).excluded.observed_at,
+                "open": pg_insert(MarketBarObservation).excluded.open,
+                "high": pg_insert(MarketBarObservation).excluded.high,
+                "low": pg_insert(MarketBarObservation).excluded.low,
+                "close": pg_insert(MarketBarObservation).excluded.close,
+                "volume": pg_insert(MarketBarObservation).excluded.volume,
+                "vwap": pg_insert(MarketBarObservation).excluded.vwap,
+            },
+        ),
+        [
+            {
+                "instrument_id": bar.instrument_id,
+                "data_source_id": data_source_id,
+                "provider_symbol": provider_symbol,
+                "timeframe": bar.timeframe,
+                "ts": bar.ts,
+                "observed_at": observed_at,
+                "open": bar.open,
+                "high": bar.high,
+                "low": bar.low,
+                "close": bar.close,
+                "volume": bar.volume,
+                "vwap": bar.vwap,
+                "is_adjusted": bar.is_adjusted,
+            }
+            for bar in bars
+        ],
+    )
+
+
+async def _touch_ohlcv_dataset_state(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    data_source_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+    bars: list[OHLCVBar],
+    fetched_at: datetime | None = None,
+) -> None:
+    fetched_at = fetched_at or datetime.now(UTC)
+    dataset_key = f"{timeframe.value}:{'adj' if adjusted else 'raw'}"
+    state = (
+        await db.execute(
+            select(InstrumentDatasetState).where(
+                InstrumentDatasetState.instrument_id == instrument.id,
+                InstrumentDatasetState.data_source_id == data_source_id,
+                InstrumentDatasetState.dataset_type == "ohlcv",
+                InstrumentDatasetState.dataset_key == dataset_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if state is None:
+        state = InstrumentDatasetState(
+            instrument_id=instrument.id,
+            data_source_id=data_source_id,
+            dataset_type="ohlcv",
+            dataset_key=dataset_key,
+        )
+        db.add(state)
+    state.status = DatasetStatus.FRESH if bars else DatasetStatus.PENDING
+    state.observed_at = fetched_at
+    state.fetched_at = fetched_at
+    state.stale_after = fetched_at + _TF_STALENESS.get(timeframe, timedelta(minutes=20))
+    if bars:
+        state.coverage_start = min(bar.ts for bar in bars)
+        state.coverage_end = max(bar.ts for bar in bars)
+        state.extra_data = {"bar_count": len(bars), "adjusted": adjusted}
 
 
 async def recompute_synthetic_ohlcv(
@@ -116,7 +196,7 @@ async def recompute_synthetic_ohlcv(
             const_instr = await db.get(Instrument, c.constituent_instrument_id)
             if const_instr is not None:
                 await db.refresh(const_instr, ["listings"])
-                new_bars = _fetch_provider_latest(const_instr, timeframe, 500, True, datasource)
+                new_bars = await _fetch_provider_latest(db, const_instr, timeframe, 500, True)
                 if new_bars:
                     try:
                         await db.execute(
@@ -255,9 +335,7 @@ async def fetch_ohlcv(
     cached = list((await db.execute(stmt)).scalars().all())
 
     if _needs_fetch(cached, timeframe):
-        new_bars = _fetch_provider(
-            instrument, timeframe, start, end, adjusted, await _get_or_create_datasource(db)
-        )
+        new_bars = await _fetch_provider(db, instrument, timeframe, start, end, adjusted)
         if new_bars:
             try:
                 await db.execute(
@@ -318,26 +396,57 @@ def _needs_fetch(cached: list[OHLCVBar], timeframe: Timeframe) -> bool:
     return (datetime.now(UTC) - latest) > threshold
 
 
-def _fetch_provider(
-    instrument,
-    timeframe,
-    start,
-    end,
-    adjusted,
-    datasource,
+async def _fetch_provider(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+    adjusted: bool,
 ) -> list[OHLCVBar]:
-    provider = get_default_market_data_provider()
-    provider_symbol = resolve_provider_symbol_for_instrument(instrument)
-    bars = provider.fetch_ohlcv(
-        provider_symbol,
-        timeframe,
-        start,
-        end,
-        adjusted=adjusted,
+    execution = await execute_provider_call(
+        db,
+        ProviderCapability.PRICE_HISTORY,
+        f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
-        data_source_id=datasource.id,
+        invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
+            provider_symbol_for_instrument(instrument, provider.name),
+            timeframe,
+            start,
+            end,
+            adjusted=adjusted,
+            instrument_id=instrument.id,
+            data_source_id=0,
+        ),
+        response_items=lambda result: len(result),
+        treat_empty_as_failure=True,
     )
-    logger.info("Fetched %d bars for %s %s via %s", len(bars), provider_symbol, timeframe.value, provider.name)
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+    bars = execution.result
+    for bar in bars:
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
+    await _record_bar_observations(
+        db,
+        bars,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol,
+    )
+    await _touch_ohlcv_dataset_state(
+        db,
+        instrument,
+        data_source_id=execution.data_source.id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        bars=bars,
+    )
+    logger.info(
+        "Fetched %d bars for %s %s via %s",
+        len(bars),
+        provider_symbol,
+        timeframe.value,
+        execution.provider_name,
+    )
     return bars
 
 
@@ -370,9 +479,7 @@ async def fetch_ohlcv_latest(
 
     if not rows:
         # DB is cold — fetch the full recent window from the configured provider.
-        new_bars = _fetch_provider_latest(
-            instrument, timeframe, limit, adjusted, await _get_or_create_datasource(db)
-        )
+        new_bars = await _fetch_provider_latest(db, instrument, timeframe, limit, adjusted)
         if new_bars:
             try:
                 await db.execute(
@@ -394,17 +501,16 @@ async def fetch_ohlcv_latest(
         oldest_ts = min(b.ts for b in rows)
         if oldest_ts.tzinfo is None:
             oldest_ts = oldest_ts.replace(tzinfo=UTC)
-        repair_start = get_default_market_data_provider().latest_window_start(timeframe, limit)
+        repair_start = await _latest_window_start(db, timeframe, limit)
         repair_end = oldest_ts - timedelta(seconds=1)
         if repair_end > repair_start:
-            datasource = await _get_or_create_datasource(db)
-            repair_bars = _fetch_provider(
+            repair_bars = await _fetch_provider(
+                db,
                 instrument,
                 timeframe,
                 repair_start,
                 repair_end,
                 adjusted,
-                datasource,
             )
             if repair_bars:
                 try:
@@ -433,9 +539,8 @@ async def fetch_ohlcv_latest(
         latest_ts = max(b.ts for b in rows)
         if latest_ts.tzinfo is None:
             latest_ts = latest_ts.replace(tzinfo=UTC)
-        datasource = await _get_or_create_datasource(db)
-        new_bars = _fetch_provider(
-            instrument, timeframe, latest_ts, datetime.now(UTC), adjusted, datasource
+        new_bars = await _fetch_provider(
+            db, instrument, timeframe, latest_ts, datetime.now(UTC), adjusted
         )
         if new_bars:
             try:
@@ -507,8 +612,7 @@ async def fetch_ohlcv_page_before(
         # full historical range up to `before`. The bulk fetch may still be
         # running, but fetching on-demand here is safe: the upsert uses
         # on_conflict_do_nothing so there are no duplicates.
-        datasource = await _get_or_create_datasource(db)
-        fetched = _fetch_provider(instrument, timeframe, _EPOCH, before, adjusted, datasource)
+        fetched = await _fetch_provider(db, instrument, timeframe, _EPOCH, before, adjusted)
         if fetched:
             try:
                 await db.execute(
@@ -546,28 +650,90 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
     }
 
 
-def _fetch_provider_latest(instrument, timeframe, limit, adjusted, datasource) -> list[OHLCVBar]:
+async def _fetch_provider_latest(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    limit: int,
+    adjusted: bool,
+) -> list[OHLCVBar]:
     """Fetch approximately `limit` recent bars from the configured provider when DB is cold."""
-    provider = get_default_market_data_provider()
-    provider_symbol = resolve_provider_symbol_for_instrument(instrument)
-    bars = provider.fetch_latest_ohlcv(
-        provider_symbol,
-        timeframe,
-        limit,
-        adjusted=adjusted,
+    execution = await execute_provider_call(
+        db,
+        ProviderCapability.PRICE_HISTORY,
+        f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
-        data_source_id=datasource.id,
+        invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
+            provider_symbol_for_instrument(instrument, provider.name),
+            timeframe,
+            limit,
+            adjusted=adjusted,
+            instrument_id=instrument.id,
+            data_source_id=0,
+        ),
+        response_items=lambda result: len(result),
+        treat_empty_as_failure=True,
     )
-    return bars[-limit:] if len(bars) > limit else bars
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+    bars = execution.result[-limit:] if len(execution.result) > limit else execution.result
+    for bar in bars:
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
+    await _record_bar_observations(
+        db,
+        bars,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol,
+    )
+    await _touch_ohlcv_dataset_state(
+        db,
+        instrument,
+        data_source_id=execution.data_source.id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        bars=bars,
+    )
+    return bars
+
+
+async def get_current_price_async(
+    db: AsyncSession,
+    instrument: Instrument,
+) -> float | None:
+    execution = await execute_provider_call(
+        db,
+        ProviderCapability.LATEST_PRICE,
+        "get_current_price",
+        instrument_id=instrument.id,
+        invoke=lambda provider, _provider_symbol: provider.get_current_price(
+            provider_symbol_for_instrument(instrument, provider.name)
+        ),
+        response_items=lambda result: 1 if result is not None else 0,
+        treat_empty_as_failure=True,
+    )
+    return execution.result
 
 
 def get_current_price(provider_symbol: str) -> float | None:
-    provider = get_default_quote_provider()
+    provider_names = settings.PROVIDER_CHAIN_SEEDS.get("latest_price") or [
+        settings.DEFAULT_MARKET_DATA_PROVIDER
+    ]
+    provider = get_quote_provider(provider_names[0])
     return provider.get_current_price(provider_symbol)
 
 
-def search_provider_instruments(query: str) -> list[dict]:
-    provider = get_default_search_provider()
+async def search_provider_instruments_async(db: AsyncSession, query: str) -> list[dict]:
+    try:
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.INSTRUMENT_SEARCH,
+            "search_instruments",
+            invoke=lambda provider, _provider_symbol: provider.search_instruments(query, limit=10),
+            response_items=lambda result: len(result),
+            treat_empty_as_failure=False,
+        )
+    except Exception:
+        return []
     return [
         {
             "symbol": result.symbol,
@@ -575,13 +741,35 @@ def search_provider_instruments(query: str) -> list[dict]:
             "exchange": result.exchange,
             "type": result.instrument_type,
         }
-        for result in provider.search_instruments(query, limit=10)
+        for result in execution.result
     ]
 
 
+def search_provider_instruments(query: str) -> list[dict]:
+    raise RuntimeError("search_provider_instruments() is no longer used; use search_provider_instruments_async()")
+
+
+async def get_provider_profile_async(
+    db: AsyncSession,
+    provider_symbol: str,
+    *,
+    instrument_id: int | None = None,
+):
+    try:
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.INSTRUMENT_METADATA,
+            "get_instrument_profile",
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            invoke=lambda provider, actual_symbol: provider.get_instrument_profile(actual_symbol or provider_symbol),
+            response_items=lambda result: 1 if result is not None else 0,
+            treat_empty_as_failure=True,
+        )
+    except Exception:
+        return None
+    return execution.result
+
+
 def get_provider_instrument_info(provider_symbol: str) -> dict:
-    provider = get_default_metadata_provider()
-    profile = provider.get_instrument_profile(provider_symbol)
-    if profile is None:
-        return {}
-    return profile.raw_payload or {}
+    raise RuntimeError("get_provider_instrument_info() is no longer used; use get_provider_profile_async()")
