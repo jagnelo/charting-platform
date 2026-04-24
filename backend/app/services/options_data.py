@@ -5,12 +5,19 @@ import json
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import distinct, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.lib.bs_greeks import estimate_greeks
 from app.models.instrument import Instrument, OptionDetail, OptionRight, OptionStyle
-from app.models.provider_observation import DatasetStatus, InstrumentDatasetState, OptionChainSnapshot, OptionQuotePoint
+from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    OptionChainSnapshot,
+    OptionQuotePoint,
+)
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.providers.base import OptionContractRecord
@@ -20,6 +27,7 @@ from app.services.instrument_mastering import (
     register_provider_symbol,
 )
 from app.services.provider_runtime import execute_provider_call
+from app.services.risk_free_rate import get_risk_free_rate
 
 
 def _now_utc() -> datetime:
@@ -387,6 +395,20 @@ async def sync_option_chain_snapshot(
         db.add(snapshot)
         await db.flush()
 
+    # Fetch spot and RFR once per expiration snapshot for greek estimation
+    spot_row = (
+        await db.execute(
+            select(OHLCVBar.close)
+            .where(OHLCVBar.instrument_id == underlying.id, OHLCVBar.timeframe == Timeframe.D1)
+            .order_by(OHLCVBar.ts.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    spot_f: float | None = float(spot_row) if spot_row is not None else None
+    rfr = await get_risk_free_rate(db)
+    today = _now_utc().date()
+
+    _ins = pg_insert(OptionQuotePoint)
     for contract in contracts:
         option_instrument = await ensure_option_contract(
             db,
@@ -395,6 +417,29 @@ async def sync_option_chain_snapshot(
             contract=contract,
             observed_at=observed_at,
         )
+
+        # Estimate missing greeks via Black-Scholes when provider didn't supply them
+        delta = contract.delta
+        gamma = contract.gamma
+        extra_greeks = dict(contract.extra_greeks or {})
+        if (delta is None or gamma is None) and contract.implied_vol is not None and spot_f is not None:
+            tte = max(0.0, (contract.expiry_date - today).days / 365.25)
+            if tte > 0:
+                is_call = contract.right.lower().startswith("c")
+                est_delta, est_gamma = estimate_greeks(
+                    spot_f,
+                    float(contract.strike),
+                    tte,
+                    float(contract.implied_vol),
+                    rfr,
+                    is_call=is_call,
+                )
+                if delta is None:
+                    delta = Decimal(str(round(est_delta, 8)))
+                if gamma is None:
+                    gamma = Decimal(str(round(est_gamma, 8)))
+                extra_greeks.update({"greeks_source": "bs_estimated", "rfr_used": rfr, "div_yield_used": 0.0})
+
         point_values = {
             "option_instrument_id": option_instrument.id,
             "snapshot_id": snapshot.id,
@@ -408,38 +453,39 @@ async def sync_option_chain_snapshot(
             "volume": contract.volume,
             "open_interest": contract.open_interest,
             "implied_vol": contract.implied_vol,
-            "delta": contract.delta,
-            "gamma": contract.gamma,
+            "delta": delta,
+            "gamma": gamma,
             "theta": contract.theta,
             "vega": contract.vega,
             "rho": contract.rho,
-            "extra_greeks": contract.extra_greeks,
+            "extra_greeks": extra_greeks or None,
             "raw_payload": contract.raw_payload,
             "observation_hash": hashlib.sha256(
                 json.dumps(contract.raw_payload or {}, sort_keys=True, default=str).encode("utf-8")
             ).hexdigest(),
         }
         await db.execute(
-            pg_insert(OptionQuotePoint).on_conflict_do_update(
+            _ins.on_conflict_do_update(
                 constraint="uq_option_quote_point_observed",
                 set_={
-                    "snapshot_id": pg_insert(OptionQuotePoint).excluded.snapshot_id,
-                    "provider_symbol": pg_insert(OptionQuotePoint).excluded.provider_symbol,
-                    "bid": pg_insert(OptionQuotePoint).excluded.bid,
-                    "ask": pg_insert(OptionQuotePoint).excluded.ask,
-                    "mark": pg_insert(OptionQuotePoint).excluded.mark,
-                    "last": pg_insert(OptionQuotePoint).excluded.last,
-                    "volume": pg_insert(OptionQuotePoint).excluded.volume,
-                    "open_interest": pg_insert(OptionQuotePoint).excluded.open_interest,
-                    "implied_vol": pg_insert(OptionQuotePoint).excluded.implied_vol,
-                    "delta": pg_insert(OptionQuotePoint).excluded.delta,
-                    "gamma": pg_insert(OptionQuotePoint).excluded.gamma,
-                    "theta": pg_insert(OptionQuotePoint).excluded.theta,
-                    "vega": pg_insert(OptionQuotePoint).excluded.vega,
-                    "rho": pg_insert(OptionQuotePoint).excluded.rho,
-                    "extra_greeks": pg_insert(OptionQuotePoint).excluded.extra_greeks,
-                    "raw_payload": pg_insert(OptionQuotePoint).excluded.raw_payload,
-                    "observation_hash": pg_insert(OptionQuotePoint).excluded.observation_hash,
+                    "snapshot_id": _ins.excluded.snapshot_id,
+                    "provider_symbol": _ins.excluded.provider_symbol,
+                    "bid": _ins.excluded.bid,
+                    "ask": _ins.excluded.ask,
+                    "mark": _ins.excluded.mark,
+                    "last": _ins.excluded.last,
+                    "volume": _ins.excluded.volume,
+                    "open_interest": _ins.excluded.open_interest,
+                    "implied_vol": _ins.excluded.implied_vol,
+                    # COALESCE: real provider greeks win; estimated values survive null re-ingestion
+                    "delta": func.coalesce(_ins.excluded.delta, OptionQuotePoint.delta),
+                    "gamma": func.coalesce(_ins.excluded.gamma, OptionQuotePoint.gamma),
+                    "theta": _ins.excluded.theta,
+                    "vega": _ins.excluded.vega,
+                    "rho": _ins.excluded.rho,
+                    "extra_greeks": _ins.excluded.extra_greeks,
+                    "raw_payload": _ins.excluded.raw_payload,
+                    "observation_hash": _ins.excluded.observation_hash,
                 },
             ),
             [point_values],
@@ -625,27 +671,28 @@ async def sync_option_quote_history(
                 "rho": str(point.rho) if point.rho is not None else None,
             }, sort_keys=True, default=str).encode("utf-8")
         ).hexdigest()
+        _hist_ins = pg_insert(OptionQuotePoint)
         await db.execute(
-            pg_insert(OptionQuotePoint).on_conflict_do_update(
+            _hist_ins.on_conflict_do_update(
                 constraint="uq_option_quote_point_observed",
                 set_={
                     "snapshot_id": None,
-                    "provider_symbol": pg_insert(OptionQuotePoint).excluded.provider_symbol,
-                    "bid": pg_insert(OptionQuotePoint).excluded.bid,
-                    "ask": pg_insert(OptionQuotePoint).excluded.ask,
-                    "mark": pg_insert(OptionQuotePoint).excluded.mark,
-                    "last": pg_insert(OptionQuotePoint).excluded.last,
-                    "volume": pg_insert(OptionQuotePoint).excluded.volume,
-                    "open_interest": pg_insert(OptionQuotePoint).excluded.open_interest,
-                    "implied_vol": pg_insert(OptionQuotePoint).excluded.implied_vol,
-                    "delta": pg_insert(OptionQuotePoint).excluded.delta,
-                    "gamma": pg_insert(OptionQuotePoint).excluded.gamma,
-                    "theta": pg_insert(OptionQuotePoint).excluded.theta,
-                    "vega": pg_insert(OptionQuotePoint).excluded.vega,
-                    "rho": pg_insert(OptionQuotePoint).excluded.rho,
-                    "extra_greeks": pg_insert(OptionQuotePoint).excluded.extra_greeks,
-                    "raw_payload": pg_insert(OptionQuotePoint).excluded.raw_payload,
-                    "observation_hash": pg_insert(OptionQuotePoint).excluded.observation_hash,
+                    "provider_symbol": _hist_ins.excluded.provider_symbol,
+                    "bid": _hist_ins.excluded.bid,
+                    "ask": _hist_ins.excluded.ask,
+                    "mark": _hist_ins.excluded.mark,
+                    "last": _hist_ins.excluded.last,
+                    "volume": _hist_ins.excluded.volume,
+                    "open_interest": _hist_ins.excluded.open_interest,
+                    "implied_vol": _hist_ins.excluded.implied_vol,
+                    "delta": func.coalesce(_hist_ins.excluded.delta, OptionQuotePoint.delta),
+                    "gamma": func.coalesce(_hist_ins.excluded.gamma, OptionQuotePoint.gamma),
+                    "theta": _hist_ins.excluded.theta,
+                    "vega": _hist_ins.excluded.vega,
+                    "rho": _hist_ins.excluded.rho,
+                    "extra_greeks": _hist_ins.excluded.extra_greeks,
+                    "raw_payload": _hist_ins.excluded.raw_payload,
+                    "observation_hash": _hist_ins.excluded.observation_hash,
                 },
             ),
             [

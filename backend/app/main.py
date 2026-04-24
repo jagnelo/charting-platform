@@ -16,8 +16,9 @@ from app.routers import (
     indicators,
     instrument_indicators,
     instruments,
-    options,
     ohlcv,
+    options,
+    options_exposure,
     presets,
     providers,
     screener,
@@ -79,6 +80,7 @@ app.add_middleware(
 PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(options.router, prefix=PREFIX)
+app.include_router(options_exposure.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
 app.include_router(providers.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)

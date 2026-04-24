@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
     PROVIDER_MAX_CONCURRENCY: int = 2
     OPTION_CHAIN_REFRESH_HORIZON_DAYS: int = 45
+    RFR_INSTRUMENT_SYMBOL: str = "^IRX"
+    RFR_INSTRUMENT_NAME: str = "US 3-Month T-Bill Rate"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
