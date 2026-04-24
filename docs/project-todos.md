@@ -117,6 +117,167 @@ Why this was deferred:
 - The storage and provider-agnostic model came first.
 - Richer provider capability work belongs in a dedicated follow-up pass.
 
+### 5. Build a Technical Radar / Level-of-Interest engine with visual evidence
+Status: `Deferred`
+
+Context:
+- We want the platform to automate a large part of the manual chart-scanning and level-finding work typically done by experienced technical analysts.
+- The goal is not merely to label an instrument as "interesting", but to identify instruments approaching technically meaningful areas and explain why they are on the radar.
+- The user explicitly wants this to be exhaustive up front: include a broad set of technical ideas and confluence mechanisms now, then later validate and prune what proves useful.
+- The user also wants visual transparency: if the radar flags an instrument because of zones, wedges, channels, anchored VWAPs, moving averages, or other structures, the platform should let the user visually inspect those exact internal detections on charts.
+
+What this system should become:
+- A broad **Technical Radar** / **Confluence Scanner** that continuously scans a very large instrument universe and produces ranked, evidence-backed technical opportunities.
+- A discovery and triage layer that cuts down the human time spent manually scanning charts and searching for near-term technically interesting setups.
+- A transparent system where the user can see the underlying technical structures that led to detection, not just an opaque score or alert.
+
+Core product goals:
+- Detect instruments approaching technically important price areas.
+- Detect instruments interacting with support/resistance structures.
+- Detect breakout, breakdown, fakeout, fakedown, reclaim, rejection, and retest behavior.
+- Identify confluence between multiple structures and indicators.
+- Rank and summarize instruments worthy of being placed on a daily radar/watchlist.
+- Present the technical evidence visually so the user can audit and interpret the setup.
+
+What remains:
+
+- Define and implement a broad technical-structure extraction layer, including:
+  - horizontal support/resistance zones
+  - diagonal trendlines
+  - channels
+  - wedges
+  - triangles
+  - prior swing highs/lows
+  - weekly/monthly highs and lows
+  - opening gaps and gap boundaries
+  - AVWAPs anchored to significant technical/contextual events
+  - moving-average clusters and moving-average slope/context
+  - later, if useful, volume-profile or other structural liquidity/acceptance zones
+
+- Define a broad event-detection layer around those structures, including:
+  - approaching resistance
+  - approaching support
+  - breakout
+  - breakdown
+  - fakeout
+  - fakedown
+  - reclaim
+  - rejection
+  - failed reclaim
+  - failed breakdown recovery
+  - retest after breakout/breakdown
+  - compression / squeeze near a level
+  - expansion away from a level
+
+- Define a flexible confluence/scoring layer that can combine evidence such as:
+  - zone strength
+  - touch count
+  - recency of interaction
+  - timeframe importance
+  - ATR-normalized distance to a level
+  - overlap of multiple levels or structures
+  - AVWAP / EMA / SMA clustering
+  - trend state
+  - momentum context
+  - relative volume / participation context
+  - gap context
+  - historical quality of similar setups
+
+- Introduce a persistent radar/setup model that can store things like:
+  - instrument
+  - timeframe(s) involved
+  - detection timestamp
+  - setup type
+  - score / confidence
+  - evidence payload
+  - contributing structures
+  - invalidation criteria
+  - expiry / freshness window
+  - later outcome / forward-performance tracking
+
+- Add UI surfaces to visualize the radar results, including:
+  - a radar list / widget / scanner-like view
+  - setup type and score
+  - concise explanation of why the instrument is on the radar
+  - distance to key levels
+  - timeframe context
+  - last detection / freshness info
+  - ability to open the setup directly in the main chart
+
+- Add visual evidence rendering on charts, so the user can inspect what the radar detected, including:
+  - shaded support/resistance zones
+  - trendlines
+  - channels / wedges / triangles
+  - marked AVWAP anchors and lines
+  - EMA/SMA overlays involved in the setup
+  - breakout / fakeout / retest markers
+  - optionally visibility toggles for each radar evidence type
+  - ideally some notion of "radar layer" separate from the user's own drawings
+
+- Make the radar explain itself in human terms rather than just outputting labels, e.g.:
+  - setup type
+  - score
+  - why it matters
+  - what structures are involved
+  - what timeframe(s) are driving it
+  - what would confirm it further
+  - what would invalidate it
+
+- Make the radar filterable and rankable in many ways, such as:
+  - breakout candidates
+  - support-bounce candidates
+  - resistance-approach candidates
+  - highest-confluence setups
+  - recent fakeouts
+  - reclaim setups
+  - strongest multi-timeframe level clusters
+
+- Add optional validation / research capabilities later, such as:
+  - tracking what happened after each detected setup
+  - evaluating historical success rates of different definitions
+  - instrument-category-specific behavior
+  - regime-aware quality differences
+  - later, if useful, learned weighting on top of the rule-based engine
+
+Broader feature ideas explicitly worth keeping in scope for future exploration:
+- multi-timeframe level stacking and propagation
+- relative-strength context versus sector/index/benchmark
+- trend-stage classification
+- volatility compression / expansion context
+- gap-fill probability context
+- earnings/event-aware technical context
+- market-structure state labeling
+- crowding / repeated-level behavior
+- zone aging and decay logic
+- setup clustering around macro dates or earnings windows
+- sector/industry heat around the same type of technical setup
+- dashboards or widgets specifically for radar discoveries
+- alerts derived from radar state transitions
+
+Visualization expectations:
+- Anything used internally by the radar to justify a candidate should, where practical, be visually inspectable by the user.
+- The user should not have to blindly trust the radar.
+- A detected setup should be explorable on the chart page and, where appropriate, in dashboard widgets.
+- Visual overlays should make it easy to distinguish:
+  - user-created drawings
+  - instrument-linked technical evidence
+  - ephemeral radar detections currently active
+
+Suggested implementation philosophy:
+- Do not try to perfectly imitate a human analyst in one opaque leap.
+- Build a transparent technical-discovery engine that:
+  - extracts structures
+  - detects events around them
+  - scores confluence
+  - ranks candidates
+  - visualizes its reasoning
+- Start broad in scope, then later validate and filter for signal quality instead of prematurely narrowing the concept.
+
+Why this was deferred:
+- This is a major platform capability, not a small feature.
+- It depends on strong data coverage, careful operational definitions, and good visualization design.
+- It deserves a dedicated implementation pass with room for experimentation and later evidence-based pruning.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.
