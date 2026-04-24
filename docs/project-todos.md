@@ -258,6 +258,351 @@ Visualization expectations:
 - Anything used internally by the radar to justify a candidate should, where practical, be visually inspectable by the user.
 - The user should not have to blindly trust the radar.
 - A detected setup should be explorable on the chart page and, where appropriate, in dashboard widgets.
+
+### 6. Build a Strategy Lab with backtesting, walk-forward testing, and paper forward testing, likely powered by Nautilus Trader as the simulation engine
+Status: `Deferred`
+
+Context:
+- Right after the Technical Radar / Level-of-Interest initiative, the next major research feature discussed was a strategy research and validation layer: a place where users can define strategies, run historical backtests, compare strategies against one another, and later forward test them in a paper/simulated manner.
+- We explicitly discussed avoiding reinvention of the execution/backtesting engine if a mature system can handle that responsibility. Nautilus Trader was identified as a strong candidate because it already provides a serious event-driven backtesting/live-trading architecture, portfolio analytics, options support, and custom data capabilities.
+- The agreed architectural direction is not to turn this platform into a thin wrapper around Nautilus Trader, but rather to keep this platform as the research/product/orchestration layer while treating Nautilus as a worker/simulation engine behind a provider-agnostic and platform-owned data model.
+- The platform must remain the source of truth for:
+  - canonical instruments and identifiers
+  - watchlists, screeners, radar results, and user-defined universes
+  - strategy definitions and versions
+  - run configurations
+  - stored backtest / forward-test results
+  - analytics, comparisons, dashboards, and UI
+- The external simulation engine should be treated as replaceable infrastructure. Even if Nautilus Trader becomes the first engine, the platform should not become tightly coupled to Nautilus-specific assumptions any more than it is coupled to any single data provider.
+
+What this system should become:
+- A broad **Strategy Lab** / **Research Lab** that allows users to:
+  - define strategies ranging from simple rules to complex multi-instrument systems
+  - run historical backtests over one instrument or a custom-selected instrument universe
+  - run walk-forward and out-of-sample tests
+  - compare strategies against one another
+  - analyze risk, return, drawdown, robustness, correlation, and diversification characteristics
+  - later, run simulated forward tests on freshly arriving data
+- A persistent research environment where the platform can answer questions such as:
+  - "How would this strategy have performed on this watchlist?"
+  - "How does this strategy compare to another one over the same universe and date range?"
+  - "Which strategies are the least correlated, so I can combine them in a portfolio?"
+  - "How does performance differ by instrument category, market regime, or technical context?"
+
+Guiding architectural principles:
+- Keep the platform's internal domain model authoritative and provider-agnostic.
+- Treat the simulation engine as an implementation detail hidden behind a strategy-execution abstraction layer.
+- Persist everything that matters:
+  - strategy definitions
+  - strategy versions
+  - strategy parameter sets
+  - test configurations
+  - run artifacts
+  - trade/fill logs
+  - equity curves
+  - portfolio curves
+  - aggregate metrics
+  - correlations
+  - attribution
+  - robustness results
+- Keep strategy-research workflows compatible with other platform features, especially:
+  - watchlists
+  - screener outputs
+  - Technical Radar candidate lists
+  - instrument universes defined manually or dynamically
+- Support a future in which another engine or custom executor could sit behind the same platform-owned orchestration interfaces.
+
+What remains:
+
+- Design and implement a platform-owned strategy domain model, including concepts such as:
+  - strategy definition
+  - strategy version
+  - parameter schema
+  - parameter set
+  - run configuration
+  - selected universe
+  - benchmark configuration
+  - test mode
+  - execution assumptions
+  - run result summary
+  - detailed run artifacts
+
+- Define clear test modes and make them first-class, including:
+  - standard historical backtest
+  - walk-forward / rolling out-of-sample testing
+  - parameter sweep / optimization batches
+  - robustness testing
+  - paper forward testing on newly arriving data
+  - eventually, if ever needed, live execution mode as a separate concern and not something entangled into the initial research architecture
+
+- Introduce a strategy-execution abstraction layer in the backend so the platform can submit a run without caring whether the underlying engine is Nautilus Trader or something else, including:
+  - engine registration / engine type
+  - engine capabilities
+  - engine job submission
+  - engine run status tracking
+  - engine artifact retrieval
+  - engine error reporting
+  - engine versioning / compatibility metadata
+
+- Build a dedicated Nautilus Trader integration layer as the likely first implementation, including:
+  - mapping our canonical instruments to Nautilus instrument representations
+  - exporting our persisted market data into Nautilus-compatible input formats
+  - handling data catalog generation if needed
+  - converting our stored bars / quotes / options data / custom events into Nautilus-readable datasets
+  - collecting Nautilus results and translating them back into platform-owned result schemas
+  - insulating the rest of the platform from Nautilus-specific symbols, IDs, config conventions, and storage assumptions
+
+- Be very careful around instrument identity and symbology:
+  - Nautilus has its own instrument identity conventions
+  - our platform already has a provider-agnostic canonical identity model
+  - the strategy system must use the platform's canonical identity everywhere user-facing or persistent
+  - any Nautilus-specific mapping should live only in the adapter/integration layer
+  - this is especially important for:
+    - international equities
+    - indices
+    - futures
+    - options contracts
+    - synthetic / expression instruments, if they ever become relevant to strategy testing
+
+- Build a research-universe selection layer tightly integrated with the rest of the platform, so a strategy run can target:
+  - a single instrument
+  - a manual selection of instruments
+  - a watchlist
+  - screener results
+  - radar-discovered instruments
+  - later, dynamic universes refreshed by scheduled rules
+
+- Build a strategy-definition layer that can support multiple levels of user sophistication:
+  - a visual rule builder for simpler strategies
+  - a declarative intermediate schema or DSL for more expressive strategies
+  - fully coded strategies for advanced users
+- The platform should not force all users into raw engine code if they only want rule-based or parameterized strategies.
+- The visual/declarative path should likely be platform-native and later compiled/transformed into an executable representation for the simulation engine.
+
+- Support strategies with a wide range of possible logic, not just simple single-instrument trend following, including eventually:
+  - indicator-driven entry/exit logic
+  - price-action and pattern conditions
+  - multi-timeframe conditions
+  - universe-level filtering
+  - ranking / top-N selection
+  - volatility or liquidity filters
+  - event-aware logic
+  - options-aware logic if/when supported well enough
+  - pair or relative-strength logic
+  - portfolio-level allocation and rebalancing rules
+
+- Model execution assumptions and market-friction settings explicitly, including:
+  - bar-based vs richer-data assumptions
+  - slippage models
+  - commissions / fees
+  - spread assumptions
+  - latency assumptions where meaningful
+  - fill models
+  - venue/exchange awareness
+  - position sizing models
+  - leverage / margin assumptions
+  - portfolio constraints
+- These assumptions must be visible in run configs and persisted as part of the provenance of any run result.
+
+- Build a data-preparation/export layer from the platform's DB to the simulation engine, including:
+  - selecting the required historical window
+  - selecting the required instruments / contracts
+  - selecting the required timeframes
+  - selecting supporting event/custom data
+  - enforcing data coverage checks
+  - documenting missing/stale data before or during a run
+  - exporting data in a reusable cached form when possible
+- This layer must be very mindful of:
+  - data completeness
+  - timeframe alignment
+  - corporate actions / adjusted vs unadjusted series
+  - options chain snapshots vs timeseries
+  - future support for richer quote-level or tick-level data
+
+- Treat result persistence as a first-class system rather than ephemeral output, storing at minimum:
+  - run metadata
+  - strategy version used
+  - parameter set used
+  - date range
+  - selected universe
+  - benchmark used
+  - execution assumptions
+  - engine used
+  - run status
+  - error logs / warnings
+  - trade list
+  - order/fill history
+  - position history
+  - equity curve
+  - drawdown curve
+  - exposure history
+  - per-instrument contribution / attribution
+  - summary metrics
+  - artifacts generated by the engine
+
+- Build a rich result-analytics layer on top of those stored results, including:
+  - total return
+  - annualized return
+  - volatility
+  - Sharpe / Sortino and similar ratios
+  - drawdown metrics
+  - win/loss metrics
+  - expectancy
+  - turnover
+  - exposure metrics
+  - per-instrument attribution
+  - sector/category attribution where possible
+  - benchmark-relative performance
+  - rolling performance windows
+  - regime breakdowns
+  - trade distribution analytics
+
+- Build explicit strategy-comparison tooling, including:
+  - compare two or more strategy runs side-by-side
+  - compare multiple parameterizations of the same strategy
+  - compare strategies over the same universe/date range
+  - compare strategies by regime
+  - correlation matrix of strategy returns
+  - covariance/diversification analysis
+  - portfolio-construction ideas such as combining less-correlated strategies
+  - ranking by robustness instead of raw total return alone
+
+- Support walk-forward / out-of-sample research directly rather than treating it as an afterthought, including:
+  - segmented train/test windows
+  - rolling calibration windows
+  - rolling evaluation windows
+  - parameter freeze vs periodic retuning behavior
+  - aggregated walk-forward summaries
+  - per-window stability views
+  - degradation / drift diagnostics
+
+- Add robustness-testing ideas that are valuable even before any machine-learning layer, including:
+  - parameter sweeps
+  - sensitivity analysis
+  - Monte Carlo reshuffling where appropriate
+  - start-date robustness
+  - universe robustness
+  - timeframe robustness
+  - cost/slippage stress tests
+  - data-delay / execution-delay stress assumptions
+- The goal should be to separate "looks great on one chart" from "survives perturbation."
+
+- Define what forward testing means in the platform and make it explicit that there are two distinct ideas:
+  - walk-forward testing over historical data
+  - paper forward testing on newly arriving data in simulated mode
+- Later paper forward testing should reuse the same strategy definition and, where possible, the same simulation semantics as backtests, while operating on fresh platform-ingested data.
+
+- Build a paper forward-testing mode that can eventually:
+  - subscribe to selected active strategies
+  - run on newly arriving bars/quotes/events
+  - maintain paper positions and paper P&L
+  - track divergence versus historical expectations
+  - expose current paper state in the UI
+  - alert when a strategy's current behavior meaningfully deviates from historical norms or risk thresholds
+
+- Add frontend surfaces for the Strategy Lab, including:
+  - strategy list / catalog
+  - create/edit strategy view
+  - strategy version history
+  - run-configuration form
+  - universe picker
+  - backtest run history
+  - walk-forward results view
+  - strategy comparison view
+  - portfolio-of-strategies comparison view
+  - paper forward-testing monitor
+
+- Add rich visualizations, such as:
+  - equity curves
+  - underwater/drawdown charts
+  - rolling Sharpe / rolling return charts
+  - trade distribution histograms
+  - heatmaps by month/week/regime
+  - parameter sweep heatmaps
+  - correlation matrices between strategies
+  - contribution / attribution charts
+  - benchmark overlays
+  - trade markers on the main chart where appropriate
+
+- Tie the Strategy Lab into the rest of the platform where it makes sense, especially:
+  - run a strategy against a watchlist directly
+  - run a strategy against screener results
+  - later run a strategy against Technical Radar candidate lists
+  - allow chart/radar discoveries to feed directly into strategy research
+  - eventually compare "radar-guided" strategies versus plain universe strategies
+
+- Make this system compatible with options and more complex instruments over time, but stage expectations carefully:
+  - initial strategy work may begin with bar-based underlying instruments
+  - later support options strategies as data quality and engine capability allow
+  - keep the architecture broad enough for multi-leg options and derivatives research later, even if not all of it is implemented immediately
+- This point is especially important because the platform is already becoming more options-aware and the strategy system should not corner itself into equities-only assumptions.
+
+- Add scheduling/orchestration support eventually, including:
+  - queued backtest jobs
+  - asynchronous run execution
+  - batch research jobs
+  - periodic re-runs when fresh data arrives
+  - retention rules for large artifacts
+  - cancellation / pause / retry semantics
+
+- Track provenance and reproducibility very carefully:
+  - which strategy version was used
+  - which engine version was used
+  - which data snapshot/coverage state was used
+  - which assumptions were used
+  - which benchmarks/universe definitions were used
+  - which parameters were used
+- A historical run should be reconstructable later as faithfully as practical.
+
+- Be mindful of realistic limitations and caveats, especially if Nautilus Trader is used:
+  - engine/library evolution and possible breaking changes
+  - symbol and identity mismatch between the platform and Nautilus
+  - data-realism limits when only bar data exists
+  - richer realism only becoming available once richer quote/order-book data exists
+  - licensing/commercialization implications that should be revisited before public productization
+
+Broader feature ideas explicitly worth keeping in scope for future exploration:
+- strategy templates and starter packs
+- library of common technical/systematic strategy archetypes
+- import/export of strategy definitions
+- collaborative comparison of multiple strategies or parameter families
+- scorecards for robustness vs overfitting risk
+- regime-aware strategy ranking
+- combination/ensemble strategies
+- benchmark families beyond simple buy-and-hold
+- strategy tagging and taxonomy
+- automated reporting / PDF or shareable summaries
+- linking strategy events back onto the chart page visually
+- linking forward-tested active strategy state into dashboards
+- using platform events, radar detections, or custom factor series as strategy inputs
+
+Phasing expectations:
+- Phase 1 should likely focus on:
+  - backend abstraction for strategy engines
+  - Nautilus Trader as the first engine implementation
+  - platform-owned run configs and persisted results
+  - bar-based historical backtesting
+  - single-instrument and small-universe support
+  - basic comparison analytics
+- Phase 2 should likely add:
+  - richer strategy-definition UX
+  - parameter sweeps
+  - walk-forward testing
+  - stronger comparison and robustness tooling
+- Phase 3 should likely add:
+  - paper forward testing on new incoming data
+  - better monitoring and alerting
+  - tighter integration with radar/screener/watchlist workflows
+- Later phases can expand toward:
+  - richer data realism
+  - advanced options strategies
+  - more sophisticated portfolio construction
+  - engine pluralism beyond Nautilus if needed
+
+Interpretation expectations for future work:
+- This should be treated as a major platform initiative, not a small feature.
+- The platform should own the research workflow and user experience, even if Nautilus owns the underlying simulation semantics.
+- The intent is not merely "add a backtest button", but to build a full strategy research environment that complements the Technical Radar and the broader analytics direction of the product.
 - Visual overlays should make it easy to distinguish:
   - user-created drawings
   - instrument-linked technical evidence
