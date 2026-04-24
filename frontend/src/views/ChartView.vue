@@ -124,10 +124,28 @@
           </template>
         </div>
         <div v-if="showOptionsPanel" class="options-shell">
+          <div class="options-tabs">
+            <button
+              class="options-tab"
+              :class="{ active: optionsTab === 'chain' }"
+              @click="optionsTab = 'chain'"
+            >Chain</button>
+            <button
+              class="options-tab"
+              :class="{ active: optionsTab === 'exposure' }"
+              @click="optionsTab = 'exposure'"
+            >Exposure</button>
+          </div>
           <OptionsChainPanel
+            v-if="optionsTab === 'chain'"
             :symbol="chartStore.symbol"
             title="Options Chain"
             @open-symbol="onSymbolSelect"
+          />
+          <OptionsExposurePanel
+            v-else-if="optionsTab === 'exposure'"
+            :symbol="chartStore.symbol"
+            title="Options Exposure"
           />
         </div>
       </div>
@@ -169,6 +187,7 @@ import LayoutPicker         from '@/components/chart/LayoutPicker.vue'
 import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
 import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
+import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
@@ -200,6 +219,7 @@ const router = useRouter()
 
 const currentTf     = ref<Timeframe>('D1')
 const showWlMenu    = ref(false)
+const optionsTab    = ref<'chain' | 'exposure'>('chain')
 const wlStarRef     = ref<HTMLElement | null>(null)
 const showCompareInput = ref(false)
 const compareDraft = ref('')
@@ -699,11 +719,35 @@ onUnmounted(() => {
 }
 
 .options-shell {
-  height: 230px;
+  height: 340px;
   border-top: 1px solid #171717;
   background: #0c0c0c;
   flex-shrink: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.options-tabs {
+  display: flex;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+.options-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #666;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 5px 14px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.options-tab:hover { color: #aaa; }
+.options-tab.active {
+  color: #ccc;
+  border-bottom-color: #64b5f6;
 }
 
 .chart-loading, .chart-error, .chart-empty {

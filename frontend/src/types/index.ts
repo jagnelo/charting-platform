@@ -452,6 +452,68 @@ export interface OptionQuotePoint {
   provider_symbol?: string | null
 }
 
+// ── Options Exposure ─────────────────────────────────────────────────────────
+
+export interface ExpiryBreakdown {
+  call_gex: number
+  put_gex: number
+  net_gex: number
+  call_dex: number
+  put_dex: number
+  net_dex: number
+  call_oi: number
+  put_oi: number
+}
+
+export interface ExposureLadderRow {
+  strike: number
+  call_gex: number
+  put_gex: number
+  net_gex: number
+  call_dex: number
+  put_dex: number
+  net_dex: number
+  call_oi: number
+  put_oi: number
+  call_iv: number | null
+  put_iv: number | null
+  call_mark: number | null
+  put_mark: number | null
+  by_expiry: Record<string, ExpiryBreakdown>
+}
+
+export interface ExposureKeyLevels {
+  call_wall: number | null
+  put_wall: number | null
+  gamma_flip: number | null
+  max_pain: number | null
+}
+
+export interface OptionsExposureResponse {
+  symbol: string
+  spot: number | null
+  expirations: string[]
+  active_expirations: string[]
+  computed_at: string
+  ladder: ExposureLadderRow[]
+  key_levels: ExposureKeyLevels
+  pcr_oi: number | null
+  pcr_volume: number | null
+  implied_move_pct: number | null
+  total_gex: number
+  total_net_dex: number
+  greeks_estimated?: boolean
+}
+
+export interface ExpirationSummary {
+  expiration: string
+  dte: number
+  total_call_oi: number
+  total_put_oi: number
+  pcr_oi: number | null
+  total_gex: number
+}
+
 // ── Dashboards ───────────────────────────────────────────────────────────────
 
 export type DashboardWidgetType =
@@ -468,6 +530,7 @@ export type DashboardWidgetType =
   | 'ratio_chart'
   | 'economic_calendar'
   | 'options_chain'
+  | 'gex_ladder'
   | 'heat_map'
   | 'seasonality'
 

@@ -152,6 +152,11 @@
                 :config="widget.config"
                 :override-symbol="effectiveSymbol(widget)"
               />
+              <DashboardGexWidget
+                v-else-if="widget.widget_type === 'gex_ladder'"
+                :config="widget.config"
+                :override-symbol="effectiveSymbol(widget)"
+              />
               <DashboardHeatMapWidget
                 v-else-if="widget.widget_type === 'heat_map'"
                 :config="widget.config"
@@ -234,7 +239,7 @@
             </label>
 
             <label
-              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart', 'seasonality', 'options_chain'].includes(configWidget.widget_type)"
+              v-if="['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'ratio_chart', 'seasonality', 'options_chain', 'gex_ladder'].includes(configWidget.widget_type)"
               class="config-field"
             >
               <span>Instrument or expression</span>
@@ -565,6 +570,7 @@ import DashboardInstrumentDetailsWidget from '@/components/dashboard/DashboardIn
 import DashboardLineChartWidget from '@/components/dashboard/DashboardLineChartWidget.vue'
 import DashboardNotesWidget from '@/components/dashboard/DashboardNotesWidget.vue'
 import DashboardOptionsChainWidget from '@/components/dashboard/DashboardOptionsChainWidget.vue'
+import DashboardGexWidget from '@/components/dashboard/DashboardGexWidget.vue'
 import DashboardQuoteWidget from '@/components/dashboard/DashboardQuoteWidget.vue'
 import DashboardScreenerWidget from '@/components/dashboard/DashboardScreenerWidget.vue'
 import DashboardSeasonalityWidget from '@/components/dashboard/DashboardSeasonalityWidget.vue'
@@ -637,6 +643,7 @@ const widgetCatalog: Array<{
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
   { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
   { type: 'options_chain', title: 'Options Chain', description: 'Calls, puts, IV, OI, greeks' },
+  { type: 'gex_ladder', title: 'GEX / DEX Ladder', description: 'Gamma & delta exposure, key levels' },
   { type: 'heat_map', title: 'Heat Map', description: 'Treemap — perf, RSI, volume, 52w range' },
   { type: 'seasonality', title: 'Seasonality', description: 'Monthly performance patterns' },
   { type: 'instrument_details', title: 'Instrument Details', description: 'Metadata and stats' },
@@ -862,7 +869,7 @@ async function patchWidget(widget: DashboardWidget, patch: Partial<DashboardWidg
 }
 
 // ── Link group helpers ─────────────────────────────────────────────────────────
-const LINKABLE_TYPES = ['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'seasonality', 'ratio_chart', 'options_chain']
+const LINKABLE_TYPES = ['quote', 'simple_chart', 'advanced_chart', 'instrument_details', 'economic_calendar', 'seasonality', 'ratio_chart', 'options_chain', 'gex_ladder']
 
 const linkScope = computed(() => dashboardStore.activeTab?.id ?? 'dashboard')
 const activeLinkGroups = computed(() => {

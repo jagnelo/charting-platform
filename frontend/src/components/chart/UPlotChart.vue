@@ -177,12 +177,14 @@ import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
 import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
+import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
 import { approxVolumeProfilePlugin } from '@/lib/uplot/plugins/approx-volume-profile'
 import { volumePlugin }            from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
+import { optionsLevelsPlugin }    from '@/lib/uplot/plugins/options-levels'
 import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
 import type { ProjectionItem }     from '@/lib/uplot/plugins/y-axis-projections'
 import ResizeHandle          from '@/components/common/ResizeHandle.vue'
@@ -253,6 +255,7 @@ const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
 const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
+const optionsExposureStore = useOptionsExposureStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
@@ -1414,6 +1417,7 @@ async function initChart() {
     ),
     indicatorHighlightPlugin(),
     yAxisProjectionsPlugin(() => getProjectionItems()),
+    optionsLevelsPlugin(() => optionsExposureStore.data?.key_levels ?? null),
   ]
 
   if (effectiveChartType.value === 'ohlc') {
