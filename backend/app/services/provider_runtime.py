@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,12 +21,19 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.providers import ensure_data_source, get_provider, list_provider_capabilities, supported_provider_names
+from app.providers import (
+    ensure_data_source,
+    get_provider,
+    list_provider_capabilities,
+    supported_provider_names,
+)
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
 _ALPHA = Decimal("0.2")
-_token_buckets: dict[tuple[str, str], "TokenBucket"] = {}
+_token_buckets: dict[tuple[str, str], TokenBucket] = {}
 _semaphores: dict[tuple[str, str], asyncio.Semaphore] = {}
 
 
@@ -374,10 +383,34 @@ async def execute_provider_call(
                 response_items=0,
                 error=exc,
             )
+            remaining = [r.provider_name for r in chain if r.provider_name != resolved.provider_name]
+            if remaining:
+                logger.warning(
+                    "provider_runtime: %s failed for %s/%s (%s) — falling back to [%s]",
+                    resolved.provider_name,
+                    capability.value,
+                    operation,
+                    exc,
+                    ", ".join(remaining),
+                )
+            else:
+                logger.warning(
+                    "provider_runtime: %s failed for %s/%s (%s) — no further providers in chain",
+                    resolved.provider_name,
+                    capability.value,
+                    operation,
+                    exc,
+                )
             await asyncio.sleep(min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15)
             continue
 
     if last_error is not None:
+        logger.error(
+            "provider_runtime: all providers exhausted for %s/%s — last error: %s",
+            capability.value,
+            operation,
+            last_error,
+        )
         raise last_error
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")
 

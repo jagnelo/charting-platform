@@ -54,6 +54,16 @@ class Settings(BaseSettings):
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
+    # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe
+    ALPACA_API_KEY: str = ""
+    ALPACA_SECRET_KEY: str = ""
+    ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
+    # FRED (Federal Reserve Economic Data) — rates, macro, forex series
+    FRED_API_KEY: str = ""
+    # CoinGecko — crypto universe discovery and metadata (free demo key)
+    COINGECKO_API_KEY: str = ""
+    # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
+    EDGAR_USER_AGENT: str = "charting-platform contact@example.com"
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0

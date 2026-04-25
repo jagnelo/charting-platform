@@ -623,6 +623,60 @@ Why this was deferred:
 - It depends on strong data coverage, careful operational definitions, and good visualization design.
 - It deserves a dedicated implementation pass with room for experimentation and later evidence-based pruning.
 
+### 7. Activate paid providers for options data and forward earnings estimates
+Status: `Planned`
+
+Context:
+- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)
+  covering US equity OHLCV, crypto, corporate actions, rates, and historical earnings.
+- The following data types have no viable free alternative and are currently covered only by
+  yfinance (unofficial, no SLA):
+  - **US options chains with real greeks** — delta, gamma, theta, vega
+  - **Forward earnings calendar** — upcoming confirmed/estimated earnings dates
+  - **Analyst price targets and recommendations**
+
+Low-budget candidates already anticipated in config.py (keys are present, providers not yet built):
+- `MARKETDATA_API_KEY` → MarketData.app ($25/month) — US options with real greeks + earnings calendar
+- `FMP_API_KEY` → Financial Modeling Prep ($15/month) — forward estimates, analyst data, richer fundamentals
+- IBKR TWS API (free with account) — comprehensive US + international options, futures, real greeks;
+  requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
+
+What remains:
+- Implement `marketdata` provider (MarketData.app): `OptionChainProvider` with real greeks,
+  `EventProvider` for earnings calendar
+- Implement `fmp` provider (FMP): `EventProvider` for forward earnings + analyst data,
+  `InstrumentMetadataProvider` for richer fundamentals
+- Optionally implement `ibkr` provider (IBKR TWS): comprehensive coverage for priority instruments,
+  requires IB Gateway sidecar and a pacing-aware scheduler queue
+- Demote yfinance options/events capabilities to last-resort once paid providers are active
+
+Why this was deferred:
+- The free provider stack covers the high-volume refresh use case well.
+- Options and forward estimates require a budget commitment; the user will decide when to activate.
+
+### 8. Expand provider chain seeding and scheduling for bulk universe refresh
+Status: `Planned`
+
+Context:
+- Five new providers (Alpaca, FRED, Binance, CoinGecko, EDGAR) are registered but the
+  PROVIDER_CHAIN_SEEDS defaults in config.py are still empty `{}`.
+- The scheduler tasks (instrument_sync_tasks, data_tasks) are not yet wired to use the new
+  providers in an ordered way for daily refresh cycles.
+
+What remains:
+- Set production-ready `PROVIDER_CHAIN_SEEDS` defaults per capability so new providers
+  are automatically preferred over yfinance without manual env override.
+- Review `INSTRUMENT_DAILY_METADATA_CAP` and `INSTRUMENT_DAILY_IDENTIFIER_CAP` — these
+  may need tuning when Alpaca-discovered universe (~9 000 equities) is active.
+- Add a scheduled daily task for Alpaca OHLCV batch refresh (leveraging the multi-symbol
+  endpoint to refresh thousands of equities in ~10–15 requests).
+- Add a scheduled task for corporate actions sync (Alpaca splits/dividends).
+- Add a scheduled task for EDGAR earnings history enrichment for newly added instruments.
+
+Why this was deferred:
+- The providers are implemented and registered; wiring the scheduler is a separate operational
+  concern that should be done alongside end-to-end testing of the new provider stack.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.

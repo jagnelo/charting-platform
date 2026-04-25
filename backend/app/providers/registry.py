@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.providers.alpaca import AlpacaProvider
 from app.providers.base import (
     DiscoveryProvider,
     EventProvider,
@@ -21,14 +22,25 @@ from app.providers.base import (
     PriceHistoryProvider,
     ProviderDescriptor,
 )
+from app.providers.binance import BinanceProvider
+from app.providers.coingecko import CoinGeckoProvider
+from app.providers.edgar import EdgarProvider
+from app.providers.fred import FREDProvider
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.yfinance import YFinanceProvider
 
 ProviderT = TypeVar("ProviderT", bound=ProviderDescriptor)
 
 _PROVIDERS: dict[str, ProviderDescriptor] = {
-    "yfinance": YFinanceProvider(),
-    "openfigi": OpenFigiProvider(),
+    # Primary free providers
+    "alpaca": AlpacaProvider(),      # US equity + crypto OHLCV, splits, dividends, universe
+    "fred": FREDProvider(),          # Interest rates, forex series, macro indicators
+    "binance": BinanceProvider(),    # Crypto OHLCV and universe
+    "coingecko": CoinGeckoProvider(), # Crypto metadata and discovery
+    "edgar": EdgarProvider(),        # US company profile and earnings history
+    # Fallback / supplementary
+    "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
+    "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
 }
 
 
