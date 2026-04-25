@@ -259,6 +259,112 @@ Visualization expectations:
 - The user should not have to blindly trust the radar.
 - A detected setup should be explorable on the chart page and, where appropriate, in dashboard widgets.
 
+### 6. Build unattended multi-LLM orchestration for overnight development
+Status: `Deferred`
+
+Context:
+- We discussed a future workflow where Codex and Claude can be used in sequence, with an orchestrator switching between them so platform development can continue unattended for long stretches such as overnight runs.
+- The key requirement is continuity: when one worker expires or becomes unavailable, the next one should not have to reconstruct state from scratch or guess where work was left.
+- A major constraint identified in the discussion is that nominal session limits are not reliable in practice. A worker may lose usable budget much earlier than expected, sometimes within minutes, which means a single final handoff at the end of a session is not enough.
+- To address this, we introduced a repo-owned orchestration model:
+  - one canonical orchestration document
+  - repo-carried task/state/handoff/report files
+  - explicit stop-before-expiry behavior
+  - frequent intermediate checkpoints
+- We also established the recommended tool direction:
+  - use **LangGraph** as the orchestrator
+  - treat **Codex CLI** and **Claude Code CLI** as interchangeable workers
+  - do not treat the VS Code extensions as the automation surface
+  - eventually, if stronger workflow durability is needed, consider adding Temporal underneath later
+
+What this system should become:
+- A reliable unattended development workflow that can:
+  - read a task queue
+  - launch the appropriate worker
+  - guide that worker through repo-defined rules
+  - validate code and UX changes
+  - checkpoint progress frequently
+  - rotate workers when one nears exhaustion
+  - resume from repo state rather than ephemeral conversation memory
+- A neutral orchestration setup that is LLM-agnostic enough for different coding agents to read the same project guidance and obey the same rules.
+
+What remains:
+
+- Build the actual orchestrator around the repository-owned workflow, likely using LangGraph, including:
+  - worker selection
+  - task loading
+  - checkpoint scheduling
+  - worker rotation
+  - retry behavior
+  - failure handling
+  - end-of-run reporting
+
+- Ensure the orchestrator treats the following as the single canonical entry point for all workers:
+  - `docs/agent-orchestration.md`
+- That file should remain the top-level instruction file which then directs workers to the live `ops/*` state files.
+
+- Keep and evolve the repo-owned shared state model, including:
+  - `ops/tasks.yaml`
+  - `ops/handoff.md`
+  - `ops/state.json`
+  - `ops/run-report.md`
+- These files should be treated as durable continuity memory between workers.
+
+- Preserve and enforce the stop-before-expiry / continuity-first behavior, including:
+  - workers must assume usable session budget may collapse early
+  - workers must not postpone handoff writing until the end
+  - workers must checkpoint during the session after meaningful progress
+  - workers must switch into preservation mode if exhaustion risk rises
+  - the orchestrator must still impose its own fallback checkpoint/stop rules rather than trusting the worker entirely
+
+- Add orchestrator support for bounded-run / checkpoint behavior, such as:
+  - periodic heartbeat prompts
+  - periodic checkpoint requests
+  - wall-clock soft stop
+  - optional max-turn segmentation
+  - forcing handoff mode before risky long validations or before likely exhaustion
+
+- Add environment-level support so workers can safely validate the platform end to end, including controlled access to:
+  - Docker / Docker Compose
+  - Alembic migrations
+  - backend/frontend test runners
+  - Playwright and browser automation
+  - backend and frontend logs
+- The preferred future deployment model is a dedicated dev machine or isolated VM for unattended runs rather than exposing a worker to the user's full everyday host environment.
+
+- Prefer an allowlisted-script model for infra control rather than unconstrained shell power where practical, e.g. dedicated scripts for:
+  - infra up/down
+  - migrations
+  - backend tests
+  - frontend tests/build
+  - E2E flows
+  - backend/frontend log collection
+
+- Require unattended workers to validate not only code correctness but actual user-facing behavior when relevant, including:
+  - browser interaction flows
+  - layout/UX sanity
+  - browser console errors
+  - backend log errors
+  - successful startup/health of the relevant services
+
+- Define the reporting expectations for each unattended run, including:
+  - tasks completed
+  - tasks partially completed
+  - assumptions made
+  - blockers found
+  - tests run
+  - UX validation performed
+  - errors encountered
+  - exact next step if work remains
+
+- Keep the repo-level agent discoverability in place:
+  - root `AGENTS.md` should continue to point to the canonical orchestration doc
+  - the canonical doc should remain the first thing an external orchestrator tells any worker to read
+
+Why this was deferred:
+- We set up the repository-side memory and rule structure first, but not the actual orchestrator.
+- The real value comes from building the supervisor workflow around these rules, which is a separate piece of work from day-to-day platform development.
+
 ### 6. Build a Strategy Lab with backtesting, walk-forward testing, and paper forward testing, likely powered by Nautilus Trader as the simulation engine
 Status: `Deferred`
 

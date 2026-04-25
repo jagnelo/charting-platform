@@ -1,0 +1,26 @@
+# Task queue for unattended/multi-agent work.
+#
+# Rules:
+# - Keep tasks small and concrete.
+# - Each task must define validation.
+# - Status values:
+#   - pending
+#   - in_progress
+#   - blocked
+#   - done
+
+tasks:
+  - id: example-001
+    title: Example task
+    status: pending
+    priority: medium
+    scope: >
+      Replace this with a real task. Keep it specific and bounded.
+    definition_of_done:
+      - Code changes completed
+      - Relevant tests passed
+      - Handoff updated
+    validation:
+      - backend-tests
+      - frontend-build
+    notes: []

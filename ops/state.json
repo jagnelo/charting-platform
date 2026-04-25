@@ -1,0 +1,18 @@
+{
+  "active_task_id": null,
+  "active_worker": null,
+  "worker_session_started_at": null,
+  "worker_soft_stop_at": null,
+  "last_handoff_at": null,
+  "last_commit": null,
+  "git_ready_to_commit": false,
+  "validation": {
+    "backend_tests": "not_run",
+    "frontend_tests": "not_run",
+    "frontend_build": "not_run",
+    "playwright": "not_run",
+    "console_check": "not_run",
+    "backend_log_check": "not_run"
+  },
+  "notes": []
+}
