@@ -729,7 +729,225 @@ Why this was deferred:
 - It depends on strong data coverage, careful operational definitions, and good visualization design.
 - It deserves a dedicated implementation pass with room for experimentation and later evidence-based pruning.
 
-### 7. Activate paid providers for options data and forward earnings estimates
+### 7. Build a Trade Signal, Virtual Trade Tracking, and Trader-Follower engine
+Status: `Deferred`
+
+Context:
+- After discussing the Technical Radar and the Strategy Lab, we explored whether a full auto-trading layer should sit on top of them.
+- The agreed conclusion was that full live auto-execution is a natural long-term extension, but not the right first step.
+- The better intermediate product is a **trade signal generator plus virtual trade lifecycle tracker**:
+  - the platform identifies a trade idea,
+  - alerts the user,
+  - defines and tracks the hypothetical trade in the background,
+  - continues issuing alerts for entries, stop movement, partial exits, take profits, invalidations, and final exits,
+  - while collecting forward-tested performance data as if the trade had been followed systematically.
+- This gives most of the research and discipline benefits of automation without immediately taking on broker integration, live order routing, or full auto-trading risk.
+
+What this system should become:
+- A **Trade Signal & Lifecycle Engine** that turns strategy/radar detections into structured trade plans.
+- A **manual-execution companion** for users: the user places the trade themselves, while the platform tracks the plan and keeps monitoring it.
+- A **forward-testing layer** that measures how well the platform’s ideas and trade-management rules actually perform in live-market conditions over time.
+- A **bridge layer** between:
+  - Technical Radar candidate discovery
+  - Strategy Lab research/backtesting
+  - later paper trading
+  - and eventually, if desired, semi-automated or fully automated execution
+
+Core product goals:
+- Generate structured trade idea alerts from technical/rule-based detections.
+- Represent a full trade plan rather than only an entry alert.
+- Track hypothetical trades continuously in the background after signal creation.
+- Alert users when the trade transitions through important lifecycle states.
+- Measure live forward-tested trade outcomes to validate setups and trade-management logic.
+- Provide a disciplined, auditable trade journal even when execution is still manual.
+
+What remains:
+- Define the **signal-to-trade-plan transformation layer**, including:
+  - how a Technical Radar setup or Strategy Lab rule becomes a candidate trade
+  - entry model types, such as:
+    - immediate market-style entry at signal
+    - breakout trigger entry
+    - pullback/retest entry
+    - support-bounce style entry
+    - reclaim/recovery entry
+    - limit-style or zone-based entry logic
+  - directional context:
+    - long
+    - short
+    - both where appropriate
+  - validity windows for entries:
+    - same-session only
+    - N bars only
+    - expires if level already moved too far
+    - expires on structure invalidation
+
+- Define a persistent **trade plan model**, capturing things like:
+  - instrument
+  - signal source
+  - source setup id / strategy run id / radar detection id
+  - side (long/short)
+  - entry logic
+  - entry zone or entry trigger
+  - stop loss
+  - one or more profit targets
+  - optional partial-take-profit structure
+  - optional trailing-stop logic
+  - invalidation logic
+  - creation time
+  - expiry time / entry validity window
+  - current lifecycle status
+  - notes / rationale / evidence payload
+  - provenance of how the trade was derived
+
+- Define the **virtual trade lifecycle state machine**, including statuses such as:
+  - proposed
+  - alerted
+  - entry pending
+  - entered
+  - partially exited
+  - trailing / management active
+  - stopped out
+  - target hit
+  - fully exited
+  - invalidated before entry
+  - expired before entry
+  - cancelled
+  - manually overridden / user-dismissed
+
+- Define the **trade-monitoring engine** that continuously evaluates open or pending trade plans against incoming data, including:
+  - entry-trigger monitoring
+  - stop-hit detection
+  - target-hit detection
+  - partial-target-hit detection
+  - trailing-stop adjustment logic
+  - break-even transition logic
+  - time-based invalidation or forced exit logic
+  - setup-quality decay / “setup no longer valid” logic
+  - session or event-aware logic if relevant later
+
+- Add a broad **alert-generation layer** around trade lifecycle events, including:
+  - new trade setup generated
+  - entry triggered
+  - entry missed / expired
+  - stop loss hit
+  - take-profit level reached
+  - partial exit reached
+  - stop moved to break-even
+  - trailing stop updated
+  - trade invalidated
+  - final exit completed
+  - outcome summary alert / notification
+
+- Define how the engine handles **pricing and hypothetical fills**, including:
+  - whether fills are assumed on touch, close, or open of next bar
+  - whether intrabar hit sequencing matters when stop and target are both touched
+  - how gaps are handled
+  - how slippage assumptions are represented
+  - how fills differ across timeframes and data quality levels
+  - how assumptions remain visible and auditable to users
+
+- Add a persistent **virtual trade / forward-test ledger**, storing:
+  - original trade plan
+  - all lifecycle transitions
+  - timestamps of each transition
+  - hypothetical fills
+  - realized and unrealized P&L
+  - MFE / MAE
+  - risk multiple (R)
+  - duration in bars and wall-clock time
+  - target sequence reached
+  - reason for exit
+  - whether the trade was user-followed or only platform-tracked
+  - optional user annotation about whether the human actually took the trade
+
+- Build a **trade journal / follower UI layer**, including:
+  - list of active trade ideas
+  - list of pending entries
+  - list of active virtual trades
+  - completed trades
+  - outcome and statistics views
+  - filtering by source, setup type, instrument, timeframe, side, and status
+  - trade detail pages or panels showing:
+    - the original setup rationale
+    - planned entry/stop/targets
+    - lifecycle history
+    - current state
+    - forward-tested performance
+
+- Add chart-side visualization for the entire trade plan and lifecycle, including:
+  - entry line / zone
+  - stop line
+  - target lines
+  - partial target markers
+  - trailing stop path if active
+  - entry trigger marker
+  - exit markers
+  - invalidation marker
+  - trade-state overlays or labels
+  - ability to distinguish radar evidence from trade-plan overlays
+
+- Tie this system to the rest of the platform so trade ideas can originate from:
+  - Technical Radar detections
+  - Strategy Lab forward-tested strategies
+  - manually promoted user-selected chart setups
+  - later screener outputs or other analytics engines
+
+- Add **forward-testing analytics** so the platform can answer questions like:
+  - which setup types generate the best live-tracked outcomes?
+  - which entry models are most robust?
+  - how often do trade ideas reach TP1, TP2, or stop first?
+  - how often are signals invalidated before entry?
+  - how does forward-tested outcome compare with historical backtest expectation?
+  - which instruments, sectors, or regimes respond best to the engine’s trade ideas?
+
+- Add a **portfolio / batch view** of live tracked trade ideas, including:
+  - active trade count
+  - net long/short bias
+  - total hypothetical risk exposure
+  - clustering by sector/industry/theme
+  - overlapping setup concentration
+  - strategy-source concentration
+  - calendar/event exposure overlap
+
+- Add user-control concepts around manual-following behavior, such as:
+  - mark trade as “taken” or “ignored”
+  - mark trade as “follow partially” or “watch only”
+  - compare platform-tracked trade plan against actual user execution later if desired
+  - allow the user to dismiss or pause certain signal sources
+
+- Later, optionally extend this into progressively more automated layers, such as:
+  - paper-trading execution simulation using the same trade plans
+  - semi-automated “confirm before send” broker actions
+  - eventually, full auto-execution for validated strategy subsets
+
+Research and modeling expectations:
+- Keep this initially focused on **signals plus virtual lifecycle tracking**, not true live broker automation.
+- Treat all fills and outcomes as model-based and explicitly assumption-dependent.
+- Ensure every tracked trade is transparent:
+  - where it came from
+  - why it exists
+  - what rules govern it
+  - how outcomes were computed
+
+Broader feature ideas explicitly worth keeping in scope for future exploration:
+- signal ranking by live forward-tested quality rather than only historical backtest quality
+- user-configurable trade templates per setup type
+- trade idea confidence intervals or quality bands
+- regime-aware trade-plan templates
+- sector / basket follower signals
+- options-specific trade-following later
+- multi-leg / scaling-in / scaling-out logic later
+- correlation-aware throttling of simultaneous ideas
+- event-aware pause logic around earnings or macro events
+- strategy-vs-radar blended signal sources
+- dashboard widgets for active trade ideas and tracked outcomes
+
+Why this was deferred:
+- It is a substantial subsystem in its own right and depends conceptually on the Technical Radar and Strategy Lab being better defined first.
+- It is the safest and most useful intermediate step before any future broker-linked automation.
+- It deserves a focused design and data-model pass rather than being smuggled in piecemeal under “alerts” or “paper trading.”
+
+### 8. Activate paid providers for options data and forward earnings estimates
 Status: `Planned`
 
 Context:
@@ -760,7 +978,7 @@ Why this was deferred:
 - The free provider stack covers the high-volume refresh use case well.
 - Options and forward estimates require a budget commitment; the user will decide when to activate.
 
-### 8. Expand provider chain seeding and scheduling for bulk universe refresh
+### 9. Expand provider chain seeding and scheduling for bulk universe refresh
 Status: `Planned`
 
 Context:
