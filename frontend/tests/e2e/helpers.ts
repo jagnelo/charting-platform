@@ -2,13 +2,69 @@
  * Shared Playwright helpers and fixtures.
  * Import these instead of @playwright/test directly.
  */
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, type Page, type TestInfo } from '@playwright/test'
 
 const USER  = process.env.TEST_USER ?? 'e2euser'
 const EMAIL = process.env.TEST_EMAIL ?? 'e2e@charting.test'
 const PASS  = process.env.TEST_PASS  ?? 'E2ePassword123!'
 
 export { expect }
+
+class BrowserDiagnostics {
+  consoleErrors: string[] = []
+  consoleWarnings: string[] = []
+  pageErrors: string[] = []
+  requestFailures: string[] = []
+
+  attach(page: Page) {
+    page.on('console', (msg) => {
+      const text = msg.text()
+      if (msg.type() === 'error') this.consoleErrors.push(text)
+      if (msg.type() === 'warning') this.consoleWarnings.push(text)
+    })
+    page.on('pageerror', (err) => {
+      this.pageErrors.push(err.message)
+    })
+    page.on('requestfailed', (req) => {
+      this.requestFailures.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText ?? 'failed'}`)
+    })
+  }
+
+  async record(testInfo: TestInfo) {
+    if (this.consoleWarnings.length) {
+      await testInfo.attach('browser-console-warnings.txt', {
+        body: this.consoleWarnings.join('\n'),
+        contentType: 'text/plain',
+      })
+    }
+    if (this.consoleErrors.length || this.pageErrors.length || this.requestFailures.length) {
+      const body = [
+        this.consoleErrors.length ? `Console errors:\n${this.consoleErrors.join('\n')}` : '',
+        this.pageErrors.length ? `Page errors:\n${this.pageErrors.join('\n')}` : '',
+        this.requestFailures.length ? `Request failures:\n${this.requestFailures.join('\n')}` : '',
+      ].filter(Boolean).join('\n\n')
+      await testInfo.attach('browser-critical-issues.txt', {
+        body,
+        contentType: 'text/plain',
+      })
+    }
+  }
+
+  expectNoCriticalIssues() {
+    expect(
+      {
+        consoleErrors: this.consoleErrors,
+        pageErrors: this.pageErrors,
+        requestFailures: this.requestFailures,
+      },
+      'unexpected browser console/page/request failures',
+    ).toEqual({
+      consoleErrors: [],
+      pageErrors: [],
+      requestFailures: [],
+    })
+  }
+}
 
 // ── Page object: LoginPage ────────────────────────────────────────────────────
 
@@ -117,10 +173,17 @@ type Fixtures = {
   chartPage:     ChartPage
   screenerPage:  ScreenerPage
   dashboardPage: DashboardPage
+  browserDiagnostics: BrowserDiagnostics
   loggedIn:      void
 }
 
 export const test = base.extend<Fixtures>({
+  browserDiagnostics: async ({ page }, use, testInfo) => {
+    const diagnostics = new BrowserDiagnostics()
+    diagnostics.attach(page)
+    await use(diagnostics)
+    await diagnostics.record(testInfo)
+  },
   loginPage:     async ({ page }, use) => use(new LoginPage(page)),
   chartPage:     async ({ page }, use) => use(new ChartPage(page)),
   screenerPage:  async ({ page }, use) => use(new ScreenerPage(page)),

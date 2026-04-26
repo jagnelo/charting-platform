@@ -11,7 +11,8 @@
 #   make test-unit       Backend unit tests only (no containers, ~5s)
 #   make test-int        Backend integration tests (testcontainers, ~30s)
 #   make test-fe         Frontend Vitest tests (~3s)
-#   make test-e2e        Playwright E2E (requires docker compose up -d)
+#   make test-e2e        Playwright E2E headless against a running full stack
+#   make test-platform   Full validation: tests + Docker stack + headless E2E
 #
 # Other:
 #   make migrate         Apply pending Alembic migrations
@@ -22,7 +23,8 @@
 
 .PHONY: \
   dev dev-install dev-infra dev-infra-stop dev-backend dev-worker dev-frontend \
-  test test-unit test-int test-backend test-fe test-e2e test-e2e-headed test-all \
+  test test-unit test-int test-backend test-fe test-e2e-install test-e2e test-e2e-headed \
+  test-stack-up test-stack-down test-platform test-all \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -120,18 +122,41 @@ test-fe:
 	@echo "▶  Frontend unit tests (Vitest)..."
 	cd frontend && npx vitest run --coverage
 
-test-e2e:
-	@echo "▶  E2E tests (Playwright — stack must be running on :80)..."
-	cd frontend && npx playwright test
+test-e2e-install:
+	@echo "▶  Ensuring Playwright Chromium is installed..."
+	cd frontend && npx playwright install chromium
 
-test-e2e-headed:
-	cd frontend && npx playwright test --headed
+test-e2e: test-e2e-install
+	@echo "▶  E2E tests (Playwright headless — stack must be running on :80)..."
+	cd frontend && STACK_URL=$${STACK_URL:-http://localhost} npx playwright test
+
+test-e2e-headed: test-e2e-install
+	@echo "▶  E2E tests (Playwright headed)..."
+	cd frontend && STACK_URL=$${STACK_URL:-http://localhost} npx playwright test --headed
+
+test-stack-up:
+	@echo "▶  Starting full application stack for browser validation..."
+	docker compose up -d --wait
+	@echo "▶  Applying migrations to the running stack..."
+	$(MAKE) migrate
+
+test-stack-down:
+	@echo "▶  Stopping full application stack..."
+	docker compose down
 
 test: test-unit test-int test-fe
 	@echo ""
 	@echo "✅  All tests passed. Run 'make test-e2e' for E2E browser tests."
 
-test-all: test test-e2e
+test-platform:
+	@echo "▶  Full platform validation (backend + frontend + headless E2E)..."
+	@set -e; \
+	trap '$(MAKE) test-stack-down' EXIT; \
+	$(MAKE) test; \
+	$(MAKE) test-stack-up; \
+	$(MAKE) test-e2e
+
+test-all: test-platform
 
 # ── Linting & formatting ───────────────────────────────────────────────────────
 

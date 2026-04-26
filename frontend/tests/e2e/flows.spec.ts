@@ -11,12 +11,13 @@ import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage } from 
 
 test.describe('Authentication', () => {
 
-  test('F1 — unauthenticated user is redirected to login', async ({ page }) => {
+  test('F1 — unauthenticated user is redirected to login', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page).toHaveURL(/\/login/)
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F2 — register new account and land on chart', async ({ page }) => {
+  test('F2 — register new account and land on chart', async ({ page, browserDiagnostics }) => {
     const lp = new LoginPage(page)
     await lp.goto()
     await lp.switchToRegister()
@@ -28,11 +29,13 @@ test.describe('Authentication', () => {
     await lp.clickSignIn()
 
     await expect(page).toHaveURL(/\/chart/, { timeout: 10_000 })
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F3 — login with valid credentials', async ({ page, loggedIn }) => {
+  test('F3 — login with valid credentials', async ({ page, loggedIn, browserDiagnostics }) => {
     await expect(page).toHaveURL(/\/chart/)
     await expect(page.locator('.user-chip, .sidebar-logo')).toBeVisible()
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
   test('F4 — login with wrong password shows error', async ({ page }) => {
@@ -46,9 +49,10 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('F5 — logout redirects to login', async ({ page, loggedIn }) => {
+  test('F5 — logout redirects to login', async ({ page, loggedIn, browserDiagnostics }) => {
     await page.click('.logout-btn, button[title*="Sign out"]')
     await expect(page).toHaveURL(/\/login/, { timeout: 5_000 })
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })
@@ -60,13 +64,14 @@ test.describe('Chart', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
-  test('F6 — chart page loads with default state', async ({ page }) => {
+  test('F6 — chart page loads with default state', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.uplot-wrapper, .chart-container, canvas')).toBeVisible()
     await expect(page.locator('.timeframe-selector, button:has-text("D1")')).toBeVisible()
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F7 — search for symbol and chart loads', async ({ page }) => {
+  test('F7 — search for symbol and chart loads', async ({ page, browserDiagnostics }) => {
     const cp = new ChartPage(page)
     await cp.goto()
 
@@ -81,9 +86,10 @@ test.describe('Chart', () => {
       await results.first().click()
       await expect(page).toHaveURL(/\/chart\/AAPL/, { timeout: 8_000 })
     }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8 — timeframe selector switches timeframe', async ({ page }) => {
+  test('F8 — timeframe selector switches timeframe', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     // Click H1
     const h1btn = page.locator('button:has-text("H1"), .tf-btn:has-text("H1")')
@@ -92,15 +98,30 @@ test.describe('Chart', () => {
       // Verify active state
       await expect(h1btn.first()).toHaveClass(/active|selected/)
     }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F9 — drawing toolbar is visible and tools are clickable', async ({ page }) => {
+  test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     // Drawing toolbar should exist
     const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
     if (await toolbar.count() > 0) {
       await expect(toolbar.first()).toBeVisible()
     }
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9b — expression search resolves and stays interactive', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await page.fill('input[placeholder*="Search"], .search-input', '=SPY-QQQ')
+    await page.waitForTimeout(150)
+
+    const exprRow = page.locator('.result-item--expr')
+    if (await exprRow.count() > 0) {
+      await exprRow.first().click()
+      await expect(page.locator('.uplot-wrapper, .chart-container, canvas')).toBeVisible()
+    }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })
@@ -112,17 +133,19 @@ test.describe('Alerts', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
-  test('F10 — alerts page shows empty state for new user', async ({ page }) => {
+  test('F10 — alerts page shows empty state for new user', async ({ page, browserDiagnostics }) => {
     await page.goto('/alerts')
     await expect(page).not.toHaveURL(/\/login/)
     // Should not crash
     await expect(page.locator('body')).toBeVisible()
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F11 — navigate to alerts page from sidebar', async ({ page }) => {
+  test('F11 — navigate to alerts page from sidebar', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await page.click('a[href="/alerts"], .nav-link[title*="Alert"]')
     await expect(page).toHaveURL(/\/alerts/)
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })
@@ -134,7 +157,7 @@ test.describe('Screener', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
-  test('F12 — create screener and run it', async ({ page }) => {
+  test('F12 — create screener and run it', async ({ page, browserDiagnostics }) => {
     const sp = new ScreenerPage(page)
     await sp.goto()
 
@@ -155,6 +178,7 @@ test.describe('Screener', () => {
       // Should show result stats
       await expect(page.locator('.result-stats, .stat-val')).toBeVisible({ timeout: 15_000 })
     }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })
@@ -166,7 +190,7 @@ test.describe('Drawing tools', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
-  test('F13 — drawing toolbar shows expected tools', async ({ page }) => {
+  test('F13 — drawing toolbar shows expected tools', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await page.waitForLoadState('networkidle')
 
@@ -181,9 +205,10 @@ test.describe('Drawing tools', () => {
     if (await trendBtn.count() > 0) await expect(trendBtn.first()).toBeVisible()
     if (await horizBtn.count() > 0) await expect(horizBtn.first()).toBeVisible()
     if (await freeBtn.count()  > 0) await expect(freeBtn.first()).toBeVisible()
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F14 — selecting a drawing tool activates it', async ({ page }) => {
+  test('F14 — selecting a drawing tool activates it', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await page.waitForLoadState('networkidle')
 
@@ -201,6 +226,7 @@ test.describe('Drawing tools', () => {
       )
       expect(isActive).toBe(true)
     }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })
@@ -212,15 +238,16 @@ test.describe('Dashboard', () => {
 
   test.beforeEach(async ({ loggedIn }) => {})
 
-  test('F15 — dashboard page loads without errors', async ({ page }) => {
+  test('F15 — dashboard page loads without errors', async ({ page, browserDiagnostics }) => {
     await page.goto('/dashboard')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.locator('body')).toBeVisible()
     // No JS error overlay
     await expect(page.locator('.error-overlay, .fatal-error')).toHaveCount(0)
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F16 — add a notes widget to the dashboard', async ({ page }) => {
+  test('F16 — add a notes widget to the dashboard', async ({ page, browserDiagnostics }) => {
     const dp = new DashboardPage(page)
     await dp.goto()
 
@@ -241,6 +268,17 @@ test.describe('Dashboard', () => {
         expect(await widgets.count()).toBeGreaterThan(0)
       }
     }
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F17 — options exposure tab loads on chart without browser errors', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/NVDA')
+    const exposureTab = page.locator('button:has-text("Exposure")')
+    if (await exposureTab.count() > 0) {
+      await exposureTab.first().click()
+      await expect(page.locator('.exposure-panel')).toBeVisible()
+    }
+    browserDiagnostics.expectNoCriticalIssues()
   })
 
 })

@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -154,3 +155,71 @@ def screener(db, user):
     db.add(instance)
     db.flush()
     return instance
+
+
+class AsyncSessionAdapter:
+    """Async facade around the sync sqlite session used by unit router tests."""
+
+    def __init__(self, session: Session):
+        self._session = session
+
+    async def execute(self, *args, **kwargs):
+        return self._session.execute(*args, **kwargs)
+
+    async def get(self, *args, **kwargs):
+        return self._session.get(*args, **kwargs)
+
+    async def commit(self):
+        self._session.commit()
+
+    async def rollback(self):
+        self._session.rollback()
+
+    async def flush(self, *args, **kwargs):
+        self._session.flush(*args, **kwargs)
+
+    async def refresh(self, *args, **kwargs):
+        self._session.refresh(*args, **kwargs)
+
+    async def delete(self, *args, **kwargs):
+        self._session.delete(*args, **kwargs)
+
+    def add(self, *args, **kwargs):
+        return self._session.add(*args, **kwargs)
+
+    def add_all(self, *args, **kwargs):
+        return self._session.add_all(*args, **kwargs)
+
+    def __getattr__(self, item):
+        return getattr(self._session, item)
+
+
+@pytest.fixture()
+def app(db, monkeypatch):
+    from app.config import settings
+    from app.database import get_db
+    from app.main import app as _app
+
+    monkeypatch.setattr(settings, "REDIS_URL", "redis://localhost:6379/0")
+
+    async_db = AsyncSessionAdapter(db)
+
+    def _override():
+        yield async_db
+
+    _app.dependency_overrides[get_db] = _override
+    yield _app
+    _app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def client(app) -> TestClient:
+    return TestClient(app, raise_server_exceptions=True)
+
+
+@pytest.fixture()
+def auth_headers(user):
+    from app.services.auth import create_access_token
+
+    token = create_access_token(user.id, user.username)
+    return {"Authorization": f"Bearer {token}"}
