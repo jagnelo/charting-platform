@@ -12,7 +12,12 @@ from app.auth.dependencies import get_current_user
 from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
-from app.models.provider_observation import InstrumentDatasetState, InstrumentProfileSnapshot
+from app.models.provider_observation import (
+    InstrumentDatasetState,
+    InstrumentIdentifierSnapshot,
+    InstrumentProfileSnapshot,
+    LatestPriceSnapshot,
+)
 from app.models.instrument_stats import InstrumentStats
 from app.models.provider_runtime import ProviderCapability
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -824,6 +829,22 @@ async def get_instrument_provenance(
             .order_by(InstrumentDatasetState.updated_at.desc())
         )
     ).scalars().all()
+    identifier_snapshots = (
+        await db.execute(
+            select(InstrumentIdentifierSnapshot)
+            .where(InstrumentIdentifierSnapshot.instrument_id == instrument.id)
+            .order_by(InstrumentIdentifierSnapshot.observed_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
+    latest_price_snapshots = (
+        await db.execute(
+            select(LatestPriceSnapshot)
+            .where(LatestPriceSnapshot.instrument_id == instrument.id)
+            .order_by(LatestPriceSnapshot.observed_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
 
     return {
         "instrument_id": instrument.id,
@@ -861,6 +882,26 @@ async def get_instrument_provenance(
                 "payload": row.payload,
             }
             for row in snapshots
+        ],
+        "identifier_snapshots": [
+            {
+                "provider_symbol": row.provider_symbol,
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
+                "snapshot_hash": row.snapshot_hash,
+                "payload": row.payload,
+            }
+            for row in identifier_snapshots
+        ],
+        "latest_price_snapshots": [
+            {
+                "provider_symbol": row.provider_symbol,
+                "observed_at": row.observed_at,
+                "fetched_at": row.fetched_at,
+                "price": float(row.price),
+                "payload": row.payload,
+            }
+            for row in latest_price_snapshots
         ],
         "dataset_states": [
             {

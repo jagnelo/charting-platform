@@ -10,6 +10,12 @@ from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.models.user import User
+from app.services.provider_maintenance import (
+    list_stale_dataset_states,
+    prune_provider_observations,
+    reset_provider_health_state,
+    summarize_provider_observations,
+)
 from app.services.provider_runtime import list_provider_status, seed_provider_runtime
 
 router = APIRouter(prefix="/providers", tags=["providers"])
@@ -83,6 +89,23 @@ async def get_provider_health(
     ]
 
 
+@router.get("/observations/summary")
+async def get_provider_observation_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await summarize_provider_observations(db)
+
+
+@router.get("/datasets/stale")
+async def get_stale_provider_datasets(
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await list_stale_dataset_states(db, limit=limit)
+
+
 @router.patch("/policies/{provider_name}/{capability}")
 async def update_provider_policy(
     provider_name: str,
@@ -117,4 +140,34 @@ async def update_provider_policy(
     for field_name, value in body.model_dump(exclude_unset=True).items():
         setattr(policy, field_name, value)
     await db.flush()
+    return {"ok": True}
+
+
+@router.post("/maintenance/prune")
+async def run_provider_observation_prune(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    deleted = await prune_provider_observations(db)
+    return {"ok": True, "deleted": deleted}
+
+
+@router.post("/health/{provider_name}/{capability}/reset")
+async def reset_provider_health(
+    provider_name: str,
+    capability: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        capability_enum = ProviderCapability(capability)
+    except ValueError as exc:
+        raise HTTPException(400, f"Unknown provider capability '{capability}'") from exc
+    reset = await reset_provider_health_state(
+        db,
+        provider_name=provider_name,
+        capability=capability_enum,
+    )
+    if not reset:
+        raise HTTPException(404, f"No health state found for '{provider_name}' / '{capability}'")
     return {"ok": True}

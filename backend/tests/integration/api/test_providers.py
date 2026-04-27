@@ -3,6 +3,8 @@ class TestProvidersAuth:
         assert client.get("/api/v1/providers").status_code == 401
         assert client.get("/api/v1/providers/policies").status_code == 401
         assert client.get("/api/v1/providers/health").status_code == 401
+        assert client.get("/api/v1/providers/observations/summary").status_code == 401
+        assert client.get("/api/v1/providers/datasets/stale").status_code == 401
 
 
 class TestProvidersApi:
@@ -19,10 +21,16 @@ class TestProvidersApi:
     def test_policies_and_health_return_rows(self, client, auth_headers):
         policies = client.get("/api/v1/providers/policies", headers=auth_headers)
         health = client.get("/api/v1/providers/health", headers=auth_headers)
+        observations = client.get("/api/v1/providers/observations/summary", headers=auth_headers)
+        stale = client.get("/api/v1/providers/datasets/stale", headers=auth_headers)
         assert policies.status_code == 200
         assert health.status_code == 200
+        assert observations.status_code == 200
+        assert stale.status_code == 200
         assert isinstance(policies.json(), list)
         assert isinstance(health.json(), list)
+        assert isinstance(observations.json(), list)
+        assert isinstance(stale.json(), list)
         assert policies.json()
         assert health.json()
 
@@ -63,3 +71,9 @@ class TestProvidersApi:
         assert updated["base_priority"] == new_priority
         assert updated["auto_weight_enabled"] is False
 
+    def test_reset_unknown_provider_health_rejected(self, client, auth_headers):
+        res = client.post(
+            "/api/v1/providers/health/nope/price_history/reset",
+            headers=auth_headers,
+        )
+        assert res.status_code == 404
