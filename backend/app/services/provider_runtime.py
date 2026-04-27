@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 _ALPHA = Decimal("0.2")
-_token_buckets: dict[tuple[str, str], TokenBucket] = {}
-_semaphores: dict[tuple[str, str], asyncio.Semaphore] = {}
+_token_buckets: dict[tuple[str, str], tuple[tuple[int, int], TokenBucket]] = {}
+_semaphores: dict[tuple[str, str], tuple[int, asyncio.Semaphore]] = {}
 
 
 @dataclass(slots=True)
@@ -137,19 +137,24 @@ def _bucket_key(provider_name: str, capability: ProviderCapability) -> tuple[str
 
 def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
     key = _bucket_key(provider_name, policy.capability)
-    bucket = _token_buckets.get(key)
-    if bucket is None:
+    config = (policy.tokens_per_minute, policy.burst_capacity)
+    cached = _token_buckets.get(key)
+    if cached is None or cached[0] != config:
         bucket = TokenBucket(policy.tokens_per_minute, policy.burst_capacity)
-        _token_buckets[key] = bucket
+        _token_buckets[key] = (config, bucket)
+        return bucket
+    bucket = cached[1]
     return bucket
 
 
 def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaphore:
     key = _bucket_key(provider_name, policy.capability)
-    sem = _semaphores.get(key)
-    if sem is None:
+    cached = _semaphores.get(key)
+    if cached is None or cached[0] != max(1, policy.max_concurrency):
         sem = asyncio.Semaphore(max(1, policy.max_concurrency))
-        _semaphores[key] = sem
+        _semaphores[key] = (max(1, policy.max_concurrency), sem)
+        return sem
+    sem = cached[1]
     return sem
 
 
@@ -158,10 +163,19 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
     for provider_name in supported_provider_names():
         await ensure_data_source(db, provider_name)
 
-    for capability, providers in ordered.items():
+    capability_providers: dict[ProviderCapability, list[str]] = {capability: [] for capability in ProviderCapability}
+    for provider_name in supported_provider_names():
+        provider_capabilities = set(list_provider_capabilities(provider_name))
+        for capability in ProviderCapability:
+            if capability.value in provider_capabilities:
+                capability_providers[capability].append(provider_name)
+
+    for capability, supported_providers in capability_providers.items():
+        preferred_order = ordered.get(capability, [])
+        providers = preferred_order + [
+            provider_name for provider_name in supported_providers if provider_name not in preferred_order
+        ]
         for provider_name in providers:
-            if capability.value not in list_provider_capabilities(provider_name):
-                continue
             data_source = await ensure_data_source(db, provider_name)
             policy = (
                 await db.execute(

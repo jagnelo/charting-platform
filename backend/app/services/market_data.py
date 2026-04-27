@@ -19,13 +19,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
-from app.models.provider_observation import DatasetStatus, InstrumentDatasetState, MarketBarObservation
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    InstrumentProfileSnapshot,
+    InstrumentSearchSnapshot,
+    LatestPriceSnapshot,
+    MarketBarObservation,
+)
 from app.models.provider_runtime import ProviderCapability
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.providers import (
     ensure_data_source,
-    get_quote_provider,
     provider_symbol_for_instrument,
+)
+from app.providers.base import InstrumentProfile
+from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
+from app.services.provider_observations import (
+    store_latest_price_snapshot,
+    store_search_snapshot,
 )
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -58,6 +70,108 @@ def resolve_provider_symbol_for_instrument(instrument: Instrument) -> str:
         settings.DEFAULT_MARKET_DATA_PROVIDER
     ]
     return provider_symbol_for_instrument(instrument, provider_names[0])
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+async def _fresh_latest_price_from_cache(
+    db: AsyncSession,
+    instrument: Instrument,
+) -> float | None:
+    now = datetime.now(UTC)
+    for resolved in await resolve_provider_chain(db, ProviderCapability.LATEST_PRICE):
+        snapshot = (
+            await db.execute(
+                select(LatestPriceSnapshot)
+                .where(
+                    LatestPriceSnapshot.instrument_id == instrument.id,
+                    LatestPriceSnapshot.data_source_id == resolved.data_source.id,
+                    LatestPriceSnapshot.observed_at >= now - timedelta(seconds=resolved.policy.freshness_seconds),
+                )
+                .order_by(LatestPriceSnapshot.observed_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is not None:
+            return float(snapshot.price)
+    return None
+
+
+def _search_results_from_payload(payload: dict) -> list[dict]:
+    return [
+        {
+            "symbol": result.get("symbol", ""),
+            "name": result.get("name", ""),
+            "exchange": result.get("exchange", ""),
+            "type": result.get("instrument_type", ""),
+        }
+        for result in payload.get("results", [])
+    ]
+
+
+async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] | None:
+    now = datetime.now(UTC)
+    for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_SEARCH):
+        snapshot = (
+            await db.execute(
+                select(InstrumentSearchSnapshot)
+                .where(
+                    InstrumentSearchSnapshot.data_source_id == resolved.data_source.id,
+                    InstrumentSearchSnapshot.query == query,
+                    InstrumentSearchSnapshot.observed_at
+                    >= now - timedelta(seconds=resolved.policy.freshness_seconds),
+                )
+                .order_by(InstrumentSearchSnapshot.observed_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is not None:
+            return _search_results_from_payload(snapshot.payload)
+    return None
+
+
+async def _fresh_profile_from_cache(
+    db: AsyncSession,
+    *,
+    instrument_id: int | None = None,
+    provider_symbol: str | None = None,
+) -> InstrumentProfile | None:
+    instrument = None
+    if instrument_id is not None:
+        instrument = await db.get(Instrument, instrument_id)
+    elif provider_symbol:
+        instrument = (
+            await db.execute(
+                select(Instrument).where(
+                    Instrument.symbol == provider_symbol,
+                    Instrument.is_synthetic.is_(False),
+                )
+            )
+        ).scalar_one_or_none()
+    if instrument is None:
+        return None
+
+    now = datetime.now(UTC)
+    provider_ids = {
+        resolved.data_source.id: resolved.policy.freshness_seconds
+        for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
+    }
+    snapshots = (
+        await db.execute(
+            select(InstrumentProfileSnapshot)
+            .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+            .order_by(InstrumentProfileSnapshot.observed_at.desc())
+        )
+    ).scalars().all()
+    for snapshot in snapshots:
+        freshness = provider_ids.get(snapshot.data_source_id)
+        if freshness is None:
+            continue
+        if _as_utc(snapshot.observed_at) >= now - timedelta(seconds=freshness):
+            return await reconcile_instrument_profile(db, instrument)
+    return None
 
 
 async def _record_bar_observations(
@@ -144,6 +258,57 @@ async def _touch_ohlcv_dataset_state(
         state.coverage_start = min(bar.ts for bar in bars)
         state.coverage_end = max(bar.ts for bar in bars)
         state.extra_data = {"bar_count": len(bars), "adjusted": adjusted}
+
+
+async def persist_price_history_bars(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    data_source_id: int,
+    provider_symbol: str | None,
+    timeframe: Timeframe,
+    adjusted: bool,
+    bars: list[OHLCVBar],
+    observed_at: datetime | None = None,
+    use_upsert: bool = True,
+) -> None:
+    if not bars:
+        return
+    await _record_bar_observations(
+        db,
+        bars,
+        data_source_id=data_source_id,
+        provider_symbol=provider_symbol,
+        observed_at=observed_at,
+    )
+    insert_stmt = pg_insert(OHLCVBar)
+    if use_upsert:
+        insert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+            set_={
+                "open": insert_stmt.excluded.open,
+                "high": insert_stmt.excluded.high,
+                "low": insert_stmt.excluded.low,
+                "close": insert_stmt.excluded.close,
+                "volume": insert_stmt.excluded.volume,
+                "vwap": insert_stmt.excluded.vwap,
+                "data_source_id": insert_stmt.excluded.data_source_id,
+            },
+        )
+    else:
+        insert_stmt = insert_stmt.on_conflict_do_nothing(
+            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+        )
+    await db.execute(insert_stmt, [_bar_as_dict(bar) for bar in bars])
+    await _touch_ohlcv_dataset_state(
+        db,
+        instrument,
+        data_source_id=data_source_id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        bars=bars,
+        fetched_at=observed_at,
+    )
 
 
 async def recompute_synthetic_ohlcv(
@@ -736,6 +901,9 @@ async def get_current_price_async(
     db: AsyncSession,
     instrument: Instrument,
 ) -> float | None:
+    cached = await _fresh_latest_price_from_cache(db, instrument)
+    if cached is not None:
+        return cached
     execution = await execute_provider_call(
         db,
         ProviderCapability.LATEST_PRICE,
@@ -747,18 +915,25 @@ async def get_current_price_async(
         response_items=lambda result: 1 if result is not None else 0,
         treat_empty_as_failure=True,
     )
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+    await store_latest_price_snapshot(
+        db,
+        instrument_id=instrument.id,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol,
+        price=execution.result,
+    )
     return execution.result
 
 
 def get_current_price(provider_symbol: str) -> float | None:
-    provider_names = settings.PROVIDER_CHAIN_SEEDS.get("latest_price") or [
-        settings.DEFAULT_MARKET_DATA_PROVIDER
-    ]
-    provider = get_quote_provider(provider_names[0])
-    return provider.get_current_price(provider_symbol)
+    raise RuntimeError("get_current_price() is no longer used; use get_current_price_async()")
 
 
 async def search_provider_instruments_async(db: AsyncSession, query: str) -> list[dict]:
+    cached = await _fresh_search_from_cache(db, query)
+    if cached is not None:
+        return cached
     try:
         execution = await execute_provider_call(
             db,
@@ -770,15 +945,25 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
         )
     except Exception:
         return []
-    return [
+    await store_search_snapshot(
+        db,
+        data_source_id=execution.data_source.id,
+        query=query,
+        results=execution.result,
+    )
+    return _search_results_from_payload(
         {
-            "symbol": result.symbol,
-            "name": result.name,
-            "exchange": result.exchange,
-            "type": result.instrument_type,
+            "results": [
+                {
+                    "symbol": result.symbol,
+                    "name": result.name,
+                    "exchange": result.exchange,
+                    "instrument_type": result.instrument_type,
+                }
+                for result in execution.result
+            ]
         }
-        for result in execution.result
-    ]
+    )
 
 
 def search_provider_instruments(query: str) -> list[dict]:
@@ -791,6 +976,13 @@ async def get_provider_profile_async(
     *,
     instrument_id: int | None = None,
 ):
+    cached = await _fresh_profile_from_cache(
+        db,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+    )
+    if cached is not None:
+        return cached
     try:
         execution = await execute_provider_call(
             db,
@@ -804,6 +996,10 @@ async def get_provider_profile_async(
         )
     except Exception:
         return None
+    instrument = None
+    if instrument_id is not None:
+        instrument = await db.get(Instrument, instrument_id)
+    await ingest_provider_profile(db, execution.result, instrument=instrument)
     return execution.result
 
 

@@ -91,6 +91,41 @@ class InstrumentProfileSnapshot(Base, TimestampMixin):
     )
 
 
+class InstrumentIdentifierSnapshot(Base, TimestampMixin):
+    __tablename__ = "instrument_identifier_snapshot"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    instrument: Mapped["Instrument"] = relationship()
+    data_source: Mapped["DataSource"] = relationship(back_populates="identifier_snapshots")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "instrument_id",
+            "data_source_id",
+            "snapshot_hash",
+            name="uq_instrument_identifier_snapshot_hash",
+        ),
+        Index(
+            "ix_instrument_identifier_snapshot_inst_source_observed",
+            "instrument_id",
+            "data_source_id",
+            "observed_at",
+        ),
+    )
+
+
 class MarketBarObservation(Base):
     __tablename__ = "market_bar_observation"
 
@@ -124,6 +159,35 @@ class MarketBarObservation(Base):
             "ts",
             "is_adjusted",
             name="uq_market_bar_observation",
+        ),
+    )
+
+
+class LatestPriceSnapshot(Base, TimestampMixin):
+    __tablename__ = "latest_price_snapshot"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+    instrument: Mapped["Instrument"] = relationship()
+    data_source: Mapped["DataSource"] = relationship(back_populates="latest_price_snapshots")
+
+    __table_args__ = (
+        Index(
+            "ix_latest_price_snapshot_inst_source_observed",
+            "instrument_id",
+            "data_source_id",
+            "observed_at",
         ),
     )
 
@@ -213,6 +277,71 @@ class OptionQuotePoint(Base, TimestampMixin):
         Index(
             "ix_option_quote_point_option_observed",
             "option_instrument_id",
+            "observed_at",
+        ),
+    )
+
+
+class InstrumentSearchSnapshot(Base, TimestampMixin):
+    __tablename__ = "instrument_search_snapshot"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    query: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    result_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    data_source: Mapped["DataSource"] = relationship(back_populates="search_snapshots")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id",
+            "query",
+            "result_hash",
+            name="uq_instrument_search_snapshot_hash",
+        ),
+        Index(
+            "ix_instrument_search_snapshot_source_query_observed",
+            "data_source_id",
+            "query",
+            "observed_at",
+        ),
+    )
+
+
+class UniverseDiscoverySnapshot(Base, TimestampMixin):
+    __tablename__ = "universe_discovery_snapshot"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    quote_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    offset: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    data_source: Mapped["DataSource"] = relationship(back_populates="discovery_snapshots")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id",
+            "quote_type",
+            "offset",
+            "snapshot_hash",
+            name="uq_universe_discovery_snapshot_hash",
+        ),
+        Index(
+            "ix_universe_discovery_snapshot_source_type_offset_observed",
+            "data_source_id",
+            "quote_type",
+            "offset",
             "observed_at",
         ),
     )

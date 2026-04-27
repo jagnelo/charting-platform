@@ -41,13 +41,25 @@ class DataSource(Base, TimestampMixin):
     profile_snapshots: Mapped[list["InstrumentProfileSnapshot"]] = relationship(
         back_populates="data_source"
     )
+    identifier_snapshots: Mapped[list["InstrumentIdentifierSnapshot"]] = relationship(
+        back_populates="data_source"
+    )
     bar_observations: Mapped[list["MarketBarObservation"]] = relationship(
+        back_populates="data_source"
+    )
+    latest_price_snapshots: Mapped[list["LatestPriceSnapshot"]] = relationship(
         back_populates="data_source"
     )
     option_chain_snapshots: Mapped[list["OptionChainSnapshot"]] = relationship(
         back_populates="data_source"
     )
     option_quote_points: Mapped[list["OptionQuotePoint"]] = relationship(
+        back_populates="data_source"
+    )
+    search_snapshots: Mapped[list["InstrumentSearchSnapshot"]] = relationship(
+        back_populates="data_source"
+    )
+    discovery_snapshots: Mapped[list["UniverseDiscoverySnapshot"]] = relationship(
         back_populates="data_source"
     )
 

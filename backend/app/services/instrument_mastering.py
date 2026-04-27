@@ -21,7 +21,8 @@ from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
-from app.services.provider_runtime import resolve_provider_chain
+from app.services.provider_observations import store_identifier_snapshot
+from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
 TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
@@ -537,28 +538,51 @@ async def ensure_external_identifier(
     if has_external_identifier(instrument):
         return False
 
-    identifier_added = False
-    for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_IDENTIFIERS):
-        provider = resolved.provider
-        symbol = instrument.symbol
+    def _symbol_for_provider(provider_name: str) -> str:
         if "provider_symbols" in instrument.__dict__ or "listings" in instrument.__dict__:
-            symbol = provider_symbol_for_instrument(instrument, provider.name)
-        identifiers = provider.fetch_stable_identifiers(symbol)
-        if not identifiers:
-            continue
-        for identifier in identifiers:
-            await register_identifier(db, instrument, provider.name, identifier)
-            identifier_added = True
-        if has_external_identifier(instrument):
-            _mark_field_provenance(
-                instrument,
-                "primary_identifier_value",
-                source=provider.name,
-                fetched_at=_now_utc(),
-                provider_symbol=symbol,
-                note=instrument.primary_identifier_type,
-            )
-            break
+            return provider_symbol_for_instrument(instrument, provider_name)
+        return instrument.symbol
+
+    try:
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.INSTRUMENT_IDENTIFIERS,
+            "fetch_stable_identifiers",
+            instrument_id=instrument.id,
+            provider_symbol=instrument.symbol,
+            invoke=lambda provider, _ignored_provider_symbol: provider.fetch_stable_identifiers(
+                _symbol_for_provider(provider.name)
+            ),
+            response_items=lambda result: len(result),
+            treat_empty_as_failure=False,
+        )
+    except Exception:
+        return False
+
+    identifiers = execution.result
+    if not identifiers:
+        return False
+    provider_symbol = _symbol_for_provider(execution.provider_name)
+    await store_identifier_snapshot(
+        db,
+        instrument_id=instrument.id,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol,
+        identifiers=identifiers,
+    )
+    identifier_added = False
+    for identifier in identifiers:
+        await register_identifier(db, instrument, execution.provider_name, identifier)
+        identifier_added = True
+    if has_external_identifier(instrument):
+        _mark_field_provenance(
+            instrument,
+            "primary_identifier_value",
+            source=execution.provider_name,
+            fetched_at=_now_utc(),
+            provider_symbol=provider_symbol,
+            note=instrument.primary_identifier_type,
+        )
     return identifier_added
 
 

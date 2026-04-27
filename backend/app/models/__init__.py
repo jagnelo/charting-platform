@@ -21,11 +21,15 @@ from app.models.instrument_identity import (
 )
 from app.models.provider_observation import (
     DatasetStatus,
+    InstrumentIdentifierSnapshot,
     InstrumentDatasetState,
+    InstrumentSearchSnapshot,
     InstrumentProfileSnapshot,
+    LatestPriceSnapshot,
     MarketBarObservation,
     OptionChainSnapshot,
     OptionQuotePoint,
+    UniverseDiscoverySnapshot,
 )
 from app.models.provider_runtime import (
     ProviderCapability,
@@ -62,10 +66,14 @@ __all__ = [
     "ProviderRequestLog",
     "DatasetStatus",
     "InstrumentDatasetState",
+    "InstrumentIdentifierSnapshot",
+    "InstrumentSearchSnapshot",
     "InstrumentProfileSnapshot",
+    "LatestPriceSnapshot",
     "MarketBarObservation",
     "OptionChainSnapshot",
     "OptionQuotePoint",
+    "UniverseDiscoverySnapshot",
     "InstrumentEvent",
     "InstrumentEventFetchState",
     "InstrumentEventType",

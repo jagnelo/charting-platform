@@ -32,7 +32,6 @@ from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
     ensure_external_identifier,
     has_external_identifier,
-    ingest_provider_profile,
 )
 from app.services.market_data import (
     fetch_ohlcv_latest,
@@ -1000,7 +999,6 @@ async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession)
     profile = await get_provider_profile_async(db, instrument.symbol, instrument_id=instrument.id)
     if profile is None:
         return instrument
-    await ingest_provider_profile(db, profile, instrument=instrument)
     await db.flush()
     return await _reload_instrument_full(instrument.id, db)
 
@@ -1090,6 +1088,14 @@ async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | N
     profile = await get_provider_profile_async(db, symbol)
     if profile is None:
         return None
-    instrument = await ingest_provider_profile(db, profile)
+    instrument = (
+        await db.execute(select(Instrument).where(Instrument.symbol == profile.canonical_symbol))
+    ).scalar_one_or_none()
+    if instrument is None:
+        instrument = (
+            await db.execute(select(Instrument).where(Instrument.symbol == symbol))
+        ).scalar_one_or_none()
+    if instrument is None:
+        return None
     await db.commit()
     return await _reload_instrument_full(instrument.id, db)

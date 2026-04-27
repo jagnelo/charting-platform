@@ -23,7 +23,6 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import UTC, datetime, timedelta
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +31,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.services.market_data import persist_price_history_bars
 from app.services.provider_runtime import execute_provider_call
 
 _FALLBACK_RFR = 0.05
@@ -160,6 +160,20 @@ async def _fetch_from_provider(db: AsyncSession, instrument: Instrument) -> floa
         bars = execution.result
         if not bars:
             return None
+        for bar in bars:
+            bar.instrument_id = instrument.id
+            bar.data_source_id = execution.data_source.id
+        await persist_price_history_bars(
+            db,
+            instrument,
+            data_source_id=execution.data_source.id,
+            provider_symbol=provider_symbol_for_instrument(instrument, execution.provider_name),
+            timeframe=Timeframe.D1,
+            adjusted=True,
+            bars=bars,
+            observed_at=max((bar.ts for bar in bars), default=end),
+            use_upsert=True,
+        )
         most_recent = max(bars, key=lambda b: b.ts)
         return _close_to_rate(float(most_recent.close))
     except Exception:

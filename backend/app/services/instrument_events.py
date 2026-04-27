@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import inspect, select, text
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,39 +22,11 @@ from app.services.provider_runtime import execute_provider_call
 logger = logging.getLogger(__name__)
 
 EVENT_FETCH_VERSION = 2
-_fetch_state_schema_checked = False
-
-
-async def _ensure_fetch_state_schema(db: AsyncSession) -> None:
-    global _fetch_state_schema_checked
-    if _fetch_state_schema_checked:
-        return
-
-    conn = await db.connection()
-
-    def _needs_fetch_version(sync_conn) -> bool:
-        inspector = inspect(sync_conn)
-        if "instrument_event_fetch_state" not in inspector.get_table_names():
-            return False
-        columns = {column["name"] for column in inspector.get_columns("instrument_event_fetch_state")}
-        return "fetch_version" not in columns
-
-    if await conn.run_sync(_needs_fetch_version):
-        await db.execute(
-            text(
-                "ALTER TABLE instrument_event_fetch_state "
-                "ADD COLUMN IF NOT EXISTS fetch_version INTEGER NOT NULL DEFAULT 1"
-            )
-        )
-        await db.flush()
-
-    _fetch_state_schema_checked = True
 
 
 async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
     if instrument.is_synthetic:
         return 0
-    await _ensure_fetch_state_schema(db)
     execution = await execute_provider_call(
         db,
         ProviderCapability.INSTRUMENT_EVENTS,
@@ -185,7 +157,6 @@ async def ensure_instrument_events_loaded(
 ) -> None:
     if instrument.is_synthetic:
         return
-    await _ensure_fetch_state_schema(db)
     await ensure_external_identifier(db, instrument)
 
     fresh_dataset = (
