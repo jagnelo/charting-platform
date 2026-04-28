@@ -50,6 +50,7 @@
                 />
                 <button class="wls-rename-btn confirm" @click.stop="commitSidebarRename(wl.id)">✓</button>
                 <button class="wls-rename-btn"         @click.stop="cancelSidebarRename">✕</button>
+                <div v-if="sidebarRenameError" class="wls-rename-error">{{ sidebarRenameError }}</div>
               </template>
               <template v-else>
                 <span class="wls-drag-handle" @click.stop>⠿</span>
@@ -245,6 +246,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocClick))
 // ── Sidebar rename ──────────────────────────────────────────────────────────
 const sidebarRenamingId   = ref<number | null>(null)
 const sidebarRenameValue  = ref('')
+const sidebarRenameError  = ref('')
 const sidebarRenameInput  = ref<HTMLInputElement | HTMLInputElement[] | null>(null)
 
 function selectSidebarRenameInput() {
@@ -258,12 +260,14 @@ function startSidebarRename(wl: Watchlist) {
   closeSidebarMenu()
   sidebarRenamingId.value  = wl.id
   sidebarRenameValue.value = wl.name
+  sidebarRenameError.value = ''
   nextTick(selectSidebarRenameInput)
 }
 
 function cancelSidebarRename() {
   sidebarRenamingId.value = null
   sidebarRenameValue.value = ''
+  sidebarRenameError.value = ''
 }
 
 async function commitSidebarRename(id: number) {
@@ -273,8 +277,8 @@ async function commitSidebarRename(id: number) {
     await store.renameWatchlist(id, name)
     cancelSidebarRename()
   } catch (e: any) {
-    if (e?.status === 409) alert(e.message || 'Name already in use')
-    else cancelSidebarRename()
+    if (e?.status === 409) sidebarRenameError.value = e.message || 'Name already in use'
+    else sidebarRenameError.value = 'Rename failed'
   }
 }
 
@@ -560,6 +564,16 @@ onMounted(async () => {
 }
 .wls-rename-btn.confirm:hover { color: #26a69a; }
 .wls-rename-btn:not(.confirm):hover { color: #ef5350; }
+.wls-rename-error {
+  position: absolute;
+  left: 28px;
+  right: 32px;
+  top: calc(100% - 2px);
+  font-size: 10px;
+  color: #ff8a80;
+  background: #111;
+  padding-top: 4px;
+}
 
 .wls-empty { padding: 20px; text-align: center; color: #333; font-size: 11px; }
 

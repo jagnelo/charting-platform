@@ -113,7 +113,20 @@
           </VueDraggable>
         </template>
         <div v-else class="wlp-empty">
-          <router-link to="/watchlist" class="wlp-create-link">+ Create a watchlist</router-link>
+          <button v-if="!showCreateForm" class="wlp-create-link" @click="openCreateForm">+ Create a watchlist</button>
+          <div v-else class="wlp-create-form">
+            <input
+              ref="createInputRef"
+              v-model="createValue"
+              class="wlp-create-input"
+              placeholder="Watchlist name"
+              @keydown.enter="submitCreate"
+              @keydown.escape="cancelCreate"
+            />
+            <button class="wlp-create-btn wlp-create-btn--confirm" :disabled="!createValue.trim()" @click="submitCreate">✓</button>
+            <button class="wlp-create-btn" @click="cancelCreate">✕</button>
+          </div>
+          <div v-if="createError" class="wlp-create-error">{{ createError }}</div>
         </div>
       </div>
     </div>
@@ -264,6 +277,10 @@ const renamingId   = ref<number | null>(null)
 const renameValue  = ref('')
 const renameInputRef = ref<HTMLInputElement | HTMLInputElement[] | null>(null)
 const renameError  = ref('')
+const showCreateForm = ref(false)
+const createValue = ref('')
+const createError = ref('')
+const createInputRef = ref<HTMLInputElement | null>(null)
 
 function selectRenameInput() {
   const input = Array.isArray(renameInputRef.value)
@@ -330,6 +347,31 @@ async function doLock(id: number) {
 async function doUnlock(id: number) {
   closeMenu()
   await store.unlockWatchlist(id)
+}
+
+async function openCreateForm() {
+  showCreateForm.value = true
+  createValue.value = ''
+  createError.value = ''
+  await nextTick()
+  createInputRef.value?.focus()
+}
+
+function cancelCreate() {
+  showCreateForm.value = false
+  createValue.value = ''
+  createError.value = ''
+}
+
+async function submitCreate() {
+  const name = createValue.value.trim()
+  if (!name) return
+  const wl = await store.createWatchlist(name)
+  if (!wl) {
+    createError.value = 'Could not create watchlist'
+    return
+  }
+  cancelCreate()
 }
 
 watch(() => store.watchlists, () => {}, { immediate: true })
@@ -666,14 +708,58 @@ function tickClass(symbol?: string | null) {
 .wlp-empty {
   padding: 20px 8px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
 }
 
 .wlp-create-link {
+  background: transparent;
+  border: 1px solid #2a4f70;
+  border-radius: 4px;
   font-size: 11px;
   color: #64b5f6;
-  text-decoration: none;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
 }
-.wlp-create-link:hover { text-decoration: underline; }
+.wlp-create-link:hover { background: rgba(100, 181, 246, 0.08); }
+.wlp-create-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.wlp-create-input {
+  flex: 1;
+  min-width: 0;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #d8d8d8;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+}
+.wlp-create-input:focus { border-color: #64b5f6; }
+.wlp-create-btn {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #777;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.wlp-create-btn:hover { color: #ccc; border-color: #555; }
+.wlp-create-btn--confirm:hover { color: #26a69a; border-color: #26a69a; }
+.wlp-create-error {
+  color: #ff8a80;
+  font-size: 10px;
+}
 
 /* ── Delete modal ──────────────────────────────── */
 .wlp-modal-overlay {

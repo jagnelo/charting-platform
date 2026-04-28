@@ -36,6 +36,10 @@
       <span class="metric-label">Total GEX</span>
       <span class="metric-value" :class="totalGexClass">{{ fmtGex(data.total_gex) }}</span>
     </div>
+    <div class="metric">
+      <span class="metric-label">Total DEX</span>
+      <span class="metric-value" :class="totalDexClass">{{ fmtGex(data.total_net_dex) }}</span>
+    </div>
     <div v-if="data.greeks_estimated" class="metric est-badge" title="Some Greeks were estimated via Black-Scholes">
       <span class="metric-label">Greeks</span>
       <span class="metric-value est">~est</span>
@@ -87,6 +91,10 @@ const pcrClass = computed(() => {
 
 const totalGexClass = computed(() => {
   return props.data.total_gex >= 0 ? 'bullish' : 'bearish'
+})
+
+const totalDexClass = computed(() => {
+  return props.data.total_net_dex >= 0 ? 'bullish' : 'bearish'
 })
 </script>
 

@@ -93,6 +93,15 @@
       </div>
     </header>
 
+    <TextPromptModal
+      v-model="showCreateWatchlistModal"
+      title="Create Watchlist"
+      label="Watchlist name"
+      placeholder="Watchlist name"
+      confirm-label="Create"
+      @submit="confirmCreateWatchlist"
+    />
+
     <Transition name="fetch-banner">
       <div v-if="chartStore.isFetchingHistory" class="fetch-banner" role="status" aria-live="polite">
         <span class="fetch-banner-icon">⏳</span>
@@ -123,31 +132,52 @@
             <UPlotChart :comparison-series="comparisonSeries" />
           </template>
         </div>
-        <div v-if="showOptionsPanel" class="options-shell">
-          <div class="options-tabs">
-            <button
-              class="options-tab"
-              :class="{ active: optionsTab === 'chain' }"
-              @click="optionsTab = 'chain'"
-            >Chain</button>
-            <button
-              class="options-tab"
-              :class="{ active: optionsTab === 'exposure' }"
-              @click="optionsTab = 'exposure'"
-            >Exposure</button>
+        <template v-if="showOptionsPanel">
+          <ResizeHandle
+            direction="vertical"
+            :value="optionsPanelHeight"
+            :min="collapsedOptionsPanel ? 44 : 180"
+            :max="520"
+            inverted
+            @change="resizeOptionsPanel"
+          />
+          <div class="options-shell" :style="{ height: `${collapsedOptionsPanel ? 44 : optionsPanelHeight}px` }">
+            <div class="options-tabs">
+              <div class="options-tab-group">
+                <button
+                  class="options-tab"
+                  :class="{ active: optionsTab === 'chain' }"
+                  @click="optionsTab = 'chain'"
+                >Chain</button>
+                <button
+                  class="options-tab"
+                  :class="{ active: optionsTab === 'exposure' }"
+                  @click="optionsTab = 'exposure'"
+                >Exposure</button>
+              </div>
+              <button
+                class="options-collapse"
+                :title="collapsedOptionsPanel ? 'Expand options panel' : 'Collapse options panel'"
+                @click="collapsedOptionsPanel = !collapsedOptionsPanel"
+              >
+                <span class="options-collapse-icon">{{ collapsedOptionsPanel ? '▸' : '▾' }}</span>
+              </button>
+            </div>
+            <div v-if="!collapsedOptionsPanel" class="options-content">
+              <OptionsChainPanel
+                v-if="optionsTab === 'chain'"
+                :symbol="chartStore.symbol"
+                title="Options Chain"
+                @open-symbol="onSymbolSelect"
+              />
+              <OptionsExposurePanel
+                v-else-if="optionsTab === 'exposure'"
+                :symbol="chartStore.symbol"
+                title="Options Exposure"
+              />
+            </div>
           </div>
-          <OptionsChainPanel
-            v-if="optionsTab === 'chain'"
-            :symbol="chartStore.symbol"
-            title="Options Chain"
-            @open-symbol="onSymbolSelect"
-          />
-          <OptionsExposurePanel
-            v-else-if="optionsTab === 'exposure'"
-            :symbol="chartStore.symbol"
-            title="Options Exposure"
-          />
-        </div>
+        </template>
       </div>
       <div v-else class="chart-workspace">
         <MultiChartLayout />
@@ -176,6 +206,7 @@ import { formatMoney } from '@/lib/format'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
+import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { api } from '@/lib/api'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
@@ -188,6 +219,7 @@ import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
 import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
+import TextPromptModal      from '@/components/common/TextPromptModal.vue'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
@@ -198,6 +230,7 @@ const watchlistStore  = useWatchlistStore()
 const drawStore       = useDrawingsStore()
 const alertsStore     = useAlertsStore()
 const presetsStore    = usePresetsStore()
+const optionsExposureStore = useOptionsExposureStore()
 
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
 const activePanelStore = computed(() =>
@@ -219,7 +252,10 @@ const router = useRouter()
 
 const currentTf     = ref<Timeframe>('D1')
 const showWlMenu    = ref(false)
+const showCreateWatchlistModal = ref(false)
 const optionsTab    = ref<'chain' | 'exposure'>('chain')
+const optionsPanelHeight = ref(340)
+const collapsedOptionsPanel = ref(false)
 const wlStarRef     = ref<HTMLElement | null>(null)
 const showCompareInput = ref(false)
 const compareDraft = ref('')
@@ -288,7 +324,7 @@ const comparisonSeries = computed<ChartComparisonSeries[]>(() => {
 })
 
 const showOptionsPanel = computed(() =>
-  !!chartStore.symbol
+  !!chartStore.instrument
   && !chartStore.instrument?.is_synthetic
   && !chartStore.instrument?.option_detail
 )
@@ -303,6 +339,11 @@ const comparisonLegend = computed(() =>
 function formatPercent(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return '—'
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+}
+
+function resizeOptionsPanel(next: number) {
+  optionsPanelHeight.value = Math.max(180, Math.min(520, Math.round(next)))
+  collapsedOptionsPanel.value = false
 }
 
 async function resolveComparisonTarget(raw: string): Promise<string> {
@@ -449,6 +490,20 @@ watch(() => layoutStore.activePanelId, async (panelId) => {
   }
 })
 
+watch(
+  () => [chartStore.symbol, showOptionsPanel.value] as const,
+  ([sym, canShow]) => {
+    if (!sym || !canShow) {
+      optionsExposureStore.reset()
+      return
+    }
+    if (optionsExposureStore.symbol !== sym) {
+      void optionsExposureStore.load(sym)
+    }
+  },
+  { immediate: true },
+)
+
 
 async function addToWatchlist(watchlistId: number) {
   const sym = activeSymbol.value
@@ -458,13 +513,16 @@ async function addToWatchlist(watchlistId: number) {
 }
 
 async function createAndAddToWatchlist() {
+  showCreateWatchlistModal.value = true
+}
+
+async function confirmCreateWatchlist(name: string) {
   const sym = activeSymbol.value
   if (!sym) return
-  const name = prompt('New watchlist name:')
-  if (!name?.trim()) return
-  const wl = await watchlistStore.createWatchlist(name.trim())
+  const wl = await watchlistStore.createWatchlist(name)
   if (!wl) return
   await watchlistStore.addBySymbol(wl.id, sym)
+  showCreateWatchlistModal.value = false
   showWlMenu.value = false
 }
 
@@ -719,18 +777,25 @@ onUnmounted(() => {
 }
 
 .options-shell {
-  height: 340px;
   border-top: 1px solid #171717;
   background: #0c0c0c;
   flex-shrink: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .options-tabs {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid #1e1e1e;
   flex-shrink: 0;
+  min-height: 43px;
+}
+.options-tab-group {
+  display: flex;
+  align-items: center;
 }
 .options-tab {
   background: none;
@@ -748,6 +813,30 @@ onUnmounted(() => {
 .options-tab.active {
   color: #ccc;
   border-bottom-color: #64b5f6;
+}
+.options-collapse {
+  margin-right: 10px;
+  border: 1px solid #2f2f2f;
+  background: #121212;
+  color: #8f8f8f;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+.options-collapse:hover {
+  color: #d0d0d0;
+  border-color: #4c4c4c;
+}
+.options-collapse-icon {
+  display: inline-block;
+  font-size: 11px;
+}
+.options-content {
+  flex: 1;
+  min-height: 0;
 }
 
 .chart-loading, .chart-error, .chart-empty {

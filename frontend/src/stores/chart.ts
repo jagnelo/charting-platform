@@ -56,7 +56,7 @@ function createChartStore(storeId: string) {
         instrument.value = loaded
         return loaded
       } catch {
-        // Auto-creates from the configured metadata provider on first visit
+        // Auto-bootstrap is now exact-match only; unknown symbols stay unresolved.
         instrument.value = null
         return null
       }
@@ -114,9 +114,13 @@ function createChartStore(storeId: string) {
 
       const loadedInstrument = await loadInstrument(sym)
 
-      if (loadedInstrument) {
-        await loadIndicatorsForInstrument(loadedInstrument.id)
+      if (!loadedInstrument) {
+        error.value = `Instrument "${sym.toUpperCase()}" was not found.`
+        isLoading.value = false
+        return
       }
+
+      await loadIndicatorsForInstrument(loadedInstrument.id)
 
       try {
         const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })

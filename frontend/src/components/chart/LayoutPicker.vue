@@ -77,6 +77,15 @@
         </div>
       </div>
     </div>
+
+    <TextPromptModal
+      v-model="showSaveProfileModal"
+      title="Save Layout Profile"
+      label="Profile name"
+      placeholder="Layout profile name"
+      confirm-label="Save"
+      @submit="confirmSaveProfile"
+    />
   </div>
 </template>
 
@@ -84,6 +93,7 @@
 import { ref, computed } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
 import type { PresetLayout } from '@/stores/layout'
+import TextPromptModal from '@/components/common/TextPromptModal.vue'
 
 const layoutStore = useLayoutStore()
 
@@ -92,6 +102,7 @@ const MAX_ROWS = 4
 
 const showGrid  = ref(false)
 const showProfiles = ref(false)
+const showSaveProfileModal = ref(false)
 const hoverCell = ref<{ col: number; row: number } | null>(null)
 
 const isCustomActive = computed(() => /^\d+x\d+$/.test(layoutStore.layout))
@@ -110,9 +121,13 @@ function applyCustomGrid(cols: number, rows: number) {
 }
 
 function saveProfile() {
-  const name = prompt('Layout profile name:')
-  if (name?.trim()) layoutStore.saveProfile(name)
+  showSaveProfileModal.value = true
   showProfiles.value = false
+}
+
+function confirmSaveProfile(name: string) {
+  layoutStore.saveProfile(name)
+  showSaveProfileModal.value = false
 }
 
 function loadProfile(id: string) {

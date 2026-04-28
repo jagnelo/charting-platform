@@ -459,6 +459,15 @@
       </div>
     </Transition>
   </Teleport>
+
+  <TextPromptModal
+    v-model="showSavePresetModal"
+    title="Save Indicator Preset"
+    label="Preset name"
+    placeholder="Preset name"
+    confirm-label="Save"
+    @submit="confirmSavePreset"
+  />
 </template>
 
 <script lang="ts">
@@ -473,6 +482,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
+import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import { formatMoney } from '@/lib/format'
 import { usePanelStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
@@ -606,6 +616,7 @@ function onWatchlistClick(wlId: number) {
 // ── Indicators ─────────────────────────────────────────────────────────────────
 const showPicker       = ref(false)
 const selectedPresetId = ref<number | ''>('')
+const showSavePresetModal = ref(false)
 
 const availableTypes: Array<{ type: IndicatorType; label: string }> =
   INDICATOR_CATALOG.map(item => ({ type: item.type, label: item.pickerLabel }))
@@ -641,9 +652,12 @@ function applyDefault() {
 }
 
 async function saveAsPreset() {
-  const name = prompt('Preset name:')
-  if (!name) return
+  showSavePresetModal.value = true
+}
+
+async function confirmSavePreset(name: string) {
   await presetsStore.savePreset(name, [...chartStore.indicators])
+  showSavePresetModal.value = false
 }
 
 // ── Drawings helpers ──────────────────────────────────────────────────────────

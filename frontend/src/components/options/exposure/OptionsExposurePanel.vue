@@ -59,20 +59,62 @@
         </div>
       </div>
 
+      <div class="subtabs">
+        <button class="subtab" :class="{ active: activeTab === 'summary' }" @click="activeTab = 'summary'">Summary</button>
+        <button class="subtab" :class="{ active: activeTab === 'gex' }" @click="activeTab = 'gex'">GEX</button>
+        <button class="subtab" :class="{ active: activeTab === 'dex' }" @click="activeTab = 'dex'">DEX</button>
+        <button class="subtab" :class="{ active: activeTab === 'oi' }" @click="activeTab = 'oi'">OI</button>
+        <button class="subtab" :class="{ active: activeTab === 'iv' }" @click="activeTab = 'iv'">IV</button>
+      </div>
+
       <div class="charts-scroll">
+        <div v-if="activeTab === 'summary'" class="summary-grid">
+          <GexLadder
+            :ladder="store.filteredLadder"
+            :spot="store.data.spot"
+            :enabled-expirations="store.enabledExpirations"
+            :all-expirations="store.availableExpirations"
+          />
+          <DexLadder
+            :ladder="store.filteredLadder"
+            :spot="store.data.spot"
+            :enabled-expirations="store.enabledExpirations"
+            :all-expirations="store.availableExpirations"
+          />
+          <OiDistribution
+            :ladder="store.filteredLadder"
+            :spot="store.data.spot"
+            :enabled-expirations="store.enabledExpirations"
+            :all-expirations="store.availableExpirations"
+          />
+          <IvSkew
+            :ladder="store.filteredLadder"
+            :spot="store.data.spot"
+          />
+        </div>
         <GexLadder
+          v-else-if="activeTab === 'gex'"
+          :ladder="store.filteredLadder"
+          :spot="store.data.spot"
+          :enabled-expirations="store.enabledExpirations"
+          :all-expirations="store.availableExpirations"
+        />
+        <DexLadder
+          v-else-if="activeTab === 'dex'"
           :ladder="store.filteredLadder"
           :spot="store.data.spot"
           :enabled-expirations="store.enabledExpirations"
           :all-expirations="store.availableExpirations"
         />
         <OiDistribution
+          v-else-if="activeTab === 'oi'"
           :ladder="store.filteredLadder"
           :spot="store.data.spot"
           :enabled-expirations="store.enabledExpirations"
           :all-expirations="store.availableExpirations"
         />
         <IvSkew
+          v-else
           :ladder="store.filteredLadder"
           :spot="store.data.spot"
         />
@@ -84,10 +126,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { buildExpirationPalette } from '@/lib/expirationPalette'
 import GexLadder from './GexLadder.vue'
+import DexLadder from './DexLadder.vue'
 import OiDistribution from './OiDistribution.vue'
 import IvSkew from './IvSkew.vue'
 import OptionsKeyMetrics from './OptionsKeyMetrics.vue'
@@ -98,6 +141,7 @@ const props = withDefaults(defineProps<{
 }>(), { title: 'Options Exposure' })
 
 const store = useOptionsExposureStore()
+const activeTab = ref<'summary' | 'gex' | 'dex' | 'oi' | 'iv'>('summary')
 
 const palette = computed(() => buildExpirationPalette(store.availableExpirations))
 
@@ -244,9 +288,44 @@ onMounted(() => {
 .range-input:focus { border-color: #555; }
 .range-sep { color: #555; font-size: 10px; }
 
+.subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #1a1a1a;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.subtab {
+  background: #151515;
+  border: 1px solid #2b2b2b;
+  color: #7d7d7d;
+  font-size: 10px;
+  font-family: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.subtab.active {
+  color: #d8ecff;
+  border-color: #64b5f6;
+}
+
 .charts-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 10px;
 }
 </style>

@@ -508,6 +508,15 @@
       </div>
       <div class="wl-menu-item wl-menu-new" @click="createAndAddToWatchlist">+ New watchlist</div>
     </div>
+
+    <TextPromptModal
+      v-model="showCreateWatchlistModal"
+      title="Create Watchlist"
+      label="Watchlist name"
+      placeholder="Watchlist name"
+      confirm-label="Create"
+      @submit="confirmCreateWatchlist"
+    />
   </div>
 </template>
 
@@ -519,6 +528,7 @@ import { useWatchlistStore } from '@/stores/watchlist'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
+import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 
 const route = useRoute()
@@ -654,6 +664,7 @@ const streamingResult = ref<{ matched_ids: number[]; result_data: Record<string,
 
 // Watchlist menu state
 const wlMenuInstrId = ref<number | null>(null)
+const showCreateWatchlistModal = ref(false)
 const wlMenuX    = ref(0)
 const wlMenuY    = ref(0)
 const wlMenuRef  = ref<HTMLElement | null>(null)
@@ -966,12 +977,16 @@ async function addToWatchlist(watchlistId: number) {
 
 async function createAndAddToWatchlist() {
   if (wlMenuInstrId.value === null) return
+  showCreateWatchlistModal.value = true
+}
+
+async function confirmCreateWatchlist(name: string) {
+  if (wlMenuInstrId.value === null) return
   const instrId = wlMenuInstrId.value
-  const name = prompt('New watchlist name:')
-  if (!name?.trim()) return
-  const wl = await watchlistStore.createWatchlist(name.trim())
+  const wl = await watchlistStore.createWatchlist(name)
   if (!wl) return
   await watchlistStore.addItem(wl.id, instrId)
+  showCreateWatchlistModal.value = false
   wlMenuInstrId.value = null
 }
 

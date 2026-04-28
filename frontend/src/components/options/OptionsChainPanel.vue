@@ -8,6 +8,10 @@
         </span>
       </div>
       <div class="options-actions" v-if="symbol">
+        <div class="view-toggle">
+          <button class="view-btn" :class="{ active: viewMode === 'straddle' }" @click="viewMode = 'straddle'">Straddle</button>
+          <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">List</button>
+        </div>
         <select
           v-if="response?.available_expirations?.length"
           :value="selectedExpiration"
@@ -24,6 +28,40 @@
     <div v-else-if="loading" class="options-state">Loading options...</div>
     <div v-else-if="error" class="options-state error">{{ error }}</div>
     <div v-else-if="!rows.length" class="options-state">No options available</div>
+    <div v-else-if="viewMode === 'straddle'" class="options-table-wrap">
+      <table class="options-table options-table--straddle" :class="{ compact }">
+        <thead>
+          <tr>
+            <th>Call Bid</th>
+            <th>Call Ask</th>
+            <th>Call OI</th>
+            <th>Call IV</th>
+            <th class="strike-col">Strike</th>
+            <th>Put IV</th>
+            <th>Put OI</th>
+            <th>Put Bid</th>
+            <th>Put Ask</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="row in straddleRows"
+            :key="row.strike"
+            class="options-row"
+          >
+            <td class="bullish clickable" @click="row.call && $emit('open-symbol', row.call.symbol)">{{ fmt(row.call?.bid) }}</td>
+            <td class="bullish clickable" @click="row.call && $emit('open-symbol', row.call.symbol)">{{ fmt(row.call?.ask) }}</td>
+            <td>{{ fmtInt(row.call?.open_interest) }}</td>
+            <td>{{ fmtPct(row.call?.implied_vol) }}</td>
+            <td class="strike-col">{{ fmt(row.strike, 2) }}</td>
+            <td>{{ fmtPct(row.put?.implied_vol) }}</td>
+            <td>{{ fmtInt(row.put?.open_interest) }}</td>
+            <td class="bearish clickable" @click="row.put && $emit('open-symbol', row.put.symbol)">{{ fmt(row.put?.bid) }}</td>
+            <td class="bearish clickable" @click="row.put && $emit('open-symbol', row.put.symbol)">{{ fmt(row.put?.ask) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div v-else class="options-table-wrap">
       <table class="options-table" :class="{ compact }">
         <thead>
@@ -95,9 +133,21 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const response = ref<OptionChainResponse | null>(null)
 const selectedExpiration = ref('')
+const viewMode = ref<'straddle' | 'list'>('straddle')
 let refreshSeq = 0
 
 const rows = computed<OptionChainRow[]>(() => response.value?.rows ?? [])
+const straddleRows = computed(() => {
+  const grouped = new Map<number, { strike: number; call?: OptionChainRow; put?: OptionChainRow }>()
+  for (const row of rows.value) {
+    const strike = Number(row.strike)
+    const current = grouped.get(strike) ?? { strike }
+    if (row.right.toLowerCase() === 'call') current.call = row
+    if (row.right.toLowerCase() === 'put') current.put = row
+    grouped.set(strike, current)
+  }
+  return [...grouped.values()].sort((a, b) => a.strike - b.strike)
+})
 const snapshotMeta = computed(() => response.value?.snapshot ?? null)
 const snapshotTime = computed(() =>
   snapshotMeta.value?.observed_at ? new Date(snapshotMeta.value.observed_at).toLocaleString() : ''
@@ -135,7 +185,7 @@ async function load(force = false) {
     )
     if (seq !== refreshSeq) return
     response.value = loaded
-    selectedExpiration.value = loaded.expiration ?? loaded.available_expirations[0] ?? ''
+    selectedExpiration.value = loaded.expiration ?? loaded.available_expirations?.[0] ?? ''
   } catch (e: any) {
     if (seq === refreshSeq) error.value = e?.message ?? 'Options unavailable'
   } finally {
@@ -221,6 +271,30 @@ onMounted(() => load(false))
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid #2b2b2b;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.view-btn {
+  background: #121212;
+  border: none;
+  color: #8d8d8d;
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.view-btn.active {
+  background: #1f1f1f;
+  color: #d7d7d7;
 }
 
 .options-select,
@@ -236,6 +310,23 @@ onMounted(() => load(false))
 
 .options-refresh {
   cursor: pointer;
+}
+
+.options-table--straddle .strike-col {
+  color: #f2f2f2;
+  font-weight: 700;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.bullish {
+  color: #67d2a6;
+}
+
+.bearish {
+  color: #ff8787;
 }
 
 .options-table-wrap {

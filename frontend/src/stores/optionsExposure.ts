@@ -53,6 +53,7 @@ export const useOptionsExposureStore = defineStore('optionsExposure', () => {
 
   async function load(sym: string, expiration?: string | null) {
     const seq = ++_loadSeq
+    const previousSymbol = symbol.value
     symbol.value = sym
     isLoading.value = true
     error.value = null
@@ -76,7 +77,7 @@ export const useOptionsExposureStore = defineStore('optionsExposure', () => {
       expirationSummaries.value = summaries
 
       // Initialize enabled expirations to all available on first load
-      if (enabledExpirations.value.size === 0 || symbol.value !== sym) {
+      if (enabledExpirations.value.size === 0 || previousSymbol !== sym) {
         enabledExpirations.value = new Set(exposure.expirations)
       }
     } catch (e) {
