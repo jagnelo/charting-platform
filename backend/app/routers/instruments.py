@@ -51,6 +51,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
+def _search_result_priority(query: str, *, symbol: str, name: str, type_name: str) -> tuple[int, int, int, int, int, int, int, str]:
+    normalized = query.strip().upper()
+    normalized_symbol = symbol.strip().upper()
+    normalized_name = name.strip().upper()
+    normalized_type = type_name.strip().upper()
+    exact_symbol = 0 if normalized_symbol == normalized else 1
+    exact_name = 0 if normalized_name == normalized else 1
+    prefix_symbol = 0 if normalized and normalized_symbol.startswith(normalized) else 1
+    contains_symbol = 0 if normalized and normalized in normalized_symbol else 1
+    contains_name = 0 if normalized and normalized in normalized_name else 1
+
+    if any(token in normalized_type for token in ("STOCK", "EQUITY", "ETF", "INDEX", "ADR", "FUND")):
+        type_penalty = 0
+    elif "CRYPTO" in normalized_type:
+        type_penalty = 1
+    elif any(token in normalized_type for token in ("FOREX", "FUTURE", "BOND", "RATE", "MACRO")):
+        type_penalty = 2
+    elif any(token in normalized_type for token in ("OPTION", "WARRANT", "RIGHT")):
+        type_penalty = 3
+    else:
+        type_penalty = 2
+
+    return (
+        exact_symbol,
+        exact_name,
+        prefix_symbol,
+        contains_symbol,
+        contains_name,
+        type_penalty,
+        len(normalized_symbol),
+        normalized_symbol,
+    )
+
+
 @router.get("/search", response_model=list[InstrumentSearchResult])
 async def search_instruments(
     q: str = Query(..., min_length=1),
@@ -70,10 +104,11 @@ async def search_instruments(
             Instrument.is_synthetic.is_(False),
             or_(Instrument.symbol.ilike(f"%{q}%"), Instrument.name.ilike(f"%{q}%")),
         )
-        .limit(5)
+        .limit(25)
     )
     local = result.scalars().all()
-    out = [
+    merged: dict[str, InstrumentSearchResult] = {}
+    for item in [
         InstrumentSearchResult(
             symbol=i.symbol,
             name=i.name,
@@ -81,21 +116,29 @@ async def search_instruments(
             type=i.instrument_type.name if i.instrument_type else "",
         )
         for i in local
-    ]
-    if len(out) < 10:
-        provider_results = await search_provider_instruments_async(db, q)
-        existing = {r.symbol for r in out}
-        for r in provider_results:
-            if r["symbol"] not in existing:
-                out.append(
-                    InstrumentSearchResult(
-                        symbol=r.get("symbol", ""),
-                        name=r.get("name", ""),
-                        exchange=r.get("exchange", ""),
-                        type=r.get("type", ""),
-                    )
-                )
-    return out[:10]
+    ]:
+        merged[item.symbol] = item
+    provider_results = await search_provider_instruments_async(db, q)
+    for r in provider_results:
+        symbol = r.get("symbol", "")
+        if not symbol or symbol in merged:
+            continue
+        merged[symbol] = InstrumentSearchResult(
+            symbol=symbol,
+            name=r.get("name", ""),
+            exchange=r.get("exchange", ""),
+            type=r.get("type", ""),
+        )
+    ranked = sorted(
+        merged.values(),
+        key=lambda item: _search_result_priority(
+            q,
+            symbol=item.symbol,
+            name=item.name,
+            type_name=item.type,
+        ),
+    )
+    return ranked[:10]
 
 
 @router.get("/browse")
@@ -305,7 +348,11 @@ class ResolveExpressionBody(BaseModel):
     expression: str
 
 
-@router.post("/resolve-expression", response_model=InstrumentOut)
+class ResolveExpressionOut(BaseModel):
+    symbol: str
+
+
+@router.post("/resolve-expression", response_model=ResolveExpressionOut)
 async def resolve_expression(
     body: ResolveExpressionBody,
     db: AsyncSession = Depends(get_db),
@@ -357,7 +404,7 @@ async def resolve_expression(
     )
     synth = existing.scalar_one_or_none()
     if synth is not None:
-        return synth
+        return ResolveExpressionOut(symbol=synth.symbol)
 
     # Determine instrument type (reuse "Synthetic" type or create it)
     type_result = await db.execute(select(InstrumentType).where(InstrumentType.name == "Synthetic"))
@@ -394,7 +441,7 @@ async def resolve_expression(
         )
 
     await db.commit()
-    return await _reload_instrument_full(synth.id, db)
+    return ResolveExpressionOut(symbol=synth.symbol)
 
 
 @router.post("/heatmap-data")
