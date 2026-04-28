@@ -371,6 +371,69 @@ export interface ProviderHealth {
   last_error_message?: string | null
 }
 
+export interface ProviderUsageBucket {
+  bucket_start: string
+  requests: number
+  units: number
+  failures: number
+}
+
+export interface ProviderUsageOperation {
+  operation_family: string
+  requests: number
+  units: number
+  failures: number
+  successes: number
+}
+
+export interface ProviderUsageCapabilityRow {
+  capability: string
+  requests: number
+  units: number
+  failures: number
+}
+
+export interface ProviderUsageErrorRow {
+  error_type: string
+  count: number
+}
+
+export interface ProviderUsageSummary {
+  provider: string
+  base_url?: string | null
+  description?: string | null
+  usage_mode: string
+  usage_unit_label: string
+  limit_kind: string
+  quota_limit?: number | null
+  estimated_quota_limit?: number | null
+  quota_window_seconds?: number | null
+  current_window_started_at?: string | null
+  current_window_ends_at?: string | null
+  current_window_requests?: number | null
+  current_window_units?: number | null
+  current_window_utilization_pct?: number | null
+  retained_requests: number
+  retained_units: number
+  requests_24h: number
+  units_24h: number
+  requests_7d: number
+  units_7d: number
+  success_rate_24h: number
+  failure_rate_24h: number
+  timeout_rate_24h: number
+  avg_latency_ms_24h?: number | null
+  p95_latency_ms_24h?: number | null
+  last_request_at?: string | null
+  last_success_at?: string | null
+  last_failure_at?: string | null
+  top_operations: ProviderUsageOperation[]
+  capability_breakdown: ProviderUsageCapabilityRow[]
+  error_breakdown: ProviderUsageErrorRow[]
+  hourly_buckets: ProviderUsageBucket[]
+  daily_buckets: ProviderUsageBucket[]
+}
+
 export interface OptionExpirationResponse {
   symbol: string
   expirations: string[]
