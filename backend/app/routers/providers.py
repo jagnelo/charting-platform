@@ -148,6 +148,8 @@ async def update_provider_policy(
 
     for field_name, value in body.model_dump(exclude_unset=True).items():
         setattr(policy, field_name, value)
+    if body.base_priority is not None and body.is_pinned is None:
+        policy.is_pinned = True
     await db.flush()
     return {"ok": True}
 

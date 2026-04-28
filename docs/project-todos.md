@@ -32,23 +32,28 @@ Status: `Deferred`
 Context:
 - We stabilized the broken backend and frontend suites and got them green again.
 - Measured coverage is still uneven:
-  - backend full-suite coverage is materially improved but still has dark areas
+  - backend full-suite coverage is materially improved but still has dark areas and currently sits below the normal default minimum coverage expectation
   - frontend lines/statements/branches are strong, but function coverage remains the main weak point
+- The backend coverage gate was temporarily lowered so `make test` would stop failing on policy alone while the suite itself is green again.
 
 What remains:
+- Raise backend overall coverage back to at least the default `75%` minimum and restore the backend coverage gate accordingly.
 - Raise frontend function coverage, especially around:
   - stores
   - composables
   - uPlot plugins
   - chart rendering helpers
 - Raise backend coverage in currently under-covered routers/services/providers, especially:
+  - core instrument and OHLCV flows
   - dashboard-facing routers
   - watchlist/provider/options routers
   - provider adapters and ingestion-heavy services
+  - alerting, screener, sync/task, and background workflow paths
+- Add broader integration and end-to-end coverage where unit coverage alone leaves behavioral gaps.
 
 Why this was deferred:
 - The immediate goal was to first fix broken tests and restore reliability.
-- The next coverage push should be targeted, not broad or mechanical.
+- The next coverage push should be targeted, not broad or mechanical, but it now has a concrete acceptance target: restore the overall default `75%` coverage floor.
 
 ### 2. Enrich options navigation and contract-history UX
 Status: `Deferred`

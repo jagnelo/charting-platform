@@ -41,6 +41,7 @@ async def _load_dashboard(db: AsyncSession, dashboard_id: int, user_id: int) -> 
         await db.execute(
             select(Dashboard)
             .where(Dashboard.id == dashboard_id, Dashboard.user_id == user_id)
+            .execution_options(populate_existing=True)
             .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
         )
     ).scalar_one_or_none()
@@ -55,6 +56,7 @@ async def _load_tab(db: AsyncSession, tab_id: int, user_id: int) -> DashboardTab
             select(DashboardTab)
             .join(Dashboard, Dashboard.id == DashboardTab.dashboard_id)
             .where(DashboardTab.id == tab_id, Dashboard.user_id == user_id)
+            .execution_options(populate_existing=True)
             .options(selectinload(DashboardTab.widgets))
         )
     ).scalar_one_or_none()
@@ -70,6 +72,7 @@ async def _load_widget(db: AsyncSession, widget_id: int, user_id: int) -> Dashbo
             .join(DashboardTab, DashboardTab.id == DashboardWidget.tab_id)
             .join(Dashboard, Dashboard.id == DashboardTab.dashboard_id)
             .where(DashboardWidget.id == widget_id, Dashboard.user_id == user_id)
+            .execution_options(populate_existing=True)
         )
     ).scalar_one_or_none()
     if widget is None:
@@ -82,6 +85,7 @@ async def _ensure_default_dashboard(db: AsyncSession, user: User) -> Dashboard:
         await db.execute(
             select(Dashboard)
             .where(Dashboard.user_id == user.id, Dashboard.is_default.is_(True))
+            .execution_options(populate_existing=True)
             .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
             .order_by(Dashboard.position, Dashboard.created_at)
         )
@@ -93,6 +97,7 @@ async def _ensure_default_dashboard(db: AsyncSession, user: User) -> Dashboard:
         await db.execute(
             select(Dashboard)
             .where(Dashboard.user_id == user.id)
+            .execution_options(populate_existing=True)
             .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
             .order_by(Dashboard.position, Dashboard.created_at)
         )
@@ -125,6 +130,7 @@ async def list_dashboards(
         await db.execute(
             select(Dashboard)
             .where(Dashboard.user_id == current_user.id)
+            .execution_options(populate_existing=True)
             .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
             .order_by(Dashboard.position, Dashboard.created_at)
         )
@@ -273,6 +279,7 @@ async def reorder_tabs(
     for pos, tab_id in enumerate(body.ids):
         if tab_id in by_id:
             by_id[tab_id].position = pos
+    await db.flush()
     return {"ok": True}
 
 
@@ -335,4 +342,5 @@ async def update_widget_layouts(
     for patch in body.widgets:
         if patch.id in by_id:
             by_id[patch.id].layout = patch.layout
+    await db.flush()
     return {"ok": True}

@@ -547,7 +547,7 @@ async def list_exposure_expirations(
         put_oi = v["put_oi"]
         summaries.append(ExpirationSummary(
             expiration=expiry_s,
-            dte=(expiry_d - today).days,
+            dte=max(0, (expiry_d - today).days),
             total_call_oi=call_oi,
             total_put_oi=put_oi,
             pcr_oi=put_oi / call_oi if call_oi > 0 else None,
