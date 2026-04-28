@@ -98,21 +98,36 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
 @pytest.mark.asyncio
 async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    resolved = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_SEARCH)
-    execute_calls = 0
+    yfinance = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_SEARCH)
+    coingecko = _resolved_provider(db, provider_name="coingecko", capability=ProviderCapability.INSTRUMENT_SEARCH)
+    execute_calls: list[str] = []
 
     async def _fake_resolve(*args, **kwargs):
-        return [resolved]
+        return [yfinance, coingecko]
 
-    async def _fake_execute(*args, **kwargs):
-        nonlocal execute_calls
-        execute_calls += 1
+    async def _fake_execute(*args, provider_name=None, **kwargs):
+        execute_calls.append(provider_name)
+        if provider_name == "yfinance":
+            results = [
+                ProviderSearchResult(symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock")
+            ]
+            resolved = yfinance
+        else:
+            results = [
+                ProviderSearchResult(
+                    symbol="NVDA-USD",
+                    name="NVIDIA Tokenized",
+                    exchange="CoinGecko",
+                    instrument_type="CRYPTOCURRENCY",
+                )
+            ]
+            resolved = coingecko
         return ProviderExecutionResult(
-            provider_name="yfinance",
+            provider_name=resolved.provider_name,
             data_source=resolved.data_source,
             policy=resolved.policy,
             health=resolved.health,
-            result=[ProviderSearchResult(symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock")],
+            result=results,
         )
 
     monkeypatch.setattr(market_data, "resolve_provider_chain", _fake_resolve)
@@ -122,12 +137,19 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     second = await market_data.search_provider_instruments_async(async_db, "nvda")
 
     snapshots = db.execute(select(InstrumentSearchSnapshot)).scalars().all()
-    assert execute_calls == 1
+    assert execute_calls == ["yfinance", "coingecko"]
     assert first == second == [
-        {"symbol": "NVDA", "name": "NVIDIA", "exchange": "NASDAQ", "type": "Stock"}
+        {"symbol": "NVDA", "name": "NVIDIA", "exchange": "NASDAQ", "type": "Stock", "provider": "yfinance"},
+        {
+            "symbol": "NVDA-USD",
+            "name": "NVIDIA Tokenized",
+            "exchange": "CoinGecko",
+            "type": "CRYPTOCURRENCY",
+            "provider": "coingecko",
+        },
     ]
-    assert len(snapshots) == 1
-    assert snapshots[0].query == "nvda"
+    assert len(snapshots) == 2
+    assert {snapshot.query for snapshot in snapshots} == {"nvda"}
 
 
 @pytest.mark.asyncio
@@ -268,22 +290,41 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
 
     class _DiscoveryProvider:
-        def supported_discovery_types(self):
-            return ["EQUITY"]
+        def __init__(self, quote_types):
+            self._quote_types = quote_types
 
-    resolved = _resolved_provider(
+        def supported_discovery_types(self):
+            return list(self._quote_types)
+
+    yfinance = _resolved_provider(
         db,
         provider_name="yfinance",
         capability=ProviderCapability.UNIVERSE_DISCOVERY,
-        provider=_DiscoveryProvider(),
+        provider=_DiscoveryProvider(["EQUITY"]),
+    )
+    coingecko = _resolved_provider(
+        db,
+        provider_name="coingecko",
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        provider=_DiscoveryProvider(["CRYPTOCURRENCY"]),
     )
 
     async def _fake_resolve(*args, **kwargs):
-        return [resolved]
+        return [yfinance, coingecko]
 
-    async def _fake_execute(*args, **kwargs):
+    async def _fake_execute(*args, provider_name=None, operation=None, **kwargs):
+        if provider_name == "yfinance":
+            resolved = yfinance
+            symbol = "MSFT"
+            quote_type = "EQUITY"
+            name = "Microsoft"
+        else:
+            resolved = coingecko
+            symbol = "BTC-USD"
+            quote_type = "CRYPTOCURRENCY"
+            name = "Bitcoin"
         return ProviderExecutionResult(
-            provider_name="yfinance",
+            provider_name=resolved.provider_name,
             data_source=resolved.data_source,
             policy=resolved.policy,
             health=resolved.health,
@@ -291,10 +332,10 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
                 "total": 1,
                 "quotes": [
                     {
-                        "symbol": "MSFT",
-                        "longName": "Microsoft",
+                        "symbol": symbol,
+                        "longName": name,
                         "currency": "USD",
-                        "exchange": "NASDAQ",
+                        "exchange": "NASDAQ" if quote_type == "EQUITY" else "CoinGecko",
                     }
                 ],
             },
@@ -307,7 +348,7 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
     result = await instrument_sync.seed_universe(async_db)
 
     snapshots = db.execute(select(UniverseDiscoverySnapshot)).scalars().all()
-    instrument_row = db.execute(select(Instrument).where(Instrument.symbol == "MSFT")).scalar_one()
-    assert result["created"] == 1
-    assert instrument_row.name == "Microsoft"
-    assert len(snapshots) == 1
+    assert result["created"] == 2
+    assert db.execute(select(Instrument).where(Instrument.symbol == "MSFT")).scalar_one().name == "Microsoft"
+    assert db.execute(select(Instrument).where(Instrument.symbol == "BTC-USD")).scalar_one().name == "Bitcoin"
+    assert len(snapshots) == 2

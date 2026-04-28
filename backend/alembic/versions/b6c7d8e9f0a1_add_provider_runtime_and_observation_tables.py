@@ -7,6 +7,7 @@ Create Date: 2026-04-23 11:30:00.000000
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -16,7 +17,7 @@ branch_labels = None
 depends_on = None
 
 
-provider_capability = sa.Enum(
+provider_capability = postgresql.ENUM(
     "INSTRUMENT_SEARCH",
     "INSTRUMENT_METADATA",
     "PRICE_HISTORY",
@@ -27,17 +28,19 @@ provider_capability = sa.Enum(
     "OPTION_CHAIN",
     "OPTION_QUOTE_HISTORY",
     name="providercapability",
+    create_type=False,
 )
 
-dataset_status = sa.Enum(
+dataset_status = postgresql.ENUM(
     "FRESH",
     "STALE",
     "PENDING",
     "FAILED",
     name="datasetstatus",
+    create_type=False,
 )
 
-timeframe_enum = sa.Enum(
+timeframe_enum = postgresql.ENUM(
     "M1", "M5", "M15", "M30", "H1", "H2", "H4", "H12", "D1", "W1", "MN",
     name="timeframe",
     create_type=False,

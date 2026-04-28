@@ -16,6 +16,7 @@ from app.services.provider_maintenance import (
     reset_provider_health_state,
     summarize_provider_observations,
 )
+from app.services.provider_usage import summarize_provider_usage
 from app.services.provider_runtime import list_provider_status, seed_provider_runtime
 
 router = APIRouter(prefix="/providers", tags=["providers"])
@@ -95,6 +96,14 @@ async def get_provider_observation_summary(
     current_user: User = Depends(get_current_user),
 ):
     return await summarize_provider_observations(db)
+
+
+@router.get("/usage")
+async def get_provider_usage(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await summarize_provider_usage(db)
 
 
 @router.get("/datasets/stale")

@@ -43,6 +43,19 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
 }
 
+_DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {
+    name: {
+        "mode": "call_count",
+        "unit_label": "requests",
+        "limit_kind": "unknown",
+        "quota_limit": None,
+        "quota_window_seconds": None,
+        "estimated_quota_limit": None,
+        "operation_costs": {},
+    }
+    for name in _PROVIDERS
+}
+
 
 def _capability_names(provider: ProviderDescriptor) -> list[str]:
     capabilities: list[tuple[tuple[str, ...], str]] = [
@@ -188,6 +201,20 @@ def supported_provider_names() -> Sequence[str]:
     return tuple(_PROVIDERS.keys())
 
 
+def get_provider_usage_profile(name: str) -> dict:
+    profile = dict(_DEFAULT_PROVIDER_USAGE_PROFILES.get(name, {}))
+    override = settings.PROVIDER_USAGE_PROFILE_SEEDS.get(name) or {}
+    if not isinstance(override, dict):
+        return profile
+    merged = dict(profile)
+    for key, value in override.items():
+        if key == "operation_costs" and isinstance(value, dict):
+            merged[key] = dict(profile.get(key) or {}) | value
+        else:
+            merged[key] = value
+    return merged
+
+
 async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource:
     result = await db.execute(select(DataSource).where(DataSource.name == provider_name))
     src = result.scalar_one_or_none()
@@ -199,7 +226,10 @@ async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource
             base_url=provider.base_url,
             description=provider.description,
             is_active=True,
-            config={"capabilities": capabilities},
+            config={
+                "capabilities": capabilities,
+                "usage_tracking": get_provider_usage_profile(provider_name),
+            },
             supported_capabilities=capabilities,
         )
         db.add(src)
@@ -210,6 +240,14 @@ async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource
         src.supported_capabilities = capabilities
         config = dict(src.config or {})
         config["capabilities"] = capabilities
+        config["usage_tracking"] = {
+            **get_provider_usage_profile(provider_name),
+            **dict((config.get("usage_tracking") or {})),
+            "operation_costs": {
+                **get_provider_usage_profile(provider_name).get("operation_costs", {}),
+                **dict(((config.get("usage_tracking") or {}).get("operation_costs") or {})),
+            },
+        }
         src.config = config
     return src
 

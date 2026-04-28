@@ -1,11 +1,13 @@
 import enum
+from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.base import TimestampMixin
+from app.models.provider_runtime import ProviderCapability
 
 
 class InstrumentIdentifierType(str, enum.Enum):
@@ -74,5 +76,42 @@ class InstrumentProviderSymbol(Base, TimestampMixin):
             "provider_symbol",
             "provider_exchange_code",
             name="uq_instrument_provider_symbol",
+        ),
+    )
+
+
+class InstrumentProviderCapabilityStatus(Base, TimestampMixin):
+    """Dynamic support memory for a provider capability on a canonical instrument."""
+
+    __tablename__ = "instrument_provider_capability_status"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    support_status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    last_error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    last_error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    instrument: Mapped["Instrument"] = relationship()
+    data_source: Mapped["DataSource"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint(
+            "instrument_id",
+            "data_source_id",
+            "capability",
+            name="uq_instrument_provider_capability_status",
         ),
     )

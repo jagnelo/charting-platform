@@ -126,10 +126,14 @@ class ProviderRequestLog(Base, TimestampMixin):
         Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    operation_family: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    usage_mode: Mapped[str] = mapped_column(String(24), nullable=False, default="call_count")
+    usage_unit_label: Mapped[str] = mapped_column(String(24), nullable=False, default="requests")
+    usage_units: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=Decimal("1"))
     response_items: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -139,4 +143,5 @@ class ProviderRequestLog(Base, TimestampMixin):
 
     __table_args__ = (
         Index("ix_provider_request_log_capability_requested", "capability", "requested_at"),
+        Index("ix_provider_request_log_source_requested", "data_source_id", "requested_at"),
     )

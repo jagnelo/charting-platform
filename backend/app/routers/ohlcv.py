@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
+from app.services.provider_runtime import ProviderNoDataError
 
 router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
 
@@ -57,15 +58,24 @@ async def get_ohlcv_transformed(
     if before is not None:
         if before.tzinfo is None:
             before = before.replace(tzinfo=UTC)
-        raw_bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, fetch_limit, adjusted)
+        try:
+            raw_bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, fetch_limit, adjusted)
+        except ProviderNoDataError as exc:
+            raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc
     elif start is not None:
         if start.tzinfo is None:
             start = start.replace(tzinfo=UTC)
         if end and end.tzinfo is None:
             end = end.replace(tzinfo=UTC)
-        raw_bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        try:
+            raw_bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        except ProviderNoDataError as exc:
+            raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc
     else:
-        raw_bars = await fetch_ohlcv_latest(db, instrument, timeframe, fetch_limit, adjusted)
+        try:
+            raw_bars = await fetch_ohlcv_latest(db, instrument, timeframe, fetch_limit, adjusted)
+        except ProviderNoDataError as exc:
+            raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc
 
     # Build transform params from query string
     params: dict = {}
@@ -111,7 +121,10 @@ async def get_ohlcv(
         # Paginated: return the PAGE_SIZE bars immediately before `before`
         if before.tzinfo is None:
             before = before.replace(tzinfo=UTC)
-        bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, PAGE_SIZE, adjusted)
+        try:
+            bars = await fetch_ohlcv_page_before(db, instrument, timeframe, before, PAGE_SIZE, adjusted)
+        except ProviderNoDataError as exc:
+            raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc
         return bars[-limit:] if limit else bars
 
     if start is not None:
@@ -120,9 +133,15 @@ async def get_ohlcv(
             start = start.replace(tzinfo=UTC)
         if end and end.tzinfo is None:
             end = end.replace(tzinfo=UTC)
-        bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        try:
+            bars = await fetch_ohlcv(db, instrument, timeframe, start, end, adjusted)
+        except ProviderNoDataError as exc:
+            raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc
         return bars[-limit:] if limit else bars
 
     # Default: initial load — return the latest N bars (capped at PAGE_SIZE)
     page = min(limit, PAGE_SIZE) if limit else PAGE_SIZE
-    return await fetch_ohlcv_latest(db, instrument, timeframe, page, adjusted)
+    try:
+        return await fetch_ohlcv_latest(db, instrument, timeframe, page, adjusted)
+    except ProviderNoDataError as exc:
+        raise HTTPException(404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}.") from exc

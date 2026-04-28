@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {}
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
+    PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {}
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
     MARKETDATA_API_KEY: str = ""
@@ -77,6 +78,8 @@ class Settings(BaseSettings):
     UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 30
     INSTRUMENT_PROFILE_SNAPSHOT_RETENTION_DAYS: int = 365
     INSTRUMENT_IDENTIFIER_SNAPSHOT_RETENTION_DAYS: int = 3650
+    PROVIDER_SUPPORT_SUPPORTED_TTL_SECONDS: int = 2592000
+    PROVIDER_SUPPORT_UNSUPPORTED_TTL_SECONDS: int = 604800
     RFR_INSTRUMENT_SYMBOL: str = "^IRX"
     RFR_INSTRUMENT_NAME: str = "US 3-Month T-Bill Rate"
 
@@ -99,6 +102,7 @@ class Settings(BaseSettings):
         "PROVIDER_CHAIN_SEEDS",
         "PROVIDER_RATE_LIMIT_SEEDS",
         "PROVIDER_FRESHNESS_SEEDS",
+        "PROVIDER_USAGE_PROFILE_SEEDS",
         mode="before",
     )
     @classmethod

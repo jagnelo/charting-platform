@@ -169,6 +169,8 @@ async def ensure_instrument_events_loaded(
                 InstrumentDatasetState.stale_after.is_not(None),
                 InstrumentDatasetState.stale_after > datetime.now(UTC),
             )
+            .order_by(InstrumentDatasetState.stale_after.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
     if fresh_dataset is not None and not refresh:
@@ -176,9 +178,10 @@ async def ensure_instrument_events_loaded(
 
     state = (
         await db.execute(
-            select(InstrumentEventFetchState).where(
-                InstrumentEventFetchState.instrument_id == instrument.id
-            )
+            select(InstrumentEventFetchState)
+            .where(InstrumentEventFetchState.instrument_id == instrument.id)
+            .order_by(InstrumentEventFetchState.fetched_at.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
     if refresh or state is None or state.fetch_version < EVENT_FETCH_VERSION or fresh_dataset is None:

@@ -25,6 +25,7 @@ from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.providers.base import InstrumentProfile
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.expression_engine import (
@@ -37,6 +38,7 @@ from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
     ensure_external_identifier,
     has_external_identifier,
+    ingest_provider_profile,
 )
 from app.services.market_data import (
     fetch_ohlcv_latest,
@@ -85,7 +87,14 @@ async def search_instruments(
         existing = {r.symbol for r in out}
         for r in provider_results:
             if r["symbol"] not in existing:
-                out.append(InstrumentSearchResult(**r))
+                out.append(
+                    InstrumentSearchResult(
+                        symbol=r.get("symbol", ""),
+                        name=r.get("name", ""),
+                        exchange=r.get("exchange", ""),
+                        type=r.get("type", ""),
+                    )
+                )
     return out[:10]
 
 
@@ -1125,10 +1134,60 @@ async def _enqueue_bulk_fetch(instrument_id: int):
         logging.getLogger(__name__).warning(f"Could not enqueue bulk fetch: {e}")
 
 
+def _normalized_symbol_key(value: str | None) -> str:
+    return (value or "").strip().upper()
+
+
+def _profile_exact_match(profile: InstrumentProfile, requested_symbol: str) -> bool:
+    requested = _normalized_symbol_key(requested_symbol)
+    if not requested:
+        return False
+    candidates = {
+        _normalized_symbol_key(profile.symbol),
+        _normalized_symbol_key(profile.canonical_symbol),
+        *{
+            _normalized_symbol_key(listing.provider_symbol)
+            for listing in (profile.listings or [])
+        },
+    }
+    return requested in candidates
+
+
+def _search_results_exact_match(results: list[dict], requested_symbol: str) -> bool:
+    requested = _normalized_symbol_key(requested_symbol)
+    return any(_normalized_symbol_key(item.get("symbol")) == requested for item in results)
+
+
+def _exact_search_provider(results: list[dict], requested_symbol: str) -> str | None:
+    requested = _normalized_symbol_key(requested_symbol)
+    for item in results:
+        if _normalized_symbol_key(item.get("symbol")) == requested:
+            provider_name = item.get("provider")
+            if isinstance(provider_name, str) and provider_name.strip():
+                return provider_name.strip()
+    return None
+
+
 async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | None:
-    profile = await get_provider_profile_async(db, symbol)
+    provider_results = await search_provider_instruments_async(db, symbol)
+    if not _search_results_exact_match(provider_results, symbol):
+        return None
+
+    preferred_provider = _exact_search_provider(provider_results, symbol)
+    profile = await get_provider_profile_async(
+        db,
+        symbol,
+        provider_name=preferred_provider,
+        persist=False,
+    )
+    if profile is None and preferred_provider is not None:
+        profile = await get_provider_profile_async(db, symbol, persist=False)
     if profile is None:
         return None
+    if not _profile_exact_match(profile, symbol):
+        return None
+
+    await ingest_provider_profile(db, profile)
     instrument = (
         await db.execute(select(Instrument).where(Instrument.symbol == profile.canonical_symbol))
     ).scalar_one_or_none()

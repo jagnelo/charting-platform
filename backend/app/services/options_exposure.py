@@ -25,6 +25,7 @@ from app.lib.bs_greeks import estimate_greeks
 from app.models.instrument import Instrument, OptionDetail, OptionRight
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import OptionQuotePoint
+from app.services.options_data import list_option_expirations, sync_option_chain_snapshot
 from app.services.risk_free_rate import get_risk_free_rate
 
 # ── Internal raw record ───────────────────────────────────────────────────────
@@ -193,6 +194,30 @@ async def _get_spot_price(db: AsyncSession, underlying_id: int) -> float | None:
     )
     row = result.scalar_one_or_none()
     return float(row) if row is not None else None
+
+
+async def _ensure_option_quotes_available(
+    db: AsyncSession,
+    underlying: Instrument,
+    expiration: date | None = None,
+) -> None:
+    expirations = await list_option_expirations(db, underlying)
+    if not expirations:
+        return
+
+    provider_expirations = set(expirations)
+    cached_quotes = await _fetch_latest_contract_quotes(db, underlying.id)
+    cached_expirations = {quote.expiry_date for quote in cached_quotes}
+
+    target_expirations = [expiration] if expiration is not None else list(provider_expirations)
+    for item in target_expirations:
+        if item is None:
+            continue
+        if item not in provider_expirations:
+            continue
+        if item in cached_expirations:
+            continue
+        await sync_option_chain_snapshot(db, underlying, expiration=item)
 
 
 # ── Computation ───────────────────────────────────────────────────────────────
@@ -435,16 +460,16 @@ async def get_options_exposure(
     Full GEX/DEX ladder for `underlying`.
     `expiration=None` combines all expirations; otherwise filtered to one date.
     """
+    await _ensure_option_quotes_available(db, underlying, expiration=expiration)
     quotes = await _fetch_latest_contract_quotes(db, underlying.id, expiration=expiration)
     spot = await _get_spot_price(db, underlying.id)
+    provider_expirations = [item.isoformat() for item in await list_option_expirations(db, underlying)]
 
     if not quotes:
-        all_quotes = await _fetch_latest_contract_quotes(db, underlying.id)
-        all_expirations = sorted({q.expiry_date.isoformat() for q in all_quotes})
         return OptionsExposureResponse(
             symbol=underlying.symbol,
             spot=spot,
-            expirations=all_expirations,
+            expirations=provider_expirations,
             active_expirations=[] if expiration is None else [expiration.isoformat()],
             computed_at=datetime.now(UTC).isoformat(),
             ladder=[],
@@ -462,18 +487,13 @@ async def get_options_exposure(
         _compute_exposure(quotes, spot_val, rfr=rfr)
     )
 
-    # Always return full expiration list for the frontend selector, regardless of filter
-    if expiration is not None:
-        all_quotes = await _fetch_latest_contract_quotes(db, underlying.id)
-        all_expirations = sorted({q.expiry_date.isoformat() for q in all_quotes})
-    else:
-        all_expirations = sorted_exps
+    active_expirations = [exp for exp in sorted_exps if exp in provider_expirations]
 
     return OptionsExposureResponse(
         symbol=underlying.symbol,
         spot=spot,
-        expirations=all_expirations,
-        active_expirations=sorted_exps,
+        expirations=provider_expirations,
+        active_expirations=active_expirations,
         computed_at=datetime.now(UTC).isoformat(),
         ladder=ladder,
         key_levels=key_levels,
@@ -491,6 +511,8 @@ async def list_exposure_expirations(
     underlying: Instrument,
 ) -> list[ExpirationSummary]:
     """Expirations list with GEX/OI stats — used to populate the expiration selector."""
+    await _ensure_option_quotes_available(db, underlying)
+    provider_expirations = {item.isoformat() for item in await list_option_expirations(db, underlying)}
     quotes = await _fetch_latest_contract_quotes(db, underlying.id)
     spot = await _get_spot_price(db, underlying.id)
     spot_sq = (spot or 0.0) ** 2
@@ -517,6 +539,8 @@ async def list_exposure_expirations(
 
     summaries: list[ExpirationSummary] = []
     for expiry_s in sorted(by_expiry.keys()):
+        if provider_expirations and expiry_s not in provider_expirations:
+            continue
         v = by_expiry[expiry_s]
         expiry_d = date.fromisoformat(expiry_s)
         call_oi = v["call_oi"]

@@ -56,7 +56,13 @@ async def get_instrument_option_chain(
 
     expirations = await list_option_expirations(db, instrument, refresh=refresh)
     if not expirations:
-        return {"symbol": instrument.symbol, "expiration": None, "snapshot": None, "rows": []}
+        return {
+            "symbol": instrument.symbol,
+            "expiration": None,
+            "available_expirations": [],
+            "snapshot": None,
+            "rows": [],
+        }
 
     target_expiration = expirations[0]
     if expiration:

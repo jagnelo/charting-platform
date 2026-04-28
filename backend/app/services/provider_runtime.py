@@ -27,6 +27,14 @@ from app.providers import (
     list_provider_capabilities,
     supported_provider_names,
 )
+from app.services.provider_support import (
+    SUPPORT_STATUS_SUPPORTED,
+    SUPPORT_STATUS_UNKNOWN,
+    SUPPORT_STATUS_UNSUPPORTED,
+    get_provider_binding_ids,
+    get_provider_support_map,
+    record_provider_support,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +43,11 @@ T = TypeVar("T")
 _ALPHA = Decimal("0.2")
 _token_buckets: dict[tuple[str, str], tuple[tuple[int, int], TokenBucket]] = {}
 _semaphores: dict[tuple[str, str], tuple[int, asyncio.Semaphore]] = {}
+_DEFAULT_SCORE_FLOOR = Decimal("0")
+_DEFAULT_SCORE_CEILING = Decimal("100")
+_DEFAULT_LEARNED_WEIGHT = Decimal("0")
+_DEFAULT_EFFECTIVE_SCORE = Decimal("0")
+_DEFAULT_BASE_PRIORITY = 100
 
 
 @dataclass(slots=True)
@@ -44,6 +57,8 @@ class ResolvedProvider:
     data_source: DataSource
     policy: ProviderPolicy
     health: ProviderHealthState
+    support_status: str = SUPPORT_STATUS_UNKNOWN
+    has_symbol_binding: bool = False
 
 
 @dataclass(slots=True)
@@ -53,6 +68,38 @@ class ProviderExecutionResult:
     policy: ProviderPolicy
     health: ProviderHealthState
     result: Any
+
+
+class ProviderNoDataError(LookupError):
+    """Raised when providers resolve successfully but none return usable data."""
+
+
+def _operation_family(operation: str) -> str:
+    return operation.split(":", 1)[0].strip() or operation
+
+
+def _usage_tracking_config(data_source: DataSource) -> dict[str, Any]:
+    config = dict(data_source.config or {})
+    tracking = config.get("usage_tracking") or {}
+    return tracking if isinstance(tracking, dict) else {}
+
+
+def _usage_cost_for_operation(data_source: DataSource, operation: str) -> tuple[str, str, Decimal]:
+    tracking = _usage_tracking_config(data_source)
+    mode = str(tracking.get("mode") or "call_count")
+    unit_label = str(tracking.get("unit_label") or "requests")
+    operation_costs = tracking.get("operation_costs") or {}
+    family = _operation_family(operation)
+    raw_cost = 1
+    if isinstance(operation_costs, dict):
+        raw_cost = operation_costs.get(family, operation_costs.get(operation, 1))
+    try:
+        cost = Decimal(str(raw_cost))
+    except Exception:
+        cost = Decimal("1")
+    if cost <= 0:
+        cost = Decimal("1")
+    return mode, unit_label, cost
 
 
 class TokenBucket:
@@ -108,16 +155,27 @@ def _base_priority(provider_name: str, ordered_providers: list[str]) -> int:
         return 999
 
 
+def _decimal_or(value: Decimal | None, default: Decimal) -> Decimal:
+    return default if value is None else value
+
+
+def _int_or(value: int | None, default: int) -> int:
+    return default if value is None else value
+
+
 def _effective_score(policy: ProviderPolicy, health: ProviderHealthState) -> Decimal:
-    base_score = Decimal(max(0, 100 - policy.base_priority))
+    base_priority = _int_or(policy.base_priority, _DEFAULT_BASE_PRIORITY)
+    score_floor = _decimal_or(policy.score_floor, _DEFAULT_SCORE_FLOOR)
+    score_ceiling = _decimal_or(policy.score_ceiling, _DEFAULT_SCORE_CEILING)
+    base_score = Decimal(max(0, 100 - base_priority))
     if not policy.auto_weight_enabled:
-        return max(policy.score_floor, min(policy.score_ceiling, base_score))
+        return max(score_floor, min(score_ceiling, base_score))
 
     success_rate = health.ewma_success_rate or Decimal("0")
     completeness = health.ewma_completeness or Decimal("0")
     freshness = health.ewma_freshness or Decimal("0")
     consistency = health.ewma_consistency or Decimal("0")
-    learned_weight = policy.learned_weight or Decimal("0")
+    learned_weight = _decimal_or(policy.learned_weight, _DEFAULT_LEARNED_WEIGHT)
     latency_ms = health.ewma_latency_ms or Decimal("0")
     latency_penalty = min(Decimal("30"), latency_ms / Decimal("1000"))
     health_bonus = (
@@ -128,7 +186,35 @@ def _effective_score(policy: ProviderPolicy, health: ProviderHealthState) -> Dec
         - latency_penalty
     )
     candidate = base_score + learned_weight + health_bonus
-    return max(policy.score_floor, min(policy.score_ceiling, candidate))
+    return max(score_floor, min(score_ceiling, candidate))
+
+
+def _apply_policy_defaults(
+    policy: ProviderPolicy,
+    *,
+    provider_name: str,
+    providers: list[str],
+    freshness_seconds: int,
+    rate_seed: dict[str, int],
+) -> None:
+    if not policy.is_pinned:
+        policy.base_priority = _base_priority(provider_name, providers)
+    policy.max_concurrency = _int_or(
+        policy.max_concurrency,
+        rate_seed.get("max_concurrency", settings.PROVIDER_MAX_CONCURRENCY),
+    )
+    policy.tokens_per_minute = _int_or(policy.tokens_per_minute, rate_seed.get("tokens_per_minute", 60))
+    policy.burst_capacity = _int_or(policy.burst_capacity, rate_seed.get("burst_capacity", 15))
+    policy.cooldown_seconds = _int_or(policy.cooldown_seconds, 30)
+    policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
+    if policy.score_floor is None:
+        policy.score_floor = _DEFAULT_SCORE_FLOOR
+    if policy.score_ceiling is None:
+        policy.score_ceiling = _DEFAULT_SCORE_CEILING
+    if policy.learned_weight is None:
+        policy.learned_weight = _DEFAULT_LEARNED_WEIGHT
+    if policy.effective_score is None:
+        policy.effective_score = _DEFAULT_EFFECTIVE_SCORE
 
 
 def _bucket_key(provider_name: str, capability: ProviderCapability) -> tuple[str, str]:
@@ -202,11 +288,13 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     freshness_seconds=freshness,
                 )
                 db.add(policy)
-            else:
-                if policy.base_priority == 100:
-                    policy.base_priority = _base_priority(provider_name, providers)
-                if not policy.freshness_seconds:
-                    policy.freshness_seconds = freshness
+            _apply_policy_defaults(
+                policy,
+                provider_name=provider_name,
+                providers=providers,
+                freshness_seconds=freshness,
+                rate_seed=rate_seed,
+            )
 
             health = (
                 await db.execute(
@@ -223,6 +311,18 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     observed_score=Decimal("0"),
                 )
                 db.add(health)
+            if health.ewma_latency_ms is None:
+                health.ewma_latency_ms = Decimal("0")
+            if health.ewma_success_rate is None:
+                health.ewma_success_rate = Decimal("1")
+            if health.ewma_completeness is None:
+                health.ewma_completeness = Decimal("1")
+            if health.ewma_freshness is None:
+                health.ewma_freshness = Decimal("1")
+            if health.ewma_consistency is None:
+                health.ewma_consistency = Decimal("1")
+            if health.observed_score is None:
+                health.observed_score = Decimal("0")
             policy.effective_score = _effective_score(policy, health)
             health.observed_score = policy.effective_score
 
@@ -232,6 +332,8 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
 async def resolve_provider_chain(
     db: AsyncSession,
     capability: ProviderCapability,
+    *,
+    instrument_id: int | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -247,9 +349,23 @@ async def resolve_provider_chain(
         )
     ).all()
     now = datetime.now(UTC)
+    support_map = (
+        await get_provider_support_map(db, instrument_id, capability)
+        if instrument_id is not None
+        else {}
+    )
+    binding_ids = (
+        await get_provider_binding_ids(db, instrument_id)
+        if instrument_id is not None
+        else set()
+    )
     resolved: list[ResolvedProvider] = []
     for policy, health, data_source in rows:
         if health.circuit_open_until and health.circuit_open_until > now:
+            continue
+        support_state = support_map.get(data_source.id)
+        effective_support = support_state.status if support_state is not None else SUPPORT_STATUS_UNKNOWN
+        if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
         provider = get_provider(data_source.name)
         policy.effective_score = _effective_score(policy, health)
@@ -261,11 +377,15 @@ async def resolve_provider_chain(
                 data_source=data_source,
                 policy=policy,
                 health=health,
+                support_status=effective_support,
+                has_symbol_binding=data_source.id in binding_ids,
             )
         )
     resolved.sort(
         key=lambda item: (
             0 if item.policy.is_pinned else 1,
+            0 if item.support_status == SUPPORT_STATUS_SUPPORTED else 1,
+            0 if item.has_symbol_binding else 1,
             -float(item.policy.effective_score),
             item.policy.base_priority,
             item.provider_name,
@@ -335,11 +455,14 @@ async def execute_provider_call(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    provider_name: str | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
 ) -> ProviderExecutionResult:
-    chain = await resolve_provider_chain(db, capability)
+    chain = await resolve_provider_chain(db, capability, instrument_id=instrument_id)
+    if provider_name is not None:
+        chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
 
@@ -347,13 +470,21 @@ async def execute_provider_call(
         if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire():
             continue
 
+        usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
+            resolved.data_source,
+            operation,
+        )
         log_row = ProviderRequestLog(
             data_source_id=resolved.data_source.id,
             capability=capability,
             operation=operation,
+            operation_family=_operation_family(operation),
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
             requested_at=datetime.now(UTC),
+            usage_mode=usage_mode,
+            usage_unit_label=usage_unit_label,
+            usage_units=usage_units,
         )
         db.add(log_row)
         await db.flush()
@@ -368,7 +499,9 @@ async def execute_provider_call(
             count = response_items(result) if response_items is not None else None
             is_empty = result is None or count == 0
             if treat_empty_as_failure and is_empty:
-                raise ValueError(f"{resolved.provider_name} returned no usable data for {operation}")
+                raise ProviderNoDataError(
+                    f"{resolved.provider_name} returned no usable data for {operation}"
+                )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(
                 db,
@@ -378,6 +511,15 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=count,
             )
+            if instrument_id is not None:
+                await record_provider_support(
+                    db,
+                    instrument_id=instrument_id,
+                    data_source_id=resolved.data_source.id,
+                    capability=capability,
+                    status=SUPPORT_STATUS_SUPPORTED,
+                    provider_symbol=provider_symbol,
+                )
             return ProviderExecutionResult(
                 provider_name=resolved.provider_name,
                 data_source=resolved.data_source,
@@ -397,6 +539,26 @@ async def execute_provider_call(
                 response_items=0,
                 error=exc,
             )
+            should_mark_unsupported = (
+                instrument_id is not None
+                and isinstance(exc, ProviderNoDataError)
+                and (
+                    capability != ProviderCapability.PRICE_HISTORY
+                    or operation.startswith("fetch_latest_ohlcv:")
+                    or operation.startswith("bulk_fetch:")
+                )
+            )
+            if should_mark_unsupported:
+                await record_provider_support(
+                    db,
+                    instrument_id=instrument_id,
+                    data_source_id=resolved.data_source.id,
+                    capability=capability,
+                    status=SUPPORT_STATUS_UNSUPPORTED,
+                    provider_symbol=provider_symbol,
+                    error_type=exc.__class__.__name__,
+                    error_message=str(exc),
+                )
             remaining = [r.provider_name for r in chain if r.provider_name != resolved.provider_name]
             if remaining:
                 logger.warning(
@@ -418,6 +580,10 @@ async def execute_provider_call(
             await asyncio.sleep(min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15)
             continue
 
+    if not chain and instrument_id is not None:
+        raise ProviderNoDataError(
+            f"No currently-supported providers available for {capability.value}/{operation}"
+        )
     if last_error is not None:
         logger.error(
             "provider_runtime: all providers exhausted for %s/%s — last error: %s",

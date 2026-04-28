@@ -11,6 +11,8 @@ from decimal import Decimal
 
 import pytest
 
+from tests.unit.conftest import AsyncSessionAdapter
+
 from app.models.instrument import OptionRight
 from app.services.options_exposure import (
     ExposureLadderRow,
@@ -19,6 +21,8 @@ from app.services.options_exposure import (
     _compute_implied_move,
     _find_gamma_flip,
     _find_max_pain,
+    get_options_exposure,
+    list_exposure_expirations,
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -330,3 +334,71 @@ class TestAggregates:
         _, _, _, _, _, _, _, expirations, _ = _compute_exposure(quotes, SPOT)
         assert expirations == sorted(expirations)
         assert expirations[0] == EXP_1.isoformat()
+
+
+@pytest.mark.asyncio
+async def test_get_options_exposure_uses_provider_expiration_list(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _ensure(*_args, **_kwargs):
+        return None
+
+    async def _quotes(*_args, **kwargs):
+        expiration = kwargs.get("expiration")
+        if expiration is not None:
+            return [_call(strike=100, gamma=0.01, delta=0.5, oi=10, expiry=expiration)]
+        return [
+            _call(strike=100, gamma=0.01, delta=0.5, oi=10, expiry=date(2026, 6, 19)),
+            _put(strike=100, gamma=0.01, delta=-0.5, oi=10, expiry=date(2026, 6, 19)),
+            _call(strike=100, gamma=0.01, delta=0.5, oi=5, expiry=date(2026, 4, 27)),
+        ]
+
+    async def _spot(*_args, **_kwargs):
+        return 100.0
+
+    async def _expirations(*_args, **_kwargs):
+        return [date(2026, 6, 19), date(2026, 7, 17)]
+
+    async def _rfr(*_args, **_kwargs):
+        return 0.05
+
+    monkeypatch.setattr("app.services.options_exposure._ensure_option_quotes_available", _ensure)
+    monkeypatch.setattr("app.services.options_exposure._fetch_latest_contract_quotes", _quotes)
+    monkeypatch.setattr("app.services.options_exposure._get_spot_price", _spot)
+    monkeypatch.setattr("app.services.options_exposure.list_option_expirations", _expirations)
+    monkeypatch.setattr("app.services.options_exposure.get_risk_free_rate", _rfr)
+
+    result = await get_options_exposure(async_db, instrument)
+
+    assert result.expirations == ["2026-06-19", "2026-07-17"]
+    assert "2026-04-27" not in result.expirations
+
+
+@pytest.mark.asyncio
+async def test_list_exposure_expirations_filters_out_non_provider_expirations(db, instrument, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _ensure(*_args, **_kwargs):
+        return None
+
+    async def _quotes(*_args, **_kwargs):
+        return [
+            _call(strike=100, gamma=0.01, delta=0.5, oi=10, expiry=date(2026, 6, 19)),
+            _put(strike=100, gamma=0.01, delta=-0.5, oi=8, expiry=date(2026, 6, 19)),
+            _call(strike=100, gamma=0.01, delta=0.5, oi=5, expiry=date(2026, 4, 27)),
+        ]
+
+    async def _spot(*_args, **_kwargs):
+        return 100.0
+
+    async def _expirations(*_args, **_kwargs):
+        return [date(2026, 6, 19)]
+
+    monkeypatch.setattr("app.services.options_exposure._ensure_option_quotes_available", _ensure)
+    monkeypatch.setattr("app.services.options_exposure._fetch_latest_contract_quotes", _quotes)
+    monkeypatch.setattr("app.services.options_exposure._get_spot_price", _spot)
+    monkeypatch.setattr("app.services.options_exposure.list_option_expirations", _expirations)
+
+    summaries = await list_exposure_expirations(async_db, instrument)
+
+    assert [summary.expiration for summary in summaries] == ["2026-06-19"]

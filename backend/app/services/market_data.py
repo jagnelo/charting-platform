@@ -39,7 +39,11 @@ from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
 )
-from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    execute_provider_call,
+    resolve_provider_chain,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +103,14 @@ async def _fresh_latest_price_from_cache(
     return None
 
 
-def _search_results_from_payload(payload: dict) -> list[dict]:
+def _search_results_from_payload(payload: dict, *, provider_name: str | None = None) -> list[dict]:
     return [
         {
             "symbol": result.get("symbol", ""),
             "name": result.get("name", ""),
             "exchange": result.get("exchange", ""),
             "type": result.get("instrument_type", ""),
+            **({"provider": provider_name} if provider_name else {}),
         }
         for result in payload.get("results", [])
     ]
@@ -113,6 +118,8 @@ def _search_results_from_payload(payload: dict) -> list[dict]:
 
 async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] | None:
     now = datetime.now(UTC)
+    merged: list[dict] = []
+    seen: set[str] = set()
     for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_SEARCH):
         snapshot = (
             await db.execute(
@@ -127,9 +134,26 @@ async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] |
                 .limit(1)
             )
         ).scalar_one_or_none()
-        if snapshot is not None:
-            return _search_results_from_payload(snapshot.payload)
-    return None
+        if snapshot is None:
+            return None
+        for item in _search_results_from_payload(snapshot.payload, provider_name=resolved.provider_name):
+            symbol = item.get("symbol", "")
+            if not symbol or symbol in seen:
+                continue
+            seen.add(symbol)
+            merged.append(item)
+    return merged
+
+
+def _search_priority(query: str, item: dict) -> tuple[int, int, int, int, str]:
+    normalized = query.strip().upper()
+    symbol = str(item.get("symbol") or "").strip().upper()
+    asset_type = str(item.get("type") or "").strip().upper()
+    exact = 0 if symbol == normalized else 1
+    prefix = 0 if symbol.startswith(normalized) else 1
+    contains = 0 if normalized and normalized in symbol else 1
+    crypto_penalty = 1 if "CRYPTO" in asset_type and not normalized.endswith("-USD") else 0
+    return (exact, prefix, contains, crypto_penalty, symbol)
 
 
 async def _fresh_profile_from_cache(
@@ -500,7 +524,12 @@ async def fetch_ohlcv(
     cached = list((await db.execute(stmt)).scalars().all())
 
     if _needs_fetch_for_range(cached, timeframe, start, end):
-        new_bars = await _fetch_provider(db, instrument, timeframe, start, end, adjusted)
+        try:
+            new_bars = await _fetch_provider(db, instrument, timeframe, start, end, adjusted)
+        except ProviderNoDataError:
+            if not cached:
+                raise
+            new_bars = []
         if new_bars:
             try:
                 await db.execute(
@@ -705,14 +734,17 @@ async def fetch_ohlcv_latest(
         repair_start = await _latest_window_start(db, timeframe, limit)
         repair_end = oldest_ts - timedelta(seconds=1)
         if repair_end > repair_start:
-            repair_bars = await _fetch_provider(
-                db,
-                instrument,
-                timeframe,
-                repair_start,
-                repair_end,
-                adjusted,
-            )
+            try:
+                repair_bars = await _fetch_provider(
+                    db,
+                    instrument,
+                    timeframe,
+                    repair_start,
+                    repair_end,
+                    adjusted,
+                )
+            except ProviderNoDataError:
+                repair_bars = []
             if repair_bars:
                 try:
                     await db.execute(
@@ -740,9 +772,12 @@ async def fetch_ohlcv_latest(
         latest_ts = max(b.ts for b in rows)
         if latest_ts.tzinfo is None:
             latest_ts = latest_ts.replace(tzinfo=UTC)
-        new_bars = await _fetch_provider(
-            db, instrument, timeframe, latest_ts, datetime.now(UTC), adjusted
-        )
+        try:
+            new_bars = await _fetch_provider(
+                db, instrument, timeframe, latest_ts, datetime.now(UTC), adjusted
+            )
+        except ProviderNoDataError:
+            new_bars = []
         if new_bars:
             try:
                 await db.execute(
@@ -813,7 +848,10 @@ async def fetch_ohlcv_page_before(
         # full historical range up to `before`. The bulk fetch may still be
         # running, but fetching on-demand here is safe: the upsert uses
         # on_conflict_do_nothing so there are no duplicates.
-        fetched = await _fetch_provider(db, instrument, timeframe, _EPOCH, before, adjusted)
+        try:
+            fetched = await _fetch_provider(db, instrument, timeframe, _EPOCH, before, adjusted)
+        except ProviderNoDataError:
+            fetched = []
         if fetched:
             try:
                 await db.execute(
@@ -933,37 +971,50 @@ def get_current_price(provider_symbol: str) -> float | None:
 async def search_provider_instruments_async(db: AsyncSession, query: str) -> list[dict]:
     cached = await _fresh_search_from_cache(db, query)
     if cached is not None:
-        return cached
-    try:
-        execution = await execute_provider_call(
+        return sorted(cached, key=lambda item: _search_priority(query, item))[:10]
+
+    chain = await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_SEARCH)
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for resolved in chain:
+        try:
+            execution = await execute_provider_call(
+                db,
+                ProviderCapability.INSTRUMENT_SEARCH,
+                "search_instruments",
+                provider_name=resolved.provider_name,
+                invoke=lambda provider, _provider_symbol: provider.search_instruments(query, limit=10),
+                response_items=lambda result: len(result),
+                treat_empty_as_failure=False,
+            )
+        except Exception:
+            continue
+        await store_search_snapshot(
             db,
-            ProviderCapability.INSTRUMENT_SEARCH,
-            "search_instruments",
-            invoke=lambda provider, _provider_symbol: provider.search_instruments(query, limit=10),
-            response_items=lambda result: len(result),
-            treat_empty_as_failure=False,
+            data_source_id=execution.data_source.id,
+            query=query,
+            results=execution.result,
         )
-    except Exception:
-        return []
-    await store_search_snapshot(
-        db,
-        data_source_id=execution.data_source.id,
-        query=query,
-        results=execution.result,
-    )
-    return _search_results_from_payload(
-        {
-            "results": [
-                {
-                    "symbol": result.symbol,
-                    "name": result.name,
-                    "exchange": result.exchange,
-                    "instrument_type": result.instrument_type,
-                }
-                for result in execution.result
-            ]
-        }
-    )
+        for item in _search_results_from_payload(
+            {
+                "results": [
+                    {
+                        "symbol": result.symbol,
+                        "name": result.name,
+                        "exchange": result.exchange,
+                        "instrument_type": result.instrument_type,
+                    }
+                    for result in execution.result
+                ]
+            },
+            provider_name=execution.provider_name,
+        ):
+            symbol = item.get("symbol", "")
+            if not symbol or symbol in seen:
+                continue
+            seen.add(symbol)
+            merged.append(item)
+    return sorted(merged, key=lambda item: _search_priority(query, item))[:10]
 
 
 def search_provider_instruments(query: str) -> list[dict]:
@@ -975,6 +1026,8 @@ async def get_provider_profile_async(
     provider_symbol: str,
     *,
     instrument_id: int | None = None,
+    provider_name: str | None = None,
+    persist: bool = True,
 ):
     cached = await _fresh_profile_from_cache(
         db,
@@ -990,12 +1043,15 @@ async def get_provider_profile_async(
             "get_instrument_profile",
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
+            provider_name=provider_name,
             invoke=lambda provider, actual_symbol: provider.get_instrument_profile(actual_symbol or provider_symbol),
             response_items=lambda result: 1 if result is not None else 0,
             treat_empty_as_failure=True,
         )
     except Exception:
         return None
+    if not persist:
+        return execution.result
     instrument = None
     if instrument_id is not None:
         instrument = await db.get(Instrument, instrument_id)

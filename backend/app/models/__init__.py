@@ -17,6 +17,7 @@ from app.models.instrument_event import (
 from app.models.instrument_identity import (
     InstrumentIdentifier,
     InstrumentIdentifierType,
+    InstrumentProviderCapabilityStatus,
     InstrumentProviderSymbol,
 )
 from app.models.provider_observation import (
@@ -60,6 +61,7 @@ __all__ = [
     "InstrumentIdentifierType",
     "InstrumentIndicatorConfig",
     "InstrumentProviderSymbol",
+    "InstrumentProviderCapabilityStatus",
     "ProviderCapability",
     "ProviderPolicy",
     "ProviderHealthState",

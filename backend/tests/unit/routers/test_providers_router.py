@@ -10,6 +10,7 @@ class TestProvidersRouter:
         assert client.get("/api/v1/providers").status_code == 401
         assert client.get("/api/v1/providers/observations/summary").status_code == 401
         assert client.get("/api/v1/providers/datasets/stale").status_code == 401
+        assert client.get("/api/v1/providers/usage").status_code == 401
 
     def test_list_and_patch_policy(self, client, auth_headers):
         res = client.get("/api/v1/providers/policies", headers=auth_headers)
@@ -103,3 +104,37 @@ class TestProvidersRouter:
         assert health.failure_streak == 0
         assert health.circuit_open_until is None
         assert health.last_error_type is None
+
+    def test_provider_usage_summary(self, client, auth_headers, db):
+        data_source = DataSource(
+            name="yfinance",
+            is_active=True,
+            config={"usage_tracking": {"mode": "call_count", "unit_label": "requests", "limit_kind": "unknown"}},
+        )
+        db.add(data_source)
+        db.flush()
+        now = datetime.now(UTC)
+        from app.models.provider_runtime import ProviderRequestLog
+
+        db.add(
+            ProviderRequestLog(
+                data_source_id=data_source.id,
+                capability=ProviderCapability.INSTRUMENT_SEARCH,
+                operation="search_instruments",
+                operation_family="search_instruments",
+                requested_at=now - timedelta(minutes=10),
+                completed_at=now - timedelta(minutes=10),
+                success=True,
+                usage_mode="call_count",
+                usage_unit_label="requests",
+                usage_units=1,
+                latency_ms=100,
+            )
+        )
+        db.commit()
+
+        usage = client.get("/api/v1/providers/usage", headers=auth_headers)
+        assert usage.status_code == 200
+        row = next(item for item in usage.json() if item["provider"] == "yfinance")
+        assert row["requests_24h"] >= 1
+        assert row["usage_unit_label"] == "requests"

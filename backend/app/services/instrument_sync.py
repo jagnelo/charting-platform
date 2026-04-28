@@ -206,7 +206,7 @@ async def _provider_chain_label(db: AsyncSession, capability: ProviderCapability
 async def seed_universe(db: AsyncSession) -> dict:
     """
     Idempotent bootstrap of the full global instrument universe via the
-    configured discovery provider.
+    configured discovery providers.
 
     For every supported discovery type the provider is paged in batches
     of 250. Each page response contains all the metadata needed (name, sector,
@@ -245,217 +245,220 @@ async def seed_universe(db: AsyncSession) -> dict:
     discovery_chain = await resolve_provider_chain(db, ProviderCapability.UNIVERSE_DISCOVERY)
     if not discovery_chain:
         raise RuntimeError("No enabled universe discovery providers are available")
-    discovery = discovery_chain[0]
-    discovery_provider = discovery.provider
 
-    for quote_type in discovery_provider.supported_discovery_types():
-        type_id = type_id_map[quote_type]
-        offset = 0
-        total = None
+    for discovery in discovery_chain:
+        discovery_provider = discovery.provider
+        for quote_type in discovery_provider.supported_discovery_types():
+            type_id = type_id_map[quote_type]
+            offset = 0
+            total = None
 
-        logger.info("seed_universe: scanning %s…", quote_type)
+            logger.info("seed_universe: scanning %s via %s…", quote_type, discovery.provider_name)
 
-        while True:
-            execution = await execute_provider_call(
-                db,
-                ProviderCapability.UNIVERSE_DISCOVERY,
-                f"discover_universe_page:{quote_type}:{offset}",
-                invoke=lambda provider, _provider_symbol: provider.discover_universe_page(
-                    quote_type, offset
-                ),
-                response_items=lambda result: len(result.get("quotes") or []),
-                treat_empty_as_failure=False,
-            )
-            page = execution.result
-            page_provider_name = execution.provider_name
-            await store_universe_discovery_snapshot(
-                db,
-                data_source_id=execution.data_source.id,
-                quote_type=quote_type,
-                offset=offset,
-                page=page,
-            )
-            quotes = page.get("quotes") or []
-
-            if total is None:
-                total = page.get("total", 0)
-                logger.info("seed_universe: %s  total=%d", quote_type, total)
-
-            if not quotes:
-                break
-
-            for q in quotes:
-                symbol = (q.get("symbol") or "").strip()
-                if not symbol:
-                    continue
-
-                name = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
-                currency = q.get("currency")
-                exchange = q.get("exchange") or q.get("fullExchangeName")
-                fetched_at = datetime.now(UTC)
-
-                inst = existing.get(symbol)
-                if inst is None:
-                    inst = Instrument(
-                        symbol=symbol,
-                        name=name,
-                        instrument_type_id=type_id,
-                        currency=currency,
-                        is_active=True,
-                    )
-                    db.add(inst)
-                    await db.flush()
-                    existing[symbol] = inst
-                    created += 1
-                else:
-                    if name:
-                        inst.name = name
-                    if currency:
-                        inst.currency = currency
-                    inst.instrument_type_id = type_id
-                    inst.is_active = True
-
-                provenance = dict(inst.field_provenance or {})
-                provenance["symbol"] = {
-                    "source": page_provider_name,
-                    "fetched_at": fetched_at.isoformat(),
-                    "provider_symbol": symbol,
-                }
-                if name:
-                    provenance["name"] = {
-                        "source": page_provider_name,
-                        "fetched_at": fetched_at.isoformat(),
-                        "provider_symbol": symbol,
-                    }
-                if currency:
-                    provenance["currency"] = {
-                        "source": page_provider_name,
-                        "fetched_at": fetched_at.isoformat(),
-                        "provider_symbol": symbol,
-                    }
-                inst.field_provenance = provenance
-
-                await _upsert_listing(db, inst, symbol, currency)
-                await register_provider_symbol(
+            while True:
+                execution = await execute_provider_call(
                     db,
-                    inst,
-                    page_provider_name,
-                    symbol,
-                    provider_exchange_code=exchange,
-                    provider_instrument_type=quote_type,
-                    currency=currency,
-                    is_primary=True,
+                    ProviderCapability.UNIVERSE_DISCOVERY,
+                    f"discover_universe_page:{quote_type}:{offset}",
+                    provider_name=discovery.provider_name,
+                    invoke=lambda provider, _provider_symbol: provider.discover_universe_page(
+                        quote_type, offset
+                    ),
+                    response_items=lambda result: len(result.get("quotes") or []),
+                    treat_empty_as_failure=False,
                 )
-                await _upsert_stats(db, inst, q, source_provider=page_provider_name)
-                await ensure_internal_identifier(db, inst)
+                page = execution.result
+                page_provider_name = execution.provider_name
+                await store_universe_discovery_snapshot(
+                    db,
+                    data_source_id=execution.data_source.id,
+                    quote_type=quote_type,
+                    offset=offset,
+                    page=page,
+                )
+                quotes = page.get("quotes") or []
 
-                # ── Detail rows ──────────────────────────────────────────────
-                if quote_type in _EQUITY_DETAIL_TYPES:
-                    ed = (
-                        await db.execute(
-                            select(EquityDetail).where(EquityDetail.instrument_id == inst.id)
+                if total is None:
+                    total = page.get("total", 0)
+                    logger.info(
+                        "seed_universe: %s via %s total=%d",
+                        quote_type,
+                        discovery.provider_name,
+                        total,
+                    )
+
+                if not quotes:
+                    break
+
+                fetched_at = datetime.now(UTC)
+                for q in quotes:
+                    symbol = (q.get("symbol") or "").strip()
+                    if not symbol:
+                        continue
+
+                    name = q.get("longName") or q.get("shortName") or q.get("displayName") or symbol
+                    currency = q.get("currency")
+                    exchange = q.get("exchange") or q.get("fullExchangeName")
+
+                    inst = existing.get(symbol)
+                    if inst is None:
+                        inst = Instrument(
+                            symbol=symbol,
+                            name=name,
+                            instrument_type_id=type_id,
+                            currency=currency,
+                            is_active=True,
                         )
-                    ).scalar_one_or_none()
-                    if ed is None:
-                        ed = EquityDetail(instrument_id=inst.id)
-                        db.add(ed)
+                        db.add(inst)
+                        await db.flush()
+                        existing[symbol] = inst
+                        created += 1
+                    else:
+                        if name:
+                            inst.name = name
+                        if currency:
+                            inst.currency = currency
+                        inst.instrument_type_id = type_id
+                        inst.is_active = True
 
-                    ed.sector = q.get("sector") or q.get("sectorDisplay") or ed.sector
-                    ed.industry = q.get("industry") or q.get("industryDisplay") or ed.industry
-                    ed.country = q.get("country") or ed.country
-                    ed.exchange_mic = exchange or ed.exchange_mic
-                    ed.market_cap_tier = _cap_tier(q.get("marketCap")) or ed.market_cap_tier
-                    field_provenance = dict(ed.field_provenance or {})
-                    for field_name, value in [
-                        ("sector", q.get("sector") or q.get("sectorDisplay")),
-                        ("industry", q.get("industry") or q.get("industryDisplay")),
-                        ("country", q.get("country")),
-                        ("exchange_mic", exchange),
-                        ("market_cap_tier", _cap_tier(q.get("marketCap"))),
-                    ]:
-                        if value is not None:
-                            field_provenance[field_name] = {
+                    provenance = dict(inst.field_provenance or {})
+                    provenance["symbol"] = {
+                        "source": page_provider_name,
+                        "fetched_at": fetched_at.isoformat(),
+                        "provider_symbol": symbol,
+                    }
+                    if name:
+                        provenance["name"] = {
+                            "source": page_provider_name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                    if currency:
+                        provenance["currency"] = {
+                            "source": page_provider_name,
+                            "fetched_at": fetched_at.isoformat(),
+                            "provider_symbol": symbol,
+                        }
+                    inst.field_provenance = provenance
+
+                    await _upsert_listing(db, inst, symbol, currency)
+                    await register_provider_symbol(
+                        db,
+                        inst,
+                        page_provider_name,
+                        symbol,
+                        provider_exchange_code=exchange,
+                        provider_instrument_type=quote_type,
+                        currency=currency,
+                        is_primary=True,
+                    )
+                    await _upsert_stats(db, inst, q, source_provider=page_provider_name)
+                    await ensure_internal_identifier(db, inst)
+
+                    if quote_type in _EQUITY_DETAIL_TYPES:
+                        ed = (
+                            await db.execute(
+                                select(EquityDetail).where(EquityDetail.instrument_id == inst.id)
+                            )
+                        ).scalar_one_or_none()
+                        if ed is None:
+                            ed = EquityDetail(instrument_id=inst.id)
+                            db.add(ed)
+
+                        ed.sector = q.get("sector") or q.get("sectorDisplay") or ed.sector
+                        ed.industry = q.get("industry") or q.get("industryDisplay") or ed.industry
+                        ed.country = q.get("country") or ed.country
+                        ed.exchange_mic = exchange or ed.exchange_mic
+                        ed.market_cap_tier = _cap_tier(q.get("marketCap")) or ed.market_cap_tier
+                        field_provenance = dict(ed.field_provenance or {})
+                        for field_name, value in [
+                            ("sector", q.get("sector") or q.get("sectorDisplay")),
+                            ("industry", q.get("industry") or q.get("industryDisplay")),
+                            ("country", q.get("country")),
+                            ("exchange_mic", exchange),
+                            ("market_cap_tier", _cap_tier(q.get("marketCap"))),
+                        ]:
+                            if value is not None:
+                                field_provenance[field_name] = {
+                                    "source": page_provider_name,
+                                    "fetched_at": fetched_at.isoformat(),
+                                    "provider_symbol": symbol,
+                                }
+                        ed.field_provenance = field_provenance or None
+
+                    elif quote_type == "CURRENCY":
+                        pair = _parse_forex_pair(symbol)
+                        if pair:
+                            fd = (
+                                await db.execute(
+                                    select(ForexDetail).where(ForexDetail.instrument_id == inst.id)
+                                )
+                            ).scalar_one_or_none()
+                            if fd is None:
+                                fd = ForexDetail(
+                                    instrument_id=inst.id,
+                                    base_currency=pair[0],
+                                    quote_currency=pair[1],
+                                )
+                                db.add(fd)
+                            field_provenance = dict(fd.field_provenance or {})
+                            field_provenance["base_currency"] = {
                                 "source": page_provider_name,
                                 "fetched_at": fetched_at.isoformat(),
                                 "provider_symbol": symbol,
                             }
-                    ed.field_provenance = field_provenance or None
+                            field_provenance["quote_currency"] = {
+                                "source": page_provider_name,
+                                "fetched_at": fetched_at.isoformat(),
+                                "provider_symbol": symbol,
+                            }
+                            fd.field_provenance = field_provenance
 
-                elif quote_type == "CURRENCY":
-                    pair = _parse_forex_pair(symbol)
-                    if pair:
-                        fd = (
+                    elif quote_type == "FUTURE":
+                        fut = (
                             await db.execute(
-                                select(ForexDetail).where(ForexDetail.instrument_id == inst.id)
+                                select(FutureDetail).where(FutureDetail.instrument_id == inst.id)
                             )
                         ).scalar_one_or_none()
-                        if fd is None:
-                            fd = ForexDetail(
-                                instrument_id=inst.id,
-                                base_currency=pair[0],
-                                quote_currency=pair[1],
-                            )
-                            db.add(fd)
-                        field_provenance = dict(fd.field_provenance or {})
-                        field_provenance["base_currency"] = {
-                            "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
-                            "provider_symbol": symbol,
-                        }
-                        field_provenance["quote_currency"] = {
-                            "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
-                            "provider_symbol": symbol,
-                        }
-                        fd.field_provenance = field_provenance
+                        if fut is None:
+                            fut = FutureDetail(instrument_id=inst.id)
+                            db.add(fut)
 
-                elif quote_type == "FUTURE":
-                    fut = (
-                        await db.execute(
-                            select(FutureDetail).where(FutureDetail.instrument_id == inst.id)
-                        )
-                    ).scalar_one_or_none()
-                    if fut is None:
-                        fut = FutureDetail(instrument_id=inst.id)
-                        db.add(fut)
+                        fut.underlying_name = name or fut.underlying_name
+                        fut.is_continuous = symbol.endswith("=F") or fut.is_continuous
+                        field_provenance = dict(fut.field_provenance or {})
+                        if name:
+                            field_provenance["underlying_name"] = {
+                                "source": page_provider_name,
+                                "fetched_at": fetched_at.isoformat(),
+                                "provider_symbol": symbol,
+                            }
+                        if symbol.endswith("=F"):
+                            field_provenance["is_continuous"] = {
+                                "source": page_provider_name,
+                                "fetched_at": fetched_at.isoformat(),
+                                "provider_symbol": symbol,
+                            }
+                        fut.field_provenance = field_provenance or None
 
-                    fut.underlying_name = name or fut.underlying_name
-                    fut.is_continuous = symbol.endswith("=F") or fut.is_continuous
-                    field_provenance = dict(fut.field_provenance or {})
-                    if name:
-                        field_provenance["underlying_name"] = {
-                            "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
-                            "provider_symbol": symbol,
-                        }
-                    if symbol.endswith("=F"):
-                        field_provenance["is_continuous"] = {
-                            "source": page_provider_name,
-                            "fetched_at": fetched_at.isoformat(),
-                            "provider_symbol": symbol,
-                        }
-                    fut.field_provenance = field_provenance or None
+                    updated += 1
 
-                # CRYPTOCURRENCY: no dedicated detail table yet; keep Instrument,
-                # listing, stats, currency, and OHLCV source identity.
+                await db.commit()
+                logger.info(
+                    "seed_universe: %s via %s offset=%d/%d created=%d updated=%d",
+                    quote_type,
+                    page_provider_name,
+                    offset + len(quotes),
+                    total,
+                    created,
+                    updated,
+                )
 
-                updated += 1
+                offset += len(quotes)
+                if offset >= (total or 0):
+                    break
 
-            await db.commit()
-            logger.info(
-                "seed_universe: %s  offset=%d/%d  created=%d  updated=%d",
-                quote_type,
-                offset + len(quotes),
-                total,
-                created,
-                updated,
-            )
-
-            offset += len(quotes)
-            if not quotes or offset >= (total or 0):
-                break
-
-            await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
+                await asyncio.sleep(settings.INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS)
 
     logger.info("seed_universe complete: created=%d  updated=%d", created, updated)
     return {"created": created, "updated": updated, "total": created + updated}

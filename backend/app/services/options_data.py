@@ -152,17 +152,18 @@ async def list_option_expirations(
     *,
     refresh: bool = False,
 ) -> list[date]:
-    expirations = (
+    persisted_expirations = (
         await db.execute(
             select(distinct(OptionDetail.expiry_date))
             .where(OptionDetail.underlying_instrument_id == underlying.id)
             .order_by(OptionDetail.expiry_date)
         )
     ).scalars().all()
-    if expirations and not refresh:
-        fresh_state = (
+    if not refresh:
+        fresh_states = (
             await db.execute(
-                select(InstrumentDatasetState).where(
+                select(InstrumentDatasetState)
+                .where(
                     InstrumentDatasetState.instrument_id == underlying.id,
                     InstrumentDatasetState.dataset_type == "option_expirations",
                     InstrumentDatasetState.dataset_key == "all",
@@ -170,10 +171,22 @@ async def list_option_expirations(
                     InstrumentDatasetState.stale_after.is_not(None),
                     InstrumentDatasetState.stale_after > _now_utc(),
                 )
+                .order_by(InstrumentDatasetState.observed_at.desc())
             )
-        ).scalar_one_or_none()
-        if fresh_state is not None:
-            return expirations
+        ).scalars().all()
+        for state in fresh_states:
+            payload_exps = (state.extra_data or {}).get("expirations")
+            if isinstance(payload_exps, list) and payload_exps:
+                parsed: list[date] = []
+                for item in payload_exps:
+                    try:
+                        parsed.append(date.fromisoformat(str(item)))
+                    except ValueError:
+                        continue
+                if parsed:
+                    return sorted(set(parsed))
+        if persisted_expirations:
+            return persisted_expirations
 
     try:
         execution = await execute_provider_call(
@@ -188,7 +201,7 @@ async def list_option_expirations(
             treat_empty_as_failure=False,
         )
     except Exception:
-        return expirations
+        return persisted_expirations
     expirations = sorted(set(execution.result))
     await _upsert_dataset_state(
         db,
