@@ -6,7 +6,7 @@
 # git branch keeps its own persisted Postgres and Redis volumes.
 #
 # Usage:
-#   COMPOSE_PROJECT_NAME=$(./scripts/dev-stack.sh project-name) docker compose -f docker-compose.dev.yml up -d
+#   COMPOSE_PROJECT_NAME=$(./scripts/dev-stack.sh project-name dev) docker compose -f docker-compose.dev.yml up -d
 #   (then in separate terminals: see Makefile dev targets or dev.sh)
 
 services:

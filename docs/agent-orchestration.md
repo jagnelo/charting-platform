@@ -53,7 +53,7 @@ This avoids making the orchestrator juggle multiple peer instruction files.
 2. Install and verify **Claude Code CLI**
 3. Install and verify **LangGraph** in a dedicated Python orchestration environment
 4. Ensure the project can be fully controlled from terminal commands:
-   - docker compose
+   - docker compose (with the repo's branch-scoped `COMPOSE_PROJECT_NAME` convention)
    - alembic
    - backend tests
    - frontend tests/build

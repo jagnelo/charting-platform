@@ -1,4 +1,7 @@
-version: "3.9"
+# The full application stack is expected to run with an explicit
+# COMPOSE_PROJECT_NAME. Makefile targets and local docs route this through
+# `./scripts/dev-stack.sh project-name stack` so each git branch gets its own
+# containers, networks, and volumes.
 
 # ── Persistent volumes ────────────────────────────────────────────────────────
 volumes:
@@ -21,7 +24,6 @@ services:
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: charting-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER:     ${POSTGRES_USER:-postgres}
@@ -41,7 +43,6 @@ services:
   # ── Redis (ARQ task queue) ──────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: charting-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -58,7 +59,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: charting-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -111,7 +111,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: charting-worker
     restart: unless-stopped
     command: python -m app.workers.arq_worker
     environment:
@@ -154,7 +153,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: charting-frontend
     restart: unless-stopped
     ports:
       - "80:80"

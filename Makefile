@@ -33,7 +33,8 @@
 # loads backend/.env.dev instead of looking for a .env file.
 BACKEND_ENV := ENV_FILE=.env.dev
 DEV_STACK_HELPER := ./scripts/dev-stack.sh
-DEV_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name)
+DEV_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name dev)
+STACK_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name stack)
 DEV_BRANCH_NAME := $(shell $(DEV_STACK_HELPER) branch-name)
 
 # ── Dev environment ────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ dev-infra:
 	@echo "▶  Starting branch-scoped Postgres + Redis..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(DEV_COMPOSE_PROJECT)"
-	@$(DEV_STACK_HELPER) stop-others docker-compose.dev.yml
+	@$(DEV_STACK_HELPER) stop-others docker-compose.dev.yml dev
 	COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml up -d
 	@echo "▶  Waiting for Postgres to be ready..."
 	@for i in $$(seq 1 30); do \
@@ -135,14 +136,17 @@ test-e2e-headed: test-e2e-install
 	cd frontend && STACK_URL=$${STACK_URL:-http://localhost} npx playwright test --headed
 
 test-stack-up:
-	@echo "▶  Starting full application stack for browser validation..."
-	docker compose up -d --wait
+	@echo "▶  Starting branch-scoped full application stack for browser validation..."
+	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
+	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
+	@$(DEV_STACK_HELPER) stop-others docker-compose.yml stack
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	@echo "▶  Applying migrations to the running stack..."
 	$(MAKE) migrate
 
 test-stack-down:
-	@echo "▶  Stopping full application stack..."
-	docker compose down
+	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
 
 test: test-unit test-int test-fe
 	@echo ""
@@ -190,9 +194,9 @@ ci:
 	cd frontend && npm ci
 	$(MAKE) test
 	cd frontend && npx playwright install --with-deps chromium
-	docker compose up -d --wait
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	$(MAKE) test-e2e
-	docker compose down
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 

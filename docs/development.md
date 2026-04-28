@@ -135,7 +135,7 @@ Create `.vscode/launch.json`:
 
 ```bash
 # psql via Docker
-COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name)" docker compose -f docker-compose.dev.yml exec postgres psql -U postgres chartingdb
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name dev)" docker compose -f docker-compose.dev.yml exec postgres psql -U postgres chartingdb
 
 # Or with a GUI tool — connect to:
 #   Host:     localhost
@@ -205,7 +205,7 @@ The `uv.lock` file is committed to git. Other developers get identical versions 
 make dev-infra-stop
 
 # Stop infrastructure AND delete the current branch's dev data (full reset)
-COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name)" docker compose -f docker-compose.dev.yml down -v
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name dev)" docker compose -f docker-compose.dev.yml down -v
 ```
 
 The backend and frontend stop when you Ctrl+C the `make dev` terminal.

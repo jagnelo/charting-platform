@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE_DEFAULT="$ROOT/docker-compose.dev.yml"
-PROJECT_PREFIX="charting-dev"
+PROJECT_PREFIX_BASE="charting"
 
 branch_name() {
     local branch
@@ -26,20 +26,47 @@ branch_slug() {
 }
 
 project_name() {
-    printf '%s-%s\n' "$PROJECT_PREFIX" "$(branch_slug)"
+    local flavor prefix
+    flavor="${1:-dev}"
+    case "$flavor" in
+        dev)
+            prefix="${PROJECT_PREFIX_BASE}-dev"
+            ;;
+        app|stack|e2e|test)
+            prefix="${PROJECT_PREFIX_BASE}-stack"
+            ;;
+        *)
+            prefix="${PROJECT_PREFIX_BASE}-${flavor}"
+            ;;
+    esac
+    printf '%s-%s\n' "$prefix" "$(branch_slug)"
 }
 
 list_active_projects() {
+    local flavor prefix
+    flavor="${1:-dev}"
+    case "$flavor" in
+        dev)
+            prefix="${PROJECT_PREFIX_BASE}-dev"
+            ;;
+        app|stack|e2e|test)
+            prefix="${PROJECT_PREFIX_BASE}-stack"
+            ;;
+        *)
+            prefix="${PROJECT_PREFIX_BASE}-${flavor}"
+            ;;
+    esac
     docker ps --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null \
         | awk 'NF' \
         | sort -u \
-        | grep "^${PROJECT_PREFIX}-" || true
+        | grep "^${prefix}-" || true
 }
 
 stop_other_projects() {
-    local compose_file current project
+    local compose_file flavor current project
     compose_file="${1:-$COMPOSE_FILE_DEFAULT}"
-    current="$(project_name)"
+    flavor="${2:-dev}"
+    current="$(project_name "$flavor")"
 
     while IFS= read -r project; do
         [[ -z "$project" ]] && continue
@@ -47,13 +74,14 @@ stop_other_projects() {
 
         printf '[dev-stack] Stopping other branch dev stack: %s\n' "$project"
         COMPOSE_PROJECT_NAME="$project" docker compose -f "$compose_file" down
-    done < <(list_active_projects)
+    done < <(list_active_projects "$flavor")
 }
 
 describe() {
     printf 'branch=%s\n' "$(branch_name)"
     printf 'slug=%s\n' "$(branch_slug)"
-    printf 'project=%s\n' "$(project_name)"
+    printf 'dev_project=%s\n' "$(project_name dev)"
+    printf 'stack_project=%s\n' "$(project_name stack)"
 }
 
 usage() {
@@ -63,8 +91,9 @@ Usage: scripts/dev-stack.sh <command> [args]
 Commands:
   branch-name           Print the current git branch name
   branch-slug           Print the normalized branch slug
-  project-name          Print the branch-scoped Docker Compose project name
-  stop-others [file]    Stop other running charting-dev Compose projects
+  project-name [flavor] Print the branch-scoped Docker Compose project name
+  stop-others [file] [flavor]
+                        Stop other running branch-scoped Compose projects for that flavor
   describe              Print branch, slug, and project name
 EOF
 }
@@ -79,10 +108,10 @@ main() {
             branch_slug
             ;;
         project-name)
-            project_name
+            project_name "${2:-dev}"
             ;;
         stop-others)
-            stop_other_projects "${2:-$COMPOSE_FILE_DEFAULT}"
+            stop_other_projects "${2:-$COMPOSE_FILE_DEFAULT}" "${3:-dev}"
             ;;
         describe)
             describe

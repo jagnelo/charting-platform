@@ -29,14 +29,19 @@ cp .env.example .env
 # Edit .env — at minimum set SECRET_KEY:
 #   echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env
 
-# 2. Start everything
-docker compose up -d
+# 2. Start everything with a branch-scoped Compose project
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name stack)" docker compose up -d
 
-# 3. Open in browser
-open http://localhost:4173
+# 3. Apply DB migrations
+COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name stack)" docker compose exec backend alembic upgrade head
+
+# 4. Open in browser
+open http://localhost
 ```
 
 Register an account and start searching for symbols. Market data comes from the active provider policy chain for each capability and is persisted locally before it is served back to the UI.
+
+Every local stack started from this repository is branch-scoped by default. On a branch like `feat/provider-abstraction`, the full app stack is named `charting-stack-feat-provider-abstraction`; the dev infra stack is named `charting-dev-feat-provider-abstraction`.
 
 ---
 
@@ -71,7 +76,7 @@ Register an account and start searching for symbols. Market data comes from the 
 | `redis` | 6379 | ARQ background task broker |
 | `backend` | 8000 | FastAPI REST + WebSocket |
 | `worker` | — | ARQ worker for bulk fetches and scheduled screener runs |
-| `frontend` | 4173 | Vue 3 SPA served by nginx |
+| `frontend` | 80 | Vue 3 SPA served by nginx |
 
 ---
 
@@ -137,7 +142,7 @@ ONESIGNAL_APP_ID=your-onesignal-app-id
 ONESIGNAL_REST_API_KEY=your-onesignal-rest-api-key
 
 # CORS — add your NAS IP/hostname
-CORS_ORIGINS=["http://localhost:4173","http://your-nas-ip:4173"]
+CORS_ORIGINS=["http://localhost","http://your-nas-ip"]
 
 # Alert engine poll interval in seconds
 ALERT_POLL_INTERVAL=60
@@ -233,9 +238,11 @@ make test-fe
 # Everything (unit + integration + frontend)
 make test
 
-# E2E browser tests via Playwright — requires stack to be running
-docker compose up -d
+# E2E browser tests via Playwright — use the branch-scoped full stack
+make test-stack-up
 make test-e2e
+# Optional cleanup when you're done
+make test-stack-down
 ```
 
 See [`docs/testing.md`](docs/testing.md) for full details including coverage targets and how to add tests.

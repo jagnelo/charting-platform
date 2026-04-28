@@ -22,6 +22,7 @@ The test suite is split into four layers. Each layer has a different speed/fidel
 ```bash
 make test          # unit + integration + frontend unit (no E2E)
 make test-all      # everything including E2E
+make test-platform # branch-scoped full-stack validation
 ```
 
 ### Individually
@@ -36,7 +37,8 @@ make test-int
 # Frontend Vitest unit tests
 make test-fe
 
-# E2E — requires docker compose up -d first
+# E2E — branch-scoped full stack
+make test-stack-up
 make test-e2e
 ```
 
@@ -191,4 +193,4 @@ Tests run automatically on every push and pull request via GitHub Actions (`.git
 1. **Backend unit** — fast, no containers
 2. **Backend integration** — testcontainers
 3. **Frontend unit** — Vitest
-4. **E2E** — Playwright against a real Docker Compose stack spun up in CI
+4. **E2E** — Playwright against a real branch-scoped Docker Compose stack spun up in CI/local workflows

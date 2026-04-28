@@ -4,6 +4,8 @@
 
 This is the intended production setup: five containers, all managed by Docker Compose, data persisted in named volumes.
 
+All commands below assume you set `COMPOSE_PROJECT_NAME` first. For local branch-scoped workflows, use the repo helper. For a stable long-lived server deployment, replace it with a fixed name such as `charting-prod`.
+
 ### Prerequisites
 
 - Docker Engine 24+
@@ -14,6 +16,9 @@ This is the intended production setup: five containers, all managed by Docker Co
 ### First-time setup
 
 ```bash
+# Choose the Compose project name for this checkout/session
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(./scripts/dev-stack.sh project-name stack)}"
+
 # 1. Copy and fill in the environment file
 cp .env.example .env
 # Required: set SECRET_KEY
@@ -51,6 +56,8 @@ docker compose exec backend alembic upgrade head   # apply any new migrations
 ## HTTPS with nginx reverse proxy
 
 If you expose the app to the internet (or just want HTTPS on your LAN), put nginx in front. This example uses Certbot for a free Let's Encrypt certificate.
+
+This example assumes the frontend container is published on `4173` instead of `80`, so nginx can own ports `80` and `443` on the host. If you keep the default `80:80` mapping from `docker-compose.yml`, change that published port before using this layout.
 
 ### nginx config (`/etc/nginx/sites-available/charts`)
 
@@ -120,8 +127,8 @@ All application data lives in two Docker named volumes:
 
 | Volume | Contents |
 |---|---|
-| `charting-platform_postgres_data` | All OHLCV bars, user data, drawings, alerts, screeners |
-| `charting-platform_redis_data` | Task queue state (safe to lose — tasks simply re-queue) |
+| `${COMPOSE_PROJECT_NAME}_postgres_data` | All OHLCV bars, user data, drawings, alerts, screeners |
+| `${COMPOSE_PROJECT_NAME}_redis_data` | Task queue state (safe to lose — tasks simply re-queue) |
 
 Only the Postgres volume is essential. Redis can always be recreated.
 
@@ -156,7 +163,7 @@ cat chartingdb_20240301.sql | docker compose exec -T postgres psql -U postgres c
 
 Add to your crontab (`crontab -e`):
 ```cron
-0 3 * * * cd /path/to/charting-platform && docker compose exec postgres pg_dump -U postgres chartingdb > /backups/chartingdb_$(date +\%Y\%m\%d).sql 2>&1
+0 3 * * * cd /path/to/charting-platform && COMPOSE_PROJECT_NAME=charting-prod docker compose exec postgres pg_dump -U postgres chartingdb > /backups/chartingdb_$(date +\%Y\%m\%d).sql 2>&1
 # Keep 30 days of backups
 0 4 * * * find /backups -name "chartingdb_*.sql" -mtime +30 -delete
 ```
@@ -170,7 +177,7 @@ Add to your crontab (`crontab -e`):
 | `SECRET_KEY` | **Yes** | — | 64-char hex string for JWT signing. Generate: `openssl rand -hex 32` |
 | `DATABASE_URL` | No | Set by Compose | PostgreSQL connection string |
 | `REDIS_URL` | No | Set by Compose | Redis connection string |
-| `CORS_ORIGINS` | No | `["http://localhost:4173"]` | JSON array of allowed origins |
+| `CORS_ORIGINS` | No | `["http://localhost"]` | JSON array of allowed origins |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | Access token lifetime |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | No | `30` | Refresh token lifetime |
 | `ALERT_POLL_INTERVAL` | No | `60` | Seconds between alert evaluation ticks |

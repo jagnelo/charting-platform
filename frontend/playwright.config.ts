@@ -2,11 +2,11 @@ import { defineConfig, devices } from '@playwright/test'
 
 /**
  * E2E tests run against the full Docker Compose stack.
- * Set STACK_URL to the running frontend URL (default: http://localhost:4173).
+ * Set STACK_URL to the running frontend URL (default: http://localhost).
  * Set TEST_USER / TEST_PASS for the test account (created if it doesn't exist).
  *
  * Run:
- *   docker compose up -d
+ *   make test-stack-up
  *   npx playwright test                        # all E2E tests
  *   npx playwright test --headed               # watch mode
  *   npx playwright test tests/e2e/auth.spec.ts # single file
@@ -19,7 +19,7 @@ export default defineConfig({
   timeout: 30_000,
   reporter: [['html', { outputFolder: 'playwright-report' }], ['line']],
   use: {
-    baseURL: process.env.STACK_URL ?? 'http://localhost:4173',
+    baseURL: process.env.STACK_URL ?? 'http://localhost',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
