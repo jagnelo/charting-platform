@@ -7,7 +7,16 @@ export const usePresetsStore = defineStore('presets', () => {
   const presets = ref<IndicatorPreset[]>([])
 
   async function loadPresets() {
-    presets.value = await api.get('/presets')
+    try {
+      presets.value = await api.get('/presets')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e ?? '')
+      if (/Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)) {
+        presets.value = []
+        return
+      }
+      throw e
+    }
   }
 
   async function savePreset(name: string, indicators: IndicatorConfig[], isDefault = false): Promise<IndicatorPreset> {

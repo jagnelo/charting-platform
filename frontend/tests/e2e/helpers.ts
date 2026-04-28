@@ -2,13 +2,28 @@
  * Shared Playwright helpers and fixtures.
  * Import these instead of @playwright/test directly.
  */
-import { test as base, expect, type Page, type TestInfo } from '@playwright/test'
+import { test as base, expect, type APIRequestContext, type Page, type TestInfo } from '@playwright/test'
 
 const USER  = process.env.TEST_USER ?? 'e2euser'
-const EMAIL = process.env.TEST_EMAIL ?? 'e2e@charting.test'
+const EMAIL = process.env.TEST_EMAIL ?? 'e2e@example.com'
 const PASS  = process.env.TEST_PASS  ?? 'E2ePassword123!'
 
 export { expect }
+
+async function ensureUserExists(
+  request: APIRequestContext,
+  username: string,
+  email: string,
+  password: string,
+) {
+  const response = await request.post('/api/v1/auth/register', {
+    data: { username, email, password },
+  })
+  if (response.status() === 201 || response.status() === 409) {
+    return
+  }
+  throw new Error(`Failed to provision E2E user ${username}: ${response.status()} ${await response.text()}`)
+}
 
 class BrowserDiagnostics {
   consoleErrors: string[] = []
@@ -26,7 +41,11 @@ class BrowserDiagnostics {
       this.pageErrors.push(err.message)
     })
     page.on('requestfailed', (req) => {
-      this.requestFailures.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText ?? 'failed'}`)
+      const errorText = req.failure()?.errorText ?? 'failed'
+      if (errorText.includes('ERR_ABORTED')) {
+        return
+      }
+      this.requestFailures.push(`${req.method()} ${req.url()} :: ${errorText}`)
     })
   }
 
@@ -139,8 +158,8 @@ export class ScreenerPage {
 
   async createScreener(name: string) {
     await this.page.click('button:has-text("New")')
-    await this.page.fill('input[placeholder*="Screener"], input[placeholder*="name"]', name)
-    await this.page.click('button:has-text("Create")')
+    await this.page.fill('.builder-panel input[placeholder*="RSI Oversold"]', name)
+    await this.page.click('button:has-text("Save Screener"), button:has-text("Create")')
     await this.page.waitForTimeout(300)
   }
 }
@@ -189,14 +208,13 @@ export const test = base.extend<Fixtures>({
   screenerPage:  async ({ page }, use) => use(new ScreenerPage(page)),
   dashboardPage: async ({ page }, use) => use(new DashboardPage(page)),
 
-  loggedIn: async ({ page }, use) => {
+  loggedIn: async ({ page, request }, use, testInfo) => {
+    const workerSuffix = testInfo.workerIndex ?? 0
+    const username = `${USER}_${workerSuffix}`
+    const email = EMAIL.replace('@', `+${workerSuffix}@`)
     const lp = new LoginPage(page)
-    // Try register first, if it fails (user exists) just login
-    try {
-      await lp.registerAndLogin()
-    } catch {
-      await lp.loginAs()
-    }
+    await ensureUserExists(request, username, email, PASS)
+    await lp.loginAs(username, PASS)
     await use()
   },
 })

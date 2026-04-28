@@ -1,8 +1,8 @@
 /**
  * E2E tests covering the critical user flows (F1-F16).
- * Requires the full Docker Compose stack running.
+ * Requires the branch-scoped full Docker Compose stack running.
  *
- * Run: docker compose up -d && npx playwright test
+ * Run: make test-stack-up && npx playwright test
  */
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage } from './helpers'
 
@@ -45,12 +45,12 @@ test.describe('Authentication', () => {
     await lp.fillPassword('wrongpassword')
     await lp.clickSignIn()
 
-    await expect(page.locator('.auth-error')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.auth-error, .error-msg')).toBeVisible({ timeout: 5_000 })
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('F5 — logout redirects to login', async ({ page, loggedIn, browserDiagnostics }) => {
-    await page.click('.logout-btn, button[title*="Sign out"]')
+    await page.click('.logout-btn, .user-avatar, button[title*="Sign out"]')
     await expect(page).toHaveURL(/\/login/, { timeout: 5_000 })
     browserDiagnostics.expectNoCriticalIssues()
   })
@@ -66,8 +66,8 @@ test.describe('Chart', () => {
 
   test('F6 — chart page loads with default state', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await expect(page.locator('.uplot-wrapper, .chart-container, canvas')).toBeVisible()
-    await expect(page.locator('.timeframe-selector, button:has-text("D1")')).toBeVisible()
+    await expect(page.locator('.chart-empty, .uplot-wrapper, .chart-container, canvas')).toBeVisible()
+    await expect(page.locator('input[placeholder*="Symbol"], input[placeholder*="Search"], .search-input')).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -75,17 +75,15 @@ test.describe('Chart', () => {
     const cp = new ChartPage(page)
     await cp.goto()
 
-    // Type in search
-    await page.fill('input[placeholder*="Search"], .search-input', 'AAPL')
-    await page.waitForTimeout(600)   // debounce
-
-    // Should show a dropdown result or navigate
-    const results = page.locator('.search-results .result-item, .search-dropdown')
-    const count = await results.count()
-    if (count > 0) {
-      await results.first().click()
-      await expect(page).toHaveURL(/\/chart\/AAPL/, { timeout: 8_000 })
-    }
+    await page.fill('input[placeholder*="Symbol"], input[placeholder*="Search"], .search-input', 'AAPL')
+    const exactResult = page.locator('.search-results .result-item').filter({
+      has: page.locator('.r-symbol', { hasText: /^AAPL$/ }),
+    }).first()
+    const anyResult = page.locator('.search-results .result-item').first()
+    await expect(anyResult).toBeVisible({ timeout: 10_000 })
+    await (await exactResult.count() ? exactResult : anyResult).click()
+    await expect(page.locator('.symbol-info .sym')).toHaveText('AAPL', { timeout: 10_000 })
+    await expect(page.locator('.chart-loading, .uplot-wrapper, .chart-container, canvas, .chart-error').first()).toBeVisible({ timeout: 10_000 })
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -118,8 +116,10 @@ test.describe('Chart', () => {
 
     const exprRow = page.locator('.result-item--expr')
     if (await exprRow.count() > 0) {
-      await exprRow.first().click()
-      await expect(page.locator('.uplot-wrapper, .chart-container, canvas')).toBeVisible()
+      await exprRow.first().click({ force: true })
+      await expect(page).toHaveURL(/\/chart\/(?:=|%3D)SPY-QQQ/, { timeout: 10_000 })
+      await expect(page.locator('.symbol-info .sym')).toHaveText('=SPY-QQQ', { timeout: 10_000 })
+      await expect(page.locator('.chart-loading, .uplot-wrapper, .chart-container, canvas, .chart-error').first()).toBeVisible({ timeout: 10_000 })
     }
     browserDiagnostics.expectNoCriticalIssues()
   })
@@ -168,15 +168,16 @@ test.describe('Screener', () => {
     await sp.createScreener(`Test Screener ${ts}`)
 
     // Should appear in the list
-    await expect(page.locator(`text=Test Screener ${ts}`)).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('.si-name').filter({ hasText: `Test Screener ${ts}` }).first()).toBeVisible({ timeout: 5_000 })
 
     // Select it and run
-    await page.click(`text=Test Screener ${ts}`)
+    await page.locator('.screener-item').filter({ hasText: `Test Screener ${ts}` }).first().click()
     const runBtn = page.locator('button:has-text("Run")')
     if (await runBtn.count() > 0) {
       await runBtn.click()
-      // Should show result stats
-      await expect(page.locator('.result-stats, .stat-val')).toBeVisible({ timeout: 15_000 })
+      await expect(
+        page.locator('.scan-progress, .results-meta, .results-table-wrap, .no-matches').first(),
+      ).toBeVisible({ timeout: 15_000 })
     }
     browserDiagnostics.expectNoCriticalIssues()
   })

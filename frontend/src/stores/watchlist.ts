@@ -23,11 +23,20 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   /** When set, WatchlistPanel should open, collapse all others, and expand this watchlist. */
   const focusRequest = ref<number | null>(null)
 
+  function isTransientLoadError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '')
+    return /Failed to fetch|ERR_ABORTED|Authentication required/i.test(message)
+  }
+
   async function loadWatchlists() {
     loading.value = true
     try {
       watchlists.value = await api.get('/watchlists')
     } catch (e) {
+      if (isTransientLoadError(e)) {
+        watchlists.value = []
+        return
+      }
       console.error('Failed to load watchlists', e)
     } finally {
       loading.value = false

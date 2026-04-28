@@ -29,7 +29,7 @@
           <input v-model="form.password" type="password" autocomplete="current-password" required />
         </div>
 
-        <div v-if="error" class="error-msg">{{ error }}</div>
+        <div v-if="error" class="error-msg auth-error">{{ error }}</div>
 
         <button type="submit" class="submit-btn" :disabled="loading">
           <span v-if="loading">…</span>

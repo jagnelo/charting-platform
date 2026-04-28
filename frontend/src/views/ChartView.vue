@@ -417,6 +417,9 @@ async function loadComparisonBars() {
 
 async function onSymbolSelect(symbol: string) {
   recentStore.add(symbol)
+  if (route.params.symbol !== symbol) {
+    router.replace(`/chart/${encodeURIComponent(symbol)}`)
+  }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value)
@@ -445,9 +448,6 @@ async function onSymbolSelect(symbol: string) {
       await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
       await alertsStore.loadAlerts(activeInst.id)
     }
-  }
-  if (route.params.symbol !== symbol) {
-    router.replace(`/chart/${encodeURIComponent(symbol)}`)
   }
 }
 

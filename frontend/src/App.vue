@@ -12,9 +12,15 @@
         <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
         <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>
         <div class="sidebar-spacer" />
-        <div class="user-avatar" :title="authStore.user?.username" @click="authStore.logout()">
+        <button
+          class="user-avatar logout-btn"
+          type="button"
+          title="Sign out"
+          :aria-label="`Sign out ${authStore.user?.username ?? ''}`.trim()"
+          @click="authStore.logout()"
+        >
           {{ userInitial }}
-        </div>
+        </button>
       </nav>
       <main class="main-content">
         <div class="route-frame">
@@ -112,6 +118,7 @@ body {
   cursor: pointer;
   margin-bottom: 4px;
   border: 1px solid #2a4a6c;
+  padding: 0;
 }
 .user-avatar:hover { background: #1e4a7a; }
 
