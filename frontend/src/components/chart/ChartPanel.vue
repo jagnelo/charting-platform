@@ -29,15 +29,22 @@
             @keydown.arrow-down.prevent="moveDown"
             @keydown.arrow-up.prevent="moveUp"
           />
-          <div v-if="searchResults.length" class="panel-search-results">
+          <div v-if="searchResults.length || isExpression || searchMessage" class="panel-search-results">
             <div
-              v-if="isExpression"
+              v-if="canResolveExpression"
               :class="['psr-item', 'psr-item--expr', { highlighted: hlIdx === 0 }]"
               @click="selectExpression"
               @mouseenter="hlIdx = 0"
             >
               <span class="psr-sym">f(x)</span>
               <span class="psr-name">Create expression chart: {{ searchQuery }}</span>
+            </div>
+            <div
+              v-else-if="expressionHint || searchMessage"
+              class="panel-search-message"
+              :class="{ 'panel-search-message--hint': expressionHint && !searchMessage }"
+            >
+              {{ searchMessage || expressionHint }}
             </div>
             <template v-else>
               <div
@@ -110,6 +117,13 @@ import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
 import { api }           from '@/lib/api'
+import {
+  ensureKnownInstrumentSymbol,
+  formatInstrumentLookupError,
+  getInstrumentInputHint,
+  isExpressionInput,
+  isResolvableExpressionInput,
+} from '@/lib/instruments'
 import type { Timeframe } from '@/types'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
@@ -141,12 +155,14 @@ const linkWrapRef   = ref<HTMLDivElement | null>(null)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const linkMenuOpen = ref(false)
+const searchMessage = ref('')
 
 const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
 const linkColor = computed(() => panelLinks.colorFor(props.panelId))
 
-const EXPR_RE = /^\s*=/
-const isExpression = computed(() => EXPR_RE.test(searchQuery.value.trim()))
+const isExpression = computed(() => isExpressionInput(searchQuery.value.trim()))
+const canResolveExpression = computed(() => isResolvableExpressionInput(searchQuery.value.trim()))
+const expressionHint = computed(() => getInstrumentInputHint(searchQuery.value.trim()))
 
 async function toggleSearch() {
   if (searchOpen.value) { closeSearch(); return }
@@ -160,13 +176,17 @@ function closeSearch() {
   searchOpen.value = false
   searchQuery.value = ''
   searchResults.value = []
+  searchMessage.value = ''
 }
 
 async function onSearchInput() {
+  searchMessage.value = ''
   if (searchTimer) clearTimeout(searchTimer)
   if (!searchQuery.value) { searchResults.value = []; return }
   if (isExpression.value) {
-    searchResults.value = [{ symbol: searchQuery.value.trim(), name: '', exchange: '', type: 'Synthetic' }]
+    searchResults.value = canResolveExpression.value
+      ? [{ symbol: searchQuery.value.trim(), name: '', exchange: '', type: 'Synthetic' }]
+      : []
     hlIdx.value = 0
     return
   }
@@ -187,17 +207,17 @@ async function selectExpression() {
   const expr = searchQuery.value.trim()
   if (!expr) return
   try {
-    const instr = await api.post<{ symbol: string }>('/instruments/resolve-expression', { expression: expr })
+    const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
     closeSearch()
     await onSymbolSelect(instr.symbol)
   } catch (e) {
-    console.error('Failed to resolve expression', e)
+    searchMessage.value = formatInstrumentLookupError(expr, e)
   }
 }
 
 function selectFirst() {
-  if (isExpression.value) { selectExpression(); return }
-  if (searchResults.value.length) selectResult(searchResults.value[hlIdx.value])
+  if (isExpression.value) { void selectExpression(); return }
+  if (searchResults.value.length) void selectResult(searchResults.value[hlIdx.value])
 }
 
 function moveDown() { hlIdx.value = Math.min(hlIdx.value + 1, searchResults.value.length - 1) }
@@ -349,6 +369,14 @@ onMounted(async () => {
 .psr-item--expr { border-left: 2px solid #64b5f6; }
 .psr-sym { color: #64b5f6; font-weight: 700; min-width: 56px; font-family: monospace; }
 .psr-name { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-search-message {
+  padding: 8px 10px;
+  color: #ef5350;
+  font-size: 10px;
+}
+.panel-search-message--hint {
+  color: #8aa3bb;
+}
 
 .panel-link-wrap {
   position: relative;

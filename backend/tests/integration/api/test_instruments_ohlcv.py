@@ -10,6 +10,11 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pandas as pd
 
+from app.models.data_source import DataSource
+from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
+from app.providers.base import InstrumentProfile, ListingRecord
+
 
 def _make_yf_df(symbol: str, days: int = 10, start_price: float = 150.0):
     """Build a fake provider history DataFrame."""
@@ -71,6 +76,98 @@ class TestInstruments:
     def test_instruments_requires_auth(self, client, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.symbol}")
         assert res.status_code == 401
+
+    def test_resolve_expression_creates_synthetic_instrument(
+        self, client, auth_headers, db, instrument, instrument_type
+    ):
+        other = Instrument(
+            symbol="MSFT",
+            name="Microsoft Corp.",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(other)
+        db.flush()
+
+        res = client.post(
+            "/api/v1/instruments/resolve-expression",
+            json={"expression": "=AAPL/MSFT"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 200
+        assert res.json() == {"symbol": "=AAPL/MSFT"}
+
+        synthetic = db.query(Instrument).filter(Instrument.symbol == "=AAPL/MSFT").one_or_none()
+        assert synthetic is not None
+        assert synthetic.is_synthetic is True
+        assert synthetic.expression == "=AAPL/MSFT"
+
+    def test_resolve_expression_returns_404_when_missing_constituent_follows_provider_symbol_conflict(
+        self, client, auth_headers, db, instrument_type, monkeypatch
+    ):
+        existing = Instrument(
+            symbol="DIA-LEGACY",
+            name="Legacy DIA",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(existing)
+        db.flush()
+
+        data_source = DataSource(name="yfinance", is_active=True)
+        db.add(data_source)
+        db.flush()
+
+        db.add(
+            InstrumentProviderSymbol(
+                instrument_id=existing.id,
+                data_source_id=data_source.id,
+                provider_symbol="DIA",
+                provider_exchange_code="PCX",
+                provider_instrument_type="ETF",
+                is_primary=True,
+                is_active=True,
+                extra_data={"provider_name": "yfinance"},
+            )
+        )
+        db.flush()
+
+        async def _search(_db, query: str):
+            if query == "DIA":
+                return [{"symbol": "DIA", "provider": "yfinance", "exchange": "PCX", "type": "ETF"}]
+            return []
+
+        async def _profile(_db, symbol: str, **_kwargs):
+            if symbol != "DIA":
+                return None
+            return InstrumentProfile(
+                provider="yfinance",
+                symbol="DIA",
+                canonical_symbol="DIA",
+                name="SPDR Dow Jones Industrial Average ETF Trust",
+                currency="USD",
+                quote_type="ETF",
+                exchange="PCX",
+                listings=[ListingRecord(provider_symbol="DIA", exchange_code="PCX", is_primary=True)],
+            )
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+
+        res = client.post(
+            "/api/v1/instruments/resolve-expression",
+            json={"expression": "=DIA/MISSING"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+        assert "MISSING" in res.text
+
+        resolved = db.query(Instrument).filter(Instrument.symbol == "DIA").one_or_none()
+        assert resolved is not None
 
 
 class TestOHLCV:

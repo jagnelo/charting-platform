@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol, formatInstrumentLookupError } from '@/lib/instruments'
 import type {
   ExpirationSummary,
   OptionsExposureResponse,
@@ -58,16 +59,19 @@ export const useOptionsExposureStore = defineStore('optionsExposure', () => {
     isLoading.value = true
     error.value = null
     try {
+      const targetSymbol = await ensureKnownInstrumentSymbol(sym)
+      if (seq !== _loadSeq) return
+      symbol.value = targetSymbol
       const params: Record<string, string> = {}
       if (expiration) params.expiration = expiration
 
       const [exposure, summaries] = await Promise.all([
         api.get<OptionsExposureResponse>(
-          `/instruments/${encodeURIComponent(sym)}/options/exposure`,
+          `/instruments/${encodeURIComponent(targetSymbol)}/options/exposure`,
           params,
         ),
         api.get<ExpirationSummary[]>(
-          `/instruments/${encodeURIComponent(sym)}/options/exposure/expirations`,
+          `/instruments/${encodeURIComponent(targetSymbol)}/options/exposure/expirations`,
         ),
       ])
 
@@ -82,8 +86,11 @@ export const useOptionsExposureStore = defineStore('optionsExposure', () => {
       }
     } catch (e) {
       if (seq !== _loadSeq) return
-      error.value = e instanceof Error ? e.message : 'Failed to load exposure data'
-      console.error('[optionsExposure]', e)
+      const rawMessage = e instanceof Error ? e.message : String(e ?? '')
+      error.value = formatInstrumentLookupError(sym, e, 'Options exposure')
+      if (!/\b404\b/.test(rawMessage)) {
+        console.error('[optionsExposure]', e)
+      }
     } finally {
       if (seq === _loadSeq) isLoading.value = false
     }

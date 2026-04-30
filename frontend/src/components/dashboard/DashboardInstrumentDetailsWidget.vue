@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
@@ -32,7 +33,6 @@ const instrument = ref<Instrument | null>(null)
 const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
-const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 
 const rows = computed(() => {
@@ -98,11 +98,7 @@ async function refresh() {
 }
 
 async function resolveTarget(target: string) {
-  if (!EXPR_RE.test(target)) return target
-  const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-    expression: target,
-  })
-  return instrument.symbol
+  return ensureKnownInstrumentSymbol(target)
 }
 
 watch(symbol, refresh)

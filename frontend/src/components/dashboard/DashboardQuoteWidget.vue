@@ -27,6 +27,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import type { Instrument } from '@/types'
 
 const props = defineProps<{ config: Record<string, any>; overrideSymbol?: string }>()
@@ -40,7 +41,6 @@ const prevClose = ref<number | null>(null)
 const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
-const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 const changePct = computed(() => {
   if (lastClose.value == null || prevClose.value == null || prevClose.value === 0) return 0
@@ -77,11 +77,7 @@ async function refresh() {
 }
 
 async function resolveTarget(target: string) {
-  if (!EXPR_RE.test(target)) return target
-  const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-    expression: target,
-  })
-  return instrument.symbol
+  return ensureKnownInstrumentSymbol(target)
 }
 
 watch(symbol, refresh)

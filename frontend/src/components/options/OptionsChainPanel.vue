@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol, formatInstrumentLookupError } from '@/lib/instruments'
 import type { OptionChainResponse, OptionChainRow } from '@/types'
 
 const props = withDefaults(defineProps<{
@@ -176,8 +177,10 @@ async function load(force = false) {
   loading.value = true
   error.value = null
   try {
+    const targetSymbol = await ensureKnownInstrumentSymbol(symbol)
+    if (seq !== refreshSeq) return
     const loaded = await api.get<OptionChainResponse>(
-      `/instruments/${encodeURIComponent(symbol)}/options/chain`,
+      `/instruments/${encodeURIComponent(targetSymbol)}/options/chain`,
       {
         expiration: selectedExpiration.value || undefined,
         refresh: force || undefined,
@@ -187,7 +190,7 @@ async function load(force = false) {
     response.value = loaded
     selectedExpiration.value = loaded.expiration ?? loaded.available_expirations?.[0] ?? ''
   } catch (e: any) {
-    if (seq === refreshSeq) error.value = e?.message ?? 'Options unavailable'
+    if (seq === refreshSeq) error.value = formatInstrumentLookupError(symbol, e, 'Options chain')
   } finally {
     if (seq === refreshSeq) loading.value = false
   }

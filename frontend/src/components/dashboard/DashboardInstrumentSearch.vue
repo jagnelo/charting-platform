@@ -16,7 +16,7 @@
     <Teleport to="body">
       <div v-if="showDropdown" class="dash-search-results" :style="dropdownStyle">
         <button
-          v-if="isExpression"
+          v-if="canResolveExpression"
           type="button"
           :class="['dash-search-item', 'expr', { highlighted: highlightIdx === 0 }]"
           @click="selectExpression"
@@ -26,7 +26,7 @@
           <span>Create {{ trimmedQuery }}</span>
           <small>Expression</small>
         </button>
-        <template v-else>
+        <template v-else-if="!isExpression">
           <button
             v-for="(result, i) in results"
             :key="result.symbol"
@@ -51,7 +51,13 @@
             <small>Yahoo</small>
           </button>
         </template>
-        <div v-if="error" class="dash-search-error">{{ error }}</div>
+        <div
+          v-if="expressionHint || error"
+          class="dash-search-error"
+          :class="{ 'dash-search-hint': expressionHint && !error }"
+        >
+          {{ error || expressionHint }}
+        </div>
       </div>
     </Teleport>
   </div>
@@ -60,6 +66,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import {
+  ensureKnownInstrumentSymbol,
+  formatInstrumentLookupError,
+  getInstrumentInputHint,
+  isExpressionInput,
+  isResolvableExpressionInput,
+} from '@/lib/instruments'
 
 interface SearchResult {
   symbol: string
@@ -107,9 +120,10 @@ function updateDropdownPos() {
   dropdownPos.value = { top: rect.bottom + 4, left: rect.left, width: rect.width }
 }
 
-const EXPR_RE = /^\s*=/
 const trimmedQuery = computed(() => query.value.trim())
-const isExpression = computed(() => EXPR_RE.test(trimmedQuery.value))
+const isExpression = computed(() => isExpressionInput(trimmedQuery.value))
+const canResolveExpression = computed(() => isResolvableExpressionInput(trimmedQuery.value))
+const expressionHint = computed(() => getInstrumentInputHint(trimmedQuery.value))
 const showDropdown = computed(() =>
   !dismissed.value && (isExpression.value || results.value.length > 0 || trimmedQuery.value.length > 0)
 )
@@ -134,7 +148,6 @@ function dismiss() {
 async function onInput() {
   dismissed.value = false
   error.value = ''
-  emit('update:modelValue', query.value)
   if (timer) clearTimeout(timer)
   if (!trimmedQuery.value || isExpression.value) {
     searchSeq++
@@ -173,10 +186,9 @@ async function selectRawSymbol() {
 async function selectSymbol(symbol: string) {
   loading.value = true
   try {
-    await api.get(`/instruments/${encodeURIComponent(symbol)}`)
-    commit(symbol.toUpperCase())
-  } catch {
-    error.value = `Could not find ${symbol}`
+    commit(await ensureKnownInstrumentSymbol(symbol))
+  } catch (e) {
+    error.value = formatInstrumentLookupError(symbol, e)
     dismissed.value = false
   } finally {
     loading.value = false
@@ -186,12 +198,9 @@ async function selectSymbol(symbol: string) {
 async function selectExpression() {
   loading.value = true
   try {
-    const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-      expression: trimmedQuery.value,
-    })
-    commit(instrument.symbol)
-  } catch {
-    error.value = `Could not resolve ${trimmedQuery.value}`
+    commit(await ensureKnownInstrumentSymbol(trimmedQuery.value))
+  } catch (e) {
+    error.value = formatInstrumentLookupError(trimmedQuery.value, e)
     dismissed.value = false
   } finally {
     loading.value = false
@@ -209,14 +218,14 @@ function commit(value: string) {
 
 function selectFirst() {
   if (isExpression.value) {
-    selectExpression()
+    void selectExpression()
     return
   }
   if (highlightIdx.value < results.value.length) {
-    selectResult(results.value[highlightIdx.value])
+    void selectResult(results.value[highlightIdx.value])
     return
   }
-  if (trimmedQuery.value) selectRawSymbol()
+  if (trimmedQuery.value) void selectRawSymbol()
 }
 
 function moveDown() {
@@ -309,5 +318,9 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
   color: #ef5350;
   font-size: 10px;
   border-top: 1px solid #241414;
+}
+.dash-search-hint {
+  color: #8aa3bb;
+  border-top-color: #1f2c38;
 }
 </style>

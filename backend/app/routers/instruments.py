@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -12,6 +13,7 @@ from app.auth.dependencies import get_current_user
 from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.provider_observation import (
     InstrumentDatasetState,
     InstrumentIdentifierSnapshot,
@@ -25,6 +27,7 @@ from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.providers import ensure_data_source
 from app.providers.base import InstrumentProfile
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
@@ -1215,6 +1218,49 @@ def _exact_search_provider(results: list[dict], requested_symbol: str) -> str | 
     return None
 
 
+async def _find_existing_instrument_for_profile(
+    db: AsyncSession,
+    profile: InstrumentProfile,
+) -> Instrument | None:
+    for candidate in (
+        _normalized_symbol_key(profile.canonical_symbol),
+        _normalized_symbol_key(profile.symbol),
+    ):
+        if not candidate:
+            continue
+        instrument = (
+            await db.execute(select(Instrument).where(Instrument.symbol == candidate))
+        ).scalar_one_or_none()
+        if instrument is not None:
+            return instrument
+
+    data_source = await ensure_data_source(db, profile.provider)
+    provider_bindings = [
+        (_normalized_symbol_key(listing.provider_symbol), listing.exchange_code)
+        for listing in (profile.listings or [])
+        if _normalized_symbol_key(listing.provider_symbol)
+    ]
+    if not provider_bindings and _normalized_symbol_key(profile.symbol):
+        provider_bindings.append((_normalized_symbol_key(profile.symbol), profile.exchange))
+
+    for provider_symbol, exchange_code in provider_bindings:
+        instrument = (
+            await db.execute(
+                select(Instrument)
+                .join(InstrumentProviderSymbol, InstrumentProviderSymbol.instrument_id == Instrument.id)
+                .where(
+                    InstrumentProviderSymbol.data_source_id == data_source.id,
+                    InstrumentProviderSymbol.provider_symbol == provider_symbol,
+                    InstrumentProviderSymbol.provider_exchange_code == exchange_code,
+                )
+            )
+        ).scalar_one_or_none()
+        if instrument is not None:
+            return instrument
+
+    return None
+
+
 async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | None:
     provider_results = await search_provider_instruments_async(db, symbol)
     if not _search_results_exact_match(provider_results, symbol):
@@ -1234,15 +1280,16 @@ async def _create_from_provider(symbol: str, db: AsyncSession) -> Instrument | N
     if not _profile_exact_match(profile, symbol):
         return None
 
-    await ingest_provider_profile(db, profile)
-    instrument = (
-        await db.execute(select(Instrument).where(Instrument.symbol == profile.canonical_symbol))
-    ).scalar_one_or_none()
-    if instrument is None:
-        instrument = (
-            await db.execute(select(Instrument).where(Instrument.symbol == symbol))
-        ).scalar_one_or_none()
+    instrument = await _find_existing_instrument_for_profile(db, profile)
+    try:
+        instrument = await ingest_provider_profile(db, profile, instrument=instrument)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        instrument = await _find_existing_instrument_for_profile(db, profile)
+        if instrument is None:
+            raise
+
     if instrument is None:
         return None
-    await db.commit()
     return await _reload_instrument_full(instrument.id, db)

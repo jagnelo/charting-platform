@@ -53,6 +53,7 @@ describe('useOptionsExposureStore', () => {
 
   it('loads exposure data and initializes enabled expirations', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ symbol: 'NVDA' })
       .mockResolvedValueOnce(exposurePayload)
       .mockResolvedValueOnce([{ expiration: '2026-06-19', dte: 54, total_call_oi: 100, total_put_oi: 80, pcr_oi: 0.8, total_gex: 2 }])
 
@@ -67,6 +68,7 @@ describe('useOptionsExposureStore', () => {
 
   it('filters ladder by enabled expirations and strike range', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ symbol: 'NVDA' })
       .mockResolvedValueOnce(exposurePayload)
       .mockResolvedValueOnce([])
 
@@ -83,6 +85,7 @@ describe('useOptionsExposureStore', () => {
 
   it('can toggle and reset state', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ symbol: 'NVDA' })
       .mockResolvedValueOnce(exposurePayload)
       .mockResolvedValueOnce([])
 
@@ -99,5 +102,16 @@ describe('useOptionsExposureStore', () => {
     expect(store.data).toBeNull()
     expect(store.error).toBeNull()
   })
-})
 
+  it('returns a clean message for unknown instruments', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error(`API GET /instruments/CSCOII → 404: {"detail":"Instrument 'CSCOII' not found"}`),
+    )
+
+    const store = useOptionsExposureStore()
+    await store.load('CSCOII')
+
+    expect(store.error).toBe('Options exposure "CSCOII" is not available.')
+    expect(store.data).toBeNull()
+  })
+})

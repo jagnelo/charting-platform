@@ -20,6 +20,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import type { OHLCVBar, Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -37,7 +38,6 @@ interface LoadedSeries {
 }
 
 const DEFAULT_COLORS = ['#64b5f6', '#81c784', '#ffb74d', '#ba68c8', '#f06292', '#4dd0e1']
-const EXPR_RE = /^\s*=/
 
 const rootRef = ref<HTMLDivElement | null>(null)
 const chartRef = ref<HTMLDivElement | null>(null)
@@ -87,15 +87,7 @@ const targets = computed(() => {
 const displayTarget = computed(() => targets.value.map(t => t.label || t.symbol).join(', '))
 
 async function ensureTarget(target: string) {
-  const trimmed = target.trim().toUpperCase()
-  if (EXPR_RE.test(trimmed)) {
-    const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-      expression: trimmed,
-    })
-    return instrument.symbol
-  }
-  await api.get(`/instruments/${encodeURIComponent(trimmed)}`)
-  return trimmed
+  return ensureKnownInstrumentSymbol(target)
 }
 
 async function loadBars(target: string) {

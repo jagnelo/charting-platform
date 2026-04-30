@@ -25,6 +25,7 @@ import { computed, onMounted, provide, ref, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { usePanelStore } from '@/stores/chart'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import type { ChartBarType, ChartDrawing, PriceAlert, Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -48,7 +49,6 @@ const showDrawings = computed(() => props.config.showDrawings !== false)
 const showAlerts = computed(() => props.config.showAlerts !== false)
 const drawings = ref<ChartDrawing[]>([])
 const priceAlerts = ref<PriceAlert[]>([])
-const EXPR_RE = /^\s*=/
 let refreshSeq = 0
 
 async function refresh() {
@@ -93,11 +93,7 @@ async function loadReadOnlyOverlays(seq: number) {
 }
 
 async function resolveTarget(target: string) {
-  if (!EXPR_RE.test(target)) return target
-  const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-    expression: target,
-  })
-  return instrument.symbol
+  return ensureKnownInstrumentSymbol(target)
 }
 
 watch(() => [symbol.value, timeframe.value, chartType.value, showDrawings.value, showAlerts.value], refresh)

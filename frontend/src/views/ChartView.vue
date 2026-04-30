@@ -203,6 +203,7 @@ import { usePanelLinksStore } from '@/stores/panelLinks'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { formatMoney } from '@/lib/format'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
@@ -268,7 +269,6 @@ const comparisonTargets = ref<Array<{
 let comparisonSeq = 0
 
 const COMPARE_COLORS = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
-const EXPR_RE = /^\s*=/
 
 function onDocClick(e: MouseEvent) {
   if (showWlMenu.value && wlStarRef.value && !wlStarRef.value.contains(e.target as Node)) {
@@ -349,14 +349,7 @@ function resizeOptionsPanel(next: number) {
 async function resolveComparisonTarget(raw: string): Promise<string> {
   const trimmed = raw.trim()
   if (!trimmed) throw new Error('Empty symbol')
-  if (EXPR_RE.test(trimmed)) {
-    const instrument = await api.post<{ symbol: string }>('/instruments/resolve-expression', {
-      expression: trimmed,
-    })
-    return instrument.symbol
-  }
-  await api.get(`/instruments/${encodeURIComponent(trimmed.toUpperCase())}`)
-  return trimmed.toUpperCase()
+  return ensureKnownInstrumentSymbol(trimmed)
 }
 
 async function addComparison() {

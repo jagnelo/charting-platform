@@ -16,7 +16,11 @@ describe('OptionsChainPanel', () => {
   })
 
   it('handles empty option responses without available expirations', async () => {
-    vi.mocked(api.get).mockResolvedValue({
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({
+        symbol: 'CSCOII',
+      } as any)
+      .mockResolvedValueOnce({
       symbol: 'CSCOII',
       expiration: null,
       snapshot: null,
@@ -34,7 +38,11 @@ describe('OptionsChainPanel', () => {
   })
 
   it('renders straddle rows and can switch to list mode', async () => {
-    vi.mocked(api.get).mockResolvedValue({
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({
+        symbol: 'NVDA',
+      } as any)
+      .mockResolvedValueOnce({
       symbol: 'NVDA',
       expiration: '2026-06-19',
       available_expirations: ['2026-06-19'],

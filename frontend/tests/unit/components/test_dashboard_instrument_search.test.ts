@@ -25,9 +25,11 @@ describe('DashboardInstrumentSearch', () => {
   })
 
   it('searches instruments after debounce and emits selected result', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' },
-    ])
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce([
+        { symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Equity' },
+      ])
+      .mockResolvedValueOnce({ symbol: 'NVDA' })
 
     const wrapper = mount(DashboardInstrumentSearch, {
       props: { modelValue: '' },
@@ -44,6 +46,7 @@ describe('DashboardInstrumentSearch', () => {
 
     const button = document.body.querySelector('.dash-search-item') as HTMLButtonElement
     button.click()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
@@ -68,13 +71,36 @@ describe('DashboardInstrumentSearch', () => {
     const rawButton = items[items.length - 1] as HTMLButtonElement
     rawButton.click()
     await flushPromises()
+    await nextTick()
 
     expect(api.get).toHaveBeenLastCalledWith('/instruments/MCD')
     expect(wrapper.emitted('select')?.[0]).toEqual(['MCD'])
   })
 
+  it('does not resolve incomplete expressions or emit draft updates while typing', async () => {
+    const wrapper = mount(DashboardInstrumentSearch, {
+      props: { modelValue: '' },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+    await input.setValue('=')
+    await nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(api.post).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('Finish the expression to continue.')
+
+    await input.trigger('keydown.enter')
+    await flushPromises()
+
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
   it('resolves expressions and surfaces lookup errors', async () => {
-    ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('No expression'))
+    ;(api.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('API POST /instruments/resolve-expression → 404: {"detail":"Constituent instrument \'QQQX\' not found"}')
+    )
 
     const wrapper = mount(DashboardInstrumentSearch, {
       props: { modelValue: '' },

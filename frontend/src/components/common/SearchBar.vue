@@ -20,7 +20,7 @@
     <div v-if="showDropdown" class="search-results">
       <!-- Expression chart row (shown instead of normal results when query looks like expression) -->
       <div
-        v-if="isExpression"
+        v-if="canResolveExpression"
         :class="['result-item', 'result-item--expr', { highlighted: highlightIdx === 0 }]"
         @click="selectExpression"
         @mouseenter="highlightIdx = 0"
@@ -30,7 +30,7 @@
         <span class="r-type">Synthetic</span>
       </div>
       <template v-else>
-        <template v-if="query.trim()">
+        <template v-if="query.trim() && !isExpression">
           <div
             v-for="(r, i) in results"
             :key="r.symbol"
@@ -57,12 +57,19 @@
             <span class="r-type">Recent</span>
           </div>
         </template>
-        <div v-if="query.trim()" class="screener-link-row">
+        <div v-if="query.trim() && !isExpression" class="screener-link-row">
           <router-link :to="`/screener?q=${encodeURIComponent(query)}`" class="screener-link" @click="clear">
             Open in Screener →
           </router-link>
         </div>
       </template>
+      <div
+        v-if="expressionHint || errorMessage"
+        class="search-message"
+        :class="{ 'search-message--hint': expressionHint && !errorMessage }"
+      >
+        {{ errorMessage || expressionHint }}
+      </div>
     </div>
   </div>
 </template>
@@ -70,6 +77,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api } from '@/lib/api'
+import {
+  ensureKnownInstrumentSymbol,
+  formatInstrumentLookupError,
+  getInstrumentInputHint,
+  isExpressionInput,
+  isResolvableExpressionInput,
+} from '@/lib/instruments'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
@@ -85,11 +99,16 @@ const highlightIdx     = ref(0)
 const rootRef          = ref<HTMLDivElement | null>(null)
 const expressionSelected = ref(false)
 const dropdownDismissed  = ref(true)
+const errorMessage       = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-// Detect if the query looks like a math expression between ticker tokens
-const EXPR_RE = /^\s*=/
-const isExpression = computed(() => !expressionSelected.value && EXPR_RE.test(query.value.trim()))
+const isExpression = computed(() => !expressionSelected.value && isExpressionInput(query.value.trim()))
+const canResolveExpression = computed(() =>
+  !expressionSelected.value && isResolvableExpressionInput(query.value.trim())
+)
+const expressionHint = computed(() =>
+  expressionSelected.value ? '' : getInstrumentInputHint(query.value.trim())
+)
 const showDropdown = computed(() =>
   !dropdownDismissed.value
   && (isExpression.value || results.value.length > 0 || (!query.value.trim() && recentStore.recent.length > 0))
@@ -98,6 +117,7 @@ const showDropdown = computed(() =>
 async function onInput() {
   expressionSelected.value = false
   dropdownDismissed.value = false
+  errorMessage.value = ''
   if (debounceTimer) clearTimeout(debounceTimer)
   if (query.value.length < 1) { results.value = []; return }
   // Don't hit search API for expressions
@@ -138,7 +158,7 @@ async function selectExpression() {
   const expr = query.value.trim()
   loading.value = true
   try {
-    const instr = await api.post<{ symbol: string }>('/instruments/resolve-expression', { expression: expr })
+    const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
     emit('select', instr.symbol)
     recentStore.add(instr.symbol, expr)
     query.value = instr.symbol
@@ -146,14 +166,14 @@ async function selectExpression() {
     expressionSelected.value = true
     dropdownDismissed.value = true
   } catch (e) {
-    console.error('Failed to resolve expression', e)
+    errorMessage.value = formatInstrumentLookupError(expr, e)
   } finally {
     loading.value = false
   }
 }
 
 function selectFirst() {
-  if (isExpression.value) { selectExpression(); return }
+  if (isExpression.value) { void selectExpression(); return }
   if (results.value.length) select(results.value[highlightIdx.value])
   else if (!query.value.trim() && recentStore.recent.length) {
     selectRecent(recentStore.recent[highlightIdx.value]?.symbol ?? recentStore.recent[0].symbol)
@@ -165,7 +185,7 @@ function moveDown() {
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
-function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = true }
+function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = true; errorMessage.value = '' }
 
 function handleClickOutside(e: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
@@ -261,4 +281,14 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
   text-decoration: none;
 }
 .screener-link:hover { text-decoration: underline; }
+.search-message {
+  padding: 7px 10px;
+  border-top: 1px solid #241414;
+  color: #ef5350;
+  font-size: 10px;
+}
+.search-message--hint {
+  border-top-color: #1f2c38;
+  color: #8aa3bb;
+}
 </style>

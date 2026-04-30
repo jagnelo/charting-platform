@@ -93,5 +93,22 @@ describe('SearchBar', () => {
     })
     expect(wrapper.emitted('select')?.[0]).toEqual(['=SPY-QQQ'])
   })
-})
 
+  it('shows a hint and skips API calls for incomplete expressions', async () => {
+    const wrapper = mount(SearchBar, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    const input = wrapper.find('input')
+    await input.setValue('=')
+    await input.trigger('keydown.enter')
+    await flushPromises()
+
+    expect(api.post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Finish the expression to continue.')
+  })
+})
