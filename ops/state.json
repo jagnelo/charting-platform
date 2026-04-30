@@ -1,13 +1,13 @@
 {
-  "active_task_id": "expression-resolution-hardening",
+  "active_task_id": "settings-provider-ui-rework",
   "active_worker": "Codex",
-  "worker_session_started_at": "2026-04-30T22:29:31Z",
+  "worker_session_started_at": "2026-04-30T22:50:48Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-04-30T22:29:31Z",
+  "last_handoff_at": "2026-04-30T22:50:48Z",
   "last_commit": null,
   "git_ready_to_commit": false,
   "validation": {
-    "backend_tests": "passed",
+    "backend_tests": "not_run",
     "frontend_tests": "passed",
     "frontend_build": "not_run",
     "playwright": "not_run",
@@ -15,8 +15,8 @@
     "backend_log_check": "not_run"
   },
   "notes": [
-    "Targeted expression-resolution frontend tests passed.",
-    "Targeted backend resolve-expression integration tests passed with --no-cov.",
+    "Settings view provider-card rework complete.",
+    "Targeted Settings view unit tests passed.",
     "Frontend type-check passed."
   ]
 }

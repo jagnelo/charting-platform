@@ -73,3 +73,39 @@ Append a short entry after each worker session.
 ### Next step
 
 - Do a quick browser-level sanity check on dashboard widget config entry for `=`, `=DIA/MISSING`, and a valid expression.
+
+### Timestamp
+
+- 2026-04-30T22:50:48Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Rework the Settings page provider area into compact per-provider summaries with collapsible usage/configuration details.
+
+### Completed
+
+- Replaced always-open provider telemetry/config stacks with one summary card per provider and separate expandable `Usage` / `Configuration` panes.
+- Removed duplicate “req / requests” rendering when usage units are already raw requests, and improved operation/error table labels.
+- Added a Settings view unit test covering collapsed panes and the deduplicated request metrics.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_settings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The first view test pass needed an extra `nextTick` in the local flush helper because the mounted provider fetch completed after the initial microtask drain.
+
+### Assumptions
+
+- Detailed provider telemetry and per-capability controls should not be visible until explicitly expanded.
+- For providers tracked in request counts, “requests” is clearer as “calls” in the UI.
+
+### Next step
+
+- Commit the Settings page rework if the user is happy with the direction, then optionally do a browser-level layout sanity check.
