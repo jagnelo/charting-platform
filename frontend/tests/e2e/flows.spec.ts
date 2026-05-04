@@ -1,10 +1,10 @@
 /**
- * E2E tests covering the critical user flows (F1-F16).
+ * E2E tests covering the critical user flows (F1-F17).
  * Requires the branch-scoped full Docker Compose stack running.
  *
  * Run: make test-stack-up && npx playwright test
  */
-import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage } from './helpers'
+import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -279,6 +279,40 @@ test.describe('Dashboard', () => {
       await exposureTab.first().click()
       await expect(page.locator('.exposure-panel')).toBeVisible()
     }
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+})
+
+
+// ── Radar flows ───────────────────────────────────────────────────────────────
+
+test.describe('Radar', () => {
+
+  test.beforeEach(async ({ loggedIn }) => {})
+
+  test('F17 — radar page loads, can run a scan, and can open chart when detections exist', async ({ page, browserDiagnostics }) => {
+    const rp = new RadarPage(page)
+    await rp.goto()
+
+    await expect(page).not.toHaveURL(/\/login/)
+    await expect(page.locator('h1')).toContainText('Technical Radar')
+    await expect(page.locator('.radar-toolbar')).toBeVisible()
+
+    await rp.runScan()
+    await page.waitForTimeout(500)
+
+    const resultCards = page.locator('.result-card')
+    if (await resultCards.count() > 0) {
+      await resultCards.first().click()
+      const openBtn = page.locator('.detail-head .radar-btn.primary')
+      await expect(openBtn).toBeVisible()
+      await openBtn.click()
+      await expect(page).toHaveURL(/\/chart\//, { timeout: 10_000 })
+    } else {
+      await expect(page.locator('.state-block')).toBeVisible()
+    }
+
     browserDiagnostics.expectNoCriticalIssues()
   })
 
