@@ -184,6 +184,8 @@ import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
 import { approxVolumeProfilePlugin } from '@/lib/uplot/plugins/approx-volume-profile'
 import { volumePlugin }            from '@/lib/uplot/plugins/volume'
 import { alertLinesPlugin }        from '@/lib/uplot/plugins/alert-lines'
+import { alertEventsPlugin }       from '@/lib/uplot/plugins/alert-events'
+import type { AlertEventMarker }   from '@/lib/uplot/plugins/alert-events'
 import { optionsLevelsPlugin }    from '@/lib/uplot/plugins/options-levels'
 import { yAxisProjectionsPlugin }  from '@/lib/uplot/plugins/y-axis-projections'
 import type { ProjectionItem }     from '@/lib/uplot/plugins/y-axis-projections'
@@ -357,6 +359,7 @@ interface InstrumentEvent {
 }
 
 const instrumentEvents = ref<InstrumentEvent[]>([])
+const alertFiringMarkers = ref<AlertEventMarker[]>([])
 const EVENT_POPOVER_WIDTH = 238
 const EVENT_POPOVER_HEIGHT = 178
 const eventPopover = ref<{ event: InstrumentEvent; x: number; y: number } | null>(null)
@@ -706,6 +709,22 @@ function redrawVisuals() {
   renderVisualOverlays()
   const redraw = (uplot as any)?.redraw
   if (typeof redraw === 'function') redraw.call(uplot)
+}
+
+async function loadAlertFiringEvents() {
+  const instrument = chartStore.instrument
+  if (!instrument) { alertFiringMarkers.value = []; return }
+  try {
+    const events = await alertsStore.loadInstrumentHistory(instrument.id)
+    alertFiringMarkers.value = events.map(e => ({
+      ts:        new Date(e.fired_at).getTime() / 1000,
+      alertType: e.alert_type,
+      label:     e.instrument_symbol ?? undefined,
+    }))
+    redrawVisuals()
+  } catch {
+    alertFiringMarkers.value = []
+  }
 }
 
 async function loadInstrumentEvents() {
@@ -1415,6 +1434,7 @@ async function initChart() {
         : [],
       () => overlayInteractionsEnabled.value ? alertsStore.selectedAlertId : null,
     ),
+    alertEventsPlugin(() => alertFiringMarkers.value),
     indicatorHighlightPlugin(),
     yAxisProjectionsPlugin(() => getProjectionItems()),
     optionsLevelsPlugin(() => optionsExposureStore.data?.key_levels ?? null),
@@ -1533,7 +1553,10 @@ async function initChart() {
         setupHitDetection(u)
         setupInteraction(u)
         updateTooltip(u, null)
-        loadInstrumentEvents()
+        if (!chartStore.instrument?.is_synthetic) {
+          loadInstrumentEvents()
+          loadAlertFiringEvents()
+        }
       }],
     },
   }
@@ -1615,7 +1638,10 @@ function updateData() {
   renderVisualOverlays()
   updateSubPaneData()
   updateTooltip(uplot, uplot.cursor.idx)
-  loadInstrumentEvents()
+  if (!chartStore.instrument?.is_synthetic) {
+    loadInstrumentEvents()
+    loadAlertFiringEvents()
+  }
 }
 
 // ── Interaction ────────────────────────────────────────────────────────────────
@@ -2910,7 +2936,8 @@ onMounted(async () => {
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
-watch(() => chartStore.instrument?.id, () => { loadInstrumentEvents() })
+watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
+watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
 watch(visibleComparisonSeries, () => { if (uplot) updateData(); else initChart() }, { deep: true })
 watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(effectiveChartType, async (type) => {

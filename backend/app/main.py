@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import AsyncSessionLocal, Base, engine
 from app.routers import (
+    alert_history,
     alerts,
     auth,
     calendar,
@@ -88,6 +89,7 @@ app.include_router(dashboards.router, prefix=PREFIX)
 app.include_router(drawings.router, prefix=PREFIX)
 app.include_router(presets.router, prefix=PREFIX)
 app.include_router(alerts.router, prefix=PREFIX)
+app.include_router(alert_history.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)

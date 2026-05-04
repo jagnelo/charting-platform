@@ -819,6 +819,24 @@ async def fetch_ohlcv_page_before(
     hitting the external provider.
     """
     if instrument.is_synthetic:
+        from app.models.synthetic_constituent import SyntheticConstituent
+
+        constituents_result = await db.execute(
+            select(SyntheticConstituent).where(
+                SyntheticConstituent.synthetic_instrument_id == instrument.id
+            )
+        )
+        constituents = list(constituents_result.scalars().all())
+
+        # Seed historical data for each constituent before `before`.
+        # Mirrors the non-synthetic on-demand fetch path so that panning left
+        # past the initial window works for expression instruments.
+        for c in constituents:
+            const_instr = await db.get(Instrument, c.constituent_instrument_id)
+            if const_instr is not None and not const_instr.is_synthetic:
+                await db.refresh(const_instr, ["listings"])
+                await fetch_ohlcv_page_before(db, const_instr, timeframe, before, limit, adjusted)
+
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         filtered = [b for b in bars if b.ts < before]
         return filtered[-limit:] if len(filtered) > limit else filtered

@@ -717,11 +717,28 @@ export interface ChartState {
   selectedDrawingId: number | null
 }
 
+// ── Alert firing history ──────────────────────────────────────────────────────
+
+export interface AlertFiringEvent {
+  id: number
+  instrument_id: number | null
+  instrument_symbol: string | null
+  alert_type: 'price' | 'indicator' | 'screener'
+  alert_id: number
+  fired_at: string
+  trigger_value: number | null
+  condition_snapshot: Record<string, unknown>
+  is_viewed: boolean
+  created_at: string
+}
+
 // ── WebSocket messages ────────────────────────────────────────────────────────
 
 export interface WsMessage {
   type: 'alert_triggered' | 'screener_alert_triggered' | 'pong'
   alert_id?: number
+  alert_kind?: 'price' | 'indicator'
+  firing_event_id?: number
   screener_alert_id?: number
   screener_id?: number
   screener_name?: string
@@ -731,5 +748,7 @@ export interface WsMessage {
   condition?: string
   threshold?: number
   current_price?: number
+  value_a?: number
+  value_b?: number
   triggered_at?: string
 }

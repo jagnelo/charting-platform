@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
+import type { AlertFiringEvent, PriceAlert, IndicatorAlert, AlertCondition } from '@/types'
 import { api } from '@/lib/api'
 
 export interface IndicatorAlertCreate {
@@ -19,6 +19,7 @@ export interface IndicatorAlertCreate {
 export const useAlertsStore = defineStore('alerts', () => {
   const alerts = ref<PriceAlert[]>([])
   const indicatorAlerts = ref<IndicatorAlert[]>([])
+  const firingHistory = ref<AlertFiringEvent[]>([])
   const wsConnected = ref(false)
   const selectedAlertId = ref<number | null>(null)
   const editRequestAlertId = ref<number | null>(null)
@@ -100,10 +101,45 @@ export const useAlertsStore = defineStore('alerts', () => {
     if (idx !== -1) indicatorAlerts.value[idx] = updated
   }
 
+  // ── Firing history ──────────────────────────────────────────────────────────
+
+  async function loadHistory(opts: { instrumentId?: number; unviewedOnly?: boolean } = {}) {
+    const params: Record<string, any> = { limit: 200 }
+    if (opts.instrumentId) params.instrument_id = opts.instrumentId
+    if (opts.unviewedOnly) params.unviewed_only = true
+    firingHistory.value = await api.get('/alerts/history', params)
+  }
+
+  async function loadInstrumentHistory(instrumentId: number): Promise<AlertFiringEvent[]> {
+    return api.get<AlertFiringEvent[]>(`/alerts/history/instrument/${instrumentId}`)
+  }
+
+  async function markViewed(id: number) {
+    const updated = await api.patch<AlertFiringEvent>(`/alerts/history/${id}/view`, {})
+    const idx = firingHistory.value.findIndex(e => e.id === id)
+    if (idx !== -1) firingHistory.value[idx] = updated
+  }
+
+  async function markAllViewed() {
+    await api.post('/alerts/history/view-all', {})
+    firingHistory.value.forEach(e => { e.is_viewed = true })
+  }
+
+  async function deleteFiringEvent(id: number) {
+    await api.delete(`/alerts/history/${id}`)
+    firingHistory.value = firingHistory.value.filter(e => e.id !== id)
+  }
+
+  // ── Computed ────────────────────────────────────────────────────────────────
+
   // Total active alert count across both types — used by badge
   const totalActiveCount = computed(() =>
     alerts.value.filter(a => a.status === 'active').length +
     indicatorAlerts.value.filter(a => a.status === 'active').length
+  )
+
+  const unviewedCount = computed(() =>
+    firingHistory.value.filter(e => !e.is_viewed).length
   )
 
   // Active alerts for a specific instrument (both types)
@@ -111,6 +147,8 @@ export const useAlertsStore = defineStore('alerts', () => {
     return alerts.value.filter(a => a.status === 'active' && a.instrument_id === instrumentId).length +
       indicatorAlerts.value.filter(a => a.status === 'active' && a.instrument_id === instrumentId).length
   }
+
+  // ── WebSocket ───────────────────────────────────────────────────────────────
 
   function connectWebSocket() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
@@ -122,6 +160,8 @@ export const useAlertsStore = defineStore('alerts', () => {
       wsConnected.value = true
       // Ping every 30s to keep connection alive
       setInterval(() => ws?.send(JSON.stringify({ type: 'ping' })), 30000)
+      // Fetch unviewed count on reconnect
+      loadHistory().catch(console.error)
     }
 
     ws.onmessage = (event) => {
@@ -142,6 +182,27 @@ export const useAlertsStore = defineStore('alerts', () => {
             alert.triggered_at = msg.triggered_at
             alert.last_known_price = msg.current_price
           }
+        }
+        // Prepend a stub firing event into history so the badge increments immediately.
+        // A full reload is deferred to when the user opens the history panel.
+        if (msg.firing_event_id) {
+          const stub: AlertFiringEvent = {
+            id: msg.firing_event_id,
+            instrument_id: null,
+            instrument_symbol: msg.symbol ?? null,
+            alert_type: msg.alert_kind ?? 'price',
+            alert_id: msg.alert_id ?? 0,
+            fired_at: msg.triggered_at ?? new Date().toISOString(),
+            trigger_value: msg.current_price ?? msg.value_a ?? null,
+            condition_snapshot: {
+              condition: msg.condition,
+              threshold: msg.threshold,
+              symbol: msg.symbol,
+            },
+            is_viewed: false,
+            created_at: msg.triggered_at ?? new Date().toISOString(),
+          }
+          firingHistory.value.unshift(stub)
         }
         showAlertToast(msg)
       }
@@ -180,13 +241,16 @@ export const useAlertsStore = defineStore('alerts', () => {
   function requestEditAlert(id: number | null) { editRequestAlertId.value = id }
 
   return {
-    alerts, indicatorAlerts, wsConnected, totalActiveCount,
+    alerts, indicatorAlerts, firingHistory, wsConnected,
+    totalActiveCount, unviewedCount,
     selectedAlertId, editRequestAlertId,
     loadAlerts, createAlert, createIndicatorAlert,
     updateAlert, updateIndicatorAlert,
     deleteAlert, rearmAlert,
     deleteIndicatorAlert, rearmIndicatorAlert,
     activeCountForInstrument,
+    loadHistory, loadInstrumentHistory,
+    markViewed, markAllViewed, deleteFiringEvent,
     selectAlert, requestEditAlert,
     getAlertProjection, toggleAlertProjection,
     connectWebSocket, disconnectWebSocket,

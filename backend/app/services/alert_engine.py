@@ -3,6 +3,7 @@ Alert engine — evaluates both PriceAlerts and IndicatorAlerts.
 Runs as a scheduled job via APScheduler every ALERT_POLL_INTERVAL seconds.
 """
 
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
+from app.models.alert_firing_event import AlertFiringEvent
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
@@ -123,11 +125,26 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
     condition_val = alert.condition.value
     threshold = float(alert.threshold_price)
     alert_id = alert.id
+    user_id = alert.user_id
+    instrument_id = alert.instrument_id
 
     alert.triggered_at = now
     alert.trigger_count = (alert.trigger_count or 0) + 1
     alert.last_known_price = Decimal(str(current_price))
     alert.status = AlertStatus.ACTIVE if alert.repeat else AlertStatus.TRIGGERED
+
+    firing = AlertFiringEvent(
+        user_id=user_id,
+        instrument_id=instrument_id,
+        alert_type="price",
+        alert_id=alert_id,
+        fired_at=now,
+        trigger_value=Decimal(str(current_price)),
+        condition_snapshot=json.dumps({"condition": condition_val, "threshold": threshold, "symbol": symbol}),
+    )
+    db.add(firing)
+    await db.flush()
+    firing_id = firing.id
 
     notif_id = await send_alert_notification(
         symbol=symbol,
@@ -145,6 +162,7 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
             "type": "alert_triggered",
             "alert_kind": "price",
             "alert_id": alert_id,
+            "firing_event_id": firing_id,
             "symbol": symbol,
             "condition": condition_val,
             "threshold": threshold,
@@ -164,6 +182,8 @@ async def _fire_indicator_alert(
     indicator_type = alert.indicator_a_type
     condition = alert.condition
     alert_id = alert.id
+    user_id = alert.user_id
+    instrument_id = alert.instrument_id
     threshold_value = float(alert.threshold_value) if alert.threshold_value else val_b
 
     alert.triggered_at = now
@@ -172,6 +192,26 @@ async def _fire_indicator_alert(
     if val_b is not None:
         alert.last_value_b = Decimal(str(val_b))
     alert.status = AlertStatus.ACTIVE if alert.repeat else AlertStatus.TRIGGERED
+
+    firing = AlertFiringEvent(
+        user_id=user_id,
+        instrument_id=instrument_id,
+        alert_type="indicator",
+        alert_id=alert_id,
+        fired_at=now,
+        trigger_value=Decimal(str(val_a)),
+        condition_snapshot=json.dumps({
+            "indicator": indicator_type,
+            "condition": condition,
+            "value_a": val_a,
+            "value_b": val_b,
+            "threshold": threshold_value,
+            "symbol": symbol,
+        }),
+    )
+    db.add(firing)
+    await db.flush()
+    firing_id = firing.id
 
     notif_id = await send_indicator_alert_notification(
         symbol=symbol,
@@ -190,6 +230,7 @@ async def _fire_indicator_alert(
             "type": "alert_triggered",
             "alert_kind": "indicator",
             "alert_id": alert_id,
+            "firing_event_id": firing_id,
             "symbol": symbol,
             "indicator": indicator_type,
             "condition": condition,

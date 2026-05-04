@@ -7,7 +7,12 @@
         </div>
         <router-link to="/dashboard" class="nav-link" title="Dashboard">▦</router-link>
         <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/chart') }" title="Chart">📈</router-link>
-        <router-link to="/alerts"    class="nav-link" title="Alerts">🔔</router-link>
+        <router-link to="/alerts" class="nav-link nav-link--bell" title="Alerts">
+          🔔
+          <span v-if="alertsStore.unviewedCount > 0" class="nav-badge">
+            {{ alertsStore.unviewedCount > 99 ? '99+' : alertsStore.unviewedCount }}
+          </span>
+        </router-link>
         <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
         <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
         <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>
@@ -101,6 +106,26 @@ body {
 }
 .nav-link:hover { background: #141414; color: #888; }
 .nav-link.router-link-active { background: #0f1f2e; color: #64b5f6; }
+
+.nav-link--bell { position: relative; }
+.nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef5350;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 9px;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
 
 .sidebar-spacer { flex: 1; }
 

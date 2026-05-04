@@ -140,7 +140,7 @@ function createChartStore(storeId: string) {
       } finally {
         isLoading.value = false
       }
-      _pollCoverage(sym)
+      if (!loadedInstrument.is_synthetic) _pollCoverage(sym)
     }
 
     async function loadMoreBars() {
