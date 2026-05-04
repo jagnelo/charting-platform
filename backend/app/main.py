@@ -22,6 +22,7 @@ from app.routers import (
     options_exposure,
     presets,
     providers,
+    radar,
     screener,
     screener_alerts,
     watchlists,
@@ -88,6 +89,7 @@ app.include_router(ohlcv.router, prefix=PREFIX)
 app.include_router(dashboards.router, prefix=PREFIX)
 app.include_router(drawings.router, prefix=PREFIX)
 app.include_router(presets.router, prefix=PREFIX)
+app.include_router(radar.router, prefix=PREFIX)
 app.include_router(alerts.router, prefix=PREFIX)
 app.include_router(alert_history.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)

@@ -20,12 +20,18 @@ from app.models.instrument_identity import (
     InstrumentProviderCapabilityStatus,
     InstrumentProviderSymbol,
 )
+from app.models.instrument_indicator_config import InstrumentIndicatorConfig
+from app.models.instrument_stats import InstrumentStats
+from app.models.instrument_sync_run import InstrumentSyncRun
+from app.models.listing import InstrumentListing
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.models.provider_observation import (
     DatasetStatus,
-    InstrumentIdentifierSnapshot,
     InstrumentDatasetState,
-    InstrumentSearchSnapshot,
+    InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
+    InstrumentSearchSnapshot,
     LatestPriceSnapshot,
     MarketBarObservation,
     OptionChainSnapshot,
@@ -38,12 +44,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.models.instrument_indicator_config import InstrumentIndicatorConfig
-from app.models.instrument_stats import InstrumentStats
-from app.models.instrument_sync_run import InstrumentSyncRun
-from app.models.listing import InstrumentListing
-from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
-from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
+from app.models.radar import RadarDetection, RadarRun, RadarRunStatus, RadarSetupType
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.synthetic_constituent import SyntheticConstituent
@@ -102,6 +103,10 @@ __all__ = [
     "PriceAlert",
     "AlertCondition",
     "AlertStatus",
+    "RadarRun",
+    "RadarDetection",
+    "RadarRunStatus",
+    "RadarSetupType",
     "IndicatorAlert",
     "IndicatorAlertCondition",
     "ScreenerDefinition",
