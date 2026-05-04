@@ -9,7 +9,7 @@ The test suite is split into four layers. Each layer has a different speed/fidel
 | Backend unit | pytest | ~5s | No | ~90% of services |
 | Backend integration | pytest + testcontainers | ~30s | Auto-started | ~85% of routers |
 | Frontend unit | Vitest | ~3s | No | ~70% of stores/lib |
-| Frontend E2E | Playwright | ~2 min | Stack running | 12 critical flows |
+| Frontend E2E | Playwright | ~2 min | Stack running | 17 critical flows |
 
 **Combined realistic coverage:** ~82% backend, ~70% frontend logic, ~65% whole system.
 
@@ -32,6 +32,11 @@ make test-platform # branch-scoped full-stack validation
 make test-unit
 
 # Backend integration tests (testcontainers auto-starts Postgres + Redis)
+make test-int
+
+# Optional: point integration tests at already-running services
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/charting_platform \
+TEST_REDIS_URL=redis://localhost:6379/0 \
 make test-int
 
 # Frontend Vitest unit tests
@@ -72,6 +77,7 @@ backend/tests/
     ├── api/
     │   ├── test_auth.py            Register, login, token refresh
     │   ├── test_alerts.py          Price + indicator alerts, isolation
+    │   ├── test_radar.py           Radar runs, filters, details, overlays
     │   ├── test_screener.py        CRUD + run logic
     │   ├── test_drawings_presets.py Drawings, preset one-default rule
     │   └── test_instruments_ohlcv.py OHLCV caching, indicator endpoint
@@ -84,6 +90,8 @@ backend/tests/
 ### Key design decisions
 
 **Testcontainers** — integration tests spin up real Postgres and Redis containers using the `testcontainers` Python library. Containers start once per pytest session (scope=`"session"`). This means your first `make test-int` takes ~5 extra seconds; subsequent runs are fast.
+
+**Service override escape hatch** — if Docker Desktop or testcontainers is flaky on a given machine, set `TEST_DATABASE_URL` and `TEST_REDIS_URL` to reuse an already-running Postgres/Redis pair. This keeps the same test logic and fixtures while avoiding container startup inside pytest.
 
 **Transaction rollback isolation** — instead of truncating tables between tests (slow), each test runs inside a SQLAlchemy SAVEPOINT that is rolled back on teardown. This is ~10x faster and leaves zero state for the next test.
 
@@ -106,10 +114,11 @@ frontend/tests/
 │   │   ├── test_hit_test.test.ts  Drawing hit detection geometry
 │   │   └── test_api_client.test.ts JWT auth, auto-refresh, error handling
 │   └── stores/
+│       ├── test_radar_store.test.ts Radar Pinia store flows
 │       └── test_stores.test.ts    Auth, Chart, Alerts Pinia stores
 └── e2e/
     ├── helpers.ts                 Page objects, custom test fixture
-    └── flows.spec.ts              12 critical user flows
+    └── flows.spec.ts              17 critical user flows including radar
 ```
 
 ### uPlot is mocked in unit tests

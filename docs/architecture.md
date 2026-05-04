@@ -40,6 +40,7 @@ user
   ├── indicator_preset (named reusable indicator sets)
   ├── price_alert     (raw price conditions)
   ├── indicator_alert (indicator value conditions)
+  ├── radar_run / radar_detection (engine-owned market discovery artefacts)
   ├── watchlist
   │     └── watchlist_item
   └── screener
@@ -118,7 +119,30 @@ Long-running jobs that should not block the API run as ARQ tasks in a separate `
 | `fetch_all_instruments_history` | Nightly cron | Refresh recent data for all instruments |
 | `run_screener_task` | API request | Run a specific screener against the DB |
 | `run_all_scheduled_screeners` | Every minute | Check cron schedules and run due screeners |
+| `run_radar_scan_task` | API request / future schedule | Persist a market-wide technical radar scan |
 | `check_all_alerts` | APScheduler | Alert evaluation (also runs in main process as fallback) |
+
+---
+
+## Technical Radar
+
+The radar is a separate backend subsystem from screeners. Screeners answer “does this instrument match a user-authored ruleset right now?” while radar answers “what technically interesting setups does the system currently see across the universe, and why?”
+
+Current implementation characteristics:
+
+- engine-owned persisted runs and detections
+- `D1`-focused scanning
+- non-editable chart overlays generated from persisted evidence payloads
+- normalized scoring with stored factor breakdowns
+
+Current structure sources:
+
+- clustered swing-based support/resistance zones
+- anchored VWAP from recent pivot anchors
+- EMA context
+- 52-week high/low context
+
+The radar currently favors transparency over sophistication: evidence is stored in a format directly consumable by the UI so the chart can show the same structures used by the scorer.
 
 ---
 

@@ -122,7 +122,7 @@ Why this was deferred:
 - The storage and provider-agnostic model came first.
 - Richer provider capability work belongs in a dedicated follow-up pass.
 
-### 5. Build a Technical Radar / Level-of-Interest engine with visual evidence
+### 5. Expand the Technical Radar / Level-of-Interest engine beyond the new v1 foundation
 Status: `Deferred`
 
 Context:
@@ -130,6 +130,24 @@ Context:
 - The goal is not merely to label an instrument as "interesting", but to identify instruments approaching technically meaningful areas and explain why they are on the radar.
 - The user explicitly wants this to be exhaustive up front: include a broad set of technical ideas and confluence mechanisms now, then later validate and prune what proves useful.
 - The user also wants visual transparency: if the radar flags an instrument because of zones, wedges, channels, anchored VWAPs, moving averages, or other structures, the platform should let the user visually inspect those exact internal detections on charts.
+- A first implementation pass now exists:
+  - persisted `radar_run` / `radar_detection` records
+  - a synchronous/manual scan trigger
+  - a dedicated `/radar` page
+  - a non-editable chart-side radar evidence layer separate from saved drawings
+  - initial setup types:
+    - approaching support
+    - approaching resistance
+    - breakout
+    - breakdown
+    - reclaim
+    - rejection
+  - initial evidence sources:
+    - clustered swing-based horizontal zones
+    - anchored VWAP from recent pivots
+    - EMA context
+    - 52-week high/low context
+- That v1 should be treated as a foundation, not as the finished expression of the radar vision.
 
 What this system should become:
 - A broad **Technical Radar** / **Confluence Scanner** that continuously scans a very large instrument universe and produces ranked, evidence-backed technical opportunities.
@@ -146,20 +164,21 @@ Core product goals:
 
 What remains:
 
-- Define and implement a broad technical-structure extraction layer, including:
-  - horizontal support/resistance zones
+- Strengthen the technical-structure extraction layer beyond the current v1 set, including:
+  - horizontal support/resistance zones with better width/strength/merge logic
   - diagonal trendlines
   - channels
   - wedges
   - triangles
   - prior swing highs/lows
   - weekly/monthly highs and lows
+  - multi-timeframe level propagation
   - opening gaps and gap boundaries
-  - AVWAPs anchored to significant technical/contextual events
+  - richer AVWAP anchor taxonomy tied to significant technical/contextual events
   - moving-average clusters and moving-average slope/context
   - later, if useful, volume-profile or other structural liquidity/acceptance zones
 
-- Define a broad event-detection layer around those structures, including:
+- Strengthen the event-detection layer beyond the current v1 set, including:
   - approaching resistance
   - approaching support
   - breakout
@@ -173,8 +192,10 @@ What remains:
   - retest after breakout/breakdown
   - compression / squeeze near a level
   - expansion away from a level
+  - better sequencing rules for first break vs retest vs late continuation
+  - clearer confirmation/invalidation state transitions
 
-- Define a flexible confluence/scoring layer that can combine evidence such as:
+- Evolve the confluence/scoring layer from the current transparent heuristic blend into a more complete framework that can combine evidence such as:
   - zone strength
   - touch count
   - recency of interaction
@@ -187,29 +208,26 @@ What remains:
   - relative volume / participation context
   - gap context
   - historical quality of similar setups
+  - forward-tracked outcome quality
+  - regime/context-conditioned weighting
+  - later, if useful, learned weighting on top of interpretable rule features
 
-- Introduce a persistent radar/setup model that can store things like:
-  - instrument
-  - timeframe(s) involved
-  - detection timestamp
-  - setup type
-  - score / confidence
-  - evidence payload
-  - contributing structures
-  - invalidation criteria
-  - expiry / freshness window
+- Extend the persistent radar/setup model beyond the current run+detection basics so it can also store:
+  - setup state transitions over time
+  - whether a setup confirmed, failed, or expired
+  - evolving score history instead of only one snapshot
+  - grouping/continuity for repeated detections of “the same setup”
   - later outcome / forward-performance tracking
 
-- Add UI surfaces to visualize the radar results, including:
-  - a radar list / widget / scanner-like view
-  - setup type and score
-  - concise explanation of why the instrument is on the radar
-  - distance to key levels
-  - timeframe context
-  - last detection / freshness info
-  - ability to open the setup directly in the main chart
+- Expand the UI surfaces beyond the current dedicated `/radar` page, including:
+  - a richer radar list / scanner view
+  - saved radar filters/views
+  - side-by-side comparison of multiple detections
+  - setup history / state-transition history
+  - dashboard widgets specifically for radar discoveries
+  - instrument-specific radar timelines or history views
 
-- Add visual evidence rendering on charts, so the user can inspect what the radar detected, including:
+- Expand visual evidence rendering on charts beyond the current v1 zone/line/marker overlays, including:
   - shaded support/resistance zones
   - trendlines
   - channels / wedges / triangles
@@ -218,8 +236,11 @@ What remains:
   - breakout / fakeout / retest markers
   - optionally visibility toggles for each radar evidence type
   - ideally some notion of "radar layer" separate from the user's own drawings
+  - clearer provenance / legend for evidence layers
+  - grouping/stacking for overlapping detections on one symbol
+  - chart-side switching between active and historical detections
 
-- Make the radar explain itself in human terms rather than just outputting labels, e.g.:
+- Keep improving the radar’s human-readable explanation layer so it does more than output a label, e.g.:
   - setup type
   - score
   - why it matters
@@ -227,8 +248,11 @@ What remains:
   - what timeframe(s) are driving it
   - what would confirm it further
   - what would invalidate it
+  - what specifically made this candidate outrank nearby alternatives
+  - which evidence is primary versus merely supporting
+  - what changed since the previous detection state
 
-- Make the radar filterable and rankable in many ways, such as:
+- Expand filter/ranking behavior beyond the current simple setup/symbol/score/freshness controls, such as:
   - breakout candidates
   - support-bounce candidates
   - resistance-approach candidates
@@ -236,13 +260,34 @@ What remains:
   - recent fakeouts
   - reclaim setups
   - strongest multi-timeframe level clusters
+  - freshest detections
+  - most actionable / closest-to-level detections
+  - per-sector / per-industry / per-instrument-type slices
 
-- Add optional validation / research capabilities later, such as:
+- Add stronger validation / research capabilities around the radar, such as:
   - tracking what happened after each detected setup
   - evaluating historical success rates of different definitions
   - instrument-category-specific behavior
   - regime-aware quality differences
+  - leaderboard-style comparisons of setup definitions
+  - false-positive review tooling
   - later, if useful, learned weighting on top of the rule-based engine
+
+Nearer-term concrete follow-up phases worth treating as the next likely implementation path:
+- Phase 2:
+  - richer structure extraction
+  - scheduled runs
+  - saved radar filters/views
+  - stronger chart overlay controls
+- Phase 3:
+  - fakeout/retest/compression state modeling
+  - dashboard widgets
+  - radar-to-watchlist promotion
+  - radar-derived alerts
+- Phase 4:
+  - historical outcome tracking
+  - score calibration
+  - strategy/trade-signal integrations
 
 Broader feature ideas explicitly worth keeping in scope for future exploration:
 - multi-timeframe level stacking and propagation
@@ -263,6 +308,12 @@ Visualization expectations:
 - Anything used internally by the radar to justify a candidate should, where practical, be visually inspectable by the user.
 - The user should not have to blindly trust the radar.
 - A detected setup should be explorable on the chart page and, where appropriate, in dashboard widgets.
+
+Why this was deferred:
+- The initial v1 landed, but the original radar vision is much broader than the currently implemented slice.
+- The remaining work is still a major platform capability, not a small feature.
+- It depends on stronger data coverage, better operational definitions, deeper validation, and richer visualization design.
+- It deserves continued dedicated implementation passes with room for experimentation and later evidence-based pruning.
 
 ### 6. Build unattended multi-LLM orchestration for overnight development
 Status: `Deferred`
