@@ -136,13 +136,18 @@
           <ResizeHandle
             direction="vertical"
             :value="optionsPanelHeight"
-            :min="collapsedOptionsPanel ? 44 : 180"
+            :min="collapsedOptionsPanel ? 20 : 180"
             :max="520"
             inverted
             @change="resizeOptionsPanel"
           />
-          <div class="options-shell" :style="{ height: `${collapsedOptionsPanel ? 44 : optionsPanelHeight}px` }">
-            <div class="options-tabs">
+          <div class="options-shell" :style="{ height: `${collapsedOptionsPanel ? 20 : optionsPanelHeight}px` }">
+            <button
+              class="options-toggle"
+              :title="collapsedOptionsPanel ? 'Expand options panel' : 'Collapse options panel'"
+              @click="collapsedOptionsPanel = !collapsedOptionsPanel"
+            >{{ collapsedOptionsPanel ? '▴' : '▾' }}</button>
+            <div v-if="!collapsedOptionsPanel" class="options-tabs">
               <div class="options-tab-group">
                 <button
                   class="options-tab"
@@ -155,13 +160,6 @@
                   @click="optionsTab = 'exposure'"
                 >Exposure</button>
               </div>
-              <button
-                class="options-collapse"
-                :title="collapsedOptionsPanel ? 'Expand options panel' : 'Collapse options panel'"
-                @click="collapsedOptionsPanel = !collapsedOptionsPanel"
-              >
-                <span class="options-collapse-icon">{{ collapsedOptionsPanel ? '▸' : '▾' }}</span>
-              </button>
             </div>
             <div v-if="!collapsedOptionsPanel" class="options-content">
               <OptionsChainPanel
@@ -256,7 +254,7 @@ const showWlMenu    = ref(false)
 const showCreateWatchlistModal = ref(false)
 const optionsTab    = ref<'chain' | 'exposure'>('chain')
 const optionsPanelHeight = ref(340)
-const collapsedOptionsPanel = ref(false)
+const collapsedOptionsPanel = ref(true)
 const wlStarRef     = ref<HTMLElement | null>(null)
 const showCompareInput = ref(false)
 const compareDraft = ref('')
@@ -778,10 +776,25 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
 }
+.options-toggle {
+  width: 100%;
+  height: 20px;
+  background: #0c0c0c;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.1s, background 0.1s;
+}
+.options-toggle:hover { color: #aaa; background: #111; }
 .options-tabs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   border-bottom: 1px solid #1e1e1e;
   flex-shrink: 0;
   min-height: 43px;
@@ -807,26 +820,7 @@ onUnmounted(() => {
   color: #ccc;
   border-bottom-color: #64b5f6;
 }
-.options-collapse {
-  margin-right: 10px;
-  border: 1px solid #2f2f2f;
-  background: #121212;
-  color: #8f8f8f;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 10px;
-  padding: 4px 8px;
-  cursor: pointer;
-  line-height: 1;
-}
-.options-collapse:hover {
-  color: #d0d0d0;
-  border-color: #4c4c4c;
-}
-.options-collapse-icon {
-  display: inline-block;
-  font-size: 11px;
-}
+
 .options-content {
   flex: 1;
   min-height: 0;

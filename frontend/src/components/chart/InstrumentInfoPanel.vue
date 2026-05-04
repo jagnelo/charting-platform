@@ -24,7 +24,24 @@
         </template>
 
         <!-- Description (shown when present, e.g. for ETFs) -->
-        <div v-if="instrument.description" class="info-description">{{ instrument.description }}</div>
+        <template v-if="instrument.description">
+          <div class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
+          <button v-if="instrument.description.length > 160" class="desc-more" @click="descExpanded = !descExpanded">
+            {{ descExpanded ? 'less ▴' : 'more ▾' }}
+          </button>
+        </template>
+
+        <!-- Day range -->
+        <template v-if="sessionHigh != null && sessionLow != null">
+          <div class="info-label">Day Range</div>
+          <div class="range-row">
+            <span class="range-lo">{{ fmt(sessionLow) }}</span>
+            <div class="range-bar-wrap">
+              <div class="range-bar-fill" :style="{ width: sessionRangePercent + '%' }" />
+            </div>
+            <span class="range-hi">{{ fmt(sessionHigh) }}</span>
+          </div>
+        </template>
 
         <!-- 52-week range -->
         <template v-if="stats?.week52_high != null && stats?.week52_low != null">
@@ -78,7 +95,7 @@
           </div>
           <div class="info-fund-row" v-if="eq.market_cap_tier">
             <span class="fund-label">Cap Tier</span>
-            <span class="fund-val">{{ eq.market_cap_tier }}</span>
+            <span class="fund-val">{{ formatCapTier(eq.market_cap_tier) }}</span>
           </div>
           <div class="info-fund-row" v-if="eq.ipo_date">
             <span class="fund-label">IPO Date</span>
@@ -106,10 +123,16 @@ import { ref, computed } from 'vue'
 import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
 import type { Instrument } from '@/types'
 
-const props = defineProps<{ instrument: Instrument | null; currentPrice?: number | null }>()
+const props = defineProps<{
+  instrument: Instrument | null
+  currentPrice?: number | null
+  sessionHigh?: number | null
+  sessionLow?: number | null
+}>()
 const emit = defineEmits<{ select: [symbol: string] }>()
 
-const isOpen = ref(true)
+const isOpen      = ref(true)
+const descExpanded = ref(false)
 
 const stats = computed(() => props.instrument?.stats ?? null)
 const eq    = computed(() => props.instrument?.equity_detail ?? null)
@@ -122,6 +145,19 @@ const rangePercent = computed(() => {
   const price = props.currentPrice ?? ((s.week52_high + s.week52_low) / 2)
   return Math.min(100, Math.max(0, ((price - s.week52_low) / range) * 100))
 })
+
+const sessionRangePercent = computed(() => {
+  const hi = props.sessionHigh, lo = props.sessionLow
+  if (hi == null || lo == null) return 50
+  const range = hi - lo
+  if (range <= 0) return 50
+  const price = props.currentPrice ?? ((hi + lo) / 2)
+  return Math.min(100, Math.max(0, ((price - lo) / range) * 100))
+})
+
+function formatCapTier(tier: string): string {
+  return tier.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
 
 function fmt(v: number | undefined | null): string {
   if (v == null) return '—'
@@ -211,12 +247,29 @@ function websiteHost(url: string): string {
   font-size: 10px;
   color: #555;
   line-height: 1.5;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
 }
+.info-description--expanded {
+  display: block;
+  overflow: visible;
+}
+.desc-more {
+  display: block;
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 9px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+.desc-more:hover { color: #888; }
 
 .info-constituents {
   display: flex;

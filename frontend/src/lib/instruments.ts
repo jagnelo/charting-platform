@@ -74,7 +74,7 @@ export function getInstrumentInputHint(raw: string): string {
     : ''
 }
 
-export async function ensureKnownInstrumentSymbol(raw: string): Promise<string> {
+export async function ensureKnownInstrumentSymbol(raw: string, feature = 'Instrument'): Promise<string> {
   const input = classifyInstrumentInput(raw)
   if (input.kind === 'empty') return ''
   if (input.kind === 'pending_expression') throw new Error('Finish the expression to continue.')
@@ -90,7 +90,7 @@ export async function ensureKnownInstrumentSymbol(raw: string): Promise<string> 
     const instrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(input.value)}`)
     return instrument.symbol
   } catch (error) {
-    throw buildLookupError(raw, error)
+    throw buildLookupError(raw, error, feature)
   }
 }
 

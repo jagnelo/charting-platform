@@ -13,6 +13,8 @@
     <InstrumentInfoPanel
       :instrument="chartStore.instrument ?? null"
       :current-price="chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1].close : null"
+      :session-high="sessionRange?.high ?? null"
+      :session-low="sessionRange?.low ?? null"
       @select="symbol => emit('selectSymbol', symbol)"
     />
 
@@ -528,13 +530,25 @@ function onDrawingsReorder() {
   api.post('/drawings/reorder', { ids }).catch(e => console.error('Failed to reorder drawings', e))
 }
 
+const INTRADAY_OR_DAILY: string[] = ['M1','M5','M15','M30','H1','H2','H4','H12','D1']
+const sessionRange = computed(() => {
+  const bars = chartStore.bars
+  if (!bars.length || !INTRADAY_OR_DAILY.includes(chartStore.timeframe)) return null
+  const lastDate = bars[bars.length - 1].ts.slice(0, 10)
+  const dayBars  = bars.filter(b => b.ts.slice(0, 10) === lastDate)
+  return {
+    high: Math.max(...dayBars.map(b => b.high)),
+    low:  Math.min(...dayBars.map(b => b.low)),
+  }
+})
+
 // ── Panel & section collapse state ───────────────────────────────────────────
 const isPanelOpen    = ref(false)   // starts hidden until an instrument is loaded
-const alertsOpen     = ref(true)
-const indicatorsOpen = ref(true)
-const drawingsOpen   = ref(true)
-const watchlistsOpen = ref(true)
-const screenersOpen  = ref(true)
+const alertsOpen     = ref(false)
+const indicatorsOpen = ref(false)
+const drawingsOpen   = ref(false)
+const watchlistsOpen = ref(false)
+const screenersOpen  = ref(false)
 
 // ── ⋯ row dropdown menu ───────────────────────────────────────────────────────
 const menuOpenId = ref<string | null>(null)
@@ -590,16 +604,26 @@ const activeScreeners = computed(() =>
 
 watch(() => chartStore.instrument?.id, async (id) => {
   if (!id) { membership.value = null; isPanelOpen.value = false; return }
-  // Auto-open panel when an instrument is first loaded
   isPanelOpen.value = true
+  // Reset section states for new instrument; content-based watches will re-open them
+  watchlistsOpen.value = false
+  screenersOpen.value  = false
+  indicatorsOpen.value = false
+  drawingsOpen.value   = false
+  alertsOpen.value     = false
   if (_membershipCache.has(id)) {
-    membership.value = _membershipCache.get(id)!
+    const cached = _membershipCache.get(id)!
+    membership.value = cached
+    watchlistsOpen.value = cached.watchlists.length > 0
+    screenersOpen.value  = cached.screeners.filter(s => s.in_current_results).length > 0
     return
   }
   try {
     const data = await api.get<InstrumentMembership>(`/instruments/${id}/membership`)
     _membershipCache.set(id, data)
     membership.value = data
+    watchlistsOpen.value = data.watchlists.length > 0
+    screenersOpen.value  = data.screeners.filter(s => s.in_current_results).length > 0
   } catch {
     membership.value = null
   }
@@ -753,6 +777,11 @@ const instrumentIndicatorAlerts = computed(() =>
 const instrumentAlerts = computed(() =>
   [...instrumentPriceAlerts.value, ...instrumentIndicatorAlerts.value]
 )
+
+// Auto-expand sections when they have content (one-way; resets happen in the instrument watch)
+watch(() => chartStore.indicators.length, (n) => { if (n > 0) indicatorsOpen.value = true }, { immediate: true })
+watch(() => drawStore.drawings.length,    (n) => { if (n > 0) drawingsOpen.value   = true }, { immediate: true })
+watch(instrumentAlerts,               (alerts) => { if (alerts.length > 0) alertsOpen.value = true }, { immediate: true })
 
 // ── Alert editor ──────────────────────────────────────────────────────────────
 const alertEditorOpen           = ref(false)

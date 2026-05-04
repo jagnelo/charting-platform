@@ -59,7 +59,7 @@ export const useOptionsExposureStore = defineStore('optionsExposure', () => {
     isLoading.value = true
     error.value = null
     try {
-      const targetSymbol = await ensureKnownInstrumentSymbol(sym)
+      const targetSymbol = await ensureKnownInstrumentSymbol(sym, 'Options exposure')
       if (seq !== _loadSeq) return
       symbol.value = targetSymbol
       const params: Record<string, string> = {}
