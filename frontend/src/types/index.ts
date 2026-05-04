@@ -140,6 +140,73 @@ export interface ChartComparisonSeries {
   percentChange?: number | null
 }
 
+export type RadarSetupType =
+  | 'approaching_support'
+  | 'approaching_resistance'
+  | 'breakout'
+  | 'breakdown'
+  | 'reclaim'
+  | 'rejection'
+
+export interface RadarOverlayPoint {
+  time: number
+  price: number
+}
+
+export interface RadarOverlay {
+  kind: 'zone' | 'line' | 'marker'
+  role?: string | null
+  label?: string | null
+  color?: string | null
+  dash_pattern?: number[] | null
+  start_time?: number | null
+  end_time?: number | null
+  price_low?: number | null
+  price_high?: number | null
+  time?: number | null
+  price?: number | null
+  points?: RadarOverlayPoint[] | null
+}
+
+export interface RadarEvidence {
+  overlays: RadarOverlay[]
+  metrics: Record<string, unknown>
+  structures: Array<Record<string, unknown>>
+}
+
+export interface RadarRun {
+  id: number
+  timeframe: Timeframe
+  universe_type: string
+  universe_filter?: Record<string, unknown> | null
+  status: 'running' | 'completed' | 'failed'
+  started_at: string
+  completed_at?: string | null
+  evaluated_count: number
+  detection_count: number
+  error_summary?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RadarDetection {
+  id: number
+  run_id: number
+  instrument_id: number
+  instrument_symbol: string
+  instrument_name: string
+  timeframe: Timeframe
+  setup_type: RadarSetupType
+  score: number
+  observed_at: string
+  fresh_until: string
+  key_level_price?: number | null
+  summary: string
+  invalidation_hint?: string | null
+  score_factors: Record<string, number>
+  evidence?: RadarEvidence
+}
+
 export interface ChartDrawing {
   id: number
   instrument_id: number

@@ -13,6 +13,14 @@
               {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
             </span>
           </div>
+          <button
+            v-if="radarStore.chartDetections.length"
+            class="radar-toggle"
+            :class="{ active: radarStore.overlayEnabled }"
+            @click="radarStore.setOverlayEnabled(!radarStore.overlayEnabled)"
+          >
+            Radar {{ radarStore.overlayEnabled ? 'On' : 'Off' }}
+          </button>
         </template>
         <!-- Multi-panel: show active panel symbol -->
         <template v-else>
@@ -129,7 +137,10 @@
             <div v-else-if="chartStore.error" class="chart-overlay chart-error">
               {{ chartStore.error }}
             </div>
-            <UPlotChart :comparison-series="comparisonSeries" />
+            <UPlotChart
+              :comparison-series="comparisonSeries"
+              :radar-overlays="activeRadarOverlays"
+            />
           </template>
         </div>
         <template v-if="showOptionsPanel">
@@ -206,6 +217,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
+import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
@@ -219,7 +231,7 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
-import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
+import type { ChartComparisonSeries, OHLCVBar, RadarOverlay, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
@@ -230,6 +242,7 @@ const drawStore       = useDrawingsStore()
 const alertsStore     = useAlertsStore()
 const presetsStore    = usePresetsStore()
 const optionsExposureStore = useOptionsExposureStore()
+const radarStore      = useRadarStore()
 
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
 const activePanelStore = computed(() =>
@@ -333,6 +346,11 @@ const comparisonLegend = computed(() =>
     percentChange: comparisonSeries.value.find(series => series.symbol === target.symbol)?.percentChange ?? null,
   }))
 )
+
+const activeRadarOverlays = computed<RadarOverlay[]>(() => {
+  if (!radarStore.overlayEnabled) return []
+  return radarStore.chartDetections.flatMap(detection => detection.evidence?.overlays ?? [])
+})
 
 function formatPercent(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return '—'
@@ -442,6 +460,16 @@ async function onSymbolSelect(symbol: string) {
   }
 }
 
+async function syncRadarOverlays() {
+  const detectionIdRaw = route.query.radarDetectionId
+  const detectionId = detectionIdRaw != null ? Number(detectionIdRaw) : null
+  if (!chartStore.instrument || !Number.isFinite(detectionId ?? NaN)) {
+    radarStore.clearChartDetections()
+    return
+  }
+  await radarStore.loadChartDetections(chartStore.instrument.id, detectionId)
+}
+
 watch(currentTf, async (tf) => {
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
@@ -495,6 +523,14 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => [route.query.radarDetectionId, chartStore.instrument?.id] as const,
+  async () => {
+    await syncRadarOverlays()
+  },
+  { immediate: false },
+)
+
 
 async function addToWatchlist(watchlistId: number) {
   const sym = activeSymbol.value
@@ -522,7 +558,10 @@ onMounted(async () => {
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
-  if (sym) await onSymbolSelect(sym)
+  if (sym) {
+    await onSymbolSelect(sym)
+    await syncRadarOverlays()
+  }
 })
 
 onUnmounted(() => {
@@ -650,6 +689,22 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.radar-toggle {
+  background: #101c29;
+  border: 1px solid #29435a;
+  color: #8dbde6;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.radar-toggle.active {
+  border-color: #4ea8de;
+  color: #eef8ff;
 }
 
 .wl-quick-menu {

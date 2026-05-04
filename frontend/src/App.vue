@@ -13,6 +13,7 @@
             {{ alertsStore.unviewedCount > 99 ? '99+' : alertsStore.unviewedCount }}
           </span>
         </router-link>
+        <router-link to="/radar" class="nav-link" title="Radar">◎</router-link>
         <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
         <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
         <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>
