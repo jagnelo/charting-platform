@@ -21,6 +21,25 @@
         </span>
       </div>
 
+      <!-- Radar info badge — hover to expand detection summaries -->
+      <div
+        v-if="radarStore.overlayEnabled && radarStore.chartDetections.length"
+        class="radar-info"
+      >
+        <span class="radar-info-badge">◈ Radar · {{ radarStore.chartDetections.length }}</span>
+        <div class="radar-info-panel">
+          <div
+            v-for="det in radarStore.chartDetections"
+            :key="det.id"
+            class="radar-info-item"
+          >
+            <div class="radar-info-header">{{ det.setup_type.replace(/_/g, ' ') }}</div>
+            <div class="radar-info-summary">{{ det.summary }}</div>
+            <div v-if="det.invalidation_hint" class="radar-info-invalidation">{{ det.invalidation_hint }}</div>
+          </div>
+        </div>
+      </div>
+
       <!-- TradingView-style A (auto) + L (log) buttons on Y axis -->
       <div class="yaxis-btns">
         <button
@@ -160,6 +179,17 @@
               <input type="checkbox" v-model="userSettingsStore.showApproxVolumeProfile" class="ed-checkbox" />
               Show approximate volume profile
             </label>
+            <div class="ed-section-title ed-section-sep">Technical Radar</div>
+            <label class="ed-checkbox-row">
+              <input
+                type="checkbox"
+                :checked="radarStore.overlayEnabled"
+                @change="radarStore.setOverlayEnabled(!radarStore.overlayEnabled)"
+                class="ed-checkbox"
+              />
+              Show radar overlays
+            </label>
+            <div v-if="!radarStore.chartDetections.length" class="ed-hint">No detections for this symbol</div>
           </div>
         </div>
       </div>
@@ -178,6 +208,7 @@ import { useDrawingsStore }     from '@/stores/drawings'
 import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
+import { useRadarStore }          from '@/stores/radar'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -259,6 +290,7 @@ const drawStore          = useDrawingsStore()
 const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
+const radarStore           = useRadarStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
@@ -869,6 +901,14 @@ function renderRadarOverlays() {
       })
       ctx.stroke()
       ctx.setLineDash([])
+      if (overlay.role === 'invalidation' && overlay.label && overlay.points.length) {
+        const lastPt = overlay.points[overlay.points.length - 1]
+        const lx = plot.valToPos(timeToBarIndex(lastPt.time), 'x')
+        const ly = plot.valToPos(lastPt.price, 'y')
+        ctx.fillStyle = color
+        ctx.font = '10px monospace'
+        ctx.fillText(overlay.label, lx - 76, ly - 4)
+      }
       continue
     }
 
@@ -3269,6 +3309,67 @@ defineExpose({ jumpToTs })
 }
 .settings-btn:hover { color: #aaa; border-color: #555; }
 
+.radar-info {
+  position: absolute;
+  bottom: 26px;
+  left: 78px;
+  z-index: 30;
+  user-select: none;
+}
+.radar-info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(46, 196, 182, 0.38);
+  border-radius: 3px;
+  color: #2ec4b6;
+  font-size: 10px;
+  font-family: monospace;
+  cursor: default;
+  white-space: nowrap;
+}
+.radar-info-panel {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 272px;
+  background: #0e0e0e;
+  border: 1px solid rgba(46, 196, 182, 0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+.radar-info:hover .radar-info-panel { display: block; }
+.radar-info-item + .radar-info-item {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #1a1a1a;
+}
+.radar-info-header {
+  color: #2ec4b6;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+  font-family: monospace;
+}
+.radar-info-summary {
+  color: #999;
+  font-size: 11px;
+  line-height: 1.55;
+  margin-bottom: 5px;
+  font-family: monospace;
+}
+.radar-info-invalidation {
+  color: #ef5350;
+  font-size: 10px;
+  line-height: 1.45;
+  font-family: monospace;
+}
+
 .editor-backdrop {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
@@ -3303,6 +3404,16 @@ defineExpose({ jumpToTs })
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 10px;
+}
+.ed-section-sep {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #1a1a1a;
+}
+.ed-hint {
+  font-size: 10px;
+  color: #3a3a3a;
+  padding-bottom: 4px;
 }
 .ed-checkbox-row {
   display: flex; align-items: center; gap: 8px;

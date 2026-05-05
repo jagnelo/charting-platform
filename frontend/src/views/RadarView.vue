@@ -94,7 +94,10 @@
             <div class="section-title">Score factors</div>
             <div class="kv-grid">
               <template v-for="(value, key) in radarStore.selectedDetection.score_factors" :key="key">
-                <span class="kv-key">{{ prettifyKey(String(key)) }}</span>
+                <span class="kv-key">
+                  {{ prettifyKey(String(key)) }}
+                  <span v-if="scoreFactorHint(String(key))" class="kv-info" :data-tip="scoreFactorHint(String(key))">ⓘ</span>
+                </span>
                 <span :class="['kv-val', key === 'normalized_score' ? 'kv-score' : '']">
                   {{ formatFactor(value) }}
                 </span>
@@ -105,9 +108,12 @@
           <div class="detail-section">
             <div class="section-title">Evidence metrics</div>
             <div class="kv-grid">
-              <template v-for="(value, key) in radarStore.selectedDetection.evidence.metrics" :key="key">
-                <span class="kv-key">{{ prettifyKey(String(key)) }}</span>
-                <span class="kv-val">{{ formatMetric(value) }}</span>
+              <template v-for="row in evidenceMetricRows" :key="row.key">
+                <span class="kv-key">{{ row.key }}</span>
+                <span class="kv-val-block">
+                  <span class="kv-val">{{ row.value }}</span>
+                  <span v-if="row.hint" class="kv-hint">{{ row.hint }}</span>
+                </span>
               </template>
             </div>
           </div>
@@ -145,6 +151,76 @@ const setupTypes: Array<{ value: RadarSetupType; label: string }> = [
 ]
 
 const latestRun = computed(() => radarStore.runs[0] ?? null)
+
+interface MetricRow {
+  key: string
+  value: string
+  hint?: string
+}
+
+const evidenceMetricRows = computed((): MetricRow[] => {
+  const det = radarStore.selectedDetection
+  if (!det?.evidence?.metrics) return []
+  const m = det.evidence.metrics as Record<string, unknown>
+  const s = det.evidence.structures?.[0] as Record<string, unknown> | undefined
+  const rows: MetricRow[] = []
+
+  for (const [key, val] of Object.entries(m)) {
+    if (key === 'invalidation_price') continue
+
+    if (key === 'ema_levels' && val && typeof val === 'object' && !Array.isArray(val)) {
+      for (const [period, level] of Object.entries(val as Record<string, number>)) {
+        rows.push({
+          key: period.replace('ema_', 'EMA '),
+          value: typeof level === 'number' ? level.toFixed(4) : String(level),
+        })
+      }
+      continue
+    }
+
+    if (key === 'avwap') {
+      const anchorTs = s?.last_touch_time
+      const anchorDate = typeof anchorTs === 'number'
+        ? formatDateShort(new Date(anchorTs * 1000).toISOString())
+        : undefined
+      rows.push({ key: 'AVWAP', value: formatMetric(val), hint: anchorDate ? `anchor: ${anchorDate}` : undefined })
+      continue
+    }
+
+    if (key === 'close') {
+      rows.push({ key: 'Close', value: formatMetric(val), hint: `as of ${formatDateShort(det.observed_at)}` })
+      continue
+    }
+
+    if (key === 'week52_high') {
+      rows.push({ key: '52W High', value: formatMetric(val), hint: '252-bar lookback' })
+      continue
+    }
+
+    if (key === 'week52_low') {
+      rows.push({ key: '52W Low', value: formatMetric(val), hint: '252-bar lookback' })
+      continue
+    }
+
+    rows.push({ key: prettifyKey(key), value: formatMetric(val) })
+  }
+  return rows
+})
+
+const SCORE_FACTOR_HINTS: Record<string, string> = {
+  distance_to_level: 'How close price is to the zone center. 1.0 = exactly at the level, 0 = far away.',
+  touch_count: 'Number of times price has tested and respected this zone. More touches = stronger zone.',
+  recency: 'How recently the zone was last tested. Decays over 120 bars from the last touch.',
+  structure_age: 'How long the zone has existed since its first touch. Matures over 180 bars.',
+  overlap_confluence: 'Overlap with EMAs, anchored VWAP, or 52-week levels. Higher = more confluence.',
+  recent_reaction_quality: 'How cleanly price respected this zone in the last 10 bars.',
+  timeframe_importance: 'Weight assigned to this timeframe. Fixed at 1.0 — placeholder for multi-timeframe scoring.',
+  normalized_score: 'Final composite score: weighted blend of all factors above.',
+}
+
+function scoreFactorHint(key: string): string {
+  return SCORE_FACTOR_HINTS[key] ?? ''
+}
 const runningScan = computed(() => latestRun.value?.status === 'running')
 
 function labelForSetup(setup: RadarSetupType) {
@@ -507,6 +583,9 @@ onMounted(async () => {
 .kv-key {
   color: #666;
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .kv-val {
@@ -515,8 +594,60 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
+.kv-val-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.kv-hint {
+  color: #444;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 .kv-score {
   color: #26a69a;
   font-weight: 600;
+}
+
+.kv-info {
+  color: #3a3a3a;
+  cursor: help;
+  font-size: 10px;
+  position: relative;
+  line-height: 1;
+}
+
+.kv-info:hover {
+  color: #777;
+}
+
+.kv-info::after {
+  content: attr(data-tip);
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  width: 210px;
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  border-radius: 4px;
+  padding: 7px 9px;
+  font-size: 11px;
+  color: #999;
+  line-height: 1.5;
+  z-index: 100;
+  text-transform: none;
+  letter-spacing: 0;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.kv-info:hover::after {
+  display: block;
 }
 </style>

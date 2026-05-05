@@ -13,14 +13,6 @@
               {{ formatMoney(currentPrice, chartStore.instrument?.currency) }}
             </span>
           </div>
-          <button
-            v-if="radarStore.chartDetections.length"
-            class="radar-toggle"
-            :class="{ active: radarStore.overlayEnabled }"
-            @click="radarStore.setOverlayEnabled(!radarStore.overlayEnabled)"
-          >
-            Radar {{ radarStore.overlayEnabled ? 'On' : 'Off' }}
-          </button>
         </template>
         <!-- Multi-panel: show active panel symbol -->
         <template v-else>
@@ -689,22 +681,6 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-.radar-toggle {
-  background: #101c29;
-  border: 1px solid #29435a;
-  color: #8dbde6;
-  border-radius: 4px;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 11px;
-  font-family: inherit;
-}
-
-.radar-toggle.active {
-  border-color: #4ea8de;
-  color: #eef8ff;
 }
 
 .wl-quick-menu {

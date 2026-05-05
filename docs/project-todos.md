@@ -273,6 +273,11 @@ What remains:
   - false-positive review tooling
   - later, if useful, learned weighting on top of the rule-based engine
 
+Entry, exit, and invalidation semantics to add (explicitly deferred from v1):
+- **Explicit entry level**: v1 detects setups but produces no concrete entry price. Add a per-setup suggested entry level (e.g., zone boundary ± ATR fraction, or first close above/below zone for breakout/reclaim setups). Store as a numeric field alongside key_level_price so the chart and trade-signal layer can use it.
+- **Price-action-based auto-invalidation**: `fresh_until` is currently a hardcoded 5-day TTL unrelated to actual price action. Add a background task (or per-scan pass) that checks active detections against the latest bar and marks them `INVALIDATED` (via a new status field or by setting `fresh_until = now`) when the invalidation condition in `invalidation_hint` is met. This requires storing `invalidation_price` as a queryable numeric field (currently only in evidence_json.metrics) and comparing it against incoming closes.
+- **Connection to trade signal engine (item 7)**: When item 7 is implemented, radar detections are the natural input — a detection with an entry level, invalidation level, and score becomes the seed for a structured trade plan. The invalidation level becomes the stop, and the implied target can be the opposing zone or a fixed R-multiple. Both systems should share schema vocabulary from the start (entry_price, stop_price, target_price, risk_multiple).
+
 Nearer-term concrete follow-up phases worth treating as the next likely implementation path:
 - Phase 2:
   - richer structure extraction

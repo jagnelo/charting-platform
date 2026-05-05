@@ -315,6 +315,37 @@ def _candidate_invalidation(setup_type: RadarSetupType, zone: Zone) -> str:
     return f"Invalidate if price reclaims {zone.high:.2f}."
 
 
+def _invalidation_price(setup_type: RadarSetupType, zone: Zone) -> float:
+    if setup_type in {RadarSetupType.APPROACHING_SUPPORT, RadarSetupType.RECLAIM, RadarSetupType.BREAKOUT}:
+        return round(zone.low, 4)
+    return round(zone.high, 4)
+
+
+def _make_invalidation_overlay(inv_price: float, timestamps: list[int], latest_ts: int) -> dict:
+    return {
+        "kind": "line",
+        "role": "invalidation",
+        "label": "Invalidation",
+        "color": "#ef5350",
+        "dash_pattern": [6, 3],
+        "points": [
+            {"time": timestamps[0], "price": inv_price},
+            {"time": latest_ts, "price": inv_price},
+        ],
+    }
+
+
+def _candidate_evidence(
+    base: dict, setup_type: RadarSetupType, zone: Zone, timestamps: list[int], latest_ts: int
+) -> dict:
+    inv_price = _invalidation_price(setup_type, zone)
+    return {
+        **base,
+        "overlays": [*base["overlays"], _make_invalidation_overlay(inv_price, timestamps, latest_ts)],
+        "metrics": {**base["metrics"], "invalidation_price": inv_price},
+    }
+
+
 def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[DetectionCandidate]:
     if len(bars) < 80:
         return []
@@ -430,7 +461,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     ),
                     key_level_price=zone.center,
                     score_factors=score_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.APPROACHING_SUPPORT, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
@@ -449,7 +480,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     ),
                     key_level_price=zone.center,
                     score_factors=score_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.APPROACHING_RESISTANCE, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
@@ -471,7 +502,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     invalidation_hint=_candidate_invalidation(RadarSetupType.BREAKOUT, zone),
                     key_level_price=zone.center,
                     score_factors=breakout_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.BREAKOUT, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
@@ -493,7 +524,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     invalidation_hint=_candidate_invalidation(RadarSetupType.BREAKDOWN, zone),
                     key_level_price=zone.center,
                     score_factors=breakdown_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.BREAKDOWN, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
@@ -515,7 +546,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     invalidation_hint=_candidate_invalidation(RadarSetupType.RECLAIM, zone),
                     key_level_price=zone.center,
                     score_factors=reclaim_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.RECLAIM, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
@@ -537,7 +568,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     invalidation_hint=_candidate_invalidation(RadarSetupType.REJECTION, zone),
                     key_level_price=zone.center,
                     score_factors=rejection_factors,
-                    evidence=evidence,
+                    evidence=_candidate_evidence(evidence, RadarSetupType.REJECTION, zone, timestamps, latest_ts),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
                 )
