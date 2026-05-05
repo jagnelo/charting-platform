@@ -15,6 +15,8 @@
       :current-price="chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1].close : null"
       :session-high="sessionRange?.high ?? null"
       :session-low="sessionRange?.low ?? null"
+      :session-high-time="sessionRange?.highTime ?? null"
+      :session-low-time="sessionRange?.lowTime ?? null"
       @select="symbol => emit('selectSymbol', symbol)"
     />
 
@@ -64,6 +66,50 @@
               <span class="row-name">{{ sc.name }}</span>
             </div>
             <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- ── Radar detections ─────────────────────────────────────────────── -->
+    <div v-if="chartStore.instrument" class="section" :class="{ collapsed: !radarsOpen }">
+      <div class="section-header" @click="radarsOpen = !radarsOpen">
+        <span class="section-title">Radar</span>
+        <span class="section-count">{{ radarStore.chartDetections.length }}</span>
+        <span class="section-chevron">{{ radarsOpen ? '▾' : '▸' }}</span>
+      </div>
+      <Transition name="slide">
+        <div class="section-content" v-if="radarsOpen">
+          <div class="section-body">
+            <div
+              v-for="(det, index) in radarStore.chartDetections"
+              :key="det.id"
+              class="list-row radar-row"
+              :class="{
+                'row--selected': radarStore.focusedChartDetectionId === det.id,
+                'row--hidden': !radarStore.isChartDetectionActive(det.id),
+              }"
+              @click="radarStore.toggleChartDetection(det.id)"
+            >
+              <span class="radar-sequence-tag">{{ index + 1 }}</span>
+              <span class="radar-toggle-indicator">{{ radarStore.isChartDetectionActive(det.id) ? '◉' : '○' }}</span>
+              <span class="row-name">
+                {{ formatRadarSetup(det.setup_type) }}
+                <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
+                <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
+              </span>
+              <HoverTooltip :text="radarTooltipText(det)">
+                <button
+                  type="button"
+                  class="radar-info-btn"
+                  :aria-label="`Radar details for ${formatRadarSetup(det.setup_type)}`"
+                  @click.stop
+                >
+                  i
+                </button>
+              </HoverTooltip>
+            </div>
+            <div v-if="!radarStore.chartDetections.length" class="empty-hint">No radar detections for this symbol</div>
           </div>
         </div>
       </Transition>
@@ -483,8 +529,10 @@ export {}
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
+import { useRadarStore } from '@/stores/radar'
 import { useWatchlistStore } from '@/stores/watchlist'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
+import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import { formatMoney } from '@/lib/format'
 import { usePanelStore }   from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
@@ -509,6 +557,7 @@ const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
 
 const router         = useRouter()
 const alertsStore    = useAlertsStore()
+const radarStore     = useRadarStore()
 const watchlistStore = useWatchlistStore()
 const chartStore     = usePanelStore(props.panelId)
 const drawStore      = useDrawingsStore()
@@ -536,9 +585,14 @@ const sessionRange = computed(() => {
   if (!bars.length || !INTRADAY_OR_DAILY.includes(chartStore.timeframe)) return null
   const lastDate = bars[bars.length - 1].ts.slice(0, 10)
   const dayBars  = bars.filter(b => b.ts.slice(0, 10) === lastDate)
+  const highBar = dayBars.reduce((best, bar) => (best == null || bar.high > best.high ? bar : best), null as typeof dayBars[number] | null)
+  const lowBar = dayBars.reduce((best, bar) => (best == null || bar.low < best.low ? bar : best), null as typeof dayBars[number] | null)
+  if (!highBar || !lowBar) return null
   return {
-    high: Math.max(...dayBars.map(b => b.high)),
-    low:  Math.min(...dayBars.map(b => b.low)),
+    high: highBar.high,
+    low: lowBar.low,
+    highTime: highBar.ts,
+    lowTime: lowBar.ts,
   }
 })
 
@@ -547,6 +601,7 @@ const isPanelOpen    = ref(false)   // starts hidden until an instrument is load
 const alertsOpen     = ref(false)
 const indicatorsOpen = ref(false)
 const drawingsOpen   = ref(false)
+const radarsOpen     = ref(true)
 const watchlistsOpen = ref(false)
 const screenersOpen  = ref(false)
 
@@ -635,6 +690,60 @@ function onScreenerClick(scId: number) {
 
 function onWatchlistClick(wlId: number) {
   watchlistStore.requestFocusWatchlist(wlId)
+}
+
+function formatRadarSetup(setup: string): string {
+  return setup.replace(/_/g, ' ')
+}
+
+function formatRadarObservedDate(value?: string | null): string {
+  if (!value) return '—'
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/)
+  if (match) return match[0]
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`
+}
+
+function radarMetricNumber(
+  det: { evidence?: { metrics?: Record<string, unknown> } },
+  key: string,
+): number | null {
+  const value = det.evidence?.metrics?.[key]
+  return typeof value === 'number' ? value : null
+}
+
+function formatRadarSignalDate(det: {
+  observed_at: string
+  evidence?: { metrics?: Record<string, unknown> }
+}) {
+  const signalTime = radarMetricNumber(det, 'signal_time')
+  if (signalTime != null) {
+    return formatRadarObservedDate(new Date(signalTime * 1000).toISOString())
+  }
+  return formatRadarObservedDate(det.observed_at)
+}
+
+function radarTooltipText(det: {
+  setup_type: string
+  observed_at: string
+  summary: string
+  invalidation_hint?: string | null
+  score: number
+  evidence?: { metrics?: Record<string, unknown> }
+}) {
+  const signalTime = radarMetricNumber(det, 'signal_time')
+  const contextTime = radarMetricNumber(det, 'context_time')
+  const lines = [
+    `${formatRadarSetup(det.setup_type)} · detected ${formatRadarSignalDate(det)}`,
+    det.summary,
+    `Score: ${det.score.toFixed(2)}`,
+  ]
+  if (contextTime != null && contextTime !== signalTime) {
+    lines.push(`Level last touched on ${formatRadarObservedDate(new Date(contextTime * 1000).toISOString())}`)
+  }
+  if (det.invalidation_hint) lines.push(det.invalidation_hint)
+  return lines.join('\n')
 }
 
 // ── Indicators ─────────────────────────────────────────────────────────────────
@@ -1104,6 +1213,50 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   font-size: 11px; color: #555; flex-shrink: 0;
 }
 
+.radar-toggle-indicator {
+  width: 14px;
+  text-align: center;
+  font-size: 10px;
+  color: #2ec4b6;
+  flex-shrink: 0;
+}
+
+.radar-sequence-tag {
+  width: 14px;
+  text-align: center;
+  font-size: 9px;
+  color: #4c6b89;
+  flex-shrink: 0;
+}
+
+.radar-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 9px;
+  height: 9px;
+  margin-left: 2px;
+  border: 1px solid #2c2c2c;
+  border-radius: 50%;
+  color: #666;
+  background: #141414;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  flex-shrink: 0;
+  vertical-align: super;
+  transform: translateY(-0.2em);
+}
+
+.radar-info-btn:hover,
+.radar-info-btn:focus-visible {
+  color: #8ab4f8;
+  border-color: #35527a;
+  outline: none;
+}
+
 .row-name {
   flex: 1;
   font-family: monospace;
@@ -1124,6 +1277,10 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   padding: 0 3px;
   vertical-align: middle;
   letter-spacing: 0.03em;
+}
+
+.draw-pane-tag--dim {
+  color: #4e4e4e;
 }
 
 .row-btn {

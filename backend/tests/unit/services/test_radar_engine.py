@@ -103,6 +103,28 @@ class TestRadarEngine:
             assert "invalidation_price" in det.evidence["metrics"]
             assert isinstance(det.evidence["metrics"]["invalidation_price"], float)
 
+    def test_evidence_metrics_contain_week52_occurrence_timestamps(self):
+        prices = [95, 100, 95, 100, 95, 100] * 20
+        prices += [98, 97, 96, 97, 98]
+        detections = analyze_instrument(_instrument(), _make_bars(prices))
+        assert detections
+        for det in detections:
+            assert "week52_high_time" in det.evidence["metrics"]
+            assert "week52_low_time" in det.evidence["metrics"]
+            assert isinstance(det.evidence["metrics"]["week52_high_time"], int)
+            assert isinstance(det.evidence["metrics"]["week52_low_time"], int)
+
+    def test_evidence_metrics_contain_signal_and_context_timestamps(self):
+        prices = [95, 100, 95, 100, 95, 100] * 20
+        prices += [98, 97, 96, 97, 98]
+        detections = analyze_instrument(_instrument(), _make_bars(prices))
+        assert detections
+        for det in detections:
+            assert "signal_time" in det.evidence["metrics"]
+            assert "context_time" in det.evidence["metrics"]
+            assert isinstance(det.evidence["metrics"]["signal_time"], int)
+            assert isinstance(det.evidence["metrics"]["context_time"], int)
+
     def test_evidence_overlays_contain_invalidation_line(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]

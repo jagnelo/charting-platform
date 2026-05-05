@@ -340,8 +340,9 @@ const comparisonLegend = computed(() =>
 )
 
 const activeRadarOverlays = computed<RadarOverlay[]>(() => {
-  if (!radarStore.overlayEnabled) return []
-  return radarStore.chartDetections.flatMap(detection => detection.evidence?.overlays ?? [])
+  return radarStore.chartDetections
+    .filter(detection => radarStore.isChartDetectionActive(detection.id))
+    .flatMap(detection => detection.evidence?.overlays ?? [])
 })
 
 function formatPercent(value: number | null | undefined) {
@@ -417,6 +418,9 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
+  if (chartStore.symbol !== symbol) {
+    radarStore.clearChartDetections()
+  }
   recentStore.add(symbol)
   if (route.params.symbol !== symbol) {
     router.replace(`/chart/${encodeURIComponent(symbol)}`)
@@ -433,6 +437,7 @@ async function onSymbolSelect(symbol: string) {
     }
     lastClose.value = currentPrice.value
     await loadComparisonBars()
+    await syncRadarOverlays()
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
     const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
@@ -449,17 +454,27 @@ async function onSymbolSelect(symbol: string) {
       await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
       await alertsStore.loadAlerts(activeInst.id)
     }
+    await syncRadarOverlays()
   }
 }
 
 async function syncRadarOverlays() {
-  const detectionIdRaw = route.query.radarDetectionId
-  const detectionId = detectionIdRaw != null ? Number(detectionIdRaw) : null
-  if (!chartStore.instrument || !Number.isFinite(detectionId ?? NaN)) {
+  if (!chartStore.instrument) {
     radarStore.clearChartDetections()
     return
   }
+  const detectionId = radarStore.consumeChartDetectionForInstrument(
+    chartStore.instrument.id,
+    chartStore.instrument.symbol,
+  )
   await radarStore.loadChartDetections(chartStore.instrument.id, detectionId)
+}
+
+function stripLegacyRadarDetectionQuery() {
+  if (!Object.prototype.hasOwnProperty.call(route.query, 'radarDetectionId')) return
+  const nextQuery = { ...route.query }
+  delete nextQuery.radarDetectionId
+  void router.replace({ path: route.path, query: nextQuery })
 }
 
 watch(currentTf, async (tf) => {
@@ -516,13 +531,12 @@ watch(
 )
 
 watch(
-  () => [route.query.radarDetectionId, chartStore.instrument?.id] as const,
-  async () => {
-    await syncRadarOverlays()
+  () => route.query.radarDetectionId,
+  () => {
+    stripLegacyRadarDetectionQuery()
   },
-  { immediate: false },
+  { immediate: true },
 )
-
 
 async function addToWatchlist(watchlistId: number) {
   const sym = activeSymbol.value
@@ -552,12 +566,12 @@ onMounted(async () => {
   const sym = route.params.symbol as string | undefined
   if (sym) {
     await onSymbolSelect(sym)
-    await syncRadarOverlays()
   }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick, true)
+  radarStore.clearPendingChartDetection()
 })
 </script>
 

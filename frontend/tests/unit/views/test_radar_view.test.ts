@@ -19,11 +19,20 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import { api } from '@/lib/api'
+import { useRadarStore } from '@/stores/radar'
 
 async function flushPromises() {
   await Promise.resolve()
   await Promise.resolve()
   await nextTick()
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => {
+    resolve = res
+  })
+  return { promise, resolve }
 }
 
 const summaryDetection = {
@@ -96,6 +105,7 @@ describe('RadarView', () => {
   it('loads detections, shows detail, and opens the detection in chart', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
+    const radarStore = useRadarStore()
     const wrapper = mount(RadarView, {
       global: {
         plugins: [pinia],
@@ -114,9 +124,55 @@ describe('RadarView', () => {
     expect(wrapper.text()).toContain('atr 14')
 
     await wrapper.find('.detail-head .action-btn.primary').trigger('click')
+    expect(radarStore.pendingChartDetection).toEqual({
+      detectionId: 42,
+      instrumentId: 7,
+      instrumentSymbol: 'AAPL',
+    })
     expect(push).toHaveBeenCalledWith({
       path: '/chart/AAPL',
-      query: { radarDetectionId: '42' },
+    })
+  })
+
+  it('locks radar interactions while a scan is running', async () => {
+    const runResponse = {
+      id: 7,
+      status: 'completed',
+      timeframe: 'D1',
+      universe_type: 'all',
+      started_at: '2026-05-04T10:06:00Z',
+      completed_at: '2026-05-04T10:06:02Z',
+      evaluated_count: 12,
+      detection_count: 3,
+      error_summary: null,
+      created_at: '2026-05-04T10:06:00Z',
+      updated_at: '2026-05-04T10:06:02Z',
+    }
+    const pendingRun = deferred<typeof runResponse>()
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementationOnce(() => pendingRun.promise)
+
+    const wrapper = mount(RadarView, {
+      global: {
+        plugins: [createPinia()],
+      },
+    })
+
+    await flushPromises()
+    await flushPromises()
+
+    const runButton = wrapper.find('.action-btn.primary')
+    await runButton.trigger('click')
+    await nextTick()
+
+    expect((api.post as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1)
+    expect(wrapper.find('.radar-busy-overlay').exists()).toBe(true)
+    expect(wrapper.find('.filter-select').attributes('disabled')).toBeDefined()
+    expect(runButton.attributes('disabled')).toBeDefined()
+
+    pendingRun.resolve(runResponse)
+
+    await vi.waitFor(() => {
+      expect(wrapper.find('.radar-busy-overlay').exists()).toBe(false)
     })
   })
 })

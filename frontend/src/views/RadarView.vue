@@ -1,5 +1,5 @@
 <template>
-  <div class="radar-view">
+  <div class="radar-view" :class="{ 'radar-view--busy': runningScan }" :aria-busy="runningScan">
     <div class="page-header">
       <div class="page-header-left">
         <h2 class="page-title">Technical Radar</h2>
@@ -8,36 +8,38 @@
         </span>
       </div>
       <div class="radar-actions">
-        <button class="action-btn" @click="refresh">Refresh</button>
+        <button class="action-btn" :disabled="runningScan" @click="refresh">Refresh</button>
         <button class="action-btn primary" :disabled="runningScan" @click="runScan">
           {{ runningScan ? 'Running…' : 'Run scan' }}
         </button>
       </div>
     </div>
 
-    <div class="filter-bar">
-      <select v-model="filters.setupType" class="filter-select">
-        <option value="">All setups</option>
-        <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
-      </select>
-      <input
-        v-model="filters.symbol"
-        class="filter-input"
-        placeholder="Symbol…"
-        @keydown.enter="refresh"
-      />
-      <label class="score-filter">
-        <span>Min score</span>
-        <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" />
-        <span class="score-value">{{ filters.minScore.toFixed(2) }}</span>
-      </label>
-      <label class="fresh-toggle">
-        <input v-model="filters.freshOnly" type="checkbox" />
-        <span>Fresh only</span>
-      </label>
-    </div>
+    <div class="radar-stage">
+      <div class="filter-bar">
+        <select v-model="filters.setupType" class="filter-select" :disabled="runningScan">
+          <option value="">All setups</option>
+          <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
+        </select>
+        <input
+          v-model="filters.symbol"
+          class="filter-input"
+          placeholder="Symbol…"
+          :disabled="runningScan"
+          @keydown.enter="refresh"
+        />
+        <label class="score-filter">
+          <span>Min score</span>
+          <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" :disabled="runningScan" />
+          <span class="score-value">{{ filters.minScore.toFixed(2) }}</span>
+        </label>
+        <label class="fresh-toggle">
+          <input v-model="filters.freshOnly" type="checkbox" :disabled="runningScan" />
+          <span>Fresh only</span>
+        </label>
+      </div>
 
-    <div class="radar-layout">
+      <div class="radar-layout">
       <!-- ── Detection list ─────────────────────────────────────────────────── -->
       <section class="radar-results">
         <div class="section-title">Detections</div>
@@ -82,7 +84,7 @@
               <span class="detail-symbol">{{ radarStore.selectedDetection.instrument_symbol }}</span>
               <span class="detail-setup">{{ labelForSetup(radarStore.selectedDetection.setup_type) }}</span>
             </div>
-            <button class="action-btn primary" @click="openInChart(radarStore.selectedDetection)">
+            <button class="action-btn primary" :disabled="runningScan" @click="openInChart(radarStore.selectedDetection)">
               Open in chart
             </button>
           </div>
@@ -96,7 +98,15 @@
               <template v-for="(value, key) in radarStore.selectedDetection.score_factors" :key="key">
                 <span class="kv-key">
                   {{ prettifyKey(String(key)) }}
-                  <span v-if="scoreFactorHint(String(key))" class="kv-info" :data-tip="scoreFactorHint(String(key))">ⓘ</span>
+                  <HoverTooltip v-if="scoreFactorHint(String(key))" :text="scoreFactorHint(String(key))">
+                    <button
+                      type="button"
+                      class="kv-info"
+                      :aria-label="`${prettifyKey(String(key))} info`"
+                    >
+                      i
+                    </button>
+                  </HoverTooltip>
                 </span>
                 <span :class="['kv-val', key === 'normalized_score' ? 'kv-score' : '']">
                   {{ formatFactor(value) }}
@@ -120,19 +130,30 @@
         </template>
         <div v-else class="empty-detail">Select a detection to inspect its evidence.</div>
       </aside>
+      </div>
+
+      <div v-if="runningScan" class="radar-busy-overlay" role="status" aria-live="polite">
+        <div class="radar-busy-card">
+          <div class="radar-busy-title">Running radar scan…</div>
+          <div class="radar-busy-copy">Refreshing detections and locking interactions until the new run finishes.</div>
+        </div>
+      </div>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import { useRadarStore } from '@/stores/radar'
 import type { RadarDetection, RadarSetupType } from '@/types'
 
 const radarStore = useRadarStore()
 const router = useRouter()
+const scanPending = ref(false)
 
 const filters = reactive({
   setupType: '',
@@ -164,9 +185,11 @@ const evidenceMetricRows = computed((): MetricRow[] => {
   const m = det.evidence.metrics as Record<string, unknown>
   const s = det.evidence.structures?.[0] as Record<string, unknown> | undefined
   const rows: MetricRow[] = []
+  const week52HighTime = typeof m.week52_high_time === 'number' ? m.week52_high_time : null
+  const week52LowTime = typeof m.week52_low_time === 'number' ? m.week52_low_time : null
 
   for (const [key, val] of Object.entries(m)) {
-    if (key === 'invalidation_price') continue
+    if (key === 'invalidation_price' || key === 'week52_high_time' || key === 'week52_low_time') continue
 
     if (key === 'ema_levels' && val && typeof val === 'object' && !Array.isArray(val)) {
       for (const [period, level] of Object.entries(val as Record<string, number>)) {
@@ -193,12 +216,20 @@ const evidenceMetricRows = computed((): MetricRow[] => {
     }
 
     if (key === 'week52_high') {
-      rows.push({ key: '52W High', value: formatMetric(val), hint: '252-bar lookback' })
+      rows.push({
+        key: '52W High',
+        value: formatMetric(val),
+        hint: week52HighTime ? `occurred: ${formatUnixDateShort(week52HighTime)}` : undefined,
+      })
       continue
     }
 
     if (key === 'week52_low') {
-      rows.push({ key: '52W Low', value: formatMetric(val), hint: '252-bar lookback' })
+      rows.push({
+        key: '52W Low',
+        value: formatMetric(val),
+        hint: week52LowTime ? `occurred: ${formatUnixDateShort(week52LowTime)}` : undefined,
+      })
       continue
     }
 
@@ -221,7 +252,7 @@ const SCORE_FACTOR_HINTS: Record<string, string> = {
 function scoreFactorHint(key: string): string {
   return SCORE_FACTOR_HINTS[key] ?? ''
 }
-const runningScan = computed(() => latestRun.value?.status === 'running')
+const runningScan = computed(() => scanPending.value || latestRun.value?.status === 'running')
 
 function labelForSetup(setup: RadarSetupType) {
   return setup.replace(/_/g, ' ')
@@ -238,8 +269,14 @@ function formatDate(value?: string | null) {
 
 function formatDateShort(value?: string | null) {
   if (!value) return '—'
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/)
+  if (match) return match[0]
   const d = new Date(value)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+}
+
+function formatUnixDateShort(value: number) {
+  return formatDateShort(new Date(value * 1000).toISOString())
 }
 
 function formatPrice(value?: number | null) {
@@ -274,18 +311,26 @@ async function refresh() {
 }
 
 async function selectDetection(id: number) {
+  if (runningScan.value) return
   await radarStore.loadDetection(id)
 }
 
 async function runScan() {
-  await radarStore.runScan()
-  await refresh()
+  if (runningScan.value) return
+  scanPending.value = true
+  try {
+    await radarStore.runScan()
+    await refresh()
+  } finally {
+    scanPending.value = false
+  }
 }
 
 function openInChart(detection: RadarDetection) {
+  if (runningScan.value) return
+  radarStore.queueChartDetection(detection)
   router.push({
     path: `/chart/${encodeURIComponent(detection.instrument_symbol)}`,
-    query: { radarDetectionId: String(detection.id) },
   })
 }
 
@@ -299,6 +344,7 @@ onMounted(async () => {
 .radar-view {
   display: flex;
   flex-direction: column;
+  position: relative;
   height: 100%;
   color: #ccc;
   font-size: 13px;
@@ -306,6 +352,19 @@ onMounted(async () => {
   gap: 16px;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.radar-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.radar-view--busy .radar-stage {
+  opacity: 0.55;
 }
 
 /* ── Page header ────────────────────────────────────────────────────────────── */
@@ -427,6 +486,39 @@ onMounted(async () => {
   flex: 1;
 }
 
+.radar-busy-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 8, 8, 0.2);
+  backdrop-filter: blur(1px);
+}
+
+.radar-busy-card {
+  width: min(420px, 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: rgba(18, 18, 18, 0.95);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
+  padding: 16px 18px;
+}
+
+.radar-busy-title {
+  color: #f5f5f5;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.radar-busy-copy {
+  color: #8a8a8a;
+  line-height: 1.5;
+}
+
 .section-title {
   color: #888;
   font-size: 11px;
@@ -521,6 +613,7 @@ onMounted(async () => {
   background: #0d0d0d;
   padding: 14px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .empty-detail {
@@ -584,8 +677,9 @@ onMounted(async () => {
   color: #666;
   text-transform: capitalize;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
+  min-width: 0;
 }
 
 .kv-val {
@@ -613,41 +707,37 @@ onMounted(async () => {
 }
 
 .kv-info {
-  color: #3a3a3a;
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #303030;
+  border-radius: 999px;
+  background: #151515;
+  color: #5e5e5e;
   cursor: help;
-  font-size: 10px;
-  position: relative;
-  line-height: 1;
-}
-
-.kv-info:hover {
-  color: #777;
-}
-
-.kv-info::after {
-  content: attr(data-tip);
-  display: none;
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 8px;
-  width: 210px;
-  background: #1e1e1e;
-  border: 1px solid #2e2e2e;
-  border-radius: 4px;
-  padding: 7px 9px;
-  font-size: 11px;
-  color: #999;
-  line-height: 1.5;
-  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-style: normal;
   text-transform: none;
   letter-spacing: 0;
-  pointer-events: none;
-  white-space: normal;
+  position: relative;
+  line-height: 1;
+  flex: 0 0 auto;
+  margin-top: 0;
+  vertical-align: super;
+  transform: translateY(-0.2em);
+  padding: 0;
 }
 
-.kv-info:hover::after {
-  display: block;
+.kv-info:hover,
+.kv-info:focus-visible {
+  color: #aaa;
+  border-color: #505050;
+  outline: none;
 }
+
 </style>

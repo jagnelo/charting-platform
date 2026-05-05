@@ -1048,11 +1048,7 @@ async def get_instrument(
     if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
         instrument = await _refresh_instrument_metadata(instrument, db)
 
-    if not instrument.is_synthetic and (
-        instrument.stats is None
-        or instrument.stats.week52_high is None
-        or instrument.stats.week52_low is None
-    ):
+    if not instrument.is_synthetic and _needs_52w_stats_refresh(instrument):
         instrument = await _ensure_52w_stats(instrument, db)
 
     if not created and not instrument.is_synthetic:
@@ -1106,6 +1102,22 @@ def _needs_metadata_refresh(instrument: Instrument) -> bool:
     )
 
 
+def _needs_52w_stats_refresh(instrument: Instrument) -> bool:
+    stats = instrument.stats
+    if stats is None or stats.week52_high is None or stats.week52_low is None:
+        return True
+
+    provenance = dict(stats.field_provenance or {})
+    high_meta = provenance.get("week52_high") or {}
+    low_meta = provenance.get("week52_low") or {}
+    return (
+        high_meta.get("source") != "internal_ohlcv_52w"
+        or low_meta.get("source") != "internal_ohlcv_52w"
+        or not high_meta.get("observed_at")
+        or not low_meta.get("observed_at")
+    )
+
+
 async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instrument:
     """Re-query an instrument with all relationships needed by InstrumentOut eager-loaded."""
     result = await db.execute(
@@ -1141,7 +1153,8 @@ async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession)
 async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrument:
     """
     Compute 52-week high/low from D1 OHLCV bars (last 252 bars ≈ 1 trading year)
-    and persist to InstrumentStats synchronously so the first page load always has data.
+    using actual bar highs/lows and persist them synchronously so the first page load
+    always has data.
     Other stats fields (market_cap, pe_ratio, etc.) remain None until a separate backfill.
     """
     import logging
@@ -1150,25 +1163,38 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
     symbol = instrument.__dict__.get("symbol", "?")
     try:
         cutoff = datetime.now(UTC) - timedelta(days=366)
-        row = (
+        high_row = (
             await db.execute(
-                select(
-                    func.max(OHLCVBar.close).label("week52_high"),
-                    func.min(OHLCVBar.close).label("week52_low"),
-                ).where(
+                select(OHLCVBar.high.label("week52_high"), OHLCVBar.ts.label("week52_high_time")).where(
                     OHLCVBar.instrument_id == instrument.id,
                     OHLCVBar.timeframe == "D1",
                     OHLCVBar.ts >= cutoff,
                     OHLCVBar.is_adjusted.is_(True),
                 )
+                .order_by(OHLCVBar.high.desc(), OHLCVBar.ts.asc())
+                .limit(1)
+            )
+        ).one_or_none()
+        low_row = (
+            await db.execute(
+                select(OHLCVBar.low.label("week52_low"), OHLCVBar.ts.label("week52_low_time")).where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == "D1",
+                    OHLCVBar.ts >= cutoff,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+                .order_by(OHLCVBar.low.asc(), OHLCVBar.ts.asc())
+                .limit(1)
             )
         ).one_or_none()
 
-        if row is None or row.week52_high is None:
+        if high_row is None or high_row.week52_high is None or low_row is None or low_row.week52_low is None:
             return instrument
 
-        week52_high = float(row.week52_high)
-        week52_low = float(row.week52_low)
+        week52_high = float(high_row.week52_high)
+        week52_low = float(low_row.week52_low)
+        week52_high_time = high_row.week52_high_time
+        week52_low_time = low_row.week52_low_time
 
         fetched_at = datetime.now(UTC).isoformat()
         stats = (
@@ -1185,11 +1211,13 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         field_provenance["week52_high"] = {
             "source": "internal_ohlcv_52w",
             "fetched_at": fetched_at,
+            "observed_at": week52_high_time.date().isoformat() if week52_high_time else None,
             "provider_symbol": instrument.symbol,
         }
         field_provenance["week52_low"] = {
             "source": "internal_ohlcv_52w",
             "fetched_at": fetched_at,
+            "observed_at": week52_low_time.date().isoformat() if week52_low_time else None,
             "provider_symbol": instrument.symbol,
         }
         stats.field_provenance = field_provenance

@@ -287,13 +287,28 @@ def _make_marker(ts: int, price: float, label: str, color: str, role: str) -> di
     }
 
 
-def _week52_levels(closes: list[float], highs: list[float], lows: list[float]) -> dict[str, float]:
-    window = 252 if len(closes) >= 252 else len(closes)
+def _week52_levels(
+    highs: list[float], lows: list[float], timestamps: list[int]
+) -> dict[str, dict[str, float | int]]:
+    window = 252 if len(highs) >= 252 else len(highs)
     if window <= 0:
         return {}
+    start = len(highs) - window
+    window_highs = highs[start:]
+    window_lows = lows[start:]
+    high_rel_index = max(range(window), key=window_highs.__getitem__)
+    low_rel_index = min(range(window), key=window_lows.__getitem__)
+    high_index = start + high_rel_index
+    low_index = start + low_rel_index
     return {
-        "week52_high": max(highs[-window:]),
-        "week52_low": min(lows[-window:]),
+        "week52_high": {
+            "price": max(window_highs),
+            "time": timestamps[high_index],
+        },
+        "week52_low": {
+            "price": min(window_lows),
+            "time": timestamps[low_index],
+        },
     }
 
 
@@ -340,7 +355,13 @@ def _make_invalidation_overlay(inv_price: float, timestamps: list[int], latest_t
 
 
 def _candidate_evidence(
-    base: dict, setup_type: RadarSetupType, zone: Zone, timestamps: list[int], latest_ts: int
+    base: dict,
+    setup_type: RadarSetupType,
+    zone: Zone,
+    timestamps: list[int],
+    latest_ts: int,
+    *,
+    signal_ts: int,
 ) -> dict:
     inv_price = _invalidation_price(setup_type, zone)
     return {
@@ -349,7 +370,12 @@ def _candidate_evidence(
             *base["overlays"],
             _make_invalidation_overlay(inv_price, timestamps, latest_ts),
         ],
-        "metrics": {**base["metrics"], "invalidation_price": inv_price},
+        "metrics": {
+            **base["metrics"],
+            "invalidation_price": inv_price,
+            "signal_time": signal_ts,
+            "context_time": zone.last_touch_ts,
+        },
     }
 
 
@@ -377,10 +403,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
     support_zones = _cluster_zones(swing_lows, "low", tolerance, latest_index)
     resistance_zones = _cluster_zones(swing_highs, "high", tolerance, latest_index)
     ema_levels, ema_overlays = _ema_context(data)
-    week52 = _week52_levels(closes, highs, lows)
+    week52 = _week52_levels(highs, lows, timestamps)
 
     candidates: list[DetectionCandidate] = []
-    base_levels = list(ema_levels.values()) + list(week52.values())
+    base_levels = list(ema_levels.values()) + [float(level["price"]) for level in week52.values()]
 
     for zone in support_zones + resistance_zones:
         reaction_quality = _recent_reaction_quality(bars, zone)
@@ -411,8 +437,8 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     "label": "52W High",
                     "color": "#8ecae6",
                     "points": [
-                        {"time": timestamps[0], "price": round(week52["week52_high"], 4)},
-                        {"time": latest_ts, "price": round(week52["week52_high"], 4)},
+                        {"time": timestamps[0], "price": round(float(week52["week52_high"]["price"]), 4)},
+                        {"time": latest_ts, "price": round(float(week52["week52_high"]["price"]), 4)},
                     ],
                 }
             )
@@ -424,8 +450,8 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     "label": "52W Low",
                     "color": "#8ecae6",
                     "points": [
-                        {"time": timestamps[0], "price": round(week52["week52_low"], 4)},
-                        {"time": latest_ts, "price": round(week52["week52_low"], 4)},
+                        {"time": timestamps[0], "price": round(float(week52["week52_low"]["price"]), 4)},
+                        {"time": latest_ts, "price": round(float(week52["week52_low"]["price"]), 4)},
                     ],
                 }
             )
@@ -439,7 +465,14 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 "distance_to_zone": round(abs(close - zone.center), 4),
                 "ema_levels": {k: round(v, 4) for k, v in ema_levels.items()},
                 "avwap": round(avwap_value, 4) if avwap_value is not None else None,
-                **{k: round(v, 4) for k, v in week52.items()},
+                **{
+                    key: round(float(level["price"]), 4)
+                    for key, level in week52.items()
+                },
+                **{
+                    f"{key}_time": int(level["time"])
+                    for key, level in week52.items()
+                },
             },
             "structures": [
                 {
@@ -469,7 +502,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=score_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.APPROACHING_SUPPORT, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.APPROACHING_SUPPORT,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=zone.last_touch_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
@@ -490,7 +528,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=score_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.APPROACHING_RESISTANCE, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.APPROACHING_RESISTANCE,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=zone.last_touch_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
@@ -514,7 +557,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=breakout_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.BREAKOUT, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.BREAKOUT,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
@@ -538,7 +586,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=breakdown_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.BREAKDOWN, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.BREAKDOWN,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
@@ -562,7 +615,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=reclaim_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.RECLAIM, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.RECLAIM,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
@@ -586,7 +644,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     key_level_price=zone.center,
                     score_factors=rejection_factors,
                     evidence=_candidate_evidence(
-                        evidence, RadarSetupType.REJECTION, zone, timestamps, latest_ts
+                        evidence,
+                        RadarSetupType.REJECTION,
+                        zone,
+                        timestamps,
+                        latest_ts,
+                        signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
                     fresh_until=fresh_until,
