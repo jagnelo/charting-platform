@@ -64,6 +64,17 @@ class TestRadarAPI:
         detail = detail_res.json()
         assert detail["evidence"]["overlays"]
         assert "metrics" in detail["evidence"]
+        assert "invalidation_price" in detail["evidence"]["metrics"]
+        assert isinstance(detail["evidence"]["metrics"]["invalidation_price"], float)
+        inv_overlays = [
+            o for o in detail["evidence"]["overlays"] if o.get("role") == "invalidation"
+        ]
+        assert inv_overlays, "Expected an invalidation overlay in evidence"
+        assert inv_overlays[0]["kind"] == "line"
+        assert (
+            inv_overlays[0]["points"][0]["price"]
+            == detail["evidence"]["metrics"]["invalidation_price"]
+        )
 
         overlay_res = client.get(
             f"/api/v1/radar/instruments/{instrument.id}/overlays",

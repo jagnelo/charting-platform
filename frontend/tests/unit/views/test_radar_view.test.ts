@@ -104,7 +104,7 @@ describe('RadarView', () => {
 
     await flushPromises()
     await flushPromises()
-    await wrapper.find('.result-card').trigger('click')
+    await wrapper.find('tbody tr').trigger('click')
     await flushPromises()
     await flushPromises()
 
@@ -113,7 +113,7 @@ describe('RadarView', () => {
     expect(wrapper.text()).toContain('breakout')
     expect(wrapper.text()).toContain('atr 14')
 
-    await wrapper.find('.detail-head .radar-btn.primary').trigger('click')
+    await wrapper.find('.detail-head .action-btn.primary').trigger('click')
     expect(push).toHaveBeenCalledWith({
       path: '/chart/AAPL',
       query: { radarDetectionId: '42' },
