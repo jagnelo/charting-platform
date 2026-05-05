@@ -1,7 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
 from app.models.data_source import DataSource
-from app.models.provider_observation import DatasetStatus, InstrumentDatasetState, LatestPriceSnapshot
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    LatestPriceSnapshot,
+)
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState
 
 
@@ -37,7 +41,9 @@ class TestProvidersRouter:
         assert update.status_code == 200
 
         refreshed = client.get("/api/v1/providers/policies", headers=auth_headers).json()
-        changed = next(r for r in refreshed if r["provider"] == provider and r["capability"] == capability)
+        changed = next(
+            r for r in refreshed if r["provider"] == provider and r["capability"] == capability
+        )
         assert changed["auto_weight_enabled"] is False
 
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
@@ -58,7 +64,9 @@ class TestProvidersRouter:
 
         summary = client.get("/api/v1/providers/observations/summary", headers=auth_headers)
         assert summary.status_code == 200
-        latest_prices = next(row for row in summary.json() if row["dataset"] == "latest_price_snapshot")
+        latest_prices = next(
+            row for row in summary.json() if row["dataset"] == "latest_price_snapshot"
+        )
         assert latest_prices["rows"] >= 1
 
         prune = client.post("/api/v1/providers/maintenance/prune", headers=auth_headers)
@@ -109,7 +117,13 @@ class TestProvidersRouter:
         data_source = DataSource(
             name="yfinance",
             is_active=True,
-            config={"usage_tracking": {"mode": "call_count", "unit_label": "requests", "limit_kind": "unknown"}},
+            config={
+                "usage_tracking": {
+                    "mode": "call_count",
+                    "unit_label": "requests",
+                    "limit_kind": "unknown",
+                }
+            },
         )
         db.add(data_source)
         db.flush()

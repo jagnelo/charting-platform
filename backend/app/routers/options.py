@@ -117,6 +117,12 @@ async def get_option_contract_quote_history(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    start_dt = datetime.fromisoformat(start.replace("Z", "+00:00")) if start else datetime.now(UTC) - timedelta(days=30)
+    start_dt = (
+        datetime.fromisoformat(start.replace("Z", "+00:00"))
+        if start
+        else datetime.now(UTC) - timedelta(days=30)
+    )
     end_dt = datetime.fromisoformat(end.replace("Z", "+00:00")) if end else datetime.now(UTC)
-    return await get_option_quote_history(db, instrument_id, start=start_dt, end=end_dt, refresh=refresh)
+    return await get_option_quote_history(
+        db, instrument_id, start=start_dt, end=end_dt, refresh=refresh
+    )

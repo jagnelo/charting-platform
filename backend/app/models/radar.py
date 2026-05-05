@@ -29,7 +29,9 @@ class RadarRun(Base, TimestampMixin):
     __tablename__ = "radar_run"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False, default=Timeframe.D1)
+    timeframe: Mapped[Timeframe] = mapped_column(
+        SAEnum(Timeframe), nullable=False, default=Timeframe.D1
+    )
     universe_type: Mapped[str] = mapped_column(String(32), nullable=False, default="all")
     universe_filter: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     status: Mapped[RadarRunStatus] = mapped_column(
@@ -56,11 +58,17 @@ class RadarDetection(Base, TimestampMixin):
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False, default=Timeframe.D1)
-    setup_type: Mapped[RadarSetupType] = mapped_column(SAEnum(RadarSetupType), nullable=False, index=True)
+    timeframe: Mapped[Timeframe] = mapped_column(
+        SAEnum(Timeframe), nullable=False, default=Timeframe.D1
+    )
+    setup_type: Mapped[RadarSetupType] = mapped_column(
+        SAEnum(RadarSetupType), nullable=False, index=True
+    )
     score: Mapped[float] = mapped_column(Float, nullable=False)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fresh_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    fresh_until: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     key_level_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     invalidation_hint: Mapped[str | None] = mapped_column(Text, nullable=True)

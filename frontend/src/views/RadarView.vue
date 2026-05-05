@@ -1,103 +1,118 @@
 <template>
   <div class="radar-view">
-    <header class="radar-header">
-      <div>
-        <h1>Technical Radar</h1>
-        <p>Daily swing-focused setups with persisted evidence and chart-ready overlays.</p>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2 class="page-title">Technical Radar</h2>
+        <span v-if="latestRun" class="run-meta">
+          Last run: {{ formatDate(latestRun.completed_at || latestRun.started_at) }}
+        </span>
       </div>
       <div class="radar-actions">
-        <button class="radar-btn" @click="refresh">Refresh</button>
-        <button class="radar-btn primary" :disabled="runningScan" @click="runScan">
+        <button class="action-btn" @click="refresh">Refresh</button>
+        <button class="action-btn primary" :disabled="runningScan" @click="runScan">
           {{ runningScan ? 'Running…' : 'Run scan' }}
         </button>
       </div>
-    </header>
+    </div>
 
-    <div class="radar-toolbar">
-      <select v-model="filters.setupType" class="radar-input">
+    <div class="filter-bar">
+      <select v-model="filters.setupType" class="filter-select">
         <option value="">All setups</option>
         <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
       </select>
       <input
         v-model="filters.symbol"
-        class="radar-input"
-        placeholder="Filter symbol"
+        class="filter-input"
+        placeholder="Symbol…"
         @keydown.enter="refresh"
       />
       <label class="score-filter">
         <span>Min score</span>
-        <input v-model.number="filters.minScore" class="radar-slider" type="range" min="0" max="1" step="0.05" />
-        <b>{{ filters.minScore.toFixed(2) }}</b>
+        <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" />
+        <span class="score-value">{{ filters.minScore.toFixed(2) }}</span>
       </label>
       <label class="fresh-toggle">
         <input v-model="filters.freshOnly" type="checkbox" />
-        Fresh only
+        <span>Fresh only</span>
       </label>
     </div>
 
     <div class="radar-layout">
+      <!-- ── Detection list ─────────────────────────────────────────────────── -->
       <section class="radar-results">
-        <div class="results-head">
-          <strong>Detections</strong>
-          <small v-if="latestRun">Latest run: {{ formatDate(latestRun.completed_at || latestRun.started_at) }}</small>
+        <div class="section-title">Detections</div>
+        <div class="detections-table-wrap">
+          <div v-if="radarStore.isLoading" class="empty-row">Loading detections…</div>
+          <div v-else-if="!radarStore.detections.length" class="empty-row">
+            No detections. Run a scan or relax the filters.
+          </div>
+          <table v-else class="detections-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Setup</th>
+                <th>Score</th>
+                <th>Level</th>
+                <th>Fresh until</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="detection in radarStore.detections"
+                :key="detection.id"
+                :class="{ active: radarStore.selectedDetection?.id === detection.id }"
+                @click="selectDetection(detection.id)"
+              >
+                <td class="td-symbol">{{ detection.instrument_symbol }}</td>
+                <td class="td-setup">{{ labelForSetup(detection.setup_type) }}</td>
+                <td class="td-score">{{ detection.score.toFixed(2) }}</td>
+                <td class="td-mono">{{ formatPrice(detection.key_level_price) }}</td>
+                <td class="td-mono td-dim">{{ formatDateShort(detection.fresh_until) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div v-if="radarStore.isLoading" class="state-block">Loading detections…</div>
-        <div v-else-if="!radarStore.detections.length" class="state-block">No detections yet. Run a scan or relax the filters.</div>
-        <button
-          v-for="detection in radarStore.detections"
-          :key="detection.id"
-          class="result-card"
-          :class="{ active: radarStore.selectedDetection?.id === detection.id }"
-          @click="selectDetection(detection.id)"
-        >
-          <div class="result-top">
-            <div>
-              <strong>{{ detection.instrument_symbol }}</strong>
-              <span>{{ labelForSetup(detection.setup_type) }}</span>
-            </div>
-            <b>{{ detection.score.toFixed(2) }}</b>
-          </div>
-          <p>{{ detection.summary }}</p>
-          <div class="result-meta">
-            <span>Level {{ formatPrice(detection.key_level_price) }}</span>
-            <span>Fresh until {{ formatDate(detection.fresh_until) }}</span>
-          </div>
-        </button>
       </section>
 
+      <!-- ── Detail panel ───────────────────────────────────────────────────── -->
       <aside class="radar-detail">
         <template v-if="radarStore.selectedDetection?.evidence">
           <div class="detail-head">
             <div>
-              <h2>{{ radarStore.selectedDetection.instrument_symbol }}</h2>
-              <p>{{ labelForSetup(radarStore.selectedDetection.setup_type) }}</p>
+              <span class="detail-symbol">{{ radarStore.selectedDetection.instrument_symbol }}</span>
+              <span class="detail-setup">{{ labelForSetup(radarStore.selectedDetection.setup_type) }}</span>
             </div>
-            <button class="radar-btn primary" @click="openInChart(radarStore.selectedDetection)">Open in chart</button>
+            <button class="action-btn primary" @click="openInChart(radarStore.selectedDetection)">
+              Open in chart
+            </button>
           </div>
+
           <p class="detail-summary">{{ radarStore.selectedDetection.summary }}</p>
           <p class="detail-invalid">{{ radarStore.selectedDetection.invalidation_hint }}</p>
 
           <div class="detail-section">
-            <strong>Score factors</strong>
-            <div class="score-grid">
+            <div class="section-title">Score factors</div>
+            <div class="kv-grid">
               <template v-for="(value, key) in radarStore.selectedDetection.score_factors" :key="key">
-                <span>{{ prettifyKey(key) }}</span>
-                <b>{{ formatFactor(value) }}</b>
+                <span class="kv-key">{{ prettifyKey(String(key)) }}</span>
+                <span :class="['kv-val', key === 'normalized_score' ? 'kv-score' : '']">
+                  {{ formatFactor(value) }}
+                </span>
               </template>
             </div>
           </div>
 
           <div class="detail-section">
-            <strong>Evidence metrics</strong>
-            <div class="metrics-grid">
+            <div class="section-title">Evidence metrics</div>
+            <div class="kv-grid">
               <template v-for="(value, key) in radarStore.selectedDetection.evidence.metrics" :key="key">
-                <span>{{ prettifyKey(key) }}</span>
-                <b>{{ formatMetric(value) }}</b>
+                <span class="kv-key">{{ prettifyKey(String(key)) }}</span>
+                <span class="kv-val">{{ formatMetric(value) }}</span>
               </template>
             </div>
           </div>
         </template>
-        <div v-else class="state-block">Select a detection to inspect its evidence.</div>
+        <div v-else class="empty-detail">Select a detection to inspect its evidence.</div>
       </aside>
     </div>
   </div>
@@ -143,6 +158,12 @@ function prettifyKey(key: string) {
 function formatDate(value?: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleString()
+}
+
+function formatDateShort(value?: string | null) {
+  if (!value) return '—'
+  const d = new Date(value)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function formatPrice(value?: number | null) {
@@ -198,185 +219,304 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ── Root ───────────────────────────────────────────────────────────────────── */
 .radar-view {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(180deg, #0a0f14 0%, #0a0a0a 100%);
-  color: #d7dde5;
-  padding: 18px;
-  gap: 14px;
+  color: #ccc;
+  font-size: 13px;
+  padding: 24px;
+  gap: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.radar-header,
-.radar-toolbar,
-.radar-layout {
+/* ── Page header ────────────────────────────────────────────────────────────── */
+.page-header {
   display: flex;
-  gap: 12px;
-}
-
-.radar-header {
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 16px;
 }
 
-.radar-header h1 {
-  font-size: 28px;
-  color: #f7fbff;
-}
-
-.radar-header p {
-  color: #7f93a8;
-  margin-top: 4px;
-}
-
-.radar-actions,
-.results-head,
-.result-top,
-.result-meta,
-.detail-head {
+.page-header-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 16px;
 }
 
-.radar-actions,
-.results-head,
-.result-meta,
-.detail-head {
-  justify-content: space-between;
+.page-title {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
 }
 
-.radar-btn {
-  border: 1px solid #284255;
-  background: #0d1823;
-  color: #b7cadb;
-  border-radius: 8px;
-  padding: 8px 12px;
+.run-meta {
+  color: #555;
+  font-size: 11px;
+}
+
+.radar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #aaa;
+  border-radius: 4px;
+  padding: 5px 12px;
   cursor: pointer;
   font-family: inherit;
+  font-size: 12px;
+  transition: background 0.1s, color 0.1s;
 }
 
-.radar-btn.primary {
-  background: #18344a;
-  border-color: #4ea8de;
-  color: #eef8ff;
+.action-btn:hover {
+  background: #222;
+  color: #ccc;
 }
 
-.radar-toolbar {
+.action-btn.primary {
+  background: #0f1f2e;
+  border-color: #1e3a5c;
+  color: #64b5f6;
+}
+
+.action-btn.primary:hover {
+  background: #122437;
+  border-color: #2a5080;
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Filter bar ─────────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
   align-items: center;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
-.radar-input,
-.radar-slider {
-  background: #0b1118;
-  color: #d7dde5;
-  border: 1px solid #243647;
-  border-radius: 8px;
-  padding: 8px 10px;
+.filter-select,
+.filter-input {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #aaa;
+  border-radius: 3px;
+  padding: 4px 8px;
   font-family: inherit;
+  font-size: 12px;
+}
+
+.filter-input::placeholder {
+  color: #555;
+}
+
+.filter-select:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: #444;
 }
 
 .score-filter,
 .fresh-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #93a7b9;
+  gap: 6px;
+  color: #666;
+  font-size: 12px;
 }
 
+.score-slider {
+  width: 80px;
+  accent-color: #64b5f6;
+}
+
+.score-value {
+  color: #aaa;
+  min-width: 28px;
+}
+
+/* ── Two-column layout ──────────────────────────────────────────────────────── */
 .radar-layout {
+  display: flex;
+  gap: 12px;
   min-height: 0;
   flex: 1;
 }
 
-.radar-results,
-.radar-detail {
-  min-height: 0;
-  border: 1px solid #17212b;
-  background: rgba(9, 14, 20, 0.85);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.radar-results {
-  flex: 1.25;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow: auto;
-}
-
-.radar-detail {
-  width: 360px;
-  overflow: auto;
-}
-
-.results-head small,
-.result-card span,
-.detail-head p,
-.detail-invalid {
-  color: #7f93a8;
-}
-
-.result-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border: 1px solid #1b2a37;
-  border-radius: 12px;
-  background: #0b1218;
-  padding: 12px;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.result-card.active {
-  border-color: #4ea8de;
-  box-shadow: 0 0 0 1px rgba(78, 168, 222, 0.25);
-}
-
-.result-top b {
-  color: #74c69d;
-}
-
-.result-meta {
+.section-title {
+  color: #888;
   font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
 }
 
-.detail-head h2 {
-  font-size: 22px;
+/* ── Detection list ─────────────────────────────────────────────────────────── */
+.radar-results {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.detections-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.empty-row {
+  color: #555;
+  font-size: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.detections-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.detections-table th {
+  background: #111;
+  color: #555;
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid #1a1a1a;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  white-space: nowrap;
+}
+
+.detections-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #111;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.detections-table tbody tr:hover td {
+  background: #111;
+}
+
+.detections-table tbody tr.active td {
+  background: #0f1f2e;
+  border-bottom-color: #1a2e42;
+}
+
+.td-symbol {
+  color: #e8e8e8;
+  font-weight: 600;
+}
+
+.td-setup {
+  color: #aaa;
+  text-transform: capitalize;
+}
+
+.td-score {
+  color: #26a69a;
+  font-weight: 600;
+}
+
+.td-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.td-dim {
+  color: #555;
+}
+
+/* ── Detail panel ───────────────────────────────────────────────────────────── */
+.radar-detail {
+  width: 320px;
+  flex-shrink: 0;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  background: #0d0d0d;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.empty-detail {
+  color: #555;
+  font-size: 12px;
+  text-align: center;
+  padding: 32px 0;
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.detail-symbol {
+  display: block;
   color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.detail-setup {
+  display: block;
+  color: #666;
+  font-size: 11px;
+  text-transform: capitalize;
+  margin-top: 2px;
 }
 
 .detail-summary {
-  margin: 14px 0 8px;
-  line-height: 1.5;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 1.55;
+  margin-bottom: 6px;
 }
 
 .detail-invalid {
+  color: #666;
+  font-size: 11px;
   margin-bottom: 16px;
 }
 
 .detail-section {
   margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #1a1a1a;
 }
 
-.score-grid,
-.metrics-grid {
+.kv-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px 10px;
-  margin-top: 10px;
+  gap: 5px 12px;
   font-size: 12px;
 }
 
-.state-block {
-  border: 1px dashed #223240;
-  border-radius: 12px;
-  padding: 18px;
-  color: #7f93a8;
-  text-align: center;
+.kv-key {
+  color: #666;
+  text-transform: capitalize;
+}
+
+.kv-val {
+  color: #aaa;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-score {
+  color: #26a69a;
+  font-weight: 600;
 }
 </style>

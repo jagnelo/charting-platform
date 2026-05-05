@@ -151,7 +151,9 @@ class TestInstruments:
                 currency="USD",
                 quote_type="ETF",
                 exchange="PCX",
-                listings=[ListingRecord(provider_symbol="DIA", exchange_code="PCX", is_primary=True)],
+                listings=[
+                    ListingRecord(provider_symbol="DIA", exchange_code="PCX", is_primary=True)
+                ],
             )
 
         monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)

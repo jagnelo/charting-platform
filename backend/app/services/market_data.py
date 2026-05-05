@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     DatasetStatus,
     InstrumentDatasetState,
@@ -28,7 +29,6 @@ from app.models.provider_observation import (
     MarketBarObservation,
 )
 from app.models.provider_runtime import ProviderCapability
-from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.providers import (
     ensure_data_source,
     provider_symbol_for_instrument,
@@ -54,7 +54,9 @@ async def _get_or_create_datasource(db: AsyncSession) -> DataSource:
     chain = await resolve_provider_chain(db, ProviderCapability.PRICE_HISTORY)
     if chain:
         return chain[0].data_source
-    provider_name = settings.PROVIDER_CHAIN_SEEDS.get("price_history", [settings.DEFAULT_MARKET_DATA_PROVIDER])[0]
+    provider_name = settings.PROVIDER_CHAIN_SEEDS.get(
+        "price_history", [settings.DEFAULT_MARKET_DATA_PROVIDER]
+    )[0]
     return await ensure_data_source(db, provider_name)
 
 
@@ -92,7 +94,8 @@ async def _fresh_latest_price_from_cache(
                 .where(
                     LatestPriceSnapshot.instrument_id == instrument.id,
                     LatestPriceSnapshot.data_source_id == resolved.data_source.id,
-                    LatestPriceSnapshot.observed_at >= now - timedelta(seconds=resolved.policy.freshness_seconds),
+                    LatestPriceSnapshot.observed_at
+                    >= now - timedelta(seconds=resolved.policy.freshness_seconds),
                 )
                 .order_by(LatestPriceSnapshot.observed_at.desc())
                 .limit(1)
@@ -136,7 +139,9 @@ async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] |
         ).scalar_one_or_none()
         if snapshot is None:
             return None
-        for item in _search_results_from_payload(snapshot.payload, provider_name=resolved.provider_name):
+        for item in _search_results_from_payload(
+            snapshot.payload, provider_name=resolved.provider_name
+        ):
             symbol = item.get("symbol", "")
             if not symbol or symbol in seen:
                 continue
@@ -183,12 +188,16 @@ async def _fresh_profile_from_cache(
         for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
     }
     snapshots = (
-        await db.execute(
-            select(InstrumentProfileSnapshot)
-            .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
-            .order_by(InstrumentProfileSnapshot.observed_at.desc())
+        (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentProfileSnapshot.observed_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for snapshot in snapshots:
         freshness = provider_ids.get(snapshot.data_source_id)
         if freshness is None:
@@ -1001,7 +1010,9 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
                 ProviderCapability.INSTRUMENT_SEARCH,
                 "search_instruments",
                 provider_name=resolved.provider_name,
-                invoke=lambda provider, _provider_symbol: provider.search_instruments(query, limit=10),
+                invoke=lambda provider, _provider_symbol: provider.search_instruments(
+                    query, limit=10
+                ),
                 response_items=lambda result: len(result),
                 treat_empty_as_failure=False,
             )
@@ -1036,7 +1047,9 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
 
 
 def search_provider_instruments(query: str) -> list[dict]:
-    raise RuntimeError("search_provider_instruments() is no longer used; use search_provider_instruments_async()")
+    raise RuntimeError(
+        "search_provider_instruments() is no longer used; use search_provider_instruments_async()"
+    )
 
 
 async def get_provider_profile_async(
@@ -1062,7 +1075,9 @@ async def get_provider_profile_async(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
             provider_name=provider_name,
-            invoke=lambda provider, actual_symbol: provider.get_instrument_profile(actual_symbol or provider_symbol),
+            invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                actual_symbol or provider_symbol
+            ),
             response_items=lambda result: 1 if result is not None else 0,
             treat_empty_as_failure=True,
         )
@@ -1078,4 +1093,6 @@ async def get_provider_profile_async(
 
 
 def get_provider_instrument_info(provider_symbol: str) -> dict:
-    raise RuntimeError("get_provider_instrument_info() is no longer used; use get_provider_profile_async()")
+    raise RuntimeError(
+        "get_provider_instrument_info() is no longer used; use get_provider_profile_async()"
+    )

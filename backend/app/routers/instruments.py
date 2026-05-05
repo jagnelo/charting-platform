@@ -14,15 +14,14 @@ from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.instrument_stats import InstrumentStats
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
     InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
     LatestPriceSnapshot,
 )
-from app.models.instrument_stats import InstrumentStats
-from app.models.provider_runtime import ProviderCapability
-from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
@@ -54,7 +53,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
-def _search_result_priority(query: str, *, symbol: str, name: str, type_name: str) -> tuple[int, int, int, int, int, int, int, str]:
+def _search_result_priority(
+    query: str, *, symbol: str, name: str, type_name: str
+) -> tuple[int, int, int, int, int, int, int, str]:
     normalized = query.strip().upper()
     normalized_symbol = symbol.strip().upper()
     normalized_name = name.strip().upper()
@@ -65,7 +66,9 @@ def _search_result_priority(query: str, *, symbol: str, name: str, type_name: st
     contains_symbol = 0 if normalized and normalized in normalized_symbol else 1
     contains_name = 0 if normalized and normalized in normalized_name else 1
 
-    if any(token in normalized_type for token in ("STOCK", "EQUITY", "ETF", "INDEX", "ADR", "FUND")):
+    if any(
+        token in normalized_type for token in ("STOCK", "EQUITY", "ETF", "INDEX", "ADR", "FUND")
+    ):
         type_penalty = 0
     elif "CRYPTO" in normalized_type:
         type_penalty = 1
@@ -511,7 +514,9 @@ async def get_heatmap_data(
                 )
             except Exception:
                 if body.timeframe == Timeframe.D1:
-                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[-body.sparkline_bars :]
+                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[
+                        -body.sparkline_bars :
+                    ]
 
     # ── 3. Compute metrics per instrument ─────────────────────────────────────
     today_utc = datetime.now(UTC).date()
@@ -556,21 +561,29 @@ async def get_heatmap_data(
         week52_low = float(stats.week52_low) if stats and stats.week52_low else None
 
         if not bars:
-            rows.append({
-                "instrument_id": instr_id,
-                "symbol": inst.symbol,
-                "name": inst.name or inst.symbol,
-                "sector": eq.sector if eq else None,
-                "industry": eq.industry if eq else None,
-                "market_cap": market_cap,
-                "avg_volume_30d": avg_vol_30d,
-                "current_price": None,
-                "perf_1d": None, "perf_1w": None, "perf_1m": None,
-                "perf_mtd": None, "perf_ytd": None, "perf_1y": None,
-                "rsi_14": None, "rel_volume": None,
-                "dist_52w_high": None, "dist_52w_low": None,
-                "sparkline": _sparkline_for(instr_id),
-            })
+            rows.append(
+                {
+                    "instrument_id": instr_id,
+                    "symbol": inst.symbol,
+                    "name": inst.name or inst.symbol,
+                    "sector": eq.sector if eq else None,
+                    "industry": eq.industry if eq else None,
+                    "market_cap": market_cap,
+                    "avg_volume_30d": avg_vol_30d,
+                    "current_price": None,
+                    "perf_1d": None,
+                    "perf_1w": None,
+                    "perf_1m": None,
+                    "perf_mtd": None,
+                    "perf_ytd": None,
+                    "perf_1y": None,
+                    "rsi_14": None,
+                    "rel_volume": None,
+                    "dist_52w_high": None,
+                    "dist_52w_low": None,
+                    "sparkline": _sparkline_for(instr_id),
+                }
+            )
             continue
 
         closes = [float(b.close) for b in bars]
@@ -614,27 +627,29 @@ async def get_heatmap_data(
         if week52_low and week52_low > 0:
             dist_52w_low = round((current_price - week52_low) / week52_low, 4)
 
-        rows.append({
-            "instrument_id": instr_id,
-            "symbol": inst.symbol,
-            "name": inst.name or inst.symbol,
-            "sector": eq.sector if eq else None,
-            "industry": eq.industry if eq else None,
-            "market_cap": market_cap,
-            "avg_volume_30d": avg_vol_30d,
-            "current_price": current_price,
-            "perf_1d": perf_1d,
-            "perf_1w": perf_1w,
-            "perf_1m": perf_1m,
-            "perf_mtd": perf_mtd,
-            "perf_ytd": perf_ytd,
-            "perf_1y": perf_1y,
-            "rsi_14": rsi_14,
-            "rel_volume": rel_volume,
-            "dist_52w_high": dist_52w_high,
-            "dist_52w_low": dist_52w_low,
-            "sparkline": _sparkline_for(instr_id),
-        })
+        rows.append(
+            {
+                "instrument_id": instr_id,
+                "symbol": inst.symbol,
+                "name": inst.name or inst.symbol,
+                "sector": eq.sector if eq else None,
+                "industry": eq.industry if eq else None,
+                "market_cap": market_cap,
+                "avg_volume_30d": avg_vol_30d,
+                "current_price": current_price,
+                "perf_1d": perf_1d,
+                "perf_1w": perf_1w,
+                "perf_1m": perf_1m,
+                "perf_mtd": perf_mtd,
+                "perf_ytd": perf_ytd,
+                "perf_1y": perf_1y,
+                "rsi_14": rsi_14,
+                "rel_volume": rel_volume,
+                "dist_52w_high": dist_52w_high,
+                "dist_52w_low": dist_52w_low,
+                "sparkline": _sparkline_for(instr_id),
+            }
+        )
 
     return rows
 
@@ -874,44 +889,64 @@ async def get_instrument_provenance(
         raise HTTPException(404, f"Instrument '{symbol}' not found")
 
     snapshots = (
-        await db.execute(
-            select(InstrumentProfileSnapshot)
-            .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
-            .order_by(InstrumentProfileSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentProfileSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     dataset_states = (
-        await db.execute(
-            select(InstrumentDatasetState)
-            .where(InstrumentDatasetState.instrument_id == instrument.id)
-            .order_by(InstrumentDatasetState.updated_at.desc())
+        (
+            await db.execute(
+                select(InstrumentDatasetState)
+                .where(InstrumentDatasetState.instrument_id == instrument.id)
+                .order_by(InstrumentDatasetState.updated_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     identifier_snapshots = (
-        await db.execute(
-            select(InstrumentIdentifierSnapshot)
-            .where(InstrumentIdentifierSnapshot.instrument_id == instrument.id)
-            .order_by(InstrumentIdentifierSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(InstrumentIdentifierSnapshot)
+                .where(InstrumentIdentifierSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentIdentifierSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     latest_price_snapshots = (
-        await db.execute(
-            select(LatestPriceSnapshot)
-            .where(LatestPriceSnapshot.instrument_id == instrument.id)
-            .order_by(LatestPriceSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(LatestPriceSnapshot)
+                .where(LatestPriceSnapshot.instrument_id == instrument.id)
+                .order_by(LatestPriceSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     return {
         "instrument_id": instrument.id,
         "symbol": instrument.symbol,
         "field_provenance": instrument.field_provenance or {},
-        "equity_detail": instrument.equity_detail.field_provenance if instrument.equity_detail else {},
+        "equity_detail": instrument.equity_detail.field_provenance
+        if instrument.equity_detail
+        else {},
         "stats": instrument.stats.field_provenance if instrument.stats else {},
-        "option_detail": instrument.option_detail.field_provenance if instrument.option_detail else {},
+        "option_detail": instrument.option_detail.field_provenance
+        if instrument.option_detail
+        else {},
         "identifiers": [
             {
                 "identifier_type": row.identifier_type.value,
@@ -1195,10 +1230,7 @@ def _profile_exact_match(profile: InstrumentProfile, requested_symbol: str) -> b
     candidates = {
         _normalized_symbol_key(profile.symbol),
         _normalized_symbol_key(profile.canonical_symbol),
-        *{
-            _normalized_symbol_key(listing.provider_symbol)
-            for listing in (profile.listings or [])
-        },
+        *{_normalized_symbol_key(listing.provider_symbol) for listing in (profile.listings or [])},
     }
     return requested in candidates
 
@@ -1247,7 +1279,10 @@ async def _find_existing_instrument_for_profile(
         instrument = (
             await db.execute(
                 select(Instrument)
-                .join(InstrumentProviderSymbol, InstrumentProviderSymbol.instrument_id == Instrument.id)
+                .join(
+                    InstrumentProviderSymbol,
+                    InstrumentProviderSymbol.instrument_id == Instrument.id,
+                )
                 .where(
                     InstrumentProviderSymbol.data_source_id == data_source.id,
                     InstrumentProviderSymbol.provider_symbol == provider_symbol,

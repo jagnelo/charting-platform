@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
     APP_ENV: str = "development"
+    LOG_LEVEL: str = "INFO"
 
     # Security
     SECRET_KEY: str = "dev-secret-change-me-at-least-32-chars-long"

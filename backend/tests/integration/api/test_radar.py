@@ -5,7 +5,7 @@ from decimal import Decimal
 def _seed_radar_bars(db, instrument, prices: list[float]):
     from app.models.ohlcv import OHLCVBar, Timeframe
 
-    base = datetime(2024, 1, 1, tzinfo=UTC)
+    base = datetime.now(UTC) - timedelta(days=len(prices))
     for index, price in enumerate(prices):
         db.add(
             OHLCVBar(
@@ -26,7 +26,11 @@ def _seed_radar_bars(db, instrument, prices: list[float]):
 class TestRadarAPI:
     def test_run_and_list_detections(self, client, auth_headers, db, instrument, instrument_b):
         _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
-        _seed_radar_bars(db, instrument_b, [100, 104, 108, 111, 108, 104] * 18 + [108, 110.5, 107.5, 106.5, 105.5])
+        _seed_radar_bars(
+            db,
+            instrument_b,
+            [100, 104, 108, 111, 108, 104] * 18 + [108, 110.5, 107.5, 106.5, 105.5],
+        )
 
         run_res = client.post("/api/v1/radar/run", headers=auth_headers)
         assert run_res.status_code == 200

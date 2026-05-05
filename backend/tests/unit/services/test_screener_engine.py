@@ -105,6 +105,7 @@ class TestEvaluateConditionLogicGroups:
 
     def _make_instrument(self):
         from unittest.mock import MagicMock
+
         inst = MagicMock()
         inst.id = 1
         inst.equity_detail = None
@@ -167,9 +168,7 @@ class TestEvaluateConditionLogicGroups:
     def test_not_negates_true(self):
         condition = {
             "operator": "NOT",
-            "conditions": [
-                {"type": "price_threshold", "field": "close", "op": "gt", "value": 50}
-            ],
+            "conditions": [{"type": "price_threshold", "field": "close", "op": "gt", "value": 50}],
         }
         matched, _ = self._eval(condition, close=100.0)
         assert matched is False
@@ -177,9 +176,7 @@ class TestEvaluateConditionLogicGroups:
     def test_not_negates_false(self):
         condition = {
             "operator": "NOT",
-            "conditions": [
-                {"type": "price_threshold", "field": "close", "op": "gt", "value": 999}
-            ],
+            "conditions": [{"type": "price_threshold", "field": "close", "op": "gt", "value": 999}],
         }
         matched, _ = self._eval(condition, close=100.0)
         assert matched is True
@@ -217,9 +214,7 @@ class TestEvaluateConditionLogicGroups:
     def test_price_threshold_computed_values_present(self):
         condition = {
             "operator": "AND",
-            "conditions": [
-                {"type": "price_threshold", "field": "close", "op": "gt", "value": 50}
-            ],
+            "conditions": [{"type": "price_threshold", "field": "close", "op": "gt", "value": 50}],
         }
         _, computed = self._eval(condition, close=100.0)
         assert "close" in computed

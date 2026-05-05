@@ -202,7 +202,9 @@ class TestIndicatorComputation:
         assert np.allclose(diff[mask], result["histogram"][mask])
 
     def test_bollinger_band_ordering(self):
-        result = compute_indicator("bb", make_series(rising_closes(80)), {"period": 20, "std_dev": 2.0})
+        result = compute_indicator(
+            "bb", make_series(rising_closes(80)), {"period": 20, "std_dev": 2.0}
+        )
         upper = result["bb_upper"]
         mid = result["bb_mid"]
         lower = result["bb_lower"]
@@ -213,7 +215,10 @@ class TestIndicatorComputation:
     def test_vwap_flat_series_matches_price(self):
         price = np.full(30, 100.0)
         timestamps = np.array(
-            [int((datetime(2024, 1, 1, tzinfo=UTC) + timedelta(minutes=i)).timestamp()) for i in range(30)],
+            [
+                int((datetime(2024, 1, 1, tzinfo=UTC) + timedelta(minutes=i)).timestamp())
+                for i in range(30)
+            ],
             dtype=np.int64,
         )
         series = OHLCVSeries(

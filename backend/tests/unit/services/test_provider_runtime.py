@@ -17,9 +17,7 @@ async def test_seed_provider_runtime_creates_policies_for_supported_non_seeded_p
 
     await seed_provider_runtime(async_db)
 
-    data_source = db.execute(
-        select(DataSource).where(DataSource.name == "alpaca")
-    ).scalar_one()
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
     policy = db.execute(
         select(ProviderPolicy).where(
             ProviderPolicy.data_source_id == data_source.id,

@@ -27,7 +27,9 @@ class TestWatchlistsCrud:
         assert body["name"] == "Momentum"
         assert body["position"] == watchlist.position + 1
 
-    def test_create_watchlist_rejects_duplicate_name_case_insensitive(self, client, auth_headers, watchlist):
+    def test_create_watchlist_rejects_duplicate_name_case_insensitive(
+        self, client, auth_headers, watchlist
+    ):
         res = client.post(
             "/api/v1/watchlists",
             headers=auth_headers,
@@ -86,7 +88,9 @@ class TestWatchlistsCrud:
         )
         assert res.status_code == 409
 
-    def test_lock_prevents_manual_add_and_remove(self, client, auth_headers, db, watchlist, instrument_b):
+    def test_lock_prevents_manual_add_and_remove(
+        self, client, auth_headers, db, watchlist, instrument_b
+    ):
         lock = client.post(f"/api/v1/watchlists/{watchlist.id}/lock", headers=auth_headers)
         assert lock.status_code == 200
 
@@ -132,7 +136,9 @@ class TestWatchlistsCrud:
         assert res.status_code == 200
         assert res.json()["name"] == "New Name"
 
-    def test_seed_watchlist_adds_missing_items(self, client, auth_headers, watchlist, instrument, instrument_b):
+    def test_seed_watchlist_adds_missing_items(
+        self, client, auth_headers, watchlist, instrument, instrument_b
+    ):
         res = client.post(
             f"/api/v1/watchlists/{watchlist.id}/seed",
             headers=auth_headers,
@@ -142,7 +148,9 @@ class TestWatchlistsCrud:
         items = res.json()["items"]
         assert {item["instrument_id"] for item in items} == {instrument.id, instrument_b.id}
 
-    def test_copy_watchlist_skips_departed_items(self, client, auth_headers, db, watchlist, instrument, instrument_b):
+    def test_copy_watchlist_skips_departed_items(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
         from app.models.watchlist import WatchlistItem
 
         active = WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0)
@@ -182,4 +190,3 @@ class TestWatchlistsCrud:
         client.post(f"/api/v1/watchlists/{watchlist.id}/lock", headers=auth_headers)
         res = client.delete(f"/api/v1/watchlists/{watchlist.id}", headers=auth_headers)
         assert res.status_code == 403
-

@@ -161,7 +161,8 @@ async def ensure_instrument_events_loaded(
 
     fresh_dataset = (
         await db.execute(
-            select(InstrumentDatasetState).where(
+            select(InstrumentDatasetState)
+            .where(
                 InstrumentDatasetState.instrument_id == instrument.id,
                 InstrumentDatasetState.dataset_type == "events",
                 InstrumentDatasetState.dataset_key == "calendar",
@@ -184,7 +185,12 @@ async def ensure_instrument_events_loaded(
             .limit(1)
         )
     ).scalar_one_or_none()
-    if refresh or state is None or state.fetch_version < EVENT_FETCH_VERSION or fresh_dataset is None:
+    if (
+        refresh
+        or state is None
+        or state.fetch_version < EVENT_FETCH_VERSION
+        or fresh_dataset is None
+    ):
         await fetch_and_store_instrument_events(db, instrument)
 
 

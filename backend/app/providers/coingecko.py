@@ -17,6 +17,7 @@ OHLCV note: CoinGecko's OHLC endpoint has coarse granularity and limited
 history on the free tier.  Binance is the preferred OHLCV source for crypto;
 CoinGecko's role here is universe discovery and rich metadata.
 """
+
 from __future__ import annotations
 
 import logging
@@ -32,8 +33,8 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://api.coingecko.com/api/v3"
 _PAGE_SIZE = 250
-_COIN_LIST_TTL = 3600 * 12   # 12 hours (list rarely changes)
-_COIN_LIST_SLEEP = 1.0        # polite delay between coin-list fetch and first use
+_COIN_LIST_TTL = 3600 * 12  # 12 hours (list rarely changes)
+_COIN_LIST_SLEEP = 1.0  # polite delay between coin-list fetch and first use
 
 # Module-level coin list cache  {symbol_lower → [{id, symbol, name}]}
 _coin_list: dict[str, list[dict]] = {}
@@ -84,12 +85,14 @@ class CoinGeckoProvider:
         results: list[ProviderSearchResult] = []
         for coin in (data.get("coins") or [])[:limit]:
             sym = coin.get("symbol", "").upper()
-            results.append(ProviderSearchResult(
-                symbol=f"{sym}-USD",
-                name=coin.get("name", sym),
-                exchange="CoinGecko",
-                instrument_type="CRYPTOCURRENCY",
-            ))
+            results.append(
+                ProviderSearchResult(
+                    symbol=f"{sym}-USD",
+                    name=coin.get("name", sym),
+                    exchange="CoinGecko",
+                    instrument_type="CRYPTOCURRENCY",
+                )
+            )
         return results
 
     # ── Metadata ──────────────────────────────────────────────────────────────
@@ -101,9 +104,13 @@ class CoinGeckoProvider:
         try:
             data = self._get(
                 f"/coins/{coin_id}",
-                {"localization": "false", "tickers": "false",
-                 "market_data": "true", "community_data": "false",
-                 "developer_data": "false"},
+                {
+                    "localization": "false",
+                    "tickers": "false",
+                    "market_data": "true",
+                    "community_data": "false",
+                    "developer_data": "false",
+                },
             )
         except Exception as exc:
             logger.warning("coingecko get_instrument_profile %s (%s): %s", symbol, coin_id, exc)
@@ -183,6 +190,7 @@ class CoinGeckoProvider:
 
 # ── Module helpers ────────────────────────────────────────────────────────────
 
+
 def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
     """Resolve a platform symbol like BTC-USD to a CoinGecko coin ID."""
     base = platform_symbol.split("-")[0].lower()
@@ -232,4 +240,5 @@ def _strip_html(text: str | None) -> str | None:
     if not text:
         return None
     import re
+
     return re.sub(r"<[^>]+>", "", text).strip() or None

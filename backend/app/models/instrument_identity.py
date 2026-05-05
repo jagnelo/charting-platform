@@ -44,7 +44,9 @@ class InstrumentIdentifier(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="instrument_identifiers")
 
     __table_args__ = (
-        UniqueConstraint("identifier_type", "identifier_value", name="uq_instrument_identifier_type_value"),
+        UniqueConstraint(
+            "identifier_type", "identifier_value", name="uq_instrument_identifier_type_value"
+        ),
     )
 
 
@@ -100,7 +102,9 @@ class InstrumentProviderCapabilityStatus(Base, TimestampMixin):
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    status_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    status_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     last_error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

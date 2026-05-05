@@ -10,6 +10,7 @@ GEX sign convention (SqueezeMetrics / dealer-centric):
   put_gex  = -(gamma × OI × contract_size × spot²)   [negative → dealers short]
   net_gex  = call_gex + put_gex  (>0 = long gamma regime, suppresses vol)
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -30,6 +31,7 @@ from app.services.risk_free_rate import get_risk_free_rate
 
 # ── Internal raw record ───────────────────────────────────────────────────────
 
+
 @dataclass
 class _ContractQuote:
     strike: Decimal
@@ -47,6 +49,7 @@ class _ContractQuote:
 
 
 # ── Public result types ───────────────────────────────────────────────────────
+
 
 @dataclass
 class ExpiryBreakdown:
@@ -114,6 +117,7 @@ class OptionsExposureResponse:
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
+
 
 async def _fetch_latest_contract_quotes(
     db: AsyncSession,
@@ -222,6 +226,7 @@ async def _ensure_option_quotes_available(
 
 # ── Computation ───────────────────────────────────────────────────────────────
 
+
 def _compute_exposure(
     quotes: list[_ContractQuote],
     spot: float,
@@ -229,34 +234,47 @@ def _compute_exposure(
 ) -> tuple[
     list[ExposureLadderRow],
     KeyLevels,
-    float,        # total_gex
-    float,        # total_net_dex
-    float | None, # pcr_oi
-    float | None, # pcr_volume
-    float | None, # implied_move_pct
-    list[str],    # sorted expirations
-    bool,         # any_estimated — True if BS fallback was used for any contract
+    float,  # total_gex
+    float,  # total_net_dex
+    float | None,  # pcr_oi
+    float | None,  # pcr_volume
+    float | None,  # implied_move_pct
+    list[str],  # sorted expirations
+    bool,  # any_estimated — True if BS fallback was used for any contract
 ]:
     spot_sq = spot * spot
     today = date.today()
     any_estimated = False
 
     # Accumulate per-(strike, expiry) for segment coloring
-    by_se: dict[tuple[float, str], dict] = defaultdict(lambda: {
-        "call_gex": 0.0, "put_gex": 0.0,
-        "call_dex": 0.0, "put_dex": 0.0,
-        "call_oi": 0.0, "put_oi": 0.0,
-    })
+    by_se: dict[tuple[float, str], dict] = defaultdict(
+        lambda: {
+            "call_gex": 0.0,
+            "put_gex": 0.0,
+            "call_dex": 0.0,
+            "put_dex": 0.0,
+            "call_oi": 0.0,
+            "put_oi": 0.0,
+        }
+    )
 
     # Accumulate per-strike for the main row values
-    by_s: dict[float, dict] = defaultdict(lambda: {
-        "call_gex": 0.0, "put_gex": 0.0,
-        "call_dex": 0.0, "put_dex": 0.0,
-        "call_oi": 0.0, "put_oi": 0.0,
-        "call_iv_sum": 0.0, "call_iv_n": 0,
-        "put_iv_sum": 0.0, "put_iv_n": 0,
-        "call_mark": None, "put_mark": None,
-    })
+    by_s: dict[float, dict] = defaultdict(
+        lambda: {
+            "call_gex": 0.0,
+            "put_gex": 0.0,
+            "call_dex": 0.0,
+            "put_dex": 0.0,
+            "call_oi": 0.0,
+            "put_oi": 0.0,
+            "call_iv_sum": 0.0,
+            "call_iv_n": 0,
+            "put_iv_sum": 0.0,
+            "put_iv_n": 0,
+            "call_mark": None,
+            "put_mark": None,
+        }
+    )
 
     total_call_oi = 0.0
     total_put_oi = 0.0
@@ -281,7 +299,9 @@ def _compute_exposure(
             tte = max(0.0, (q.expiry_date - today).days / 365.25)
             if tte > 0:
                 is_call = q.right == OptionRight.CALL
-                est_delta, est_gamma = estimate_greeks(spot, strike_f, tte, iv_f, rfr, is_call=is_call)
+                est_delta, est_gamma = estimate_greeks(
+                    spot, strike_f, tte, iv_f, rfr, is_call=is_call
+                )
                 if q.gamma is None:
                     gamma_f = est_gamma
                 if q.delta is None:
@@ -349,22 +369,24 @@ def _compute_exposure(
                     put_oi=bse["put_oi"],
                 )
 
-        ladder.append(ExposureLadderRow(
-            strike=strike_f,
-            call_gex=bs["call_gex"],
-            put_gex=bs["put_gex"],
-            net_gex=net_gex,
-            call_dex=bs["call_dex"],
-            put_dex=bs["put_dex"],
-            net_dex=net_dex,
-            call_oi=bs["call_oi"],
-            put_oi=bs["put_oi"],
-            call_iv=bs["call_iv_sum"] / bs["call_iv_n"] if bs["call_iv_n"] else None,
-            put_iv=bs["put_iv_sum"] / bs["put_iv_n"] if bs["put_iv_n"] else None,
-            call_mark=bs["call_mark"],
-            put_mark=bs["put_mark"],
-            by_expiry=expiry_breakdowns,
-        ))
+        ladder.append(
+            ExposureLadderRow(
+                strike=strike_f,
+                call_gex=bs["call_gex"],
+                put_gex=bs["put_gex"],
+                net_gex=net_gex,
+                call_dex=bs["call_dex"],
+                put_dex=bs["put_dex"],
+                net_dex=net_dex,
+                call_oi=bs["call_oi"],
+                put_oi=bs["put_oi"],
+                call_iv=bs["call_iv_sum"] / bs["call_iv_n"] if bs["call_iv_n"] else None,
+                put_iv=bs["put_iv_sum"] / bs["put_iv_n"] if bs["put_iv_n"] else None,
+                call_mark=bs["call_mark"],
+                put_mark=bs["put_mark"],
+                by_expiry=expiry_breakdowns,
+            )
+        )
 
     key_levels = _compute_key_levels(ladder, quotes)
     total_gex = sum(r.net_gex for r in ladder)
@@ -375,9 +397,13 @@ def _compute_exposure(
     implied_move_pct = _compute_implied_move(ladder, spot)
 
     return (
-        ladder, key_levels,
-        total_gex, total_net_dex,
-        pcr_oi, pcr_volume, implied_move_pct,
+        ladder,
+        key_levels,
+        total_gex,
+        total_net_dex,
+        pcr_oi,
+        pcr_volume,
+        implied_move_pct,
         sorted(all_expirations),
         any_estimated,
     )
@@ -451,6 +477,7 @@ def _compute_implied_move(ladder: list[ExposureLadderRow], spot: float) -> float
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
 async def get_options_exposure(
     db: AsyncSession,
     underlying: Instrument,
@@ -463,7 +490,9 @@ async def get_options_exposure(
     await _ensure_option_quotes_available(db, underlying, expiration=expiration)
     quotes = await _fetch_latest_contract_quotes(db, underlying.id, expiration=expiration)
     spot = await _get_spot_price(db, underlying.id)
-    provider_expirations = [item.isoformat() for item in await list_option_expirations(db, underlying)]
+    provider_expirations = [
+        item.isoformat() for item in await list_option_expirations(db, underlying)
+    ]
 
     if not quotes:
         return OptionsExposureResponse(
@@ -483,9 +512,17 @@ async def get_options_exposure(
 
     rfr = await get_risk_free_rate(db)
     spot_val = spot or 0.0
-    ladder, key_levels, total_gex, total_net_dex, pcr_oi, pcr_vol, implied_move, sorted_exps, any_estimated = (
-        _compute_exposure(quotes, spot_val, rfr=rfr)
-    )
+    (
+        ladder,
+        key_levels,
+        total_gex,
+        total_net_dex,
+        pcr_oi,
+        pcr_vol,
+        implied_move,
+        sorted_exps,
+        any_estimated,
+    ) = _compute_exposure(quotes, spot_val, rfr=rfr)
 
     active_expirations = [exp for exp in sorted_exps if exp in provider_expirations]
 
@@ -512,16 +549,22 @@ async def list_exposure_expirations(
 ) -> list[ExpirationSummary]:
     """Expirations list with GEX/OI stats — used to populate the expiration selector."""
     await _ensure_option_quotes_available(db, underlying)
-    provider_expirations = {item.isoformat() for item in await list_option_expirations(db, underlying)}
+    provider_expirations = {
+        item.isoformat() for item in await list_option_expirations(db, underlying)
+    }
     quotes = await _fetch_latest_contract_quotes(db, underlying.id)
     spot = await _get_spot_price(db, underlying.id)
     spot_sq = (spot or 0.0) ** 2
 
     today = date.today()
-    by_expiry: dict[str, dict] = defaultdict(lambda: {
-        "call_gex": 0.0, "put_gex": 0.0,
-        "call_oi": 0.0, "put_oi": 0.0,
-    })
+    by_expiry: dict[str, dict] = defaultdict(
+        lambda: {
+            "call_gex": 0.0,
+            "put_gex": 0.0,
+            "call_oi": 0.0,
+            "put_oi": 0.0,
+        }
+    )
 
     for q in quotes:
         expiry_s = q.expiry_date.isoformat()
@@ -545,13 +588,15 @@ async def list_exposure_expirations(
         expiry_d = date.fromisoformat(expiry_s)
         call_oi = v["call_oi"]
         put_oi = v["put_oi"]
-        summaries.append(ExpirationSummary(
-            expiration=expiry_s,
-            dte=max(0, (expiry_d - today).days),
-            total_call_oi=call_oi,
-            total_put_oi=put_oi,
-            pcr_oi=put_oi / call_oi if call_oi > 0 else None,
-            total_gex=v["call_gex"] + v["put_gex"],
-        ))
+        summaries.append(
+            ExpirationSummary(
+                expiration=expiry_s,
+                dte=max(0, (expiry_d - today).days),
+                total_call_oi=call_oi,
+                total_put_oi=put_oi,
+                pcr_oi=put_oi / call_oi if call_oi > 0 else None,
+                total_gex=v["call_gex"] + v["put_gex"],
+            )
+        )
 
     return summaries

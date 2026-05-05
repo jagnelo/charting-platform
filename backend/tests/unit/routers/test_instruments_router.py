@@ -12,7 +12,14 @@ class TestInstrumentAutoCreate:
         async_db = AsyncSessionAdapter(db)
 
         async def _search(*_args, **_kwargs):
-            return [{"symbol": "CSCOII-USD", "name": "Fake Coin", "exchange": "CoinGecko", "type": "CRYPTOCURRENCY"}]
+            return [
+                {
+                    "symbol": "CSCOII-USD",
+                    "name": "Fake Coin",
+                    "exchange": "CoinGecko",
+                    "type": "CRYPTOCURRENCY",
+                }
+            ]
 
         async def _profile(*_args, **_kwargs):
             return InstrumentProfile(
@@ -25,7 +32,9 @@ class TestInstrumentAutoCreate:
             )
 
         async def _ingest(*_args, **_kwargs):
-            raise AssertionError("ingest_provider_profile should not be called for non-exact matches")
+            raise AssertionError(
+                "ingest_provider_profile should not be called for non-exact matches"
+            )
 
         monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
         monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
@@ -63,7 +72,9 @@ class TestInstrumentAutoCreate:
                 currency="USD",
                 quote_type="EQUITY",
                 exchange="NMS",
-                listings=[ListingRecord(provider_symbol="CSCO", exchange_code="NMS", is_primary=True)],
+                listings=[
+                    ListingRecord(provider_symbol="CSCO", exchange_code="NMS", is_primary=True)
+                ],
             )
 
         async def _ingest(db_session, profile, **_kwargs):

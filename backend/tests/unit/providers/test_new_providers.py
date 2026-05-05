@@ -2,6 +2,7 @@
 Unit tests for the five new data providers added in the provider-abstraction feature.
 All tests are pure-Python / no-network: HTTP calls are mocked where needed.
 """
+
 from __future__ import annotations
 
 import logging
@@ -113,25 +114,31 @@ class TestRegistryCapabilities:
 
 
 class TestAlpacaSymbolHelpers:
-    @pytest.mark.parametrize("symbol,expected", [
-        ("BTC-USD", True),
-        ("ETH-USD", True),
-        ("BTC/USD", True),
-        ("ETH-BTC", True),
-        ("AAPL", False),
-        ("MSFT", False),
-        ("SPY", False),
-        ("BRK-A", False),   # equity with hyphen — quote side is "A", not in crypto list
-    ])
+    @pytest.mark.parametrize(
+        "symbol,expected",
+        [
+            ("BTC-USD", True),
+            ("ETH-USD", True),
+            ("BTC/USD", True),
+            ("ETH-BTC", True),
+            ("AAPL", False),
+            ("MSFT", False),
+            ("SPY", False),
+            ("BRK-A", False),  # equity with hyphen — quote side is "A", not in crypto list
+        ],
+    )
     def test_is_crypto(self, symbol, expected):
         assert _is_crypto(symbol) == expected
 
-    @pytest.mark.parametrize("symbol,expected", [
-        ("BTC-USD", "BTC/USD"),
-        ("ETH-USD", "ETH/USD"),
-        ("SOL-USD", "SOL/USD"),
-        ("BTCUSDT", "BTCUSDT"),  # no hyphen — passthrough
-    ])
+    @pytest.mark.parametrize(
+        "symbol,expected",
+        [
+            ("BTC-USD", "BTC/USD"),
+            ("ETH-USD", "ETH/USD"),
+            ("SOL-USD", "SOL/USD"),
+            ("BTCUSDT", "BTCUSDT"),  # no hyphen — passthrough
+        ],
+    )
     def test_to_alpaca_crypto(self, symbol, expected):
         assert _to_alpaca_crypto(symbol) == expected
 
@@ -163,8 +170,10 @@ class TestAlpacaCredentialWarning:
             mock_settings.ALPACA_API_KEY = ""
             mock_settings.ALPACA_SECRET_KEY = ""
             result = provider.fetch_ohlcv(
-                "AAPL", Timeframe.D1,
-                datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 2, 1, tzinfo=UTC),
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
             )
         assert result == []
 
@@ -184,24 +193,46 @@ class TestAlpacaOHLCVParsing:
     def test_fetch_ohlcv_parses_stock_bars(self):
         provider = AlpacaProvider()
         fake_response = {
-            "bars": {"AAPL": [
-                {"t": "2024-01-02T05:00:00Z", "o": 185.0, "h": 187.0, "l": 184.0, "c": 186.0, "v": 50000000, "vw": 185.5},
-                {"t": "2024-01-03T05:00:00Z", "o": 186.0, "h": 188.0, "l": 185.0, "c": 187.0, "v": 45000000, "vw": 186.5},
-            ]},
+            "bars": {
+                "AAPL": [
+                    {
+                        "t": "2024-01-02T05:00:00Z",
+                        "o": 185.0,
+                        "h": 187.0,
+                        "l": 184.0,
+                        "c": 186.0,
+                        "v": 50000000,
+                        "vw": 185.5,
+                    },
+                    {
+                        "t": "2024-01-03T05:00:00Z",
+                        "o": 186.0,
+                        "h": 188.0,
+                        "l": 185.0,
+                        "c": 187.0,
+                        "v": 45000000,
+                        "vw": 186.5,
+                    },
+                ]
+            },
             "next_page_token": None,
         }
         mock_resp = MagicMock()
         mock_resp.json.return_value = fake_response
         mock_resp.raise_for_status.return_value = None
 
-        with patch("app.providers.alpaca.settings") as mock_settings, \
-             patch("app.providers.alpaca.httpx.get", return_value=mock_resp):
+        with (
+            patch("app.providers.alpaca.settings") as mock_settings,
+            patch("app.providers.alpaca.httpx.get", return_value=mock_resp),
+        ):
             mock_settings.ALPACA_API_KEY = "key"
             mock_settings.ALPACA_SECRET_KEY = "secret"
             mock_settings.ALPACA_DATA_FEED = "iex"
             bars = provider.fetch_ohlcv(
-                "AAPL", Timeframe.D1,
-                datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 5, tzinfo=UTC),
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 5, tzinfo=UTC),
             )
 
         assert len(bars) == 2
@@ -214,11 +245,14 @@ class TestAlpacaOHLCVParsing:
 
 
 class TestBinanceSymbolHelpers:
-    @pytest.mark.parametrize("symbol,expected", [
-        ("BTC-USD", "BTCUSDT"),
-        ("ETH-USD", "ETHUSDT"),
-        ("SOL-USD", "SOLUSDT"),
-    ])
+    @pytest.mark.parametrize(
+        "symbol,expected",
+        [
+            ("BTC-USD", "BTCUSDT"),
+            ("ETH-USD", "ETHUSDT"),
+            ("SOL-USD", "SOLUSDT"),
+        ],
+    )
     def test_to_binance(self, symbol, expected):
         assert _to_binance(symbol) == expected
 
@@ -226,19 +260,24 @@ class TestBinanceSymbolHelpers:
     def test_to_binance_returns_none_for_non_usd_pairs(self, symbol):
         assert _to_binance(symbol) is None
 
-    @pytest.mark.parametrize("binance_sym,expected", [
-        ("BTCUSDT", "BTC-USD"),
-        ("ETHUSDT", "ETH-USD"),
-        ("SOLUSDT", "SOL-USD"),
-    ])
+    @pytest.mark.parametrize(
+        "binance_sym,expected",
+        [
+            ("BTCUSDT", "BTC-USD"),
+            ("ETHUSDT", "ETH-USD"),
+            ("SOLUSDT", "SOL-USD"),
+        ],
+    )
     def test_from_binance(self, binance_sym, expected):
         assert _from_binance(binance_sym) == expected
 
     def test_fetch_ohlcv_returns_empty_for_non_crypto(self):
         provider = BinanceProvider()
         bars = provider.fetch_ohlcv(
-            "AAPL", Timeframe.D1,
-            datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 5, tzinfo=UTC),
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 5, tzinfo=UTC),
         )
         assert bars == []
 
@@ -268,8 +307,10 @@ class TestBinanceOHLCVParsing:
 
         with patch("app.providers.binance.httpx.get", return_value=mock_resp):
             bars = provider.fetch_ohlcv(
-                "BTC-USD", Timeframe.D1,
-                datetime(2024, 1, 2, tzinfo=UTC), datetime(2024, 1, 3, tzinfo=UTC),
+                "BTC-USD",
+                Timeframe.D1,
+                datetime(2024, 1, 2, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
             )
 
         assert len(bars) == 1
@@ -281,11 +322,23 @@ class TestBinanceOHLCVParsing:
 
 
 class TestFREDSeriesMap:
-    @pytest.mark.parametrize("symbol", [
-        "^IRX", "^FVX", "^TNX", "^TYX",
-        "EURUSD=X", "GBPUSD=X", "AUDUSD=X",
-        "FEDFUNDS", "CPIAUCSL", "UNRATE", "VIXCLS", "DCOILWTICO",
-    ])
+    @pytest.mark.parametrize(
+        "symbol",
+        [
+            "^IRX",
+            "^FVX",
+            "^TNX",
+            "^TYX",
+            "EURUSD=X",
+            "GBPUSD=X",
+            "AUDUSD=X",
+            "FEDFUNDS",
+            "CPIAUCSL",
+            "UNRATE",
+            "VIXCLS",
+            "DCOILWTICO",
+        ],
+    )
     def test_known_symbols_are_recognised(self, symbol):
         assert is_fred_symbol(symbol) is True
 
@@ -308,8 +361,10 @@ class TestFREDCredentialWarning:
             mock_settings.FRED_API_KEY = ""
             with caplog.at_level(logging.WARNING, logger="app.providers.fred"):
                 bars = provider.fetch_ohlcv(
-                    "^TNX", Timeframe.D1,
-                    datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 2, 1, tzinfo=UTC),
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
                 )
         assert bars == []
         assert "FRED_API_KEY" in caplog.text
@@ -319,8 +374,10 @@ class TestFREDCredentialWarning:
         with patch("app.providers.fred.settings") as mock_settings:
             mock_settings.FRED_API_KEY = "key"
             bars = provider.fetch_ohlcv(
-                "^TNX", Timeframe.M1,
-                datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 2, 1, tzinfo=UTC),
+                "^TNX",
+                Timeframe.M1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
             )
         assert bars == []
 
@@ -328,8 +385,10 @@ class TestFREDCredentialWarning:
         provider = FREDProvider()
         with caplog.at_level(logging.WARNING, logger="app.providers.fred"):
             bars = provider.fetch_ohlcv(
-                "AAPL", Timeframe.D1,
-                datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 2, 1, tzinfo=UTC),
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
             )
         assert bars == []
         assert "FRED_API_KEY" not in caplog.text
@@ -349,12 +408,16 @@ class TestFREDOHLCVParsing:
         mock_resp.json.return_value = fake_observations
         mock_resp.raise_for_status.return_value = None
 
-        with patch("app.providers.fred.settings") as mock_settings, \
-             patch("app.providers.fred.httpx.get", return_value=mock_resp):
+        with (
+            patch("app.providers.fred.settings") as mock_settings,
+            patch("app.providers.fred.httpx.get", return_value=mock_resp),
+        ):
             mock_settings.FRED_API_KEY = "key"
             bars = provider.fetch_ohlcv(
-                "^TNX", Timeframe.D1,
-                datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 10, tzinfo=UTC),
+                "^TNX",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 10, tzinfo=UTC),
             )
 
         assert len(bars) == 2  # the "." observation is skipped
@@ -443,7 +506,11 @@ class TestEdgarTickerMap:
                 "recent": {
                     "form": ["10-Q", "8-K", "10-K"],
                     "filingDate": ["2024-02-01", "2024-01-15", "2023-11-03"],
-                    "accessionNumber": ["0000320193-24-000010", "0000320193-24-000005", "0000320193-23-000100"],
+                    "accessionNumber": [
+                        "0000320193-24-000010",
+                        "0000320193-24-000005",
+                        "0000320193-23-000100",
+                    ],
                 }
             }
         }
@@ -452,8 +519,10 @@ class TestEdgarTickerMap:
         mock_resp.raise_for_status.return_value = None
 
         provider = EdgarProvider()
-        with patch("app.providers.edgar.httpx.get", return_value=mock_resp), \
-             patch("app.providers.edgar.settings") as mock_settings:
+        with (
+            patch("app.providers.edgar.httpx.get", return_value=mock_resp),
+            patch("app.providers.edgar.settings") as mock_settings,
+        ):
             mock_settings.EDGAR_USER_AGENT = "test test@test.com"
             events = provider.fetch_instrument_events("AAPL")
 

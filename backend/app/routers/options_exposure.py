@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +18,7 @@ router = APIRouter(tags=["options-exposure"])
 
 
 async def _load_underlying(symbol: str, db: AsyncSession) -> Instrument:
-    result = await db.execute(
-        select(Instrument).where(Instrument.symbol == symbol.upper())
-    )
+    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     inst = result.scalar_one_or_none()
     if inst is None:
         raise HTTPException(404, f"Instrument '{symbol}' not found")
@@ -88,6 +85,7 @@ async def get_instrument_options_exposure(
     if expiration:
         try:
             from datetime import date
+
             exp_date = date.fromisoformat(expiration)
         except ValueError as exc:
             raise HTTPException(400, f"Invalid expiration '{expiration}'") from exc

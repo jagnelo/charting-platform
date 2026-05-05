@@ -140,7 +140,9 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
         alert_id=alert_id,
         fired_at=now,
         trigger_value=Decimal(str(current_price)),
-        condition_snapshot=json.dumps({"condition": condition_val, "threshold": threshold, "symbol": symbol}),
+        condition_snapshot=json.dumps(
+            {"condition": condition_val, "threshold": threshold, "symbol": symbol}
+        ),
     )
     db.add(firing)
     await db.flush()
@@ -200,14 +202,16 @@ async def _fire_indicator_alert(
         alert_id=alert_id,
         fired_at=now,
         trigger_value=Decimal(str(val_a)),
-        condition_snapshot=json.dumps({
-            "indicator": indicator_type,
-            "condition": condition,
-            "value_a": val_a,
-            "value_b": val_b,
-            "threshold": threshold_value,
-            "symbol": symbol,
-        }),
+        condition_snapshot=json.dumps(
+            {
+                "indicator": indicator_type,
+                "condition": condition,
+                "value_a": val_a,
+                "value_b": val_b,
+                "threshold": threshold_value,
+                "symbol": symbol,
+            }
+        ),
     )
     db.add(firing)
     await db.flush()

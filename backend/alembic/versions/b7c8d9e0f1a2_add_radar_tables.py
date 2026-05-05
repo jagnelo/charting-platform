@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 
 revision: str = "b7c8d9e0f1a2"
@@ -18,8 +19,12 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    radar_run_status = sa.Enum("RUNNING", "COMPLETED", "FAILED", name="radarrunstatus")
-    radar_setup_type = sa.Enum(
+    # PgEnum with create_type=False suppresses the automatic CREATE TYPE that
+    # op.create_table fires via before_create. Lifecycle is managed explicitly
+    # below via .create(checkfirst=True), except for timeframe which already
+    # exists from the initial_schema migration and must never be recreated.
+    radar_run_status = PgEnum("RUNNING", "COMPLETED", "FAILED", name="radarrunstatus", create_type=False)
+    radar_setup_type = PgEnum(
         "APPROACHING_SUPPORT",
         "APPROACHING_RESISTANCE",
         "BREAKOUT",
@@ -27,14 +32,16 @@ def upgrade() -> None:
         "RECLAIM",
         "REJECTION",
         name="radarsetuptype",
+        create_type=False,
     )
-    timeframe_enum = sa.Enum(
-        "M1", "M5", "M15", "M30", "H1", "H2", "H4", "H12", "D1", "W1", "MN", name="timeframe"
+    timeframe_enum = PgEnum(
+        "M1", "M5", "M15", "M30", "H1", "H2", "H4", "H12", "D1", "W1", "MN",
+        name="timeframe",
+        create_type=False,
     )
     bind = op.get_bind()
     radar_run_status.create(bind, checkfirst=True)
     radar_setup_type.create(bind, checkfirst=True)
-    timeframe_enum.create(bind, checkfirst=True)
 
     op.create_table(
         "radar_run",

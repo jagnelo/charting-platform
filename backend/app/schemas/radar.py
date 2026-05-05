@@ -68,4 +68,3 @@ class RadarDetectionSummaryOut(BaseModel):
 
 class RadarDetectionDetailOut(RadarDetectionSummaryOut):
     evidence: RadarEvidenceOut
-

@@ -33,7 +33,9 @@ def _to_summary(detection: RadarDetection) -> RadarDetectionSummaryOut:
         score=float(detection.score),
         observed_at=detection.observed_at,
         fresh_until=detection.fresh_until,
-        key_level_price=float(detection.key_level_price) if detection.key_level_price is not None else None,
+        key_level_price=float(detection.key_level_price)
+        if detection.key_level_price is not None
+        else None,
         summary=detection.summary,
         invalidation_hint=detection.invalidation_hint,
         score_factors=detection.score_factors or {},
@@ -61,7 +63,9 @@ async def list_radar_runs(
     rows = (
         (
             await db.execute(
-                select(RadarRun).order_by(RadarRun.started_at.desc(), RadarRun.id.desc()).limit(limit)
+                select(RadarRun)
+                .order_by(RadarRun.started_at.desc(), RadarRun.id.desc())
+                .limit(limit)
             )
         )
         .scalars()
@@ -108,7 +112,9 @@ async def list_radar_detections(
     detections = list((await db.execute(stmt)).scalars().all())
     if symbol:
         symbol_upper = symbol.upper()
-        detections = [d for d in detections if d.instrument and symbol_upper in d.instrument.symbol.upper()]
+        detections = [
+            d for d in detections if d.instrument and symbol_upper in d.instrument.symbol.upper()
+        ]
     return [_to_summary(d) for d in detections]
 
 

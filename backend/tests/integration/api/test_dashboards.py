@@ -131,9 +131,10 @@ class TestDashboardsFlow:
         assert layout.status_code == 200
 
         refreshed = client.get("/api/v1/dashboards/default", headers=auth_headers).json()
-        refreshed_widget = next(w for w in refreshed["tabs"][0]["widgets"] if w["id"] == widget["id"])
+        refreshed_widget = next(
+            w for w in refreshed["tabs"][0]["widgets"] if w["id"] == widget["id"]
+        )
         assert refreshed_widget["layout"] == {"x": 2, "y": 3, "w": 6, "h": 4}
 
         delete = client.delete(f"/api/v1/dashboards/widgets/{widget['id']}", headers=auth_headers)
         assert delete.status_code == 204
-

@@ -2,7 +2,17 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,7 +51,9 @@ class ProviderPolicy(Base, TimestampMixin):
     burst_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
     cooldown_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     freshness_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
-    score_floor: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=Decimal("0"))
+    score_floor: Mapped[Decimal] = mapped_column(
+        Numeric(10, 4), nullable=False, default=Decimal("0")
+    )
     score_ceiling: Mapped[Decimal] = mapped_column(
         Numeric(10, 4), nullable=False, default=Decimal("100")
     )
@@ -55,7 +67,9 @@ class ProviderPolicy(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="provider_policies")
 
     __table_args__ = (
-        UniqueConstraint("data_source_id", "capability", name="uq_provider_policy_source_capability"),
+        UniqueConstraint(
+            "data_source_id", "capability", name="uq_provider_policy_source_capability"
+        ),
         Index(
             "ix_provider_policy_capability_rank",
             "capability",
@@ -80,7 +94,9 @@ class ProviderHealthState(Base, TimestampMixin):
     failure_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    circuit_open_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    circuit_open_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     ewma_latency_ms: Mapped[Decimal] = mapped_column(
         Numeric(12, 4), nullable=False, default=Decimal("0")
     )
@@ -133,7 +149,9 @@ class ProviderRequestLog(Base, TimestampMixin):
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     usage_mode: Mapped[str] = mapped_column(String(24), nullable=False, default="call_count")
     usage_unit_label: Mapped[str] = mapped_column(String(24), nullable=False, default="requests")
-    usage_units: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=Decimal("1"))
+    usage_units: Mapped[Decimal] = mapped_column(
+        Numeric(12, 4), nullable=False, default=Decimal("1")
+    )
     response_items: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

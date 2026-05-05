@@ -127,14 +127,18 @@ async def list_dashboards(
 ):
     await _ensure_default_dashboard(db, current_user)
     dashboards = (
-        await db.execute(
-            select(Dashboard)
-            .where(Dashboard.user_id == current_user.id)
-            .execution_options(populate_existing=True)
-            .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
-            .order_by(Dashboard.position, Dashboard.created_at)
+        (
+            await db.execute(
+                select(Dashboard)
+                .where(Dashboard.user_id == current_user.id)
+                .execution_options(populate_existing=True)
+                .options(selectinload(Dashboard.tabs).selectinload(DashboardTab.widgets))
+                .order_by(Dashboard.position, Dashboard.created_at)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return dashboards
 
 
@@ -159,7 +163,9 @@ async def create_dashboard(
     position = body.position
     if position == 0:
         max_position = (
-            await db.execute(select(func.max(Dashboard.position)).where(Dashboard.user_id == current_user.id))
+            await db.execute(
+                select(func.max(Dashboard.position)).where(Dashboard.user_id == current_user.id)
+            )
         ).scalar_one()
         position = (max_position or 0) + 1
     dashboard = Dashboard(
@@ -268,13 +274,17 @@ async def reorder_tabs(
 ):
     await _load_dashboard(db, dashboard_id, current_user.id)
     tabs = (
-        await db.execute(
-            select(DashboardTab).where(
-                DashboardTab.dashboard_id == dashboard_id,
-                DashboardTab.id.in_(body.ids),
+        (
+            await db.execute(
+                select(DashboardTab).where(
+                    DashboardTab.dashboard_id == dashboard_id,
+                    DashboardTab.id.in_(body.ids),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_id = {tab.id: tab for tab in tabs}
     for pos, tab_id in enumerate(body.ids):
         if tab_id in by_id:
@@ -331,13 +341,17 @@ async def update_widget_layouts(
 ):
     await _load_tab(db, tab_id, current_user.id)
     widgets = (
-        await db.execute(
-            select(DashboardWidget).where(
-                DashboardWidget.tab_id == tab_id,
-                DashboardWidget.id.in_([w.id for w in body.widgets]),
+        (
+            await db.execute(
+                select(DashboardWidget).where(
+                    DashboardWidget.tab_id == tab_id,
+                    DashboardWidget.id.in_([w.id for w in body.widgets]),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_id = {widget.id: widget for widget in widgets}
     for patch in body.widgets:
         if patch.id in by_id:

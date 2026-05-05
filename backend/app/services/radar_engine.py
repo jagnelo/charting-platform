@@ -169,7 +169,14 @@ def _ema_context(data: OHLCVSeries) -> tuple[dict[str, float], list[dict]]:
         if latest is None:
             continue
         levels[f"ema_{period}"] = latest
-        overlays.append(_series_points(data, [None if math.isnan(v) else float(v) for v in series], colors[period], f"EMA {period}"))
+        overlays.append(
+            _series_points(
+                data,
+                [None if math.isnan(v) else float(v) for v in series],
+                colors[period],
+                f"EMA {period}",
+            )
+        )
     return levels, overlays
 
 
@@ -230,7 +237,9 @@ def _build_score(
     touch_score = _clamp(zone.touch_count / 4)
     recency_score = _clamp(1 - (latest_index - zone.last_touch_index) / 120)
     age_score = _clamp((latest_index - zone.first_touch_index) / 180)
-    confluence_hits = sum(1 for level in confluence_levels if abs(level - zone.center) <= atr_denom * 1.1)
+    confluence_hits = sum(
+        1 for level in confluence_levels if abs(level - zone.center) <= atr_denom * 1.1
+    )
     confluence_score = _clamp(confluence_hits / 4)
     timeframe_score = 1.0
     total = (
@@ -342,11 +351,15 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
         confluence_levels = list(base_levels)
         if avwap_value is not None:
             confluence_levels.append(avwap_value)
-        score_factors = _build_score(close, atr, zone, latest_index, confluence_levels, reaction_quality)
+        score_factors = _build_score(
+            close, atr, zone, latest_index, confluence_levels, reaction_quality
+        )
         score = float(score_factors["normalized_score"])
 
         overlays = [
-            _make_zone_overlay(zone, timestamps, latest_ts, "#2ec4b6" if zone.role == "support" else "#ff9f1c"),
+            _make_zone_overlay(
+                zone, timestamps, latest_ts, "#2ec4b6" if zone.role == "support" else "#ff9f1c"
+            ),
             _make_marker(latest_ts, close, "Current", "#ffffff", "price"),
         ]
         overlays.extend(ema_overlays)
@@ -409,8 +422,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.APPROACHING_SUPPORT,
                     score=score,
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.APPROACHING_SUPPORT, zone, score),
-                    invalidation_hint=_candidate_invalidation(RadarSetupType.APPROACHING_SUPPORT, zone),
+                    summary=_candidate_summary(
+                        instrument.symbol, RadarSetupType.APPROACHING_SUPPORT, zone, score
+                    ),
+                    invalidation_hint=_candidate_invalidation(
+                        RadarSetupType.APPROACHING_SUPPORT, zone
+                    ),
                     key_level_price=zone.center,
                     score_factors=score_factors,
                     evidence=evidence,
@@ -424,8 +441,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.APPROACHING_RESISTANCE,
                     score=score,
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.APPROACHING_RESISTANCE, zone, score),
-                    invalidation_hint=_candidate_invalidation(RadarSetupType.APPROACHING_RESISTANCE, zone),
+                    summary=_candidate_summary(
+                        instrument.symbol, RadarSetupType.APPROACHING_RESISTANCE, zone, score
+                    ),
+                    invalidation_hint=_candidate_invalidation(
+                        RadarSetupType.APPROACHING_RESISTANCE, zone
+                    ),
                     key_level_price=zone.center,
                     score_factors=score_factors,
                     evidence=evidence,
@@ -441,7 +462,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.BREAKOUT,
                     score=float(breakout_factors["normalized_score"]),
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.BREAKOUT, zone, float(breakout_factors["normalized_score"])),
+                    summary=_candidate_summary(
+                        instrument.symbol,
+                        RadarSetupType.BREAKOUT,
+                        zone,
+                        float(breakout_factors["normalized_score"]),
+                    ),
                     invalidation_hint=_candidate_invalidation(RadarSetupType.BREAKOUT, zone),
                     key_level_price=zone.center,
                     score_factors=breakout_factors,
@@ -458,7 +484,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.BREAKDOWN,
                     score=float(breakdown_factors["normalized_score"]),
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.BREAKDOWN, zone, float(breakdown_factors["normalized_score"])),
+                    summary=_candidate_summary(
+                        instrument.symbol,
+                        RadarSetupType.BREAKDOWN,
+                        zone,
+                        float(breakdown_factors["normalized_score"]),
+                    ),
                     invalidation_hint=_candidate_invalidation(RadarSetupType.BREAKDOWN, zone),
                     key_level_price=zone.center,
                     score_factors=breakdown_factors,
@@ -475,7 +506,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.RECLAIM,
                     score=float(reclaim_factors["normalized_score"]),
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.RECLAIM, zone, float(reclaim_factors["normalized_score"])),
+                    summary=_candidate_summary(
+                        instrument.symbol,
+                        RadarSetupType.RECLAIM,
+                        zone,
+                        float(reclaim_factors["normalized_score"]),
+                    ),
                     invalidation_hint=_candidate_invalidation(RadarSetupType.RECLAIM, zone),
                     key_level_price=zone.center,
                     score_factors=reclaim_factors,
@@ -492,7 +528,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 DetectionCandidate(
                     setup_type=RadarSetupType.REJECTION,
                     score=float(rejection_factors["normalized_score"]),
-                    summary=_candidate_summary(instrument.symbol, RadarSetupType.REJECTION, zone, float(rejection_factors["normalized_score"])),
+                    summary=_candidate_summary(
+                        instrument.symbol,
+                        RadarSetupType.REJECTION,
+                        zone,
+                        float(rejection_factors["normalized_score"]),
+                    ),
                     invalidation_hint=_candidate_invalidation(RadarSetupType.REJECTION, zone),
                     key_level_price=zone.center,
                     score_factors=rejection_factors,

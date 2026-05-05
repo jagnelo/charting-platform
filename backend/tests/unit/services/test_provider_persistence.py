@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -64,7 +63,9 @@ def _resolved_provider(
 @pytest.mark.asyncio
 async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    resolved = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.LATEST_PRICE)
+    resolved = _resolved_provider(
+        db, provider_name="yfinance", capability=ProviderCapability.LATEST_PRICE
+    )
     execute_calls = 0
 
     async def _fake_resolve(*args, **kwargs):
@@ -98,8 +99,12 @@ async def test_latest_price_fetch_persists_and_then_reuses_cache(db, instrument,
 @pytest.mark.asyncio
 async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    yfinance = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_SEARCH)
-    coingecko = _resolved_provider(db, provider_name="coingecko", capability=ProviderCapability.INSTRUMENT_SEARCH)
+    yfinance = _resolved_provider(
+        db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    coingecko = _resolved_provider(
+        db, provider_name="coingecko", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
     execute_calls: list[str] = []
 
     async def _fake_resolve(*args, **kwargs):
@@ -109,7 +114,9 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
         execute_calls.append(provider_name)
         if provider_name == "yfinance":
             results = [
-                ProviderSearchResult(symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock")
+                ProviderSearchResult(
+                    symbol="NVDA", name="NVIDIA", exchange="NASDAQ", instrument_type="Stock"
+                )
             ]
             resolved = yfinance
         else:
@@ -138,16 +145,26 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
 
     snapshots = db.execute(select(InstrumentSearchSnapshot)).scalars().all()
     assert execute_calls == ["yfinance", "coingecko"]
-    assert first == second == [
-        {"symbol": "NVDA", "name": "NVIDIA", "exchange": "NASDAQ", "type": "Stock", "provider": "yfinance"},
-        {
-            "symbol": "NVDA-USD",
-            "name": "NVIDIA Tokenized",
-            "exchange": "CoinGecko",
-            "type": "CRYPTOCURRENCY",
-            "provider": "coingecko",
-        },
-    ]
+    assert (
+        first
+        == second
+        == [
+            {
+                "symbol": "NVDA",
+                "name": "NVIDIA",
+                "exchange": "NASDAQ",
+                "type": "Stock",
+                "provider": "yfinance",
+            },
+            {
+                "symbol": "NVDA-USD",
+                "name": "NVIDIA Tokenized",
+                "exchange": "CoinGecko",
+                "type": "CRYPTOCURRENCY",
+                "provider": "coingecko",
+            },
+        ]
+    )
     assert len(snapshots) == 2
     assert {snapshot.query for snapshot in snapshots} == {"nvda"}
 
@@ -155,7 +172,9 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
 @pytest.mark.asyncio
 async def test_profile_fetch_persists_snapshot_and_then_reuses_cache(db, instrument, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    resolved = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_METADATA)
+    resolved = _resolved_provider(
+        db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_METADATA
+    )
     execute_calls = 0
 
     async def _fake_resolve(*args, **kwargs):
@@ -185,10 +204,16 @@ async def test_profile_fetch_persists_snapshot_and_then_reuses_cache(db, instrum
     monkeypatch.setattr(market_data, "resolve_provider_chain", _fake_resolve)
     monkeypatch.setattr(market_data, "execute_provider_call", _fake_execute)
 
-    first = await market_data.get_provider_profile_async(async_db, "AAPL", instrument_id=instrument.id)
-    second = await market_data.get_provider_profile_async(async_db, "AAPL", instrument_id=instrument.id)
+    first = await market_data.get_provider_profile_async(
+        async_db, "AAPL", instrument_id=instrument.id
+    )
+    second = await market_data.get_provider_profile_async(
+        async_db, "AAPL", instrument_id=instrument.id
+    )
 
-    instrument_row = db.execute(select(Instrument).where(Instrument.id == instrument.id)).scalar_one()
+    instrument_row = db.execute(
+        select(Instrument).where(Instrument.id == instrument.id)
+    ).scalar_one()
     snapshots = db.execute(select(InstrumentProfileSnapshot)).scalars().all()
     assert execute_calls == 1
     assert first is not None and second is not None
@@ -199,11 +224,11 @@ async def test_profile_fetch_persists_snapshot_and_then_reuses_cache(db, instrum
 
 
 @pytest.mark.asyncio
-async def test_profile_fetch_without_existing_instrument_persists_by_creating_one(
-    db, monkeypatch
-):
+async def test_profile_fetch_without_existing_instrument_persists_by_creating_one(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    resolved = _resolved_provider(db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_METADATA)
+    resolved = _resolved_provider(
+        db, provider_name="yfinance", capability=ProviderCapability.INSTRUMENT_METADATA
+    )
 
     async def _fake_resolve(*args, **kwargs):
         return [resolved]
@@ -349,6 +374,12 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
 
     snapshots = db.execute(select(UniverseDiscoverySnapshot)).scalars().all()
     assert result["created"] == 2
-    assert db.execute(select(Instrument).where(Instrument.symbol == "MSFT")).scalar_one().name == "Microsoft"
-    assert db.execute(select(Instrument).where(Instrument.symbol == "BTC-USD")).scalar_one().name == "Bitcoin"
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "MSFT")).scalar_one().name
+        == "Microsoft"
+    )
+    assert (
+        db.execute(select(Instrument).where(Instrument.symbol == "BTC-USD")).scalar_one().name
+        == "Bitcoin"
+    )
     assert len(snapshots) == 2

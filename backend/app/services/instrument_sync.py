@@ -99,6 +99,7 @@ async def _ensure_instrument_type(db: AsyncSession, asset_class_name: str, type_
 
 # ── Seed ──────────────────────────────────────────────────────────────────────
 
+
 def _parse_forex_pair(symbol: str) -> tuple[str, str] | None:
     """
     Attempt to extract base/quote currencies from a provider symbol.
@@ -497,7 +498,11 @@ async def bootstrap_isins(db: AsyncSession, limit: int | None = None) -> dict:
             changed = await ensure_external_identifier(db, inst)
             await asyncio.sleep(settings.INSTRUMENT_IDENTIFIER_DELAY_SECONDS)
 
-        if not changed and inst.primary_identifier_value == before_identifier and inst.primary_identifier_type == before_type:
+        if (
+            not changed
+            and inst.primary_identifier_value == before_identifier
+            and inst.primary_identifier_type == before_type
+        ):
             skipped += 1
             continue
 
