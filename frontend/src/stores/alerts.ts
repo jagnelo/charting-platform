@@ -161,7 +161,11 @@ export const useAlertsStore = defineStore('alerts', () => {
       // Ping every 30s to keep connection alive
       setInterval(() => ws?.send(JSON.stringify({ type: 'ping' })), 30000)
       // Fetch unviewed count on reconnect
-      loadHistory().catch(console.error)
+      loadHistory().catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e ?? '')
+        if (/Authentication required/i.test(msg)) return
+        console.error(e)
+      })
     }
 
     ws.onmessage = (event) => {

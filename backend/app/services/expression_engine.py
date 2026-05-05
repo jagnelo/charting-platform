@@ -25,8 +25,7 @@ _SAFE_NODES = (
     ast.Expression,
     ast.BinOp,
     ast.UnaryOp,
-    ast.Num,  # Python ≤3.7 literal
-    ast.Constant,  # Python ≥3.8 literal
+    ast.Constant,  # number/string literal
     ast.Name,
     ast.Add,
     ast.Sub,

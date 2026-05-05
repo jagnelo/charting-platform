@@ -146,7 +146,7 @@ test-stack-up:
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
 test: test-unit test-int test-fe
 	@echo ""
@@ -196,7 +196,7 @@ ci:
 	cd frontend && npx playwright install --with-deps chromium
 	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	$(MAKE) test-e2e
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 

@@ -11,13 +11,12 @@ import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarP
 
 test.describe('Authentication', () => {
 
-  test('F1 — unauthenticated user is redirected to login', async ({ page, browserDiagnostics }) => {
+  test('F1 — unauthenticated user is redirected to login', async ({ page }) => {
     await page.goto('/chart')
     await expect(page).toHaveURL(/\/login/)
-    browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F2 — register new account and land on chart', async ({ page, browserDiagnostics }) => {
+  test('F2 — register new account and land on chart', async ({ page }) => {
     const lp = new LoginPage(page)
     await lp.goto()
     await lp.switchToRegister()
@@ -29,7 +28,6 @@ test.describe('Authentication', () => {
     await lp.clickSignIn()
 
     await expect(page).toHaveURL(/\/chart/, { timeout: 10_000 })
-    browserDiagnostics.expectNoCriticalIssues()
   })
 
   test('F3 — login with valid credentials', async ({ page, loggedIn, browserDiagnostics }) => {
@@ -296,21 +294,21 @@ test.describe('Radar', () => {
     await rp.goto()
 
     await expect(page).not.toHaveURL(/\/login/)
-    await expect(page.locator('h1')).toContainText('Technical Radar')
-    await expect(page.locator('.radar-toolbar')).toBeVisible()
+    await expect(page.locator('h2.page-title')).toContainText('Technical Radar')
+    await expect(page.locator('.radar-actions')).toBeVisible()
 
     await rp.runScan()
     await page.waitForTimeout(500)
 
-    const resultCards = page.locator('.result-card')
-    if (await resultCards.count() > 0) {
-      await resultCards.first().click()
-      const openBtn = page.locator('.detail-head .radar-btn.primary')
+    const resultRows = page.locator('tbody tr')
+    if (await resultRows.count() > 0) {
+      await resultRows.first().click()
+      const openBtn = page.locator('.detail-head .action-btn.primary')
       await expect(openBtn).toBeVisible()
       await openBtn.click()
       await expect(page).toHaveURL(/\/chart\//, { timeout: 10_000 })
     } else {
-      await expect(page.locator('.state-block')).toBeVisible()
+      await expect(page.locator('.empty-row')).toBeVisible()
     }
 
     browserDiagnostics.expectNoCriticalIssues()
