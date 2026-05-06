@@ -58,6 +58,9 @@ class RadarDetection(Base, TimestampMixin):
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    thread_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("radar_setup_thread.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     timeframe: Mapped[Timeframe] = mapped_column(
         SAEnum(Timeframe), nullable=False, default=Timeframe.D1
     )
@@ -66,9 +69,12 @@ class RadarDetection(Base, TimestampMixin):
     )
     score: Mapped[float] = mapped_column(Float, nullable=False)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    signal_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    context_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fresh_until: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
+    thread_event_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     key_level_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     invalidation_hint: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -77,3 +83,38 @@ class RadarDetection(Base, TimestampMixin):
 
     run: Mapped["RadarRun"] = relationship(back_populates="detections")
     instrument: Mapped["Instrument"] = relationship()
+    thread: Mapped["RadarSetupThread | None"] = relationship(
+        back_populates="detections",
+        foreign_keys=[thread_id],
+    )
+
+
+class RadarSetupThread(Base, TimestampMixin):
+    __tablename__ = "radar_setup_thread"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    timeframe: Mapped[Timeframe] = mapped_column(
+        SAEnum(Timeframe), nullable=False, default=Timeframe.D1
+    )
+    context_role: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    reference_price: Mapped[float] = mapped_column(Float, nullable=False)
+    current_setup_type: Mapped[RadarSetupType] = mapped_column(
+        SAEnum(RadarSetupType), nullable=False, index=True
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    detection_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    instrument: Mapped["Instrument"] = relationship()
+    detections: Mapped[list["RadarDetection"]] = relationship(
+        back_populates="thread",
+        foreign_keys="RadarDetection.thread_id",
+        order_by=lambda: (
+            RadarDetection.signal_at,
+            RadarDetection.thread_event_index,
+            RadarDetection.id,
+        ),
+    )

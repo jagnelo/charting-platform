@@ -95,6 +95,8 @@
               <span class="radar-toggle-indicator">{{ radarStore.isChartDetectionActive(det.id) ? '◉' : '○' }}</span>
               <span class="row-name">
                 {{ formatRadarSetup(det.setup_type) }}
+                <span v-if="det.thread_event_index != null" class="draw-pane-tag">#{{ det.thread_event_index }}</span>
+                <span v-if="det.thread?.detection_count" class="draw-pane-tag draw-pane-tag--dim">{{ det.thread.detection_count }} evt</span>
                 <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
                 <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
               </span>
@@ -715,21 +717,32 @@ function radarMetricNumber(
 
 function formatRadarSignalDate(det: {
   observed_at: string
+  signal_at?: string
   evidence?: { metrics?: Record<string, unknown> }
 }) {
-  const signalTime = radarMetricNumber(det, 'signal_time')
-  if (signalTime != null) {
-    return formatRadarObservedDate(new Date(signalTime * 1000).toISOString())
+  if (det.signal_at) {
+    return formatRadarObservedDate(det.signal_at)
   }
+  const signalTime = radarMetricNumber(det, 'signal_time')
+  if (signalTime != null) return formatRadarObservedDate(new Date(signalTime * 1000).toISOString())
   return formatRadarObservedDate(det.observed_at)
 }
 
 function radarTooltipText(det: {
   setup_type: string
   observed_at: string
+  signal_at?: string
+  context_at?: string | null
   summary: string
   invalidation_hint?: string | null
   score: number
+  thread_event_index?: number | null
+  thread?: { detection_count: number } | null
+  thread_history?: Array<{
+    thread_event_index?: number | null
+    setup_type: string
+    signal_at: string
+  }>
   evidence?: { metrics?: Record<string, unknown> }
 }) {
   const signalTime = radarMetricNumber(det, 'signal_time')
@@ -739,7 +752,20 @@ function radarTooltipText(det: {
     det.summary,
     `Score: ${det.score.toFixed(2)}`,
   ]
-  if (contextTime != null && contextTime !== signalTime) {
+  if (det.thread_event_index != null && det.thread?.detection_count) {
+    lines.push(`Thread event ${det.thread_event_index} of ${det.thread.detection_count}`)
+  }
+  if (det.thread_history?.length) {
+    lines.push('Timeline:')
+    for (const event of det.thread_history) {
+      lines.push(
+        `#${event.thread_event_index ?? '—'} ${formatRadarSetup(event.setup_type)} · ${formatRadarObservedDate(event.signal_at)}`,
+      )
+    }
+  }
+  if (det.context_at && det.context_at !== det.signal_at) {
+    lines.push(`Level last touched on ${formatRadarObservedDate(det.context_at)}`)
+  } else if (contextTime != null && contextTime !== signalTime) {
     lines.push(`Level last touched on ${formatRadarObservedDate(new Date(contextTime * 1000).toISOString())}`)
   }
   if (det.invalidation_hint) lines.push(det.invalidation_hint)

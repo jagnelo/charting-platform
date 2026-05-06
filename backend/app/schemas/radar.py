@@ -49,6 +49,20 @@ class RadarRunOut(BaseModel):
     updated_at: datetime
 
 
+class RadarSetupThreadOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    instrument_id: int
+    timeframe: Timeframe
+    context_role: str | None
+    reference_price: float
+    current_setup_type: RadarSetupType
+    started_at: datetime
+    last_seen_at: datetime
+    detection_count: int
+
+
 class RadarDetectionSummaryOut(BaseModel):
     id: int
     run_id: int
@@ -59,12 +73,31 @@ class RadarDetectionSummaryOut(BaseModel):
     setup_type: RadarSetupType
     score: float
     observed_at: datetime
+    signal_at: datetime
+    context_at: datetime | None
     fresh_until: datetime
+    thread_id: int | None
+    thread_event_index: int | None
     key_level_price: float | None
     summary: str
     invalidation_hint: str | None
     score_factors: dict
 
 
+class RadarThreadEventOut(BaseModel):
+    id: int
+    setup_type: RadarSetupType
+    score: float
+    observed_at: datetime
+    signal_at: datetime
+    context_at: datetime | None
+    thread_event_index: int | None
+    key_level_price: float | None
+    summary: str
+    invalidation_hint: str | None
+
+
 class RadarDetectionDetailOut(RadarDetectionSummaryOut):
     evidence: RadarEvidenceOut
+    thread: RadarSetupThreadOut | None = None
+    thread_history: list[RadarThreadEventOut] = []

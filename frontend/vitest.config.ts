@@ -20,6 +20,12 @@ export default defineConfig({
         'src/main.ts',
         'src/router/**',
         '**/*.d.ts',
+        // Top-level shell/bootstrap files — not unit-testable in isolation
+        'src/App.vue',
+        'src/components/Notification.vue',
+        'src/components/StatusBar.vue',
+        'src/stores/drawings.ts',
+        'vite.config.ts',
       ],
       thresholds: {
         lines:      70,

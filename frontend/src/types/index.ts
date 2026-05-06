@@ -189,6 +189,31 @@ export interface RadarRun {
   updated_at: string
 }
 
+export interface RadarSetupThread {
+  id: number
+  instrument_id: number
+  timeframe: Timeframe
+  context_role?: string | null
+  reference_price: number
+  current_setup_type: RadarSetupType
+  started_at: string
+  last_seen_at: string
+  detection_count: number
+}
+
+export interface RadarThreadEvent {
+  id: number
+  setup_type: RadarSetupType
+  score: number
+  observed_at: string
+  signal_at: string
+  context_at?: string | null
+  thread_event_index?: number | null
+  key_level_price?: number | null
+  summary: string
+  invalidation_hint?: string | null
+}
+
 export interface RadarDetection {
   id: number
   run_id: number
@@ -199,11 +224,17 @@ export interface RadarDetection {
   setup_type: RadarSetupType
   score: number
   observed_at: string
+  signal_at?: string
+  context_at?: string | null
   fresh_until: string
+  thread_id?: number | null
+  thread_event_index?: number | null
   key_level_price?: number | null
   summary: string
   invalidation_hint?: string | null
   score_factors: Record<string, number>
+  thread?: RadarSetupThread | null
+  thread_history?: RadarThreadEvent[]
   evidence?: RadarEvidence
 }
 

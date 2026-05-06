@@ -43,6 +43,8 @@ class TestRadarAPI:
         detections = list_res.json()
         assert detections
         assert detections[0]["instrument_symbol"] in {"AAPL", "MSFT"}
+        assert "signal_at" in detections[0]
+        assert "thread_id" in detections[0]
 
         filtered = client.get(
             "/api/v1/radar/detections",
@@ -64,6 +66,8 @@ class TestRadarAPI:
         detail = detail_res.json()
         assert detail["evidence"]["overlays"]
         assert "metrics" in detail["evidence"]
+        assert detail["thread"] is not None
+        assert detail["thread_history"]
         assert "invalidation_price" in detail["evidence"]["metrics"]
         assert isinstance(detail["evidence"]["metrics"]["invalidation_price"], float)
         inv_overlays = [
@@ -85,6 +89,27 @@ class TestRadarAPI:
         overlays = overlay_res.json()
         assert len(overlays) == 1
         assert overlays[0]["id"] == detection_id
+        assert overlays[0]["thread_history"]
+
+    def test_repeat_runs_continue_thread_history(self, client, auth_headers, db, instrument):
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
+
+        first_run = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert first_run.status_code == 200
+        second_run = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert second_run.status_code == 200
+
+        detections = client.get("/api/v1/radar/detections", headers=auth_headers).json()
+        assert detections
+        detail = client.get(
+            f"/api/v1/radar/detections/{detections[0]['id']}",
+            headers=auth_headers,
+        ).json()
+
+        assert detail["thread"] is not None
+        assert detail["thread"]["detection_count"] >= 2
+        assert detail["thread_event_index"] is not None
+        assert len(detail["thread_history"]) >= detail["thread_event_index"]
 
     def test_detection_not_found_returns_404(self, client, auth_headers):
         res = client.get("/api/v1/radar/detections/999999", headers=auth_headers)

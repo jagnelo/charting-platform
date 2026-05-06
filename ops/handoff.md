@@ -17,6 +17,7 @@
 - Added the dedicated frontend radar workspace, sidebar navigation, radar store, `/radar` route, and chart overlay flow that keeps radar evidence visually separate from editable drawings.
 - Expanded radar-specific coverage across backend unit tests, backend API integration tests, frontend unit tests, and Playwright flow coverage, plus a test harness escape hatch for reusing already-running Postgres/Redis via `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
 - Updated the main documentation set with radar API coverage, architecture notes, a dedicated `docs/technical-radar.md`, and a much deeper post-v1 roadmap in `docs/project-todos.md`.
+- Extended radar into a continuity-aware implementation with persisted `radar_setup_thread` state, detection `signal_at` / `context_at`, thread history in the radar detail API, and thread-aware story surfaces in `/radar` and `/chart`.
 - Grouped the work into isolated commits:
   - `bf2526d feat(radar): add backend technical radar foundation`
   - `dfabcfc feat(frontend): add technical radar workspace`
@@ -26,12 +27,15 @@
 ## Pending
 
 - Run the backend integration suite in an environment where Docker can create containers reliably; on this machine, raw `docker run`, `make dev-infra`, and testcontainers all stalled before container creation completed.
-- Run the Playwright/browser sanity pass for `/radar` and `/chart/:symbol?radarDetectionId=...` once the full stack can be started successfully.
-- Tune the radar heuristics against real market data now that the explainable v1 scaffolding exists.
+- Run the Playwright/browser sanity pass for `/radar` and `/chart/:symbol` once the full stack can be started successfully.
+- Verify the new setup-thread history behavior against a healthy migrated stack after applying `f1e2d3c4b5a6_add_radar_setup_threads.py`.
+- Decide whether the next pass should deepen thread/state semantics or expand structure extraction.
 
 ## Exact next step
 
-- Start a healthy app stack, apply the radar migration, run `/api/v1/radar/run`, then execute the radar integration test file and the Playwright `F17` radar flow against the live UI.
+- Start from the new thread-aware radar baseline and choose between:
+  - deeper thread/state lifecycle semantics
+  - richer structure extraction (weekly/monthly, gaps, diagonals)
 
 ## Files touched
 
@@ -43,6 +47,7 @@
 - `backend/app/services/radar_engine.py`
 - `backend/app/tasks/radar_tasks.py`
 - `backend/alembic/versions/b7c8d9e0f1a2_add_radar_tables.py`
+- `backend/alembic/versions/f1e2d3c4b5a6_add_radar_setup_threads.py`
 - `backend/tests/conftest.py`
 - `backend/tests/unit/services/test_radar_engine.py`
 - `backend/tests/integration/api/test_radar.py`
@@ -55,8 +60,10 @@
 - `frontend/src/views/RadarView.vue`
 - `frontend/tests/e2e/helpers.ts`
 - `frontend/tests/e2e/flows.spec.ts`
+- `frontend/tests/unit/components/test_instrument_info_panel.test.ts`
 - `frontend/tests/unit/stores/test_radar_store.test.ts`
 - `frontend/tests/unit/views/test_radar_view.test.ts`
+- `frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts`
 - `docs/api.md`
 - `docs/architecture.md`
 - `docs/project-todos.md`
@@ -71,7 +78,7 @@
 - `rtk make test-fe`
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
 - `rtk npm --prefix frontend run test -- --run tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_radar_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_instrument_info_panel.test.ts tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts tests/unit/views/test_chart_view_radar_handoff.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - Attempted but blocked:
   - `rtk make test-int`
@@ -83,6 +90,7 @@
 
 - Attempting backend tests through the system `python3` / `uv run` path picked up Python 3.9, which cannot import `datetime.UTC`; switching to `backend/.venv/bin/python` / `backend/.venv/bin/pytest` fixed that path issue.
 - The integration and stack-up runs remain blocked here because Docker container creation stalls even with local `postgres:16-alpine`, `redis:7-alpine`, and `testcontainers/ryuk:0.7.0` images already present.
+- Direct integration execution of `backend/tests/integration/api/test_radar.py` still fails here with Docker socket permission errors from `testcontainers`, so the new API-level thread-history assertions were added but could not be exercised in this environment.
 - `make lint` reports unrelated pre-existing import-order/unused-import issues outside the radar change-set; targeted radar-file linting passes.
 
 ## Assumptions made

@@ -115,6 +115,8 @@ frontend/tests/
 │   │   └── test_api_client.test.ts JWT auth, auto-refresh, error handling
 │   └── stores/
 │       ├── test_radar_store.test.ts Radar Pinia store flows
+│       ├── test_instrument_info_panel.test.ts Day/52W hover provenance rendering
+│       ├── test_chart_view_radar_handoff.test.ts Radar-to-chart preferred detection handoff
 │       └── test_stores.test.ts    Auth, Chart, Alerts Pinia stores
 └── e2e/
     ├── helpers.ts                 Page objects, custom test fixture
@@ -130,6 +132,19 @@ uPlot requires a real DOM canvas, which jsdom (Vitest's environment) doesn't ful
 E2E tests use page objects (`LoginPage`, `ChartPage`, `ScreenerPage`) to keep tests readable and to isolate selector logic from test logic. If a selector changes, you update one place.
 
 Tests are written to be **resilient to implementation details** — they check for visible text and navigation outcomes, not CSS classes or DOM structure. This minimises test churn when the UI is refactored.
+
+Radar-specific frontend coverage now includes:
+
+- radar store ordering / activation behavior
+- `/radar` scan-lock behavior during manual runs
+- `/radar` setup-thread history rendering
+- instrument-details day-range and 52-week occurrence hover text
+- `/radar -> /chart` preferred detection handoff
+
+Radar-specific backend coverage now also includes:
+
+- candidate signal/context timestamps
+- setup-thread matching and event-index continuity helpers
 
 ---
 

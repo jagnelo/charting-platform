@@ -4,8 +4,13 @@ from types import SimpleNamespace
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.radar import RadarSetupType
-from app.services.radar_engine import _invalidation_price, analyze_instrument
+from app.models.radar import RadarSetupThread, RadarSetupType
+from app.services.radar_engine import (
+    _apply_candidate_to_thread,
+    _find_matching_thread,
+    _invalidation_price,
+    analyze_instrument,
+)
 
 
 def _make_bars(prices: list[float]) -> list[OHLCVBar]:
@@ -125,6 +130,18 @@ class TestRadarEngine:
             assert isinstance(det.evidence["metrics"]["signal_time"], int)
             assert isinstance(det.evidence["metrics"]["context_time"], int)
 
+    def test_candidates_expose_signal_context_and_role_fields(self):
+        prices = [95, 100, 95, 100, 95, 100] * 20
+        prices += [98, 97, 96, 97, 98]
+        detections = analyze_instrument(_instrument(), _make_bars(prices))
+        assert detections
+        for det in detections:
+            assert det.signal_at.tzinfo is not None
+            assert det.context_role in {"support", "resistance"}
+            if det.context_at is not None:
+                assert det.context_at.tzinfo is not None
+                assert det.context_at <= det.observed_at
+
     def test_evidence_overlays_contain_invalidation_line(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]
@@ -158,3 +175,30 @@ class TestRadarEngine:
         assert detections
         for det in detections:
             assert _EXPECTED_SCORE_FACTOR_KEYS == set(det.score_factors.keys())
+
+    def test_matching_thread_continues_same_role_and_level_story(self):
+        prices = [95, 100, 95, 100, 95, 100] * 20
+        prices += [98, 97, 96, 97, 98]
+        detections = analyze_instrument(_instrument(), _make_bars(prices))
+        candidate = next(det for det in detections if det.setup_type == RadarSetupType.APPROACHING_SUPPORT)
+        thread = RadarSetupThread(
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="support",
+            reference_price=candidate.key_level_price + 0.4,
+            current_setup_type=RadarSetupType.APPROACHING_SUPPORT,
+            started_at=candidate.signal_at - timedelta(days=3),
+            last_seen_at=candidate.signal_at - timedelta(days=1),
+            detection_count=2,
+        )
+
+        matched = _find_matching_thread(candidate, [thread])
+
+        assert matched is thread
+
+        event_index = _apply_candidate_to_thread(candidate, thread)
+
+        assert event_index == 3
+        assert thread.detection_count == 3
+        assert thread.current_setup_type == candidate.setup_type
+        assert thread.last_seen_at == candidate.signal_at

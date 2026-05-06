@@ -92,6 +92,39 @@
           <p class="detail-summary">{{ radarStore.selectedDetection.summary }}</p>
           <p class="detail-invalid">{{ radarStore.selectedDetection.invalidation_hint }}</p>
 
+          <div v-if="selectedThread" class="detail-section">
+            <div class="section-title">Setup thread</div>
+            <div class="kv-grid">
+              <span class="kv-key">Context</span>
+              <span class="kv-val">{{ selectedThread.context_role || 'mixed' }}</span>
+              <span class="kv-key">Reference level</span>
+              <span class="kv-val">{{ formatPrice(selectedThread.reference_price) }}</span>
+              <span class="kv-key">Events</span>
+              <span class="kv-val">{{ selectedThread.detection_count }}</span>
+              <span class="kv-key">Started</span>
+              <span class="kv-val">{{ formatDateShort(selectedThread.started_at) }}</span>
+              <span class="kv-key">Last seen</span>
+              <span class="kv-val">{{ formatDateShort(selectedThread.last_seen_at) }}</span>
+            </div>
+            <div v-if="selectedThreadHistory.length" class="thread-history">
+              <button
+                v-for="event in selectedThreadHistory"
+                :key="event.id"
+                type="button"
+                class="thread-event"
+                :class="{ 'thread-event--active': event.id === radarStore.selectedDetection?.id }"
+                :disabled="runningScan"
+                @click="selectDetection(event.id)"
+              >
+                <span class="thread-event-seq">#{{ event.thread_event_index ?? '—' }}</span>
+                <span class="thread-event-main">
+                  <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
+                  <span class="thread-event-meta">{{ formatDateShort(event.signal_at) }} · {{ event.score.toFixed(2) }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
           <div class="detail-section">
             <div class="section-title">Score factors</div>
             <div class="kv-grid">
@@ -172,6 +205,8 @@ const setupTypes: Array<{ value: RadarSetupType; label: string }> = [
 ]
 
 const latestRun = computed(() => radarStore.runs[0] ?? null)
+const selectedThread = computed(() => radarStore.selectedDetection?.thread ?? null)
+const selectedThreadHistory = computed(() => radarStore.selectedDetection?.thread_history ?? [])
 
 interface MetricRow {
   key: string
@@ -328,7 +363,14 @@ async function runScan() {
 
 function openInChart(detection: RadarDetection) {
   if (runningScan.value) return
-  radarStore.queueChartDetection(detection)
+  const preferredDetectionId = detection.run_id === latestRun.value?.id
+    ? detection.id
+    : detection.thread_history?.[detection.thread_history.length - 1]?.id ?? detection.id
+  radarStore.queueChartDetection({
+    id: preferredDetectionId,
+    instrument_id: detection.instrument_id,
+    instrument_symbol: detection.instrument_symbol,
+  })
   router.push({
     path: `/chart/${encodeURIComponent(detection.instrument_symbol)}`,
   })
@@ -664,6 +706,66 @@ onMounted(async () => {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #1a1a1a;
+}
+
+.thread-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.thread-event {
+  appearance: none;
+  width: 100%;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  background: #111;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thread-event:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.thread-event:hover,
+.thread-event:focus-visible,
+.thread-event--active {
+  border-color: #164164;
+  background: #0f1d2c;
+  outline: none;
+}
+
+.thread-event-seq {
+  color: #26a69a;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.thread-event-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thread-event-title {
+  color: #d6d6d6;
+  text-transform: capitalize;
+}
+
+.thread-event-meta {
+  color: #666;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .kv-grid {

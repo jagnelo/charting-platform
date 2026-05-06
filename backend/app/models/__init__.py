@@ -44,7 +44,13 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.models.radar import RadarDetection, RadarRun, RadarRunStatus, RadarSetupType
+from app.models.radar import (
+    RadarDetection,
+    RadarRun,
+    RadarRunStatus,
+    RadarSetupThread,
+    RadarSetupType,
+)
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.synthetic_constituent import SyntheticConstituent
@@ -106,6 +112,7 @@ __all__ = [
     "RadarRun",
     "RadarDetection",
     "RadarRunStatus",
+    "RadarSetupThread",
     "RadarSetupType",
     "IndicatorAlert",
     "IndicatorAlertCondition",

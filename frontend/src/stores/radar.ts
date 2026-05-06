@@ -20,16 +20,17 @@ const RADAR_SETUP_SEQUENCE_PRIORITY: Record<string, number> = {
 }
 
 function compareRadarChronology(left: RadarDetection, right: RadarDetection) {
-  const leftSignalTime = left.evidence?.metrics?.signal_time
-  const rightSignalTime = right.evidence?.metrics?.signal_time
-  const leftTime = typeof leftSignalTime === 'number'
-    ? leftSignalTime * 1000
-    : new Date(left.observed_at).getTime()
-  const rightTime = typeof rightSignalTime === 'number'
-    ? rightSignalTime * 1000
-    : new Date(right.observed_at).getTime()
+  const leftTime = new Date(left.signal_at ?? left.observed_at).getTime()
+  const rightTime = new Date(right.signal_at ?? right.observed_at).getTime()
   if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
     return leftTime - rightTime
+  }
+  if (left.thread_id != null && left.thread_id === right.thread_id) {
+    const leftIndex = left.thread_event_index ?? Number.MAX_SAFE_INTEGER
+    const rightIndex = right.thread_event_index ?? Number.MAX_SAFE_INTEGER
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex
+    }
   }
   const priorityDelta =
     (RADAR_SETUP_SEQUENCE_PRIORITY[left.setup_type] ?? 99)

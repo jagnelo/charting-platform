@@ -7,13 +7,15 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.radar import RadarDetection, RadarRun, RadarSetupType
+from app.models.radar import RadarDetection, RadarRun, RadarSetupThread, RadarSetupType
 from app.models.user import User
 from app.schemas.radar import (
     RadarDetectionDetailOut,
     RadarDetectionSummaryOut,
     RadarEvidenceOut,
     RadarRunOut,
+    RadarSetupThreadOut,
+    RadarThreadEventOut,
 )
 from app.services.radar_engine import get_detection_with_instrument, latest_run, run_radar_scan
 
@@ -32,7 +34,11 @@ def _to_summary(detection: RadarDetection) -> RadarDetectionSummaryOut:
         setup_type=detection.setup_type,
         score=float(detection.score),
         observed_at=detection.observed_at,
+        signal_at=detection.signal_at,
+        context_at=detection.context_at,
         fresh_until=detection.fresh_until,
+        thread_id=detection.thread_id,
+        thread_event_index=detection.thread_event_index,
         key_level_price=float(detection.key_level_price)
         if detection.key_level_price is not None
         else None,
@@ -42,8 +48,35 @@ def _to_summary(detection: RadarDetection) -> RadarDetectionSummaryOut:
     )
 
 
+def _to_thread_event(detection: RadarDetection) -> RadarThreadEventOut:
+    return RadarThreadEventOut(
+        id=detection.id,
+        setup_type=detection.setup_type,
+        score=float(detection.score),
+        observed_at=detection.observed_at,
+        signal_at=detection.signal_at,
+        context_at=detection.context_at,
+        thread_event_index=detection.thread_event_index,
+        key_level_price=float(detection.key_level_price)
+        if detection.key_level_price is not None
+        else None,
+        summary=detection.summary,
+        invalidation_hint=detection.invalidation_hint,
+    )
+
+
 def _to_detail(detection: RadarDetection) -> RadarDetectionDetailOut:
     summary = _to_summary(detection)
+    thread = detection.thread
+    thread_history = []
+    thread_out = None
+    if thread is not None:
+        thread_out = RadarSetupThreadOut.model_validate(thread)
+        ordered_history = sorted(
+            list(thread.detections or []),
+            key=lambda item: (item.signal_at, item.thread_event_index or 0, item.id),
+        )
+        thread_history = [_to_thread_event(item) for item in ordered_history]
     return RadarDetectionDetailOut(
         **summary.model_dump(),
         evidence=RadarEvidenceOut(
@@ -51,6 +84,8 @@ def _to_detail(detection: RadarDetection) -> RadarDetectionDetailOut:
             metrics=(detection.evidence_json or {}).get("metrics", {}),
             structures=(detection.evidence_json or {}).get("structures", []),
         ),
+        thread=thread_out,
+        thread_history=thread_history,
     )
 
 
@@ -100,7 +135,7 @@ async def list_radar_detections(
     stmt = (
         select(RadarDetection)
         .where(RadarDetection.run_id == run.id, RadarDetection.score >= min_score)
-        .options(selectinload(RadarDetection.instrument))
+        .options(selectinload(RadarDetection.instrument), selectinload(RadarDetection.thread))
         .order_by(RadarDetection.score.desc(), RadarDetection.id.desc())
         .limit(limit)
     )
@@ -145,7 +180,10 @@ async def get_instrument_radar_overlays(
     stmt = (
         select(RadarDetection)
         .where(RadarDetection.run_id == run.id, RadarDetection.instrument_id == instrument_id)
-        .options(selectinload(RadarDetection.instrument))
+        .options(
+            selectinload(RadarDetection.instrument),
+            selectinload(RadarDetection.thread).selectinload(RadarSetupThread.detections),
+        )
         .order_by(RadarDetection.score.desc(), RadarDetection.id.desc())
     )
     if detection_id is not None:

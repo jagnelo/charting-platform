@@ -296,6 +296,13 @@ Trigger a synchronous radar scan over the current active instrument universe.
 ### GET /radar/detections
 Return the latest completed radar detections with optional filtering.
 
+Each summary row now also includes:
+
+- `signal_at`
+- `context_at`
+- `thread_id`
+- `thread_event_index`
+
 **Query parameters**
 
 | Parameter | Type | Description |
@@ -314,13 +321,19 @@ Return one radar detection with its full evidence payload:
 - chart overlays
 - evidence metrics
 - extracted structure metadata
+- current setup-thread summary
+- ordered thread history for that setup storyline
 
 ---
 
 ### GET /radar/instruments/{instrument_id}/overlays
 Return the active radar detections for one instrument, optionally narrowed to a single detection.
 
-This is the endpoint used by the chart page to render a non-editable radar evidence layer separate from saved drawings.
+This is the endpoint used by the chart page to:
+
+- populate the chart-side radar sub-panel for the loaded instrument
+- render non-editable radar evidence overlays separate from saved drawings
+- restore a preferred detection when navigation originated from `/radar`
 
 ---
 

@@ -45,7 +45,11 @@ const summaryDetection = {
   setup_type: 'breakout',
   score: 0.82,
   observed_at: '2026-05-04T10:00:00Z',
+  signal_at: '2026-05-04T10:00:00Z',
+  context_at: '2026-05-01T10:00:00Z',
   fresh_until: '2026-05-09T10:00:00Z',
+  thread_id: 11,
+  thread_event_index: 2,
   key_level_price: 112.5,
   summary: 'AAPL is showing a breakout setup.',
   invalidation_hint: 'Invalidate if price falls back below 110.',
@@ -59,6 +63,43 @@ const detailDetection = {
     metrics: { close: 113.2, atr_14: 2.1 },
     structures: [],
   },
+  thread: {
+    id: 11,
+    instrument_id: 7,
+    timeframe: 'D1',
+    context_role: 'resistance',
+    reference_price: 112.5,
+    current_setup_type: 'breakout',
+    started_at: '2026-04-28T10:00:00Z',
+    last_seen_at: '2026-05-04T10:00:00Z',
+    detection_count: 2,
+  },
+  thread_history: [
+    {
+      id: 40,
+      setup_type: 'approaching_resistance',
+      score: 0.71,
+      observed_at: '2026-05-01T10:00:00Z',
+      signal_at: '2026-05-01T10:00:00Z',
+      context_at: '2026-04-30T10:00:00Z',
+      thread_event_index: 1,
+      key_level_price: 112.1,
+      summary: 'AAPL approached resistance.',
+      invalidation_hint: 'Close above 113.',
+    },
+    {
+      id: 42,
+      setup_type: 'breakout',
+      score: 0.82,
+      observed_at: '2026-05-04T10:00:00Z',
+      signal_at: '2026-05-04T10:00:00Z',
+      context_at: '2026-05-01T10:00:00Z',
+      thread_event_index: 2,
+      key_level_price: 112.5,
+      summary: 'AAPL is showing a breakout setup.',
+      invalidation_hint: 'Invalidate if price falls back below 110.',
+    },
+  ],
 }
 
 describe('RadarView', () => {
@@ -122,6 +163,10 @@ describe('RadarView', () => {
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('breakout')
     expect(wrapper.text()).toContain('atr 14')
+    expect(wrapper.text()).toContain('Setup thread')
+    expect(wrapper.text()).toContain('Events')
+    expect(wrapper.text()).toContain('#1')
+    expect(wrapper.text()).toContain('#2')
 
     await wrapper.find('.detail-head .action-btn.primary').trigger('click')
     expect(radarStore.pendingChartDetection).toEqual({

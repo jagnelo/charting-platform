@@ -8,7 +8,13 @@ from sqlalchemy.orm import selectinload
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.radar import RadarDetection, RadarRun, RadarRunStatus, RadarSetupType
+from app.models.radar import (
+    RadarDetection,
+    RadarRun,
+    RadarRunStatus,
+    RadarSetupThread,
+    RadarSetupType,
+)
 from app.services.indicators import OHLCVSeries, compute_indicator
 
 RADAR_LOOKBACK_BARS = 320
@@ -17,6 +23,16 @@ SWING_WINDOW = 3
 MIN_ZONE_TOUCHES = 2
 MAX_ZONES_PER_SIDE = 3
 LINE_SAMPLE_POINTS = 120
+THREAD_PRICE_TOLERANCE_FRACTION = 0.008
+
+RADAR_SETUP_SEQUENCE_PRIORITY: dict[RadarSetupType, int] = {
+    RadarSetupType.APPROACHING_SUPPORT: 0,
+    RadarSetupType.APPROACHING_RESISTANCE: 0,
+    RadarSetupType.REJECTION: 1,
+    RadarSetupType.RECLAIM: 1,
+    RadarSetupType.BREAKOUT: 2,
+    RadarSetupType.BREAKDOWN: 2,
+}
 
 
 @dataclass
@@ -50,7 +66,10 @@ class DetectionCandidate:
     score_factors: dict
     evidence: dict
     observed_at: datetime
+    signal_at: datetime
+    context_at: datetime | None
     fresh_until: datetime
+    context_role: str | None
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -379,6 +398,77 @@ def _candidate_evidence(
     }
 
 
+def _ts_to_datetime(ts: int | None) -> datetime | None:
+    if ts is None:
+        return None
+    return datetime.fromtimestamp(ts, tz=UTC)
+
+
+def _candidate_sort_key(candidate: DetectionCandidate) -> tuple[datetime, int, int]:
+    return (
+        candidate.signal_at,
+        RADAR_SETUP_SEQUENCE_PRIORITY.get(candidate.setup_type, 99),
+        int(round(candidate.key_level_price * 10_000)),
+    )
+
+
+def _thread_match_tolerance(candidate: DetectionCandidate) -> float:
+    atr = candidate.evidence.get("metrics", {}).get("atr_14")
+    if isinstance(atr, (int, float)) and atr > 0:
+        return max(float(atr) * 1.1, candidate.key_level_price * THREAD_PRICE_TOLERANCE_FRACTION)
+    return max(candidate.key_level_price * 0.012, 1.0)
+
+
+def _find_matching_thread(
+    candidate: DetectionCandidate,
+    threads: list[RadarSetupThread],
+) -> RadarSetupThread | None:
+    if candidate.context_role is None:
+        return None
+
+    tolerance = _thread_match_tolerance(candidate)
+    matches = [
+        thread
+        for thread in threads
+        if thread.context_role == candidate.context_role
+        and abs(float(thread.reference_price) - candidate.key_level_price) <= tolerance
+    ]
+    if not matches:
+        return None
+
+    matches.sort(
+        key=lambda thread: (
+            abs(float(thread.reference_price) - candidate.key_level_price),
+            abs((thread.last_seen_at - candidate.signal_at).total_seconds()),
+            -thread.detection_count,
+            -(thread.id or 0),
+        )
+    )
+    return matches[0]
+
+
+def _apply_candidate_to_thread(
+    candidate: DetectionCandidate,
+    thread: RadarSetupThread,
+) -> int:
+    next_index = int(thread.detection_count) + 1
+    thread.started_at = min(thread.started_at, candidate.signal_at)
+    thread.last_seen_at = max(thread.last_seen_at, candidate.signal_at)
+    thread.current_setup_type = candidate.setup_type
+    thread.detection_count = next_index
+    if candidate.context_role is not None:
+        thread.context_role = candidate.context_role
+    if candidate.key_level_price > 0:
+        prior_count = max(next_index - 1, 0)
+        if prior_count <= 0:
+            thread.reference_price = candidate.key_level_price
+        else:
+            thread.reference_price = (
+                (float(thread.reference_price) * prior_count) + candidate.key_level_price
+            ) / next_index
+    return next_index
+
+
 def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[DetectionCandidate]:
     if len(bars) < 80:
         return []
@@ -487,6 +577,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
 
         observed_at = latest_bar.ts if latest_bar.ts.tzinfo else latest_bar.ts.replace(tzinfo=UTC)
         fresh_until = observed_at + timedelta(days=5)
+        context_at = _ts_to_datetime(zone.last_touch_ts)
 
         if zone.role == "support" and 0 <= close - zone.center <= proximity:
             candidates.append(
@@ -510,7 +601,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=zone.last_touch_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(zone.last_touch_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -536,7 +630,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=zone.last_touch_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(zone.last_touch_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -565,7 +662,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(latest_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -594,7 +694,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(latest_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -623,7 +726,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(latest_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -652,7 +758,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                         signal_ts=latest_ts,
                     ),
                     observed_at=observed_at,
+                    signal_at=_ts_to_datetime(latest_ts) or observed_at,
+                    context_at=context_at,
                     fresh_until=fresh_until,
+                    context_role=zone.role,
                 )
             )
 
@@ -701,16 +810,53 @@ async def run_radar_scan(
             if not bars:
                 continue
             evaluated += 1
-            for candidate in analyze_instrument(instrument, bars):
+            thread_rows = (
+                (
+                    await db.execute(
+                        select(RadarSetupThread)
+                        .where(
+                            RadarSetupThread.instrument_id == instrument.id,
+                            RadarSetupThread.timeframe == timeframe,
+                        )
+                        .order_by(
+                            RadarSetupThread.last_seen_at.desc(),
+                            RadarSetupThread.id.desc(),
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            instrument_threads = list(thread_rows)
+            for candidate in sorted(analyze_instrument(instrument, bars), key=_candidate_sort_key):
+                thread = _find_matching_thread(candidate, instrument_threads)
+                if thread is None:
+                    thread = RadarSetupThread(
+                        instrument_id=instrument.id,
+                        timeframe=timeframe,
+                        context_role=candidate.context_role,
+                        reference_price=candidate.key_level_price,
+                        current_setup_type=candidate.setup_type,
+                        started_at=candidate.signal_at,
+                        last_seen_at=candidate.signal_at,
+                        detection_count=0,
+                    )
+                    db.add(thread)
+                    instrument_threads.append(thread)
+                thread_event_index = _apply_candidate_to_thread(candidate, thread)
                 detections.append(
                     RadarDetection(
                         run_id=run.id,
                         instrument_id=instrument.id,
+                        thread=thread,
                         timeframe=timeframe,
                         setup_type=candidate.setup_type,
                         score=candidate.score,
                         observed_at=candidate.observed_at,
+                        signal_at=candidate.signal_at,
+                        context_at=candidate.context_at,
                         fresh_until=candidate.fresh_until,
+                        thread_event_index=thread_event_index,
                         key_level_price=candidate.key_level_price,
                         summary=candidate.summary,
                         invalidation_hint=candidate.invalidation_hint,
@@ -758,7 +904,13 @@ async def get_detection_with_instrument(
             await db.execute(
                 select(RadarDetection)
                 .where(RadarDetection.id == detection_id)
-                .options(selectinload(RadarDetection.instrument), selectinload(RadarDetection.run))
+                .options(
+                    selectinload(RadarDetection.instrument),
+                    selectinload(RadarDetection.run),
+                    selectinload(RadarDetection.thread).selectinload(
+                        RadarSetupThread.detections
+                    ),
+                )
             )
         )
         .scalars()

@@ -32,10 +32,10 @@ describe('useRadarStore', () => {
 
   it('loads a detection detail and chart overlays', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: 2, instrument_symbol: 'AAPL', evidence: { overlays: [], metrics: {}, structures: [] } })
+      .mockResolvedValueOnce({ id: 2, instrument_symbol: 'AAPL', signal_at: '2026-05-05T10:00:00Z', evidence: { overlays: [], metrics: {}, structures: [] } })
       .mockResolvedValueOnce([
-        { id: 3, setup_type: 'breakdown', observed_at: '2026-05-05T11:00:00Z', evidence: { overlays: [{ kind: 'zone' }], metrics: { signal_time: 1746435600 }, structures: [{ last_touch_time: 1746435600 }] } },
-        { id: 2, setup_type: 'approaching_resistance', observed_at: '2026-05-05T11:00:00Z', evidence: { overlays: [{ kind: 'zone' }], metrics: { signal_time: 1746424800 }, structures: [{ last_touch_time: 1746424800 }] } },
+        { id: 3, thread_id: 8, thread_event_index: 2, setup_type: 'breakdown', observed_at: '2026-05-05T11:00:00Z', signal_at: '2026-05-05T11:00:00Z', evidence: { overlays: [{ kind: 'zone' }], metrics: { signal_time: 1746435600 }, structures: [{ last_touch_time: 1746435600 }] } },
+        { id: 2, thread_id: 8, thread_event_index: 1, setup_type: 'approaching_resistance', observed_at: '2026-05-05T11:00:00Z', signal_at: '2026-05-05T08:00:00Z', evidence: { overlays: [{ kind: 'zone' }], metrics: { signal_time: 1746424800 }, structures: [{ last_touch_time: 1746424800 }] } },
       ])
 
     const store = useRadarStore()
@@ -50,8 +50,8 @@ describe('useRadarStore', () => {
 
   it('loads chart detections disabled by default on direct chart entry', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { id: 7, setup_type: 'breakdown', observed_at: '2026-05-05T12:00:00Z', evidence: { overlays: [], metrics: { signal_time: 1746435600 }, structures: [{ last_touch_time: 1746435600 }] } },
-      { id: 5, setup_type: 'approaching_support', observed_at: '2026-05-05T12:00:00Z', evidence: { overlays: [], metrics: { signal_time: 1746424800 }, structures: [{ last_touch_time: 1746424800 }] } },
+      { id: 7, setup_type: 'breakdown', observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T11:00:00Z', evidence: { overlays: [], metrics: { signal_time: 1746435600 }, structures: [{ last_touch_time: 1746435600 }] } },
+      { id: 5, setup_type: 'approaching_support', observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T08:00:00Z', evidence: { overlays: [], metrics: { signal_time: 1746424800 }, structures: [{ last_touch_time: 1746424800 }] } },
     ])
 
     const store = useRadarStore()
@@ -60,6 +60,18 @@ describe('useRadarStore', () => {
     expect(store.chartDetections.map(detection => detection.id)).toEqual([5, 7])
     expect(store.activeChartDetectionIds).toEqual([])
     expect(store.focusedChartDetectionId).toBeNull()
+  })
+
+  it('uses thread event order when detections share a thread and signal date', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { id: 31, thread_id: 4, thread_event_index: 2, setup_type: 'rejection', observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T12:00:00Z', evidence: { overlays: [], metrics: {}, structures: [] } },
+      { id: 30, thread_id: 4, thread_event_index: 1, setup_type: 'approaching_resistance', observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T12:00:00Z', evidence: { overlays: [], metrics: {}, structures: [] } },
+    ])
+
+    const store = useRadarStore()
+    await store.loadChartDetections(12)
+
+    expect(store.chartDetections.map(detection => detection.id)).toEqual([30, 31])
   })
 
   it('queues and consumes chart detections only for the matching instrument context', () => {
