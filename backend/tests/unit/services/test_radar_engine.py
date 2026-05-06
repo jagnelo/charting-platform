@@ -74,19 +74,25 @@ class TestInvalidationPrice:
 
 
 class TestRadarEngine:
-    def test_approaching_support_detection_is_classified(self):
+    def _support_detections(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]
-        detections = analyze_instrument(_instrument(), _make_bars(prices))
-        setup_types = {d.setup_type.value for d in detections}
-        assert "approaching_support" in setup_types
+        return analyze_instrument(_instrument(), _make_bars(prices))
 
-    def test_rejection_detection_is_classified(self):
+    def _resistance_detections(self):
         prices = [100, 104, 108, 111, 108, 104] * 18
         prices += [108, 110.5, 107.5, 106.5, 105.5]
         bars = _make_bars(prices)
         bars[-1].high = Decimal("113.5")
-        detections = analyze_instrument(_instrument(), bars)
+        return analyze_instrument(_instrument(), bars)
+
+    def test_approaching_support_detection_is_classified(self):
+        detections = self._support_detections()
+        setup_types = {d.setup_type.value for d in detections}
+        assert "approaching_support" in setup_types
+
+    def test_rejection_detection_is_classified(self):
+        detections = self._resistance_detections()
         setup_types = {d.setup_type.value for d in detections}
         assert "rejection" in setup_types
 
@@ -205,11 +211,9 @@ class TestRadarEngine:
         assert thread.last_seen_at == candidate.signal_at
 
     def test_duplicate_thread_detection_is_reused_instead_of_incremented(self):
-        prices = [95, 100, 95, 100, 95, 100] * 20
-        prices += [98, 97, 96, 97, 98]
         candidate = next(
             det
-            for det in analyze_instrument(_instrument(), _make_bars(prices))
+            for det in self._support_detections()
             if det.setup_type == RadarSetupType.APPROACHING_SUPPORT
         )
         existing_detection = RadarDetection(
@@ -245,3 +249,45 @@ class TestRadarEngine:
         duplicate = _find_duplicate_thread_detection(candidate, thread)
 
         assert duplicate is existing_detection
+
+    def test_support_avwap_is_anchored_to_latest_zone_touch(self):
+        detection = next(
+            det
+            for det in self._support_detections()
+            if det.setup_type == RadarSetupType.APPROACHING_SUPPORT
+        )
+
+        avwap_overlay = next(
+            overlay for overlay in detection.evidence["overlays"] if overlay.get("role") == "avwap"
+        )
+        zone_structure = next(
+            structure
+            for structure in detection.evidence["structures"]
+            if structure.get("type") == "horizontal_zone"
+        )
+
+        assert detection.evidence["metrics"]["avwap"] is not None
+        assert avwap_overlay["label"] == "AVWAP"
+        assert avwap_overlay["points"]
+        assert avwap_overlay["points"][0]["time"] == zone_structure["last_touch_time"]
+
+    def test_resistance_avwap_is_anchored_to_latest_zone_touch(self):
+        detection = next(
+            det
+            for det in self._resistance_detections()
+            if det.setup_type == RadarSetupType.REJECTION
+        )
+
+        avwap_overlay = next(
+            overlay for overlay in detection.evidence["overlays"] if overlay.get("role") == "avwap"
+        )
+        zone_structure = next(
+            structure
+            for structure in detection.evidence["structures"]
+            if structure.get("type") == "horizontal_zone"
+        )
+
+        assert detection.evidence["metrics"]["avwap"] is not None
+        assert avwap_overlay["label"] == "AVWAP"
+        assert avwap_overlay["points"]
+        assert avwap_overlay["points"][0]["time"] == zone_structure["last_touch_time"]
