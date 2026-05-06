@@ -1062,6 +1062,143 @@ Why this was deferred:
 - The providers are implemented and registered; wiring the scheduler is a separate operational
   concern that should be done alongside end-to-end testing of the new provider stack.
 
+### 10. Custom instrument baskets, ETF holdings navigation, and breadth analysis
+Status: `Planned`
+
+Context:
+- The platform already supports individual instruments and expression-based synthetics (e.g., `=SPY-QQQ`).
+- The next natural building block is **user-defined instrument baskets**: named, weighted collections of instruments that can be treated as a first-class platform object, similar to a custom ETF.
+- Beyond pure user-defined baskets, real ETFs carry composition data — the platform should eventually be able to materialise an ETF's holdings as a basket automatically, enabling holdings navigation ("show me all Nasdaq 100 constituents").
+- Once baskets exist as objects, they become a natural surface for **breadth analysis**: computing aggregate technical properties across holdings to get a collective health view of the basket as a whole.
+- These three concerns — basket construction, ETF holdings navigation, and breadth analysis — are closely coupled and should share a common data model from the start.
+
+---
+
+#### 10a. Custom basket construction
+
+What this should become:
+- A named, user-owned collection of instruments with associated weights.
+- Weights can be equal (platform distributes 1/N automatically) or fully custom (user assigns fractions that must sum to 1.0, or raw market-value notional if the UX calls for it).
+- A basket can be used anywhere an instrument is referenced: charted as a synthetic price series (using the weighted sum or index-relative formula), added to a watchlist, used as a screener universe, used as a breadth analysis target, or used as a Strategy Lab universe.
+- Baskets are distinct from expression instruments (`=A-B`, `=A/B`) which are formula-based rather than weighted-membership-based.
+
+What remains:
+
+Backend:
+- Introduce a `basket` domain model, storing: id, user_id, name, description, created_at, updated_at, rebalance_frequency (if the platform ever supports periodic rebalancing semantics), weighting_scheme (equal / custom / market_cap_weighted), and optionally a `classification_mode` (auto / manual).
+- Introduce a `basket_member` model, storing: basket_id, instrument_id, weight (decimal, nullable when scheme=equal), and an optional notes/label field per member.
+- Introduce basket CRUD endpoints: create, rename, update description, add/remove/reweight members, delete.
+- Add a basket-as-instrument synthetic OHLCV path: given a basket with weights and member OHLCV histories, compute the basket's price series on demand so it can be charted like any other instrument. Start with a rebased-to-100 cumulative return series as the simplest viable option.
+
+Frontend:
+- A basket builder UI: create/name, add instruments (via the existing search flow), assign weights or leave equal, confirm.
+- Weight editor: show all members, allow dragging or typing weights, show a real-time "remaining" allocation indicator, validate sum=1.
+- Basket detail view: list all members, their weight, and a sparkline or mini-stat row per member.
+- Ability to open a basket in the chart view as a synthetic price series.
+- Basket list view accessible from the sidebar.
+
+---
+
+#### 10b. Basket sector / industry classification
+
+Context:
+- If every member of a basket shares the same GICS sector (or industry), the basket clearly belongs to that sector/industry and can be classified automatically.
+- When members span multiple sectors/industries, automatic classification breaks down. The right answer here is not fully settled:
+  - One option is a user-selectable custom label from a predefined list (including a catch-all like "Multi-sector" or "Thematic").
+  - Another option is a tag system where the basket carries multiple sector/theme tags.
+  - A third option is purely user-free-text labeling.
+  - Which of these is best depends on how the classification is used downstream (breadth grouping, screener filtering, radar slicing). This should be revisited once the downstream use cases are clearer.
+
+What remains:
+- Add a `sector` and `industry` field to the basket model, nullable.
+- On basket creation/save, run an auto-classification pass: if all members share the same GICS sector, populate the field automatically. If they share the same industry sub-sector, populate industry as well.
+- If members are mixed-sector, leave classification null and surface a prompt in the UI inviting the user to set a custom classification label.
+- Build a lightweight classification UX: a picker or text field that offers predefined sector names plus a free-text "Thematic / Custom" escape hatch.
+- Revisit and expand this once the breadth analysis feature (10c) and radar filter/slice feature (item 5) make it clear what the classification taxonomy needs to look like.
+
+---
+
+#### 10c. ETF holdings navigation and auto-materialised baskets
+
+Context:
+- Real ETFs are instruments in the platform's DB. Their holdings are composition data that can be sourced from providers (e.g., ETF.com, iShares disclosures, State Street, or financial data providers that expose holdings).
+- Once ETF holdings data exists in the platform, an ETF can be treated as a system-managed basket automatically: the platform creates or refreshes a basket representing the ETF's current composition and weights.
+- This enables: "click SPY, see all 503 holdings and their weights". Or: "click QQQ, open all Nasdaq 100 constituents as a basket and then chart any one of them".
+- The holdings-navigation flow is especially valuable for users who want to do their own constituent-level research: e.g., scan through all S&P 500 members to find technically interesting setups, or look at which Nasdaq 100 members are near 52-week highs.
+
+What remains:
+
+Data / provider side:
+- Identify and integrate a provider for ETF holdings data. Candidates include Financial Modeling Prep (FMP), ETF.com, or a dedicated ETF holdings API. The provider should supply: constituent symbol, weight, and ideally shares held and market value per member.
+- Introduce a scheduled refresh task that updates ETF holdings on a configurable cadence (daily or weekly is likely sufficient for non-leveraged index funds).
+- Model ETF holdings as a special case of basket: a system-managed basket with a reference to the source ETF instrument, a composition_date field, and a flag distinguishing user-owned baskets from ETF-derived baskets.
+
+Backend:
+- ETF-derived baskets should be read-only from the user's perspective (no user-editable weights).
+- Provide an endpoint to list/search ETFs that have holdings data available.
+- Provide an endpoint to retrieve the holdings basket for a given ETF instrument.
+- Provide an endpoint for the holdings navigation flow: given an ETF instrument id, return the full member list with weights, instrument details, and optional mini-stats per member.
+
+Frontend:
+- On the chart page, when viewing an ETF, surface a "Holdings" tab or panel showing the basket composition.
+- From the holdings panel, each member instrument should be clickable to open that instrument's chart.
+- A "Browse all constituents" mode: a paginated/scrollable table of all members with mini-stats (price, change, distance to 52w high, etc.) with click-through to each instrument's chart.
+- The holdings panel should make it easy to open multiple instruments in sequence (e.g., step through constituents one by one) for manual scanning.
+- Later, a "chart all" or "compare all" shortcut that opens a screener-results-like view filtered to the ETF's holdings.
+
+---
+
+#### 10d. Breadth analysis over baskets and ETFs
+
+Context:
+- Once baskets exist and their member OHLCV histories are queryable, the platform can compute aggregate technical properties across the membership and surface a collective health view.
+- Breadth analysis answers questions like: "What percentage of S&P 500 members are above their 200-day EMA right now?" or "How many Nasdaq 100 stocks are within 5% of their 52-week high?" or "What's the average distance to the 50-day SMA across this basket?".
+- This kind of analysis is a tool used by technical macro analysts to evaluate whether a broad market move is being driven by wide participation or narrow concentration.
+- The feature should be general enough to work on any user-defined basket or ETF-derived basket, not just major US indices.
+
+What remains:
+
+Computation engine:
+- Define a set of per-member breadth metrics to compute, including (but not limited to):
+  - percentage of members above their 20/50/100/200-day SMA or EMA
+  - percentage of members within N% of their 52-week high or low
+  - average distance (in % or ATR multiples) from a given EMA/SMA across members
+  - percentage of members with recent volume above their N-day average
+  - percentage of members in uptrend vs downtrend by a chosen definition (e.g., above 200 EMA = uptrend)
+  - percentage of members making new N-day highs or lows
+  - percentage of members above a user-specified price level or within a zone
+- Implement a backend breadth computation service that takes a basket id, a reference date, and a set of requested metrics and returns a breadth snapshot.
+- Optionally persist historical breadth snapshots so the platform can show a breadth indicator time series (e.g., "% above 200 EMA over the last 12 months") rather than only the current snapshot.
+
+Frontend:
+- A basket breadth panel / dashboard widget that shows a summary of current breadth metrics for a selected basket or ETF.
+- A breadth chart: a time series showing how a selected breadth metric has evolved over time (e.g., a McClellan-oscillator-style view of participation).
+- A drill-down from the breadth summary: click "38% of members are above 200 EMA" to see the list of which members are above vs below, sortable/filterable.
+- A comparison view: show breadth for multiple baskets side by side (e.g., compare S&P 500 breadth vs Nasdaq 100 breadth vs a user-defined sector basket).
+- Later: dashboard widgets specifically for basket breadth, so users can pin a breadth indicator to their main dashboard.
+
+---
+
+#### Shared design principles across 10a–10d
+
+- **Baskets are first-class objects.** They are not just lists; they carry weights, metadata, classification, and a potential synthetic price series. The domain model should reflect this from the start.
+- **ETF-derived baskets are a special case of the same model.** User baskets and ETF holdings baskets share the same backend schema and frontend surfaces; the distinction is managed vs unmanaged ownership and refresh semantics.
+- **The basket model feeds other platform features.** Baskets should be usable as: chart synthetic instruments, screener universes (item 3), Strategy Lab universes (item 6/7), radar filter slices (item 5), and breadth analysis targets. These integrations should inform the basket schema design so it isn't retrofitted later.
+- **Breadth analysis should be additive, not a re-architecture.** The breadth engine reads member OHLCV histories that already exist in the platform. It does not require new data infrastructure, only a computation layer on top of existing data.
+- **Sector/industry classification for mixed baskets remains an open design question.** The taxonomy used for classification should be revisited once downstream use cases (breadth grouping, radar slicing) clarify what granularity is actually needed.
+
+Phasing expectations:
+- Phase 1: Custom basket creation/editing with equal and custom weights, basket charted as a synthetic price series, basic basket list/detail UI.
+- Phase 2: ETF holdings data ingestion, ETF-as-basket materialisation, holdings navigation UI.
+- Phase 3: Breadth analysis engine, breadth snapshot views, breadth time-series charting.
+- Phase 4: Basket breadth dashboard widgets, cross-basket comparison views, integration with radar and screener universe selectors.
+
+Why this was deferred:
+- Baskets are a foundational building block but depend on having a stable instrument model (already done) and clear downstream consumers.
+- ETF holdings data requires a dedicated provider integration.
+- Breadth analysis depends on both basket membership and historical OHLCV coverage being in good shape.
+- The right design for mixed-sector basket classification needs more downstream context before being finalised.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.
