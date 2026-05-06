@@ -107,9 +107,9 @@ class TestRadarAPI:
         ).json()
 
         assert detail["thread"] is not None
-        assert detail["thread"]["detection_count"] >= 2
+        assert detail["thread"]["detection_count"] == 1
         assert detail["thread_event_index"] is not None
-        assert len(detail["thread_history"]) >= detail["thread_event_index"]
+        assert len(detail["thread_history"]) == detail["thread"]["detection_count"]
 
     def test_detection_not_found_returns_404(self, client, auth_headers):
         res = client.get("/api/v1/radar/detections/999999", headers=auth_headers)

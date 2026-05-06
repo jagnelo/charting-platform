@@ -91,12 +91,13 @@
               }"
               @click="radarStore.toggleChartDetection(det.id)"
             >
-              <span class="radar-sequence-tag">{{ index + 1 }}</span>
+              <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
               <span class="radar-toggle-indicator">{{ radarStore.isChartDetectionActive(det.id) ? '◉' : '○' }}</span>
               <span class="row-name">
                 {{ formatRadarSetup(det.setup_type) }}
-                <span v-if="det.thread_event_index != null" class="draw-pane-tag">#{{ det.thread_event_index }}</span>
-                <span v-if="det.thread?.detection_count" class="draw-pane-tag draw-pane-tag--dim">{{ det.thread.detection_count }} evt</span>
+                <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
+                  {{ formatRadarThreadTag(det) }}
+                </span>
                 <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
                 <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
               </span>
@@ -726,6 +727,31 @@ function formatRadarSignalDate(det: {
   const signalTime = radarMetricNumber(det, 'signal_time')
   if (signalTime != null) return formatRadarObservedDate(new Date(signalTime * 1000).toISOString())
   return formatRadarObservedDate(det.observed_at)
+}
+
+function formatRadarThreadTag(det: {
+  id?: number
+  thread_event_index?: number | null
+  thread?: { detection_count: number } | null
+  thread_history?: Array<{ id: number }>
+}) {
+  const fallbackIndex = det.thread_history?.findIndex(event => event.id === det.id) ?? -1
+  const eventIndex = det.thread_event_index ?? (fallbackIndex >= 0 ? fallbackIndex + 1 : null)
+  const totalEvents = det.thread?.detection_count ?? det.thread_history?.length
+  if (eventIndex != null && totalEvents) return `${eventIndex}/${totalEvents}`
+  if (eventIndex != null) return `#${eventIndex}`
+  return ''
+}
+
+function formatRadarSequenceBadge(
+  det: {
+    id?: number
+    thread_event_index?: number | null
+    thread?: { detection_count: number } | null
+    thread_history?: Array<{ id: number }>
+  },
+) {
+  return formatRadarThreadTag(det) || '•'
 }
 
 function radarTooltipText(det: {

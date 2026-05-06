@@ -60,7 +60,7 @@ const detailDetection = {
   ...summaryDetection,
   evidence: {
     overlays: [{ kind: 'zone', label: 'Resistance zone', price_low: 110, price_high: 112 }],
-    metrics: { close: 113.2, atr_14: 2.1 },
+    metrics: { close: 113.2, atr_14: 2.1, signal_time: 1777953600, context_time: 1771822800 },
     structures: [],
   },
   thread: {
@@ -165,8 +165,13 @@ describe('RadarView', () => {
     expect(wrapper.text()).toContain('atr 14')
     expect(wrapper.text()).toContain('Setup thread')
     expect(wrapper.text()).toContain('Events')
+    expect(wrapper.text()).toContain('Thread 2/2')
+    expect(wrapper.text()).toContain('Signal date')
+    expect(wrapper.text()).toContain('Context date')
     expect(wrapper.text()).toContain('#1')
     expect(wrapper.text()).toContain('#2')
+    expect(wrapper.text()).not.toContain('1777953600.00')
+    expect(wrapper.text()).not.toContain('1771822800.00')
 
     await wrapper.find('.detail-head .action-btn.primary').trigger('click')
     expect(radarStore.pendingChartDetection).toEqual({

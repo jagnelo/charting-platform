@@ -20,14 +20,17 @@ describe('useRadarStore', () => {
   it('loads runs and detections', async () => {
     ;(api.get as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([{ id: 1, status: 'completed' }])
-      .mockResolvedValueOnce([{ id: 2, instrument_symbol: 'AAPL', score: 0.8 }])
+      .mockResolvedValueOnce([
+        { id: 3, instrument_id: 7, instrument_symbol: 'AAPL', setup_type: 'rejection', score: 0.7, observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T12:00:00Z', thread_id: 11, thread_event_index: 2 },
+        { id: 2, instrument_id: 7, instrument_symbol: 'AAPL', setup_type: 'approaching_resistance', score: 0.8, observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T10:00:00Z', thread_id: 11, thread_event_index: 1 },
+      ])
 
     const store = useRadarStore()
     await store.loadRuns()
     await store.loadDetections()
 
     expect(store.runs[0].id).toBe(1)
-    expect(store.detections[0].instrument_symbol).toBe('AAPL')
+    expect(store.detections.map(detection => detection.id)).toEqual([2, 3])
   })
 
   it('loads a detection detail and chart overlays', async () => {
@@ -72,6 +75,19 @@ describe('useRadarStore', () => {
     await store.loadChartDetections(12)
 
     expect(store.chartDetections.map(detection => detection.id)).toEqual([30, 31])
+  })
+
+  it('keeps cross-symbol ranking while preserving same-symbol chronology', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { id: 60, instrument_id: 2, instrument_symbol: 'MSFT', setup_type: 'breakout', score: 0.95, observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T12:00:00Z' },
+      { id: 31, instrument_id: 1, instrument_symbol: 'AAPL', setup_type: 'rejection', score: 0.72, observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T12:00:00Z', thread_id: 4, thread_event_index: 2 },
+      { id: 30, instrument_id: 1, instrument_symbol: 'AAPL', setup_type: 'approaching_resistance', score: 0.79, observed_at: '2026-05-05T12:00:00Z', signal_at: '2026-05-05T10:00:00Z', thread_id: 4, thread_event_index: 1 },
+    ])
+
+    const store = useRadarStore()
+    await store.loadDetections()
+
+    expect(store.detections.map(detection => detection.id)).toEqual([60, 30, 31])
   })
 
   it('queues and consumes chart detections only for the matching instrument context', () => {

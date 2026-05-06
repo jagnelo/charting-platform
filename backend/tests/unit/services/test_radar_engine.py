@@ -4,9 +4,10 @@ from types import SimpleNamespace
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.radar import RadarSetupThread, RadarSetupType
+from app.models.radar import RadarDetection, RadarSetupThread, RadarSetupType
 from app.services.radar_engine import (
     _apply_candidate_to_thread,
+    _find_duplicate_thread_detection,
     _find_matching_thread,
     _invalidation_price,
     analyze_instrument,
@@ -202,3 +203,45 @@ class TestRadarEngine:
         assert thread.detection_count == 3
         assert thread.current_setup_type == candidate.setup_type
         assert thread.last_seen_at == candidate.signal_at
+
+    def test_duplicate_thread_detection_is_reused_instead_of_incremented(self):
+        prices = [95, 100, 95, 100, 95, 100] * 20
+        prices += [98, 97, 96, 97, 98]
+        candidate = next(
+            det
+            for det in analyze_instrument(_instrument(), _make_bars(prices))
+            if det.setup_type == RadarSetupType.APPROACHING_SUPPORT
+        )
+        existing_detection = RadarDetection(
+            id=55,
+            run_id=1,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            setup_type=candidate.setup_type,
+            score=candidate.score,
+            summary=candidate.summary,
+            invalidation_hint=candidate.invalidation_hint,
+            evidence_json=candidate.evidence,
+            score_factors=candidate.score_factors,
+            signal_at=candidate.signal_at,
+            context_at=candidate.context_at,
+            key_level_price=candidate.key_level_price,
+            thread_event_index=2,
+            observed_at=candidate.observed_at,
+            fresh_until=candidate.fresh_until,
+        )
+        thread = RadarSetupThread(
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="support",
+            reference_price=candidate.key_level_price,
+            current_setup_type=RadarSetupType.APPROACHING_SUPPORT,
+            started_at=candidate.signal_at - timedelta(days=2),
+            last_seen_at=candidate.signal_at,
+            detection_count=2,
+        )
+        thread.detections = [existing_detection]
+
+        duplicate = _find_duplicate_thread_detection(candidate, thread)
+
+        assert duplicate is existing_detection

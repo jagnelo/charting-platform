@@ -469,6 +469,44 @@ def _apply_candidate_to_thread(
     return next_index
 
 
+def _same_moment(left: datetime | None, right: datetime | None) -> bool:
+    if left is None or right is None:
+        return left is right
+    return left == right
+
+
+def _find_duplicate_thread_detection(
+    candidate: DetectionCandidate,
+    thread: RadarSetupThread,
+) -> RadarDetection | None:
+    detections = list(thread.detections or [])
+    if not detections:
+        return None
+
+    tolerance = _thread_match_tolerance(candidate)
+    matches = [
+        detection
+        for detection in detections
+        if detection.setup_type == candidate.setup_type
+        and _same_moment(detection.signal_at, candidate.signal_at)
+        and _same_moment(detection.context_at, candidate.context_at)
+        and detection.key_level_price is not None
+        and abs(float(detection.key_level_price) - candidate.key_level_price) <= tolerance
+    ]
+    if not matches:
+        return None
+
+    matches.sort(
+        key=lambda detection: (
+            detection.signal_at,
+            detection.observed_at,
+            detection.id or 0,
+        ),
+        reverse=True,
+    )
+    return matches[0]
+
+
 def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[DetectionCandidate]:
     if len(bars) < 80:
         return []
@@ -818,6 +856,7 @@ async def run_radar_scan(
                             RadarSetupThread.instrument_id == instrument.id,
                             RadarSetupThread.timeframe == timeframe,
                         )
+                        .options(selectinload(RadarSetupThread.detections))
                         .order_by(
                             RadarSetupThread.last_seen_at.desc(),
                             RadarSetupThread.id.desc(),
@@ -843,7 +882,13 @@ async def run_radar_scan(
                     )
                     db.add(thread)
                     instrument_threads.append(thread)
-                thread_event_index = _apply_candidate_to_thread(candidate, thread)
+                duplicate_detection = _find_duplicate_thread_detection(candidate, thread)
+                if duplicate_detection is not None:
+                    thread_event_index = duplicate_detection.thread_event_index or thread.detection_count
+                    thread.last_seen_at = max(thread.last_seen_at, candidate.signal_at)
+                    thread.current_setup_type = candidate.setup_type
+                else:
+                    thread_event_index = _apply_candidate_to_thread(candidate, thread)
                 detections.append(
                     RadarDetection(
                         run_id=run.id,

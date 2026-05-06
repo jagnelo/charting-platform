@@ -53,6 +53,8 @@
               <tr>
                 <th>Symbol</th>
                 <th>Setup</th>
+                <th>Seq</th>
+                <th>Detected</th>
                 <th>Score</th>
                 <th>Level</th>
                 <th>Fresh until</th>
@@ -67,6 +69,8 @@
               >
                 <td class="td-symbol">{{ detection.instrument_symbol }}</td>
                 <td class="td-setup">{{ labelForSetup(detection.setup_type) }}</td>
+                <td class="td-mono td-dim">{{ formatThreadSequence(detection) }}</td>
+                <td class="td-mono td-dim">{{ formatRadarSignalDate(detection) }}</td>
                 <td class="td-score">{{ detection.score.toFixed(2) }}</td>
                 <td class="td-mono">{{ formatPrice(detection.key_level_price) }}</td>
                 <td class="td-mono td-dim">{{ formatDateShort(detection.fresh_until) }}</td>
@@ -83,6 +87,7 @@
             <div>
               <span class="detail-symbol">{{ radarStore.selectedDetection.instrument_symbol }}</span>
               <span class="detail-setup">{{ labelForSetup(radarStore.selectedDetection.setup_type) }}</span>
+              <span v-if="selectedThreadStatusLabel" class="detail-thread-pill">{{ selectedThreadStatusLabel }}</span>
             </div>
             <button class="action-btn primary" :disabled="runningScan" @click="openInChart(radarStore.selectedDetection)">
               Open in chart
@@ -207,6 +212,18 @@ const setupTypes: Array<{ value: RadarSetupType; label: string }> = [
 const latestRun = computed(() => radarStore.runs[0] ?? null)
 const selectedThread = computed(() => radarStore.selectedDetection?.thread ?? null)
 const selectedThreadHistory = computed(() => radarStore.selectedDetection?.thread_history ?? [])
+const selectedThreadSequence = computed(() => (
+  radarStore.selectedDetection ? formatThreadSequence(radarStore.selectedDetection) : ''
+))
+const selectedThreadStatusLabel = computed(() => {
+  const detection = radarStore.selectedDetection
+  if (!detection) return ''
+  if (detection.thread) {
+    const sequence = formatThreadSequence(detection)
+    return sequence ? `Thread ${sequence}` : 'Threaded'
+  }
+  return 'Unthreaded'
+})
 
 interface MetricRow {
   key: string
@@ -247,6 +264,30 @@ const evidenceMetricRows = computed((): MetricRow[] => {
 
     if (key === 'close') {
       rows.push({ key: 'Close', value: formatMetric(val), hint: `as of ${formatDateShort(det.observed_at)}` })
+      continue
+    }
+
+    if (key === 'signal_time') {
+      const preferDateOnly = prefersDateOnly(det)
+      rows.push({
+        key: preferDateOnly ? 'Signal date' : 'Signal time',
+        value: formatMetricTimestamp(
+          typeof val === 'number' ? val : det.signal_at ?? null,
+          { preferDateOnly },
+        ),
+      })
+      continue
+    }
+
+    if (key === 'context_time') {
+      const preferDateOnly = prefersDateOnly(det)
+      rows.push({
+        key: preferDateOnly ? 'Context date' : 'Context time',
+        value: formatMetricTimestamp(
+          typeof val === 'number' ? val : det.context_at ?? null,
+          { preferDateOnly },
+        ),
+      })
       continue
     }
 
@@ -312,6 +353,57 @@ function formatDateShort(value?: string | null) {
 
 function formatUnixDateShort(value: number) {
   return formatDateShort(new Date(value * 1000).toISOString())
+}
+
+function prefersDateOnly(detection: Pick<RadarDetection, 'timeframe'>) {
+  return detection.timeframe === 'D1' || detection.timeframe === 'W1' || detection.timeframe === 'MN'
+}
+
+function formatDateTimeUtc(value?: string | null) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  const hh = String(d.getUTCHours()).padStart(2, '0')
+  const mm = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm} UTC`
+}
+
+function formatMetricTimestamp(
+  value: number | string | null | undefined,
+  options: { preferDateOnly?: boolean } = {},
+) {
+  if (value == null) return '—'
+  const isoValue = typeof value === 'number'
+    ? new Date(value * 1000).toISOString()
+    : value
+  const parsed = new Date(isoValue)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  const isWholeDay =
+    parsed.getUTCHours() === 0
+    && parsed.getUTCMinutes() === 0
+    && parsed.getUTCSeconds() === 0
+  if (options.preferDateOnly || isWholeDay) {
+    return formatDateShort(parsed.toISOString())
+  }
+  return formatDateTimeUtc(parsed.toISOString())
+}
+
+function formatRadarSignalDate(detection: Pick<RadarDetection, 'signal_at' | 'observed_at'>) {
+  return formatMetricTimestamp(detection.signal_at ?? detection.observed_at, { preferDateOnly: true })
+}
+
+function formatThreadSequence(
+  detection: Pick<RadarDetection, 'id' | 'thread_event_index' | 'thread' | 'thread_history'>,
+) {
+  const fallbackIndex = detection.thread_history?.findIndex(event => event.id === detection.id) ?? -1
+  const eventIndex = detection.thread_event_index ?? (fallbackIndex >= 0 ? fallbackIndex + 1 : null)
+  const totalEvents = detection.thread?.detection_count ?? detection.thread_history?.length
+  if (eventIndex != null && totalEvents) return `${eventIndex}/${totalEvents}`
+  if (eventIndex != null) return `#${eventIndex}`
+  return ''
 }
 
 function formatPrice(value?: number | null) {
@@ -687,6 +779,19 @@ onMounted(async () => {
   font-size: 11px;
   text-transform: capitalize;
   margin-top: 2px;
+}
+
+.detail-thread-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 2px 7px;
+  border: 1px solid #1a2e42;
+  border-radius: 999px;
+  color: #7fb7ee;
+  background: #102133;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .detail-summary {

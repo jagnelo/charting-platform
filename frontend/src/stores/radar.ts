@@ -41,6 +41,16 @@ function compareRadarChronology(left: RadarDetection, right: RadarDetection) {
   return left.id - right.id
 }
 
+function compareRadarListDetections(left: RadarDetection, right: RadarDetection) {
+  if (left.instrument_id === right.instrument_id) {
+    return compareRadarChronology(left, right)
+  }
+  if (left.score !== right.score) {
+    return right.score - left.score
+  }
+  return left.id - right.id
+}
+
 export const useRadarStore = defineStore('radar', () => {
   const runs = ref<RadarRun[]>([])
   const detections = ref<RadarDetection[]>([])
@@ -64,7 +74,8 @@ export const useRadarStore = defineStore('radar', () => {
   } = {}) {
     isLoading.value = true
     try {
-      detections.value = await api.get<RadarDetection[]>('/radar/detections', params)
+      const loadedDetections = await api.get<RadarDetection[]>('/radar/detections', params)
+      detections.value = [...loadedDetections].sort(compareRadarListDetections)
     } finally {
       isLoading.value = false
     }

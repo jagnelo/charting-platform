@@ -65,6 +65,35 @@ def _to_thread_event(detection: RadarDetection) -> RadarThreadEventOut:
     )
 
 
+def _thread_history_rows(thread: RadarSetupThread) -> list[RadarDetection]:
+    deduped_by_index: dict[int, RadarDetection] = {}
+    passthrough: list[RadarDetection] = []
+    ordered = sorted(
+        list(thread.detections or []),
+        key=lambda item: (
+            item.signal_at,
+            item.thread_event_index or 0,
+            item.observed_at,
+            item.id,
+        ),
+    )
+    for detection in ordered:
+        if detection.thread_event_index is None:
+            passthrough.append(detection)
+            continue
+        existing = deduped_by_index.get(detection.thread_event_index)
+        if (
+            existing is None
+            or detection.observed_at > existing.observed_at
+            or detection.id > existing.id
+        ):
+            deduped_by_index[detection.thread_event_index] = detection
+    return sorted(
+        [*passthrough, *deduped_by_index.values()],
+        key=lambda item: (item.signal_at, item.thread_event_index or 0, item.id),
+    )
+
+
 def _to_detail(detection: RadarDetection) -> RadarDetectionDetailOut:
     summary = _to_summary(detection)
     thread = detection.thread
@@ -72,10 +101,7 @@ def _to_detail(detection: RadarDetection) -> RadarDetectionDetailOut:
     thread_out = None
     if thread is not None:
         thread_out = RadarSetupThreadOut.model_validate(thread)
-        ordered_history = sorted(
-            list(thread.detections or []),
-            key=lambda item: (item.signal_at, item.thread_event_index or 0, item.id),
-        )
+        ordered_history = _thread_history_rows(thread)
         thread_history = [_to_thread_event(item) for item in ordered_history]
     return RadarDetectionDetailOut(
         **summary.model_dump(),
