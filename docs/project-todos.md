@@ -175,6 +175,21 @@ What remains:
   - multi-timeframe level propagation
   - opening gaps and gap boundaries
   - richer AVWAP anchor taxonomy tied to significant technical/contextual events
+    - recent swing highs and swing lows
+    - absolute highs/lows over the loaded history window, and later true all-time high/low anchors when sufficient history exists
+    - 52-week high / 52-week low anchors when structurally relevant
+    - year-to-date anchors such as YTD open, YTD high, and YTD low
+    - major event anchors such as earnings gaps, large breakaway gaps, or other instrument-event timestamps when the provider stack can supply them reliably
+    - optional user-auditable "anchor class" metadata so the UI can say not only that an AVWAP matters, but what kind of anchor it came from
+  - explicit AVWAP anchor-selection / precedence rules so the engine can choose among multiple plausible anchors on the same symbol without becoming opaque, including:
+    - when recent swing anchors outrank broader contextual anchors
+    - when broader anchors (ATH/ATL, 52-week, YTD, event anchors) should dominate because they define the active market narrative
+    - whether multiple AVWAPs should coexist as parallel evidence rather than forcing a single winner
+    - how the chosen AVWAP anchor affects setup scoring versus merely acting as secondary confluence
+  - stronger AVWAP provenance and validation, including:
+    - storing the chosen AVWAP anchor timestamp and anchor type explicitly in radar evidence
+    - chart-side labels/markers for the chosen anchor point
+    - unit/integration coverage for obvious anchor-selection cases so the engine remains deterministic as the taxonomy expands
   - moving-average clusters and moving-average slope/context
   - later, if useful, volume-profile or other structural liquidity/acceptance zones
 
