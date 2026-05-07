@@ -210,4 +210,115 @@ describe('useAlertsStore', () => {
     await store.rearmAlert(1)
     expect(store.alerts[0].status).toBe('active')
   })
+
+  it('updateAlert patches alert in place', async () => {
+    const updated = { id: 1, repeat: true, condition: 'crosses_above', threshold_price: '200', status: 'active' }
+    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(updated)
+    const store = useAlertsStore()
+    store.alerts = [{ id: 1, repeat: false, condition: 'crosses_above', threshold_price: '200', status: 'active' } as any]
+    await store.updateAlert(1, { repeat: true })
+    expect(store.alerts[0].repeat).toBe(true)
+  })
+
+  it('selectAlert and requestEditAlert set ids', () => {
+    const store = useAlertsStore()
+    store.selectAlert(42)
+    expect(store.selectedAlertId).toBe(42)
+    store.requestEditAlert(7)
+    expect(store.editRequestAlertId).toBe(7)
+    store.selectAlert(null)
+    expect(store.selectedAlertId).toBeNull()
+  })
+
+  it('activeCountForInstrument and totalActiveCount reflect state', () => {
+    const store = useAlertsStore()
+    store.alerts = [
+      { id: 1, instrument_id: 5, status: 'active' } as any,
+      { id: 2, instrument_id: 5, status: 'triggered' } as any,
+    ]
+    expect(store.activeCountForInstrument(5)).toBe(1)
+    expect(store.totalActiveCount).toBe(1)
+  })
+
+  it('unviewedCount reflects unviewed firing events', () => {
+    const store = useAlertsStore()
+    store.firingHistory = [
+      { id: 1, is_viewed: false } as any,
+      { id: 2, is_viewed: true } as any,
+    ]
+    expect(store.unviewedCount).toBe(1)
+  })
+
+  it('getAlertProjection returns show_projection value', () => {
+    const store = useAlertsStore()
+    store.alerts = [{ id: 3, show_projection: true } as any]
+    expect(store.getAlertProjection(3)).toBe(true)
+    expect(store.getAlertProjection(99)).toBe(false)
+  })
+
+  it('loadHistory fetches firing history', async () => {
+    const events = [{ id: 1, is_viewed: false, alert_id: 1 }]
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(events)
+    const store = useAlertsStore()
+    await store.loadHistory({ unviewedOnly: true })
+    expect(store.firingHistory).toEqual(events)
+  })
+
+  it('loadInstrumentHistory returns events for instrument', async () => {
+    const events = [{ id: 2, is_viewed: false }]
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(events)
+    const store = useAlertsStore()
+    const result = await store.loadInstrumentHistory(10)
+    expect(result).toEqual(events)
+  })
+
+  it('markViewed updates event in history', async () => {
+    const viewed = { id: 1, is_viewed: true }
+    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(viewed)
+    const store = useAlertsStore()
+    store.firingHistory = [{ id: 1, is_viewed: false } as any]
+    await store.markViewed(1)
+    expect(store.firingHistory[0].is_viewed).toBe(true)
+  })
+
+  it('markAllViewed marks all events as viewed', async () => {
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+    const store = useAlertsStore()
+    store.firingHistory = [{ id: 1, is_viewed: false } as any, { id: 2, is_viewed: false } as any]
+    await store.markAllViewed()
+    expect(store.firingHistory.every((e: any) => e.is_viewed)).toBe(true)
+  })
+
+  it('deleteFiringEvent removes event from history', async () => {
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+    const store = useAlertsStore()
+    store.firingHistory = [{ id: 1 } as any, { id: 2 } as any]
+    await store.deleteFiringEvent(1)
+    expect(store.firingHistory.map((e: any) => e.id)).not.toContain(1)
+  })
+
+  it('createIndicatorAlert, updateIndicatorAlert, deleteIndicatorAlert, rearmIndicatorAlert', async () => {
+    const created = { id: 10, instrument_id: 1, timeframe: '1D', status: 'active' }
+    const updated = { ...created, repeat: true }
+    const rearmed = { ...created, status: 'active' }
+    ;(api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(created)
+      .mockResolvedValueOnce(rearmed)
+    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(updated)
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+
+    const store = useAlertsStore()
+    await store.createIndicatorAlert({ instrument_id: 1, timeframe: '1D', indicator_a_type: 'rsi', indicator_a_params: {}, condition: 'crosses_above' })
+    expect(store.indicatorAlerts[0].id).toBe(10)
+
+    await store.updateIndicatorAlert(10, { repeat: true })
+    expect(store.indicatorAlerts[0].repeat).toBe(true)
+
+    store.indicatorAlerts = [{ id: 10, status: 'triggered' } as any]
+    await store.rearmIndicatorAlert(10)
+    expect(store.indicatorAlerts[0].status).toBe('active')
+
+    await store.deleteIndicatorAlert(10)
+    expect(store.indicatorAlerts.some((a: any) => a.id === 10)).toBe(false)
+  })
 })

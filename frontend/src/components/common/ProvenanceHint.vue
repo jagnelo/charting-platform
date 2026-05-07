@@ -1,13 +1,12 @@
 <template>
-  <span
-    v-if="title"
-    class="prov-hint"
-    :title="title"
-  >i</span>
+  <HoverTooltip v-if="title" :text="title">
+    <span class="prov-hint">i</span>
+  </HoverTooltip>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import type { FieldProvenance } from '@/types'
 
 const props = defineProps<{
@@ -37,17 +36,24 @@ const title = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
-  margin-left: 4px;
+  width: 9px;
+  height: 9px;
+  margin-left: 2px;
   border: 1px solid #2c2c2c;
   border-radius: 50%;
   color: #666;
   background: #141414;
-  font-size: 9px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
   line-height: 1;
   cursor: help;
   flex-shrink: 0;
+  vertical-align: super;
+  transform: translateY(-0.2em);
 }
 .prov-hint:hover {
   color: #8ab4f8;

@@ -12,6 +12,7 @@ Integration     One Postgres container + one Redis container started *once* per
                 leaving zero state for the next test.
 """
 
+import os
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -63,23 +64,43 @@ class AsyncSessionAdapter:
 
 
 @pytest.fixture(scope="session")
-def pg_container():
+def test_database_url() -> str | None:
+    return os.getenv("TEST_DATABASE_URL")
+
+
+@pytest.fixture(scope="session")
+def test_redis_url() -> str | None:
+    return os.getenv("TEST_REDIS_URL")
+
+
+@pytest.fixture(scope="session")
+def pg_container(test_database_url):
     from testcontainers.postgres import PostgresContainer
+
+    if test_database_url:
+        yield None
+        return
 
     with PostgresContainer("postgres:16-alpine") as pg:
         yield pg
 
 
 @pytest.fixture(scope="session")
-def redis_container():
+def redis_container(test_redis_url):
     from testcontainers.redis import RedisContainer
+
+    if test_redis_url:
+        yield None
+        return
 
     with RedisContainer("redis:7-alpine") as r:
         yield r
 
 
 @pytest.fixture(scope="session")
-def redis_url(redis_container):
+def redis_url(redis_container, test_redis_url):
+    if test_redis_url:
+        return test_redis_url
     host = redis_container.get_container_host_ip()
     port = redis_container.get_exposed_port(6379)
     return f"redis://{host}:{port}/0"
@@ -89,9 +110,9 @@ def redis_url(redis_container):
 
 
 @pytest.fixture(scope="session")
-def db_engine(pg_container):
+def db_engine(pg_container, test_database_url):
     """One engine per test session.  All tables created once."""
-    raw_url = pg_container.get_connection_url()
+    raw_url = test_database_url or pg_container.get_connection_url()
     url = raw_url.replace("postgresql://", "postgresql+psycopg2://")
 
     # Import models so they register with Base.metadata

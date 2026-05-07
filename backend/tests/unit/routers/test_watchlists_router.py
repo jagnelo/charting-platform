@@ -33,7 +33,9 @@ class TestWatchlistsRouter:
         )
         assert blocked.status_code == 403
 
-    def test_copy_watchlist_omits_departed_items(self, client, auth_headers, db, watchlist, instrument, instrument_b):
+    def test_copy_watchlist_omits_departed_items(
+        self, client, auth_headers, db, watchlist, instrument, instrument_b
+    ):
         db.add_all(
             [
                 WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),

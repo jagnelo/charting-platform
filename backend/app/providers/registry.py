@@ -33,11 +33,11 @@ ProviderT = TypeVar("ProviderT", bound=ProviderDescriptor)
 
 _PROVIDERS: dict[str, ProviderDescriptor] = {
     # Primary free providers
-    "alpaca": AlpacaProvider(),      # US equity + crypto OHLCV, splits, dividends, universe
-    "fred": FREDProvider(),          # Interest rates, forex series, macro indicators
-    "binance": BinanceProvider(),    # Crypto OHLCV and universe
-    "coingecko": CoinGeckoProvider(), # Crypto metadata and discovery
-    "edgar": EdgarProvider(),        # US company profile and earnings history
+    "alpaca": AlpacaProvider(),  # US equity + crypto OHLCV, splits, dividends, universe
+    "fred": FREDProvider(),  # Interest rates, forex series, macro indicators
+    "binance": BinanceProvider(),  # Crypto OHLCV and universe
+    "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
+    "edgar": EdgarProvider(),  # US company profile and earnings history
     # Fallback / supplementary
     "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
@@ -69,7 +69,9 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
         (("fetch_option_quote_history",), "option_quote_history"),
     ]
-    return [name for required_methods, name in capabilities if _supports(provider, *required_methods)]
+    return [
+        name for required_methods, name in capabilities if _supports(provider, *required_methods)
+    ]
 
 
 def list_provider_capabilities(name: str) -> list[str]:
@@ -242,10 +244,10 @@ async def ensure_data_source(db: AsyncSession, provider_name: str) -> DataSource
         config["capabilities"] = capabilities
         config["usage_tracking"] = {
             **get_provider_usage_profile(provider_name),
-            **dict((config.get("usage_tracking") or {})),
+            **dict(config.get("usage_tracking") or {}),
             "operation_costs": {
                 **get_provider_usage_profile(provider_name).get("operation_costs", {}),
-                **dict(((config.get("usage_tracking") or {}).get("operation_costs") or {})),
+                **dict((config.get("usage_tracking") or {}).get("operation_costs") or {}),
             },
         }
         src.config = config
@@ -267,7 +269,11 @@ def provider_symbol_for_instrument(
             hinted_provider_name = (
                 extra_data.get("provider_name") if isinstance(extra_data, dict) else None
             )
-            if provider_name is not None and data_source is not None and data_source.name != provider_name:
+            if (
+                provider_name is not None
+                and data_source is not None
+                and data_source.name != provider_name
+            ):
                 continue
             if provider_name is not None and data_source is None:
                 if hinted_provider_name and hinted_provider_name != provider_name:

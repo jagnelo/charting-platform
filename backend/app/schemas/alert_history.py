@@ -1,9 +1,8 @@
+import json
 from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, field_validator
-
-import json
 
 
 class AlertFiringEventOut(BaseModel):

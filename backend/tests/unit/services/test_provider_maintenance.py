@@ -55,7 +55,9 @@ async def test_summarize_and_prune_provider_observations(db, instrument, monkeyp
     latest_prices = next(row for row in summary if row["dataset"] == "latest_price_snapshot")
     assert latest_prices["rows"] == 1
 
-    monkeypatch.setattr("app.services.provider_maintenance.settings.LATEST_PRICE_SNAPSHOT_RETENTION_DAYS", 30)
+    monkeypatch.setattr(
+        "app.services.provider_maintenance.settings.LATEST_PRICE_SNAPSHOT_RETENTION_DAYS", 30
+    )
     deleted = await prune_provider_observations(async_db)
 
     remaining = db.execute(select(LatestPriceSnapshot)).scalars().all()

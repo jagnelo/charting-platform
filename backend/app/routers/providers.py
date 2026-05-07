@@ -16,8 +16,8 @@ from app.services.provider_maintenance import (
     reset_provider_health_state,
     summarize_provider_observations,
 )
-from app.services.provider_usage import summarize_provider_usage
 from app.services.provider_runtime import list_provider_status, seed_provider_runtime
+from app.services.provider_usage import summarize_provider_usage
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 

@@ -11,19 +11,18 @@ from decimal import Decimal
 
 import pytest
 
-from tests.unit.conftest import AsyncSessionAdapter
-
 from app.models.instrument import OptionRight
 from app.services.options_exposure import (
     ExposureLadderRow,
-    _ContractQuote,
     _compute_exposure,
     _compute_implied_move,
+    _ContractQuote,
     _find_gamma_flip,
     _find_max_pain,
     get_options_exposure,
     list_exposure_expirations,
 )
+from tests.unit.conftest import AsyncSessionAdapter
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +67,7 @@ def _put(strike, gamma, delta, oi, expiry=EXP_1, cs=100, vol=None, mark=None):
 
 # ── GEX sign convention ───────────────────────────────────────────────────────
 
+
 class TestGexSignConvention:
     def test_call_gex_is_positive(self):
         quotes = [_call(strike=180, gamma=0.01, delta=0.5, oi=100)]
@@ -108,6 +108,7 @@ class TestGexSignConvention:
 
 # ── DEX ────────────────────────────────────────────────────────────────────────
 
+
 class TestDex:
     def test_call_dex_positive(self):
         quotes = [_call(strike=180, gamma=0.01, delta=0.5, oi=100)]
@@ -128,6 +129,7 @@ class TestDex:
 
 
 # ── Ladder structure ─────────────────────────────────────────────────────────
+
 
 class TestLadderStructure:
     def test_strikes_sorted_ascending(self):
@@ -175,6 +177,7 @@ class TestLadderStructure:
 
 # ── Key levels ───────────────────────────────────────────────────────────────
 
+
 class TestKeyLevels:
     def test_call_wall_is_highest_call_oi_strike(self):
         quotes = [
@@ -205,6 +208,7 @@ class TestKeyLevels:
 
 # ── Gamma flip ────────────────────────────────────────────────────────────────
 
+
 class TestGammaFlip:
     def test_finds_zero_crossing(self):
         # Ladder: strike 175 → net_gex > 0, strike 185 → net_gex < 0
@@ -226,16 +230,28 @@ class TestGammaFlip:
         assert _find_gamma_flip(ladder) is None
 
     def test_no_flip_single_strike(self):
-        rows = [ExposureLadderRow(
-            strike=180, call_gex=100, put_gex=-50, net_gex=50,
-            call_dex=200, put_dex=-100, net_dex=100,
-            call_oi=100, put_oi=50, call_iv=None, put_iv=None,
-            call_mark=None, put_mark=None,
-        )]
+        rows = [
+            ExposureLadderRow(
+                strike=180,
+                call_gex=100,
+                put_gex=-50,
+                net_gex=50,
+                call_dex=200,
+                put_dex=-100,
+                net_dex=100,
+                call_oi=100,
+                put_oi=50,
+                call_iv=None,
+                put_iv=None,
+                call_mark=None,
+                put_mark=None,
+            )
+        ]
         assert _find_gamma_flip(rows) is None
 
 
 # ── Max pain ──────────────────────────────────────────────────────────────────
+
 
 class TestMaxPain:
     def test_symmetric_chain_max_pain_is_atm(self):
@@ -257,31 +273,61 @@ class TestMaxPain:
 
 # ── Implied move ──────────────────────────────────────────────────────────────
 
+
 class TestImpliedMove:
     def test_basic_calculation(self):
         # ATM straddle: call mark 5.0 + put mark 5.0 = 10.0 / spot 100 = 10%
-        rows = [ExposureLadderRow(
-            strike=100, call_gex=0, put_gex=0, net_gex=0,
-            call_dex=0, put_dex=0, net_dex=0,
-            call_oi=100, put_oi=100, call_iv=0.2, put_iv=0.22,
-            call_mark=5.0, put_mark=5.0,
-        )]
+        rows = [
+            ExposureLadderRow(
+                strike=100,
+                call_gex=0,
+                put_gex=0,
+                net_gex=0,
+                call_dex=0,
+                put_dex=0,
+                net_dex=0,
+                call_oi=100,
+                put_oi=100,
+                call_iv=0.2,
+                put_iv=0.22,
+                call_mark=5.0,
+                put_mark=5.0,
+            )
+        ]
         result = _compute_implied_move(rows, 100.0)
         assert result == pytest.approx(0.10)
 
     def test_picks_closest_strike_to_spot(self):
         rows = [
             ExposureLadderRow(
-                strike=175, call_gex=0, put_gex=0, net_gex=0,
-                call_dex=0, put_dex=0, net_dex=0,
-                call_oi=50, put_oi=50, call_iv=0.3, put_iv=0.32,
-                call_mark=20.0, put_mark=1.0,
+                strike=175,
+                call_gex=0,
+                put_gex=0,
+                net_gex=0,
+                call_dex=0,
+                put_dex=0,
+                net_dex=0,
+                call_oi=50,
+                put_oi=50,
+                call_iv=0.3,
+                put_iv=0.32,
+                call_mark=20.0,
+                put_mark=1.0,
             ),
             ExposureLadderRow(
-                strike=180, call_gex=0, put_gex=0, net_gex=0,
-                call_dex=0, put_dex=0, net_dex=0,
-                call_oi=100, put_oi=100, call_iv=0.25, put_iv=0.27,
-                call_mark=3.0, put_mark=3.0,
+                strike=180,
+                call_gex=0,
+                put_gex=0,
+                net_gex=0,
+                call_dex=0,
+                put_dex=0,
+                net_dex=0,
+                call_oi=100,
+                put_oi=100,
+                call_iv=0.25,
+                put_iv=0.27,
+                call_mark=3.0,
+                put_mark=3.0,
             ),
         ]
         result = _compute_implied_move(rows, 180.0)
@@ -289,12 +335,23 @@ class TestImpliedMove:
         assert result == pytest.approx(6.0 / 180.0)
 
     def test_none_when_no_marks(self):
-        rows = [ExposureLadderRow(
-            strike=180, call_gex=0, put_gex=0, net_gex=0,
-            call_dex=0, put_dex=0, net_dex=0,
-            call_oi=0, put_oi=0, call_iv=None, put_iv=None,
-            call_mark=None, put_mark=None,
-        )]
+        rows = [
+            ExposureLadderRow(
+                strike=180,
+                call_gex=0,
+                put_gex=0,
+                net_gex=0,
+                call_dex=0,
+                put_dex=0,
+                net_dex=0,
+                call_oi=0,
+                put_oi=0,
+                call_iv=None,
+                put_iv=None,
+                call_mark=None,
+                put_mark=None,
+            )
+        ]
         assert _compute_implied_move(rows, 180.0) is None
 
     def test_none_on_empty_ladder(self):
@@ -302,6 +359,7 @@ class TestImpliedMove:
 
 
 # ── Aggregates ────────────────────────────────────────────────────────────────
+
 
 class TestAggregates:
     def test_pcr_oi(self):
@@ -375,7 +433,9 @@ async def test_get_options_exposure_uses_provider_expiration_list(db, instrument
 
 
 @pytest.mark.asyncio
-async def test_list_exposure_expirations_filters_out_non_provider_expirations(db, instrument, monkeypatch):
+async def test_list_exposure_expirations_filters_out_non_provider_expirations(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
 
     async def _ensure(*_args, **_kwargs):

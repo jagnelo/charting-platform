@@ -18,6 +18,7 @@ Earnings date approximation:
   for historical reference and event-proximity calculations; they should not be
   used for time-sensitive intraday trading logic.
 """
+
 from __future__ import annotations
 
 import logging
@@ -79,11 +80,13 @@ class EdgarProvider:
                 currency="USD",
                 quote_type="EQUITY",
                 exchange="",
-                listings=[ListingRecord(
-                    provider_symbol=symbol.upper(),
-                    currency="USD",
-                    is_primary=True,
-                )],
+                listings=[
+                    ListingRecord(
+                        provider_symbol=symbol.upper(),
+                        currency="USD",
+                        is_primary=True,
+                    )
+                ],
                 extra={"cik": cik},
             )
 
@@ -100,13 +103,16 @@ class EdgarProvider:
             currency="USD",
             quote_type="EQUITY",
             exchange=exchanges[0] if exchanges else "",
-            listings=[ListingRecord(
-                provider_symbol=t,
-                exchange_code=exchanges[i] if i < len(exchanges) else None,
-                currency="USD",
-                provider_instrument_type="EQUITY",
-                is_primary=(i == 0),
-            ) for i, t in enumerate(tickers)],
+            listings=[
+                ListingRecord(
+                    provider_symbol=t,
+                    exchange_code=exchanges[i] if i < len(exchanges) else None,
+                    currency="USD",
+                    provider_instrument_type="EQUITY",
+                    is_primary=(i == 0),
+                )
+                for i, t in enumerate(tickers)
+            ],
             raw_payload={
                 "cik": cik,
                 "tickers": tickers,
@@ -159,15 +165,17 @@ class EdgarProvider:
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=UTC)
                 period = "Annual" if form == "10-K" else "Quarterly"
-                events.append(InstrumentEventRecord(
-                    event_type=InstrumentEventType.EARNINGS,
-                    event_time=dt,
-                    time_hint=EventTimeHint.UNKNOWN,
-                    title=f"{period} Report Filed ({form})",
-                    source_event_key=f"edgar_{form}_{acc.replace('-', '')}",
-                    fetched_at=fetched,
-                    raw_payload=f'{{"form":"{form}","date":"{date_str}","accession":"{acc}"}}',
-                ))
+                events.append(
+                    InstrumentEventRecord(
+                        event_type=InstrumentEventType.EARNINGS,
+                        event_time=dt,
+                        time_hint=EventTimeHint.UNKNOWN,
+                        title=f"{period} Report Filed ({form})",
+                        source_event_key=f"edgar_{form}_{acc.replace('-', '')}",
+                        fetched_at=fetched,
+                        raw_payload=f'{{"form":"{form}","date":"{date_str}","accession":"{acc}"}}',
+                    )
+                )
             except (ValueError, KeyError):
                 continue
 
@@ -175,6 +183,7 @@ class EdgarProvider:
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
+
 
 def _resolve_cik(symbol: str, headers: dict) -> dict | None:
     """Return {"cik": int, "title": str} for the given ticker, or None."""

@@ -17,6 +17,7 @@ FRED returns single scalar observations, not OHLCV.  open=high=low=close=value
 so bars integrate cleanly with the existing OHLCVBar model.
 Only D1 timeframe is supported (FRED is a daily/lower-frequency data source).
 """
+
 from __future__ import annotations
 
 import logging
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://api.stlouisfed.org/fred"
 
+
 def _assert_key() -> bool:
     """Return True if FRED_API_KEY is configured, False (with a warning) if not."""
     if settings.FRED_API_KEY:
@@ -41,13 +43,14 @@ def _assert_key() -> bool:
     )
     return False
 
+
 # Canonical platform symbol → FRED series ID
 _SERIES_MAP: dict[str, str] = {
     # Risk-free rates (annual %, discount basis)
-    "^IRX": "DTB3",        # 3-Month Treasury Bill
-    "^FVX": "DGS5",        # 5-Year Treasury CMT
-    "^TNX": "DGS10",       # 10-Year Treasury CMT
-    "^TYX": "DGS30",       # 30-Year Treasury CMT
+    "^IRX": "DTB3",  # 3-Month Treasury Bill
+    "^FVX": "DGS5",  # 5-Year Treasury CMT
+    "^TNX": "DGS10",  # 10-Year Treasury CMT
+    "^TYX": "DGS30",  # 30-Year Treasury CMT
     # Effective Federal Funds Rate
     "FEDFUNDS": "FEDFUNDS",
     # Forex daily exchange rates (USD per foreign unit unless noted)
@@ -61,10 +64,10 @@ _SERIES_MAP: dict[str, str] = {
     "CNYUSD=X": "DEXCHUS",  # CNY per USD (inverted)
     # US macro indicators
     "CPIAUCSL": "CPIAUCSL",  # CPI All Urban Consumers SA (monthly)
-    "UNRATE": "UNRATE",      # Unemployment Rate (monthly)
-    "GDP": "GDP",            # Real GDP (quarterly)
-    "T10YIE": "T10YIE",      # 10-Year Breakeven Inflation Rate
-    "VIXCLS": "VIXCLS",      # CBOE Volatility Index (daily)
+    "UNRATE": "UNRATE",  # Unemployment Rate (monthly)
+    "GDP": "GDP",  # Real GDP (quarterly)
+    "T10YIE": "T10YIE",  # 10-Year Breakeven Inflation Rate
+    "VIXCLS": "VIXCLS",  # CBOE Volatility Index (daily)
     # Commodity proxies (daily)
     "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil price
 }
@@ -126,19 +129,21 @@ class FREDProvider:
             try:
                 ts = datetime.strptime(obs["date"], "%Y-%m-%d").replace(tzinfo=UTC)
                 val = float(raw_val)
-                bars.append(OHLCVBar(
-                    instrument_id=instrument_id,
-                    data_source_id=data_source_id,
-                    timeframe=timeframe,
-                    ts=ts,
-                    open=val,
-                    high=val,
-                    low=val,
-                    close=val,
-                    volume=None,
-                    vwap=None,
-                    is_adjusted=True,
-                ))
+                bars.append(
+                    OHLCVBar(
+                        instrument_id=instrument_id,
+                        data_source_id=data_source_id,
+                        timeframe=timeframe,
+                        ts=ts,
+                        open=val,
+                        high=val,
+                        low=val,
+                        close=val,
+                        volume=None,
+                        vwap=None,
+                        is_adjusted=True,
+                    )
+                )
             except (KeyError, ValueError):
                 continue
 
@@ -156,8 +161,13 @@ class FREDProvider:
     ) -> list[OHLCVBar]:
         start = self.latest_window_start(timeframe, limit)
         bars = self.fetch_ohlcv(
-            symbol, timeframe, start, datetime.now(UTC),
-            adjusted=adjusted, instrument_id=instrument_id, data_source_id=data_source_id,
+            symbol,
+            timeframe,
+            start,
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
         )
         return bars[-limit:]
 
@@ -194,6 +204,7 @@ class FREDProvider:
 
 
 # ── Public helpers ────────────────────────────────────────────────────────────
+
 
 def is_fred_symbol(symbol: str) -> bool:
     """Return True if the symbol is covered by the FRED series map."""

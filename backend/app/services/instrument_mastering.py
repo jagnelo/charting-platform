@@ -15,10 +15,10 @@ from app.models.instrument_identity import (
     InstrumentIdentifierType,
     InstrumentProviderSymbol,
 )
-from app.models.provider_observation import InstrumentProfileSnapshot
-from app.models.provider_runtime import ProviderCapability
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
+from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
 from app.services.provider_observations import store_identifier_snapshot
@@ -184,14 +184,20 @@ def _value_from_snapshot(payload: dict[str, Any], field_name: str) -> Any:
     return None
 
 
-async def reconcile_instrument_profile(db: AsyncSession, instrument: Instrument) -> InstrumentProfile | None:
+async def reconcile_instrument_profile(
+    db: AsyncSession, instrument: Instrument
+) -> InstrumentProfile | None:
     snapshots = (
-        await db.execute(
-            select(InstrumentProfileSnapshot).where(
-                InstrumentProfileSnapshot.instrument_id == instrument.id
-            ).order_by(InstrumentProfileSnapshot.observed_at.desc())
+        (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentProfileSnapshot.observed_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if not snapshots:
         return None
 
@@ -396,7 +402,9 @@ async def register_provider_symbol(
         db.add(existing)
 
     existing.provider_exchange_code = provider_exchange_code or existing.provider_exchange_code
-    existing.provider_instrument_type = provider_instrument_type or existing.provider_instrument_type
+    existing.provider_instrument_type = (
+        provider_instrument_type or existing.provider_instrument_type
+    )
     existing.is_active = True
     existing.is_primary = is_primary or existing.is_primary
     existing.extra_data = {
@@ -733,7 +741,9 @@ async def apply_profile_to_instrument(
 
     if quote_type in {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}:
         detail = (
-            await db.execute(select(EquityDetail).where(EquityDetail.instrument_id == instrument.id))
+            await db.execute(
+                select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+            )
         ).scalar_one_or_none()
         if detail is None:
             detail = EquityDetail(instrument_id=instrument.id)
@@ -743,7 +753,9 @@ async def apply_profile_to_instrument(
         detail.country = profile.extra.get("country") or detail.country
         detail.exchange_mic = profile.exchange or detail.exchange_mic
         detail.website = profile.extra.get("website") or detail.website
-        detail.market_cap_tier = _cap_tier(profile.extra.get("market_cap")) or detail.market_cap_tier
+        detail.market_cap_tier = (
+            _cap_tier(profile.extra.get("market_cap")) or detail.market_cap_tier
+        )
         if profile.extra.get("employees") is not None:
             detail.employees = profile.extra["employees"]
         for field_name, value in [
@@ -768,7 +780,9 @@ async def apply_profile_to_instrument(
         pair = _parse_forex_pair(profile.canonical_symbol)
         if pair:
             detail = (
-                await db.execute(select(ForexDetail).where(ForexDetail.instrument_id == instrument.id))
+                await db.execute(
+                    select(ForexDetail).where(ForexDetail.instrument_id == instrument.id)
+                )
             ).scalar_one_or_none()
             if detail is None:
                 detail = ForexDetail(
@@ -791,7 +805,9 @@ async def apply_profile_to_instrument(
 
     elif quote_type == "FUTURE":
         detail = (
-            await db.execute(select(FutureDetail).where(FutureDetail.instrument_id == instrument.id))
+            await db.execute(
+                select(FutureDetail).where(FutureDetail.instrument_id == instrument.id)
+            )
         ).scalar_one_or_none()
         if detail is None:
             detail = FutureDetail(instrument_id=instrument.id)

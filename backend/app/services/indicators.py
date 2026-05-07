@@ -217,7 +217,9 @@ def _compute_atr(data: OHLCVSeries, period: int = 14) -> dict:
     return {"atr": atr.to_numpy()}
 
 
-def _compute_stoch(data: OHLCVSeries, k_period: int = 14, d_period: int = 3, smooth_k: int = 3) -> dict:
+def _compute_stoch(
+    data: OHLCVSeries, k_period: int = 14, d_period: int = 3, smooth_k: int = 3
+) -> dict:
     high = pd.Series(data.highs)
     low = pd.Series(data.lows)
     close = pd.Series(data.closes)
@@ -290,7 +292,9 @@ def _compute_ichimoku(
     }
 
 
-def _compute_psar(data: OHLCVSeries, af_start: float = 0.02, af_step: float = 0.02, af_max: float = 0.2) -> dict:
+def _compute_psar(
+    data: OHLCVSeries, af_start: float = 0.02, af_step: float = 0.02, af_max: float = 0.2
+) -> dict:
     high = data.highs
     low = data.lows
     n = len(high)
@@ -353,14 +357,18 @@ def _compute_donchian(data: OHLCVSeries, period: int = 20) -> dict:
     }
 
 
-def _compute_keltner(data: OHLCVSeries, period: int = 20, atr_period: int = 10, multiplier: float = 2.0) -> dict:
+def _compute_keltner(
+    data: OHLCVSeries, period: int = 20, atr_period: int = 10, multiplier: float = 2.0
+) -> dict:
     close = pd.Series(data.closes)
     high = pd.Series(data.highs)
     low = pd.Series(data.lows)
     mid = close.ewm(span=period, adjust=False, min_periods=period).mean()
     # ATR via EWM (same as _compute_atr)
     close_prev = close.shift(1)
-    tr = pd.concat([(high - low), (high - close_prev).abs(), (low - close_prev).abs()], axis=1).max(axis=1)
+    tr = pd.concat([(high - low), (high - close_prev).abs(), (low - close_prev).abs()], axis=1).max(
+        axis=1
+    )
     atr = tr.ewm(alpha=1 / atr_period, adjust=False, min_periods=atr_period).mean()
     return {
         "keltner_upper": (mid + multiplier * atr).to_numpy(),
@@ -510,10 +518,9 @@ def _compute_cmf(data: OHLCVSeries, period: int = 20) -> dict:
     clv = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
     mf_vol = clv * vol
 
-    cmf = (
-        mf_vol.rolling(window=period, min_periods=period).sum()
-        / vol.rolling(window=period, min_periods=period).sum().replace(0, np.nan)
-    )
+    cmf = mf_vol.rolling(window=period, min_periods=period).sum() / vol.rolling(
+        window=period, min_periods=period
+    ).sum().replace(0, np.nan)
     return {"cmf": cmf.to_numpy()}
 
 
@@ -759,7 +766,13 @@ INDICATOR_REGISTRY: dict[str, IndicatorDef] = {
             ParamDef("senkou_b", int, 52, "Senkou Span B period", min_value=1),
             ParamDef("displacement", int, 26, "Cloud displacement (forward shift)", min_value=1),
         ],
-        output_keys=["ichimoku_tenkan", "ichimoku_kijun", "ichimoku_senkou_a", "ichimoku_senkou_b", "ichimoku_chikou"],
+        output_keys=[
+            "ichimoku_tenkan",
+            "ichimoku_kijun",
+            "ichimoku_senkou_a",
+            "ichimoku_senkou_b",
+            "ichimoku_chikou",
+        ],
         fn=_compute_ichimoku,
         default_style={"color": "#80cbc4", "lineWidth": 1.5},
     ),
@@ -769,9 +782,20 @@ INDICATOR_REGISTRY: dict[str, IndicatorDef] = {
         pane="main",
         description="Parabolic Stop and Reverse — trend-following indicator plotted as dots",
         params=[
-            ParamDef("af_start", float, 0.02, "Initial acceleration factor", min_value=0.001, max_value=1.0),
-            ParamDef("af_step", float, 0.02, "Acceleration factor step", min_value=0.001, max_value=1.0),
-            ParamDef("af_max", float, 0.2, "Maximum acceleration factor", min_value=0.01, max_value=1.0),
+            ParamDef(
+                "af_start",
+                float,
+                0.02,
+                "Initial acceleration factor",
+                min_value=0.001,
+                max_value=1.0,
+            ),
+            ParamDef(
+                "af_step", float, 0.02, "Acceleration factor step", min_value=0.001, max_value=1.0
+            ),
+            ParamDef(
+                "af_max", float, 0.2, "Maximum acceleration factor", min_value=0.01, max_value=1.0
+            ),
         ],
         output_keys=["psar"],
         fn=_compute_psar,

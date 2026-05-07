@@ -109,3 +109,91 @@ Append a short entry after each worker session.
 ### Next step
 
 - Commit the Settings page rework if the user is happy with the direction, then optionally do a browser-level layout sanity check.
+
+### Timestamp
+
+- 2026-05-04T19:46:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Implement Technical Radar v1 with persisted detections, dedicated radar UI, and chart evidence overlays.
+
+### Completed
+
+- Added backend radar models, migration, schemas, router, and service logic for persisted `radar_run` / `radar_detection` records.
+- Implemented a transparent v1 radar classifier for daily support/resistance, reclaim, rejection, and breakout/breakdown-adjacent setups with persisted score factors and overlay evidence.
+- Added frontend radar route/view/store, sidebar navigation entry, and chart query/open flow that loads non-editable radar overlays into `UPlotChart`.
+- Added targeted backend unit tests and a frontend radar view test.
+
+### Validation
+
+- `rtk backend/.venv/bin/python -m py_compile backend/app/models/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/app/routers/radar.py backend/app/tasks/radar_tasks.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_radar_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The local default `python3` / `uv run` path used Python 3.9, which is incompatible with existing repo imports of `datetime.UTC`.
+- The new backend integration tests could not run in this environment because Docker/testcontainers could not reach a Docker daemon.
+- Full browser/E2E validation is still outstanding.
+
+### Assumptions
+
+- Radar results should be machine-owned and separate from editable user drawings.
+- V1 should prioritize inspectable, daily swing-oriented evidence over deeper automation or intraday scheduling.
+
+### Next step
+
+- Run the Alembic migration and the new radar integration tests in a Docker-enabled environment, then do a browser-level `/radar` and chart-overlay sanity pass before committing.
+
+### Timestamp
+
+- 2026-05-04T23:20:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Finish the Technical Radar v1 follow-through work: deepen docs and future TODO detail, expand tests, re-run validation, and prepare grouped commits.
+
+### Completed
+
+- Added radar follow-through documentation in `docs/technical-radar.md`, expanded the API and architecture docs, and rewrote the radar TODO into a much richer post-v1 roadmap.
+- Expanded radar-specific coverage across backend unit/API integration tests, frontend store/view tests, and Playwright flow coverage for the new radar route and open-in-chart behavior.
+- Hardened `backend/tests/conftest.py` so integration tests can optionally reuse already-running Postgres/Redis services via `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
+- Re-ran the full backend unit suite, the full frontend unit suite, targeted radar tests, and targeted radar-file lint/type checks.
+- Grouped the substantive work into isolated commits:
+  - `bf2526d feat(radar): add backend technical radar foundation`
+  - `dfabcfc feat(frontend): add technical radar workspace`
+  - `df0df8e test(radar): expand radar coverage`
+  - `4f38182 docs(radar): document v1 and future roadmap`
+
+### Validation
+
+- `rtk make test-unit`
+- `rtk make test-fe`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/python -m ruff check backend/app/models/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/app/routers/radar.py backend/app/tasks/radar_tasks.py backend/app/models/__init__.py backend/tests/conftest.py backend/tests/unit/services/test_radar_engine.py backend/tests/integration/api/test_radar.py`
+
+### Problems found
+
+- `make test-int`, raw `docker run`, and `make dev-infra` all stalled before container creation completed, so backend integration and Playwright stack validation remain blocked by the current Docker environment rather than by observed radar assertions.
+- `make lint` still reports unrelated pre-existing import-order and unused-import issues outside the radar change-set; targeted radar-file linting is clean.
+
+### Assumptions
+
+- The right near-term move is to preserve the explainable v1 radar foundation and document the richer roadmap rather than stretching this branch into a speculative v2 engine.
+- Reusing existing Postgres/Redis services through explicit test env vars is a worthwhile escape hatch for local integration runs on unstable Docker setups.
+
+### Next step
+
+- In a healthy Docker-enabled environment, bring up the stack, run `make test-int`, run the Playwright radar flow, and visually confirm `/radar` plus chart overlay behavior against migrated live services.

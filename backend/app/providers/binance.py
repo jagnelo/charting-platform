@@ -14,6 +14,7 @@ Symbol convention:
   Binance internal   : BTCUSDT
 Conversion is handled transparently in _to_binance / _from_binance.
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,10 +47,17 @@ _TF_MAP: dict[Timeframe, str] = {
 }
 
 _TF_SECONDS: dict[Timeframe, int] = {
-    Timeframe.M1: 60, Timeframe.M5: 300, Timeframe.M15: 900,
-    Timeframe.M30: 1800, Timeframe.H1: 3600, Timeframe.H2: 7200,
-    Timeframe.H4: 14400, Timeframe.H12: 43200, Timeframe.D1: 86400,
-    Timeframe.W1: 604800, Timeframe.MN: 2592000,
+    Timeframe.M1: 60,
+    Timeframe.M5: 300,
+    Timeframe.M15: 900,
+    Timeframe.M30: 1800,
+    Timeframe.H1: 3600,
+    Timeframe.H2: 7200,
+    Timeframe.H4: 14400,
+    Timeframe.H12: 43200,
+    Timeframe.D1: 86400,
+    Timeframe.W1: 604800,
+    Timeframe.MN: 2592000,
 }
 
 # Module-level universe cache
@@ -113,19 +121,21 @@ class BinanceProvider:
                 try:
                     # klines: [open_time, open, high, low, close, volume, close_time, ...]
                     ts = datetime.fromtimestamp(k[0] / 1000, tz=UTC)
-                    bars.append(OHLCVBar(
-                        instrument_id=instrument_id,
-                        data_source_id=data_source_id,
-                        timeframe=timeframe,
-                        ts=ts,
-                        open=float(k[1]),
-                        high=float(k[2]),
-                        low=float(k[3]),
-                        close=float(k[4]),
-                        volume=float(k[5]) if k[5] else None,
-                        vwap=None,
-                        is_adjusted=True,
-                    ))
+                    bars.append(
+                        OHLCVBar(
+                            instrument_id=instrument_id,
+                            data_source_id=data_source_id,
+                            timeframe=timeframe,
+                            ts=ts,
+                            open=float(k[1]),
+                            high=float(k[2]),
+                            low=float(k[3]),
+                            close=float(k[4]),
+                            volume=float(k[5]) if k[5] else None,
+                            vwap=None,
+                            is_adjusted=True,
+                        )
+                    )
                 except (IndexError, ValueError):
                     continue
 
@@ -149,8 +159,13 @@ class BinanceProvider:
     ) -> list[OHLCVBar]:
         start = self.latest_window_start(timeframe, limit)
         bars = self.fetch_ohlcv(
-            symbol, timeframe, start, datetime.now(UTC),
-            adjusted=adjusted, instrument_id=instrument_id, data_source_id=data_source_id,
+            symbol,
+            timeframe,
+            start,
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
         )
         return bars[-limit:]
 
@@ -184,7 +199,7 @@ class BinanceProvider:
             return {"total": 0, "quotes": []}
 
         pairs = _cached_usdt_pairs()
-        page = pairs[offset: offset + _PAGE_SIZE]
+        page = pairs[offset : offset + _PAGE_SIZE]
         return {
             "total": len(pairs),
             "quotes": [_pair_to_quote(p) for p in page],
@@ -195,6 +210,7 @@ class BinanceProvider:
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
+
 
 def _to_binance(symbol: str) -> str | None:
     """BTC-USD → BTCUSDT; returns None if not a USD crypto pair."""
@@ -222,7 +238,8 @@ def _cached_usdt_pairs() -> list[dict]:
         r.raise_for_status()
         symbols = r.json().get("symbols", [])
         pairs = [
-            s for s in symbols
+            s
+            for s in symbols
             if s.get("quoteAsset") == "USDT"
             and s.get("status") == "TRADING"
             and s.get("isSpotTradingAllowed")

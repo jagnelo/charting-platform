@@ -86,8 +86,12 @@ class TestScreenerCRUD:
             "universe_type": "all",
             "timeframe": "D1",
         }
-        assert client.post("/api/v1/screeners", headers=auth_headers, json=payload).status_code == 201
-        assert client.post("/api/v1/screeners", headers=auth_headers, json=payload).status_code == 409
+        assert (
+            client.post("/api/v1/screeners", headers=auth_headers, json=payload).status_code == 201
+        )
+        assert (
+            client.post("/api/v1/screeners", headers=auth_headers, json=payload).status_code == 409
+        )
 
 
 class TestScreenerRun:

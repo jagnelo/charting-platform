@@ -73,7 +73,9 @@ def _window_usage(
     if not quota_window_seconds or quota_window_seconds <= 0:
         return None, None, None, None
     started_at = now - timedelta(seconds=quota_window_seconds)
-    window_logs = [log for log in logs if (_ensure_aware(log.requested_at) or started_at) >= started_at]
+    window_logs = [
+        log for log in logs if (_ensure_aware(log.requested_at) or started_at) >= started_at
+    ]
     return (
         started_at,
         now,
@@ -91,15 +93,19 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     last_7d_since = now - timedelta(days=7)
 
     data_sources = (
-        await db.execute(select(DataSource).order_by(DataSource.name.asc()))
-    ).scalars().all()
+        (await db.execute(select(DataSource).order_by(DataSource.name.asc()))).scalars().all()
+    )
     logs = (
-        await db.execute(
-            select(ProviderRequestLog)
-            .where(ProviderRequestLog.requested_at >= retained_since)
-            .order_by(ProviderRequestLog.requested_at.asc())
+        (
+            await db.execute(
+                select(ProviderRequestLog)
+                .where(ProviderRequestLog.requested_at >= retained_since)
+                .order_by(ProviderRequestLog.requested_at.asc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     logs_by_source: dict[int, list[ProviderRequestLog]] = defaultdict(list)
     for log in logs:
@@ -121,17 +127,33 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
     for data_source in data_sources:
         tracking = _usage_tracking_config(data_source)
         provider_logs = logs_by_source.get(data_source.id, [])
-        last_24h_logs = [log for log in provider_logs if (_ensure_aware(log.requested_at) or last_24h_since) >= last_24h_since]
-        last_7d_logs = [log for log in provider_logs if (_ensure_aware(log.requested_at) or last_7d_since) >= last_7d_since]
+        last_24h_logs = [
+            log
+            for log in provider_logs
+            if (_ensure_aware(log.requested_at) or last_24h_since) >= last_24h_since
+        ]
+        last_7d_logs = [
+            log
+            for log in provider_logs
+            if (_ensure_aware(log.requested_at) or last_7d_since) >= last_7d_since
+        ]
         failures_24h = [log for log in last_24h_logs if not log.success]
         timeout_24h = [
-            log for log in last_24h_logs if (log.error_type or "").lower().endswith("timeout") or "timeout" in (log.error_type or "").lower()
+            log
+            for log in last_24h_logs
+            if (log.error_type or "").lower().endswith("timeout")
+            or "timeout" in (log.error_type or "").lower()
         ]
         latency_24h = [int(log.latency_ms) for log in last_24h_logs if log.latency_ms is not None]
         quota_limit = tracking.get("quota_limit")
         estimated_quota_limit = tracking.get("estimated_quota_limit")
         quota_window_seconds = tracking.get("quota_window_seconds")
-        current_window_started_at, current_window_ends_at, current_window_requests, current_window_units = _window_usage(
+        (
+            current_window_started_at,
+            current_window_ends_at,
+            current_window_requests,
+            current_window_units,
+        ) = _window_usage(
             provider_logs,
             now=now,
             quota_window_seconds=int(quota_window_seconds) if quota_window_seconds else None,
@@ -170,7 +192,9 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             row["units"] += _to_float(log.usage_units)
             row["failures"] += 0 if log.success else 1
 
-        error_counts = Counter((log.error_type or "UnknownError") for log in last_7d_logs if not log.success)
+        error_counts = Counter(
+            (log.error_type or "UnknownError") for log in last_7d_logs if not log.success
+        )
 
         hourly_map: dict[datetime, dict[str, Any]] = {
             bucket: {"bucket_start": bucket, "requests": 0, "units": 0.0, "failures": 0}
@@ -222,14 +246,34 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "units_24h": sum(_to_float(log.usage_units) for log in last_24h_logs),
                 "requests_7d": len(last_7d_logs),
                 "units_7d": sum(_to_float(log.usage_units) for log in last_7d_logs),
-                "success_rate_24h": _percent(len(last_24h_logs) - len(failures_24h), len(last_24h_logs)),
+                "success_rate_24h": _percent(
+                    len(last_24h_logs) - len(failures_24h), len(last_24h_logs)
+                ),
                 "failure_rate_24h": _percent(len(failures_24h), len(last_24h_logs)),
                 "timeout_rate_24h": _percent(len(timeout_24h), len(last_24h_logs)),
-                "avg_latency_ms_24h": (sum(latency_24h) / len(latency_24h)) if latency_24h else None,
+                "avg_latency_ms_24h": (sum(latency_24h) / len(latency_24h))
+                if latency_24h
+                else None,
                 "p95_latency_ms_24h": _p95(latency_24h),
-                "last_request_at": _ensure_aware(provider_logs[-1].requested_at) if provider_logs else None,
-                "last_success_at": max((_ensure_aware(log.completed_at) for log in provider_logs if log.success and log.completed_at), default=None),
-                "last_failure_at": max((_ensure_aware(log.completed_at) for log in provider_logs if not log.success and log.completed_at), default=None),
+                "last_request_at": _ensure_aware(provider_logs[-1].requested_at)
+                if provider_logs
+                else None,
+                "last_success_at": max(
+                    (
+                        _ensure_aware(log.completed_at)
+                        for log in provider_logs
+                        if log.success and log.completed_at
+                    ),
+                    default=None,
+                ),
+                "last_failure_at": max(
+                    (
+                        _ensure_aware(log.completed_at)
+                        for log in provider_logs
+                        if not log.success and log.completed_at
+                    ),
+                    default=None,
+                ),
                 "top_operations": sorted(
                     operation_agg.values(),
                     key=lambda row: (-row["units"], -row["requests"], row["operation_family"]),

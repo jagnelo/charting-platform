@@ -4,6 +4,7 @@ Black-Scholes Greek estimation for European options.
 Used to estimate delta and gamma when a data provider (e.g. yfinance) supplies
 implied volatility but no Greeks. Estimates are clearly labelled in extra_greeks.
 """
+
 from __future__ import annotations
 
 import math
@@ -42,7 +43,9 @@ def estimate_greeks(
     sqrt_t = math.sqrt(tte_years)
     vol_sqrt_t = implied_vol * sqrt_t
 
-    d1 = (math.log(spot / strike) + (rfr - div_yield + 0.5 * implied_vol**2) * tte_years) / vol_sqrt_t
+    d1 = (
+        math.log(spot / strike) + (rfr - div_yield + 0.5 * implied_vol**2) * tte_years
+    ) / vol_sqrt_t
 
     discount = math.exp(-div_yield * tte_years)
     nd1 = _norm_cdf(d1)

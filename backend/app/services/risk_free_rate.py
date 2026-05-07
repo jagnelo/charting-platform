@@ -18,11 +18,13 @@ Switching data providers does not require updating RFR_INSTRUMENT_SYMBOL — onl
 provider symbol registration needs to change (or the new provider may accept the same
 canonical symbol).
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
 from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,6 +97,7 @@ async def _bootstrap_instrument(db: AsyncSession, symbol: str) -> Instrument | N
     """Register a minimal Instrument row for the RFR proxy symbol if missing."""
     try:
         from app.services.instrument_mastering import ensure_instrument_type
+
         type_id = await ensure_instrument_type(db, "Fixed Income", "Rate Index")
         instrument = Instrument(
             symbol=symbol,

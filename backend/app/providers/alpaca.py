@@ -13,6 +13,7 @@ Data feed: ALPACA_DATA_FEED = "iex" (free) | "sip" (paid consolidated).
 Rate limits (free IEX feed): 200 req/min on data endpoints.
 Assets endpoint: single call returns all tradeable symbols (~9 000 equities).
 """
+
 from __future__ import annotations
 
 import logging
@@ -49,17 +50,23 @@ _TF_MAP: dict[Timeframe, str] = {
 }
 
 _TF_SECONDS: dict[Timeframe, int] = {
-    Timeframe.M1: 60, Timeframe.M5: 300, Timeframe.M15: 900,
-    Timeframe.M30: 1800, Timeframe.H1: 3600, Timeframe.H2: 7200,
-    Timeframe.H4: 14400, Timeframe.H12: 43200, Timeframe.D1: 86400,
-    Timeframe.W1: 604800, Timeframe.MN: 2592000,
+    Timeframe.M1: 60,
+    Timeframe.M5: 300,
+    Timeframe.M15: 900,
+    Timeframe.M30: 1800,
+    Timeframe.H1: 3600,
+    Timeframe.H2: 7200,
+    Timeframe.H4: 14400,
+    Timeframe.H12: 43200,
+    Timeframe.D1: 86400,
+    Timeframe.W1: 604800,
+    Timeframe.MN: 2592000,
 }
 
 # Module-level asset cache: keyed by asset_class string
 _asset_cache: dict[str, list[dict]] = {}
 _asset_cache_ts: float = 0.0
 _ASSET_CACHE_TTL = 3600 * 4  # 4 hours
-
 
 
 class AlpacaProvider:
@@ -138,19 +145,21 @@ class AlpacaProvider:
             for b in data.get("bars", {}).get(alpaca_sym, []):
                 try:
                     ts = datetime.fromisoformat(b["t"].replace("Z", "+00:00"))
-                    bars.append(OHLCVBar(
-                        instrument_id=instrument_id,
-                        data_source_id=data_source_id,
-                        timeframe=timeframe,
-                        ts=ts,
-                        open=b["o"],
-                        high=b["h"],
-                        low=b["l"],
-                        close=b["c"],
-                        volume=b.get("v"),
-                        vwap=b.get("vw"),
-                        is_adjusted=adjusted,
-                    ))
+                    bars.append(
+                        OHLCVBar(
+                            instrument_id=instrument_id,
+                            data_source_id=data_source_id,
+                            timeframe=timeframe,
+                            ts=ts,
+                            open=b["o"],
+                            high=b["h"],
+                            low=b["l"],
+                            close=b["c"],
+                            volume=b.get("v"),
+                            vwap=b.get("vw"),
+                            is_adjusted=adjusted,
+                        )
+                    )
                 except (KeyError, ValueError):
                     continue
 
@@ -172,8 +181,13 @@ class AlpacaProvider:
     ) -> list[OHLCVBar]:
         start = self.latest_window_start(timeframe, limit)
         bars = self.fetch_ohlcv(
-            symbol, timeframe, start, datetime.now(UTC),
-            adjusted=adjusted, instrument_id=instrument_id, data_source_id=data_source_id,
+            symbol,
+            timeframe,
+            start,
+            datetime.now(UTC),
+            adjusted=adjusted,
+            instrument_id=instrument_id,
+            data_source_id=data_source_id,
         )
         return bars[-limit:]
 
@@ -236,31 +250,35 @@ class AlpacaProvider:
             dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
             if dt is None:
                 continue
-            events.append(InstrumentEventRecord(
-                event_type=InstrumentEventType.SPLIT,
-                event_time=dt,
-                time_hint=EventTimeHint.UNKNOWN,
-                title=f"Forward Split {symbol}",
-                source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
-                fetched_at=fetched,
-                split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
-                raw_payload=str(s),
-            ))
+            events.append(
+                InstrumentEventRecord(
+                    event_type=InstrumentEventType.SPLIT,
+                    event_time=dt,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"Forward Split {symbol}",
+                    source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
+                    fetched_at=fetched,
+                    split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
+                    raw_payload=str(s),
+                )
+            )
 
         for s in ca.get("reverse_splits") or []:
             dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
             if dt is None:
                 continue
-            events.append(InstrumentEventRecord(
-                event_type=InstrumentEventType.SPLIT,
-                event_time=dt,
-                time_hint=EventTimeHint.UNKNOWN,
-                title=f"Reverse Split {symbol}",
-                source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
-                fetched_at=fetched,
-                split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
-                raw_payload=str(s),
-            ))
+            events.append(
+                InstrumentEventRecord(
+                    event_type=InstrumentEventType.SPLIT,
+                    event_time=dt,
+                    time_hint=EventTimeHint.UNKNOWN,
+                    title=f"Reverse Split {symbol}",
+                    source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
+                    fetched_at=fetched,
+                    split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
+                    raw_payload=str(s),
+                )
+            )
 
         for d in ca.get("cash_dividends") or []:
             ex_dt = _parse_date(d.get("ex_date") or "")
@@ -268,27 +286,31 @@ class AlpacaProvider:
             amount = _safe_decimal(d.get("rate"))
             raw = str(d)
             if ex_dt:
-                events.append(InstrumentEventRecord(
-                    event_type=InstrumentEventType.EX_DIVIDEND,
-                    event_time=ex_dt,
-                    time_hint=EventTimeHint.UNKNOWN,
-                    title=f"Ex-Dividend {symbol}",
-                    source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
-                    fetched_at=fetched,
-                    dividend_amount=amount,
-                    raw_payload=raw,
-                ))
+                events.append(
+                    InstrumentEventRecord(
+                        event_type=InstrumentEventType.EX_DIVIDEND,
+                        event_time=ex_dt,
+                        time_hint=EventTimeHint.UNKNOWN,
+                        title=f"Ex-Dividend {symbol}",
+                        source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
+                        fetched_at=fetched,
+                        dividend_amount=amount,
+                        raw_payload=raw,
+                    )
+                )
             if pay_dt:
-                events.append(InstrumentEventRecord(
-                    event_type=InstrumentEventType.DIVIDEND,
-                    event_time=pay_dt,
-                    time_hint=EventTimeHint.UNKNOWN,
-                    title=f"Dividend {symbol}",
-                    source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
-                    fetched_at=fetched,
-                    dividend_amount=amount,
-                    raw_payload=raw,
-                ))
+                events.append(
+                    InstrumentEventRecord(
+                        event_type=InstrumentEventType.DIVIDEND,
+                        event_time=pay_dt,
+                        time_hint=EventTimeHint.UNKNOWN,
+                        title=f"Dividend {symbol}",
+                        source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
+                        fetched_at=fetched,
+                        dividend_amount=amount,
+                        raw_payload=raw,
+                    )
+                )
 
         return events
 
@@ -302,7 +324,7 @@ class AlpacaProvider:
             return {"total": 0, "quotes": []}
 
         assets = _cached_assets(self._headers(), asset_class)
-        page = assets[offset: offset + _PAGE_SIZE]
+        page = assets[offset : offset + _PAGE_SIZE]
         return {
             "total": len(assets),
             "quotes": [_asset_to_quote(a, quote_type) for a in page],
@@ -314,10 +336,10 @@ class AlpacaProvider:
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
 
+
 def _is_crypto(symbol: str) -> bool:
     return "/" in symbol or (
-        "-" in symbol
-        and symbol.split("-", 1)[1].upper() in ("USD", "USDT", "BTC", "ETH")
+        "-" in symbol and symbol.split("-", 1)[1].upper() in ("USD", "USDT", "BTC", "ETH")
     )
 
 

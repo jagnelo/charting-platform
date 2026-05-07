@@ -40,6 +40,7 @@ user
   ├── indicator_preset (named reusable indicator sets)
   ├── price_alert     (raw price conditions)
   ├── indicator_alert (indicator value conditions)
+  ├── radar_run / radar_detection (engine-owned market discovery artefacts)
   ├── watchlist
   │     └── watchlist_item
   └── screener
@@ -118,7 +119,45 @@ Long-running jobs that should not block the API run as ARQ tasks in a separate `
 | `fetch_all_instruments_history` | Nightly cron | Refresh recent data for all instruments |
 | `run_screener_task` | API request | Run a specific screener against the DB |
 | `run_all_scheduled_screeners` | Every minute | Check cron schedules and run due screeners |
+| `run_radar_scan_task` | API request / future schedule | Persist a market-wide technical radar scan |
 | `check_all_alerts` | APScheduler | Alert evaluation (also runs in main process as fallback) |
+
+---
+
+## Technical Radar
+
+The radar is a separate backend subsystem from screeners. Screeners answer “does this instrument match a user-authored ruleset right now?” while radar answers “what technically interesting setups does the system currently see across the universe, and why?”
+
+Current implementation characteristics:
+
+- engine-owned persisted runs and detections
+- persisted setup threads that link related detections across runs
+- `D1`-focused scanning
+- non-editable chart overlays generated from persisted evidence payloads
+- chart-side instrument radar panel with per-detection toggles
+- normalized scoring with stored factor breakdowns
+
+Current structure sources:
+
+- clustered swing-based support/resistance zones
+- anchored VWAP from recent pivot anchors
+- EMA context
+- 52-week high/low context
+
+The radar currently favors transparency over sophistication: evidence is stored in a format directly consumable by the UI so the chart can show the same structures used by the scorer.
+
+The newer thread layer sits between raw detections and the UI:
+
+- scan runs persist one or more detections
+- detections are matched into `radar_setup_thread` records by instrument, role, and nearby level
+- detail/chart consumers can then render a sequence of related events instead of a flat list with no memory
+
+Chart behavior is intentionally split into two modes:
+
+- opening a symbol directly in `/chart/:symbol` loads the instrument’s current detections into the radar panel but leaves them disabled by default
+- opening a symbol from `/radar` carries an internal preferred detection handoff so the target symbol opens with that one detection enabled
+
+This keeps radar evidence discoverable on the chart without turning the chart route into a fragile public URL contract for individual detection ids.
 
 ---
 

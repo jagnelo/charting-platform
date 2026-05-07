@@ -102,7 +102,9 @@ async def get_instrument_calendar(
     symbol: str,
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
-    refresh: bool = Query(False, description="Explicitly refresh source data before returning stored events"),
+    refresh: bool = Query(
+        False, description="Explicitly refresh source data before returning stored events"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

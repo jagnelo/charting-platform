@@ -107,10 +107,12 @@ describe('useOptionsExposureStore', () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error(`API GET /instruments/CSCOII → 404: {"detail":"Instrument 'CSCOII' not found"}`),
     )
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const store = useOptionsExposureStore()
     await store.load('CSCOII')
 
+    consoleSpy.mockRestore()
     expect(store.error).toBe('Options exposure "CSCOII" is not available.')
     expect(store.data).toBeNull()
   })

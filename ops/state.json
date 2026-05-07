@@ -1,22 +1,24 @@
 {
-  "active_task_id": "settings-provider-ui-rework",
+  "active_task_id": "technical-radar-v1",
   "active_worker": "Codex",
   "worker_session_started_at": "2026-04-30T22:50:48Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-04-30T22:50:48Z",
-  "last_commit": null,
-  "git_ready_to_commit": false,
+  "last_handoff_at": "2026-05-04T23:20:00Z",
+  "last_commit": "4f38182",
+  "git_ready_to_commit": true,
   "validation": {
-    "backend_tests": "not_run",
+    "backend_tests": "partial",
     "frontend_tests": "passed",
-    "frontend_build": "not_run",
+    "frontend_build": "passed",
     "playwright": "not_run",
     "console_check": "not_run",
     "backend_log_check": "not_run"
   },
   "notes": [
-    "Settings view provider-card rework complete.",
-    "Targeted Settings view unit tests passed.",
-    "Frontend type-check passed."
+    "Technical Radar v1 backend, frontend, tests, and documentation are implemented on feat/technical-radar-v1.",
+    "Commits currently staged in history: bf2526d backend, dfabcfc frontend, df0df8e tests, 4f38182 docs.",
+    "Full backend unit and frontend unit suites passed on the current branch state, along with targeted radar lint/type checks.",
+    "Backend integration and stack-backed browser validation remain blocked here because Docker container creation stalls before Postgres/Redis can start.",
+    "The integration harness now supports TEST_DATABASE_URL and TEST_REDIS_URL so future runs can reuse already-running services when testcontainers is flaky."
   ]
 }

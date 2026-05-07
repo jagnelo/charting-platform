@@ -260,6 +260,83 @@ If the indicator name is unknown:
 
 ---
 
+## Technical Radar
+
+### GET /radar/runs
+Return recent radar scan executions.
+
+**Query parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `limit` | int | Max number of recent runs to return (default `5`) |
+
+---
+
+### POST /radar/run
+Trigger a synchronous radar scan over the current active instrument universe.
+
+**Response** `200 OK`
+```json
+{
+  "id": 12,
+  "timeframe": "D1",
+  "universe_type": "all",
+  "status": "completed",
+  "started_at": "2026-05-04T10:00:00Z",
+  "completed_at": "2026-05-04T10:00:04Z",
+  "evaluated_count": 842,
+  "detection_count": 37,
+  "error_summary": null
+}
+```
+
+---
+
+### GET /radar/detections
+Return the latest completed radar detections with optional filtering.
+
+Each summary row now also includes:
+
+- `signal_at`
+- `context_at`
+- `thread_id`
+- `thread_event_index`
+
+**Query parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `setup_type` | string | Optional setup filter |
+| `min_score` | float | Minimum normalized score (0-1) |
+| `symbol` | string | Case-insensitive symbol substring filter |
+| `limit` | int | Max rows to return |
+| `fresh_only` | bool | Exclude expired detections |
+
+---
+
+### GET /radar/detections/{detection_id}
+Return one radar detection with its full evidence payload:
+
+- chart overlays
+- evidence metrics
+- extracted structure metadata
+- current setup-thread summary
+- ordered thread history for that setup storyline
+
+---
+
+### GET /radar/instruments/{instrument_id}/overlays
+Return the active radar detections for one instrument, optionally narrowed to a single detection.
+
+This is the endpoint used by the chart page to:
+
+- populate the chart-side radar sub-panel for the loaded instrument
+- render non-editable radar evidence overlays separate from saved drawings
+- restore a preferred detection when navigation originated from `/radar`
+
+---
+
 ## Price Alerts
 
 ### GET /alerts/

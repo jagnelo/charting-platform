@@ -129,7 +129,10 @@
             <div v-else-if="chartStore.error" class="chart-overlay chart-error">
               {{ chartStore.error }}
             </div>
-            <UPlotChart :comparison-series="comparisonSeries" />
+            <UPlotChart
+              :comparison-series="comparisonSeries"
+              :radar-overlays="activeRadarOverlays"
+            />
           </template>
         </div>
         <template v-if="showOptionsPanel">
@@ -206,6 +209,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
+import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
@@ -219,7 +223,7 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
-import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
+import type { ChartComparisonSeries, OHLCVBar, RadarOverlay, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
@@ -230,6 +234,7 @@ const drawStore       = useDrawingsStore()
 const alertsStore     = useAlertsStore()
 const presetsStore    = usePresetsStore()
 const optionsExposureStore = useOptionsExposureStore()
+const radarStore      = useRadarStore()
 
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
 const activePanelStore = computed(() =>
@@ -334,6 +339,12 @@ const comparisonLegend = computed(() =>
   }))
 )
 
+const activeRadarOverlays = computed<RadarOverlay[]>(() => {
+  return radarStore.chartDetections
+    .filter(detection => radarStore.isChartDetectionActive(detection.id))
+    .flatMap(detection => detection.evidence?.overlays ?? [])
+})
+
 function formatPercent(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return '—'
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
@@ -407,6 +418,9 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
+  if (chartStore.symbol !== symbol) {
+    radarStore.clearChartDetections()
+  }
   recentStore.add(symbol)
   if (route.params.symbol !== symbol) {
     router.replace(`/chart/${encodeURIComponent(symbol)}`)
@@ -423,6 +437,7 @@ async function onSymbolSelect(symbol: string) {
     }
     lastClose.value = currentPrice.value
     await loadComparisonBars()
+    await syncRadarOverlays()
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
     const targetIds = panelLinksStore.linkedPanelIds(layoutStore.activePanelId, layoutStore.panels.map(p => p.id))
@@ -439,7 +454,27 @@ async function onSymbolSelect(symbol: string) {
       await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
       await alertsStore.loadAlerts(activeInst.id)
     }
+    await syncRadarOverlays()
   }
+}
+
+async function syncRadarOverlays() {
+  if (!chartStore.instrument) {
+    radarStore.clearChartDetections()
+    return
+  }
+  const detectionId = radarStore.consumeChartDetectionForInstrument(
+    chartStore.instrument.id,
+    chartStore.instrument.symbol,
+  )
+  await radarStore.loadChartDetections(chartStore.instrument.id, detectionId)
+}
+
+function stripLegacyRadarDetectionQuery() {
+  if (!Object.prototype.hasOwnProperty.call(route.query, 'radarDetectionId')) return
+  const nextQuery = { ...route.query }
+  delete nextQuery.radarDetectionId
+  void router.replace({ path: route.path, query: nextQuery })
 }
 
 watch(currentTf, async (tf) => {
@@ -495,6 +530,13 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => route.query.radarDetectionId,
+  () => {
+    stripLegacyRadarDetectionQuery()
+  },
+  { immediate: true },
+)
 
 async function addToWatchlist(watchlistId: number) {
   const sym = activeSymbol.value
@@ -522,11 +564,14 @@ onMounted(async () => {
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
-  if (sym) await onSymbolSelect(sym)
+  if (sym) {
+    await onSymbolSelect(sym)
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', onDocClick, true)
+  radarStore.clearPendingChartDetection()
 })
 </script>
 

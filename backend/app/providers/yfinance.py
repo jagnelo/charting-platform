@@ -204,10 +204,16 @@ def _append_earnings_events(
 
         dt, hint = parsed
         row_dict = row.to_dict()
-        eps_est = _safe_decimal(_row_value(row_dict, "EPS Estimate", "EPSEstimate", "Earnings Average"))
-        eps_actual = _safe_decimal(_row_value(row_dict, "Reported EPS", "ReportedEPS", "EPS Actual"))
+        eps_est = _safe_decimal(
+            _row_value(row_dict, "EPS Estimate", "EPSEstimate", "Earnings Average")
+        )
+        eps_actual = _safe_decimal(
+            _row_value(row_dict, "Reported EPS", "ReportedEPS", "EPS Actual")
+        )
         surprise = _safe_decimal(_row_value(row_dict, "Surprise", "EPS Surprise"))
-        surprise_pct = _safe_decimal(_row_value(row_dict, "Surprise(%)", "Surprise %", "EPSSurprisePct"))
+        surprise_pct = _safe_decimal(
+            _row_value(row_dict, "Surprise(%)", "Surprise %", "EPSSurprisePct")
+        )
         if surprise is None and eps_est is not None and eps_actual is not None:
             surprise = eps_actual - eps_est
         if surprise_pct is None and surprise is not None and eps_est not in (None, 0):
@@ -447,7 +453,9 @@ class YFinanceProvider:
                             value=amount,
                             dividend_amount=amount,
                             source_event_key=f"ex_dividend:{dt.date().isoformat()}",
-                            raw_payload=_payload(cal if isinstance(cal, dict) else {"calendar": cal}),
+                            raw_payload=_payload(
+                                cal if isinstance(cal, dict) else {"calendar": cal}
+                            ),
                             fetched_at=fetched_at,
                         )
                     )
@@ -468,7 +476,9 @@ class YFinanceProvider:
                             actual=amount,
                             dividend_amount=amount,
                             source_event_key=f"dividend:{dt.date().isoformat()}",
-                            raw_payload=_payload(cal if isinstance(cal, dict) else {"calendar": cal}),
+                            raw_payload=_payload(
+                                cal if isinstance(cal, dict) else {"calendar": cal}
+                            ),
                             fetched_at=fetched_at,
                         )
                     )

@@ -35,11 +35,17 @@
         <template v-if="sessionHigh != null && sessionLow != null">
           <div class="info-label">Day Range</div>
           <div class="range-row">
-            <span class="range-lo">{{ fmt(sessionLow) }}</span>
+            <HoverTooltip v-if="rangeOccurrenceTitle('Day low', sessionLowTime, true)" :text="rangeOccurrenceTitle('Day low', sessionLowTime, true)">
+              <span class="range-lo range-val--hint">{{ fmt(sessionLow) }}</span>
+            </HoverTooltip>
+            <span v-else class="range-lo">{{ fmt(sessionLow) }}</span>
             <div class="range-bar-wrap">
               <div class="range-bar-fill" :style="{ width: sessionRangePercent + '%' }" />
             </div>
-            <span class="range-hi">{{ fmt(sessionHigh) }}</span>
+            <HoverTooltip v-if="rangeOccurrenceTitle('Day high', sessionHighTime, true)" :text="rangeOccurrenceTitle('Day high', sessionHighTime, true)">
+              <span class="range-hi range-val--hint">{{ fmt(sessionHigh) }}</span>
+            </HoverTooltip>
+            <span v-else class="range-hi">{{ fmt(sessionHigh) }}</span>
           </div>
         </template>
 
@@ -47,11 +53,17 @@
         <template v-if="stats?.week52_high != null && stats?.week52_low != null">
           <div class="info-label">52-Week Range</div>
           <div class="range-row">
-            <span class="range-lo">{{ fmt(stats.week52_low) }}</span>
+            <HoverTooltip v-if="rangeOccurrenceTitle('52-week low', stats?.field_provenance?.week52_low?.observed_at)" :text="rangeOccurrenceTitle('52-week low', stats?.field_provenance?.week52_low?.observed_at)">
+              <span class="range-lo range-val--hint">{{ fmt(stats.week52_low) }}</span>
+            </HoverTooltip>
+            <span v-else class="range-lo">{{ fmt(stats.week52_low) }}</span>
             <div class="range-bar-wrap">
               <div class="range-bar-fill" :style="{ width: rangePercent + '%' }" />
             </div>
-            <span class="range-hi">{{ fmt(stats.week52_high) }}</span>
+            <HoverTooltip v-if="rangeOccurrenceTitle('52-week high', stats?.field_provenance?.week52_high?.observed_at)" :text="rangeOccurrenceTitle('52-week high', stats?.field_provenance?.week52_high?.observed_at)">
+              <span class="range-hi range-val--hint">{{ fmt(stats.week52_high) }}</span>
+            </HoverTooltip>
+            <span v-else class="range-hi">{{ fmt(stats.week52_high) }}</span>
           </div>
         </template>
 
@@ -120,6 +132,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
 import type { Instrument } from '@/types'
 
@@ -128,6 +141,8 @@ const props = defineProps<{
   currentPrice?: number | null
   sessionHigh?: number | null
   sessionLow?: number | null
+  sessionHighTime?: string | null
+  sessionLowTime?: string | null
 }>()
 const emit = defineEmits<{ select: [symbol: string] }>()
 
@@ -190,6 +205,40 @@ function fmtCap(v: number | undefined | null): string {
 function websiteHost(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') }
   catch { return url }
+}
+
+function formatCalendarDate(value?: string | null): string | undefined {
+  if (!value) return undefined
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/)
+  if (match) return match[0]
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return undefined
+  return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`
+}
+
+function formatRawTimeOfDay(value?: string | null): string | undefined {
+  if (!value) return undefined
+  const match = value.match(/T(\d{2}):(\d{2})/)
+  if (match) return `${match[1]}:${match[2]}`
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return undefined
+  return `${String(parsed.getUTCHours()).padStart(2, '0')}:${String(parsed.getUTCMinutes()).padStart(2, '0')}`
+}
+
+function rangeOccurrenceTitle(
+  label: string,
+  observedAt?: string | null,
+  includeTime = false,
+): string | undefined {
+  const observedDate = formatCalendarDate(observedAt)
+  if (!observedDate) return undefined
+  if (includeTime) {
+    const observedTime = formatRawTimeOfDay(observedAt)
+    if (observedTime) return `${label} occurred on ${observedDate} at ${observedTime} UTC`
+  }
+  return `${label} occurred on ${observedDate}`
 }
 </script>
 
@@ -313,6 +362,11 @@ function websiteHost(url: string): string {
   min-width: 44px;
 }
 .range-hi { text-align: right; }
+.range-val--hint {
+  cursor: help;
+  text-decoration: underline dotted rgba(120, 120, 120, 0.55);
+  text-underline-offset: 2px;
+}
 
 .range-bar-wrap {
   flex: 1;

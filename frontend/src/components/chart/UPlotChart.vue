@@ -214,7 +214,7 @@ import {
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
+import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, RadarOverlay, Timeframe, ChartBarType } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
@@ -228,6 +228,7 @@ const props = withDefaults(defineProps<{
   enableKeyboard?: boolean
   showControls?: boolean
   comparisonSeries?: ChartComparisonSeries[]
+  radarOverlays?: RadarOverlay[]
 }>(), {
   showIndicators: true,
   showOverlays: true,
@@ -821,10 +822,78 @@ function positionEventPopover(clientX: number, clientY: number): { x: number; y:
 
 function renderVisualOverlays() {
   drawingRenderer?.renderAll(drawingOverlayList(null), measurementOverlay())
+  renderRadarOverlays()
   for (const pane of subPanes.value) {
     const renderer = subDrawingRenderers[pane.key]
     if (renderer) renderer.renderAll(drawingOverlayList(pane.config.type))
   }
+}
+
+function renderRadarOverlays() {
+  if (!uplot || !drawingCanvasRef.value || !props.radarOverlays?.length) return
+  const plot = uplot
+  const ctx = drawingCanvasRef.value.getContext('2d')
+  if (!ctx) return
+
+  ctx.save()
+  for (const overlay of props.radarOverlays) {
+    const color = overlay.color ?? '#4ea8de'
+    if (overlay.kind === 'zone' && overlay.start_time != null && overlay.end_time != null && overlay.price_low != null && overlay.price_high != null) {
+      const x1 = plot.valToPos(timeToBarIndex(overlay.start_time), 'x')
+      const x2 = plot.valToPos(timeToBarIndex(overlay.end_time), 'x')
+      const y1 = plot.valToPos(overlay.price_high, 'y')
+      const y2 = plot.valToPos(overlay.price_low, 'y')
+      ctx.fillStyle = `${color}22`
+      ctx.strokeStyle = color
+      ctx.lineWidth = 1
+      ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
+      ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
+      if (overlay.label) {
+        ctx.fillStyle = color
+        ctx.font = '11px monospace'
+        ctx.fillText(overlay.label, Math.min(x1, x2) + 4, Math.min(y1, y2) - 4)
+      }
+      continue
+    }
+
+    if (overlay.kind === 'line' && overlay.points?.length) {
+      ctx.beginPath()
+      ctx.strokeStyle = color
+      ctx.lineWidth = overlay.role?.startsWith('week52') ? 1 : 1.35
+      ctx.setLineDash(overlay.dash_pattern ?? (overlay.role?.startsWith('week52') ? [5, 4] : []))
+      overlay.points.forEach((point, index) => {
+        const x = plot.valToPos(timeToBarIndex(point.time), 'x')
+        const y = plot.valToPos(point.price, 'y')
+        if (index === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.setLineDash([])
+      if (overlay.role === 'invalidation' && overlay.label && overlay.points.length) {
+        const lastPt = overlay.points[overlay.points.length - 1]
+        const lx = plot.valToPos(timeToBarIndex(lastPt.time), 'x')
+        const ly = plot.valToPos(lastPt.price, 'y')
+        ctx.fillStyle = color
+        ctx.font = '10px monospace'
+        ctx.fillText(overlay.label, lx - 76, ly - 4)
+      }
+      continue
+    }
+
+    if (overlay.kind === 'marker' && overlay.time != null && overlay.price != null) {
+      const x = plot.valToPos(timeToBarIndex(overlay.time), 'x')
+      const y = plot.valToPos(overlay.price, 'y')
+      ctx.beginPath()
+      ctx.fillStyle = color
+      ctx.arc(x, y, 4, 0, Math.PI * 2)
+      ctx.fill()
+      if (overlay.label) {
+        ctx.font = '11px monospace'
+        ctx.fillText(overlay.label, x + 6, y - 6)
+      }
+    }
+  }
+  ctx.restore()
 }
 
 function drawingOverlayList(indicatorKey: string | null): AnyDrawing[] {
@@ -2979,6 +3048,7 @@ watch(visibleAlerts, () => {
 watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVisuals() })
 watch(() => visibleAlerts.value.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
+watch(() => props.radarOverlays, () => { redrawVisuals() }, { deep: true })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })
 watch(showApproxVolumeProfile,    () => { initChart() })
@@ -3241,6 +3311,16 @@ defineExpose({ jumpToTs })
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 10px;
+}
+.ed-section-sep {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #1a1a1a;
+}
+.ed-hint {
+  font-size: 10px;
+  color: #3a3a3a;
+  padding-bottom: 4px;
 }
 .ed-checkbox-row {
   display: flex; align-items: center; gap: 8px;

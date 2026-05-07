@@ -14,15 +14,14 @@ from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.instrument_stats import InstrumentStats
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
     InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
     LatestPriceSnapshot,
 )
-from app.models.instrument_stats import InstrumentStats
-from app.models.provider_runtime import ProviderCapability
-from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
@@ -54,7 +53,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
-def _search_result_priority(query: str, *, symbol: str, name: str, type_name: str) -> tuple[int, int, int, int, int, int, int, str]:
+def _search_result_priority(
+    query: str, *, symbol: str, name: str, type_name: str
+) -> tuple[int, int, int, int, int, int, int, str]:
     normalized = query.strip().upper()
     normalized_symbol = symbol.strip().upper()
     normalized_name = name.strip().upper()
@@ -65,7 +66,9 @@ def _search_result_priority(query: str, *, symbol: str, name: str, type_name: st
     contains_symbol = 0 if normalized and normalized in normalized_symbol else 1
     contains_name = 0 if normalized and normalized in normalized_name else 1
 
-    if any(token in normalized_type for token in ("STOCK", "EQUITY", "ETF", "INDEX", "ADR", "FUND")):
+    if any(
+        token in normalized_type for token in ("STOCK", "EQUITY", "ETF", "INDEX", "ADR", "FUND")
+    ):
         type_penalty = 0
     elif "CRYPTO" in normalized_type:
         type_penalty = 1
@@ -511,7 +514,9 @@ async def get_heatmap_data(
                 )
             except Exception:
                 if body.timeframe == Timeframe.D1:
-                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[-body.sparkline_bars :]
+                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[
+                        -body.sparkline_bars :
+                    ]
 
     # ── 3. Compute metrics per instrument ─────────────────────────────────────
     today_utc = datetime.now(UTC).date()
@@ -556,21 +561,29 @@ async def get_heatmap_data(
         week52_low = float(stats.week52_low) if stats and stats.week52_low else None
 
         if not bars:
-            rows.append({
-                "instrument_id": instr_id,
-                "symbol": inst.symbol,
-                "name": inst.name or inst.symbol,
-                "sector": eq.sector if eq else None,
-                "industry": eq.industry if eq else None,
-                "market_cap": market_cap,
-                "avg_volume_30d": avg_vol_30d,
-                "current_price": None,
-                "perf_1d": None, "perf_1w": None, "perf_1m": None,
-                "perf_mtd": None, "perf_ytd": None, "perf_1y": None,
-                "rsi_14": None, "rel_volume": None,
-                "dist_52w_high": None, "dist_52w_low": None,
-                "sparkline": _sparkline_for(instr_id),
-            })
+            rows.append(
+                {
+                    "instrument_id": instr_id,
+                    "symbol": inst.symbol,
+                    "name": inst.name or inst.symbol,
+                    "sector": eq.sector if eq else None,
+                    "industry": eq.industry if eq else None,
+                    "market_cap": market_cap,
+                    "avg_volume_30d": avg_vol_30d,
+                    "current_price": None,
+                    "perf_1d": None,
+                    "perf_1w": None,
+                    "perf_1m": None,
+                    "perf_mtd": None,
+                    "perf_ytd": None,
+                    "perf_1y": None,
+                    "rsi_14": None,
+                    "rel_volume": None,
+                    "dist_52w_high": None,
+                    "dist_52w_low": None,
+                    "sparkline": _sparkline_for(instr_id),
+                }
+            )
             continue
 
         closes = [float(b.close) for b in bars]
@@ -614,27 +627,29 @@ async def get_heatmap_data(
         if week52_low and week52_low > 0:
             dist_52w_low = round((current_price - week52_low) / week52_low, 4)
 
-        rows.append({
-            "instrument_id": instr_id,
-            "symbol": inst.symbol,
-            "name": inst.name or inst.symbol,
-            "sector": eq.sector if eq else None,
-            "industry": eq.industry if eq else None,
-            "market_cap": market_cap,
-            "avg_volume_30d": avg_vol_30d,
-            "current_price": current_price,
-            "perf_1d": perf_1d,
-            "perf_1w": perf_1w,
-            "perf_1m": perf_1m,
-            "perf_mtd": perf_mtd,
-            "perf_ytd": perf_ytd,
-            "perf_1y": perf_1y,
-            "rsi_14": rsi_14,
-            "rel_volume": rel_volume,
-            "dist_52w_high": dist_52w_high,
-            "dist_52w_low": dist_52w_low,
-            "sparkline": _sparkline_for(instr_id),
-        })
+        rows.append(
+            {
+                "instrument_id": instr_id,
+                "symbol": inst.symbol,
+                "name": inst.name or inst.symbol,
+                "sector": eq.sector if eq else None,
+                "industry": eq.industry if eq else None,
+                "market_cap": market_cap,
+                "avg_volume_30d": avg_vol_30d,
+                "current_price": current_price,
+                "perf_1d": perf_1d,
+                "perf_1w": perf_1w,
+                "perf_1m": perf_1m,
+                "perf_mtd": perf_mtd,
+                "perf_ytd": perf_ytd,
+                "perf_1y": perf_1y,
+                "rsi_14": rsi_14,
+                "rel_volume": rel_volume,
+                "dist_52w_high": dist_52w_high,
+                "dist_52w_low": dist_52w_low,
+                "sparkline": _sparkline_for(instr_id),
+            }
+        )
 
     return rows
 
@@ -874,44 +889,64 @@ async def get_instrument_provenance(
         raise HTTPException(404, f"Instrument '{symbol}' not found")
 
     snapshots = (
-        await db.execute(
-            select(InstrumentProfileSnapshot)
-            .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
-            .order_by(InstrumentProfileSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(InstrumentProfileSnapshot)
+                .where(InstrumentProfileSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentProfileSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     dataset_states = (
-        await db.execute(
-            select(InstrumentDatasetState)
-            .where(InstrumentDatasetState.instrument_id == instrument.id)
-            .order_by(InstrumentDatasetState.updated_at.desc())
+        (
+            await db.execute(
+                select(InstrumentDatasetState)
+                .where(InstrumentDatasetState.instrument_id == instrument.id)
+                .order_by(InstrumentDatasetState.updated_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     identifier_snapshots = (
-        await db.execute(
-            select(InstrumentIdentifierSnapshot)
-            .where(InstrumentIdentifierSnapshot.instrument_id == instrument.id)
-            .order_by(InstrumentIdentifierSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(InstrumentIdentifierSnapshot)
+                .where(InstrumentIdentifierSnapshot.instrument_id == instrument.id)
+                .order_by(InstrumentIdentifierSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     latest_price_snapshots = (
-        await db.execute(
-            select(LatestPriceSnapshot)
-            .where(LatestPriceSnapshot.instrument_id == instrument.id)
-            .order_by(LatestPriceSnapshot.observed_at.desc())
-            .limit(10)
+        (
+            await db.execute(
+                select(LatestPriceSnapshot)
+                .where(LatestPriceSnapshot.instrument_id == instrument.id)
+                .order_by(LatestPriceSnapshot.observed_at.desc())
+                .limit(10)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     return {
         "instrument_id": instrument.id,
         "symbol": instrument.symbol,
         "field_provenance": instrument.field_provenance or {},
-        "equity_detail": instrument.equity_detail.field_provenance if instrument.equity_detail else {},
+        "equity_detail": instrument.equity_detail.field_provenance
+        if instrument.equity_detail
+        else {},
         "stats": instrument.stats.field_provenance if instrument.stats else {},
-        "option_detail": instrument.option_detail.field_provenance if instrument.option_detail else {},
+        "option_detail": instrument.option_detail.field_provenance
+        if instrument.option_detail
+        else {},
         "identifiers": [
             {
                 "identifier_type": row.identifier_type.value,
@@ -1013,11 +1048,7 @@ async def get_instrument(
     if not instrument.is_synthetic and _needs_metadata_refresh(instrument):
         instrument = await _refresh_instrument_metadata(instrument, db)
 
-    if not instrument.is_synthetic and (
-        instrument.stats is None
-        or instrument.stats.week52_high is None
-        or instrument.stats.week52_low is None
-    ):
+    if not instrument.is_synthetic and _needs_52w_stats_refresh(instrument):
         instrument = await _ensure_52w_stats(instrument, db)
 
     if not created and not instrument.is_synthetic:
@@ -1071,6 +1102,22 @@ def _needs_metadata_refresh(instrument: Instrument) -> bool:
     )
 
 
+def _needs_52w_stats_refresh(instrument: Instrument) -> bool:
+    stats = instrument.stats
+    if stats is None or stats.week52_high is None or stats.week52_low is None:
+        return True
+
+    provenance = dict(stats.field_provenance or {})
+    high_meta = provenance.get("week52_high") or {}
+    low_meta = provenance.get("week52_low") or {}
+    return (
+        high_meta.get("source") != "internal_ohlcv_52w"
+        or low_meta.get("source") != "internal_ohlcv_52w"
+        or not high_meta.get("observed_at")
+        or not low_meta.get("observed_at")
+    )
+
+
 async def _reload_instrument_full(instrument_id: int, db: AsyncSession) -> Instrument:
     """Re-query an instrument with all relationships needed by InstrumentOut eager-loaded."""
     result = await db.execute(
@@ -1106,7 +1153,8 @@ async def _refresh_instrument_metadata(instrument: Instrument, db: AsyncSession)
 async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrument:
     """
     Compute 52-week high/low from D1 OHLCV bars (last 252 bars ≈ 1 trading year)
-    and persist to InstrumentStats synchronously so the first page load always has data.
+    using actual bar highs/lows and persist them synchronously so the first page load
+    always has data.
     Other stats fields (market_cap, pe_ratio, etc.) remain None until a separate backfill.
     """
     import logging
@@ -1115,25 +1163,45 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
     symbol = instrument.__dict__.get("symbol", "?")
     try:
         cutoff = datetime.now(UTC) - timedelta(days=366)
-        row = (
+        high_row = (
             await db.execute(
-                select(
-                    func.max(OHLCVBar.close).label("week52_high"),
-                    func.min(OHLCVBar.close).label("week52_low"),
-                ).where(
+                select(OHLCVBar.high.label("week52_high"), OHLCVBar.ts.label("week52_high_time"))
+                .where(
                     OHLCVBar.instrument_id == instrument.id,
                     OHLCVBar.timeframe == "D1",
                     OHLCVBar.ts >= cutoff,
                     OHLCVBar.is_adjusted.is_(True),
                 )
+                .order_by(OHLCVBar.high.desc(), OHLCVBar.ts.asc())
+                .limit(1)
+            )
+        ).one_or_none()
+        low_row = (
+            await db.execute(
+                select(OHLCVBar.low.label("week52_low"), OHLCVBar.ts.label("week52_low_time"))
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == "D1",
+                    OHLCVBar.ts >= cutoff,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+                .order_by(OHLCVBar.low.asc(), OHLCVBar.ts.asc())
+                .limit(1)
             )
         ).one_or_none()
 
-        if row is None or row.week52_high is None:
+        if (
+            high_row is None
+            or high_row.week52_high is None
+            or low_row is None
+            or low_row.week52_low is None
+        ):
             return instrument
 
-        week52_high = float(row.week52_high)
-        week52_low = float(row.week52_low)
+        week52_high = float(high_row.week52_high)
+        week52_low = float(low_row.week52_low)
+        week52_high_time = high_row.week52_high_time
+        week52_low_time = low_row.week52_low_time
 
         fetched_at = datetime.now(UTC).isoformat()
         stats = (
@@ -1150,11 +1218,13 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         field_provenance["week52_high"] = {
             "source": "internal_ohlcv_52w",
             "fetched_at": fetched_at,
+            "observed_at": week52_high_time.date().isoformat() if week52_high_time else None,
             "provider_symbol": instrument.symbol,
         }
         field_provenance["week52_low"] = {
             "source": "internal_ohlcv_52w",
             "fetched_at": fetched_at,
+            "observed_at": week52_low_time.date().isoformat() if week52_low_time else None,
             "provider_symbol": instrument.symbol,
         }
         stats.field_provenance = field_provenance
@@ -1195,10 +1265,7 @@ def _profile_exact_match(profile: InstrumentProfile, requested_symbol: str) -> b
     candidates = {
         _normalized_symbol_key(profile.symbol),
         _normalized_symbol_key(profile.canonical_symbol),
-        *{
-            _normalized_symbol_key(listing.provider_symbol)
-            for listing in (profile.listings or [])
-        },
+        *{_normalized_symbol_key(listing.provider_symbol) for listing in (profile.listings or [])},
     }
     return requested in candidates
 
@@ -1247,7 +1314,10 @@ async def _find_existing_instrument_for_profile(
         instrument = (
             await db.execute(
                 select(Instrument)
-                .join(InstrumentProviderSymbol, InstrumentProviderSymbol.instrument_id == Instrument.id)
+                .join(
+                    InstrumentProviderSymbol,
+                    InstrumentProviderSymbol.instrument_id == Instrument.id,
+                )
                 .where(
                     InstrumentProviderSymbol.data_source_id == data_source.id,
                     InstrumentProviderSymbol.provider_symbol == provider_symbol,

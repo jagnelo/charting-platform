@@ -103,7 +103,9 @@ async def mark_viewed(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    event = await db.get(AlertFiringEvent, event_id, options=[selectinload(AlertFiringEvent.instrument)])
+    event = await db.get(
+        AlertFiringEvent, event_id, options=[selectinload(AlertFiringEvent.instrument)]
+    )
     if event is None or event.user_id != current_user.id or event.deleted_at is not None:
         raise HTTPException(404, "Event not found")
     event.is_viewed = True

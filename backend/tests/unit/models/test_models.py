@@ -68,7 +68,9 @@ class TestUserModel:
         db.flush()
         db.expire_all()
 
-        result = db.execute(select(ChartDrawing).where(ChartDrawing.id == drawing_id)).scalar_one_or_none()
+        result = db.execute(
+            select(ChartDrawing).where(ChartDrawing.id == drawing_id)
+        ).scalar_one_or_none()
         assert result is None
 
     def test_user_cascade_deletes_alerts(self, db, user, instrument):
@@ -88,7 +90,9 @@ class TestUserModel:
         db.flush()
         db.expire_all()
 
-        result = db.execute(select(PriceAlert).where(PriceAlert.id == alert_id)).scalar_one_or_none()
+        result = db.execute(
+            select(PriceAlert).where(PriceAlert.id == alert_id)
+        ).scalar_one_or_none()
         assert result is None
 
 
@@ -141,9 +145,7 @@ class TestScreenerModel:
 
         tree = {
             "operator": "AND",
-            "conditions": [
-                {"type": "price_threshold", "field": "close", "op": "gt", "value": 50}
-            ],
+            "conditions": [{"type": "price_threshold", "field": "close", "op": "gt", "value": 50}],
         }
         s = ScreenerDefinition(
             user_id=user.id,
@@ -196,9 +198,12 @@ class TestScreenerModel:
         db.delete(user)
         db.flush()
 
-        assert db.execute(
-            select(ScreenerDefinition).where(ScreenerDefinition.id == s_id)
-        ).scalar_one_or_none() is None
+        assert (
+            db.execute(
+                select(ScreenerDefinition).where(ScreenerDefinition.id == s_id)
+            ).scalar_one_or_none()
+            is None
+        )
 
 
 class TestWatchlistModel:

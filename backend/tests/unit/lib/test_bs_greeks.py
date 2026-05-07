@@ -5,7 +5,6 @@ Reference values are computed analytically and cross-checked against
 published BS tables.  All inputs are deliberately simple round numbers
 so that expected values can be verified by inspection.
 """
-from __future__ import annotations
 
 from __future__ import annotations
 
@@ -15,8 +14,8 @@ import pytest
 
 from app.lib.bs_greeks import estimate_greeks
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _norm_cdf(x: float) -> float:
     return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
@@ -38,6 +37,7 @@ def _bs_reference(S, K, T, sigma, r, q=0.0):
 
 
 # ── Degenerate inputs ─────────────────────────────────────────────────────────
+
 
 class TestDegenerateInputs:
     def test_zero_tte_returns_zeros(self):
@@ -67,6 +67,7 @@ class TestDegenerateInputs:
 
 
 # ── Call vs put symmetry ──────────────────────────────────────────────────────
+
 
 class TestCallPutRelations:
     """Put-call parity implies: call_delta - put_delta = exp(-q*T)."""
@@ -100,32 +101,42 @@ class TestCallPutRelations:
 
 # ── Numeric accuracy ──────────────────────────────────────────────────────────
 
+
 class TestNumericAccuracy:
-    @pytest.mark.parametrize("S,K,T,sigma,r,q", [
-        (100, 100, 1.0, 0.20, 0.05, 0.0),
-        (110, 100, 0.5, 0.30, 0.03, 0.0),
-        (95,  100, 0.25, 0.15, 0.02, 0.01),
-        (200, 150, 2.0, 0.40, 0.06, 0.02),
-    ])
+    @pytest.mark.parametrize(
+        "S,K,T,sigma,r,q",
+        [
+            (100, 100, 1.0, 0.20, 0.05, 0.0),
+            (110, 100, 0.5, 0.30, 0.03, 0.0),
+            (95, 100, 0.25, 0.15, 0.02, 0.01),
+            (200, 150, 2.0, 0.40, 0.06, 0.02),
+        ],
+    )
     def test_call_delta_matches_reference(self, S, K, T, sigma, r, q):
         ref_call, _, _ = _bs_reference(S, K, T, sigma, r, q)
         delta, _ = estimate_greeks(S, K, T, sigma, r, q, is_call=True)
         assert delta == pytest.approx(ref_call, abs=1e-9)
 
-    @pytest.mark.parametrize("S,K,T,sigma,r,q", [
-        (100, 100, 1.0, 0.20, 0.05, 0.0),
-        (110, 100, 0.5, 0.30, 0.03, 0.0),
-        (95,  100, 0.25, 0.15, 0.02, 0.01),
-    ])
+    @pytest.mark.parametrize(
+        "S,K,T,sigma,r,q",
+        [
+            (100, 100, 1.0, 0.20, 0.05, 0.0),
+            (110, 100, 0.5, 0.30, 0.03, 0.0),
+            (95, 100, 0.25, 0.15, 0.02, 0.01),
+        ],
+    )
     def test_put_delta_matches_reference(self, S, K, T, sigma, r, q):
         _, ref_put, _ = _bs_reference(S, K, T, sigma, r, q)
         delta, _ = estimate_greeks(S, K, T, sigma, r, q, is_call=False)
         assert delta == pytest.approx(ref_put, abs=1e-9)
 
-    @pytest.mark.parametrize("S,K,T,sigma,r,q", [
-        (100, 100, 1.0, 0.20, 0.05, 0.0),
-        (110, 100, 0.5, 0.30, 0.03, 0.0),
-    ])
+    @pytest.mark.parametrize(
+        "S,K,T,sigma,r,q",
+        [
+            (100, 100, 1.0, 0.20, 0.05, 0.0),
+            (110, 100, 0.5, 0.30, 0.03, 0.0),
+        ],
+    )
     def test_gamma_matches_reference(self, S, K, T, sigma, r, q):
         _, _, ref_gamma = _bs_reference(S, K, T, sigma, r, q)
         _, gamma = estimate_greeks(S, K, T, sigma, r, q, is_call=True)
@@ -133,6 +144,7 @@ class TestNumericAccuracy:
 
 
 # ── Moneyness intuition ───────────────────────────────────────────────────────
+
 
 class TestMoneyness:
     def test_deep_itm_call_delta_near_one(self):
@@ -155,6 +167,6 @@ class TestMoneyness:
         # Deep ITM (S=150, K=100) and deep OTM (S=60, K=100) should have lower gamma
         gamma_atm = estimate_greeks(100, 100, 1.0, 0.20, 0.05, is_call=True)[1]
         gamma_deep_itm = estimate_greeks(150, 100, 1.0, 0.20, 0.05, is_call=True)[1]
-        gamma_deep_otm = estimate_greeks(60,  100, 1.0, 0.20, 0.05, is_call=True)[1]
+        gamma_deep_otm = estimate_greeks(60, 100, 1.0, 0.20, 0.05, is_call=True)[1]
         assert gamma_atm > gamma_deep_itm
         assert gamma_atm > gamma_deep_otm

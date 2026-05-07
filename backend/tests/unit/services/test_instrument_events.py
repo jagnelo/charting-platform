@@ -9,7 +9,9 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 
 @pytest.mark.asyncio
-async def test_ensure_instrument_events_loaded_handles_multiple_provider_states(db, instrument, monkeypatch):
+async def test_ensure_instrument_events_loaded_handles_multiple_provider_states(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     now = datetime.now(UTC)
     db.add_all(
@@ -51,7 +53,9 @@ async def test_ensure_instrument_events_loaded_handles_multiple_provider_states(
         called = True
         return 0
 
-    monkeypatch.setattr("app.services.instrument_events.fetch_and_store_instrument_events", _unexpected_fetch)
+    monkeypatch.setattr(
+        "app.services.instrument_events.fetch_and_store_instrument_events", _unexpected_fetch
+    )
 
     await ensure_instrument_events_loaded(async_db, instrument)
 

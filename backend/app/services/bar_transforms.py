@@ -62,7 +62,9 @@ def transform_heikin_ashi(bars: list) -> list[dict]:
 
     result = []
     prev_ha_open = float(bars[0].open)
-    prev_ha_close = (float(bars[0].open) + float(bars[0].high) + float(bars[0].low) + float(bars[0].close)) / 4
+    prev_ha_close = (
+        float(bars[0].open) + float(bars[0].high) + float(bars[0].low) + float(bars[0].close)
+    ) / 4
 
     for bar in bars:
         o = float(bar.open)
@@ -76,7 +78,9 @@ def transform_heikin_ashi(bars: list) -> list[dict]:
         ha_high = max(h, ha_open, ha_close)
         ha_low = min(lo, ha_open, ha_close)
 
-        result.append(_bar_dict(bar.ts, ha_open, ha_high, ha_low, ha_close, vol, bool(bar.is_adjusted)))
+        result.append(
+            _bar_dict(bar.ts, ha_open, ha_high, ha_low, ha_close, vol, bool(bar.is_adjusted))
+        )
 
         prev_ha_open = ha_open
         prev_ha_close = ha_close
@@ -87,7 +91,15 @@ def transform_heikin_ashi(bars: list) -> list[dict]:
 def transform_ohlc(bars: list) -> list[dict]:
     """Pass-through for OHLC bar rendering (same as standard candles)."""
     return [
-        _bar_dict(b.ts, float(b.open), float(b.high), float(b.low), float(b.close), float(b.volume or 0), bool(b.is_adjusted))
+        _bar_dict(
+            b.ts,
+            float(b.open),
+            float(b.high),
+            float(b.low),
+            float(b.close),
+            float(b.volume or 0),
+            bool(b.is_adjusted),
+        )
         for b in bars
     ]
 
@@ -95,7 +107,15 @@ def transform_ohlc(bars: list) -> list[dict]:
 def transform_area(bars: list) -> list[dict]:
     """Area chart — only close matters; O/H/L are set to close for consistency."""
     return [
-        _bar_dict(b.ts, float(b.close), float(b.close), float(b.close), float(b.close), float(b.volume or 0), bool(b.is_adjusted))
+        _bar_dict(
+            b.ts,
+            float(b.close),
+            float(b.close),
+            float(b.close),
+            float(b.close),
+            float(b.volume or 0),
+            bool(b.is_adjusted),
+        )
         for b in bars
     ]
 
@@ -141,7 +161,9 @@ def transform_renko(bars: list, brick_size: float | None = None) -> list[dict]:
                 # Snap to grid
                 brick_open = current_high - brick_size
                 brick_close = current_high
-                result.append(_bar_dict(ts, brick_open, brick_close, brick_open, brick_close, vol, adj))
+                result.append(
+                    _bar_dict(ts, brick_open, brick_close, brick_open, brick_close, vol, adj)
+                )
                 current_low = current_high - brick_size
                 current_high = current_high + brick_size
                 direction = 1
@@ -150,7 +172,9 @@ def transform_renko(bars: list, brick_size: float | None = None) -> list[dict]:
                 brick_close = current_high - brick_size if direction >= 0 else current_low
                 brick_open = current_low + brick_size
                 brick_close = current_low
-                result.append(_bar_dict(ts, brick_open, brick_open, brick_close, brick_close, vol, adj))
+                result.append(
+                    _bar_dict(ts, brick_open, brick_open, brick_close, brick_close, vol, adj)
+                )
                 current_high = current_low + brick_size
                 current_low = current_low - brick_size
                 direction = -1
@@ -190,14 +214,34 @@ def transform_kagi(bars: list, reversal_pct: float = 1.0) -> list[dict]:
         if direction == 1:
             if c < last_price - reversal_amt:
                 # Reversal
-                result.append(_bar_dict(segment_ts, segment_start, max(segment_start, last_price), min(segment_start, last_price), last_price, vol, adj))
+                result.append(
+                    _bar_dict(
+                        segment_ts,
+                        segment_start,
+                        max(segment_start, last_price),
+                        min(segment_start, last_price),
+                        last_price,
+                        vol,
+                        adj,
+                    )
+                )
                 direction = -1
                 segment_start = last_price
                 segment_ts = ts
         else:
             if c > last_price + reversal_amt:
                 # Reversal
-                result.append(_bar_dict(segment_ts, segment_start, max(segment_start, last_price), min(segment_start, last_price), last_price, vol, adj))
+                result.append(
+                    _bar_dict(
+                        segment_ts,
+                        segment_start,
+                        max(segment_start, last_price),
+                        min(segment_start, last_price),
+                        last_price,
+                        vol,
+                        adj,
+                    )
+                )
                 direction = 1
                 segment_start = last_price
                 segment_ts = ts
@@ -206,12 +250,24 @@ def transform_kagi(bars: list, reversal_pct: float = 1.0) -> list[dict]:
 
     # Flush final segment
     if bars:
-        result.append(_bar_dict(segment_ts, segment_start, max(segment_start, last_price), min(segment_start, last_price), last_price, 0, False))
+        result.append(
+            _bar_dict(
+                segment_ts,
+                segment_start,
+                max(segment_start, last_price),
+                min(segment_start, last_price),
+                last_price,
+                0,
+                False,
+            )
+        )
 
     return result
 
 
-def transform_point_figure(bars: list, box_size: float | None = None, reversal: int = 3) -> list[dict]:
+def transform_point_figure(
+    bars: list, box_size: float | None = None, reversal: int = 3
+) -> list[dict]:
     """
     Point & Figure boxes.
 
@@ -229,6 +285,7 @@ def transform_point_figure(bars: list, box_size: float | None = None, reversal: 
         box_size = max(first_close * 0.005, 0.01)
 
     import math
+
     result: list[dict] = []
 
     def _floor_box(price: float) -> float:
@@ -264,7 +321,17 @@ def transform_point_figure(bars: list, box_size: float | None = None, reversal: 
                 current_price = new_price
             elif boxes <= -reversal:
                 # Record completed X column
-                result.append(_bar_dict(column_ts, column_start, max(column_start, current_price), min(column_start, current_price), current_price, vol, adj))
+                result.append(
+                    _bar_dict(
+                        column_ts,
+                        column_start,
+                        max(column_start, current_price),
+                        min(column_start, current_price),
+                        current_price,
+                        vol,
+                        adj,
+                    )
+                )
                 direction = -1
                 column_start = current_price
                 column_ts = ts
@@ -274,7 +341,17 @@ def transform_point_figure(bars: list, box_size: float | None = None, reversal: 
                 current_price = new_price
             elif boxes >= reversal:
                 # Record completed O column
-                result.append(_bar_dict(column_ts, column_start, max(column_start, current_price), min(column_start, current_price), current_price, vol, adj))
+                result.append(
+                    _bar_dict(
+                        column_ts,
+                        column_start,
+                        max(column_start, current_price),
+                        min(column_start, current_price),
+                        current_price,
+                        vol,
+                        adj,
+                    )
+                )
                 direction = 1
                 column_start = current_price
                 column_ts = ts
@@ -282,7 +359,17 @@ def transform_point_figure(bars: list, box_size: float | None = None, reversal: 
 
     # Flush final column
     if bars and direction != 0:
-        result.append(_bar_dict(column_ts, column_start, max(column_start, current_price), min(column_start, current_price), current_price, 0, False))
+        result.append(
+            _bar_dict(
+                column_ts,
+                column_start,
+                max(column_start, current_price),
+                min(column_start, current_price),
+                current_price,
+                0,
+                False,
+            )
+        )
 
     return result
 
@@ -307,9 +394,7 @@ def apply_transform(bar_type: str, bars: list, params: dict | None = None) -> li
     Raises ValueError for unknown types.
     """
     if bar_type not in TRANSFORM_REGISTRY:
-        raise ValueError(
-            f"Unknown bar type: '{bar_type}'. Available: {list(TRANSFORM_REGISTRY)}"
-        )
+        raise ValueError(f"Unknown bar type: '{bar_type}'. Available: {list(TRANSFORM_REGISTRY)}")
     fn = TRANSFORM_REGISTRY[bar_type]
     resolved: dict = {}
     if params:

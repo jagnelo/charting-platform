@@ -50,6 +50,7 @@ class AsyncSessionContext:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
+
 # ── Alert engine ───────────────────────────────────────────────────────────────
 
 
@@ -283,13 +284,16 @@ class TestDataPipeline:
         mock_fetch.return_value = []
         newest = instrument.created_at
 
-        with patch(
-            "app.tasks.data_tasks.AsyncSessionLocal",
-            return_value=AsyncSessionContext(db),
-        ), patch(
-            "app.tasks.data_tasks._get_newest_bar_ts",
-            new_callable=AsyncMock,
-            side_effect=lambda *_args, **_kwargs: newest,
+        with (
+            patch(
+                "app.tasks.data_tasks.AsyncSessionLocal",
+                return_value=AsyncSessionContext(db),
+            ),
+            patch(
+                "app.tasks.data_tasks._get_newest_bar_ts",
+                new_callable=AsyncMock,
+                side_effect=lambda *_args, **_kwargs: newest,
+            ),
         ):
             result = await fetch_all_instruments_history({})
 

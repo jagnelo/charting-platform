@@ -140,6 +140,104 @@ export interface ChartComparisonSeries {
   percentChange?: number | null
 }
 
+export type RadarSetupType =
+  | 'approaching_support'
+  | 'approaching_resistance'
+  | 'breakout'
+  | 'breakdown'
+  | 'reclaim'
+  | 'rejection'
+
+export interface RadarOverlayPoint {
+  time: number
+  price: number
+}
+
+export interface RadarOverlay {
+  kind: 'zone' | 'line' | 'marker'
+  role?: string | null
+  label?: string | null
+  color?: string | null
+  dash_pattern?: number[] | null
+  start_time?: number | null
+  end_time?: number | null
+  price_low?: number | null
+  price_high?: number | null
+  time?: number | null
+  price?: number | null
+  points?: RadarOverlayPoint[] | null
+}
+
+export interface RadarEvidence {
+  overlays: RadarOverlay[]
+  metrics: Record<string, unknown>
+  structures: Array<Record<string, unknown>>
+}
+
+export interface RadarRun {
+  id: number
+  timeframe: Timeframe
+  universe_type: string
+  universe_filter?: Record<string, unknown> | null
+  status: 'running' | 'completed' | 'failed'
+  started_at: string
+  completed_at?: string | null
+  evaluated_count: number
+  detection_count: number
+  error_summary?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RadarSetupThread {
+  id: number
+  instrument_id: number
+  timeframe: Timeframe
+  context_role?: string | null
+  reference_price: number
+  current_setup_type: RadarSetupType
+  started_at: string
+  last_seen_at: string
+  detection_count: number
+}
+
+export interface RadarThreadEvent {
+  id: number
+  setup_type: RadarSetupType
+  score: number
+  observed_at: string
+  signal_at: string
+  context_at?: string | null
+  thread_event_index?: number | null
+  key_level_price?: number | null
+  summary: string
+  invalidation_hint?: string | null
+}
+
+export interface RadarDetection {
+  id: number
+  run_id: number
+  instrument_id: number
+  instrument_symbol: string
+  instrument_name: string
+  timeframe: Timeframe
+  setup_type: RadarSetupType
+  score: number
+  observed_at: string
+  signal_at?: string
+  context_at?: string | null
+  fresh_until: string
+  thread_id?: number | null
+  thread_event_index?: number | null
+  key_level_price?: number | null
+  summary: string
+  invalidation_hint?: string | null
+  score_factors: Record<string, number>
+  thread?: RadarSetupThread | null
+  thread_history?: RadarThreadEvent[]
+  evidence?: RadarEvidence
+}
+
 export interface ChartDrawing {
   id: number
   instrument_id: number

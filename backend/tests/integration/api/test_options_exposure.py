@@ -13,7 +13,6 @@ no provider mocks are needed because the endpoints read from persisted data.
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-
 EXP_1 = date(2024, 1, 19)
 EXP_2 = date(2024, 2, 16)
 STRIKES = [175, 180, 185]
@@ -21,6 +20,7 @@ SPOT = 180.0
 
 
 # ── Shared fixture ─────────────────────────────────────────────────────────────
+
 
 def _seed_chain(db, underlying):
     """Insert option instruments + details + quote points for the test chain."""
@@ -80,6 +80,7 @@ def _seed_chain(db, underlying):
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────
 
+
 class TestOptionsExposureAuth:
     def test_exposure_requires_auth(self, client, instrument):
         res = client.get(f"/api/v1/instruments/{instrument.symbol}/options/exposure")
@@ -103,6 +104,7 @@ class TestOptionsExposureAuth:
 
 
 # ── Combined exposure (no filter) ─────────────────────────────────────────────
+
 
 class TestExposureCombined:
     def test_returns_expected_shape(self, client, auth_headers, db, instrument, ohlcv_bars):
@@ -129,19 +131,32 @@ class TestExposureCombined:
         assert strikes == sorted(strikes)
         assert len(strikes) == len(STRIKES)
 
-    def test_ladder_rows_have_required_fields(self, client, auth_headers, db, instrument, ohlcv_bars):
+    def test_ladder_rows_have_required_fields(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
         _seed_chain(db, instrument)
         res = client.get(
             f"/api/v1/instruments/{instrument.symbol}/options/exposure",
             headers=auth_headers,
         )
         row = res.json()["ladder"][0]
-        for field in ("strike", "call_gex", "put_gex", "net_gex",
-                      "call_dex", "put_dex", "net_dex",
-                      "call_oi", "put_oi", "by_expiry"):
+        for field in (
+            "strike",
+            "call_gex",
+            "put_gex",
+            "net_gex",
+            "call_dex",
+            "put_dex",
+            "net_dex",
+            "call_oi",
+            "put_oi",
+            "by_expiry",
+        ):
             assert field in row, f"Missing field: {field}"
 
-    def test_by_expiry_contains_both_expirations(self, client, auth_headers, db, instrument, ohlcv_bars):
+    def test_by_expiry_contains_both_expirations(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
         _seed_chain(db, instrument)
         res = client.get(
             f"/api/v1/instruments/{instrument.symbol}/options/exposure",
@@ -215,6 +230,7 @@ class TestExposureCombined:
 
 # ── Single-expiration filter ───────────────────────────────────────────────────
 
+
 class TestExposureFiltered:
     def test_filtered_active_expirations(self, client, auth_headers, db, instrument, ohlcv_bars):
         _seed_chain(db, instrument)
@@ -268,6 +284,7 @@ class TestExposureFiltered:
 
 
 # ── Expirations list endpoint ──────────────────────────────────────────────────
+
 
 class TestExpirationsList:
     def test_returns_list(self, client, auth_headers, db, instrument, ohlcv_bars):

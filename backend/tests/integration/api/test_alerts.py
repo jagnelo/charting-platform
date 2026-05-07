@@ -92,9 +92,7 @@ class TestPriceAlerts:
                 "threshold_price": "200.00",
             },
         )
-        res = client.get(
-            "/api/v1/alerts/price", params={"status": "active"}, headers=auth_headers
-        )
+        res = client.get("/api/v1/alerts/price", params={"status": "active"}, headers=auth_headers)
         assert res.status_code == 200
         assert all(a["status"] == "active" for a in res.json())
 
@@ -232,7 +230,9 @@ class TestIndicatorAlerts:
         res = client.delete(f"/api/v1/alerts/indicator/{alert_id}", headers=auth_headers)
         assert res.status_code == 204
 
-    def test_indicator_alert_missing_threshold_and_b_type_fails(self, client, auth_headers, instrument):
+    def test_indicator_alert_missing_threshold_and_b_type_fails(
+        self, client, auth_headers, instrument
+    ):
         """Must provide either threshold_value or indicator_b_type."""
         res = client.post(
             "/api/v1/alerts/indicator",

@@ -32,6 +32,9 @@
 # ENV_FILE is passed to every local backend command so pydantic-settings
 # loads backend/.env.dev instead of looking for a .env file.
 BACKEND_ENV := ENV_FILE=.env.dev
+# Read LOG_LEVEL from the dev env file so uvicorn's --log-level matches it.
+BACKEND_LOG_LEVEL := $(shell grep -E '^LOG_LEVEL=' backend/.env.dev 2>/dev/null | cut -d= -f2 | tr '[:upper:]' '[:lower:]')
+BACKEND_LOG_LEVEL := $(if $(BACKEND_LOG_LEVEL),$(BACKEND_LOG_LEVEL),info)
 DEV_STACK_HELPER := ./scripts/dev-stack.sh
 DEV_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name dev)
 STACK_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name stack)
@@ -75,7 +78,7 @@ dev-infra-stop:
 
 dev-backend:
 	cd backend && $(BACKEND_ENV) uv run uvicorn app.main:app \
-	  --host 0.0.0.0 --port 8000 --reload --reload-dir app --log-level debug
+	  --host 0.0.0.0 --port 8000 --reload --reload-dir app --log-level $(BACKEND_LOG_LEVEL)
 
 dev-worker:
 	cd backend && $(BACKEND_ENV) uv run watchfiles "arq app.tasks.worker.WorkerSettings" app
@@ -146,7 +149,7 @@ test-stack-up:
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
 test: test-unit test-int test-fe
 	@echo ""
@@ -196,7 +199,7 @@ ci:
 	cd frontend && npx playwright install --with-deps chromium
 	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	$(MAKE) test-e2e
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down
+	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 

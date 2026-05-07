@@ -122,7 +122,7 @@ Why this was deferred:
 - The storage and provider-agnostic model came first.
 - Richer provider capability work belongs in a dedicated follow-up pass.
 
-### 5. Build a Technical Radar / Level-of-Interest engine with visual evidence
+### 5. Expand the Technical Radar / Level-of-Interest engine beyond the new v1 foundation
 Status: `Deferred`
 
 Context:
@@ -130,6 +130,24 @@ Context:
 - The goal is not merely to label an instrument as "interesting", but to identify instruments approaching technically meaningful areas and explain why they are on the radar.
 - The user explicitly wants this to be exhaustive up front: include a broad set of technical ideas and confluence mechanisms now, then later validate and prune what proves useful.
 - The user also wants visual transparency: if the radar flags an instrument because of zones, wedges, channels, anchored VWAPs, moving averages, or other structures, the platform should let the user visually inspect those exact internal detections on charts.
+- A first implementation pass now exists:
+  - persisted `radar_run` / `radar_detection` records
+  - a synchronous/manual scan trigger
+  - a dedicated `/radar` page
+  - a non-editable chart-side radar evidence layer separate from saved drawings
+  - initial setup types:
+    - approaching support
+    - approaching resistance
+    - breakout
+    - breakdown
+    - reclaim
+    - rejection
+  - initial evidence sources:
+    - clustered swing-based horizontal zones
+    - anchored VWAP from recent pivots
+    - EMA context
+    - 52-week high/low context
+- That v1 should be treated as a foundation, not as the finished expression of the radar vision.
 
 What this system should become:
 - A broad **Technical Radar** / **Confluence Scanner** that continuously scans a very large instrument universe and produces ranked, evidence-backed technical opportunities.
@@ -146,20 +164,36 @@ Core product goals:
 
 What remains:
 
-- Define and implement a broad technical-structure extraction layer, including:
-  - horizontal support/resistance zones
+- Strengthen the technical-structure extraction layer beyond the current v1 set, including:
+  - horizontal support/resistance zones with better width/strength/merge logic
   - diagonal trendlines
   - channels
   - wedges
   - triangles
   - prior swing highs/lows
   - weekly/monthly highs and lows
+  - multi-timeframe level propagation
   - opening gaps and gap boundaries
-  - AVWAPs anchored to significant technical/contextual events
+  - richer AVWAP anchor taxonomy tied to significant technical/contextual events
+    - recent swing highs and swing lows
+    - absolute highs/lows over the loaded history window, and later true all-time high/low anchors when sufficient history exists
+    - 52-week high / 52-week low anchors when structurally relevant
+    - year-to-date anchors such as YTD open, YTD high, and YTD low
+    - major event anchors such as earnings gaps, large breakaway gaps, or other instrument-event timestamps when the provider stack can supply them reliably
+    - optional user-auditable "anchor class" metadata so the UI can say not only that an AVWAP matters, but what kind of anchor it came from
+  - explicit AVWAP anchor-selection / precedence rules so the engine can choose among multiple plausible anchors on the same symbol without becoming opaque, including:
+    - when recent swing anchors outrank broader contextual anchors
+    - when broader anchors (ATH/ATL, 52-week, YTD, event anchors) should dominate because they define the active market narrative
+    - whether multiple AVWAPs should coexist as parallel evidence rather than forcing a single winner
+    - how the chosen AVWAP anchor affects setup scoring versus merely acting as secondary confluence
+  - stronger AVWAP provenance and validation, including:
+    - storing the chosen AVWAP anchor timestamp and anchor type explicitly in radar evidence
+    - chart-side labels/markers for the chosen anchor point
+    - unit/integration coverage for obvious anchor-selection cases so the engine remains deterministic as the taxonomy expands
   - moving-average clusters and moving-average slope/context
   - later, if useful, volume-profile or other structural liquidity/acceptance zones
 
-- Define a broad event-detection layer around those structures, including:
+- Strengthen the event-detection layer beyond the current v1 set, including:
   - approaching resistance
   - approaching support
   - breakout
@@ -173,8 +207,10 @@ What remains:
   - retest after breakout/breakdown
   - compression / squeeze near a level
   - expansion away from a level
+  - better sequencing rules for first break vs retest vs late continuation
+  - clearer confirmation/invalidation state transitions
 
-- Define a flexible confluence/scoring layer that can combine evidence such as:
+- Evolve the confluence/scoring layer from the current transparent heuristic blend into a more complete framework that can combine evidence such as:
   - zone strength
   - touch count
   - recency of interaction
@@ -187,29 +223,26 @@ What remains:
   - relative volume / participation context
   - gap context
   - historical quality of similar setups
+  - forward-tracked outcome quality
+  - regime/context-conditioned weighting
+  - later, if useful, learned weighting on top of interpretable rule features
 
-- Introduce a persistent radar/setup model that can store things like:
-  - instrument
-  - timeframe(s) involved
-  - detection timestamp
-  - setup type
-  - score / confidence
-  - evidence payload
-  - contributing structures
-  - invalidation criteria
-  - expiry / freshness window
+- Extend the persistent radar/setup model beyond the current run+detection basics so it can also store:
+  - setup state transitions over time
+  - whether a setup confirmed, failed, or expired
+  - evolving score history instead of only one snapshot
+  - grouping/continuity for repeated detections of “the same setup”
   - later outcome / forward-performance tracking
 
-- Add UI surfaces to visualize the radar results, including:
-  - a radar list / widget / scanner-like view
-  - setup type and score
-  - concise explanation of why the instrument is on the radar
-  - distance to key levels
-  - timeframe context
-  - last detection / freshness info
-  - ability to open the setup directly in the main chart
+- Expand the UI surfaces beyond the current dedicated `/radar` page, including:
+  - a richer radar list / scanner view
+  - saved radar filters/views
+  - side-by-side comparison of multiple detections
+  - setup history / state-transition history
+  - dashboard widgets specifically for radar discoveries
+  - instrument-specific radar timelines or history views
 
-- Add visual evidence rendering on charts, so the user can inspect what the radar detected, including:
+- Expand visual evidence rendering on charts beyond the current v1 zone/line/marker overlays, including:
   - shaded support/resistance zones
   - trendlines
   - channels / wedges / triangles
@@ -218,8 +251,11 @@ What remains:
   - breakout / fakeout / retest markers
   - optionally visibility toggles for each radar evidence type
   - ideally some notion of "radar layer" separate from the user's own drawings
+  - clearer provenance / legend for evidence layers
+  - grouping/stacking for overlapping detections on one symbol
+  - chart-side switching between active and historical detections
 
-- Make the radar explain itself in human terms rather than just outputting labels, e.g.:
+- Keep improving the radar’s human-readable explanation layer so it does more than output a label, e.g.:
   - setup type
   - score
   - why it matters
@@ -227,8 +263,11 @@ What remains:
   - what timeframe(s) are driving it
   - what would confirm it further
   - what would invalidate it
+  - what specifically made this candidate outrank nearby alternatives
+  - which evidence is primary versus merely supporting
+  - what changed since the previous detection state
 
-- Make the radar filterable and rankable in many ways, such as:
+- Expand filter/ranking behavior beyond the current simple setup/symbol/score/freshness controls, such as:
   - breakout candidates
   - support-bounce candidates
   - resistance-approach candidates
@@ -236,13 +275,39 @@ What remains:
   - recent fakeouts
   - reclaim setups
   - strongest multi-timeframe level clusters
+  - freshest detections
+  - most actionable / closest-to-level detections
+  - per-sector / per-industry / per-instrument-type slices
 
-- Add optional validation / research capabilities later, such as:
+- Add stronger validation / research capabilities around the radar, such as:
   - tracking what happened after each detected setup
   - evaluating historical success rates of different definitions
   - instrument-category-specific behavior
   - regime-aware quality differences
+  - leaderboard-style comparisons of setup definitions
+  - false-positive review tooling
   - later, if useful, learned weighting on top of the rule-based engine
+
+Entry, exit, and invalidation semantics to add (explicitly deferred from v1):
+- **Explicit entry level**: v1 detects setups but produces no concrete entry price. Add a per-setup suggested entry level (e.g., zone boundary ± ATR fraction, or first close above/below zone for breakout/reclaim setups). Store as a numeric field alongside key_level_price so the chart and trade-signal layer can use it.
+- **Price-action-based auto-invalidation**: `fresh_until` is currently a hardcoded 5-day TTL unrelated to actual price action. Add a background task (or per-scan pass) that checks active detections against the latest bar and marks them `INVALIDATED` (via a new status field or by setting `fresh_until = now`) when the invalidation condition in `invalidation_hint` is met. This requires storing `invalidation_price` as a queryable numeric field (currently only in evidence_json.metrics) and comparing it against incoming closes.
+- **Connection to trade signal engine (item 7)**: When item 7 is implemented, radar detections are the natural input — a detection with an entry level, invalidation level, and score becomes the seed for a structured trade plan. The invalidation level becomes the stop, and the implied target can be the opposing zone or a fixed R-multiple. Both systems should share schema vocabulary from the start (entry_price, stop_price, target_price, risk_multiple).
+
+Nearer-term concrete follow-up phases worth treating as the next likely implementation path:
+- Phase 2:
+  - richer structure extraction
+  - scheduled runs
+  - saved radar filters/views
+  - stronger chart overlay controls
+- Phase 3:
+  - fakeout/retest/compression state modeling
+  - dashboard widgets
+  - radar-to-watchlist promotion
+  - radar-derived alerts
+- Phase 4:
+  - historical outcome tracking
+  - score calibration
+  - strategy/trade-signal integrations
 
 Broader feature ideas explicitly worth keeping in scope for future exploration:
 - multi-timeframe level stacking and propagation
@@ -263,6 +328,12 @@ Visualization expectations:
 - Anything used internally by the radar to justify a candidate should, where practical, be visually inspectable by the user.
 - The user should not have to blindly trust the radar.
 - A detected setup should be explorable on the chart page and, where appropriate, in dashboard widgets.
+
+Why this was deferred:
+- The initial v1 landed, but the original radar vision is much broader than the currently implemented slice.
+- The remaining work is still a major platform capability, not a small feature.
+- It depends on stronger data coverage, better operational definitions, deeper validation, and richer visualization design.
+- It deserves continued dedicated implementation passes with room for experimentation and later evidence-based pruning.
 
 ### 6. Build unattended multi-LLM orchestration for overnight development
 Status: `Deferred`
@@ -1005,6 +1076,513 @@ What remains:
 Why this was deferred:
 - The providers are implemented and registered; wiring the scheduler is a separate operational
   concern that should be done alongside end-to-end testing of the new provider stack.
+
+### 10. Custom instrument baskets, ETF holdings navigation, and breadth analysis
+Status: `Planned`
+
+Context:
+- The platform already supports individual instruments and expression-based synthetics (e.g., `=SPY-QQQ`).
+- The next natural building block is **user-defined instrument baskets**: named, weighted collections of instruments that can be treated as a first-class platform object, similar to a custom ETF.
+- Beyond pure user-defined baskets, real ETFs carry composition data — the platform should eventually be able to materialise an ETF's holdings as a basket automatically, enabling holdings navigation ("show me all Nasdaq 100 constituents").
+- Once baskets exist as objects, they become a natural surface for **breadth analysis**: computing aggregate technical properties across holdings to get a collective health view of the basket as a whole.
+- These three concerns — basket construction, ETF holdings navigation, and breadth analysis — are closely coupled and should share a common data model from the start.
+
+---
+
+#### 10a. Custom basket construction
+
+What this should become:
+- A named, user-owned collection of instruments with associated weights.
+- Weights can be equal (platform distributes 1/N automatically) or fully custom (user assigns fractions that must sum to 1.0, or raw market-value notional if the UX calls for it).
+- A basket can be used anywhere an instrument is referenced: charted as a synthetic price series (using the weighted sum or index-relative formula), added to a watchlist, used as a screener universe, used as a breadth analysis target, or used as a Strategy Lab universe.
+- Baskets are distinct from expression instruments (`=A-B`, `=A/B`) which are formula-based rather than weighted-membership-based.
+
+What remains:
+
+Backend:
+- Introduce a `basket` domain model, storing: id, user_id, name, description, created_at, updated_at, rebalance_frequency (if the platform ever supports periodic rebalancing semantics), weighting_scheme (equal / custom / market_cap_weighted), and optionally a `classification_mode` (auto / manual).
+- Introduce a `basket_member` model, storing: basket_id, instrument_id, weight (decimal, nullable when scheme=equal), and an optional notes/label field per member.
+- Introduce basket CRUD endpoints: create, rename, update description, add/remove/reweight members, delete.
+- Add a basket-as-instrument synthetic OHLCV path: given a basket with weights and member OHLCV histories, compute the basket's price series on demand so it can be charted like any other instrument. Start with a rebased-to-100 cumulative return series as the simplest viable option.
+
+Frontend:
+- A basket builder UI: create/name, add instruments (via the existing search flow), assign weights or leave equal, confirm.
+- Weight editor: show all members, allow dragging or typing weights, show a real-time "remaining" allocation indicator, validate sum=1.
+- Basket detail view: list all members, their weight, and a sparkline or mini-stat row per member.
+- Ability to open a basket in the chart view as a synthetic price series.
+- Basket list view accessible from the sidebar.
+
+---
+
+#### 10b. Basket sector / industry classification
+
+Context:
+- If every member of a basket shares the same GICS sector (or industry), the basket clearly belongs to that sector/industry and can be classified automatically.
+- When members span multiple sectors/industries, automatic classification breaks down. The right answer here is not fully settled:
+  - One option is a user-selectable custom label from a predefined list (including a catch-all like "Multi-sector" or "Thematic").
+  - Another option is a tag system where the basket carries multiple sector/theme tags.
+  - A third option is purely user-free-text labeling.
+  - Which of these is best depends on how the classification is used downstream (breadth grouping, screener filtering, radar slicing). This should be revisited once the downstream use cases are clearer.
+
+What remains:
+- Add a `sector` and `industry` field to the basket model, nullable.
+- On basket creation/save, run an auto-classification pass: if all members share the same GICS sector, populate the field automatically. If they share the same industry sub-sector, populate industry as well.
+- If members are mixed-sector, leave classification null and surface a prompt in the UI inviting the user to set a custom classification label.
+- Build a lightweight classification UX: a picker or text field that offers predefined sector names plus a free-text "Thematic / Custom" escape hatch.
+- Revisit and expand this once the breadth analysis feature (10c) and radar filter/slice feature (item 5) make it clear what the classification taxonomy needs to look like.
+
+---
+
+#### 10c. ETF holdings navigation and auto-materialised baskets
+
+Context:
+- Real ETFs are instruments in the platform's DB. Their holdings are composition data that can be sourced from providers (e.g., ETF.com, iShares disclosures, State Street, or financial data providers that expose holdings).
+- Once ETF holdings data exists in the platform, an ETF can be treated as a system-managed basket automatically: the platform creates or refreshes a basket representing the ETF's current composition and weights.
+- This enables: "click SPY, see all 503 holdings and their weights". Or: "click QQQ, open all Nasdaq 100 constituents as a basket and then chart any one of them".
+- The holdings-navigation flow is especially valuable for users who want to do their own constituent-level research: e.g., scan through all S&P 500 members to find technically interesting setups, or look at which Nasdaq 100 members are near 52-week highs.
+
+What remains:
+
+Data / provider side:
+- Identify and integrate a provider for ETF holdings data. Candidates include Financial Modeling Prep (FMP), ETF.com, or a dedicated ETF holdings API. The provider should supply: constituent symbol, weight, and ideally shares held and market value per member.
+- Introduce a scheduled refresh task that updates ETF holdings on a configurable cadence (daily or weekly is likely sufficient for non-leveraged index funds).
+- Model ETF holdings as a special case of basket: a system-managed basket with a reference to the source ETF instrument, a composition_date field, and a flag distinguishing user-owned baskets from ETF-derived baskets.
+
+Backend:
+- ETF-derived baskets should be read-only from the user's perspective (no user-editable weights).
+- Provide an endpoint to list/search ETFs that have holdings data available.
+- Provide an endpoint to retrieve the holdings basket for a given ETF instrument.
+- Provide an endpoint for the holdings navigation flow: given an ETF instrument id, return the full member list with weights, instrument details, and optional mini-stats per member.
+
+Frontend:
+- On the chart page, when viewing an ETF, surface a "Holdings" tab or panel showing the basket composition.
+- From the holdings panel, each member instrument should be clickable to open that instrument's chart.
+- A "Browse all constituents" mode: a paginated/scrollable table of all members with mini-stats (price, change, distance to 52w high, etc.) with click-through to each instrument's chart.
+- The holdings panel should make it easy to open multiple instruments in sequence (e.g., step through constituents one by one) for manual scanning.
+- Later, a "chart all" or "compare all" shortcut that opens a screener-results-like view filtered to the ETF's holdings.
+
+---
+
+#### 10d. Breadth analysis over baskets and ETFs
+
+Context:
+- Once baskets exist and their member OHLCV histories are queryable, the platform can compute aggregate technical properties across the membership and surface a collective health view.
+- Breadth analysis answers questions like: "What percentage of S&P 500 members are above their 200-day EMA right now?" or "How many Nasdaq 100 stocks are within 5% of their 52-week high?" or "What's the average distance to the 50-day SMA across this basket?".
+- This kind of analysis is a tool used by technical macro analysts to evaluate whether a broad market move is being driven by wide participation or narrow concentration.
+- The feature should be general enough to work on any user-defined basket or ETF-derived basket, not just major US indices.
+
+What remains:
+
+Computation engine:
+- Define a set of per-member breadth metrics to compute, including (but not limited to):
+  - percentage of members above their 20/50/100/200-day SMA or EMA
+  - percentage of members within N% of their 52-week high or low
+  - average distance (in % or ATR multiples) from a given EMA/SMA across members
+  - percentage of members with recent volume above their N-day average
+  - percentage of members in uptrend vs downtrend by a chosen definition (e.g., above 200 EMA = uptrend)
+  - percentage of members making new N-day highs or lows
+  - percentage of members above a user-specified price level or within a zone
+- Implement a backend breadth computation service that takes a basket id, a reference date, and a set of requested metrics and returns a breadth snapshot.
+- Optionally persist historical breadth snapshots so the platform can show a breadth indicator time series (e.g., "% above 200 EMA over the last 12 months") rather than only the current snapshot.
+
+Frontend:
+- A basket breadth panel / dashboard widget that shows a summary of current breadth metrics for a selected basket or ETF.
+- A breadth chart: a time series showing how a selected breadth metric has evolved over time (e.g., a McClellan-oscillator-style view of participation).
+- A drill-down from the breadth summary: click "38% of members are above 200 EMA" to see the list of which members are above vs below, sortable/filterable.
+- A comparison view: show breadth for multiple baskets side by side (e.g., compare S&P 500 breadth vs Nasdaq 100 breadth vs a user-defined sector basket).
+- Later: dashboard widgets specifically for basket breadth, so users can pin a breadth indicator to their main dashboard.
+
+---
+
+#### Shared design principles across 10a–10d
+
+- **Baskets are first-class objects.** They are not just lists; they carry weights, metadata, classification, and a potential synthetic price series. The domain model should reflect this from the start.
+- **ETF-derived baskets are a special case of the same model.** User baskets and ETF holdings baskets share the same backend schema and frontend surfaces; the distinction is managed vs unmanaged ownership and refresh semantics.
+- **The basket model feeds other platform features.** Baskets should be usable as: chart synthetic instruments, screener universes (item 3), Strategy Lab universes (item 6/7), radar filter slices (item 5), and breadth analysis targets. These integrations should inform the basket schema design so it isn't retrofitted later.
+- **Breadth analysis should be additive, not a re-architecture.** The breadth engine reads member OHLCV histories that already exist in the platform. It does not require new data infrastructure, only a computation layer on top of existing data.
+- **Sector/industry classification for mixed baskets remains an open design question.** The taxonomy used for classification should be revisited once downstream use cases (breadth grouping, radar slicing) clarify what granularity is actually needed.
+
+Phasing expectations:
+- Phase 1: Custom basket creation/editing with equal and custom weights, basket charted as a synthetic price series, basic basket list/detail UI.
+- Phase 2: ETF holdings data ingestion, ETF-as-basket materialisation, holdings navigation UI.
+- Phase 3: Breadth analysis engine, breadth snapshot views, breadth time-series charting.
+- Phase 4: Basket breadth dashboard widgets, cross-basket comparison views, integration with radar and screener universe selectors.
+
+Why this was deferred:
+- Baskets are a foundational building block but depend on having a stable instrument model (already done) and clear downstream consumers.
+- ETF holdings data requires a dedicated provider integration.
+- Breadth analysis depends on both basket membership and historical OHLCV coverage being in good shape.
+- The right design for mixed-sector basket classification needs more downstream context before being finalised.
+
+### 11. Build a platform-wide OHLCV coverage, freshness, and acquisition orchestration layer
+Status: `Planned`
+
+Context:
+- The platform now has several different price-data consumers, but they do not all behave consistently:
+  - chart OHLCV routes are read-through and may fetch/backfill on demand
+  - first-time instrument discovery can enqueue broad history fetches in the background
+  - indicator alerts currently fetch OHLCV on demand before evaluating
+  - `run_screener` is DB-only
+  - `stream_screener` is hybrid: DB-first, then fetches for instruments with no cached bars
+  - radar is currently DB-only
+  - nightly refresh and bulk-fetch flows explicitly seed or refresh OHLCV ahead of time
+- This inconsistency is manageable while the platform is small, but it becomes increasingly dangerous as more evaluators come online.
+- We explicitly want to preserve three platform rules:
+  - external providers should only be contacted when there is strong evidence that the DB is missing required data or has gone stale enough to invalidate the use case
+  - when data is missing, the platform should fetch only the missing slice, not an arbitrarily broad range
+  - any mechanism that issues factual, price-based outcomes (alerts, screener matches, radar detections, future breadth or signal outputs) must not silently evaluate on stale or incomplete data
+- This future item is about making those rules concrete and enforceable across the whole platform, not just inside one feature.
+
+Why this deserves a dedicated roadmap item:
+- This is not only a radar concern. It directly affects:
+  - chart OHLCV loading
+  - instrument detail widgets derived from OHLCV
+  - screeners
+  - indicator alerts
+  - radar scans
+  - breadth analysis over baskets and ETFs
+  - future signal/trade-plan engines
+  - future strategy or validation workflows that depend on OHLCV readiness
+- If each subsystem keeps inventing its own "fetch if missing", "fresh enough", or "latest bars" logic, the platform will drift into multiple incompatible truth models:
+  - one feature may skip an instrument because the DB is cold
+  - another may fetch a fresh tail and produce a different answer
+  - another may operate on stale bars and produce an answer that is factually out of date
+- A shared orchestration layer is the cleanest way to preserve:
+  - deterministic evaluation behavior
+  - low provider dependency
+  - bounded provider spending/quota usage
+  - eventual consistency with market reality
+
+Desired global policy:
+- Split OHLCV consumers into three explicit classes and apply different rules to each.
+
+#### 11a. Interactive, user-driven data views
+
+Examples:
+- chart OHLCV requests
+- transformed-bar chart requests
+- historical pagination while the user pans left on a chart
+- instrument detail views that need one symbol's recent OHLCV-derived metrics
+- later, narrow single-symbol analytical views
+
+Policy:
+- allow narrow read-through fetch/backfill
+- allow on-demand repair of the exact requested historical slice
+- allow limited freshness repair of the exact latest window needed for the request
+- still route these through a shared coordinator so provider throttling and missing-slice logic remain centralized
+
+Reason:
+- the user explicitly requested a narrow unit of data
+- read-through behavior is acceptable here because it is scoped, intentional, and observable
+
+#### 11b. Broad evaluators / decision engines
+
+Examples:
+- radar scans
+- scheduled screeners
+- screener-alert post-processing
+- indicator alerts
+- future breadth snapshots
+- future trade-signal engines
+- future strategy/lifecycle engines that consume price-derived signals
+
+Policy:
+- do not let these flows perform ad hoc provider fetches inside the actual evaluation loop
+- evaluate from DB-backed data only
+- if data freshness/completeness is required, acquire it in a dedicated preflight phase before evaluation begins
+- if preflight cannot produce adequate coverage, the evaluator should mark the run as partial/deferred/unavailable rather than silently evaluating stale data
+
+Reason:
+- these flows can touch many instruments and many timeframes
+- letting each engine fetch on the fly is the fastest path to:
+  - quota waste
+  - inconsistent results
+  - bad runtime performance
+  - subtle race conditions between evaluation and refresh
+
+#### 11c. Background maintenance / data-orchestration flows
+
+Examples:
+- nightly OHLCV refresh
+- bulk instrument history fetch
+- discovery-triggered initial history seeding
+- future pre-market or post-close refresh waves
+- future scheduled "prepare data for radar/screener/alerts" tasks
+
+Policy:
+- these are the preferred place for broad provider usage
+- they may fetch at larger scale, but should still fetch precisely where possible
+- they should aim to keep the DB sufficiently ready that evaluators rarely need to wait
+
+Reason:
+- this centralizes provider communication
+- this makes rate limiting and retry behavior operationally visible
+- this avoids broad evaluators becoming selfish and independently burning provider quota
+
+Desired platform rules:
+- Rule 1: never perform factual evaluation on known-stale or known-missing price data.
+- Rule 2: never fetch broad history when a narrow missing slice will do.
+- Rule 3: never allow multiple callers to independently hit providers for the same instrument/timeframe/range if the request can be coalesced.
+- Rule 4: never allow a broad evaluator to spend provider quota without going through a shared coordinator.
+- Rule 5: historical ranges already fully covered in the DB should not be treated as stale merely because they are old relative to the current wall clock.
+- Rule 6: freshness semantics must be use-case aware, not just "is the latest bar older than now?".
+
+What should be built:
+
+#### 11d. Shared OHLCV coverage/freshness coordinator
+
+Introduce one central service, rather than many feature-specific implementations, with an interface conceptually similar to:
+- `ensure_ohlcv_coverage(instrument_id, timeframe, start, end, freshness_policy, mode)`
+
+The exact final API can differ, but the coordinator should be responsible for:
+- inspecting the current DB coverage for the exact instrument/timeframe/range requested
+- determining whether the request is:
+  - ready
+  - partially covered
+  - missing
+  - stale
+  - already being refreshed
+  - unavailable due to provider/runtime constraints
+- computing the exact missing slice rather than defaulting to broad "latest N" fetches unless that is truly the narrowest correct request
+- coalescing overlapping requests from multiple callers
+- reusing in-flight refresh work when one caller already requested the same coverage
+- routing provider work through the existing provider runtime / throttling / health machinery
+- returning explicit status so callers know whether they may proceed synchronously, should queue work, or must defer
+
+The coordinator should understand the difference between:
+- latest-window freshness
+- historical-range completeness
+- cold-start absence of any OHLCV
+- partial historical gaps in the middle of a range
+- synthetic instruments whose OHLCV is computed internally rather than fetched from providers
+
+#### 11e. Formal freshness semantics by use case
+
+Define "fresh enough" in a way that is aware of:
+- timeframe
+- market/session timing
+- the consuming engine
+- whether the use case needs the latest completed bar, a historical range, or a live latest-price signal
+
+Examples:
+- `D1` radar/screener:
+  - should require the latest completed daily bar for the relevant session
+  - should not demand a synthetic "today" bar before the daily bar has actually completed
+- `W1` computations:
+  - should care about the latest completed weekly bar, not naïvely treat mid-week partial state as missing unless the feature explicitly supports it
+- historical chart pagination:
+  - should care about completeness of the requested window, not freshness to the current timestamp
+- price alerts:
+  - may legitimately require a live latest-price capability rather than OHLCV-bar freshness alone
+- indicator alerts:
+  - should run against refreshed OHLCV snapshots at the required timeframe, ideally grouped by instrument/timeframe rather than fetching per-alert
+
+This freshness logic should eventually become exchange-aware and asset-aware where relevant:
+- weekends and holidays
+- pre-market / regular session / post-market behavior
+- `24/7` assets like crypto
+- provider-specific publication timing for daily/weekly bars
+
+#### 11f. Evaluation preflight for broad engines
+
+Broad evaluators should move to a two-phase model.
+
+Phase 1: coverage preflight
+- determine the exact required OHLCV window per instrument and timeframe
+- check freshness and completeness
+- queue refresh/fill only for the instruments that need work
+- optionally wait for a bounded refresh wave to complete
+- mark unresolved instruments as unavailable/blocked rather than guessing
+
+Phase 2: evaluation
+- run the evaluator strictly against DB-backed data
+- never mix provider fetches into the evaluation loop itself
+- persist whether the run was:
+  - full
+  - partial
+  - deferred
+  - stale-blocked
+  - provider-unavailable
+
+This pattern should eventually apply to:
+- radar scans
+- `run_screener`
+- `stream_screener`
+- grouped indicator-alert evaluation
+- future breadth snapshots
+- future signal/strategy engines
+
+#### 11g. Request coalescing and anti-selfishness controls
+
+The future orchestration layer should explicitly prevent anti-patterns like:
+- radar, screener, alerts, and chart loads all noticing the same stale `AAPL D1` coverage and each independently calling the provider
+
+Add shared controls for:
+- in-flight deduplication per `(instrument, timeframe, adjusted, range/freshness intent)`
+- bounded concurrency by provider and capability
+- global and per-provider refresh budgets
+- caller-visible statuses such as:
+  - `already_refreshing`
+  - `queued`
+  - `ready`
+  - `deferred_due_to_budget`
+  - `provider_unavailable`
+  - `no_provider_support`
+
+This should integrate with the provider runtime / policy / health system rather than bypassing it.
+
+#### 11h. Precise missing-slice fetch logic
+
+The implementation should aggressively avoid over-fetching.
+
+Expected behaviors:
+- if the DB has bars through `2026-05-05` and only `2026-05-06` is missing, fetch only that missing tail
+- if the user paginates older chart history and the DB lacks only the older tail needed for that page, fetch only that tail
+- if the DB already fully covers a historical range, do not fetch anything just because the range ends in the past
+- if an instrument is new and entirely cold, fetch only the minimum viable bootstrap window needed for the current synchronous use case unless a broader background seed job is intentionally requested
+- if a background bulk-fetch wave is already responsible for fuller history, synchronous flows should avoid redundantly asking for the entire history themselves
+
+The coordinator should explicitly understand:
+- latest-window repair
+- historical-gap repair
+- cold-start bootstrap
+- overlap buffers for late-arriving bars or provider revisions
+
+#### 11i. Better dataset-state tracking
+
+The platform already has some dataset-state/provider-observation ideas, but this future work should deepen them for OHLCV specifically.
+
+Track enough metadata to answer:
+- what coverage window currently exists for this instrument/timeframe?
+- when was it last observed from a provider?
+- when should it be considered stale for each major consumption mode?
+- did the most recent refresh succeed, partially succeed, return empty, or fail?
+- is a refresh already in progress?
+- what provider last supplied or refreshed the data?
+- is the dataset totally absent or only partially missing?
+
+This should make it possible to:
+- avoid recalculating freshness naively on every caller
+- explain why a symbol was skipped by radar or a screener
+- later expose operational insight in admin or diagnostics surfaces
+
+#### 11j. Unify currently inconsistent consumers
+
+The current mixed behavior should be normalized over time.
+
+Specific migration targets:
+- radar:
+  - keep the detector DB-only at evaluation time
+  - add a preflight coverage stage
+- `run_screener`:
+  - move from "DB-only, no preflight" to "DB-only after preflight"
+- `stream_screener`:
+  - stop being a special fetch-on-the-fly exception
+  - instead stream:
+    - coverage-preflight progress
+    - then evaluation progress
+- indicator alerts:
+  - stop refreshing OHLCV separately inside each alert path
+  - group by `(instrument, timeframe)` and refresh once, then evaluate all alerts from the same DB snapshot
+- chart/instrument OHLCV routes:
+  - keep read-through semantics
+  - but route through the same coordinator so missing-slice and freshness policy stay consistent across the app
+
+#### 11k. Operational orchestration and scheduling
+
+The shared design should also inform platform scheduling.
+
+Questions to settle and later implement:
+- which refresh waves should run automatically:
+  - nightly / post-close `D1` refresh
+  - weekly `W1` refresh
+  - selected intraday refreshes for alert-heavy assets
+  - discovery-triggered bootstrap refreshes
+- what readiness guarantees should exist before:
+  - scheduled screeners
+  - future scheduled radar scans
+  - alert checks
+  - future breadth snapshots
+- what intentional order should exist between:
+  - OHLCV refresh
+  - evaluator runs
+  - downstream watchlist/notification/state-propagation workflows
+
+The long-term goal is that broad evaluators rarely discover missing data themselves because scheduled refresh waves have already kept the DB sufficiently ready.
+
+#### 11l. Failure handling and run semantics
+
+The future system should not force every evaluation to be all-or-nothing.
+
+Support nuanced outcomes such as:
+- run completed with full coverage
+- run completed with partial coverage
+- run deferred because refresh work would exceed current budget or timeout
+- run skipped because provider chain health made refresh unsafe/unreliable
+- instrument skipped because no provider-backed OHLCV source exists for it
+
+These statuses should become visible where appropriate in persisted run metadata for:
+- radar runs
+- screener runs
+- later breadth/signal/strategy runs
+
+This matters because:
+- "no matches"
+- "could not evaluate accurately"
+- and "some instruments were unevaluable"
+are materially different outcomes.
+
+#### 11m. Testing and verification expectations
+
+This roadmap item deserves explicit tests of its own.
+
+Expected test coverage:
+- exact missing-slice calculation
+- historical-range completeness vs latest-window freshness
+- no-fetch behavior when a historical range is already fully covered
+- deduplication of concurrent refresh requests
+- grouped refresh behavior for indicator alerts
+- preflight + evaluation separation for radar and screeners
+- correct partial/deferred run statuses
+- protection against stale-data evaluations
+- provider-budget and throttle behavior under multiple simultaneous callers
+
+Integration scenarios should explicitly cover:
+- a cold instrument with no bars
+- an instrument missing only the most recent bar
+- an instrument with historical gaps
+- provider unavailability during preflight
+- chart read-through paths and evaluator preflight paths both using the same coordinator
+
+Open design questions to preserve for later:
+- Should broad evaluators block synchronously for missing data up to a short deadline, or always queue and retry later?
+- Which assets/timeframes deserve proactive readiness guarantees versus on-demand preflight?
+- How much exchange/session awareness should live in the coordinator versus provider adapters or market-calendar utilities?
+- Should the platform have a formal freshness-SLA registry per capability / asset class / timeframe?
+- How should synthetic instruments inherit or aggregate constituent freshness?
+- Should options-related spot-price consumers use the same OHLCV freshness gate or a lighter latest-price-specific policy?
+
+Suggested implementation sequence:
+- Phase 1:
+  - document the platform policy explicitly
+  - introduce a shared coverage/freshness coordinator API
+  - keep existing market-data fetch helpers, but route decision logic through the new abstraction
+- Phase 2:
+  - migrate chart/instrument read-through OHLCV flows to the coordinator
+  - migrate radar preflight
+  - migrate `run_screener` and `stream_screener`
+- Phase 3:
+  - migrate grouped indicator-alert evaluation
+  - add persisted run statuses and richer skip/defer semantics
+  - deepen dataset-state visibility
+- Phase 4:
+  - align scheduling so refresh waves intentionally precede evaluation waves
+  - extend the same model to breadth, signal, and strategy engines
+
+Why this was deferred:
+- The current platform already works well enough for chart read-through, basic background refresh, and feature-specific point solutions.
+- Solving this correctly is architectural work, not a small feature patch.
+- Its value rises as more broad evaluators come online, especially radar expansion, breadth analysis, and future signal/strategy engines.
 
 ## Notes
 

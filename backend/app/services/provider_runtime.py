@@ -136,7 +136,9 @@ def _capability_seed_order() -> dict[ProviderCapability, list[str]]:
         ProviderCapability.INSTRUMENT_IDENTIFIERS: list(settings.IDENTIFIER_PROVIDER_PRIORITY),
         ProviderCapability.UNIVERSE_DISCOVERY: [settings.DEFAULT_DISCOVERY_PROVIDER],
         ProviderCapability.OPTION_CHAIN: [settings.DEFAULT_OPTIONS_PROVIDER],
-        ProviderCapability.OPTION_QUOTE_HISTORY: list(settings.OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY)
+        ProviderCapability.OPTION_QUOTE_HISTORY: list(
+            settings.OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY
+        )
         or [settings.DEFAULT_OPTIONS_PROVIDER],
     }
     for key, providers in settings.PROVIDER_CHAIN_SEEDS.items():
@@ -203,7 +205,9 @@ def _apply_policy_defaults(
         policy.max_concurrency,
         rate_seed.get("max_concurrency", settings.PROVIDER_MAX_CONCURRENCY),
     )
-    policy.tokens_per_minute = _int_or(policy.tokens_per_minute, rate_seed.get("tokens_per_minute", 60))
+    policy.tokens_per_minute = _int_or(
+        policy.tokens_per_minute, rate_seed.get("tokens_per_minute", 60)
+    )
     policy.burst_capacity = _int_or(policy.burst_capacity, rate_seed.get("burst_capacity", 15))
     policy.cooldown_seconds = _int_or(policy.cooldown_seconds, 30)
     policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
@@ -249,7 +253,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
     for provider_name in supported_provider_names():
         await ensure_data_source(db, provider_name)
 
-    capability_providers: dict[ProviderCapability, list[str]] = {capability: [] for capability in ProviderCapability}
+    capability_providers: dict[ProviderCapability, list[str]] = {
+        capability: [] for capability in ProviderCapability
+    }
     for provider_name in supported_provider_names():
         provider_capabilities = set(list_provider_capabilities(provider_name))
         for capability in ProviderCapability:
@@ -259,7 +265,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
     for capability, supported_providers in capability_providers.items():
         preferred_order = ordered.get(capability, [])
         providers = preferred_order + [
-            provider_name for provider_name in supported_providers if provider_name not in preferred_order
+            provider_name
+            for provider_name in supported_providers
+            if provider_name not in preferred_order
         ]
         for provider_name in providers:
             data_source = await ensure_data_source(db, provider_name)
@@ -274,7 +282,10 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             rate_seed = settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {})
             freshness = settings.PROVIDER_FRESHNESS_SEEDS.get(
                 capability.value,
-                3600 if capability not in {ProviderCapability.PRICE_HISTORY, ProviderCapability.LATEST_PRICE} else 300,
+                3600
+                if capability
+                not in {ProviderCapability.PRICE_HISTORY, ProviderCapability.LATEST_PRICE}
+                else 300,
             )
             if policy is None:
                 policy = ProviderPolicy(
@@ -282,7 +293,9 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     capability=capability,
                     is_enabled=True,
                     base_priority=_base_priority(provider_name, providers),
-                    max_concurrency=rate_seed.get("max_concurrency", settings.PROVIDER_MAX_CONCURRENCY),
+                    max_concurrency=rate_seed.get(
+                        "max_concurrency", settings.PROVIDER_MAX_CONCURRENCY
+                    ),
                     tokens_per_minute=rate_seed.get("tokens_per_minute", 60),
                     burst_capacity=rate_seed.get("burst_capacity", 15),
                     freshness_seconds=freshness,
@@ -355,16 +368,16 @@ async def resolve_provider_chain(
         else {}
     )
     binding_ids = (
-        await get_provider_binding_ids(db, instrument_id)
-        if instrument_id is not None
-        else set()
+        await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
     resolved: list[ResolvedProvider] = []
     for policy, health, data_source in rows:
         if health.circuit_open_until and health.circuit_open_until > now:
             continue
         support_state = support_map.get(data_source.id)
-        effective_support = support_state.status if support_state is not None else SUPPORT_STATUS_UNKNOWN
+        effective_support = (
+            support_state.status if support_state is not None else SUPPORT_STATUS_UNKNOWN
+        )
         if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
         provider = get_provider(data_source.name)
@@ -559,7 +572,9 @@ async def execute_provider_call(
                     error_type=exc.__class__.__name__,
                     error_message=str(exc),
                 )
-            remaining = [r.provider_name for r in chain if r.provider_name != resolved.provider_name]
+            remaining = [
+                r.provider_name for r in chain if r.provider_name != resolved.provider_name
+            ]
             if remaining:
                 logger.warning(
                     "provider_runtime: %s failed for %s/%s (%s) — falling back to [%s]",
@@ -577,7 +592,9 @@ async def execute_provider_call(
                     operation,
                     exc,
                 )
-            await asyncio.sleep(min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15)
+            await asyncio.sleep(
+                min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
+            )
             continue
 
     if not chain and instrument_id is not None:

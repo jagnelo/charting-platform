@@ -87,7 +87,9 @@ def _snapshot_hash(records: list[OptionContractRecord], expiration: date) -> str
             "mark": str(record.mark) if record.mark is not None else None,
             "last_price": str(record.last_price) if record.last_price is not None else None,
             "volume": str(record.volume) if record.volume is not None else None,
-            "open_interest": str(record.open_interest) if record.open_interest is not None else None,
+            "open_interest": str(record.open_interest)
+            if record.open_interest is not None
+            else None,
             "implied_vol": str(record.implied_vol) if record.implied_vol is not None else None,
             "delta": str(record.delta) if record.delta is not None else None,
             "gamma": str(record.gamma) if record.gamma is not None else None,
@@ -153,27 +155,35 @@ async def list_option_expirations(
     refresh: bool = False,
 ) -> list[date]:
     persisted_expirations = (
-        await db.execute(
-            select(distinct(OptionDetail.expiry_date))
-            .where(OptionDetail.underlying_instrument_id == underlying.id)
-            .order_by(OptionDetail.expiry_date)
+        (
+            await db.execute(
+                select(distinct(OptionDetail.expiry_date))
+                .where(OptionDetail.underlying_instrument_id == underlying.id)
+                .order_by(OptionDetail.expiry_date)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if not refresh:
         fresh_states = (
-            await db.execute(
-                select(InstrumentDatasetState)
-                .where(
-                    InstrumentDatasetState.instrument_id == underlying.id,
-                    InstrumentDatasetState.dataset_type == "option_expirations",
-                    InstrumentDatasetState.dataset_key == "all",
-                    InstrumentDatasetState.status == DatasetStatus.FRESH,
-                    InstrumentDatasetState.stale_after.is_not(None),
-                    InstrumentDatasetState.stale_after > _now_utc(),
+            (
+                await db.execute(
+                    select(InstrumentDatasetState)
+                    .where(
+                        InstrumentDatasetState.instrument_id == underlying.id,
+                        InstrumentDatasetState.dataset_type == "option_expirations",
+                        InstrumentDatasetState.dataset_key == "all",
+                        InstrumentDatasetState.status == DatasetStatus.FRESH,
+                        InstrumentDatasetState.stale_after.is_not(None),
+                        InstrumentDatasetState.stale_after > _now_utc(),
+                    )
+                    .order_by(InstrumentDatasetState.observed_at.desc())
                 )
-                .order_by(InstrumentDatasetState.observed_at.desc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for state in fresh_states:
             payload_exps = (state.extra_data or {}).get("expirations")
             if isinstance(payload_exps, list) and payload_exps:
@@ -325,15 +335,19 @@ async def sync_option_chain_snapshot(
     refresh: bool = False,
 ) -> OptionChainSnapshot | None:
     latest_snapshot = (
-        await db.execute(
-            select(OptionChainSnapshot)
-            .where(
-                OptionChainSnapshot.underlying_instrument_id == underlying.id,
-                OptionChainSnapshot.expiration_date == expiration,
+        (
+            await db.execute(
+                select(OptionChainSnapshot)
+                .where(
+                    OptionChainSnapshot.underlying_instrument_id == underlying.id,
+                    OptionChainSnapshot.expiration_date == expiration,
+                )
+                .order_by(OptionChainSnapshot.observed_at.desc())
             )
-            .order_by(OptionChainSnapshot.observed_at.desc())
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if latest_snapshot is not None and not refresh:
         dataset_state = (
             await db.execute(
@@ -382,7 +396,9 @@ async def sync_option_chain_snapshot(
         await db.flush()
         return latest_snapshot
 
-    observed_at = max((contract.observed_at for contract in contracts if contract.observed_at), default=_now_utc())
+    observed_at = max(
+        (contract.observed_at for contract in contracts if contract.observed_at), default=_now_utc()
+    )
     snapshot_hash = _snapshot_hash(contracts, expiration)
     snapshot = (
         await db.execute(
@@ -435,7 +451,11 @@ async def sync_option_chain_snapshot(
         delta = contract.delta
         gamma = contract.gamma
         extra_greeks = dict(contract.extra_greeks or {})
-        if (delta is None or gamma is None) and contract.implied_vol is not None and spot_f is not None:
+        if (
+            (delta is None or gamma is None)
+            and contract.implied_vol is not None
+            and spot_f is not None
+        ):
             tte = max(0.0, (contract.expiry_date - today).days / 365.25)
             if tte > 0:
                 is_call = contract.right.lower().startswith("c")
@@ -451,7 +471,9 @@ async def sync_option_chain_snapshot(
                     delta = Decimal(str(round(est_delta, 8)))
                 if gamma is None:
                     gamma = Decimal(str(round(est_gamma, 8)))
-                extra_greeks.update({"greeks_source": "bs_estimated", "rfr_used": rfr, "div_yield_used": 0.0})
+                extra_greeks.update(
+                    {"greeks_source": "bs_estimated", "rfr_used": rfr, "div_yield_used": 0.0}
+                )
 
         point_values = {
             "option_instrument_id": option_instrument.id,
@@ -527,7 +549,9 @@ async def get_option_chain_rows(
     expiration: date,
     refresh: bool = False,
 ) -> tuple[OptionChainSnapshot | None, list[dict]]:
-    snapshot = await sync_option_chain_snapshot(db, underlying, expiration=expiration, refresh=refresh)
+    snapshot = await sync_option_chain_snapshot(
+        db, underlying, expiration=expiration, refresh=refresh
+    )
     if snapshot is None:
         return None, []
 
@@ -550,14 +574,18 @@ async def get_option_chain_rows(
             "style": detail.style.value,
             "strike": float(detail.strike),
             "expiry_date": detail.expiry_date,
-            "contract_size": float(detail.contract_size) if detail.contract_size is not None else None,
+            "contract_size": float(detail.contract_size)
+            if detail.contract_size is not None
+            else None,
             "contract_key": detail.contract_key,
             "bid": float(point.bid) if point.bid is not None else None,
             "ask": float(point.ask) if point.ask is not None else None,
             "mark": float(point.mark) if point.mark is not None else None,
             "last": float(point.last) if point.last is not None else None,
             "volume": float(point.volume) if point.volume is not None else None,
-            "open_interest": float(point.open_interest) if point.open_interest is not None else None,
+            "open_interest": float(point.open_interest)
+            if point.open_interest is not None
+            else None,
             "implied_vol": float(point.implied_vol) if point.implied_vol is not None else None,
             "delta": float(point.delta) if point.delta is not None else None,
             "gamma": float(point.gamma) if point.gamma is not None else None,
@@ -668,21 +696,30 @@ async def sync_option_quote_history(
     for point in points:
         raw_payload = point.raw_payload or {}
         observation_hash = hashlib.sha256(
-            json.dumps(raw_payload or {
-                "observed_at": point.observed_at.isoformat(),
-                "bid": str(point.bid) if point.bid is not None else None,
-                "ask": str(point.ask) if point.ask is not None else None,
-                "mark": str(point.mark) if point.mark is not None else None,
-                "last": str(point.last) if point.last is not None else None,
-                "volume": str(point.volume) if point.volume is not None else None,
-                "open_interest": str(point.open_interest) if point.open_interest is not None else None,
-                "implied_vol": str(point.implied_vol) if point.implied_vol is not None else None,
-                "delta": str(point.delta) if point.delta is not None else None,
-                "gamma": str(point.gamma) if point.gamma is not None else None,
-                "theta": str(point.theta) if point.theta is not None else None,
-                "vega": str(point.vega) if point.vega is not None else None,
-                "rho": str(point.rho) if point.rho is not None else None,
-            }, sort_keys=True, default=str).encode("utf-8")
+            json.dumps(
+                raw_payload
+                or {
+                    "observed_at": point.observed_at.isoformat(),
+                    "bid": str(point.bid) if point.bid is not None else None,
+                    "ask": str(point.ask) if point.ask is not None else None,
+                    "mark": str(point.mark) if point.mark is not None else None,
+                    "last": str(point.last) if point.last is not None else None,
+                    "volume": str(point.volume) if point.volume is not None else None,
+                    "open_interest": str(point.open_interest)
+                    if point.open_interest is not None
+                    else None,
+                    "implied_vol": str(point.implied_vol)
+                    if point.implied_vol is not None
+                    else None,
+                    "delta": str(point.delta) if point.delta is not None else None,
+                    "gamma": str(point.gamma) if point.gamma is not None else None,
+                    "theta": str(point.theta) if point.theta is not None else None,
+                    "vega": str(point.vega) if point.vega is not None else None,
+                    "rho": str(point.rho) if point.rho is not None else None,
+                },
+                sort_keys=True,
+                default=str,
+            ).encode("utf-8")
         ).hexdigest()
         _hist_ins = pg_insert(OptionQuotePoint)
         await db.execute(

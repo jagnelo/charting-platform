@@ -64,13 +64,17 @@ async def get_provider_binding_ids(
     instrument_id: int,
 ) -> set[int]:
     rows = (
-        await db.execute(
-            select(InstrumentProviderSymbol.data_source_id).where(
-                InstrumentProviderSymbol.instrument_id == instrument_id,
-                InstrumentProviderSymbol.is_active.is_(True),
+        (
+            await db.execute(
+                select(InstrumentProviderSymbol.data_source_id).where(
+                    InstrumentProviderSymbol.instrument_id == instrument_id,
+                    InstrumentProviderSymbol.is_active.is_(True),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return set(rows)
 
 
@@ -81,13 +85,17 @@ async def get_provider_support_map(
 ) -> dict[int, ProviderSupportState]:
     now = _now_utc()
     rows = (
-        await db.execute(
-            select(InstrumentProviderCapabilityStatus).where(
-                InstrumentProviderCapabilityStatus.instrument_id == instrument_id,
-                InstrumentProviderCapabilityStatus.capability == capability,
+        (
+            await db.execute(
+                select(InstrumentProviderCapabilityStatus).where(
+                    InstrumentProviderCapabilityStatus.instrument_id == instrument_id,
+                    InstrumentProviderCapabilityStatus.capability == capability,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {
         row.data_source_id: ProviderSupportState(
             data_source_id=row.data_source_id,

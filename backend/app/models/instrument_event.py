@@ -34,8 +34,12 @@ class InstrumentEvent(Base, TimestampMixin):
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    event_type: Mapped[InstrumentEventType] = mapped_column(SAEnum(InstrumentEventType), nullable=False, index=True)
-    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    event_type: Mapped[InstrumentEventType] = mapped_column(
+        SAEnum(InstrumentEventType), nullable=False, index=True
+    )
+    event_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     time_hint: Mapped[EventTimeHint] = mapped_column(
         SAEnum(EventTimeHint), nullable=False, default=EventTimeHint.UNKNOWN
     )
@@ -59,7 +63,9 @@ class InstrumentEvent(Base, TimestampMixin):
     instrument: Mapped["Instrument"] = relationship("Instrument", back_populates="events")
 
     __table_args__ = (
-        UniqueConstraint("instrument_id", "source", "source_event_key", name="uq_instrument_event_source_key"),
+        UniqueConstraint(
+            "instrument_id", "source", "source_event_key", name="uq_instrument_event_source_key"
+        ),
         Index("ix_instrument_event_inst_time_type", "instrument_id", "event_time", "event_type"),
     )
 

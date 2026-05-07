@@ -2,7 +2,17 @@ import enum
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,7 +77,9 @@ class InstrumentProfileSnapshot(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     profile_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -102,7 +114,9 @@ class InstrumentIdentifierSnapshot(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     snapshot_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -174,7 +188,9 @@ class LatestPriceSnapshot(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -204,7 +220,9 @@ class OptionChainSnapshot(Base, TimestampMixin):
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
     expiration_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     snapshot_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -240,13 +258,18 @@ class OptionQuotePoint(Base, TimestampMixin):
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
     )
     snapshot_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"), nullable=True, index=True
+        Integer,
+        ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     bid: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     ask: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     mark: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
@@ -290,7 +313,9 @@ class InstrumentSearchSnapshot(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     query: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     result_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -322,7 +347,9 @@ class UniverseDiscoverySnapshot(Base, TimestampMixin):
     )
     quote_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     offset: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     snapshot_hash: Mapped[str] = mapped_column(String(80), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)

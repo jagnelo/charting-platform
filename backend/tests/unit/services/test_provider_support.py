@@ -7,10 +7,12 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
-from app.models.instrument_identity import InstrumentProviderCapabilityStatus, InstrumentProviderSymbol
+from app.models.instrument_identity import (
+    InstrumentProviderCapabilityStatus,
+    InstrumentProviderSymbol,
+)
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
 from app.services.provider_runtime import (
-    ProviderExecutionResult,
     ResolvedProvider,
     execute_provider_call,
     resolve_provider_chain,
@@ -32,7 +34,9 @@ class _Provider:
         return self._result
 
 
-def _resolved_provider(db, *, provider_name: str, capability: ProviderCapability, provider: object) -> ResolvedProvider:
+def _resolved_provider(
+    db, *, provider_name: str, capability: ProviderCapability, provider: object
+) -> ResolvedProvider:
     data_source = DataSource(name=provider_name, is_active=True)
     db.add(data_source)
     db.flush()
@@ -91,13 +95,17 @@ async def test_support_status_expires_back_to_unknown(db, instrument):
     )
     db.commit()
 
-    support_map = await get_provider_support_map(async_db, instrument.id, ProviderCapability.LATEST_PRICE)
+    support_map = await get_provider_support_map(
+        async_db, instrument.id, ProviderCapability.LATEST_PRICE
+    )
 
     assert support_map[source.id].status == SUPPORT_STATUS_UNKNOWN
 
 
 @pytest.mark.asyncio
-async def test_execute_provider_call_downgrades_and_recovers_provider_support(db, instrument, monkeypatch):
+async def test_execute_provider_call_downgrades_and_recovers_provider_support(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     primary = _resolved_provider(
         db,
@@ -127,12 +135,16 @@ async def test_execute_provider_call_downgrades_and_recovers_provider_support(db
         treat_empty_as_failure=True,
     )
 
-    rows = db.execute(
-        select(InstrumentProviderCapabilityStatus).where(
-            InstrumentProviderCapabilityStatus.instrument_id == instrument.id,
-            InstrumentProviderCapabilityStatus.capability == ProviderCapability.LATEST_PRICE,
+    rows = (
+        db.execute(
+            select(InstrumentProviderCapabilityStatus).where(
+                InstrumentProviderCapabilityStatus.instrument_id == instrument.id,
+                InstrumentProviderCapabilityStatus.capability == ProviderCapability.LATEST_PRICE,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     status_by_source = {row.data_source_id: row.support_status for row in rows}
 
     assert result.provider_name == "yfinance"
@@ -191,7 +203,9 @@ async def test_resolve_provider_chain_prefers_supported_then_bound_provider(db, 
     )
     db.commit()
 
-    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY, instrument_id=instrument.id)
+    chain = await resolve_provider_chain(
+        async_db, ProviderCapability.PRICE_HISTORY, instrument_id=instrument.id
+    )
 
     assert [item.provider_name for item in chain[:2]] == ["alpaca", "yfinance"]
     assert "fred" not in [item.provider_name for item in chain]

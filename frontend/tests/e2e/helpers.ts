@@ -185,6 +185,21 @@ export class DashboardPage {
   }
 }
 
+// ── Page object: RadarPage ────────────────────────────────────────────────────
+
+export class RadarPage {
+  constructor(private page: Page) {}
+
+  async goto() {
+    await this.page.goto('/radar')
+    await this.page.waitForLoadState('networkidle')
+  }
+
+  async runScan() {
+    await this.page.click('button:has-text("Run scan")')
+  }
+}
+
 // ── Custom test fixture ────────────────────────────────────────────────────────
 
 type Fixtures = {
@@ -192,6 +207,7 @@ type Fixtures = {
   chartPage:     ChartPage
   screenerPage:  ScreenerPage
   dashboardPage: DashboardPage
+  radarPage:     RadarPage
   browserDiagnostics: BrowserDiagnostics
   loggedIn:      void
 }
@@ -207,6 +223,7 @@ export const test = base.extend<Fixtures>({
   chartPage:     async ({ page }, use) => use(new ChartPage(page)),
   screenerPage:  async ({ page }, use) => use(new ScreenerPage(page)),
   dashboardPage: async ({ page }, use) => use(new DashboardPage(page)),
+  radarPage:     async ({ page }, use) => use(new RadarPage(page)),
 
   loggedIn: async ({ page, request }, use, testInfo) => {
     const workerSuffix = testInfo.workerIndex ?? 0

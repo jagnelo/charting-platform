@@ -66,7 +66,9 @@ class TestProvidersApi:
 
         refreshed = client.get("/api/v1/providers/policies", headers=auth_headers).json()
         updated = next(
-            row for row in refreshed if row["provider"] == provider and row["capability"] == capability
+            row
+            for row in refreshed
+            if row["provider"] == provider and row["capability"] == capability
         )
         assert updated["base_priority"] == new_priority
         assert updated["auto_weight_enabled"] is False

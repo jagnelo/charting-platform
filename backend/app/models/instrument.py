@@ -45,8 +45,12 @@ class Instrument(Base, TimestampMixin):
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     isin: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
-    primary_identifier_type: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
-    primary_identifier_value: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    primary_identifier_type: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, index=True
+    )
+    primary_identifier_value: Mapped[str | None] = mapped_column(
+        String(80), nullable=True, index=True
+    )
     field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Synthetic/expression instruments
@@ -160,7 +164,9 @@ class OptionDetail(Base, TimestampMixin):
     style: Mapped[OptionStyle] = mapped_column(
         SAEnum(OptionStyle), nullable=False, default=OptionStyle.AMERICAN
     )
-    contract_key: Mapped[str | None] = mapped_column(String(160), nullable=True, unique=True, index=True)
+    contract_key: Mapped[str | None] = mapped_column(
+        String(160), nullable=True, unique=True, index=True
+    )
     venue_code: Mapped[str | None] = mapped_column(String(30), nullable=True)
     strike: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     expiry_date: Mapped[date] = mapped_column(Date, nullable=False)
