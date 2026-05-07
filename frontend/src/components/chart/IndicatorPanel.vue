@@ -604,7 +604,7 @@ const isPanelOpen    = ref(false)   // starts hidden until an instrument is load
 const alertsOpen     = ref(false)
 const indicatorsOpen = ref(false)
 const drawingsOpen   = ref(false)
-const radarsOpen     = ref(true)
+const radarsOpen     = ref(false)
 const watchlistsOpen = ref(false)
 const screenersOpen  = ref(false)
 
@@ -669,6 +669,7 @@ watch(() => chartStore.instrument?.id, async (id) => {
   indicatorsOpen.value = false
   drawingsOpen.value   = false
   alertsOpen.value     = false
+  radarsOpen.value     = false
   if (_membershipCache.has(id)) {
     const cached = _membershipCache.get(id)!
     membership.value = cached
@@ -686,6 +687,13 @@ watch(() => chartStore.instrument?.id, async (id) => {
     membership.value = null
   }
 }, { immediate: true })
+
+watch(
+  () => radarStore.chartDetections.length,
+  (count) => {
+    radarsOpen.value = count > 0
+  },
+)
 
 function onScreenerClick(scId: number) {
   router.push(`/screener?selectedId=${scId}`)
