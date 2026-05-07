@@ -1214,6 +1214,376 @@ Why this was deferred:
 - Breadth analysis depends on both basket membership and historical OHLCV coverage being in good shape.
 - The right design for mixed-sector basket classification needs more downstream context before being finalised.
 
+### 11. Build a platform-wide OHLCV coverage, freshness, and acquisition orchestration layer
+Status: `Planned`
+
+Context:
+- The platform now has several different price-data consumers, but they do not all behave consistently:
+  - chart OHLCV routes are read-through and may fetch/backfill on demand
+  - first-time instrument discovery can enqueue broad history fetches in the background
+  - indicator alerts currently fetch OHLCV on demand before evaluating
+  - `run_screener` is DB-only
+  - `stream_screener` is hybrid: DB-first, then fetches for instruments with no cached bars
+  - radar is currently DB-only
+  - nightly refresh and bulk-fetch flows explicitly seed or refresh OHLCV ahead of time
+- This inconsistency is manageable while the platform is small, but it becomes increasingly dangerous as more evaluators come online.
+- We explicitly want to preserve three platform rules:
+  - external providers should only be contacted when there is strong evidence that the DB is missing required data or has gone stale enough to invalidate the use case
+  - when data is missing, the platform should fetch only the missing slice, not an arbitrarily broad range
+  - any mechanism that issues factual, price-based outcomes (alerts, screener matches, radar detections, future breadth or signal outputs) must not silently evaluate on stale or incomplete data
+- This future item is about making those rules concrete and enforceable across the whole platform, not just inside one feature.
+
+Why this deserves a dedicated roadmap item:
+- This is not only a radar concern. It directly affects:
+  - chart OHLCV loading
+  - instrument detail widgets derived from OHLCV
+  - screeners
+  - indicator alerts
+  - radar scans
+  - breadth analysis over baskets and ETFs
+  - future signal/trade-plan engines
+  - future strategy or validation workflows that depend on OHLCV readiness
+- If each subsystem keeps inventing its own "fetch if missing", "fresh enough", or "latest bars" logic, the platform will drift into multiple incompatible truth models:
+  - one feature may skip an instrument because the DB is cold
+  - another may fetch a fresh tail and produce a different answer
+  - another may operate on stale bars and produce an answer that is factually out of date
+- A shared orchestration layer is the cleanest way to preserve:
+  - deterministic evaluation behavior
+  - low provider dependency
+  - bounded provider spending/quota usage
+  - eventual consistency with market reality
+
+Desired global policy:
+- Split OHLCV consumers into three explicit classes and apply different rules to each.
+
+#### 11a. Interactive, user-driven data views
+
+Examples:
+- chart OHLCV requests
+- transformed-bar chart requests
+- historical pagination while the user pans left on a chart
+- instrument detail views that need one symbol's recent OHLCV-derived metrics
+- later, narrow single-symbol analytical views
+
+Policy:
+- allow narrow read-through fetch/backfill
+- allow on-demand repair of the exact requested historical slice
+- allow limited freshness repair of the exact latest window needed for the request
+- still route these through a shared coordinator so provider throttling and missing-slice logic remain centralized
+
+Reason:
+- the user explicitly requested a narrow unit of data
+- read-through behavior is acceptable here because it is scoped, intentional, and observable
+
+#### 11b. Broad evaluators / decision engines
+
+Examples:
+- radar scans
+- scheduled screeners
+- screener-alert post-processing
+- indicator alerts
+- future breadth snapshots
+- future trade-signal engines
+- future strategy/lifecycle engines that consume price-derived signals
+
+Policy:
+- do not let these flows perform ad hoc provider fetches inside the actual evaluation loop
+- evaluate from DB-backed data only
+- if data freshness/completeness is required, acquire it in a dedicated preflight phase before evaluation begins
+- if preflight cannot produce adequate coverage, the evaluator should mark the run as partial/deferred/unavailable rather than silently evaluating stale data
+
+Reason:
+- these flows can touch many instruments and many timeframes
+- letting each engine fetch on the fly is the fastest path to:
+  - quota waste
+  - inconsistent results
+  - bad runtime performance
+  - subtle race conditions between evaluation and refresh
+
+#### 11c. Background maintenance / data-orchestration flows
+
+Examples:
+- nightly OHLCV refresh
+- bulk instrument history fetch
+- discovery-triggered initial history seeding
+- future pre-market or post-close refresh waves
+- future scheduled "prepare data for radar/screener/alerts" tasks
+
+Policy:
+- these are the preferred place for broad provider usage
+- they may fetch at larger scale, but should still fetch precisely where possible
+- they should aim to keep the DB sufficiently ready that evaluators rarely need to wait
+
+Reason:
+- this centralizes provider communication
+- this makes rate limiting and retry behavior operationally visible
+- this avoids broad evaluators becoming selfish and independently burning provider quota
+
+Desired platform rules:
+- Rule 1: never perform factual evaluation on known-stale or known-missing price data.
+- Rule 2: never fetch broad history when a narrow missing slice will do.
+- Rule 3: never allow multiple callers to independently hit providers for the same instrument/timeframe/range if the request can be coalesced.
+- Rule 4: never allow a broad evaluator to spend provider quota without going through a shared coordinator.
+- Rule 5: historical ranges already fully covered in the DB should not be treated as stale merely because they are old relative to the current wall clock.
+- Rule 6: freshness semantics must be use-case aware, not just "is the latest bar older than now?".
+
+What should be built:
+
+#### 11d. Shared OHLCV coverage/freshness coordinator
+
+Introduce one central service, rather than many feature-specific implementations, with an interface conceptually similar to:
+- `ensure_ohlcv_coverage(instrument_id, timeframe, start, end, freshness_policy, mode)`
+
+The exact final API can differ, but the coordinator should be responsible for:
+- inspecting the current DB coverage for the exact instrument/timeframe/range requested
+- determining whether the request is:
+  - ready
+  - partially covered
+  - missing
+  - stale
+  - already being refreshed
+  - unavailable due to provider/runtime constraints
+- computing the exact missing slice rather than defaulting to broad "latest N" fetches unless that is truly the narrowest correct request
+- coalescing overlapping requests from multiple callers
+- reusing in-flight refresh work when one caller already requested the same coverage
+- routing provider work through the existing provider runtime / throttling / health machinery
+- returning explicit status so callers know whether they may proceed synchronously, should queue work, or must defer
+
+The coordinator should understand the difference between:
+- latest-window freshness
+- historical-range completeness
+- cold-start absence of any OHLCV
+- partial historical gaps in the middle of a range
+- synthetic instruments whose OHLCV is computed internally rather than fetched from providers
+
+#### 11e. Formal freshness semantics by use case
+
+Define "fresh enough" in a way that is aware of:
+- timeframe
+- market/session timing
+- the consuming engine
+- whether the use case needs the latest completed bar, a historical range, or a live latest-price signal
+
+Examples:
+- `D1` radar/screener:
+  - should require the latest completed daily bar for the relevant session
+  - should not demand a synthetic "today" bar before the daily bar has actually completed
+- `W1` computations:
+  - should care about the latest completed weekly bar, not naïvely treat mid-week partial state as missing unless the feature explicitly supports it
+- historical chart pagination:
+  - should care about completeness of the requested window, not freshness to the current timestamp
+- price alerts:
+  - may legitimately require a live latest-price capability rather than OHLCV-bar freshness alone
+- indicator alerts:
+  - should run against refreshed OHLCV snapshots at the required timeframe, ideally grouped by instrument/timeframe rather than fetching per-alert
+
+This freshness logic should eventually become exchange-aware and asset-aware where relevant:
+- weekends and holidays
+- pre-market / regular session / post-market behavior
+- `24/7` assets like crypto
+- provider-specific publication timing for daily/weekly bars
+
+#### 11f. Evaluation preflight for broad engines
+
+Broad evaluators should move to a two-phase model.
+
+Phase 1: coverage preflight
+- determine the exact required OHLCV window per instrument and timeframe
+- check freshness and completeness
+- queue refresh/fill only for the instruments that need work
+- optionally wait for a bounded refresh wave to complete
+- mark unresolved instruments as unavailable/blocked rather than guessing
+
+Phase 2: evaluation
+- run the evaluator strictly against DB-backed data
+- never mix provider fetches into the evaluation loop itself
+- persist whether the run was:
+  - full
+  - partial
+  - deferred
+  - stale-blocked
+  - provider-unavailable
+
+This pattern should eventually apply to:
+- radar scans
+- `run_screener`
+- `stream_screener`
+- grouped indicator-alert evaluation
+- future breadth snapshots
+- future signal/strategy engines
+
+#### 11g. Request coalescing and anti-selfishness controls
+
+The future orchestration layer should explicitly prevent anti-patterns like:
+- radar, screener, alerts, and chart loads all noticing the same stale `AAPL D1` coverage and each independently calling the provider
+
+Add shared controls for:
+- in-flight deduplication per `(instrument, timeframe, adjusted, range/freshness intent)`
+- bounded concurrency by provider and capability
+- global and per-provider refresh budgets
+- caller-visible statuses such as:
+  - `already_refreshing`
+  - `queued`
+  - `ready`
+  - `deferred_due_to_budget`
+  - `provider_unavailable`
+  - `no_provider_support`
+
+This should integrate with the provider runtime / policy / health system rather than bypassing it.
+
+#### 11h. Precise missing-slice fetch logic
+
+The implementation should aggressively avoid over-fetching.
+
+Expected behaviors:
+- if the DB has bars through `2026-05-05` and only `2026-05-06` is missing, fetch only that missing tail
+- if the user paginates older chart history and the DB lacks only the older tail needed for that page, fetch only that tail
+- if the DB already fully covers a historical range, do not fetch anything just because the range ends in the past
+- if an instrument is new and entirely cold, fetch only the minimum viable bootstrap window needed for the current synchronous use case unless a broader background seed job is intentionally requested
+- if a background bulk-fetch wave is already responsible for fuller history, synchronous flows should avoid redundantly asking for the entire history themselves
+
+The coordinator should explicitly understand:
+- latest-window repair
+- historical-gap repair
+- cold-start bootstrap
+- overlap buffers for late-arriving bars or provider revisions
+
+#### 11i. Better dataset-state tracking
+
+The platform already has some dataset-state/provider-observation ideas, but this future work should deepen them for OHLCV specifically.
+
+Track enough metadata to answer:
+- what coverage window currently exists for this instrument/timeframe?
+- when was it last observed from a provider?
+- when should it be considered stale for each major consumption mode?
+- did the most recent refresh succeed, partially succeed, return empty, or fail?
+- is a refresh already in progress?
+- what provider last supplied or refreshed the data?
+- is the dataset totally absent or only partially missing?
+
+This should make it possible to:
+- avoid recalculating freshness naively on every caller
+- explain why a symbol was skipped by radar or a screener
+- later expose operational insight in admin or diagnostics surfaces
+
+#### 11j. Unify currently inconsistent consumers
+
+The current mixed behavior should be normalized over time.
+
+Specific migration targets:
+- radar:
+  - keep the detector DB-only at evaluation time
+  - add a preflight coverage stage
+- `run_screener`:
+  - move from "DB-only, no preflight" to "DB-only after preflight"
+- `stream_screener`:
+  - stop being a special fetch-on-the-fly exception
+  - instead stream:
+    - coverage-preflight progress
+    - then evaluation progress
+- indicator alerts:
+  - stop refreshing OHLCV separately inside each alert path
+  - group by `(instrument, timeframe)` and refresh once, then evaluate all alerts from the same DB snapshot
+- chart/instrument OHLCV routes:
+  - keep read-through semantics
+  - but route through the same coordinator so missing-slice and freshness policy stay consistent across the app
+
+#### 11k. Operational orchestration and scheduling
+
+The shared design should also inform platform scheduling.
+
+Questions to settle and later implement:
+- which refresh waves should run automatically:
+  - nightly / post-close `D1` refresh
+  - weekly `W1` refresh
+  - selected intraday refreshes for alert-heavy assets
+  - discovery-triggered bootstrap refreshes
+- what readiness guarantees should exist before:
+  - scheduled screeners
+  - future scheduled radar scans
+  - alert checks
+  - future breadth snapshots
+- what intentional order should exist between:
+  - OHLCV refresh
+  - evaluator runs
+  - downstream watchlist/notification/state-propagation workflows
+
+The long-term goal is that broad evaluators rarely discover missing data themselves because scheduled refresh waves have already kept the DB sufficiently ready.
+
+#### 11l. Failure handling and run semantics
+
+The future system should not force every evaluation to be all-or-nothing.
+
+Support nuanced outcomes such as:
+- run completed with full coverage
+- run completed with partial coverage
+- run deferred because refresh work would exceed current budget or timeout
+- run skipped because provider chain health made refresh unsafe/unreliable
+- instrument skipped because no provider-backed OHLCV source exists for it
+
+These statuses should become visible where appropriate in persisted run metadata for:
+- radar runs
+- screener runs
+- later breadth/signal/strategy runs
+
+This matters because:
+- "no matches"
+- "could not evaluate accurately"
+- and "some instruments were unevaluable"
+are materially different outcomes.
+
+#### 11m. Testing and verification expectations
+
+This roadmap item deserves explicit tests of its own.
+
+Expected test coverage:
+- exact missing-slice calculation
+- historical-range completeness vs latest-window freshness
+- no-fetch behavior when a historical range is already fully covered
+- deduplication of concurrent refresh requests
+- grouped refresh behavior for indicator alerts
+- preflight + evaluation separation for radar and screeners
+- correct partial/deferred run statuses
+- protection against stale-data evaluations
+- provider-budget and throttle behavior under multiple simultaneous callers
+
+Integration scenarios should explicitly cover:
+- a cold instrument with no bars
+- an instrument missing only the most recent bar
+- an instrument with historical gaps
+- provider unavailability during preflight
+- chart read-through paths and evaluator preflight paths both using the same coordinator
+
+Open design questions to preserve for later:
+- Should broad evaluators block synchronously for missing data up to a short deadline, or always queue and retry later?
+- Which assets/timeframes deserve proactive readiness guarantees versus on-demand preflight?
+- How much exchange/session awareness should live in the coordinator versus provider adapters or market-calendar utilities?
+- Should the platform have a formal freshness-SLA registry per capability / asset class / timeframe?
+- How should synthetic instruments inherit or aggregate constituent freshness?
+- Should options-related spot-price consumers use the same OHLCV freshness gate or a lighter latest-price-specific policy?
+
+Suggested implementation sequence:
+- Phase 1:
+  - document the platform policy explicitly
+  - introduce a shared coverage/freshness coordinator API
+  - keep existing market-data fetch helpers, but route decision logic through the new abstraction
+- Phase 2:
+  - migrate chart/instrument read-through OHLCV flows to the coordinator
+  - migrate radar preflight
+  - migrate `run_screener` and `stream_screener`
+- Phase 3:
+  - migrate grouped indicator-alert evaluation
+  - add persisted run statuses and richer skip/defer semantics
+  - deepen dataset-state visibility
+- Phase 4:
+  - align scheduling so refresh waves intentionally precede evaluation waves
+  - extend the same model to breadth, signal, and strategy engines
+
+Why this was deferred:
+- The current platform already works well enough for chart read-through, basic background refresh, and feature-specific point solutions.
+- Solving this correctly is architectural work, not a small feature patch.
+- Its value rises as more broad evaluators come online, especially radar expansion, breadth analysis, and future signal/strategy engines.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.
