@@ -98,6 +98,7 @@
                 <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
                   {{ formatRadarThreadTag(det) }}
                 </span>
+                <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
                 <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
                 <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
               </span>
@@ -111,6 +112,42 @@
                   i
                 </button>
               </HoverTooltip>
+            </div>
+            <div v-if="focusedRadarDetection" class="radar-focus-card">
+              <div class="radar-focus-head">
+                <span class="radar-focus-title">{{ formatRadarSetup(focusedRadarDetection.setup_type) }}</span>
+                <span :class="['draw-pane-tag', `draw-pane-tag--${focusedRadarDetection.state}`]">
+                  {{ formatRadarState(focusedRadarDetection.state) }}
+                </span>
+                <span class="draw-pane-tag">{{ focusedRadarDetection.score.toFixed(2) }}</span>
+              </div>
+              <div class="radar-focus-copy">{{ focusedRadarDetection.summary }}</div>
+              <div class="radar-focus-grid">
+                <span class="radar-focus-key">Signal</span>
+                <span class="radar-focus-val">{{ formatRadarSignalDate(focusedRadarDetection) }}</span>
+                <span class="radar-focus-key">Entry</span>
+                <span class="radar-focus-val">{{ formatRadarPrice(focusedRadarDetection.entry_price) }}</span>
+                <span class="radar-focus-key">Invalidation</span>
+                <span class="radar-focus-val">{{ formatRadarPrice(focusedRadarDetection.invalidation_price) }}</span>
+                <span class="radar-focus-key">Target</span>
+                <span class="radar-focus-val">{{ formatRadarPrice(focusedRadarDetection.target_price) }}</span>
+              </div>
+              <div v-if="focusedRadarDetection.thread_history?.length" class="radar-focus-timeline">
+                <div
+                  v-for="event in focusedRadarDetection.thread_history"
+                  :key="event.id"
+                  class="radar-focus-event"
+                  :class="{ 'radar-focus-event--active': event.id === focusedRadarDetection.id }"
+                >
+                  <span class="radar-focus-event-seq">#{{ event.thread_event_index ?? '—' }}</span>
+                  <span class="radar-focus-event-main">
+                    <span class="radar-focus-event-title">{{ formatRadarSetup(event.setup_type) }}</span>
+                    <span class="radar-focus-event-meta">
+                      {{ formatRadarObservedDate(event.signal_at) }} · {{ formatRadarState(event.state) }}
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
             <div v-if="!radarStore.chartDetections.length" class="empty-hint">No radar detections for this symbol</div>
           </div>
@@ -695,6 +732,12 @@ watch(
   },
 )
 
+const focusedRadarDetection = computed(() => {
+  const focusedId = radarStore.focusedChartDetectionId
+  if (focusedId == null) return null
+  return radarStore.chartDetections.find(detection => detection.id === focusedId) ?? null
+})
+
 function onScreenerClick(scId: number) {
   router.push(`/screener?selectedId=${scId}`)
 }
@@ -705,6 +748,18 @@ function onWatchlistClick(wlId: number) {
 
 function formatRadarSetup(setup: string): string {
   return setup.replace(/_/g, ' ')
+}
+
+function titleCaseWords(value: string): string {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word[0].toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function formatRadarState(state: string): string {
+  return titleCaseWords(state.replace(/_/g, ' '))
 }
 
 function formatRadarObservedDate(value?: string | null): string {
@@ -737,6 +792,11 @@ function formatRadarSignalDate(det: {
   return formatRadarObservedDate(det.observed_at)
 }
 
+function formatRadarPrice(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return value.toFixed(2)
+}
+
 function formatRadarThreadTag(det: {
   id?: number
   thread_event_index?: number | null
@@ -767,6 +827,11 @@ function radarTooltipText(det: {
   observed_at: string
   signal_at?: string
   context_at?: string | null
+  state: string
+  state_reason?: string | null
+  entry_price?: number | null
+  invalidation_price?: number | null
+  target_price?: number | null
   summary: string
   invalidation_hint?: string | null
   score: number
@@ -775,6 +840,7 @@ function radarTooltipText(det: {
   thread_history?: Array<{
     thread_event_index?: number | null
     setup_type: string
+    state: string
     signal_at: string
   }>
   evidence?: { metrics?: Record<string, unknown> }
@@ -783,9 +849,14 @@ function radarTooltipText(det: {
   const contextTime = radarMetricNumber(det, 'context_time')
   const lines = [
     `${formatRadarSetup(det.setup_type)} · detected ${formatRadarSignalDate(det)}`,
+    `State: ${formatRadarState(det.state)}`,
     det.summary,
     `Score: ${det.score.toFixed(2)}`,
   ]
+  if (det.state_reason) lines.push(det.state_reason)
+  if (det.entry_price != null) lines.push(`Entry: ${det.entry_price.toFixed(2)}`)
+  if (det.invalidation_price != null) lines.push(`Invalidation: ${det.invalidation_price.toFixed(2)}`)
+  if (det.target_price != null) lines.push(`Target: ${det.target_price.toFixed(2)}`)
   if (det.thread_event_index != null && det.thread?.detection_count) {
     lines.push(`Thread event ${det.thread_event_index} of ${det.thread.detection_count}`)
   }
@@ -793,7 +864,7 @@ function radarTooltipText(det: {
     lines.push('Timeline:')
     for (const event of det.thread_history) {
       lines.push(
-        `#${event.thread_event_index ?? '—'} ${formatRadarSetup(event.setup_type)} · ${formatRadarObservedDate(event.signal_at)}`,
+        `#${event.thread_event_index ?? '—'} ${formatRadarSetup(event.setup_type)} · ${formatRadarState(event.state)} · ${formatRadarObservedDate(event.signal_at)}`,
       )
     }
   }
@@ -1317,6 +1388,100 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   outline: none;
 }
 
+.radar-focus-card {
+  margin-top: 8px;
+  border: 1px solid #232323;
+  border-radius: 6px;
+  background: #121212;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radar-focus-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.radar-focus-title {
+  color: #ddd;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.radar-focus-copy {
+  color: #8c8c8c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.radar-focus-grid {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 4px 8px;
+  font-size: 10px;
+}
+
+.radar-focus-key {
+  color: #626262;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.radar-focus-val {
+  color: #bdbdbd;
+}
+
+.radar-focus-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radar-focus-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+  border: 1px solid #252525;
+  background: #0f0f0f;
+  color: #a8a8a8;
+  border-radius: 4px;
+  padding: 5px 6px;
+}
+
+.radar-focus-event--active {
+  border-color: #24415d;
+  background: #132131;
+  color: #d7e8fa;
+}
+
+.radar-focus-event-seq {
+  color: #5f7ea0;
+  font-size: 9px;
+  min-width: 22px;
+}
+
+.radar-focus-event-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.radar-focus-event-title {
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.radar-focus-event-meta {
+  color: #6f6f6f;
+  font-size: 9px;
+}
+
 .row-name {
   flex: 1;
   font-family: monospace;
@@ -1337,6 +1502,30 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   padding: 0 3px;
   vertical-align: middle;
   letter-spacing: 0.03em;
+}
+
+.draw-pane-tag--developing {
+  color: #d6bf6c;
+  border-color: #4f4a1b;
+  background: #26210d;
+}
+
+.draw-pane-tag--confirmed {
+  color: #73d8b2;
+  border-color: #194331;
+  background: #0f231b;
+}
+
+.draw-pane-tag--invalidated {
+  color: #ef8a85;
+  border-color: #5f231f;
+  background: #2a1210;
+}
+
+.draw-pane-tag--expired {
+  color: #8b8b8b;
+  border-color: #313131;
+  background: #171717;
 }
 
 .draw-pane-tag--dim {

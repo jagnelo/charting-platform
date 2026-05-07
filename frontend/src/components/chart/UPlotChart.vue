@@ -838,6 +838,8 @@ function renderRadarOverlays() {
   ctx.save()
   for (const overlay of props.radarOverlays) {
     const color = overlay.color ?? '#4ea8de'
+    const opacity = overlay.opacity != null ? Math.max(0.08, Math.min(1, overlay.opacity)) : 1
+    ctx.globalAlpha = opacity
     if (overlay.kind === 'zone' && overlay.start_time != null && overlay.end_time != null && overlay.price_low != null && overlay.price_high != null) {
       const x1 = plot.valToPos(timeToBarIndex(overlay.start_time), 'x')
       const x2 = plot.valToPos(timeToBarIndex(overlay.end_time), 'x')
@@ -892,6 +894,7 @@ function renderRadarOverlays() {
         ctx.fillText(overlay.label, x + 6, y - 6)
       }
     }
+    ctx.globalAlpha = 1
   }
   ctx.restore()
 }

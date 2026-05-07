@@ -340,9 +340,19 @@ const comparisonLegend = computed(() =>
 )
 
 const activeRadarOverlays = computed<RadarOverlay[]>(() => {
+  const focusedId = radarStore.focusedChartDetectionId
+  const hasFocusedDetection =
+    focusedId != null && radarStore.activeChartDetectionIds.includes(focusedId)
+
   return radarStore.chartDetections
     .filter(detection => radarStore.isChartDetectionActive(detection.id))
-    .flatMap(detection => detection.evidence?.overlays ?? [])
+    .flatMap(detection => {
+      const opacity = !hasFocusedDetection || detection.id === focusedId ? 1 : 0.24
+      return (detection.evidence?.overlays ?? []).map(overlay => ({
+        ...overlay,
+        opacity,
+      }))
+    })
 })
 
 function formatPercent(value: number | null | undefined) {
@@ -467,7 +477,7 @@ async function syncRadarOverlays() {
     chartStore.instrument.id,
     chartStore.instrument.symbol,
   )
-  await radarStore.loadChartDetections(chartStore.instrument.id, detectionId)
+  await radarStore.loadChartDetections(chartStore.instrument.id, chartStore.timeframe, detectionId)
 }
 
 function stripLegacyRadarDetectionQuery() {
@@ -487,6 +497,7 @@ watch(currentTf, async (tf) => {
     await alertsStore.loadAlerts(inst.id)
   }
   await loadComparisonBars()
+  await syncRadarOverlays()
 })
 
 watch(() => chartStore.bars.length, () => {
@@ -564,6 +575,10 @@ onMounted(async () => {
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
+  const pending = radarStore.pendingChartDetection
+  if (sym && pending?.instrumentSymbol === sym.toUpperCase() && currentTf.value !== pending.timeframe) {
+    currentTf.value = pending.timeframe
+  }
   if (sym) {
     await onSymbolSelect(sym)
   }

@@ -144,9 +144,29 @@ export type RadarSetupType =
   | 'approaching_support'
   | 'approaching_resistance'
   | 'breakout'
+  | 'breakout_retest'
   | 'breakdown'
+  | 'breakdown_retest'
+  | 'fakeout'
+  | 'fakedown'
+  | 'failed_reclaim'
+  | 'failed_breakdown_recovery'
+  | 'compression_support'
+  | 'compression_resistance'
   | 'reclaim'
   | 'rejection'
+
+export type RadarState =
+  | 'developing'
+  | 'confirmed'
+  | 'invalidated'
+  | 'expired'
+
+export type RadarOutcomeStatus =
+  | 'open'
+  | 'target_hit'
+  | 'invalidated'
+  | 'expired'
 
 export interface RadarOverlayPoint {
   time: number
@@ -158,6 +178,7 @@ export interface RadarOverlay {
   role?: string | null
   label?: string | null
   color?: string | null
+  opacity?: number | null
   dash_pattern?: number[] | null
   start_time?: number | null
   end_time?: number | null
@@ -196,6 +217,8 @@ export interface RadarSetupThread {
   context_role?: string | null
   reference_price: number
   current_setup_type: RadarSetupType
+  current_state: RadarState
+  state_changed_at: string
   started_at: string
   last_seen_at: string
   detection_count: number
@@ -208,10 +231,36 @@ export interface RadarThreadEvent {
   observed_at: string
   signal_at: string
   context_at?: string | null
+  state: RadarState
+  state_reason?: string | null
   thread_event_index?: number | null
   key_level_price?: number | null
+  entry_price?: number | null
+  invalidation_price?: number | null
+  target_price?: number | null
+  outcome_status: RadarOutcomeStatus
+  outcome_last_evaluated_at?: string | null
+  bars_since_signal: number
+  max_favorable_excursion_pct?: number | null
+  max_adverse_excursion_pct?: number | null
+  target_hit_at?: string | null
+  invalidated_at?: string | null
   summary: string
   invalidation_hint?: string | null
+}
+
+export interface RadarOutcomeSummary {
+  timeframe: Timeframe
+  setup_type: RadarSetupType
+  total: number
+  open_count: number
+  target_hit_count: number
+  invalidated_count: number
+  expired_count: number
+  target_hit_rate: number
+  invalidated_rate: number
+  avg_mfe_pct?: number | null
+  avg_mae_pct?: number | null
 }
 
 export interface RadarDetection {
@@ -226,16 +275,34 @@ export interface RadarDetection {
   observed_at: string
   signal_at?: string
   context_at?: string | null
+  state: RadarState
+  state_reason?: string | null
   fresh_until: string
   thread_id?: number | null
   thread_event_index?: number | null
   key_level_price?: number | null
+  entry_price?: number | null
+  invalidation_price?: number | null
+  target_price?: number | null
+  outcome_status: RadarOutcomeStatus
+  outcome_last_evaluated_at?: string | null
+  bars_since_signal: number
+  max_favorable_excursion_pct?: number | null
+  max_adverse_excursion_pct?: number | null
+  target_hit_at?: string | null
+  invalidated_at?: string | null
   summary: string
   invalidation_hint?: string | null
   score_factors: Record<string, number>
   thread?: RadarSetupThread | null
   thread_history?: RadarThreadEvent[]
   evidence?: RadarEvidence
+}
+
+export interface RadarWatchlistAction {
+  watchlist_id: number
+  watchlist_name: string
+  item_id: number
 }
 
 export interface ChartDrawing {
@@ -685,6 +752,7 @@ export type DashboardWidgetType =
   | 'watchlist'
   | 'alerts'
   | 'screener'
+  | 'radar'
   | 'instrument_details'
   | 'advanced_chart'
   | 'comparison_chart'

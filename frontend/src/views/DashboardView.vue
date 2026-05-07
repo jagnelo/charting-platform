@@ -142,6 +142,10 @@
                 :config="widget.config"
                 @patch-config="patchConfig(widget, $event)"
               />
+              <DashboardRadarWidget
+                v-else-if="widget.widget_type === 'radar'"
+                :config="widget.config"
+              />
               <DashboardEconomicCalendarWidget
                 v-else-if="widget.widget_type === 'economic_calendar'"
                 :config="widget.config"
@@ -380,6 +384,68 @@
               </select>
             </label>
 
+            <template v-if="configWidget.widget_type === 'radar'">
+              <label class="config-field">
+                <span>Timeframe</span>
+                <select
+                  :value="configWidget.config.timeframe || 'D1'"
+                  @change="patchConfig(configWidget, { timeframe: inputValue($event) })"
+                >
+                  <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+                </select>
+              </label>
+              <label class="config-field">
+                <span>Setup type</span>
+                <input
+                  :value="configWidget.config.setup_type || ''"
+                  placeholder="e.g. breakout"
+                  @input="patchConfig(configWidget, { setup_type: inputValue($event) || null })"
+                />
+              </label>
+              <label class="config-field">
+                <span>State</span>
+                <select
+                  :value="configWidget.config.state || 'confirmed'"
+                  @change="patchConfig(configWidget, { state: inputValue($event) || null })"
+                >
+                  <option value="confirmed">Confirmed</option>
+                  <option value="developing">Developing</option>
+                  <option value="invalidated">Invalidated</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </label>
+              <label class="config-field">
+                <span>Minimum score</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  :value="configWidget.config.min_score ?? 0.6"
+                  @input="patchConfig(configWidget, { min_score: Number(inputValue($event)) || 0 })"
+                />
+              </label>
+              <label class="config-field">
+                <span>Row limit</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  step="1"
+                  :value="configWidget.config.limit ?? 6"
+                  @input="patchConfig(configWidget, { limit: Number(inputValue($event)) || 6 })"
+                />
+              </label>
+              <label class="config-check">
+                <input
+                  type="checkbox"
+                  :checked="configWidget.config.fresh_only !== false"
+                  @change="patchConfig(configWidget, { fresh_only: checkboxValue($event) })"
+                />
+                <span>Fresh only</span>
+              </label>
+            </template>
+
             <template v-if="configWidget.widget_type === 'heat_map'">
               <label class="config-field">
                 <span>Universe</span>
@@ -572,6 +638,7 @@ import DashboardNotesWidget from '@/components/dashboard/DashboardNotesWidget.vu
 import DashboardOptionsChainWidget from '@/components/dashboard/DashboardOptionsChainWidget.vue'
 import DashboardGexWidget from '@/components/dashboard/DashboardGexWidget.vue'
 import DashboardQuoteWidget from '@/components/dashboard/DashboardQuoteWidget.vue'
+import DashboardRadarWidget from '@/components/dashboard/DashboardRadarWidget.vue'
 import DashboardScreenerWidget from '@/components/dashboard/DashboardScreenerWidget.vue'
 import DashboardSeasonalityWidget from '@/components/dashboard/DashboardSeasonalityWidget.vue'
 import DashboardWatchlistWidget from '@/components/dashboard/DashboardWatchlistWidget.vue'
@@ -641,6 +708,7 @@ const widgetCatalog: Array<{
   { type: 'watchlist', title: 'Watchlist', description: 'Saved symbols' },
   { type: 'alerts', title: 'Alerts', description: 'Price and indicator alerts' },
   { type: 'screener', title: 'Screener Results', description: 'Latest run output' },
+  { type: 'radar', title: 'Radar', description: 'Top technical radar detections' },
   { type: 'economic_calendar', title: 'Economic Calendar', description: 'Earnings, dividends, splits' },
   { type: 'options_chain', title: 'Options Chain', description: 'Calls, puts, IV, OI, greeks' },
   { type: 'gex_ladder', title: 'GEX / DEX Ladder', description: 'Gamma & delta exposure, key levels' },
@@ -788,6 +856,7 @@ function defaultLayout(type: DashboardWidgetType, spot: { x: number; y: number }
     watchlist: { w: 9, h: 10 },
     alerts: { w: 8, h: 8 },
     screener: { w: 10, h: 8 },
+    radar: { w: 10, h: 9 },
     economic_calendar: { w: 10, h: 8 },
     options_chain: { w: 16, h: 10 },
     heat_map: { w: 16, h: 14 },
@@ -814,6 +883,16 @@ function defaultConfig(type: DashboardWidgetType) {
   }
   if (type === 'ratio_chart') return { expression: '=SPY/GLD', timeframe: 'D1', barLimit: 300 }
   if (type === 'watchlist') return { watchlistId: null, showSparklines: true }
+  if (type === 'radar') {
+    return {
+      timeframe: 'D1',
+      setup_type: '',
+      state: 'confirmed',
+      min_score: 0.6,
+      limit: 6,
+      fresh_only: true,
+    }
+  }
   if (type === 'heat_map') return {
     universeType: 'watchlist',
     watchlistId: null,

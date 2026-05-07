@@ -17,9 +17,25 @@
 
     <div class="radar-stage">
       <div class="filter-bar">
+        <div class="saved-view-controls">
+          <select v-model="selectedSavedView" class="filter-select" :disabled="runningScan" @change="applySavedView">
+            <option value="">Saved views</option>
+            <option v-for="view in radarStore.savedViews" :key="view.name" :value="view.name">{{ view.name }}</option>
+          </select>
+          <button class="action-btn" :disabled="runningScan" @click="showSaveViewInput = !showSaveViewInput">
+            Save view
+          </button>
+        </div>
+        <select v-model="filters.timeframe" class="filter-select" :disabled="runningScan" @change="refresh">
+          <option v-for="timeframe in timeframeOptions" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
+        </select>
         <select v-model="filters.setupType" class="filter-select" :disabled="runningScan">
           <option value="">All setups</option>
           <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
+        </select>
+        <select v-model="filters.state" class="filter-select" :disabled="runningScan">
+          <option value="">All states</option>
+          <option v-for="state in radarStates" :key="state.value" :value="state.value">{{ state.label }}</option>
         </select>
         <input
           v-model="filters.symbol"
@@ -53,6 +69,7 @@
               <tr>
                 <th>Symbol</th>
                 <th>Setup</th>
+                <th>State</th>
                 <th>Seq</th>
                 <th>Detected</th>
                 <th>Score</th>
@@ -69,6 +86,9 @@
               >
                 <td class="td-symbol">{{ detection.instrument_symbol }}</td>
                 <td class="td-setup">{{ labelForSetup(detection.setup_type) }}</td>
+                <td class="td-state">
+                  <span :class="['state-pill', `state-pill--${detection.state}`]">{{ labelForState(detection.state) }}</span>
+                </td>
                 <td class="td-mono td-dim">{{ formatThreadSequence(detection) }}</td>
                 <td class="td-mono td-dim">{{ formatRadarSignalDate(detection) }}</td>
                 <td class="td-score">{{ detection.score.toFixed(2) }}</td>
@@ -87,25 +107,63 @@
             <div>
               <span class="detail-symbol">{{ radarStore.selectedDetection.instrument_symbol }}</span>
               <span class="detail-setup">{{ labelForSetup(radarStore.selectedDetection.setup_type) }}</span>
+              <span :class="['detail-state-pill', `detail-state-pill--${radarStore.selectedDetection.state}`]">
+                {{ labelForState(radarStore.selectedDetection.state) }}
+              </span>
               <span v-if="selectedThreadStatusLabel" class="detail-thread-pill">{{ selectedThreadStatusLabel }}</span>
             </div>
             <button class="action-btn primary" :disabled="runningScan" @click="openInChart(radarStore.selectedDetection)">
               Open in chart
             </button>
           </div>
+          <div class="detail-actions-row">
+            <button class="action-btn" :disabled="runningScan || workflowPending" @click="createAlertFromDetection">
+              {{ workflowPendingAction === 'alert' ? 'Creating…' : 'Create alert' }}
+            </button>
+            <select v-model="selectedWatchlistId" class="filter-select detail-watchlist-select" :disabled="runningScan || workflowPending">
+              <option value="">Default watchlist</option>
+              <option v-for="watchlist in watchlistOptions" :key="watchlist.id" :value="String(watchlist.id)">
+                {{ watchlist.name }}
+              </option>
+            </select>
+            <button class="action-btn" :disabled="runningScan || workflowPending" @click="addDetectionToWatchlist">
+              {{ workflowPendingAction === 'watchlist' ? 'Adding…' : 'Add to watchlist' }}
+            </button>
+          </div>
+          <div v-if="workflowMessage" class="detail-workflow-msg">{{ workflowMessage }}</div>
 
           <p class="detail-summary">{{ radarStore.selectedDetection.summary }}</p>
           <p class="detail-invalid">{{ radarStore.selectedDetection.invalidation_hint }}</p>
+          <p v-if="radarStore.selectedDetection.state_reason" class="detail-state-copy">
+            {{ radarStore.selectedDetection.state_reason }}
+          </p>
+
+          <div class="detail-section">
+            <div class="section-title">Action plan</div>
+            <div class="kv-grid">
+              <template v-for="row in actionPlanRows" :key="row.key">
+                <span class="kv-key">{{ row.key }}</span>
+                <span class="kv-val-block">
+                  <span class="kv-val">{{ row.value }}</span>
+                  <span v-if="row.hint" class="kv-hint">{{ row.hint }}</span>
+                </span>
+              </template>
+            </div>
+          </div>
 
           <div v-if="selectedThread" class="detail-section">
             <div class="section-title">Setup thread</div>
             <div class="kv-grid">
+              <span class="kv-key">Current state</span>
+              <span class="kv-val">{{ labelForState(selectedThread.current_state) }}</span>
               <span class="kv-key">Context</span>
               <span class="kv-val">{{ selectedThread.context_role || 'mixed' }}</span>
               <span class="kv-key">Reference level</span>
               <span class="kv-val">{{ formatPrice(selectedThread.reference_price) }}</span>
               <span class="kv-key">Events</span>
               <span class="kv-val">{{ selectedThread.detection_count }}</span>
+              <span class="kv-key">State changed</span>
+              <span class="kv-val">{{ formatDateShort(selectedThread.state_changed_at) }}</span>
               <span class="kv-key">Started</span>
               <span class="kv-val">{{ formatDateShort(selectedThread.started_at) }}</span>
               <span class="kv-key">Last seen</span>
@@ -124,7 +182,53 @@
                 <span class="thread-event-seq">#{{ event.thread_event_index ?? '—' }}</span>
                 <span class="thread-event-main">
                   <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
-                  <span class="thread-event-meta">{{ formatDateShort(event.signal_at) }} · {{ event.score.toFixed(2) }}</span>
+                  <span class="thread-event-meta">{{ formatDateShort(event.signal_at) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="instrumentTimeline.length" class="detail-section">
+            <div class="section-title">Instrument timeline</div>
+            <div class="thread-history">
+              <button
+                v-for="event in instrumentTimeline"
+                :key="event.id"
+                type="button"
+                class="thread-event"
+                :class="{ 'thread-event--active': event.id === radarStore.selectedDetection?.id }"
+                :disabled="runningScan"
+                @click="selectDetection(event.id)"
+              >
+                <span class="thread-event-seq">{{ formatThreadSequence(event) || '•' }}</span>
+                <span class="thread-event-main">
+                  <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
+                  <span class="thread-event-meta">
+                    {{ formatRadarSignalDate(event) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="instrumentHistory.length" class="detail-section">
+            <div class="section-title">History browser</div>
+            <div class="thread-history">
+              <button
+                v-for="event in instrumentHistory"
+                :key="event.id"
+                type="button"
+                class="thread-event"
+                :class="{ 'thread-event--active': event.id === radarStore.selectedDetection?.id }"
+                :disabled="runningScan"
+                @click="selectDetection(event.id)"
+              >
+                <span class="thread-event-seq">{{ event.timeframe }}</span>
+                <span class="thread-event-main">
+                  <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
+                  <span class="thread-event-meta">
+                    {{ formatRadarSignalDate(event) }} · {{ labelForState(event.state) }} · {{ formatOutcomeStatus(event.outcome_status) }}
+                  </span>
                 </span>
               </button>
             </div>
@@ -165,6 +269,25 @@
               </template>
             </div>
           </div>
+
+          <div v-if="currentOutcomeSummary.length" class="detail-section">
+            <div class="section-title">Outcome research</div>
+            <div class="thread-history">
+              <div
+                v-for="summary in currentOutcomeSummary"
+                :key="`${summary.timeframe}-${summary.setup_type}`"
+                class="thread-event"
+              >
+                <span class="thread-event-seq">{{ summary.timeframe }}</span>
+                <span class="thread-event-main">
+                  <span class="thread-event-title">{{ labelForSetup(summary.setup_type) }}</span>
+                  <span class="thread-event-meta">
+                    hit {{ formatPercent(summary.target_hit_rate) }} · invalidated {{ formatPercent(summary.invalidated_rate) }} · n={{ summary.total }}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
         </template>
         <div v-else class="empty-detail">Select a detection to inspect its evidence.</div>
       </aside>
@@ -175,6 +298,27 @@
           <div class="radar-busy-title">Running radar scan…</div>
           <div class="radar-busy-copy">Refreshing detections and locking interactions until the new run finishes.</div>
         </div>
+      </div>
+
+      <div v-if="showSaveViewInput" class="save-view-card">
+        <input
+          v-model.trim="saveViewDraft"
+          class="filter-input"
+          placeholder="View name…"
+          :disabled="runningScan"
+          @keydown.enter="persistCurrentView"
+        />
+        <button class="action-btn primary" :disabled="runningScan || !saveViewDraft" @click="persistCurrentView">
+          Save
+        </button>
+        <button
+          v-if="selectedSavedView"
+          class="action-btn"
+          :disabled="runningScan"
+          @click="removeSelectedView"
+        >
+          Delete
+        </button>
       </div>
     </div>
 
@@ -187,42 +331,87 @@ import { useRouter } from 'vue-router'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import { useRadarStore } from '@/stores/radar'
-import type { RadarDetection, RadarSetupType } from '@/types'
+import { useWatchlistStore } from '@/stores/watchlist'
+import type {
+  RadarDetection,
+  RadarOutcomeSummary,
+  RadarSetupType,
+  RadarState,
+  Timeframe,
+} from '@/types'
 
 const radarStore = useRadarStore()
+const watchlistStore = useWatchlistStore()
 const router = useRouter()
 const scanPending = ref(false)
+const showSaveViewInput = ref(false)
+const saveViewDraft = ref('')
+const selectedSavedView = ref('')
+const selectedWatchlistId = ref('')
+const workflowPendingAction = ref<'alert' | 'watchlist' | null>(null)
+const workflowMessage = ref('')
 
 const filters = reactive({
+  timeframe: 'D1' as Timeframe,
   setupType: '',
+  state: '',
   symbol: '',
   minScore: 0.35,
   freshOnly: true,
 })
 
+const timeframeOptions: Timeframe[] = ['M30', 'H1', 'H4', 'D1', 'W1', 'MN']
+
 const setupTypes: Array<{ value: RadarSetupType; label: string }> = [
   { value: 'approaching_support', label: 'Approaching support' },
   { value: 'approaching_resistance', label: 'Approaching resistance' },
+  { value: 'compression_support', label: 'Compression support' },
+  { value: 'compression_resistance', label: 'Compression resistance' },
   { value: 'breakout', label: 'Breakout' },
+  { value: 'breakout_retest', label: 'Breakout retest' },
   { value: 'breakdown', label: 'Breakdown' },
+  { value: 'breakdown_retest', label: 'Breakdown retest' },
+  { value: 'fakeout', label: 'Fakeout' },
+  { value: 'fakedown', label: 'Fakedown' },
+  { value: 'failed_reclaim', label: 'Failed reclaim' },
+  { value: 'failed_breakdown_recovery', label: 'Failed breakdown recovery' },
   { value: 'reclaim', label: 'Reclaim' },
   { value: 'rejection', label: 'Rejection' },
+]
+const radarStates: Array<{ value: RadarState; label: string }> = [
+  { value: 'developing', label: 'Developing' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'invalidated', label: 'Invalidated' },
+  { value: 'expired', label: 'Expired' },
 ]
 
 const latestRun = computed(() => radarStore.runs[0] ?? null)
 const selectedThread = computed(() => radarStore.selectedDetection?.thread ?? null)
 const selectedThreadHistory = computed(() => radarStore.selectedDetection?.thread_history ?? [])
-const selectedThreadSequence = computed(() => (
-  radarStore.selectedDetection ? formatThreadSequence(radarStore.selectedDetection) : ''
-))
+const instrumentHistory = computed(() => radarStore.selectedInstrumentHistory)
+const watchlistOptions = computed(() => watchlistStore.watchlists.filter(w => !w.is_managed && !w.is_locked))
+const currentOutcomeSummary = computed(() => {
+  const setup = radarStore.selectedDetection?.setup_type
+  return setup
+    ? radarStore.outcomeSummary.filter(summary => summary.setup_type === setup)
+    : radarStore.outcomeSummary
+})
+const instrumentTimeline = computed(() => {
+  const instrumentId = radarStore.selectedDetection?.instrument_id
+  if (!instrumentId) return []
+  return radarStore.detections.filter(
+    detection => detection.instrument_id === instrumentId && detection.timeframe === filters.timeframe,
+  )
+})
 const selectedThreadStatusLabel = computed(() => {
   const detection = radarStore.selectedDetection
   if (!detection) return ''
+  const stateLabel = labelForState(detection.thread?.current_state ?? detection.state)
   if (detection.thread) {
     const sequence = formatThreadSequence(detection)
-    return sequence ? `Thread ${sequence}` : 'Threaded'
+    return sequence ? `${stateLabel} · Thread ${sequence}` : `${stateLabel} · Threaded`
   }
-  return 'Unthreaded'
+  return `${stateLabel} · Unthreaded`
 })
 
 interface MetricRow {
@@ -241,7 +430,17 @@ const evidenceMetricRows = computed((): MetricRow[] => {
   const week52LowTime = typeof m.week52_low_time === 'number' ? m.week52_low_time : null
 
   for (const [key, val] of Object.entries(m)) {
-    if (key === 'invalidation_price' || key === 'week52_high_time' || key === 'week52_low_time') continue
+    if (
+      key === 'entry_price'
+      || key === 'invalidation_price'
+      || key === 'target_price'
+      || key === 'target_source'
+      || key === 'risk_reward'
+      || key === 'state'
+      || key === 'state_reason'
+      || key === 'week52_high_time'
+      || key === 'week52_low_time'
+    ) continue
 
     if (key === 'ema_levels' && val && typeof val === 'object' && !Array.isArray(val)) {
       for (const [period, level] of Object.entries(val as Record<string, number>)) {
@@ -272,7 +471,7 @@ const evidenceMetricRows = computed((): MetricRow[] => {
       rows.push({
         key: preferDateOnly ? 'Signal date' : 'Signal time',
         value: formatMetricTimestamp(
-          typeof val === 'number' ? val : det.signal_at ?? null,
+          det.signal_at ?? (typeof val === 'number' ? val : null),
           { preferDateOnly },
         ),
       })
@@ -284,7 +483,7 @@ const evidenceMetricRows = computed((): MetricRow[] => {
       rows.push({
         key: preferDateOnly ? 'Context date' : 'Context time',
         value: formatMetricTimestamp(
-          typeof val === 'number' ? val : det.context_at ?? null,
+          det.context_at ?? (typeof val === 'number' ? val : null),
           { preferDateOnly },
         ),
       })
@@ -314,12 +513,44 @@ const evidenceMetricRows = computed((): MetricRow[] => {
   return rows
 })
 
+const actionPlanRows = computed((): MetricRow[] => {
+  const detection = radarStore.selectedDetection
+  if (!detection) return []
+  const metrics = detection.evidence?.metrics as Record<string, unknown> | undefined
+  const targetSource = typeof metrics?.target_source === 'string' ? metrics.target_source : undefined
+  const riskReward = typeof metrics?.risk_reward === 'number' ? metrics.risk_reward : null
+  return [
+    {
+      key: 'Entry',
+      value: formatPrice(detection.entry_price),
+      hint: detection.state === 'developing' ? 'watch level' : 'trigger level',
+    },
+    {
+      key: 'Invalidation',
+      value: formatPrice(detection.invalidation_price),
+    },
+    {
+      key: 'Target',
+      value: formatPrice(detection.target_price),
+      hint: targetSource ?? undefined,
+    },
+    {
+      key: 'Reward / risk',
+      value: riskReward != null ? `${riskReward.toFixed(2)}R` : '—',
+    },
+  ]
+})
+
 const SCORE_FACTOR_HINTS: Record<string, string> = {
   distance_to_level: 'How close price is to the zone center. 1.0 = exactly at the level, 0 = far away.',
   touch_count: 'Number of times price has tested and respected this zone. More touches = stronger zone.',
   recency: 'How recently the zone was last tested. Decays over 120 bars from the last touch.',
   structure_age: 'How long the zone has existed since its first touch. Matures over 180 bars.',
   overlap_confluence: 'Overlap with EMAs, anchored VWAP, or 52-week levels. Higher = more confluence.',
+  multi_timeframe_alignment: 'How much higher-timeframe structure overlaps with the current setup zone.',
+  trend_pattern_quality: 'Strength of trendline, channel, wedge, or triangle context supporting this setup.',
+  gap_context: 'Whether nearby open gaps reinforce the setup or define an unfilled reaction zone.',
+  avwap_anchor_quality: 'Quality of the chosen AVWAP anchor based on its type and contextual relevance.',
   recent_reaction_quality: 'How cleanly price respected this zone in the last 10 bars.',
   timeframe_importance: 'Weight assigned to this timeframe. Fixed at 1.0 — placeholder for multi-timeframe scoring.',
   normalized_score: 'Final composite score: weighted blend of all factors above.',
@@ -329,9 +560,26 @@ function scoreFactorHint(key: string): string {
   return SCORE_FACTOR_HINTS[key] ?? ''
 }
 const runningScan = computed(() => scanPending.value || latestRun.value?.status === 'running')
+const workflowPending = computed(() => workflowPendingAction.value !== null)
 
 function labelForSetup(setup: RadarSetupType) {
   return setup.replace(/_/g, ' ')
+}
+
+function titleCaseWords(value: string) {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word[0].toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function labelForState(state: RadarState) {
+  return titleCaseWords(state.replace(/_/g, ' '))
+}
+
+function formatOutcomeStatus(status: RadarDetection['outcome_status']) {
+  return titleCaseWords(status.replace(/_/g, ' '))
 }
 
 function prettifyKey(key: string) {
@@ -411,6 +659,11 @@ function formatPrice(value?: number | null) {
   return value.toFixed(2)
 }
 
+function formatPercent(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return `${(value * 100).toFixed(1)}%`
+}
+
 function formatFactor(value: unknown) {
   if (typeof value === 'number') return value.toFixed(2)
   return String(value)
@@ -424,29 +677,75 @@ function formatMetric(value: unknown) {
 
 async function refresh() {
   await Promise.all([
-    radarStore.loadRuns(),
+    radarStore.loadRuns(5, filters.timeframe),
     radarStore.loadDetections({
+      timeframe: filters.timeframe,
       setup_type: filters.setupType || undefined,
+      state: filters.state || undefined,
       symbol: filters.symbol || undefined,
       min_score: filters.minScore,
       fresh_only: filters.freshOnly,
     }),
+    radarStore.loadOutcomeSummary(filters.timeframe),
   ])
-  if (!radarStore.selectedDetection && radarStore.detections[0]) {
-    await selectDetection(radarStore.detections[0].id)
+  const selectedId = radarStore.selectedDetection?.id
+  if (selectedId && radarStore.detections.some(detection => detection.id === selectedId)) {
+    await selectDetection(selectedId)
+    return
   }
+  if (radarStore.detections[0]) {
+    await selectDetection(radarStore.detections[0].id)
+  } else {
+    workflowMessage.value = ''
+  }
+}
+
+function persistCurrentView() {
+  if (!saveViewDraft.value) return
+  radarStore.saveView(saveViewDraft.value, {
+    timeframe: filters.timeframe,
+    setup_type: filters.setupType || undefined,
+    state: filters.state || undefined,
+    symbol: filters.symbol || undefined,
+    min_score: filters.minScore,
+    fresh_only: filters.freshOnly,
+  })
+  selectedSavedView.value = saveViewDraft.value
+  showSaveViewInput.value = false
+  saveViewDraft.value = ''
+}
+
+async function applySavedView() {
+  const view = radarStore.savedViews.find(item => item.name === selectedSavedView.value)
+  if (!view) return
+  filters.setupType = view.filters.setup_type ?? ''
+  filters.state = view.filters.state ?? ''
+  filters.symbol = view.filters.symbol ?? ''
+  filters.timeframe = (view.filters.timeframe as Timeframe | undefined) ?? 'D1'
+  filters.minScore = view.filters.min_score ?? 0.35
+  filters.freshOnly = view.filters.fresh_only ?? true
+  await refresh()
+}
+
+async function removeSelectedView() {
+  if (!selectedSavedView.value) return
+  radarStore.deleteView(selectedSavedView.value)
+  selectedSavedView.value = ''
 }
 
 async function selectDetection(id: number) {
   if (runningScan.value) return
-  await radarStore.loadDetection(id)
+  const detection = await radarStore.loadDetection(id)
+  if (detection) {
+    await radarStore.loadInstrumentHistory(detection.instrument_id, detection.timeframe)
+  }
 }
 
 async function runScan() {
   if (runningScan.value) return
   scanPending.value = true
   try {
-    await radarStore.runScan()
+    await radarStore.runScan(filters.timeframe)
     await refresh()
   } finally {
     scanPending.value = false
@@ -462,13 +761,46 @@ function openInChart(detection: RadarDetection) {
     id: preferredDetectionId,
     instrument_id: detection.instrument_id,
     instrument_symbol: detection.instrument_symbol,
+    timeframe: detection.timeframe,
   })
   router.push({
     path: `/chart/${encodeURIComponent(detection.instrument_symbol)}`,
   })
 }
 
+async function addDetectionToWatchlist() {
+  const detection = radarStore.selectedDetection
+  if (!detection || workflowPending.value) return
+  workflowPendingAction.value = 'watchlist'
+  workflowMessage.value = ''
+  try {
+    const result = await radarStore.addDetectionToWatchlist(
+      detection.id,
+      selectedWatchlistId.value ? Number(selectedWatchlistId.value) : undefined,
+    )
+    workflowMessage.value = `Added to ${result.watchlist_name}.`
+    await watchlistStore.loadWatchlists()
+  } finally {
+    workflowPendingAction.value = null
+  }
+}
+
+async function createAlertFromDetection() {
+  const detection = radarStore.selectedDetection
+  if (!detection || workflowPending.value) return
+  workflowPendingAction.value = 'alert'
+  workflowMessage.value = ''
+  try {
+    const alert = await radarStore.createDetectionPriceAlert(detection.id)
+    workflowMessage.value = `Created ${alert.condition.replace(/_/g, ' ')} alert on ${alert.instrument_symbol}.`
+  } finally {
+    workflowPendingAction.value = null
+  }
+}
+
 onMounted(async () => {
+  radarStore.loadSavedViews()
+  await watchlistStore.loadWatchlists()
   await refresh()
 })
 </script>
@@ -570,6 +902,17 @@ onMounted(async () => {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.saved-view-controls,
+.save-view-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-view-card {
+  margin-top: -4px;
 }
 
 .filter-select,
@@ -725,6 +1068,10 @@ onMounted(async () => {
   text-transform: capitalize;
 }
 
+.td-state {
+  min-width: 94px;
+}
+
 .td-score {
   color: #26a69a;
   font-weight: 600;
@@ -794,6 +1141,50 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
+.detail-state-pill,
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-transform: capitalize;
+}
+
+.detail-state-pill {
+  margin-top: 8px;
+  margin-right: 6px;
+}
+
+.state-pill--developing,
+.detail-state-pill--developing {
+  border: 1px solid #4f4a1b;
+  background: #26210d;
+  color: #e0c972;
+}
+
+.state-pill--confirmed,
+.detail-state-pill--confirmed {
+  border: 1px solid #194331;
+  background: #0f231b;
+  color: #63d0aa;
+}
+
+.state-pill--invalidated,
+.detail-state-pill--invalidated {
+  border: 1px solid #5f231f;
+  background: #2a1210;
+  color: #ef8a85;
+}
+
+.state-pill--expired,
+.detail-state-pill--expired {
+  border: 1px solid #313131;
+  background: #171717;
+  color: #8b8b8b;
+}
+
 .detail-summary {
   color: #aaa;
   font-size: 12px;
@@ -801,9 +1192,34 @@ onMounted(async () => {
   margin-bottom: 6px;
 }
 
+.detail-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.detail-watchlist-select {
+  min-width: 150px;
+}
+
+.detail-workflow-msg {
+  color: #6fb98f;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
 .detail-invalid {
   color: #666;
   font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.detail-state-copy {
+  color: #7b7b7b;
+  font-size: 11px;
+  line-height: 1.5;
   margin-bottom: 16px;
 }
 
