@@ -50,6 +50,7 @@ from app.models.radar import (
     RadarRunStatus,
     RadarSetupThread,
     RadarSetupType,
+    RadarState,
 )
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
@@ -112,6 +113,7 @@ __all__ = [
     "RadarRun",
     "RadarDetection",
     "RadarRunStatus",
+    "RadarState",
     "RadarSetupThread",
     "RadarSetupType",
     "IndicatorAlert",
