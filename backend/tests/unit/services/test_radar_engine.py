@@ -187,7 +187,9 @@ class TestRadarEngine:
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]
         detections = analyze_instrument(_instrument(), _make_bars(prices))
-        candidate = next(det for det in detections if det.setup_type == RadarSetupType.APPROACHING_SUPPORT)
+        candidate = next(
+            det for det in detections if det.setup_type == RadarSetupType.APPROACHING_SUPPORT
+        )
         thread = RadarSetupThread(
             instrument_id=1,
             timeframe=Timeframe.D1,

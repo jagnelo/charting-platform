@@ -7,7 +7,11 @@ from app.models.instrument import Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentProfile, ListingRecord
-from app.routers.instruments import _create_from_provider, _ensure_52w_stats, _needs_52w_stats_refresh
+from app.routers.instruments import (
+    _create_from_provider,
+    _ensure_52w_stats,
+    _needs_52w_stats_refresh,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -157,10 +161,14 @@ class TestInstrument52WStats:
         assert float(refreshed.stats.week52_high) == 200.0
         assert float(refreshed.stats.week52_low) == 120.0
         assert refreshed.stats.field_provenance["week52_high"]["source"] == "internal_ohlcv_52w"
-        assert refreshed.stats.field_provenance["week52_high"]["observed_at"] == base.date().isoformat()
-        assert refreshed.stats.field_provenance["week52_low"]["observed_at"] == (
-            base + timedelta(days=30)
-        ).date().isoformat()
+        assert (
+            refreshed.stats.field_provenance["week52_high"]["observed_at"]
+            == base.date().isoformat()
+        )
+        assert (
+            refreshed.stats.field_provenance["week52_low"]["observed_at"]
+            == (base + timedelta(days=30)).date().isoformat()
+        )
 
     def test_skips_52w_refresh_when_internal_provenance_already_has_occurrence_dates(
         self, instrument

@@ -105,7 +105,9 @@ class RadarSetupThread(Base, TimestampMixin):
         SAEnum(RadarSetupType), nullable=False, index=True
     )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     detection_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     instrument: Mapped["Instrument"] = relationship()

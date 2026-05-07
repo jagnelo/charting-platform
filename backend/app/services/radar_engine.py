@@ -414,7 +414,7 @@ def _candidate_sort_key(candidate: DetectionCandidate) -> tuple[datetime, int, i
 
 def _thread_match_tolerance(candidate: DetectionCandidate) -> float:
     atr = candidate.evidence.get("metrics", {}).get("atr_14")
-    if isinstance(atr, (int, float)) and atr > 0:
+    if isinstance(atr, int | float) and atr > 0:
         return max(float(atr) * 1.1, candidate.key_level_price * THREAD_PRICE_TOLERANCE_FRACTION)
     return max(candidate.key_level_price * 0.012, 1.0)
 
@@ -565,8 +565,14 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     "label": "52W High",
                     "color": "#8ecae6",
                     "points": [
-                        {"time": timestamps[0], "price": round(float(week52["week52_high"]["price"]), 4)},
-                        {"time": latest_ts, "price": round(float(week52["week52_high"]["price"]), 4)},
+                        {
+                            "time": timestamps[0],
+                            "price": round(float(week52["week52_high"]["price"]), 4),
+                        },
+                        {
+                            "time": latest_ts,
+                            "price": round(float(week52["week52_high"]["price"]), 4),
+                        },
                     ],
                 }
             )
@@ -578,8 +584,14 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     "label": "52W Low",
                     "color": "#8ecae6",
                     "points": [
-                        {"time": timestamps[0], "price": round(float(week52["week52_low"]["price"]), 4)},
-                        {"time": latest_ts, "price": round(float(week52["week52_low"]["price"]), 4)},
+                        {
+                            "time": timestamps[0],
+                            "price": round(float(week52["week52_low"]["price"]), 4),
+                        },
+                        {
+                            "time": latest_ts,
+                            "price": round(float(week52["week52_low"]["price"]), 4),
+                        },
                     ],
                 }
             )
@@ -593,14 +605,8 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 "distance_to_zone": round(abs(close - zone.center), 4),
                 "ema_levels": {k: round(v, 4) for k, v in ema_levels.items()},
                 "avwap": round(avwap_value, 4) if avwap_value is not None else None,
-                **{
-                    key: round(float(level["price"]), 4)
-                    for key, level in week52.items()
-                },
-                **{
-                    f"{key}_time": int(level["time"])
-                    for key, level in week52.items()
-                },
+                **{key: round(float(level["price"]), 4) for key, level in week52.items()},
+                **{f"{key}_time": int(level["time"]) for key, level in week52.items()},
             },
             "structures": [
                 {
@@ -884,7 +890,9 @@ async def run_radar_scan(
                     instrument_threads.append(thread)
                 duplicate_detection = _find_duplicate_thread_detection(candidate, thread)
                 if duplicate_detection is not None:
-                    thread_event_index = duplicate_detection.thread_event_index or thread.detection_count
+                    thread_event_index = (
+                        duplicate_detection.thread_event_index or thread.detection_count
+                    )
                     thread.last_seen_at = max(thread.last_seen_at, candidate.signal_at)
                     thread.current_setup_type = candidate.setup_type
                 else:
@@ -952,9 +960,7 @@ async def get_detection_with_instrument(
                 .options(
                     selectinload(RadarDetection.instrument),
                     selectinload(RadarDetection.run),
-                    selectinload(RadarDetection.thread).selectinload(
-                        RadarSetupThread.detections
-                    ),
+                    selectinload(RadarDetection.thread).selectinload(RadarSetupThread.detections),
                 )
             )
         )

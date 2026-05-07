@@ -1165,7 +1165,8 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         cutoff = datetime.now(UTC) - timedelta(days=366)
         high_row = (
             await db.execute(
-                select(OHLCVBar.high.label("week52_high"), OHLCVBar.ts.label("week52_high_time")).where(
+                select(OHLCVBar.high.label("week52_high"), OHLCVBar.ts.label("week52_high_time"))
+                .where(
                     OHLCVBar.instrument_id == instrument.id,
                     OHLCVBar.timeframe == "D1",
                     OHLCVBar.ts >= cutoff,
@@ -1177,7 +1178,8 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
         ).one_or_none()
         low_row = (
             await db.execute(
-                select(OHLCVBar.low.label("week52_low"), OHLCVBar.ts.label("week52_low_time")).where(
+                select(OHLCVBar.low.label("week52_low"), OHLCVBar.ts.label("week52_low_time"))
+                .where(
                     OHLCVBar.instrument_id == instrument.id,
                     OHLCVBar.timeframe == "D1",
                     OHLCVBar.ts >= cutoff,
@@ -1188,7 +1190,12 @@ async def _ensure_52w_stats(instrument: Instrument, db: AsyncSession) -> Instrum
             )
         ).one_or_none()
 
-        if high_row is None or high_row.week52_high is None or low_row is None or low_row.week52_low is None:
+        if (
+            high_row is None
+            or high_row.week52_high is None
+            or low_row is None
+            or low_row.week52_low is None
+        ):
             return instrument
 
         week52_high = float(high_row.week52_high)
