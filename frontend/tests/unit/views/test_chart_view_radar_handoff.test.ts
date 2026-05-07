@@ -89,8 +89,9 @@ describe('ChartView radar handoff', () => {
       id: 42,
       instrument_id: 7,
       instrument_symbol: 'TSLA',
+      timeframe: 'D1',
     })
-    const loadChartDetectionsSpy = vi.spyOn(radarStore, 'loadChartDetections').mockImplementation(async (_instrumentId: number, preferredDetectionId?: number | null) => {
+    const loadChartDetectionsSpy = vi.spyOn(radarStore, 'loadChartDetections').mockImplementation(async (_instrumentId: number, _timeframe: string, preferredDetectionId?: number | null) => {
       radarStore.chartDetections = [
         {
           id: 42,
@@ -100,6 +101,7 @@ describe('ChartView radar handoff', () => {
           instrument_name: 'Tesla',
           timeframe: 'D1',
           setup_type: 'rejection',
+          state: 'confirmed',
           score: 0.8,
           observed_at: '2026-05-05T00:00:00Z',
           fresh_until: '2026-05-10T00:00:00Z',
@@ -107,6 +109,13 @@ describe('ChartView radar handoff', () => {
           summary: 'Rejected resistance',
           invalidation_hint: 'Close above resistance',
           score_factors: { normalized_score: 0.8 },
+          outcome_status: 'open',
+          outcome_last_evaluated_at: '2026-05-05T00:00:00Z',
+          bars_since_signal: 0,
+          max_favorable_excursion_pct: null,
+          max_adverse_excursion_pct: null,
+          target_hit_at: null,
+          invalidated_at: null,
           evidence: { overlays: [], metrics: {}, structures: [] },
         },
       ]
@@ -141,7 +150,7 @@ describe('ChartView radar handoff', () => {
 
     expect(loadBarsSpy).toHaveBeenCalledWith('TSLA', 'D1')
     expect(loadChartDetectionsSpy).toHaveBeenCalledTimes(1)
-    expect(loadChartDetectionsSpy).toHaveBeenCalledWith(7, 42)
+    expect(loadChartDetectionsSpy).toHaveBeenCalledWith(7, 'D1', 42)
     expect(radarStore.activeChartDetectionIds).toEqual([42])
     expect(radarStore.focusedChartDetectionId).toBe(42)
   })
