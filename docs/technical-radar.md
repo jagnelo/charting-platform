@@ -4,22 +4,39 @@ This document describes the current Technical Radar implementation and the inten
 
 ## Current state
 
-The repository now includes a first-pass **Technical Radar v1** intended for daily swing-trading discovery:
+The repository now includes a first-pass **Technical Radar v1** plus a broader **Radar v2** continuation intended for explainable multi-timeframe discovery:
 
 - backend persistence for radar runs and detections
 - persisted setup threads that carry related detections across runs
+- thread-level current state tracking
 - a synchronous/manual scan entrypoint at `POST /api/v1/radar/run`
 - a dedicated `/radar` frontend surface
 - chart-side, non-editable radar evidence overlays
 - a chart-side radar sub-panel that lists all current detections for the loaded instrument
 - persisted score factors and evidence payloads so the UI can explain why a setup ranked where it did
+- actionable level fields (`entry_price`, `invalidation_price`, `target_price`) carried through backend and frontend
+- explicit retest, fakeout/failure, and compression setup families
+- state-aware filtering and presentation (`developing`, `confirmed`, `invalidated`, `expired`)
+- automatic invalidated / expired transitions on later scans
+- richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
+- diagonal trendline, gap, and simple pattern-structure context in evidence payloads
+- saved radar views, a radar dashboard widget, and focus-aware chart overlay dimming
+- timeframe-aware runs, detections, overlays, history, and outcome summaries
+- radar-side workflow actions to create price alerts and add detections to watchlists
+- a per-instrument history browser plus aggregated forward-outcome research summaries
 
-V1 is intentionally:
+V1 began intentionally:
 
 - daily-focused (`D1` primary timeframe)
 - read-only from a workflow perspective
 - transparent rather than overly clever
 - separable from user drawings, alerts, watchlists, and trade plans
+
+The current v2 baseline has moved past those constraints:
+
+- manual radar runs are timeframe-selectable
+- the primary radar UI supports alert/watchlist workflows directly
+- chart/radar consumers can inspect both current detections and broader prior-run history for an instrument
 
 ## Backend model
 
@@ -49,12 +66,24 @@ Represents one persisted opportunity:
 - `observed_at`
 - `signal_at`
 - `context_at`
+- `state`
+- `state_reason`
 - `fresh_until`
 - `thread_id`
 - `thread_event_index`
 - `key_level_price`
+- `entry_price`
+- `invalidation_price`
+- `target_price`
 - `summary`
 - `invalidation_hint`
+- `outcome_status`
+- `outcome_last_evaluated_at`
+- `bars_since_signal`
+- `max_favorable_excursion_pct`
+- `max_adverse_excursion_pct`
+- `target_hit_at`
+- `invalidated_at`
 - `evidence_json`
 - `score_factors`
 
@@ -69,6 +98,8 @@ Represents one persisted setup storyline for a symbol / timeframe / nearby level
 - `context_role`
 - `reference_price`
 - `current_setup_type`
+- `current_state`
+- `state_changed_at`
 - `started_at`
 - `last_seen_at`
 - `detection_count`
@@ -77,22 +108,36 @@ The thread model is what lets the UI tell the difference between isolated detect
 
 ## Current setup taxonomy
 
-V1 currently supports:
+The current detector supports:
 
 - `approaching_support`
 - `approaching_resistance`
 - `breakout`
+- `breakout_retest`
 - `breakdown`
+- `breakdown_retest`
+- `fakeout`
+- `fakedown`
+- `failed_reclaim`
+- `failed_breakdown_recovery`
+- `compression_support`
+- `compression_resistance`
 - `reclaim`
 - `rejection`
 
-These are derived from a deliberately narrow first-pass structure set:
+These are derived from a broader structure set than the original v1 baseline:
 
 - horizontal support/resistance zones clustered from repeated swing highs/lows
 - prior swing points
-- anchored VWAP from the latest relevant pivot in a zone
+- anchored VWAP from recent/contextual anchors
 - EMA context (`20`, `50`, `200`)
 - 52-week high/low context
+- all-time high/low context
+- YTD open/high/low context
+- rolling weekly/monthly window extremes
+- diagonal trendlines
+- gap zones
+- simple channel / wedge / triangle context when opposing trendlines are available
 
 ## Current evidence payload shape
 
@@ -113,10 +158,24 @@ The evidence payload is structured around chart-ready overlays plus explainabili
   - `week52_low`
   - `week52_high_time`
   - `week52_low_time`
+  - `entry_price`
+  - `invalidation_price`
+  - `target_price`
+  - `target_source`
+  - `risk_reward`
+  - `state`
+  - `state_reason`
   - `signal_time`
   - `context_time`
+  - `all_time_*`, `ytd_*`, and rolling-window level prices/times
+  - `gap_count`
+  - `pattern_count`
+  - `multi_timeframe_hits`
+  - `avwap_anchor_type`
+  - `avwap_anchor_time`
+  - `secondary_avwap`
 - `structures`
-  - high-level structure metadata such as role, touch count, and timing
+  - high-level structure metadata such as role, touch count, timing, trendline, gap, and pattern context
 
 The chart renders these as a separate visual layer from saved drawings so radar evidence remains inspectable without becoming editable chart state.
 
@@ -129,13 +188,17 @@ This matters because a same-day `breakdown`, `rejection`, and `approaching_resis
 
 ## Current scoring approach
 
-V1 scoring is a transparent normalized blend of:
+Current scoring is a transparent normalized blend of:
 
 - distance to the key level
 - zone touch count
 - recency of the last touch
 - structure age
 - overlap/confluence with EMA, AVWAP, and 52-week context
+- multi-timeframe alignment
+- trend/pattern context quality
+- gap context
+- AVWAP anchor quality
 - recent reaction quality
 - timeframe importance
 
@@ -147,16 +210,25 @@ The current scoring system is intentionally rule-based and readable. Future work
 
 The main radar page currently provides:
 
+- timeframe filter (`M30`, `H1`, `H4`, `D1`, `W1`, `MN`)
 - setup-type filter
+- state filter
+- saved views
 - symbol filter
 - minimum-score filter
 - fresh-only toggle
 - latest run summary
 - ranked detection list
-- detail panel with score factors and evidence metrics
+- detail panel with score factors, evidence metrics, and an action-plan block
 - detail-panel setup-thread history with clickable prior events
+- instrument-level timeline across current detections
+- instrument-level history browser across prior runs for the selected symbol/timeframe
+- aggregated outcome research summaries by setup/timeframe
+- direct workflow actions for creating a price alert or promoting a detection into a watchlist
 - “Open in chart” action
 - scan-lock UX while a run is in progress so the page cannot be spammed mid-run
+
+The dashboard now also supports a radar widget for top detections with lightweight filter config.
 
 ### `/chart/:symbol`
 
@@ -171,78 +243,81 @@ When a detection is opened from the radar page:
 - the user can toggle detections individually
 - the chart keeps radar evidence separate from saved drawings
 - each radar row exposes human-readable detail plus thread timeline context via an info tooltip
+- when multiple detections are enabled, the focused one stays at full opacity while the others dim
+- the radar sub-panel includes a focused-detail block with action levels and thread timeline context
 - the chart no longer relies on a global “show radar overlays” toggle
 
 ## Current limitations
 
-V1 does not yet include:
+Radar still does not yet include:
 
 - scheduled scan orchestration
 - live scan progress beyond a blocking in-page run state
-- multi-timeframe propagation logic
-- gap structures
-- wedges, channels, triangles, or diagonal trendline extraction
 - regime-aware weighting
-- forward outcome tracking
-- dashboard widgets
-- radar-driven alerts
-- radar-driven managed watchlists
+- deeper outcome calibration / research beyond the current per-detection forward metrics and aggregate summary endpoint
+- managed watchlist workflows beyond one-off promotion actions
 - trade-plan generation
-- strong multi-bar state modeling beyond proximity-based thread matching
 - strong empirical ranking calibration from observed forward outcomes
+- richer overlap grouping/stacking semantics than the current focused-overlay dimming
+- deeper multi-timeframe propagation semantics than the current contextual overlays and window levels
 
 ## Recommended future iteration order
 
-### Phase 2: stronger continuity and state semantics
+### Phase 2: implemented Radar v2 baseline
 
-Build on the new thread model with:
+Radar v2 now adds:
 
-- state-transition-aware thread updates
-- explicit event families like retests and failed moves
+- retest, fakeout/failure, and compression setup families
+- persisted detection and thread state fields
+- automatic invalidated / expired transitions on later scans
+- richer AVWAP anchor context plus all-time / YTD / rolling-window level context
+- diagonal trendlines, gap zones, and simple pattern-structure context
+- state-aware filtering on `/radar`
+- explicit entry / invalidation / target semantics in the persisted model
+- saved radar views and a radar dashboard widget
+- chart and radar UI surfaces for action-plan-style inspection, timelines, and focus-aware overlap handling
+- timeframe-aware manual runs and filtering across the supported radar UI timeframes
+- direct radar-to-alert and radar-to-watchlist workflow actions
+- per-instrument history browsing and aggregate outcome summaries
+
+### Phase 3: stronger continuity, chronology, and lifecycle semantics
+
+Build on the current thread model with:
+
 - stronger ordering semantics when multiple daily detections share one bar
 - thread-level “active / resolved / invalidated” lifecycle
-- a proper symbol-level radar history browser instead of only per-detection thread slices
+- better handling of repeated same-day state changes within one storyline
 
-### Phase 3: richer structure extraction
+### Phase 4: richer structure extraction
 
 Expand the detector to include:
 
 - weekly/monthly propagated levels
-- opening gaps and unfilled gap zones
-- diagonal trendlines
 - channels
 - wedges
 - triangles
-- stronger AVWAP anchor taxonomy
+- stronger AVWAP anchor taxonomy beyond the current contextual set
 - moving-average slope and compression context
 - optional volume-profile-style structural zones
 
-### Phase 4: better event semantics
+### Phase 5: better event semantics
 
 Add more nuanced event types:
 
-- fakeout
-- fakedown
-- failed reclaim
-- failed breakdown recovery
-- breakout retest
-- breakdown retest
 - compression near level
 - expansion away from level
 - regime-aware confirmation rules
 
-### Phase 5: operational radar workflows
+### Phase 6: operational radar workflows
 
 Introduce:
 
 - scheduled runs
-- saved radar filters/views
-- radar history browser
-- dashboard widgets
-- radar-to-watchlist promotion
-- radar-derived alerts
+- managed radar watchlists
+- richer alert orchestration and state-transition-driven workflows
+- downstream trade-plan / signal workflows
 
-### Phase 6: research and feedback loop
+### Phase 7: research and feedback loop
 
 Persist and analyze forward outcomes:
 
@@ -253,7 +328,7 @@ Persist and analyze forward outcomes:
 - score calibration
 - learned weighting on top of explicit rule features
 
-### Phase 7: platform integrations
+### Phase 8: platform integrations
 
 Connect radar into:
 

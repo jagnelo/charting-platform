@@ -135,18 +135,42 @@ Context:
   - a synchronous/manual scan trigger
   - a dedicated `/radar` page
   - a non-editable chart-side radar evidence layer separate from saved drawings
+  - thread-aware continuity/history via persisted `radar_setup_thread` records
+  - chart-side radar selection/toggling with thread context for the loaded instrument
+  - the current Radar v2 baseline with:
+    - persisted detection/thread state fields
+    - breakout-retest / breakdown-retest families
+    - action-level fields (`entry_price`, `invalidation_price`, `target_price`)
+    - state-aware filtering/presentation in `/radar`
+    - fakeout / failure / compression setup families
+    - richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
+    - diagonal trendline / gap / simple pattern context
+    - invalidated / expired transition persistence
+    - saved radar views, instrument timelines, and a radar dashboard widget
   - initial setup types:
     - approaching support
     - approaching resistance
     - breakout
+    - breakout retest
     - breakdown
+    - breakdown retest
+    - fakeout
+    - fakedown
+    - failed reclaim
+    - failed breakdown recovery
+    - compression support
+    - compression resistance
     - reclaim
     - rejection
   - initial evidence sources:
     - clustered swing-based horizontal zones
-    - anchored VWAP from recent pivots
+    - anchored VWAP from recent/contextual anchors
     - EMA context
     - 52-week high/low context
+    - all-time / YTD / rolling-window context
+    - diagonal trendlines
+    - gap zones
+    - simple pattern structures
 - That v1 should be treated as a foundation, not as the finished expression of the radar vision.
 
 What this system should become:
@@ -194,17 +218,10 @@ What remains:
   - later, if useful, volume-profile or other structural liquidity/acceptance zones
 
 - Strengthen the event-detection layer beyond the current v1 set, including:
-  - approaching resistance
-  - approaching support
-  - breakout
-  - breakdown
   - fakeout
   - fakedown
-  - reclaim
-  - rejection
   - failed reclaim
   - failed breakdown recovery
-  - retest after breakout/breakdown
   - compression / squeeze near a level
   - expansion away from a level
   - better sequencing rules for first break vs retest vs late continuation
@@ -227,19 +244,17 @@ What remains:
   - regime/context-conditioned weighting
   - later, if useful, learned weighting on top of interpretable rule features
 
-- Extend the persistent radar/setup model beyond the current run+detection basics so it can also store:
-  - setup state transitions over time
-  - whether a setup confirmed, failed, or expired
+- Extend the persistent radar/setup model beyond the current run+detection+thread foundation so it can also store:
+  - richer state transitions over time beyond the current `developing` / `confirmed` baseline
+  - automatic handling of failed / invalidated / expired states
   - evolving score history instead of only one snapshot
-  - grouping/continuity for repeated detections of “the same setup”
+  - richer setup-thread semantics beyond today’s nearby-level continuity matching
   - later outcome / forward-performance tracking
 
 - Expand the UI surfaces beyond the current dedicated `/radar` page, including:
   - a richer radar list / scanner view
-  - saved radar filters/views
   - side-by-side comparison of multiple detections
-  - setup history / state-transition history
-  - dashboard widgets specifically for radar discoveries
+  - fuller setup history / state-transition history beyond the current thread + history-browser surfaces
   - instrument-specific radar timelines or history views
 
 - Expand visual evidence rendering on charts beyond the current v1 zone/line/marker overlays, including:
@@ -288,22 +303,20 @@ What remains:
   - false-positive review tooling
   - later, if useful, learned weighting on top of the rule-based engine
 
-Entry, exit, and invalidation semantics to add (explicitly deferred from v1):
-- **Explicit entry level**: v1 detects setups but produces no concrete entry price. Add a per-setup suggested entry level (e.g., zone boundary ± ATR fraction, or first close above/below zone for breakout/reclaim setups). Store as a numeric field alongside key_level_price so the chart and trade-signal layer can use it.
-- **Price-action-based auto-invalidation**: `fresh_until` is currently a hardcoded 5-day TTL unrelated to actual price action. Add a background task (or per-scan pass) that checks active detections against the latest bar and marks them `INVALIDATED` (via a new status field or by setting `fresh_until = now`) when the invalidation condition in `invalidation_hint` is met. This requires storing `invalidation_price` as a queryable numeric field (currently only in evidence_json.metrics) and comparing it against incoming closes.
-- **Connection to trade signal engine (item 7)**: When item 7 is implemented, radar detections are the natural input — a detection with an entry level, invalidation level, and score becomes the seed for a structured trade plan. The invalidation level becomes the stop, and the implied target can be the opposing zone or a fixed R-multiple. Both systems should share schema vocabulary from the start (entry_price, stop_price, target_price, risk_multiple).
+Entry, exit, and invalidation semantics to deepen from the current v2 slice:
+- **Explicit entry / invalidation / target levels now exist**, but they are still heuristic and detector-local. Improve them into a more rigorous action model (e.g., breakout close vs retest hold vs reclaim confirmation) and make the rationale more explicit in evidence payloads.
+- **Price-action-based auto-invalidation**: `fresh_until` is still a hardcoded 5-day TTL unrelated to actual price action. Add a background task (or per-scan pass) that checks active detections against the latest bar and marks them `INVALIDATED` (via a new status field or by setting `fresh_until = now`) when the invalidation condition in `invalidation_hint` is met. The current numeric `invalidation_price` field now makes that possible without scraping it back out of `evidence_json`.
+- **Connection to trade signal engine (item 8)**: When item 8 is implemented, radar detections are the natural input — a detection with an entry level, invalidation level, and score becomes the seed for a structured trade plan. The invalidation level becomes the stop, and the implied target can be the opposing zone or a fixed R-multiple. Both systems should share schema vocabulary from the start (entry_price, stop_price, target_price, risk_multiple).
 
 Nearer-term concrete follow-up phases worth treating as the next likely implementation path:
 - Phase 2:
   - richer structure extraction
   - scheduled runs
-  - saved radar filters/views
   - stronger chart overlay controls
 - Phase 3:
-  - fakeout/retest/compression state modeling
-  - dashboard widgets
-  - radar-to-watchlist promotion
-  - radar-derived alerts
+  - fakeout/compression/failure state modeling beyond the current retest slice
+  - managed radar/watchlist workflows beyond one-off actions
+  - richer alert orchestration and state-transition workflows
 - Phase 4:
   - historical outcome tracking
   - score calibration
@@ -441,7 +454,7 @@ Why this was deferred:
 - We set up the repository-side memory and rule structure first, but not the actual orchestrator.
 - The real value comes from building the supervisor workflow around these rules, which is a separate piece of work from day-to-day platform development.
 
-### 6. Build a Strategy Lab with backtesting, walk-forward testing, and paper forward testing, likely powered by Nautilus Trader as the simulation engine
+### 7. Build a Strategy Lab with backtesting, walk-forward testing, and paper forward testing, likely powered by Nautilus Trader as the simulation engine
 Status: `Deferred`
 
 Context:
@@ -805,7 +818,7 @@ Why this was deferred:
 - It depends on strong data coverage, careful operational definitions, and good visualization design.
 - It deserves a dedicated implementation pass with room for experimentation and later evidence-based pruning.
 
-### 7. Build a Trade Signal, Virtual Trade Tracking, and Trader-Follower engine
+### 8. Build a Trade Signal, Virtual Trade Tracking, and Trader-Follower engine
 Status: `Deferred`
 
 Context:
@@ -1023,7 +1036,7 @@ Why this was deferred:
 - It is the safest and most useful intermediate step before any future broker-linked automation.
 - It deserves a focused design and data-model pass rather than being smuggled in piecemeal under “alerts” or “paper trading.”
 
-### 8. Activate paid providers for options data and forward earnings estimates
+### 9. Activate paid providers for options data and forward earnings estimates
 Status: `Planned`
 
 Context:
@@ -1054,7 +1067,7 @@ Why this was deferred:
 - The free provider stack covers the high-volume refresh use case well.
 - Options and forward estimates require a budget commitment; the user will decide when to activate.
 
-### 9. Expand provider chain seeding and scheduling for bulk universe refresh
+### 10. Expand provider chain seeding and scheduling for bulk universe refresh
 Status: `Planned`
 
 Context:
@@ -1077,7 +1090,7 @@ Why this was deferred:
 - The providers are implemented and registered; wiring the scheduler is a separate operational
   concern that should be done alongside end-to-end testing of the new provider stack.
 
-### 10. Custom instrument baskets, ETF holdings navigation, and breadth analysis
+### 11. Custom instrument baskets, ETF holdings navigation, and breadth analysis
 Status: `Planned`
 
 Context:
@@ -1198,7 +1211,7 @@ Frontend:
 
 - **Baskets are first-class objects.** They are not just lists; they carry weights, metadata, classification, and a potential synthetic price series. The domain model should reflect this from the start.
 - **ETF-derived baskets are a special case of the same model.** User baskets and ETF holdings baskets share the same backend schema and frontend surfaces; the distinction is managed vs unmanaged ownership and refresh semantics.
-- **The basket model feeds other platform features.** Baskets should be usable as: chart synthetic instruments, screener universes (item 3), Strategy Lab universes (item 6/7), radar filter slices (item 5), and breadth analysis targets. These integrations should inform the basket schema design so it isn't retrofitted later.
+- **The basket model feeds other platform features.** Baskets should be usable as: chart synthetic instruments, screener universes (item 3), Strategy Lab universes (item 7), radar filter slices (item 5), and breadth analysis targets. These integrations should inform the basket schema design so it isn't retrofitted later.
 - **Breadth analysis should be additive, not a re-architecture.** The breadth engine reads member OHLCV histories that already exist in the platform. It does not require new data infrastructure, only a computation layer on top of existing data.
 - **Sector/industry classification for mixed baskets remains an open design question.** The taxonomy used for classification should be revisited once downstream use cases (breadth grouping, radar slicing) clarify what granularity is actually needed.
 
@@ -1214,7 +1227,7 @@ Why this was deferred:
 - Breadth analysis depends on both basket membership and historical OHLCV coverage being in good shape.
 - The right design for mixed-sector basket classification needs more downstream context before being finalised.
 
-### 11. Build a platform-wide OHLCV coverage, freshness, and acquisition orchestration layer
+### 12. Build a platform-wide OHLCV coverage, freshness, and acquisition orchestration layer
 Status: `Planned`
 
 Context:

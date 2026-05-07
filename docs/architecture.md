@@ -132,17 +132,36 @@ Current implementation characteristics:
 
 - engine-owned persisted runs and detections
 - persisted setup threads that link related detections across runs
-- `D1`-focused scanning
+- persisted detection/thread state fields for evolving setup status
+- timeframe-aware manual scanning and filtering
 - non-editable chart overlays generated from persisted evidence payloads
 - chart-side instrument radar panel with per-detection toggles
+- focus-aware chart overlay dimming when multiple detections are enabled
+- explicit action-level fields (`entry_price`, `invalidation_price`, `target_price`)
 - normalized scoring with stored factor breakdowns
+- direct radar alert/watchlist workflow actions
+- per-instrument history browsing plus aggregate outcome summaries
 
 Current structure sources:
 
 - clustered swing-based support/resistance zones
-- anchored VWAP from recent pivot anchors
+- anchored VWAP from recent/contextual anchors
 - EMA context
 - 52-week high/low context
+- all-time / YTD / rolling-window context
+- diagonal trendlines
+- gap zones
+- simple channel / wedge / triangle context when both sides of a structure can be inferred
+
+Current event families now include:
+
+- approachings
+- breakouts / breakdowns
+- reclaims / rejections
+- breakout retests / breakdown retests
+- fakeouts / fakedowns
+- failed reclaim / failed breakdown recovery
+- compression support / compression resistance
 
 The radar currently favors transparency over sophistication: evidence is stored in a format directly consumable by the UI so the chart can show the same structures used by the scorer.
 
@@ -150,6 +169,7 @@ The newer thread layer sits between raw detections and the UI:
 
 - scan runs persist one or more detections
 - detections are matched into `radar_setup_thread` records by instrument, role, and nearby level
+- threads now also retain a current state and state-change timestamp
 - detail/chart consumers can then render a sequence of related events instead of a flat list with no memory
 
 Chart behavior is intentionally split into two modes:

@@ -1,13 +1,13 @@
 {
-  "active_task_id": "technical-radar-v1",
+  "active_task_id": "technical-radar-v2",
   "active_worker": "Codex",
-  "worker_session_started_at": "2026-04-30T22:50:48Z",
+  "worker_session_started_at": "2026-05-07T17:55:00Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-04T23:20:00Z",
-  "last_commit": "4f38182",
+  "last_handoff_at": "2026-05-08T00:38:00Z",
+  "last_commit": "bdfad22",
   "git_ready_to_commit": true,
   "validation": {
-    "backend_tests": "partial",
+    "backend_tests": "passed",
     "frontend_tests": "passed",
     "frontend_build": "passed",
     "playwright": "not_run",
@@ -15,10 +15,10 @@
     "backend_log_check": "not_run"
   },
   "notes": [
-    "Technical Radar v1 backend, frontend, tests, and documentation are implemented on feat/technical-radar-v1.",
-    "Commits currently staged in history: bf2526d backend, dfabcfc frontend, df0df8e tests, 4f38182 docs.",
-    "Full backend unit and frontend unit suites passed on the current branch state, along with targeted radar lint/type checks.",
-    "Backend integration and stack-backed browser validation remain blocked here because Docker container creation stalls before Postgres/Redis can start.",
-    "The integration harness now supports TEST_DATABASE_URL and TEST_REDIS_URL so future runs can reuse already-running services when testcontainers is flaky."
+    "Radar v2 branch work is in progress on feat/technical-radar-v2 and is not committed yet.",
+    "The current Radar v2 baseline now includes richer structures, fakeout/failure/compression setup families, lifecycle transitions, timeframe-aware runs/filters/history, alert/watchlist workflows, outcome summaries, a radar dashboard widget, and chart-side focus-aware overlay handling.",
+    "Targeted radar backend unit tests passed, direct radar API integration tests passed, and the full backend unit suite passed via make test-unit.",
+    "Targeted frontend radar tests passed, frontend type-check passed, and the full frontend unit suite passed via make test-fe.",
+    "A combined backend unit+integration pytest invocation can still fail on Docker socket permissions in this environment because it falls back into the testcontainers fixture path."
   ]
 }
