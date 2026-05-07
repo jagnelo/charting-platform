@@ -72,6 +72,29 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
   })
 
+  it('shows a direct-open row immediately for ticker input', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation(
+      () => new Promise(() => {}),
+    )
+
+    const wrapper = mount(SearchBar, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    await wrapper.find('input').setValue('TSLA')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Open chart for')
+    expect(wrapper.text()).toContain('TSLA')
+
+    await wrapper.find('.result-item--direct').trigger('click')
+    expect(wrapper.emitted('select')?.[0]).toEqual(['TSLA'])
+  })
+
   it('resolves expression queries and emits the resulting symbol on enter', async () => {
     ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ symbol: '=SPY-QQQ' })
 

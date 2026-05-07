@@ -32,11 +32,21 @@
       <template v-else>
         <template v-if="query.trim() && !isExpression">
           <div
+            v-if="canDirectOpenSymbol"
+            :class="['result-item', 'result-item--direct', { highlighted: highlightIdx === 0 }]"
+            @click="selectDirectSymbol"
+            @mouseenter="highlightIdx = 0"
+          >
+            <span class="r-symbol">{{ directSymbol }}</span>
+            <span class="r-name">Open chart for <em>{{ directSymbol }}</em></span>
+            <span class="r-type">Direct</span>
+          </div>
+          <div
             v-for="(r, i) in results"
             :key="r.symbol"
-            :class="['result-item', { highlighted: i === highlightIdx }]"
+            :class="['result-item', { highlighted: i + directResultOffset === highlightIdx }]"
             @click="select(r)"
-            @mouseenter="highlightIdx = i"
+            @mouseenter="highlightIdx = i + directResultOffset"
           >
             <span class="r-symbol">{{ r.symbol }}</span>
             <span class="r-name">{{ r.name }}</span>
@@ -78,6 +88,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api } from '@/lib/api'
 import {
+  classifyInstrumentInput,
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
   getInstrumentInputHint,
@@ -109,9 +120,22 @@ const canResolveExpression = computed(() =>
 const expressionHint = computed(() =>
   expressionSelected.value ? '' : getInstrumentInputHint(query.value.trim())
 )
+const directInput = computed(() => classifyInstrumentInput(query.value))
+const directSymbol = computed(() =>
+  directInput.value.kind === 'symbol' ? directInput.value.value : ''
+)
+const canDirectOpenSymbol = computed(() =>
+  !expressionSelected.value && directInput.value.kind === 'symbol' && directSymbol.value.length > 0
+)
+const directResultOffset = computed(() => (canDirectOpenSymbol.value ? 1 : 0))
 const showDropdown = computed(() =>
   !dropdownDismissed.value
-  && (isExpression.value || results.value.length > 0 || (!query.value.trim() && recentStore.recent.length > 0))
+  && (
+    isExpression.value
+    || canDirectOpenSymbol.value
+    || results.value.length > 0
+    || (!query.value.trim() && recentStore.recent.length > 0)
+  )
 )
 
 async function onInput() {
@@ -146,6 +170,15 @@ function select(r: SearchResult) {
   dropdownDismissed.value = true
 }
 
+function selectDirectSymbol() {
+  if (!directSymbol.value) return
+  emit('select', directSymbol.value)
+  recentStore.add(directSymbol.value)
+  query.value = directSymbol.value
+  results.value = []
+  dropdownDismissed.value = true
+}
+
 function selectRecent(symbol: string) {
   emit('select', symbol)
   recentStore.add(symbol)
@@ -174,14 +207,30 @@ async function selectExpression() {
 
 function selectFirst() {
   if (isExpression.value) { void selectExpression(); return }
-  if (results.value.length) select(results.value[highlightIdx.value])
+  if (query.value.trim()) {
+    if (canDirectOpenSymbol.value && highlightIdx.value === 0) {
+      selectDirectSymbol()
+      return
+    }
+    const resultIndex = highlightIdx.value - directResultOffset.value
+    if (resultIndex >= 0 && resultIndex < results.value.length) {
+      select(results.value[resultIndex])
+      return
+    }
+    if (canDirectOpenSymbol.value) {
+      selectDirectSymbol()
+      return
+    }
+  }
   else if (!query.value.trim() && recentStore.recent.length) {
     selectRecent(recentStore.recent[highlightIdx.value]?.symbol ?? recentStore.recent[0].symbol)
   }
 }
 
 function moveDown() {
-  const len = query.value.trim() ? results.value.length : recentStore.recent.length
+  const len = query.value.trim()
+    ? results.value.length + directResultOffset.value
+    : recentStore.recent.length
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
@@ -257,6 +306,8 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 .result-item.highlighted { background: #1a2a3a; }
 .result-item--expr { border-left: 2px solid #64b5f6; }
 .result-item--expr em { color: #64b5f6; font-style: normal; font-family: 'JetBrains Mono', monospace; }
+.result-item--direct { border-left: 2px solid #2f8f77; }
+.result-item--direct em { color: #2fceb0; font-style: normal; font-family: 'JetBrains Mono', monospace; }
 .recent-title {
   padding: 7px 10px 4px;
   color: #555;
