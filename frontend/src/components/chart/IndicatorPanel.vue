@@ -93,14 +93,17 @@
             >
               <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
               <span class="radar-toggle-indicator">{{ radarStore.isChartDetectionActive(det.id) ? '◉' : '○' }}</span>
-              <span class="row-name">
-                {{ formatRadarSetup(det.setup_type) }}
-                <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
-                  {{ formatRadarThreadTag(det) }}
+              <span class="row-name radar-row-main">
+                <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
+                <span class="radar-row-meta">
+                  <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
+                    {{ formatRadarThreadTag(det) }}
+                  </span>
+                  <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
+                  <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
+                  <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
+                  <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(det.created_at) }}</span>
                 </span>
-                <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
-                <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
-                <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
               </span>
               <HoverTooltip :text="radarTooltipText(det)">
                 <button
@@ -116,12 +119,19 @@
             <div v-if="focusedRadarDetection" class="radar-focus-card">
               <div class="radar-focus-head">
                 <span class="radar-focus-title">{{ formatRadarSetup(focusedRadarDetection.setup_type) }}</span>
-                <span :class="['draw-pane-tag', `draw-pane-tag--${focusedRadarDetection.state}`]">
-                  {{ formatRadarState(focusedRadarDetection.state) }}
-                </span>
-                <span class="draw-pane-tag">{{ focusedRadarDetection.score.toFixed(2) }}</span>
+                <div class="radar-focus-head-meta">
+                  <span :class="['draw-pane-tag', `draw-pane-tag--${focusedRadarDetection.state}`]">
+                    {{ formatRadarState(focusedRadarDetection.state) }}
+                  </span>
+                  <span class="draw-pane-tag">{{ focusedRadarDetection.score.toFixed(2) }}</span>
+                  <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(focusedRadarDetection) }}</span>
+                  <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(focusedRadarDetection.created_at) }}</span>
+                </div>
               </div>
               <div class="radar-focus-copy">{{ focusedRadarDetection.summary }}</div>
+              <div v-if="focusedRadarRationale.length" class="radar-focus-rationale">
+                <div v-for="item in focusedRadarRationale" :key="item" class="radar-focus-rationale-item">{{ item }}</div>
+              </div>
               <div class="radar-focus-grid">
                 <span class="radar-focus-key">Signal</span>
                 <span class="radar-focus-val">{{ formatRadarSignalDate(focusedRadarDetection) }}</span>
@@ -131,6 +141,8 @@
                 <span class="radar-focus-val">{{ formatRadarPrice(focusedRadarDetection.invalidation_price) }}</span>
                 <span class="radar-focus-key">Target</span>
                 <span class="radar-focus-val">{{ formatRadarPrice(focusedRadarDetection.target_price) }}</span>
+                <span class="radar-focus-key">Recorded</span>
+                <span class="radar-focus-val">{{ formatRadarRecordedDate(focusedRadarDetection.created_at) }}</span>
               </div>
               <div v-if="focusedRadarDetection.thread_history?.length" class="radar-focus-timeline">
                 <div
@@ -737,6 +749,7 @@ const focusedRadarDetection = computed(() => {
   if (focusedId == null) return null
   return radarStore.chartDetections.find(detection => detection.id === focusedId) ?? null
 })
+const focusedRadarRationale = computed(() => buildRadarRationale(focusedRadarDetection.value))
 
 function onScreenerClick(scId: number) {
   router.push(`/screener?selectedId=${scId}`)
@@ -747,7 +760,7 @@ function onWatchlistClick(wlId: number) {
 }
 
 function formatRadarSetup(setup: string): string {
-  return setup.replace(/_/g, ' ')
+  return humanizeRadarToken(setup)
 }
 
 function titleCaseWords(value: string): string {
@@ -762,6 +775,16 @@ function formatRadarState(state: string): string {
   return titleCaseWords(state.replace(/_/g, ' '))
 }
 
+function humanizeRadarToken(value: string): string {
+  const normalized = value.replace(/_/g, ' ')
+  const special = normalized
+    .replace(/\bweek52\b/gi, '52-week')
+    .replace(/\bytd\b/gi, 'YTD')
+    .replace(/\bavwap\b/gi, 'AVWAP')
+    .replace(/\bema\b/gi, 'EMA')
+  return titleCaseWords(special)
+}
+
 function formatRadarObservedDate(value?: string | null): string {
   if (!value) return '—'
   const match = value.match(/^\d{4}-\d{2}-\d{2}/)
@@ -769,6 +792,13 @@ function formatRadarObservedDate(value?: string | null): string {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return '—'
   return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`
+}
+
+function formatRadarRecordedDate(value?: string | null): string {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')} ${String(parsed.getUTCHours()).padStart(2, '0')}:${String(parsed.getUTCMinutes()).padStart(2, '0')} UTC`
 }
 
 function radarMetricNumber(
@@ -853,6 +883,7 @@ function radarTooltipText(det: {
     det.summary,
     `Score: ${det.score.toFixed(2)}`,
   ]
+  if ('created_at' in det && typeof det.created_at === 'string') lines.push(`Recorded: ${formatRadarRecordedDate(det.created_at)}`)
   if (det.state_reason) lines.push(det.state_reason)
   if (det.entry_price != null) lines.push(`Entry: ${det.entry_price.toFixed(2)}`)
   if (det.invalidation_price != null) lines.push(`Invalidation: ${det.invalidation_price.toFixed(2)}`)
@@ -875,6 +906,39 @@ function radarTooltipText(det: {
   }
   if (det.invalidation_hint) lines.push(det.invalidation_hint)
   return lines.join('\n')
+}
+
+function buildRadarRationale(
+  det: (typeof focusedRadarDetection.value) | null,
+) {
+  if (!det?.evidence?.metrics) return []
+  const metrics = det.evidence.metrics as Record<string, unknown>
+  const structures = det.evidence.structures ?? []
+  const items: string[] = []
+  const touchFactor = typeof det.score_factors.touch_count === 'number' ? det.score_factors.touch_count : null
+  if (touchFactor != null) {
+    items.push(`${Math.max(2, Math.round(touchFactor * 4))} swing touches define this level.`)
+  }
+  const multiTfHits = typeof metrics.multi_timeframe_hits === 'number' ? metrics.multi_timeframe_hits : 0
+  if (multiTfHits > 0) {
+    items.push(`${Math.round(multiTfHits)} higher-horizon levels overlap this zone.`)
+  }
+  if (metrics.volatility_squeeze_active) {
+    items.push('Volatility is compressed, so a larger move may be brewing.')
+  }
+  if (typeof metrics.avwap_anchor_type === 'string') {
+    items.push(`Primary AVWAP is anchored to ${humanizeRadarToken(metrics.avwap_anchor_type)}.`)
+  }
+  const structureTypes = new Set(structures.map(structure => String(structure.type)))
+  if (structureTypes.has('channel') || structureTypes.has('wedge') || structureTypes.has('triangle')) {
+    items.push('Pattern structure is reinforcing the setup context.')
+  } else if (structureTypes.has('trendline')) {
+    items.push('A nearby trendline is reinforcing this area.')
+  }
+  if ((typeof metrics.gap_count === 'number' ? metrics.gap_count : 0) > 0) {
+    items.push('A nearby gap adds context to the reaction zone.')
+  }
+  return items.slice(0, 4)
 }
 
 // ── Indicators ─────────────────────────────────────────────────────────────────
@@ -1319,6 +1383,10 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .list-row.row--tf-inactive { opacity: 0.35; }
 .list-row.row--tf-inactive .color-dot { filter: grayscale(1); }
 
+.radar-row {
+  align-items: flex-start;
+}
+
 .tf-lock-badge { font-size: 9px; opacity: 0.6; flex-shrink: 0; }
 
 .ind-drag-handle,
@@ -1401,9 +1469,8 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 
 .radar-focus-head {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
 .radar-focus-title {
@@ -1412,10 +1479,32 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   text-transform: capitalize;
 }
 
+.radar-focus-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .radar-focus-copy {
   color: #8c8c8c;
   font-size: 10px;
   line-height: 1.5;
+}
+
+.radar-focus-rationale {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.radar-focus-rationale-item {
+  border: 1px solid #1d2833;
+  border-radius: 6px;
+  background: #101820;
+  color: #8fb7d8;
+  font-size: 10px;
+  line-height: 1.45;
+  padding: 6px 8px;
 }
 
 .radar-focus-grid {
@@ -1486,13 +1575,27 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   flex: 1;
   font-family: monospace;
   font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+}
+
+.radar-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.radar-row-title {
+  color: #d6d6d6;
+  line-height: 1.3;
+}
+
+.radar-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .draw-pane-tag {
-  margin-left: 5px;
   font-size: 9px;
   font-family: monospace;
   color: #555;
@@ -1500,7 +1603,6 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   border: 1px solid #2a2a2a;
   border-radius: 2px;
   padding: 0 3px;
-  vertical-align: middle;
   letter-spacing: 0.03em;
 }
 
@@ -1516,16 +1618,22 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   background: #0f231b;
 }
 
+.draw-pane-tag--resolved {
+  color: #7fe0b8;
+  border-color: #27513b;
+  background: #13271d;
+}
+
+.draw-pane-tag--stale {
+  color: #8b8b8b;
+  border-color: #313131;
+  background: #171717;
+}
+
 .draw-pane-tag--invalidated {
   color: #ef8a85;
   border-color: #5f231f;
   background: #2a1210;
-}
-
-.draw-pane-tag--expired {
-  color: #8b8b8b;
-  border-color: #313131;
-  background: #171717;
 }
 
 .draw-pane-tag--dim {

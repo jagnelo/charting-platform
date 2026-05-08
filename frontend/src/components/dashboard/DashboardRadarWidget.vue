@@ -4,7 +4,7 @@
       <div>
         <div class="radar-widget-title">Technical Radar</div>
         <div class="radar-widget-meta">
-          {{ timeframeLabel }} · {{ stateLabel }} · {{ setupLabel }} · {{ freshOnly ? 'fresh' : 'all' }}
+          {{ timeframeLabel }} · {{ stateLabel }} · {{ setupLabel }} · {{ effectiveActiveOnly ? 'open' : 'all' }}
         </div>
       </div>
       <button class="radar-widget-refresh" @click="refresh">Refresh</button>
@@ -53,7 +53,12 @@ const timeframeLabel = computed(() => String(props.config.timeframe || 'D1'))
 const setupLabel = computed(() =>
   props.config.setup_type ? formatSetup(String(props.config.setup_type)) : 'all setups'
 )
-const freshOnly = computed(() => props.config.fresh_only !== false)
+const activeOnly = computed(() => (props.config.active_only ?? props.config.fresh_only) !== false)
+const effectiveActiveOnly = computed(() => {
+  const state = String(props.config.state || '')
+  if (['resolved', 'invalidated', 'stale'].includes(state)) return false
+  return activeOnly.value
+})
 
 function formatSetup(value: string) {
   return value.replace(/_/g, ' ')
@@ -78,7 +83,7 @@ async function refresh() {
       state: props.config.state || undefined,
       min_score: Number(props.config.min_score ?? 0.6),
       limit: Number(props.config.limit ?? 6),
-      fresh_only: props.config.fresh_only !== false,
+      active_only: effectiveActiveOnly.value,
       symbol: props.config.symbol || undefined,
     })
   } catch (err: any) {

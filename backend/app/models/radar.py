@@ -36,15 +36,16 @@ class RadarSetupType(str, enum.Enum):
 class RadarState(str, enum.Enum):
     DEVELOPING = "developing"
     CONFIRMED = "confirmed"
+    RESOLVED = "resolved"
     INVALIDATED = "invalidated"
-    EXPIRED = "expired"
+    STALE = "stale"
 
 
 class RadarOutcomeStatus(str, enum.Enum):
     OPEN = "open"
     TARGET_HIT = "target_hit"
     INVALIDATED = "invalidated"
-    EXPIRED = "expired"
+    STALE = "stale"
 
 
 class RadarRun(Base, TimestampMixin):

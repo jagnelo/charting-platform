@@ -29,11 +29,11 @@
         <select v-model="filters.timeframe" class="filter-select" :disabled="runningScan" @change="refresh">
           <option v-for="timeframe in timeframeOptions" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
         </select>
-        <select v-model="filters.setupType" class="filter-select" :disabled="runningScan">
+        <select v-model="filters.setupType" class="filter-select" :disabled="runningScan" @change="refresh">
           <option value="">All setups</option>
           <option v-for="type in setupTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
         </select>
-        <select v-model="filters.state" class="filter-select" :disabled="runningScan">
+        <select v-model="filters.state" class="filter-select" :disabled="runningScan" @change="refresh">
           <option value="">All states</option>
           <option v-for="state in radarStates" :key="state.value" :value="state.value">{{ state.label }}</option>
         </select>
@@ -46,12 +46,12 @@
         />
         <label class="score-filter">
           <span>Min score</span>
-          <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" :disabled="runningScan" />
+          <input v-model.number="filters.minScore" class="score-slider" type="range" min="0" max="1" step="0.05" :disabled="runningScan" @change="refresh" />
           <span class="score-value">{{ filters.minScore.toFixed(2) }}</span>
         </label>
         <label class="fresh-toggle">
-          <input v-model="filters.freshOnly" type="checkbox" :disabled="runningScan" />
-          <span>Fresh only</span>
+          <input v-model="filters.activeOnly" type="checkbox" :disabled="runningScan" @change="refresh" />
+          <span>Open only</span>
         </label>
       </div>
 
@@ -71,10 +71,10 @@
                 <th>Setup</th>
                 <th>State</th>
                 <th>Seq</th>
-                <th>Detected</th>
+                <th>Event date</th>
                 <th>Score</th>
                 <th>Level</th>
-                <th>Fresh until</th>
+                <th>Outcome</th>
               </tr>
             </thead>
             <tbody>
@@ -85,15 +85,18 @@
                 @click="selectDetection(detection.id)"
               >
                 <td class="td-symbol">{{ detection.instrument_symbol }}</td>
-                <td class="td-setup">{{ labelForSetup(detection.setup_type) }}</td>
+                <td class="td-setup">
+                  <span>{{ labelForSetup(detection.setup_type) }}</span>
+                  <span class="td-setup-sub">{{ formatRadarEventLabel(detection) }}</span>
+                </td>
                 <td class="td-state">
                   <span :class="['state-pill', `state-pill--${detection.state}`]">{{ labelForState(detection.state) }}</span>
                 </td>
                 <td class="td-mono td-dim">{{ formatThreadSequence(detection) }}</td>
-                <td class="td-mono td-dim">{{ formatRadarSignalDate(detection) }}</td>
+                <td class="td-mono td-dim">{{ formatRadarEventDate(detection) }}</td>
                 <td class="td-score">{{ detection.score.toFixed(2) }}</td>
                 <td class="td-mono">{{ formatPrice(detection.key_level_price) }}</td>
-                <td class="td-mono td-dim">{{ formatDateShort(detection.fresh_until) }}</td>
+                <td class="td-mono td-dim">{{ formatOutcomeStatusCompact(detection) }}</td>
               </tr>
             </tbody>
           </table>
@@ -101,7 +104,8 @@
       </section>
 
       <!-- ── Detail panel ───────────────────────────────────────────────────── -->
-      <aside class="radar-detail">
+      <div class="radar-detail-resize" role="separator" aria-orientation="vertical" aria-label="Resize radar details" @pointerdown="startDetailResize"></div>
+      <aside class="radar-detail" :style="{ width: `${detailWidth}px` }">
         <template v-if="radarStore.selectedDetection?.evidence">
           <div class="detail-head">
             <div>
@@ -131,6 +135,10 @@
             </button>
           </div>
           <div v-if="workflowMessage" class="detail-workflow-msg">{{ workflowMessage }}</div>
+          <RadarDetailPreviewChart
+            :key="radarStore.selectedDetection.id"
+            :detection="radarStore.selectedDetection"
+          />
 
           <p class="detail-summary">{{ radarStore.selectedDetection.summary }}</p>
           <p class="detail-invalid">{{ radarStore.selectedDetection.invalidation_hint }}</p>
@@ -138,11 +146,23 @@
             {{ radarStore.selectedDetection.state_reason }}
           </p>
 
+          <div v-if="rationaleItems.length" class="detail-section">
+            <div class="section-title">Why flagged</div>
+            <div class="rationale-list">
+              <div v-for="item in rationaleItems" :key="item" class="rationale-item">{{ item }}</div>
+            </div>
+          </div>
+
           <div class="detail-section">
             <div class="section-title">Action plan</div>
             <div class="kv-grid">
               <template v-for="row in actionPlanRows" :key="row.key">
-                <span class="kv-key">{{ row.key }}</span>
+                <span class="kv-key">
+                  {{ row.key }}
+                  <HoverTooltip v-if="row.info" :text="row.info">
+                    <button type="button" class="kv-info" :aria-label="`${row.key} info`">i</button>
+                  </HoverTooltip>
+                </span>
                 <span class="kv-val-block">
                   <span class="kv-val">{{ row.value }}</span>
                   <span v-if="row.hint" class="kv-hint">{{ row.hint }}</span>
@@ -152,7 +172,12 @@
           </div>
 
           <div v-if="selectedThread" class="detail-section">
-            <div class="section-title">Setup thread</div>
+            <div class="section-title-row">
+              <div class="section-title">Thread</div>
+              <HoverTooltip text="One evolving setup around the same level across radar runs.">
+                <button type="button" class="section-info" aria-label="Thread info">i</button>
+              </HoverTooltip>
+            </div>
             <div class="kv-grid">
               <span class="kv-key">Current state</span>
               <span class="kv-val">{{ labelForState(selectedThread.current_state) }}</span>
@@ -182,14 +207,22 @@
                 <span class="thread-event-seq">#{{ event.thread_event_index ?? '—' }}</span>
                 <span class="thread-event-main">
                   <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
-                  <span class="thread-event-meta">{{ formatDateShort(event.signal_at) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}</span>
+                  <span class="thread-event-meta">
+                    {{ formatRadarEventLabel(event) }} · {{ formatRadarEventDate(event) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}
+                  </span>
+                  <span class="thread-event-hint">Recorded {{ formatDateTimeUtc(event.created_at) }}</span>
                 </span>
               </button>
             </div>
           </div>
 
           <div v-if="instrumentTimeline.length" class="detail-section">
-            <div class="section-title">Instrument timeline</div>
+            <div class="section-title-row">
+              <div class="section-title">Timeline</div>
+              <HoverTooltip text="How the latest radar run currently sees this symbol on the selected timeframe.">
+                <button type="button" class="section-info" aria-label="Timeline info">i</button>
+              </HoverTooltip>
+            </div>
             <div class="thread-history">
               <button
                 v-for="event in instrumentTimeline"
@@ -204,15 +237,21 @@
                 <span class="thread-event-main">
                   <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
                   <span class="thread-event-meta">
-                    {{ formatRadarSignalDate(event) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}
+                    {{ formatRadarEventLabel(event) }} · {{ formatRadarEventDate(event) }} · {{ labelForState(event.state) }} · {{ event.score.toFixed(2) }}
                   </span>
+                  <span class="thread-event-hint">Recorded {{ formatDateTimeUtc(event.created_at) }}</span>
                 </span>
               </button>
             </div>
           </div>
 
           <div v-if="instrumentHistory.length" class="detail-section">
-            <div class="section-title">History browser</div>
+            <div class="section-title-row">
+              <div class="section-title">History</div>
+              <HoverTooltip text="Persisted radar events for this symbol across older runs.">
+                <button type="button" class="section-info" aria-label="History info">i</button>
+              </HoverTooltip>
+            </div>
             <div class="thread-history">
               <button
                 v-for="event in instrumentHistory"
@@ -227,8 +266,9 @@
                 <span class="thread-event-main">
                   <span class="thread-event-title">{{ labelForSetup(event.setup_type) }}</span>
                   <span class="thread-event-meta">
-                    {{ formatRadarSignalDate(event) }} · {{ labelForState(event.state) }} · {{ formatOutcomeStatus(event.outcome_status) }}
+                    {{ formatRadarEventLabel(event) }} · {{ formatRadarEventDate(event) }} · {{ labelForState(event.state) }} · {{ formatOutcomeStatusCompact(event) }}
                   </span>
+                  <span class="thread-event-hint">Recorded {{ formatDateTimeUtc(event.created_at) }}</span>
                 </span>
               </button>
             </div>
@@ -259,9 +299,9 @@
 
           <div class="detail-section">
             <div class="section-title">Evidence metrics</div>
-            <div class="kv-grid">
+            <div class="kv-grid kv-grid--evidence">
               <template v-for="row in evidenceMetricRows" :key="row.key">
-                <span class="kv-key">{{ row.key }}</span>
+                <span class="kv-key kv-key--metric">{{ row.key }}</span>
                 <span class="kv-val-block">
                   <span class="kv-val">{{ row.value }}</span>
                   <span v-if="row.hint" class="kv-hint">{{ row.hint }}</span>
@@ -271,18 +311,23 @@
           </div>
 
           <div v-if="currentOutcomeSummary.length" class="detail-section">
-            <div class="section-title">Outcome research</div>
-            <div class="thread-history">
+            <div class="section-title-row">
+              <div class="section-title">Outcome stats</div>
+              <HoverTooltip text="Historical hit and invalidation rates for this setup family on the selected timeframe.">
+                <button type="button" class="section-info" aria-label="Outcome stats info">i</button>
+              </HoverTooltip>
+            </div>
+            <div class="research-summary-list">
               <div
                 v-for="summary in currentOutcomeSummary"
                 :key="`${summary.timeframe}-${summary.setup_type}`"
-                class="thread-event"
+                class="research-summary-card"
               >
-                <span class="thread-event-seq">{{ summary.timeframe }}</span>
-                <span class="thread-event-main">
-                  <span class="thread-event-title">{{ labelForSetup(summary.setup_type) }}</span>
-                  <span class="thread-event-meta">
-                    hit {{ formatPercent(summary.target_hit_rate) }} · invalidated {{ formatPercent(summary.invalidated_rate) }} · n={{ summary.total }}
+                <span class="research-summary-seq">{{ summary.timeframe }}</span>
+                <span class="research-summary-main">
+                  <span class="research-summary-title">{{ labelForSetup(summary.setup_type) }}</span>
+                  <span class="research-summary-meta">
+                    hit {{ formatPercent(summary.target_hit_rate) }} · invalidated {{ formatPercent(summary.invalidated_rate) }} · stale {{ formatPercent(summary.stale_rate) }} · n={{ summary.total }}
                   </span>
                 </span>
               </div>
@@ -326,10 +371,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
+import RadarDetailPreviewChart from '@/components/radar/RadarDetailPreviewChart.vue'
 import { useRadarStore } from '@/stores/radar'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type {
@@ -350,6 +396,12 @@ const selectedSavedView = ref('')
 const selectedWatchlistId = ref('')
 const workflowPendingAction = ref<'alert' | 'watchlist' | null>(null)
 const workflowMessage = ref('')
+const detailWidth = ref(380)
+const RADAR_DETAIL_WIDTH_KEY = 'charting-platform.radar.detail-width'
+const DETAIL_WIDTH_MIN = 340
+const DETAIL_WIDTH_MAX = 680
+let detailResizeStartX = 0
+let detailResizeStartWidth = 380
 
 const filters = reactive({
   timeframe: 'D1' as Timeframe,
@@ -357,7 +409,7 @@ const filters = reactive({
   state: '',
   symbol: '',
   minScore: 0.35,
-  freshOnly: true,
+  activeOnly: true,
 })
 
 const timeframeOptions: Timeframe[] = ['M30', 'H1', 'H4', 'D1', 'W1', 'MN']
@@ -381,8 +433,9 @@ const setupTypes: Array<{ value: RadarSetupType; label: string }> = [
 const radarStates: Array<{ value: RadarState; label: string }> = [
   { value: 'developing', label: 'Developing' },
   { value: 'confirmed', label: 'Confirmed' },
+  { value: 'resolved', label: 'Resolved' },
   { value: 'invalidated', label: 'Invalidated' },
-  { value: 'expired', label: 'Expired' },
+  { value: 'stale', label: 'Stale' },
 ]
 
 const latestRun = computed(() => radarStore.runs[0] ?? null)
@@ -399,9 +452,11 @@ const currentOutcomeSummary = computed(() => {
 const instrumentTimeline = computed(() => {
   const instrumentId = radarStore.selectedDetection?.instrument_id
   if (!instrumentId) return []
-  return radarStore.detections.filter(
-    detection => detection.instrument_id === instrumentId && detection.timeframe === filters.timeframe,
-  )
+  return [...radarStore.detections]
+    .filter(
+      detection => detection.instrument_id === instrumentId && detection.timeframe === filters.timeframe,
+    )
+    .sort(compareRadarEventsAscending)
 })
 const selectedThreadStatusLabel = computed(() => {
   const detection = radarStore.selectedDetection
@@ -418,16 +473,21 @@ interface MetricRow {
   key: string
   value: string
   hint?: string
+  info?: string
 }
 
 const evidenceMetricRows = computed((): MetricRow[] => {
   const det = radarStore.selectedDetection
   if (!det?.evidence?.metrics) return []
   const m = det.evidence.metrics as Record<string, unknown>
-  const s = det.evidence.structures?.[0] as Record<string, unknown> | undefined
   const rows: MetricRow[] = []
-  const week52HighTime = typeof m.week52_high_time === 'number' ? m.week52_high_time : null
-  const week52LowTime = typeof m.week52_low_time === 'number' ? m.week52_low_time : null
+  const contextualTimeFor = (baseKey: string) =>
+    typeof m[`${baseKey}_time`] === 'number' ? (m[`${baseKey}_time`] as number) : null
+  const avwapAnchorType = typeof m.avwap_anchor_type === 'string' ? m.avwap_anchor_type : null
+  const avwapAnchorTime = typeof m.avwap_anchor_time === 'number' ? m.avwap_anchor_time : null
+  const avwapAnchorPrice = typeof m.avwap_anchor_price === 'number' ? m.avwap_anchor_price : null
+  const secondaryAvwapAnchorType =
+    typeof m.secondary_avwap_anchor_type === 'string' ? m.secondary_avwap_anchor_type : null
 
   for (const [key, val] of Object.entries(m)) {
     if (
@@ -438,8 +498,11 @@ const evidenceMetricRows = computed((): MetricRow[] => {
       || key === 'risk_reward'
       || key === 'state'
       || key === 'state_reason'
-      || key === 'week52_high_time'
-      || key === 'week52_low_time'
+      || (key.endsWith('_time') && key !== 'signal_time' && key !== 'context_time')
+      || key === 'avwap_anchor_type'
+      || key === 'avwap_anchor_time'
+      || key === 'avwap_anchor_price'
+      || key === 'secondary_avwap_anchor_type'
     ) continue
 
     if (key === 'ema_levels' && val && typeof val === 'object' && !Array.isArray(val)) {
@@ -453,16 +516,27 @@ const evidenceMetricRows = computed((): MetricRow[] => {
     }
 
     if (key === 'avwap') {
-      const anchorTs = s?.last_touch_time
-      const anchorDate = typeof anchorTs === 'number'
-        ? formatDateShort(new Date(anchorTs * 1000).toISOString())
-        : undefined
-      rows.push({ key: 'AVWAP', value: formatMetric(val), hint: anchorDate ? `anchor: ${anchorDate}` : undefined })
+      rows.push({
+        key: 'AVWAP',
+        value: formatMetricValue(key, val),
+        hint: buildAnchorHint(avwapAnchorType, avwapAnchorTime, avwapAnchorPrice, det),
+      })
+      continue
+    }
+
+    if (key === 'secondary_avwap') {
+      rows.push({
+        key: 'Secondary AVWAP',
+        value: formatMetricValue(key, val),
+        hint: secondaryAvwapAnchorType
+          ? `anchor: ${humanizeRadarToken(secondaryAvwapAnchorType)}`
+          : undefined,
+      })
       continue
     }
 
     if (key === 'close') {
-      rows.push({ key: 'Close', value: formatMetric(val), hint: `as of ${formatDateShort(det.observed_at)}` })
+      rows.push({ key: 'Close', value: formatMetricValue(key, val), hint: `as of ${formatDateShort(det.observed_at)}` })
       continue
     }
 
@@ -492,23 +566,32 @@ const evidenceMetricRows = computed((): MetricRow[] => {
 
     if (key === 'week52_high') {
       rows.push({
-        key: '52W High',
-        value: formatMetric(val),
-        hint: week52HighTime ? `occurred: ${formatUnixDateShort(week52HighTime)}` : undefined,
+        key: humanizeMetricKey(key),
+        value: formatMetricValue(key, val),
+        hint: contextualTimeFor(key) ? `occurred: ${formatUnixMetricTimestamp(contextualTimeFor(key), det)}` : undefined,
       })
       continue
     }
 
     if (key === 'week52_low') {
       rows.push({
-        key: '52W Low',
-        value: formatMetric(val),
-        hint: week52LowTime ? `occurred: ${formatUnixDateShort(week52LowTime)}` : undefined,
+        key: humanizeMetricKey(key),
+        value: formatMetricValue(key, val),
+        hint: contextualTimeFor(key) ? `occurred: ${formatUnixMetricTimestamp(contextualTimeFor(key), det)}` : undefined,
       })
       continue
     }
 
-    rows.push({ key: prettifyKey(key), value: formatMetric(val) })
+    if (isContextualLevelMetric(key)) {
+      rows.push({
+        key: humanizeMetricKey(key),
+        value: formatMetricValue(key, val),
+        hint: contextualTimeFor(key) ? `occurred: ${formatUnixMetricTimestamp(contextualTimeFor(key), det)}` : undefined,
+      })
+      continue
+    }
+
+    rows.push({ key: humanizeMetricKey(key), value: formatMetricValue(key, val) })
   }
   return rows
 })
@@ -532,13 +615,47 @@ const actionPlanRows = computed((): MetricRow[] => {
     {
       key: 'Target',
       value: formatPrice(detection.target_price),
-      hint: targetSource ?? undefined,
+      hint: humanizeTargetSource(targetSource),
+      info: targetSourceInfo(targetSource),
     },
     {
       key: 'Reward / risk',
       value: riskReward != null ? `${riskReward.toFixed(2)}R` : '—',
+      info: 'Expected reward divided by the distance to invalidation.',
     },
   ]
+})
+
+const rationaleItems = computed(() => {
+  const detection = radarStore.selectedDetection
+  if (!detection?.evidence) return []
+  const metrics = detection.evidence.metrics as Record<string, unknown>
+  const structures = detection.evidence.structures ?? []
+  const items: string[] = []
+  const touchCount = Number(detection.score_factors.touch_count ?? 0)
+  if (Number.isFinite(touchCount) && touchCount > 0) {
+    items.push(`${Math.max(2, Math.round(touchCount * 4))} swing touches define this level.`)
+  }
+  const multiTfHits = typeof metrics.multi_timeframe_hits === 'number' ? metrics.multi_timeframe_hits : 0
+  if (multiTfHits > 0) {
+    items.push(`${Math.round(multiTfHits)} higher-horizon levels overlap this zone.`)
+  }
+  if (metrics.volatility_squeeze_active) {
+    items.push('Volatility is compressed, so a larger move may be brewing.')
+  }
+  if (typeof metrics.avwap_anchor_type === 'string') {
+    items.push(`Primary AVWAP is anchored to ${humanizeRadarToken(metrics.avwap_anchor_type)}.`)
+  }
+  const structureTypes = new Set(structures.map(structure => String(structure.type)))
+  if (structureTypes.has('channel') || structureTypes.has('wedge') || structureTypes.has('triangle')) {
+    items.push('Pattern structure is reinforcing the setup context.')
+  } else if (structureTypes.has('trendline')) {
+    items.push('A nearby trendline is reinforcing this area.')
+  }
+  if ((typeof metrics.gap_count === 'number' ? metrics.gap_count : 0) > 0) {
+    items.push('A nearby gap adds context to the reaction zone.')
+  }
+  return items.slice(0, 4)
 })
 
 const SCORE_FACTOR_HINTS: Record<string, string> = {
@@ -551,6 +668,7 @@ const SCORE_FACTOR_HINTS: Record<string, string> = {
   trend_pattern_quality: 'Strength of trendline, channel, wedge, or triangle context supporting this setup.',
   gap_context: 'Whether nearby open gaps reinforce the setup or define an unfilled reaction zone.',
   avwap_anchor_quality: 'Quality of the chosen AVWAP anchor based on its type and contextual relevance.',
+  volatility_squeeze: 'How compressed Bollinger-band volatility is right now. Higher means price is coiling more tightly.',
   recent_reaction_quality: 'How cleanly price respected this zone in the last 10 bars.',
   timeframe_importance: 'Weight assigned to this timeframe. Fixed at 1.0 — placeholder for multi-timeframe scoring.',
   normalized_score: 'Final composite score: weighted blend of all factors above.',
@@ -561,9 +679,17 @@ function scoreFactorHint(key: string): string {
 }
 const runningScan = computed(() => scanPending.value || latestRun.value?.status === 'running')
 const workflowPending = computed(() => workflowPendingAction.value !== null)
+const RADAR_STATE_SEQUENCE_PRIORITY: Record<RadarState, number> = {
+  developing: 0,
+  confirmed: 1,
+  resolved: 2,
+  stale: 3,
+  invalidated: 4,
+}
+const TERMINAL_RADAR_STATES = new Set<RadarState>(['resolved', 'stale', 'invalidated'])
 
 function labelForSetup(setup: RadarSetupType) {
-  return setup.replace(/_/g, ' ')
+  return humanizeRadarToken(setup)
 }
 
 function titleCaseWords(value: string) {
@@ -582,8 +708,40 @@ function formatOutcomeStatus(status: RadarDetection['outcome_status']) {
   return titleCaseWords(status.replace(/_/g, ' '))
 }
 
+function formatOutcomeStatusCompact(detection: Pick<RadarDetection, 'outcome_status'>) {
+  return detection.outcome_status === 'open'
+    ? 'Open'
+    : formatOutcomeStatus(detection.outcome_status)
+}
+
 function prettifyKey(key: string) {
   return key.replace(/_/g, ' ')
+}
+
+function humanizeRadarToken(value: string) {
+  const normalized = value.replace(/_/g, ' ')
+  const special = normalized
+    .replace(/\bweek52\b/gi, '52-week')
+    .replace(/\bytd\b/gi, 'YTD')
+    .replace(/\bavwap\b/gi, 'AVWAP')
+    .replace(/\bema\b/gi, 'EMA')
+  return titleCaseWords(special)
+}
+
+function humanizeTargetSource(targetSource?: string) {
+  if (!targetSource) return undefined
+  if (targetSource === 'two-risk extension') return '2R extension'
+  return humanizeRadarToken(targetSource)
+}
+
+function targetSourceInfo(targetSource?: string) {
+  if (!targetSource) return undefined
+  if (targetSource === 'two-risk extension') {
+    return 'No clearer nearby structural target was found, so radar projects a fallback target two risk units away from entry.'
+  }
+  if (targetSource === 'next resistance') return 'Targeting the next nearby resistance zone.'
+  if (targetSource === 'next support') return 'Targeting the next nearby support zone.'
+  return humanizeRadarToken(targetSource)
 }
 
 function formatDate(value?: string | null) {
@@ -599,12 +757,16 @@ function formatDateShort(value?: string | null) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
-function formatUnixDateShort(value: number) {
-  return formatDateShort(new Date(value * 1000).toISOString())
+function formatUnixMetricTimestamp(
+  value: number | null,
+  detection: Pick<RadarDetection, 'timeframe'> | { timeframe?: Timeframe | null },
+) {
+  if (value == null) return '—'
+  return formatMetricTimestamp(value, { preferDateOnly: prefersDateOnly(detection) })
 }
 
-function prefersDateOnly(detection: Pick<RadarDetection, 'timeframe'>) {
-  return detection.timeframe === 'D1' || detection.timeframe === 'W1' || detection.timeframe === 'MN'
+function prefersDateOnly(detection: Pick<RadarDetection, 'timeframe'> | { timeframe?: Timeframe | null }) {
+  return !detection.timeframe || detection.timeframe === 'D1' || detection.timeframe === 'W1' || detection.timeframe === 'MN'
 }
 
 function formatDateTimeUtc(value?: string | null) {
@@ -639,8 +801,50 @@ function formatMetricTimestamp(
   return formatDateTimeUtc(parsed.toISOString())
 }
 
-function formatRadarSignalDate(detection: Pick<RadarDetection, 'signal_at' | 'observed_at'>) {
-  return formatMetricTimestamp(detection.signal_at ?? detection.observed_at, { preferDateOnly: true })
+function radarEventTimeValue(
+  detection: Pick<
+    RadarDetection,
+    'signal_at' | 'observed_at' | 'invalidated_at' | 'target_hit_at' | 'outcome_last_evaluated_at' | 'state'
+  >,
+) {
+  if (detection.state === 'invalidated') return detection.invalidated_at ?? detection.outcome_last_evaluated_at ?? detection.observed_at
+  if (detection.state === 'stale') return detection.outcome_last_evaluated_at ?? detection.observed_at
+  if (detection.target_hit_at) return detection.target_hit_at
+  return detection.signal_at ?? detection.observed_at
+}
+
+function formatRadarEventDate(
+  detection: Pick<
+    RadarDetection,
+    'signal_at' | 'observed_at' | 'invalidated_at' | 'target_hit_at' | 'outcome_last_evaluated_at' | 'state'
+  > & { timeframe?: Timeframe | null },
+) {
+  return formatMetricTimestamp(radarEventTimeValue(detection), {
+    preferDateOnly: prefersDateOnly(detection),
+  })
+}
+
+function formatRadarEventLabel(
+  detection: Pick<RadarDetection, 'state' | 'target_hit_at' | 'invalidated_at' | 'outcome_status'>,
+) {
+  if (detection.state === 'resolved') return 'Target hit'
+  if (detection.state === 'invalidated') return 'Invalidated'
+  if (detection.state === 'stale') return 'Stale'
+  if (detection.target_hit_at || detection.outcome_status === 'target_hit') return 'Target hit'
+  return 'Detected'
+}
+
+function compareRadarEventsAscending(left: RadarDetection, right: RadarDetection) {
+  const timeDelta = new Date(radarEventTimeValue(left) ?? left.observed_at).getTime()
+    - new Date(radarEventTimeValue(right) ?? right.observed_at).getTime()
+  if (timeDelta !== 0) return timeDelta
+  const createdDelta = new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+  if (createdDelta !== 0) return createdDelta
+  const stateDelta = (RADAR_STATE_SEQUENCE_PRIORITY[left.state] ?? 99) - (RADAR_STATE_SEQUENCE_PRIORITY[right.state] ?? 99)
+  if (stateDelta !== 0) return stateDelta
+  const sequenceDelta = (left.thread_event_index ?? Number.MAX_SAFE_INTEGER) - (right.thread_event_index ?? Number.MAX_SAFE_INTEGER)
+  if (sequenceDelta !== 0) return sequenceDelta
+  return left.id - right.id
 }
 
 function formatThreadSequence(
@@ -669,13 +873,80 @@ function formatFactor(value: unknown) {
   return String(value)
 }
 
-function formatMetric(value: unknown) {
-  if (typeof value === 'number') return value.toFixed(2)
+function isContextualLevelMetric(key: string) {
+  return [
+    'week52_high',
+    'week52_low',
+    'all_time_high',
+    'all_time_low',
+    'ytd_open',
+    'ytd_high',
+    'ytd_low',
+  ].includes(key)
+}
+
+function humanizeMetricKey(key: string) {
+  switch (key) {
+    case 'atr_14':
+      return 'ATR 14'
+    case 'bb_width':
+      return 'BB width'
+    case 'bb_width_percentile':
+      return 'BB width percentile'
+    case 'inside_keltner':
+      return 'Inside Keltner'
+    case 'volatility_squeeze_active':
+      return 'Squeeze active'
+    case 'week52_high':
+      return '52-week high'
+    case 'week52_low':
+      return '52-week low'
+    case 'all_time_high':
+      return 'All-time high'
+    case 'all_time_low':
+      return 'All-time low'
+    case 'ytd_open':
+      return 'YTD open'
+    case 'ytd_high':
+      return 'YTD high'
+    case 'ytd_low':
+      return 'YTD low'
+    default:
+      return humanizeRadarToken(key)
+  }
+}
+
+function formatMetricValue(key: string, value: unknown) {
+  if (value == null) return '—'
+  if (typeof value === 'string') return humanizeRadarToken(value)
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (typeof value === 'number') {
+    if (key === 'bars_since_signal' || key === 'gap_count' || key === 'pattern_count' || key === 'multi_timeframe_hits') {
+      return String(Math.round(value))
+    }
+    return value.toFixed(2)
+  }
   if (value && typeof value === 'object') return JSON.stringify(value)
-  return String(value ?? '—')
+  return String(value)
+}
+
+function buildAnchorHint(
+  anchorType: string | null,
+  anchorTime: number | null,
+  anchorPrice: number | null,
+  detection: Pick<RadarDetection, 'timeframe'> | { timeframe?: Timeframe | null },
+) {
+  const parts: string[] = []
+  if (anchorType) parts.push(humanizeRadarToken(anchorType))
+  if (anchorTime != null) parts.push(formatUnixMetricTimestamp(anchorTime, detection))
+  if (anchorPrice != null) parts.push(`@ ${anchorPrice.toFixed(2)}`)
+  return parts.length ? `anchor: ${parts.join(' · ')}` : undefined
 }
 
 async function refresh() {
+  const activeOnly =
+    filters.activeOnly
+    && !(filters.state && TERMINAL_RADAR_STATES.has(filters.state as RadarState))
   await Promise.all([
     radarStore.loadRuns(5, filters.timeframe),
     radarStore.loadDetections({
@@ -684,7 +955,7 @@ async function refresh() {
       state: filters.state || undefined,
       symbol: filters.symbol || undefined,
       min_score: filters.minScore,
-      fresh_only: filters.freshOnly,
+      active_only: activeOnly,
     }),
     radarStore.loadOutcomeSummary(filters.timeframe),
   ])
@@ -708,7 +979,7 @@ function persistCurrentView() {
     state: filters.state || undefined,
     symbol: filters.symbol || undefined,
     min_score: filters.minScore,
-    fresh_only: filters.freshOnly,
+    active_only: filters.activeOnly,
   })
   selectedSavedView.value = saveViewDraft.value
   showSaveViewInput.value = false
@@ -723,7 +994,7 @@ async function applySavedView() {
   filters.symbol = view.filters.symbol ?? ''
   filters.timeframe = (view.filters.timeframe as Timeframe | undefined) ?? 'D1'
   filters.minScore = view.filters.min_score ?? 0.35
-  filters.freshOnly = view.filters.fresh_only ?? true
+  filters.activeOnly = view.filters.active_only ?? view.filters.fresh_only ?? true
   await refresh()
 }
 
@@ -798,10 +1069,48 @@ async function createAlertFromDetection() {
   }
 }
 
+function clampDetailWidth(value: number) {
+  return Math.max(DETAIL_WIDTH_MIN, Math.min(DETAIL_WIDTH_MAX, Math.round(value)))
+}
+
+function persistDetailWidth() {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(RADAR_DETAIL_WIDTH_KEY, String(detailWidth.value))
+}
+
+function stopDetailResize() {
+  window.removeEventListener('pointermove', onDetailResizeMove)
+  window.removeEventListener('pointerup', stopDetailResize)
+  persistDetailWidth()
+}
+
+function onDetailResizeMove(event: PointerEvent) {
+  detailWidth.value = clampDetailWidth(detailResizeStartWidth + (detailResizeStartX - event.clientX))
+}
+
+function startDetailResize(event: PointerEvent) {
+  event.preventDefault()
+  detailResizeStartX = event.clientX
+  detailResizeStartWidth = detailWidth.value
+  window.addEventListener('pointermove', onDetailResizeMove)
+  window.addEventListener('pointerup', stopDetailResize)
+}
+
 onMounted(async () => {
+  if (typeof localStorage !== 'undefined') {
+    const raw = localStorage.getItem(RADAR_DETAIL_WIDTH_KEY)
+    const parsed = raw ? Number(raw) : NaN
+    if (Number.isFinite(parsed)) {
+      detailWidth.value = clampDetailWidth(parsed)
+    }
+  }
   radarStore.loadSavedViews()
   await watchlistStore.loadWatchlists()
   await refresh()
+})
+
+onBeforeUnmount(() => {
+  stopDetailResize()
 })
 </script>
 
@@ -961,6 +1270,28 @@ onMounted(async () => {
   gap: 12px;
   min-height: 0;
   flex: 1;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.radar-detail-resize {
+  width: 8px;
+  flex: 0 0 8px;
+  cursor: col-resize;
+  position: relative;
+}
+
+.radar-detail-resize::before {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+.radar-detail-resize:hover::before {
+  background: rgba(100, 181, 246, 0.16);
 }
 
 .radar-busy-overlay {
@@ -1006,15 +1337,17 @@ onMounted(async () => {
 
 /* ── Detection list ─────────────────────────────────────────────────────────── */
 .radar-results {
-  flex: 1;
+  flex: 1 1 560px;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .detections-table-wrap {
   flex: 1;
   overflow-y: auto;
+  min-width: 0;
 }
 
 .empty-row {
@@ -1065,7 +1398,17 @@ onMounted(async () => {
 
 .td-setup {
   color: #aaa;
-  text-transform: capitalize;
+}
+
+.td-setup > span {
+  display: block;
+}
+
+.td-setup-sub {
+  color: #5f5f5f;
+  font-size: 10px;
+  margin-top: 2px;
+  text-transform: none;
 }
 
 .td-state {
@@ -1087,7 +1430,7 @@ onMounted(async () => {
 
 /* ── Detail panel ───────────────────────────────────────────────────────────── */
 .radar-detail {
-  width: 320px;
+  flex: 0 1 auto;
   flex-shrink: 0;
   border: 1px solid #1a1a1a;
   border-radius: 6px;
@@ -1095,6 +1438,8 @@ onMounted(async () => {
   padding: 14px;
   overflow-y: auto;
   overflow-x: hidden;
+  max-width: 100%;
+  min-width: 320px;
 }
 
 .empty-detail {
@@ -1171,18 +1516,25 @@ onMounted(async () => {
   color: #63d0aa;
 }
 
+.state-pill--resolved,
+.detail-state-pill--resolved {
+  border: 1px solid #27513b;
+  background: #13271d;
+  color: #7fe0b8;
+}
+
+.state-pill--stale,
+.detail-state-pill--stale {
+  border: 1px solid #313131;
+  background: #171717;
+  color: #8b8b8b;
+}
+
 .state-pill--invalidated,
 .detail-state-pill--invalidated {
   border: 1px solid #5f231f;
   background: #2a1210;
   color: #ef8a85;
-}
-
-.state-pill--expired,
-.detail-state-pill--expired {
-  border: 1px solid #313131;
-  background: #171717;
-  color: #8b8b8b;
 }
 
 .detail-summary {
@@ -1227,6 +1579,59 @@ onMounted(async () => {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #1a1a1a;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.section-title-row .section-title {
+  margin-bottom: 0;
+}
+
+.section-info {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #303030;
+  border-radius: 999px;
+  background: #151515;
+  color: #5e5e5e;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1;
+  padding: 0;
+}
+
+.section-info:hover,
+.section-info:focus-visible {
+  color: #aaa;
+  border-color: #505050;
+  outline: none;
+}
+
+.rationale-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rationale-item {
+  border: 1px solid #1d2833;
+  border-radius: 6px;
+  background: #101820;
+  color: #8fb7d8;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 7px 9px;
 }
 
 .thread-history {
@@ -1280,7 +1685,6 @@ onMounted(async () => {
 
 .thread-event-title {
   color: #d6d6d6;
-  text-transform: capitalize;
 }
 
 .thread-event-meta {
@@ -1289,11 +1693,23 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
+.thread-event-hint {
+  color: #4b4b4b;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 .kv-grid {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 5px 12px;
   font-size: 12px;
+  min-width: 0;
+}
+
+.kv-grid--evidence {
+  grid-template-columns: minmax(168px, 1.25fr) minmax(110px, auto);
+  gap: 7px 14px;
 }
 
 .kv-key {
@@ -1303,6 +1719,11 @@ onMounted(async () => {
   align-items: flex-start;
   gap: 4px;
   min-width: 0;
+}
+
+.kv-key--metric {
+  text-transform: none;
+  line-height: 1.35;
 }
 
 .kv-val {
@@ -1361,6 +1782,69 @@ onMounted(async () => {
   color: #aaa;
   border-color: #505050;
   outline: none;
+}
+
+.research-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.research-summary-card {
+  width: 100%;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  background: #101010;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.research-summary-seq {
+  color: #6aa8d8;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.research-summary-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.research-summary-title {
+  color: #d6d6d6;
+}
+
+.research-summary-meta {
+  color: #666;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1320px) {
+  .page-header,
+  .page-header-left {
+    flex-wrap: wrap;
+  }
+
+  .radar-layout {
+    flex-direction: column;
+  }
+
+  .radar-detail-resize {
+    display: none;
+  }
+
+  .radar-detail {
+    width: 100% !important;
+    min-width: 0;
+  }
 }
 
 </style>

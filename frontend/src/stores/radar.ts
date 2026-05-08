@@ -26,6 +26,7 @@ interface RadarSavedView {
     state?: string
     min_score?: number
     symbol?: string
+    active_only?: boolean
     fresh_only?: boolean
   }
 }
@@ -49,11 +50,30 @@ const RADAR_SETUP_SEQUENCE_PRIORITY: Record<string, number> = {
   breakdown_retest: 3,
 }
 
+const RADAR_STATE_SEQUENCE_PRIORITY: Record<string, number> = {
+  developing: 0,
+  confirmed: 1,
+  resolved: 2,
+  stale: 3,
+  invalidated: 4,
+}
+
 function compareRadarChronology(left: RadarDetection, right: RadarDetection) {
   const leftTime = new Date(left.signal_at ?? left.observed_at).getTime()
   const rightTime = new Date(right.signal_at ?? right.observed_at).getTime()
   if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
     return leftTime - rightTime
+  }
+  const leftCreated = new Date(left.created_at).getTime()
+  const rightCreated = new Date(right.created_at).getTime()
+  if (Number.isFinite(leftCreated) && Number.isFinite(rightCreated) && leftCreated !== rightCreated) {
+    return leftCreated - rightCreated
+  }
+  const stateDelta =
+    (RADAR_STATE_SEQUENCE_PRIORITY[left.state] ?? 99)
+    - (RADAR_STATE_SEQUENCE_PRIORITY[right.state] ?? 99)
+  if (stateDelta !== 0) {
+    return stateDelta
   }
   if (left.thread_id != null && left.thread_id === right.thread_id) {
     const leftIndex = left.thread_event_index ?? Number.MAX_SAFE_INTEGER
@@ -137,6 +157,7 @@ export const useRadarStore = defineStore('radar', () => {
     min_score?: number
     symbol?: string
     limit?: number
+    active_only?: boolean
     fresh_only?: boolean
   } = {}) {
     isLoading.value = true
@@ -166,7 +187,7 @@ export const useRadarStore = defineStore('radar', () => {
   ) {
     const loadedDetections = await api.get<RadarDetection[]>(
       `/radar/instruments/${instrumentId}/overlays`,
-      { fresh_only: true, timeframe },
+      { active_only: preferredDetectionId == null, timeframe },
     )
     chartDetections.value = [...loadedDetections].sort(compareRadarChronology)
 

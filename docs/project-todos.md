@@ -145,7 +145,7 @@ Context:
     - fakeout / failure / compression setup families
     - richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
     - diagonal trendline / gap / simple pattern context
-    - invalidated / expired transition persistence
+    - invalidated / resolved / stale transition persistence
     - saved radar views, instrument timelines, and a radar dashboard widget
   - initial setup types:
     - approaching support
@@ -246,7 +246,7 @@ What remains:
 
 - Extend the persistent radar/setup model beyond the current run+detection+thread foundation so it can also store:
   - richer state transitions over time beyond the current `developing` / `confirmed` baseline
-  - automatic handling of failed / invalidated / expired states
+  - automatic handling of failed / invalidated / stale states
   - evolving score history instead of only one snapshot
   - richer setup-thread semantics beyond today’s nearby-level continuity matching
   - later outcome / forward-performance tracking
@@ -305,7 +305,7 @@ What remains:
 
 Entry, exit, and invalidation semantics to deepen from the current v2 slice:
 - **Explicit entry / invalidation / target levels now exist**, but they are still heuristic and detector-local. Improve them into a more rigorous action model (e.g., breakout close vs retest hold vs reclaim confirmation) and make the rationale more explicit in evidence payloads.
-- **Price-action-based auto-invalidation**: `fresh_until` is still a hardcoded 5-day TTL unrelated to actual price action. Add a background task (or per-scan pass) that checks active detections against the latest bar and marks them `INVALIDATED` (via a new status field or by setting `fresh_until = now`) when the invalidation condition in `invalidation_hint` is met. The current numeric `invalidation_price` field now makes that possible without scraping it back out of `evidence_json`.
+- **Lifecycle refinement beyond the current stale model**: Radar no longer hard-expires detections by TTL; it now keeps them open until they become `target_hit`, `invalidated`, or contextually `stale`. Future work here should refine the stale heuristics further with better regime awareness, thread supersession semantics, and setup-family-specific decay rules rather than reintroducing fixed expiry windows.
 - **Connection to trade signal engine (item 8)**: When item 8 is implemented, radar detections are the natural input — a detection with an entry level, invalidation level, and score becomes the seed for a structured trade plan. The invalidation level becomes the stop, and the implied target can be the opposing zone or a fixed R-multiple. Both systems should share schema vocabulary from the start (entry_price, stop_price, target_price, risk_multiple).
 
 Nearer-term concrete follow-up phases worth treating as the next likely implementation path:

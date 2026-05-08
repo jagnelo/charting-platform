@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,7 +11,14 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
-from app.models.radar import RadarDetection, RadarRun, RadarSetupThread, RadarSetupType, RadarState
+from app.models.radar import (
+    RadarDetection,
+    RadarOutcomeStatus,
+    RadarRun,
+    RadarSetupThread,
+    RadarSetupType,
+    RadarState,
+)
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.schemas.alert import PriceAlertOut
@@ -85,6 +92,8 @@ def _to_summary(detection: RadarDetection) -> RadarDetectionSummaryOut:
         summary=detection.summary,
         invalidation_hint=detection.invalidation_hint,
         score_factors=detection.score_factors or {},
+        created_at=detection.created_at,
+        updated_at=detection.updated_at,
     )
 
 
@@ -120,6 +129,8 @@ def _to_thread_event(detection: RadarDetection) -> RadarThreadEventOut:
         invalidated_at=detection.invalidated_at,
         summary=detection.summary,
         invalidation_hint=detection.invalidation_hint,
+        created_at=detection.created_at,
+        updated_at=detection.updated_at,
     )
 
 
@@ -149,6 +160,52 @@ def _thread_history_rows(thread: RadarSetupThread) -> list[RadarDetection]:
     return sorted(
         [*passthrough, *deduped_by_index.values()],
         key=lambda item: (item.signal_at, item.thread_event_index or 0, item.id),
+    )
+
+
+def _history_identity_key(detection: RadarDetection) -> tuple:
+    return (
+        detection.timeframe.value,
+        detection.thread_id,
+        detection.thread_event_index,
+        detection.setup_type.value,
+        detection.state.value,
+        detection.signal_at,
+        detection.context_at,
+        round(float(detection.key_level_price or 0.0), 4),
+    )
+
+
+def _history_event_time(detection: RadarDetection) -> datetime:
+    return (
+        detection.invalidated_at
+        or detection.target_hit_at
+        or detection.outcome_last_evaluated_at
+        or detection.signal_at
+        or detection.observed_at
+    )
+
+
+def _dedupe_history_rows(rows: list[RadarDetection]) -> list[RadarDetection]:
+    deduped: dict[tuple, RadarDetection] = {}
+    for detection in rows:
+        key = _history_identity_key(detection)
+        existing = deduped.get(key)
+        if (
+            existing is None
+            or detection.observed_at > existing.observed_at
+            or detection.id > existing.id
+        ):
+            deduped[key] = detection
+    return sorted(
+        deduped.values(),
+        key=lambda item: (
+            _history_event_time(item),
+            item.thread_event_index or 0,
+            item.observed_at,
+            item.id,
+        ),
+        reverse=True,
     )
 
 
@@ -213,7 +270,8 @@ async def list_radar_detections(
     min_score: float = Query(0.0, ge=0.0, le=1.0),
     symbol: str | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
-    fresh_only: bool = Query(True),
+    active_only: bool = Query(True),
+    fresh_only: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -232,8 +290,12 @@ async def list_radar_detections(
         stmt = stmt.where(RadarDetection.setup_type == setup_type)
     if state is not None:
         stmt = stmt.where(RadarDetection.state == state)
-    if fresh_only:
-        stmt = stmt.where(RadarDetection.fresh_until >= datetime.now(UTC))
+    effective_active_only = active_only if fresh_only is None else fresh_only
+    if effective_active_only:
+        stmt = stmt.where(
+            RadarDetection.outcome_status == RadarOutcomeStatus.OPEN,
+            RadarDetection.state.in_([RadarState.DEVELOPING, RadarState.CONFIRMED]),
+        )
 
     detections = list((await db.execute(stmt)).scalars().all())
     if symbol:
@@ -261,7 +323,8 @@ async def get_instrument_radar_overlays(
     instrument_id: int,
     timeframe: Timeframe | None = Query(None),
     detection_id: int | None = Query(None),
-    fresh_only: bool = Query(True),
+    active_only: bool = Query(True),
+    fresh_only: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -280,8 +343,12 @@ async def get_instrument_radar_overlays(
     )
     if detection_id is not None:
         stmt = stmt.where(RadarDetection.id == detection_id)
-    if fresh_only:
-        stmt = stmt.where(RadarDetection.fresh_until >= datetime.now(UTC))
+    effective_active_only = active_only if fresh_only is None else fresh_only
+    if effective_active_only:
+        stmt = stmt.where(
+            RadarDetection.outcome_status == RadarOutcomeStatus.OPEN,
+            RadarDetection.state.in_([RadarState.DEVELOPING, RadarState.CONFIRMED]),
+        )
     rows = list((await db.execute(stmt)).scalars().all())
     return [_to_detail(row) for row in rows]
 
@@ -307,7 +374,7 @@ async def get_instrument_radar_history(
     if timeframe is not None:
         stmt = stmt.where(RadarDetection.timeframe == timeframe)
     rows = list((await db.execute(stmt)).scalars().all())
-    return [_to_detail(row) for row in rows]
+    return [_to_detail(row) for row in _dedupe_history_rows(rows)]
 
 
 @router.get("/outcomes/summary", response_model=list[RadarOutcomeSummaryOut])
@@ -336,7 +403,7 @@ async def get_radar_outcome_summary(
         invalidated_count = sum(
             1 for row in detections if row.outcome_status.value == "invalidated"
         )
-        expired_count = sum(1 for row in detections if row.outcome_status.value == "expired")
+        stale_count = sum(1 for row in detections if row.outcome_status.value == "stale")
         mfes = [
             float(row.max_favorable_excursion_pct)
             for row in detections
@@ -355,9 +422,10 @@ async def get_radar_outcome_summary(
                 open_count=open_count,
                 target_hit_count=target_hit_count,
                 invalidated_count=invalidated_count,
-                expired_count=expired_count,
+                stale_count=stale_count,
                 target_hit_rate=target_hit_count / total if total else 0.0,
                 invalidated_rate=invalidated_count / total if total else 0.0,
+                stale_rate=stale_count / total if total else 0.0,
                 avg_mfe_pct=(sum(mfes) / len(mfes)) if mfes else None,
                 avg_mae_pct=(sum(maes) / len(maes)) if maes else None,
             )

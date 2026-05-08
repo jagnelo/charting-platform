@@ -27,6 +27,10 @@ async function flushPromises() {
   await nextTick()
 }
 
+const radarDetailPreviewChartStub = {
+  template: '<div class="radar-preview-stub">Preview</div>',
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(res => {
@@ -66,6 +70,8 @@ const summaryDetection = {
   summary: 'AAPL is showing a breakout setup.',
   invalidation_hint: 'Invalidate if price falls back below 110.',
   score_factors: { normalized_score: 0.82, overlap_confluence: 0.5 },
+  created_at: '2026-05-04T10:00:05Z',
+  updated_at: '2026-05-04T10:00:05Z',
 }
 
 const detailDetection = {
@@ -77,6 +83,19 @@ const detailDetection = {
       atr_14: 2.1,
       signal_time: 1777953600,
       context_time: 1771822800,
+      avwap: 111.8,
+      avwap_anchor_type: 'week52_high',
+      avwap_anchor_time: 1767225600,
+      avwap_anchor_price: 109.4,
+      secondary_avwap: 110.9,
+      secondary_avwap_anchor_type: 'all_time_high',
+      week52_high: 120.4,
+      week52_high_time: 1767225600,
+      bb_width: 0.042,
+      bb_width_percentile: 0.08,
+      inside_keltner: true,
+      volatility_squeeze_active: true,
+      multi_timeframe_hits: 2,
       entry_price: 112.9,
       invalidation_price: 110.0,
       target_price: 118.5,
@@ -85,7 +104,7 @@ const detailDetection = {
       state: 'confirmed',
       state_reason: 'Confirmed breakout. The next objective is the next resistance while price holds above the breakout zone.',
     },
-    structures: [],
+    structures: [{ type: 'trendline' }],
   },
   thread: {
     id: 11,
@@ -124,6 +143,8 @@ const detailDetection = {
       max_adverse_excursion_pct: null,
       target_hit_at: null,
       invalidated_at: null,
+      created_at: '2026-05-01T10:00:05Z',
+      updated_at: '2026-05-01T10:00:05Z',
     },
     {
       id: 42,
@@ -148,6 +169,8 @@ const detailDetection = {
       max_adverse_excursion_pct: null,
       target_hit_at: null,
       invalidated_at: null,
+      created_at: '2026-05-04T10:00:05Z',
+      updated_at: '2026-05-04T10:00:05Z',
     },
   ],
 }
@@ -204,6 +227,8 @@ describe('RadarView', () => {
             outcome_status: 'target_hit',
             bars_since_signal: 4,
             target_hit_at: '2026-05-05T12:00:00Z',
+            created_at: '2026-05-05T12:01:00Z',
+            updated_at: '2026-05-05T12:01:00Z',
           },
         ])
       }
@@ -216,9 +241,10 @@ describe('RadarView', () => {
             open_count: 1,
             target_hit_count: 1,
             invalidated_count: 1,
-            expired_count: 0,
+            stale_count: 0,
             target_hit_rate: 1 / 3,
             invalidated_rate: 1 / 3,
+            stale_rate: 0,
             avg_mfe_pct: 5.6,
             avg_mae_pct: -2.1,
           },
@@ -248,6 +274,9 @@ describe('RadarView', () => {
     const wrapper = mount(RadarView, {
       global: {
         plugins: [pinia],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
       },
     })
 
@@ -264,20 +293,32 @@ describe('RadarView', () => {
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('breakout')
     expect(wrapper.text()).toContain('Confirmed')
-    expect(wrapper.text()).toContain('atr 14')
-    expect(wrapper.text()).toContain('Setup thread')
+    expect(wrapper.text()).toContain('ATR 14')
+    expect(wrapper.text()).toContain('Why flagged')
+    expect(wrapper.text()).toContain('Thread')
     expect(wrapper.text()).toContain('Action plan')
     expect(wrapper.text()).toContain('Reward / risk')
     expect(wrapper.text()).toContain('Events')
-    expect(wrapper.text()).toContain('History browser')
-    expect(wrapper.text()).toContain('Outcome research')
+    expect(wrapper.text()).toContain('History')
+    expect(wrapper.text()).toContain('Timeline')
+    expect(wrapper.text()).toContain('Outcome stats')
     expect(wrapper.text()).toContain('Confirmed · Thread 2/2')
     expect(wrapper.text()).toContain('Signal date')
     expect(wrapper.text()).toContain('Context date')
+    expect(wrapper.text()).toContain('Detected')
+    expect(wrapper.text()).toContain('Recorded 2026-05-04 10:00 UTC')
+    expect(wrapper.text()).toContain('Volatility is compressed, so a larger move may be brewing.')
+    expect(wrapper.text()).toContain('Primary AVWAP is anchored to 52-week High.')
+    expect(wrapper.text()).toContain('AVWAP')
+    expect(wrapper.text()).toContain('52-week high')
+    expect(wrapper.text()).toContain('All Time High')
+    expect(wrapper.text()).toContain('Inside Keltner')
     expect(wrapper.text()).toContain('#1')
     expect(wrapper.text()).toContain('#2')
     expect(wrapper.text()).not.toContain('1777953600.00')
     expect(wrapper.text()).not.toContain('1771822800.00')
+    expect(wrapper.text()).not.toContain('week52_high')
+    expect(wrapper.text()).not.toContain('all_time_high')
 
     await wrapper.find('.detail-head .action-btn.primary').trigger('click')
     expect(radarStore.pendingChartDetection).toEqual({
@@ -311,6 +352,9 @@ describe('RadarView', () => {
     const wrapper = mount(RadarView, {
       global: {
         plugins: [createPinia()],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
       },
     })
 
@@ -339,6 +383,9 @@ describe('RadarView', () => {
     const wrapper = mount(RadarView, {
       global: {
         plugins: [pinia],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
       },
     })
 
@@ -359,7 +406,44 @@ describe('RadarView', () => {
       state: undefined,
       symbol: undefined,
       min_score: 0.35,
-      fresh_only: true,
+      active_only: true,
+    })
+
+    await selects[2].setValue('breakout')
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledWith('/radar/detections', {
+      timeframe: 'H4',
+      setup_type: 'breakout',
+      state: undefined,
+      symbol: undefined,
+      min_score: 0.35,
+      active_only: true,
+    })
+
+    await selects[3].setValue('confirmed')
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledWith('/radar/detections', {
+      timeframe: 'H4',
+      setup_type: 'breakout',
+      state: 'confirmed',
+      symbol: undefined,
+      min_score: 0.35,
+      active_only: true,
+    })
+
+    const activeToggle = wrapper.find('input[type="checkbox"]')
+    await activeToggle.setValue(false)
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledWith('/radar/detections', {
+      timeframe: 'H4',
+      setup_type: 'breakout',
+      state: 'confirmed',
+      symbol: undefined,
+      min_score: 0.35,
+      active_only: false,
     })
 
     await vi.waitFor(() => {

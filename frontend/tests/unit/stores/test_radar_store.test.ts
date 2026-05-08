@@ -43,6 +43,8 @@ function detection(overrides: Record<string, unknown> = {}) {
     invalidation_hint: 'Invalidate above 184.20',
     score_factors: { normalized_score: 0.7 },
     evidence: { overlays: [], metrics: {}, structures: [] },
+    created_at: '2026-05-05T12:00:05Z',
+    updated_at: '2026-05-05T12:00:05Z',
     ...overrides,
   }
 }
@@ -251,9 +253,10 @@ describe('useRadarStore', () => {
           open_count: 1,
           target_hit_count: 2,
           invalidated_count: 1,
-          expired_count: 0,
+          stale_count: 0,
           target_hit_rate: 0.5,
           invalidated_rate: 0.25,
+          stale_rate: 0,
           avg_mfe_pct: 6.2,
           avg_mae_pct: -2.1,
         },
@@ -311,7 +314,7 @@ describe('useRadarStore', () => {
       setup_type: 'breakout',
       state: 'confirmed',
       min_score: 0.7,
-      fresh_only: true,
+      active_only: true,
     })
 
     const reloadedStore = useRadarStore()
@@ -325,7 +328,7 @@ describe('useRadarStore', () => {
           setup_type: 'breakout',
           state: 'confirmed',
           min_score: 0.7,
-          fresh_only: true,
+          active_only: true,
         },
       },
     ])

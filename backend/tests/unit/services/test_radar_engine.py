@@ -17,6 +17,7 @@ from app.services.radar_engine import (
     _find_duplicate_thread_detection,
     _find_matching_thread,
     _invalidation_price,
+    _overlapping_current_run_detection,
     analyze_instrument,
 )
 
@@ -55,6 +56,7 @@ _EXPECTED_SCORE_FACTOR_KEYS = {
     "trend_pattern_quality",
     "gap_context",
     "avwap_anchor_quality",
+    "volatility_squeeze",
     "recent_reaction_quality",
     "timeframe_importance",
     "normalized_score",
@@ -134,7 +136,7 @@ class TestRadarEngine:
         assert detections
         for detection in detections:
             assert 0.0 <= detection.score <= 1.0
-            assert detection.fresh_until > detection.observed_at
+            assert detection.fresh_until == detection.observed_at
             assert detection.evidence["overlays"]
 
     def test_fakeout_detection_is_classified(self):
@@ -156,6 +158,14 @@ class TestRadarEngine:
         assert "trendline" in structure_types
         assert detection.evidence["metrics"]["avwap_anchor_type"]
         assert "multi_timeframe_hits" in detection.evidence["metrics"]
+
+    def test_squeeze_context_is_exposed_in_evidence_metrics(self):
+        prices = [100, 101, 100.5, 101.2, 100.8, 101.1] * 18
+        prices += [100.95, 101.0, 101.02, 101.01, 101.03]
+        detections = analyze_instrument(_instrument(), _make_bars(prices))
+        assert detections
+        assert any("bb_width" in det.evidence["metrics"] for det in detections)
+        assert any("volatility_squeeze" in det.score_factors for det in detections)
 
     def test_evidence_metrics_contain_invalidation_price(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
@@ -331,6 +341,92 @@ class TestRadarEngine:
 
         assert duplicate is existing_detection
 
+    def test_overlapping_current_detection_blocks_transition_duplication(self):
+        candidate = next(
+            det
+            for det in self._resistance_detections()
+            if det.setup_type == RadarSetupType.REJECTION
+        )
+        previous_detection = RadarDetection(
+            id=77,
+            run_id=1,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            setup_type=candidate.setup_type,
+            state=RadarState.CONFIRMED,
+            state_reason=candidate.state_reason,
+            score=candidate.score,
+            summary=candidate.summary,
+            invalidation_hint=candidate.invalidation_hint,
+            evidence_json=candidate.evidence,
+            score_factors=candidate.score_factors,
+            signal_at=candidate.signal_at - timedelta(days=2),
+            context_at=candidate.context_at,
+            key_level_price=candidate.key_level_price,
+            entry_price=candidate.entry_price,
+            invalidation_price=candidate.invalidation_price,
+            target_price=candidate.target_price,
+            thread_event_index=1,
+            observed_at=candidate.observed_at - timedelta(days=2),
+            fresh_until=candidate.fresh_until,
+        )
+        prior_thread = RadarSetupThread(
+            id=9,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="resistance",
+            reference_price=candidate.key_level_price,
+            current_setup_type=candidate.setup_type,
+            current_state=RadarState.CONFIRMED,
+            state_changed_at=previous_detection.signal_at,
+            started_at=previous_detection.signal_at,
+            last_seen_at=previous_detection.signal_at,
+            detection_count=1,
+        )
+        current_thread = RadarSetupThread(
+            id=10,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="resistance",
+            reference_price=candidate.key_level_price,
+            current_setup_type=candidate.setup_type,
+            current_state=candidate.state,
+            state_changed_at=candidate.signal_at,
+            started_at=candidate.signal_at,
+            last_seen_at=candidate.signal_at,
+            detection_count=1,
+        )
+        current_detection = RadarDetection(
+            id=88,
+            run_id=2,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            thread=current_thread,
+            setup_type=candidate.setup_type,
+            state=candidate.state,
+            state_reason=candidate.state_reason,
+            score=candidate.score,
+            summary=candidate.summary,
+            invalidation_hint=candidate.invalidation_hint,
+            evidence_json=candidate.evidence,
+            score_factors=candidate.score_factors,
+            signal_at=candidate.signal_at,
+            context_at=candidate.context_at,
+            key_level_price=candidate.key_level_price,
+            entry_price=candidate.entry_price,
+            invalidation_price=candidate.invalidation_price,
+            target_price=candidate.target_price,
+            thread_event_index=1,
+            observed_at=candidate.observed_at,
+            fresh_until=candidate.fresh_until,
+        )
+
+        assert _overlapping_current_run_detection(
+            prior_thread,
+            previous_detection,
+            [current_detection],
+        )
+
     def test_support_avwap_is_anchored_to_latest_zone_touch(self):
         detection = next(
             det
@@ -385,7 +481,7 @@ class TestRadarEngine:
             invalidation_hint="Close below support",
             evidence_json={},
             score_factors={},
-            observed_at=bars[-1].ts,
+            observed_at=bars[1].ts,
             signal_at=bars[1].ts,
             context_at=bars[0].ts,
             fresh_until=bars[-1].ts + timedelta(days=5),
@@ -417,7 +513,7 @@ class TestRadarEngine:
             invalidation_hint="Close back above resistance",
             evidence_json={},
             score_factors={},
-            observed_at=bars[-1].ts,
+            observed_at=bars[1].ts,
             signal_at=bars[1].ts,
             context_at=bars[0].ts,
             fresh_until=bars[-1].ts + timedelta(days=5),
@@ -434,3 +530,115 @@ class TestRadarEngine:
         assert detection.target_hit_at is None
         assert detection.bars_since_signal == 2
         assert detection.max_adverse_excursion_pct is not None
+
+    def test_superseded_thread_event_turns_prior_open_detection_stale(self):
+        bars = _make_bars([100, 101, 102, 103, 104, 105])
+        older = RadarDetection(
+            id=11,
+            run_id=1,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            setup_type=RadarSetupType.APPROACHING_RESISTANCE,
+            state=RadarState.DEVELOPING,
+            state_reason="Watching resistance",
+            score=0.72,
+            summary="AAPL approached resistance",
+            invalidation_hint="Close above 107",
+            evidence_json={},
+            score_factors={},
+            observed_at=bars[2].ts,
+            signal_at=bars[1].ts,
+            context_at=bars[0].ts,
+            fresh_until=bars[2].ts,
+            thread_event_index=1,
+            key_level_price=104.0,
+            entry_price=103.5,
+            invalidation_price=107.0,
+            target_price=98.0,
+        )
+        newer = RadarDetection(
+            id=12,
+            run_id=2,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            setup_type=RadarSetupType.REJECTION,
+            state=RadarState.CONFIRMED,
+            state_reason="Confirmed rejection",
+            score=0.82,
+            summary="AAPL rejected resistance",
+            invalidation_hint="Close above 107",
+            evidence_json={},
+            score_factors={},
+            observed_at=bars[1].ts,
+            signal_at=bars[-1].ts,
+            context_at=bars[-2].ts,
+            fresh_until=bars[-1].ts,
+            thread_event_index=2,
+            key_level_price=104.2,
+            entry_price=103.8,
+            invalidation_price=107.0,
+            target_price=98.0,
+        )
+        thread = RadarSetupThread(
+            id=7,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="resistance",
+            reference_price=104.0,
+            current_setup_type=RadarSetupType.REJECTION,
+            current_state=RadarState.CONFIRMED,
+            state_changed_at=newer.signal_at,
+            started_at=older.signal_at,
+            last_seen_at=newer.signal_at,
+            detection_count=2,
+        )
+        thread.detections = [older, newer]
+
+        _evaluate_detection_outcome(older, bars, thread=thread)
+
+        assert older.outcome_status == RadarOutcomeStatus.STALE
+
+    def test_stagnant_open_detection_turns_stale_after_contextual_decay(self):
+        prices = [103.0, 97.0] * 20
+        bars = _make_bars(prices)
+        detection = RadarDetection(
+            id=21,
+            run_id=1,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            setup_type=RadarSetupType.BREAKOUT,
+            state=RadarState.CONFIRMED,
+            state_reason="Confirmed breakout",
+            score=0.79,
+            summary="AAPL breakout",
+            invalidation_hint="Close back below 95",
+            evidence_json={},
+            score_factors={},
+            observed_at=bars[1].ts,
+            signal_at=bars[1].ts,
+            context_at=bars[0].ts,
+            fresh_until=bars[-1].ts,
+            thread_event_index=1,
+            key_level_price=100.0,
+            entry_price=100.0,
+            invalidation_price=90.0,
+            target_price=110.0,
+        )
+        thread = RadarSetupThread(
+            id=8,
+            instrument_id=1,
+            timeframe=Timeframe.D1,
+            context_role="support",
+            reference_price=100.0,
+            current_setup_type=RadarSetupType.BREAKOUT,
+            current_state=RadarState.CONFIRMED,
+            state_changed_at=detection.signal_at,
+            started_at=detection.signal_at,
+            last_seen_at=detection.signal_at,
+            detection_count=1,
+        )
+        thread.detections = [detection]
+
+        _evaluate_detection_outcome(detection, bars, thread=thread)
+
+        assert detection.outcome_status == RadarOutcomeStatus.STALE

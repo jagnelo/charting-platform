@@ -16,8 +16,8 @@ The repository now includes a first-pass **Technical Radar v1** plus a broader *
 - persisted score factors and evidence payloads so the UI can explain why a setup ranked where it did
 - actionable level fields (`entry_price`, `invalidation_price`, `target_price`) carried through backend and frontend
 - explicit retest, fakeout/failure, and compression setup families
-- state-aware filtering and presentation (`developing`, `confirmed`, `invalidated`, `expired`)
-- automatic invalidated / expired transitions on later scans
+- state-aware filtering and presentation (`developing`, `confirmed`, `resolved`, `invalidated`, `stale`)
+- lifecycle-driven invalidated / resolved / stale transitions on later scans
 - richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
 - diagonal trendline, gap, and simple pattern-structure context in evidence payloads
 - saved radar views, a radar dashboard widget, and focus-aware chart overlay dimming
@@ -68,7 +68,7 @@ Represents one persisted opportunity:
 - `context_at`
 - `state`
 - `state_reason`
-- `fresh_until`
+- `fresh_until` (legacy persisted field; no longer used as a lifecycle TTL)
 - `thread_id`
 - `thread_event_index`
 - `key_level_price`
@@ -269,7 +269,7 @@ Radar v2 now adds:
 
 - retest, fakeout/failure, and compression setup families
 - persisted detection and thread state fields
-- automatic invalidated / expired transitions on later scans
+- lifecycle-driven invalidated / resolved / stale transitions on later scans
 - richer AVWAP anchor context plus all-time / YTD / rolling-window level context
 - diagonal trendlines, gap zones, and simple pattern-structure context
 - state-aware filtering on `/radar`

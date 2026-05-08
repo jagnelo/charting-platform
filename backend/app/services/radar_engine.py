@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,56 @@ MAX_ZONES_PER_SIDE = 3
 LINE_SAMPLE_POINTS = 120
 THREAD_PRICE_TOLERANCE_FRACTION = 0.008
 RECENT_GAP_LOOKBACK = 60
+SQUEEZE_LOOKBACK = 120
+STALE_BAR_BUDGETS: dict[Timeframe, int] = {
+    Timeframe.M30: 72,
+    Timeframe.H1: 56,
+    Timeframe.H4: 36,
+    Timeframe.D1: 20,
+    Timeframe.W1: 12,
+    Timeframe.MN: 8,
+}
+STALE_MIN_PROGRESS_RATIO: dict[Timeframe, float] = {
+    Timeframe.M30: 0.28,
+    Timeframe.H1: 0.26,
+    Timeframe.H4: 0.22,
+    Timeframe.D1: 0.18,
+    Timeframe.W1: 0.14,
+    Timeframe.MN: 0.10,
+}
+STALE_MIN_LIVE_REWARD_RISK: dict[Timeframe, float] = {
+    Timeframe.M30: 0.95,
+    Timeframe.H1: 1.0,
+    Timeframe.H4: 1.0,
+    Timeframe.D1: 1.05,
+    Timeframe.W1: 1.1,
+    Timeframe.MN: 1.15,
+}
+STALE_ENTRY_DRIFT_ATR: dict[Timeframe, float] = {
+    Timeframe.M30: 2.6,
+    Timeframe.H1: 2.8,
+    Timeframe.H4: 3.1,
+    Timeframe.D1: 3.5,
+    Timeframe.W1: 4.0,
+    Timeframe.MN: 4.5,
+}
+STALE_LEVEL_FLIP_LIMIT: dict[Timeframe, int] = {
+    Timeframe.M30: 7,
+    Timeframe.H1: 7,
+    Timeframe.H4: 6,
+    Timeframe.D1: 5,
+    Timeframe.W1: 4,
+    Timeframe.MN: 3,
+}
+STALE_LEVEL_CROSS_LIMIT: dict[Timeframe, int] = {
+    Timeframe.M30: 14,
+    Timeframe.H1: 12,
+    Timeframe.H4: 10,
+    Timeframe.D1: 8,
+    Timeframe.W1: 6,
+    Timeframe.MN: 4,
+}
+STALE_VOLATILITY_REGIME_RANGE = (0.55, 1.95)
 
 RADAR_SETUP_SEQUENCE_PRIORITY: dict[RadarSetupType, int] = {
     RadarSetupType.APPROACHING_SUPPORT: 0,
@@ -109,6 +159,14 @@ class DetectionCandidate:
 
 
 @dataclass
+class SqueezeContext:
+    bb_width: float | None
+    bb_width_percentile: float
+    inside_keltner: bool
+    score: float
+
+
+@dataclass
 class Trendline:
     role: str
     start_index: int
@@ -136,6 +194,15 @@ class AvwapAnchor:
     ts: int
     reference_price: float
     priority: int
+
+
+@dataclass
+class StaleAssessment:
+    is_stale: bool
+    stale_at: datetime | None
+    reason: str | None
+    reason_code: str | None
+    metrics: dict
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -270,6 +337,73 @@ def _atr_latest(data: OHLCVSeries) -> float | None:
     return _latest_valid(series)
 
 
+def _volatility_squeeze_context(data: OHLCVSeries) -> SqueezeContext:
+    bb = compute_indicator("bb", data, {"period": 20, "std_dev": 2.0})
+    keltner = compute_indicator(
+        "keltner",
+        data,
+        {"period": 20, "atr_period": 10, "multiplier": 1.5},
+    )
+    bb_upper = bb["bb_upper"].tolist()
+    bb_mid = bb["bb_mid"].tolist()
+    bb_lower = bb["bb_lower"].tolist()
+    kc_upper = keltner["keltner_upper"].tolist()
+    kc_lower = keltner["keltner_lower"].tolist()
+
+    widths: list[float] = []
+    for upper, mid, lower in zip(bb_upper, bb_mid, bb_lower, strict=False):
+        if (
+            upper is None
+            or mid is None
+            or lower is None
+            or math.isnan(upper)
+            or math.isnan(mid)
+            or math.isnan(lower)
+            or mid == 0
+        ):
+            widths.append(math.nan)
+            continue
+        widths.append(float((upper - lower) / mid))
+
+    latest_width = _latest_valid(widths)
+    recent_widths = [
+        value for value in widths[-SQUEEZE_LOOKBACK:] if value is not None and not math.isnan(value)
+    ]
+    if latest_width is None or not recent_widths:
+        return SqueezeContext(
+            bb_width=None,
+            bb_width_percentile=0.0,
+            inside_keltner=False,
+            score=0.0,
+        )
+
+    less_or_equal = sum(1 for value in recent_widths if value <= latest_width)
+    width_percentile = less_or_equal / len(recent_widths)
+    latest_bb_upper = bb_upper[-1]
+    latest_bb_lower = bb_lower[-1]
+    latest_kc_upper = kc_upper[-1]
+    latest_kc_lower = kc_lower[-1]
+    inside_keltner = bool(
+        latest_bb_upper is not None
+        and latest_bb_lower is not None
+        and latest_kc_upper is not None
+        and latest_kc_lower is not None
+        and not math.isnan(latest_bb_upper)
+        and not math.isnan(latest_bb_lower)
+        and not math.isnan(latest_kc_upper)
+        and not math.isnan(latest_kc_lower)
+        and latest_bb_upper <= latest_kc_upper
+        and latest_bb_lower >= latest_kc_lower
+    )
+    score = _clamp((1 - width_percentile) * 0.75 + (0.25 if inside_keltner else 0.0))
+    return SqueezeContext(
+        bb_width=latest_width,
+        bb_width_percentile=width_percentile,
+        inside_keltner=inside_keltner,
+        score=score,
+    )
+
+
 def _avwap_from_anchor(
     data: OHLCVSeries, anchor_ts: int, *, label: str = "AVWAP", role: str = "avwap"
 ) -> tuple[float | None, dict | None]:
@@ -322,6 +456,7 @@ def _build_score(
     trend_pattern_bonus: float,
     gap_bonus: float,
     avwap_anchor_quality: float,
+    volatility_squeeze_score: float,
 ) -> dict:
     distance = abs(close - zone.center)
     atr_denom = max(atr, close * 0.005, 1e-6)
@@ -339,17 +474,18 @@ def _build_score(
     gap_context_score = _clamp(gap_bonus)
     avwap_anchor_score = _clamp(avwap_anchor_quality)
     total = (
-        distance_score * 0.20
-        + touch_score * 0.14
-        + recency_score * 0.12
-        + age_score * 0.08
-        + confluence_score * 0.14
-        + multi_timeframe_score * 0.08
-        + trend_pattern_score * 0.08
+        distance_score * 0.17
+        + touch_score * 0.11
+        + recency_score * 0.09
+        + age_score * 0.07
+        + confluence_score * 0.12
+        + multi_timeframe_score * 0.07
+        + trend_pattern_score * 0.07
         + gap_context_score * 0.05
-        + avwap_anchor_score * 0.07
-        + reaction_quality * 0.12
-        + timeframe_score * 0.12
+        + avwap_anchor_score * 0.06
+        + _clamp(volatility_squeeze_score) * 0.08
+        + reaction_quality * 0.10
+        + timeframe_score * 0.11
     )
     return {
         "distance_to_level": round(distance_score, 4),
@@ -361,6 +497,7 @@ def _build_score(
         "trend_pattern_quality": round(trend_pattern_score, 4),
         "gap_context": round(gap_context_score, 4),
         "avwap_anchor_quality": round(avwap_anchor_score, 4),
+        "volatility_squeeze": round(_clamp(volatility_squeeze_score), 4),
         "recent_reaction_quality": round(reaction_quality, 4),
         "timeframe_importance": round(timeframe_score, 4),
         "normalized_score": round(_clamp(total), 4),
@@ -1068,19 +1205,57 @@ def _latest_thread_detection(thread: RadarSetupThread) -> RadarDetection | None:
     return detections[0]
 
 
+def _overlapping_current_run_detection(
+    thread: RadarSetupThread,
+    previous_detection: RadarDetection,
+    current_run_detections: list[RadarDetection],
+) -> bool:
+    tolerance = max(
+        float(previous_detection.key_level_price or thread.reference_price or 0.0)
+        * THREAD_PRICE_TOLERANCE_FRACTION,
+        1.0,
+    )
+    for detection in current_run_detections:
+        if detection.state not in {RadarState.DEVELOPING, RadarState.CONFIRMED}:
+            continue
+        if detection.setup_type != previous_detection.setup_type:
+            continue
+        if detection.thread is None:
+            continue
+        if detection.thread.context_role != thread.context_role:
+            continue
+        if detection.key_level_price is None or previous_detection.key_level_price is None:
+            continue
+        if (
+            abs(float(detection.key_level_price) - float(previous_detection.key_level_price))
+            > tolerance
+        ):
+            continue
+        return True
+    return False
+
+
 def _state_transition_reason(
     previous_detection: RadarDetection,
     next_state: RadarState,
     close: float,
 ) -> str:
+    if next_state == RadarState.RESOLVED:
+        target_price = float(
+            previous_detection.target_price or previous_detection.key_level_price or close
+        )
+        return (
+            f"The prior {previous_detection.setup_type.value.replace('_', ' ')} setup reached "
+            f"its target near {target_price:.2f}, completing the thesis."
+        )
     if next_state == RadarState.INVALIDATED:
         return (
             f"The prior {previous_detection.setup_type.value.replace('_', ' ')} setup was invalidated "
             f"after price closed at {close:.2f} through its invalidation level."
         )
     return (
-        f"The prior {previous_detection.setup_type.value.replace('_', ' ')} setup expired without "
-        "confirming again inside its freshness window."
+        f"The prior {previous_detection.setup_type.value.replace('_', ' ')} setup went stale as "
+        "its original thesis stopped being timely."
     )
 
 
@@ -1089,6 +1264,8 @@ def _state_transition_summary(
     previous_detection: RadarDetection,
     next_state: RadarState,
 ) -> str:
+    if next_state == RadarState.RESOLVED:
+        return f"{symbol} {previous_detection.setup_type.value.replace('_', ' ')} hit target."
     state_label = next_state.value.replace("_", " ")
     setup_label = previous_detection.setup_type.value.replace("_", " ")
     return f"{symbol} {setup_label} moved to {state_label}."
@@ -1109,12 +1286,322 @@ def _pct_move(base_price: float | None, move: float | None) -> float | None:
     return ((move - base_price) / base_price) * 100
 
 
-def _evaluate_detection_outcome(detection: RadarDetection, bars: list[OHLCVBar]) -> None:
+def _latest_valid_before(values: list[float | None], index: int) -> float | None:
+    for position in range(min(index, len(values) - 1), -1, -1):
+        value = values[position]
+        if value is None or math.isnan(value):
+            continue
+        return float(value)
+    return None
+
+
+def _close_side(close: float, level: float, tolerance: float) -> int:
+    if close >= level + tolerance:
+        return 1
+    if close <= level - tolerance:
+        return -1
+    return 0
+
+
+def _risk_reward_from_price(
+    latest_close: float,
+    *,
+    target_price: float | None,
+    invalidation_price: float | None,
+    long_biased: bool,
+    short_biased: bool,
+) -> float | None:
+    if target_price is None or invalidation_price is None:
+        return None
+    if long_biased:
+        remaining_reward = target_price - latest_close
+        remaining_risk = latest_close - invalidation_price
+    elif short_biased:
+        remaining_reward = latest_close - target_price
+        remaining_risk = invalidation_price - latest_close
+    else:
+        return None
+    if remaining_reward <= 0 or remaining_risk <= 0:
+        return 0.0
+    return remaining_reward / remaining_risk
+
+
+def _favorable_progress_ratio(
+    *,
+    entry_price: float,
+    target_price: float | None,
+    favorable_excursion_pct: float | None,
+) -> float | None:
+    if target_price is None or favorable_excursion_pct is None or entry_price <= 0:
+        return None
+    target_distance_pct = abs((target_price - entry_price) / entry_price) * 100
+    if target_distance_pct <= 0:
+        return None
+    return favorable_excursion_pct / target_distance_pct
+
+
+def _newer_thread_detection(
+    detection: RadarDetection,
+    thread: RadarSetupThread | None,
+) -> RadarDetection | None:
+    if thread is None:
+        return None
+    current_index = detection.thread_event_index or 0
+    current_id = detection.id or 0
+    later_rows = [
+        row
+        for row in list(thread.detections or [])
+        if (
+            (row.thread_event_index or 0) > current_index
+            or (
+                (row.thread_event_index or 0) == current_index
+                and row.signal_at > detection.signal_at
+            )
+            or (row.signal_at == detection.signal_at and (row.id or 0) > current_id)
+        )
+    ]
+    if not later_rows:
+        return None
+    later_rows.sort(
+        key=lambda row: (
+            row.signal_at,
+            row.thread_event_index or 0,
+            row.id or 0,
+        ),
+    )
+    return later_rows[0]
+
+
+def _assess_detection_staleness(
+    detection: RadarDetection,
+    bars: list[OHLCVBar],
+    *,
+    thread: RadarSetupThread | None = None,
+) -> StaleAssessment:
+    if detection.state in {RadarState.INVALIDATED, RadarState.RESOLVED, RadarState.STALE}:
+        return StaleAssessment(False, None, None, None, {})
+    if detection.outcome_status in {
+        RadarOutcomeStatus.INVALIDATED,
+        RadarOutcomeStatus.TARGET_HIT,
+        RadarOutcomeStatus.STALE,
+    }:
+        return StaleAssessment(False, None, None, None, {})
+
+    later_detection = _newer_thread_detection(detection, thread)
+    if later_detection is not None:
+        return StaleAssessment(
+            is_stale=True,
+            stale_at=later_detection.signal_at,
+            reason=(
+                f"Superseded by a newer {later_detection.setup_type.value.replace('_', ' ')} "
+                f"{later_detection.state.value.replace('_', ' ')} event on the same level."
+            ),
+            reason_code="superseded_by_thread",
+            metrics={
+                "superseded_by_detection_id": later_detection.id,
+                "superseded_by_setup_type": later_detection.setup_type.value,
+                "superseded_by_state": later_detection.state.value,
+                "superseded_at": int(later_detection.signal_at.timestamp()),
+            },
+        )
+
     signal_bars = _bars_after_signal(bars, detection.signal_at)
+    if not signal_bars:
+        return StaleAssessment(False, None, None, None, {})
+
+    entry_price = float(detection.entry_price or detection.key_level_price or 0)
+    target_price = float(detection.target_price) if detection.target_price is not None else None
+    invalidation_price = (
+        float(detection.invalidation_price) if detection.invalidation_price is not None else None
+    )
+    key_level = float(detection.key_level_price or entry_price or 0)
+    latest_close = float(signal_bars[-1].close)
+    long_biased = detection.setup_type in LONG_BIASED_SETUPS
+    short_biased = detection.setup_type in SHORT_BIASED_SETUPS
+    if entry_price <= 0 or (not long_biased and not short_biased):
+        return StaleAssessment(False, None, None, None, {})
+
+    full_series = OHLCVSeries.from_orm_bars(bars)
+    atr_values = compute_indicator("atr", full_series, {"period": 14})["atr"].tolist()
+    signal_index = next(
+        (index for index, bar in enumerate(bars) if _bar_timestamp_utc(bar) >= detection.signal_at),
+        len(bars) - 1,
+    )
+    signal_atr = _latest_valid_before(atr_values, signal_index)
+    latest_atr = _latest_valid(atr_values)
+
+    tolerance = max((latest_atr or signal_atr or max(entry_price * 0.0025, 0.25)) * 0.2, 0.02)
+    last_side = 0
+    flip_count = 0
+    zone_cross_count = 0
+    for bar in signal_bars:
+        close_side = _close_side(float(bar.close), key_level, tolerance)
+        if close_side != 0:
+            if last_side != 0 and close_side != last_side:
+                flip_count += 1
+            last_side = close_side
+        if float(bar.low) <= key_level <= float(bar.high):
+            zone_cross_count += 1
+
+    progress_ratio = _favorable_progress_ratio(
+        entry_price=entry_price,
+        target_price=target_price,
+        favorable_excursion_pct=detection.max_favorable_excursion_pct,
+    )
+    live_reward_risk = _risk_reward_from_price(
+        latest_close,
+        target_price=target_price,
+        invalidation_price=invalidation_price,
+        long_biased=long_biased,
+        short_biased=short_biased,
+    )
+    entry_drift_atr = (
+        abs(latest_close - entry_price) / latest_atr if latest_atr and latest_atr > 0 else None
+    )
+    volatility_regime_ratio = (
+        (latest_atr / signal_atr) if latest_atr and signal_atr and signal_atr > 0 else None
+    )
+
+    timeframe = detection.timeframe
+    bar_budget = STALE_BAR_BUDGETS.get(timeframe, 20)
+    min_progress_ratio = STALE_MIN_PROGRESS_RATIO.get(timeframe, 0.18)
+    min_live_rr = STALE_MIN_LIVE_REWARD_RISK.get(timeframe, 1.0)
+    entry_drift_limit = STALE_ENTRY_DRIFT_ATR.get(timeframe, 3.5)
+    flip_limit = STALE_LEVEL_FLIP_LIMIT.get(timeframe, 5)
+    cross_limit = STALE_LEVEL_CROSS_LIMIT.get(timeframe, 8)
+
+    stagnation = detection.bars_since_signal >= bar_budget and (
+        progress_ratio is None or progress_ratio < min_progress_ratio
+    )
+    opportunity_decay = (
+        detection.bars_since_signal >= max(4, bar_budget // 2)
+        and live_reward_risk is not None
+        and live_reward_risk < min_live_rr
+        and entry_drift_atr is not None
+        and entry_drift_atr >= entry_drift_limit
+    )
+    structure_drift = flip_count >= flip_limit or zone_cross_count >= cross_limit
+    volatility_regime_change = (
+        detection.bars_since_signal >= max(4, bar_budget // 2)
+        and volatility_regime_ratio is not None
+        and (
+            volatility_regime_ratio < STALE_VOLATILITY_REGIME_RANGE[0]
+            or volatility_regime_ratio > STALE_VOLATILITY_REGIME_RANGE[1]
+        )
+    )
+
+    stale_signals = [
+        ("range_stagnation", stagnation),
+        ("opportunity_decay", opportunity_decay),
+        ("structure_drift", structure_drift),
+        ("volatility_regime_change", volatility_regime_change),
+    ]
+    triggered = [code for code, active in stale_signals if active]
+    if not triggered:
+        return StaleAssessment(
+            False,
+            None,
+            None,
+            None,
+            {
+                "bar_budget": bar_budget,
+                "progress_ratio": round(progress_ratio, 4) if progress_ratio is not None else None,
+                "live_reward_risk": round(live_reward_risk, 4)
+                if live_reward_risk is not None
+                else None,
+                "entry_drift_atr": round(entry_drift_atr, 4)
+                if entry_drift_atr is not None
+                else None,
+                "flip_count": flip_count,
+                "zone_cross_count": zone_cross_count,
+                "volatility_regime_ratio": round(volatility_regime_ratio, 4)
+                if volatility_regime_ratio is not None
+                else None,
+            },
+        )
+
+    stale_due_to_context = (
+        (stagnation and len(triggered) >= 2)
+        or (detection.bars_since_signal >= int(bar_budget * 1.5) and len(triggered) >= 1)
+        or (structure_drift and opportunity_decay)
+    )
+    if not stale_due_to_context:
+        return StaleAssessment(
+            False,
+            None,
+            None,
+            None,
+            {
+                "bar_budget": bar_budget,
+                "progress_ratio": round(progress_ratio, 4) if progress_ratio is not None else None,
+                "live_reward_risk": round(live_reward_risk, 4)
+                if live_reward_risk is not None
+                else None,
+                "entry_drift_atr": round(entry_drift_atr, 4)
+                if entry_drift_atr is not None
+                else None,
+                "flip_count": flip_count,
+                "zone_cross_count": zone_cross_count,
+                "volatility_regime_ratio": round(volatility_regime_ratio, 4)
+                if volatility_regime_ratio is not None
+                else None,
+                "triggered_checks": triggered,
+            },
+        )
+
+    primary_reason = triggered[0]
+    reason_lookup = {
+        "range_stagnation": "Price has lingered too long without making enough progress toward target.",
+        "opportunity_decay": "The live reward/risk has decayed too far from the original entry thesis.",
+        "structure_drift": "Repeated back-and-forth through the key level has weakened the original structure.",
+        "volatility_regime_change": "The volatility regime has shifted enough that the original setup framing is no longer timely.",
+    }
+    return StaleAssessment(
+        True,
+        _bar_timestamp_utc(signal_bars[-1]),
+        reason_lookup[primary_reason],
+        primary_reason,
+        {
+            "bar_budget": bar_budget,
+            "bars_since_signal": detection.bars_since_signal,
+            "progress_ratio": round(progress_ratio, 4) if progress_ratio is not None else None,
+            "live_reward_risk": round(live_reward_risk, 4)
+            if live_reward_risk is not None
+            else None,
+            "entry_drift_atr": round(entry_drift_atr, 4) if entry_drift_atr is not None else None,
+            "flip_count": flip_count,
+            "zone_cross_count": zone_cross_count,
+            "volatility_regime_ratio": round(volatility_regime_ratio, 4)
+            if volatility_regime_ratio is not None
+            else None,
+            "triggered_checks": triggered,
+        },
+    )
+
+
+def _evaluate_detection_outcome(
+    detection: RadarDetection,
+    bars: list[OHLCVBar],
+    *,
+    thread: RadarSetupThread | None = None,
+) -> None:
+    signal_bars = _bars_after_signal(bars, detection.observed_at)
     detection.outcome_last_evaluated_at = (
-        _bar_timestamp_utc(signal_bars[-1]) if signal_bars else detection.signal_at
+        _bar_timestamp_utc(signal_bars[-1]) if signal_bars else detection.observed_at
     )
     detection.bars_since_signal = max(len(signal_bars) - 1, 0)
+    if detection.state == RadarState.RESOLVED:
+        detection.outcome_status = RadarOutcomeStatus.TARGET_HIT
+        detection.target_hit_at = detection.target_hit_at or detection.signal_at
+        return
+    if detection.state == RadarState.INVALIDATED:
+        detection.outcome_status = RadarOutcomeStatus.INVALIDATED
+        detection.invalidated_at = detection.invalidated_at or detection.signal_at
+        return
+    if detection.state == RadarState.STALE:
+        detection.outcome_status = RadarOutcomeStatus.STALE
+        return
+
     entry_price = float(detection.entry_price or detection.key_level_price or 0)
     invalidation_price = (
         float(detection.invalidation_price) if detection.invalidation_price is not None else None
@@ -1180,8 +1667,9 @@ def _evaluate_detection_outcome(detection: RadarDetection, bars: list[OHLCVBar])
     if invalidated_at is not None:
         detection.outcome_status = RadarOutcomeStatus.INVALIDATED
         return
-    if detection.state == RadarState.EXPIRED:
-        detection.outcome_status = RadarOutcomeStatus.EXPIRED
+    stale_assessment = _assess_detection_staleness(detection, bars, thread=thread)
+    if stale_assessment.is_stale:
+        detection.outcome_status = RadarOutcomeStatus.STALE
         return
     detection.outcome_status = RadarOutcomeStatus.OPEN
 
@@ -1216,6 +1704,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
     ytd = _ytd_levels(opens, highs, lows, timestamps)
     rolling_levels = _rolling_window_levels(highs, lows, timestamps)
     gap_zones = _gap_zones(bars, timestamps)
+    squeeze = _volatility_squeeze_context(data)
     support_trendline = _trendline_from_pivots(swing_lows, "support", latest_index, latest_ts)
     resistance_trendline = _trendline_from_pivots(
         swing_highs, "resistance", latest_index, latest_ts
@@ -1312,6 +1801,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
             trend_pattern_bonus=trend_pattern_bonus,
             gap_bonus=gap_bonus,
             avwap_anchor_quality=avwap_anchor_quality,
+            volatility_squeeze_score=squeeze.score,
         )
         score = float(score_factors["normalized_score"])
 
@@ -1372,6 +1862,10 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                 "gap_count": len(nearby_gaps),
                 "pattern_count": len(pattern_structures),
                 "multi_timeframe_hits": len(nearby_context_levels),
+                "bb_width": round(squeeze.bb_width, 6) if squeeze.bb_width is not None else None,
+                "bb_width_percentile": round(squeeze.bb_width_percentile, 4),
+                "inside_keltner": squeeze.inside_keltner,
+                "volatility_squeeze_active": squeeze.score >= 0.6,
                 **{
                     key: round(float(level["price"]), 4) for key, level in contextual_levels.items()
                 },
@@ -1412,6 +1906,21 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
                     else []
                 ),
                 *pattern_structures,
+                *(
+                    [
+                        {
+                            "type": "volatility_squeeze",
+                            "bb_width": round(squeeze.bb_width, 6)
+                            if squeeze.bb_width is not None
+                            else None,
+                            "bb_width_percentile": round(squeeze.bb_width_percentile, 4),
+                            "inside_keltner": squeeze.inside_keltner,
+                            "score": round(squeeze.score, 4),
+                        }
+                    ]
+                    if squeeze.score >= 0.6
+                    else []
+                ),
                 *[
                     {
                         "type": "gap",
@@ -1427,7 +1936,7 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
         }
 
         observed_at = latest_bar.ts if latest_bar.ts.tzinfo else latest_bar.ts.replace(tzinfo=UTC)
-        fresh_until = observed_at + timedelta(days=5)
+        fresh_until = observed_at
         context_at = _ts_to_datetime(zone.last_touch_ts)
 
         def append_candidate(
@@ -1509,9 +2018,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
             zone.role == "support"
             and recent_range <= atr * 0.85
             and abs(close - zone.center) <= proximity * 0.6
+            and squeeze.score >= 0.6
         ):
             compression_factors = dict(score_factors)
-            compression_factors["normalized_score"] = round(_clamp(score + 0.03), 4)
+            compression_factors["normalized_score"] = round(
+                _clamp(score + 0.04 + squeeze.score * 0.04), 4
+            )
             append_candidate(
                 RadarSetupType.COMPRESSION_SUPPORT,
                 float(compression_factors["normalized_score"]),
@@ -1523,9 +2035,12 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
             zone.role == "resistance"
             and recent_range <= atr * 0.85
             and abs(close - zone.center) <= proximity * 0.6
+            and squeeze.score >= 0.6
         ):
             compression_factors = dict(score_factors)
-            compression_factors["normalized_score"] = round(_clamp(score + 0.03), 4)
+            compression_factors["normalized_score"] = round(
+                _clamp(score + 0.04 + squeeze.score * 0.04), 4
+            )
             append_candidate(
                 RadarSetupType.COMPRESSION_RESISTANCE,
                 float(compression_factors["normalized_score"]),
@@ -1694,6 +2209,7 @@ async def run_radar_scan(
             if not bars:
                 continue
             evaluated += 1
+            instrument_run_detections: list[RadarDetection] = []
             observed_at = bars[-1].ts if bars[-1].ts.tzinfo else bars[-1].ts.replace(tzinfo=UTC)
             latest_close = float(bars[-1].close)
             thread_rows = (
@@ -1771,86 +2287,131 @@ async def run_radar_scan(
                 )
                 db.add(detection)
                 detections.append(detection)
+                instrument_run_detections.append(detection)
+
+            for thread in instrument_threads:
+                for persisted_detection in thread.detections or []:
+                    _evaluate_detection_outcome(persisted_detection, bars, thread=thread)
 
             for thread in instrument_threads:
                 if thread.id is not None and thread.id in matched_thread_ids:
                     continue
-                if thread.current_state in {RadarState.INVALIDATED, RadarState.EXPIRED}:
+                if thread.current_state in {
+                    RadarState.INVALIDATED,
+                    RadarState.RESOLVED,
+                    RadarState.STALE,
+                }:
                     continue
                 previous_detection = _latest_thread_detection(thread)
-                if previous_detection is None or previous_detection.invalidation_price is None:
+                if previous_detection is None:
+                    continue
+                if _overlapping_current_run_detection(
+                    thread,
+                    previous_detection,
+                    instrument_run_detections,
+                ):
                     continue
 
                 next_state: RadarState | None = None
-                if thread.context_role == "support" and latest_close < float(
-                    previous_detection.invalidation_price
-                ):
-                    next_state = RadarState.INVALIDATED
-                elif thread.context_role == "resistance" and latest_close > float(
-                    previous_detection.invalidation_price
-                ):
-                    next_state = RadarState.INVALIDATED
-                elif previous_detection.fresh_until <= observed_at:
-                    next_state = RadarState.EXPIRED
+                transition_time = observed_at
+                transition_price = latest_close
+                transition_reason: str | None = None
+                transition_metrics: dict = {}
+                transition_outcome = previous_detection.outcome_status
 
-                if next_state is None:
+                if previous_detection.outcome_status == RadarOutcomeStatus.TARGET_HIT:
+                    next_state = RadarState.RESOLVED
+                    transition_time = previous_detection.target_hit_at or observed_at
+                    transition_price = float(
+                        previous_detection.target_price
+                        or previous_detection.key_level_price
+                        or latest_close
+                    )
+                    transition_reason = _state_transition_reason(
+                        previous_detection, next_state, transition_price
+                    )
+                elif previous_detection.outcome_status == RadarOutcomeStatus.INVALIDATED:
+                    next_state = RadarState.INVALIDATED
+                    transition_time = previous_detection.invalidated_at or observed_at
+                    transition_reason = _state_transition_reason(
+                        previous_detection, next_state, latest_close
+                    )
+                else:
+                    stale_assessment = _assess_detection_staleness(
+                        previous_detection,
+                        bars,
+                        thread=thread,
+                    )
+                    if stale_assessment.is_stale:
+                        next_state = RadarState.STALE
+                        transition_time = stale_assessment.stale_at or observed_at
+                        transition_reason = stale_assessment.reason or _state_transition_reason(
+                            previous_detection,
+                            RadarState.STALE,
+                            latest_close,
+                        )
+                        transition_metrics = stale_assessment.metrics
+                        transition_outcome = RadarOutcomeStatus.STALE
+
+                if next_state is None or transition_reason is None:
                     continue
 
-                thread_event_index = _apply_candidate_to_thread(
-                    DetectionCandidate(
-                        setup_type=previous_detection.setup_type,
-                        state=next_state,
-                        state_reason=_state_transition_reason(
-                            previous_detection, next_state, latest_close
-                        ),
-                        score=float(previous_detection.score),
-                        summary=_state_transition_summary(
-                            instrument.symbol, previous_detection, next_state
-                        ),
-                        invalidation_hint=previous_detection.invalidation_hint or "",
-                        key_level_price=float(
-                            previous_detection.key_level_price or thread.reference_price
-                        ),
-                        entry_price=float(previous_detection.entry_price or thread.reference_price),
-                        invalidation_price=float(
-                            previous_detection.invalidation_price or thread.reference_price
-                        ),
-                        target_price=float(
-                            previous_detection.target_price or thread.reference_price
-                        ),
-                        score_factors=dict(previous_detection.score_factors or {}),
-                        evidence={
-                            **(previous_detection.evidence_json or {}),
-                            "metrics": {
-                                **(previous_detection.evidence_json or {}).get("metrics", {}),
-                                "state": next_state.value,
-                                "state_reason": _state_transition_reason(
-                                    previous_detection, next_state, latest_close
-                                ),
-                            },
-                            "overlays": [
-                                *((previous_detection.evidence_json or {}).get("overlays", [])),
-                                _make_marker(
-                                    int(observed_at.timestamp()),
-                                    latest_close,
-                                    next_state.value.replace("_", " "),
-                                    "#ef5350"
-                                    if next_state == RadarState.INVALIDATED
-                                    else "#94a1b2",
-                                    f"state_{next_state.value}",
-                                ),
-                            ],
-                        },
-                        observed_at=observed_at,
-                        signal_at=observed_at,
-                        context_at=previous_detection.context_at,
-                        fresh_until=observed_at
-                        if next_state == RadarState.EXPIRED
-                        else observed_at + timedelta(days=5),
-                        context_role=thread.context_role,
-                    ),
-                    thread,
+                transition_marker_ts = int(transition_time.timestamp())
+                transition_marker_color = (
+                    "#56c596"
+                    if next_state == RadarState.RESOLVED
+                    else "#ef5350"
+                    if next_state == RadarState.INVALIDATED
+                    else "#94a1b2"
                 )
+                transition_metrics_payload = {
+                    **(previous_detection.evidence_json or {}).get("metrics", {}),
+                    "state": next_state.value,
+                    "state_reason": transition_reason,
+                    "outcome_status": transition_outcome.value,
+                    **transition_metrics,
+                }
+                transition_candidate = DetectionCandidate(
+                    setup_type=previous_detection.setup_type,
+                    state=next_state,
+                    state_reason=transition_reason,
+                    score=float(previous_detection.score),
+                    summary=_state_transition_summary(
+                        instrument.symbol,
+                        previous_detection,
+                        next_state,
+                    ),
+                    invalidation_hint=previous_detection.invalidation_hint or "",
+                    key_level_price=float(
+                        previous_detection.key_level_price or thread.reference_price
+                    ),
+                    entry_price=float(previous_detection.entry_price or thread.reference_price),
+                    invalidation_price=float(
+                        previous_detection.invalidation_price or thread.reference_price
+                    ),
+                    target_price=float(previous_detection.target_price or thread.reference_price),
+                    score_factors=dict(previous_detection.score_factors or {}),
+                    evidence={
+                        **(previous_detection.evidence_json or {}),
+                        "metrics": transition_metrics_payload,
+                        "overlays": [
+                            *((previous_detection.evidence_json or {}).get("overlays", [])),
+                            _make_marker(
+                                transition_marker_ts,
+                                transition_price,
+                                next_state.value.replace("_", " "),
+                                transition_marker_color,
+                                f"state_{next_state.value}",
+                            ),
+                        ],
+                    },
+                    observed_at=transition_time,
+                    signal_at=transition_time,
+                    context_at=previous_detection.context_at,
+                    fresh_until=transition_time,
+                    context_role=thread.context_role,
+                )
+                thread_event_index = _apply_candidate_to_thread(transition_candidate, thread)
                 transition_detection = RadarDetection(
                     run_id=run.id,
                     instrument_id=instrument.id,
@@ -1858,16 +2419,12 @@ async def run_radar_scan(
                     timeframe=timeframe,
                     setup_type=previous_detection.setup_type,
                     score=float(previous_detection.score),
-                    observed_at=observed_at,
-                    signal_at=observed_at,
+                    observed_at=transition_time,
+                    signal_at=transition_time,
                     context_at=previous_detection.context_at,
                     state=next_state,
-                    state_reason=_state_transition_reason(
-                        previous_detection, next_state, latest_close
-                    ),
-                    fresh_until=observed_at
-                    if next_state == RadarState.EXPIRED
-                    else observed_at + timedelta(days=5),
+                    state_reason=transition_reason,
+                    fresh_until=transition_time,
                     thread_event_index=thread_event_index,
                     key_level_price=float(
                         previous_detection.key_level_price or thread.reference_price
@@ -1877,30 +2434,24 @@ async def run_radar_scan(
                         previous_detection.invalidation_price or thread.reference_price
                     ),
                     target_price=float(previous_detection.target_price or thread.reference_price),
+                    outcome_status=transition_outcome,
+                    outcome_last_evaluated_at=transition_time,
+                    bars_since_signal=previous_detection.bars_since_signal,
+                    max_favorable_excursion_pct=previous_detection.max_favorable_excursion_pct,
+                    max_adverse_excursion_pct=previous_detection.max_adverse_excursion_pct,
+                    target_hit_at=previous_detection.target_hit_at
+                    if transition_outcome == RadarOutcomeStatus.TARGET_HIT
+                    else None,
+                    invalidated_at=previous_detection.invalidated_at
+                    if transition_outcome == RadarOutcomeStatus.INVALIDATED
+                    else None,
                     summary=_state_transition_summary(
-                        instrument.symbol, previous_detection, next_state
+                        instrument.symbol,
+                        previous_detection,
+                        next_state,
                     ),
                     invalidation_hint=previous_detection.invalidation_hint,
-                    evidence_json={
-                        **(previous_detection.evidence_json or {}),
-                        "metrics": {
-                            **(previous_detection.evidence_json or {}).get("metrics", {}),
-                            "state": next_state.value,
-                            "state_reason": _state_transition_reason(
-                                previous_detection, next_state, latest_close
-                            ),
-                        },
-                        "overlays": [
-                            *((previous_detection.evidence_json or {}).get("overlays", [])),
-                            _make_marker(
-                                int(observed_at.timestamp()),
-                                latest_close,
-                                next_state.value.replace("_", " "),
-                                "#ef5350" if next_state == RadarState.INVALIDATED else "#94a1b2",
-                                f"state_{next_state.value}",
-                            ),
-                        ],
-                    },
+                    evidence_json=transition_candidate.evidence,
                     score_factors=dict(previous_detection.score_factors or {}),
                 )
                 db.add(transition_detection)
@@ -1908,7 +2459,7 @@ async def run_radar_scan(
 
             for thread in instrument_threads:
                 for persisted_detection in thread.detections or []:
-                    _evaluate_detection_outcome(persisted_detection, bars)
+                    _evaluate_detection_outcome(persisted_detection, bars, thread=thread)
 
         run.status = RadarRunStatus.COMPLETED
         run.completed_at = datetime.now(UTC)

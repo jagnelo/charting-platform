@@ -331,11 +331,12 @@ Current setup values include `approaching_support`, `approaching_resistance`, `b
 |---|---|---|
 | `timeframe` | string | Optional timeframe filter |
 | `setup_type` | string | Optional setup filter |
-| `state` | string | Optional state filter (`developing`, `confirmed`, `invalidated`, `expired`) |
+| `state` | string | Optional state filter (`developing`, `confirmed`, `resolved`, `invalidated`, `stale`) |
 | `min_score` | float | Minimum normalized score (0-1) |
 | `symbol` | string | Case-insensitive symbol substring filter |
 | `limit` | int | Max rows to return |
-| `fresh_only` | bool | Exclude expired detections |
+| `active_only` | bool | Exclude non-open detections (`resolved`, `invalidated`, `stale`) |
+| `fresh_only` | bool | Deprecated alias for `active_only` |
 
 ---
 
@@ -369,7 +370,8 @@ This is the endpoint used by the chart page to:
 |---|---|---|
 | `timeframe` | string | Optional timeframe filter |
 | `detection_id` | int | Optional preferred detection id |
-| `fresh_only` | bool | Exclude expired detections |
+| `active_only` | bool | Exclude non-open detections (`resolved`, `invalidated`, `stale`) |
+| `fresh_only` | bool | Deprecated alias for `active_only` |
 
 ---
 
@@ -396,9 +398,10 @@ Each row includes:
 - `open_count`
 - `target_hit_count`
 - `invalidated_count`
-- `expired_count`
+- `stale_count`
 - `target_hit_rate`
 - `invalidated_rate`
+- `stale_rate`
 - `avg_mfe_pct`
 - `avg_mae_pct`
 

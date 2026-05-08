@@ -51,7 +51,7 @@ describe('DashboardRadarWidget', () => {
           state: 'confirmed',
           min_score: 0.6,
           limit: 6,
-          fresh_only: true,
+          active_only: true,
         },
       },
       global: {
@@ -74,7 +74,7 @@ describe('DashboardRadarWidget', () => {
       state: 'confirmed',
       min_score: 0.6,
       limit: 6,
-      fresh_only: true,
+      active_only: true,
       symbol: undefined,
     })
     expect(wrapper.text()).toContain('Technical Radar')

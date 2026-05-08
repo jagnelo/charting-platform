@@ -159,14 +159,15 @@ export type RadarSetupType =
 export type RadarState =
   | 'developing'
   | 'confirmed'
+  | 'resolved'
   | 'invalidated'
-  | 'expired'
+  | 'stale'
 
 export type RadarOutcomeStatus =
   | 'open'
   | 'target_hit'
   | 'invalidated'
-  | 'expired'
+  | 'stale'
 
 export interface RadarOverlayPoint {
   time: number
@@ -247,6 +248,8 @@ export interface RadarThreadEvent {
   invalidated_at?: string | null
   summary: string
   invalidation_hint?: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface RadarOutcomeSummary {
@@ -256,9 +259,10 @@ export interface RadarOutcomeSummary {
   open_count: number
   target_hit_count: number
   invalidated_count: number
-  expired_count: number
+  stale_count: number
   target_hit_rate: number
   invalidated_rate: number
+  stale_rate: number
   avg_mfe_pct?: number | null
   avg_mae_pct?: number | null
 }
@@ -294,6 +298,8 @@ export interface RadarDetection {
   summary: string
   invalidation_hint?: string | null
   score_factors: Record<string, number>
+  created_at: string
+  updated_at: string
   thread?: RadarSetupThread | null
   thread_history?: RadarThreadEvent[]
   evidence?: RadarEvidence

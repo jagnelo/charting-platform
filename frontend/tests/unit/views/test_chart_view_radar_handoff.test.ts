@@ -116,6 +116,8 @@ describe('ChartView radar handoff', () => {
           max_adverse_excursion_pct: null,
           target_hit_at: null,
           invalidated_at: null,
+          created_at: '2026-05-05T00:00:05Z',
+          updated_at: '2026-05-05T00:00:05Z',
           evidence: { overlays: [], metrics: {}, structures: [] },
         },
       ]

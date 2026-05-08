@@ -96,6 +96,8 @@ class RadarDetectionSummaryOut(BaseModel):
     summary: str
     invalidation_hint: str | None
     score_factors: dict
+    created_at: datetime
+    updated_at: datetime
 
 
 class RadarThreadEventOut(BaseModel):
@@ -121,6 +123,8 @@ class RadarThreadEventOut(BaseModel):
     invalidated_at: datetime | None
     summary: str
     invalidation_hint: str | None
+    created_at: datetime
+    updated_at: datetime
 
 
 class RadarOutcomeSummaryOut(BaseModel):
@@ -130,9 +134,10 @@ class RadarOutcomeSummaryOut(BaseModel):
     open_count: int
     target_hit_count: int
     invalidated_count: int
-    expired_count: int
+    stale_count: int
     target_hit_rate: float
     invalidated_rate: float
+    stale_rate: float
     avg_mfe_pct: float | None
     avg_mae_pct: float | None
 

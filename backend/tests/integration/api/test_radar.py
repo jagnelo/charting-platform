@@ -164,6 +164,7 @@ class TestRadarAPI:
         assert history
         assert all(row["instrument_id"] == instrument.id for row in history)
         assert all(row["timeframe"] == "D1" for row in history)
+        assert all("created_at" in row for row in history)
 
         outcome_res = client.get(
             "/api/v1/radar/outcomes/summary",
@@ -221,11 +222,28 @@ class TestRadarAPI:
             f"/api/v1/radar/detections/{detections[0]['id']}",
             headers=auth_headers,
         ).json()
+        history = client.get(
+            f"/api/v1/radar/instruments/{instrument.id}/history",
+            headers=auth_headers,
+            params={"timeframe": "D1"},
+        ).json()
 
         assert detail["thread"] is not None
         assert detail["thread"]["detection_count"] == 1
         assert detail["thread_event_index"] is not None
         assert len(detail["thread_history"]) == detail["thread"]["detection_count"]
+        identity_rows = {
+            (
+                row.get("thread_id"),
+                row.get("thread_event_index"),
+                row.get("setup_type"),
+                row.get("state"),
+                row.get("signal_at"),
+                row.get("context_at"),
+            )
+            for row in history
+        }
+        assert len(identity_rows) == len(history)
 
     def test_repeat_runs_can_transition_thread_to_invalidated(
         self, client, auth_headers, db, instrument
@@ -248,10 +266,38 @@ class TestRadarAPI:
         invalidated = client.get(
             "/api/v1/radar/detections",
             headers=auth_headers,
-            params={"state": "invalidated", "fresh_only": False},
+            params={"state": "invalidated", "active_only": False},
         )
         assert invalidated.status_code == 200
         rows = invalidated.json()
+        assert rows
+        assert any(row["instrument_symbol"] == "AAPL" for row in rows)
+
+    def test_repeat_runs_can_transition_thread_to_resolved(
+        self, client, auth_headers, db, instrument
+    ):
+        prices = [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98]
+        _seed_radar_bars(db, instrument, prices)
+
+        first_run = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert first_run.status_code == 200
+
+        _seed_radar_bars(
+            db,
+            instrument,
+            [101, 104, 107, 110],
+            start_at=datetime.now(UTC),
+        )
+        second_run = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert second_run.status_code == 200
+
+        resolved = client.get(
+            "/api/v1/radar/detections",
+            headers=auth_headers,
+            params={"state": "resolved", "active_only": False},
+        )
+        assert resolved.status_code == 200
+        rows = resolved.json()
         assert rows
         assert any(row["instrument_symbol"] == "AAPL" for row in rows)
 

@@ -410,8 +410,9 @@
                 >
                   <option value="confirmed">Confirmed</option>
                   <option value="developing">Developing</option>
+                  <option value="resolved">Resolved</option>
                   <option value="invalidated">Invalidated</option>
-                  <option value="expired">Expired</option>
+                  <option value="stale">Stale</option>
                 </select>
               </label>
               <label class="config-field">
@@ -439,10 +440,10 @@
               <label class="config-check">
                 <input
                   type="checkbox"
-                  :checked="configWidget.config.fresh_only !== false"
-                  @change="patchConfig(configWidget, { fresh_only: checkboxValue($event) })"
+                  :checked="(configWidget.config.active_only ?? configWidget.config.fresh_only) !== false"
+                  @change="patchConfig(configWidget, { active_only: checkboxValue($event) })"
                 />
-                <span>Fresh only</span>
+                <span>Open only</span>
               </label>
             </template>
 
@@ -890,7 +891,7 @@ function defaultConfig(type: DashboardWidgetType) {
       state: 'confirmed',
       min_score: 0.6,
       limit: 6,
-      fresh_only: true,
+      active_only: true,
     }
   }
   if (type === 'heat_map') return {
