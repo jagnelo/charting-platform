@@ -5,10 +5,10 @@ Revises: a5b6c7d8e9f0
 Create Date: 2026-04-23 11:30:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "b6c7d8e9f0a1"
@@ -47,10 +47,43 @@ timeframe_enum = postgresql.ENUM(
 )
 
 
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_type t
+                JOIN pg_namespace n ON n.oid = t.typnamespace
+                WHERE t.typname = '{name}'
+                  AND n.nspname = current_schema()
+            ) THEN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            END IF;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
-    bind = op.get_bind()
-    provider_capability.create(bind, checkfirst=True)
-    dataset_status.create(bind, checkfirst=True)
+    _create_enum_if_missing(
+        "providercapability",
+        (
+            "INSTRUMENT_SEARCH",
+            "INSTRUMENT_METADATA",
+            "PRICE_HISTORY",
+            "LATEST_PRICE",
+            "INSTRUMENT_EVENTS",
+            "INSTRUMENT_IDENTIFIERS",
+            "UNIVERSE_DISCOVERY",
+            "OPTION_CHAIN",
+            "OPTION_QUOTE_HISTORY",
+        ),
+    )
+    _create_enum_if_missing("datasetstatus", ("FRESH", "STALE", "PENDING", "FAILED"))
 
     op.add_column("option_detail", sa.Column("contract_key", sa.String(length=160), nullable=True))
     op.add_column("option_detail", sa.Column("venue_code", sa.String(length=30), nullable=True))

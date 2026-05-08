@@ -8,9 +8,9 @@ Create Date: 2026-05-07 21:00:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
+from alembic import op
 
 revision: str = "a1b2c3d4e5f6"
 down_revision: str | None = "f1e2d3c4b5a6"
@@ -18,9 +18,28 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def upgrade() -> None:
-    bind = op.get_bind()
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_type t
+                JOIN pg_namespace n ON n.oid = t.typnamespace
+                WHERE t.typname = '{name}'
+                  AND n.nspname = current_schema()
+            ) THEN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            END IF;
+        END
+        $$;
+        """
+    )
 
+
+def upgrade() -> None:
     op.execute("ALTER TYPE radarsetuptype ADD VALUE IF NOT EXISTS 'BREAKOUT_RETEST'")
     op.execute("ALTER TYPE radarsetuptype ADD VALUE IF NOT EXISTS 'BREAKDOWN_RETEST'")
     op.execute("ALTER TYPE radarsetuptype ADD VALUE IF NOT EXISTS 'FAKEOUT'")
@@ -42,7 +61,10 @@ def upgrade() -> None:
         name="radarstate",
         create_type=False,
     )
-    radar_state.create(bind, checkfirst=True)
+    _create_enum_if_missing(
+        "radarstate",
+        ("DEVELOPING", "CONFIRMED", "INVALIDATED", "EXPIRED"),
+    )
 
     radar_outcome_status = PgEnum(
         "OPEN",
@@ -52,7 +74,10 @@ def upgrade() -> None:
         name="radaroutcomestatus",
         create_type=False,
     )
-    radar_outcome_status.create(bind, checkfirst=True)
+    _create_enum_if_missing(
+        "radaroutcomestatus",
+        ("OPEN", "TARGET_HIT", "INVALIDATED", "EXPIRED"),
+    )
 
     op.add_column(
         "radar_setup_thread",

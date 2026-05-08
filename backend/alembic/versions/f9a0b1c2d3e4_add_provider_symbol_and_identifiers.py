@@ -5,12 +5,12 @@ Revises: e8f9a0b1c2d3
 Create Date: 2026-04-21 00:00:00.000000
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from alembic import op
 
+from alembic import op
 
 revision: str = "f9a0b1c2d3e4"
 down_revision: str | Sequence[str] | None = "e8f9a0b1c2d3"
@@ -31,21 +31,36 @@ identifier_type = postgresql.ENUM(
 )
 
 
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_type t
+                JOIN pg_namespace n ON n.oid = t.typnamespace
+                WHERE t.typname = '{name}'
+                  AND n.nspname = current_schema()
+            ) THEN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            END IF;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
 
-    postgresql.ENUM(
-        "ISIN",
-        "FIGI",
-        "COMPOSITE_FIGI",
-        "CUSIP",
-        "SEDOL",
-        "LEI",
-        "INTERNAL",
-        name="instrumentidentifiertype",
-    ).create(bind, checkfirst=True)
+    _create_enum_if_missing(
+        "instrumentidentifiertype",
+        ("ISIN", "FIGI", "COMPOSITE_FIGI", "CUSIP", "SEDOL", "LEI", "INTERNAL"),
+    )
 
     if "instrument" in tables:
         columns = {column["name"] for column in inspector.get_columns("instrument")}
