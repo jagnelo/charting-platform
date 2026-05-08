@@ -487,6 +487,10 @@ What this system should become:
 Guiding architectural principles:
 - Keep the platform's internal domain model authoritative and provider-agnostic.
 - Treat the simulation engine as an implementation detail hidden behind a strategy-execution abstraction layer.
+- Keep a clean product boundary between present-looking platform surfaces and historical research:
+  - Radar and Screeners remain primarily present-looking discovery/evaluation products operating on the latest sufficiently fresh data.
+  - Historical "what would this have done in the past?" replay should not become an ad hoc mode inside those products.
+  - Instead, the shared Strategy Lab / Research Lab should own historical replay, backtesting, walk-forward testing, and paper-forward evaluation for both user-authored strategies and platform-owned signal sources.
 - Persist everything that matters:
   - strategy definitions
   - strategy versions
@@ -505,6 +509,10 @@ Guiding architectural principles:
   - screener outputs
   - Technical Radar candidate lists
   - instrument universes defined manually or dynamically
+- Treat the research engine as capable of consuming multiple signal-source classes, not only user-authored strategy rules, including:
+  - custom strategies defined by users
+  - platform-owned Radar detections treated as a built-in signal family
+  - later, if useful, screener-derived signal/event feeds or other platform-owned discovery engines
 - Support a future in which another engine or custom executor could sit behind the same platform-owned orchestration interfaces.
 
 What remains:
@@ -566,6 +574,29 @@ What remains:
   - screener results
   - radar-discovered instruments
   - later, dynamic universes refreshed by scheduled rules
+
+- Add a platform-owned signal-source abstraction for research/test runs so the same testing layer can evaluate:
+  - user-authored strategies that generate entries/exits from rules
+  - Radar detections replayed historically as a built-in black-box signal engine
+  - eventually other platform-owned event/signal sources
+- This abstraction should make it possible to ask questions such as:
+  - "Give me all Radar breakout signals on D1 between 2023-01-01 and 2024-12-31."
+  - "Replay all Radar signals in this score bucket using execution policy X."
+  - "Compare my custom strategy against the platform Radar over the same universe and date range."
+- The query/export contract for platform-owned signal sources should include, at minimum:
+  - source type (`strategy`, `radar`, later others)
+  - source version / engine version
+  - signal/setup family
+  - timeframe
+  - signal timestamp
+  - context timestamp if distinct
+  - entry / invalidation / target semantics when available
+  - score / confidence / rationale metadata where relevant
+
+- Keep Radar itself non-configurable and present-looking, but make Radar historically researchable through this shared testing layer:
+  - the `/radar` product should answer "what looks interesting now?" and "how has this active setup evolved recently?"
+  - the Strategy Lab / Research Lab should answer "what would Radar have produced over this historical period?" and "how did those signals perform under execution policy X?"
+  - this preserves Radar as a curated black box while still allowing internal tuning and user-facing trust/validation statistics
 
 - Build a strategy-definition layer that can support multiple levels of user sophistication:
   - a visual rule builder for simpler strategies
