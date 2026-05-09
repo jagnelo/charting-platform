@@ -24,15 +24,11 @@ def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
         f"""
         DO $$
         BEGIN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM pg_type t
-                JOIN pg_namespace n ON n.oid = t.typnamespace
-                WHERE t.typname = '{name}'
-                  AND n.nspname = current_schema()
-            ) THEN
+            BEGIN
                 EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
-            END IF;
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END;
         END
         $$;
         """
