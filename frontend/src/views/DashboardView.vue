@@ -395,12 +395,40 @@
                 </select>
               </label>
               <label class="config-field">
-                <span>Setup type</span>
-                <input
-                  :value="configWidget.config.setup_type || ''"
-                  placeholder="e.g. breakout"
-                  @input="patchConfig(configWidget, { setup_type: inputValue($event) || null })"
-                />
+                <span>Setup types</span>
+                <small class="config-help">Leave empty to include every supported radar setup.</small>
+                <div class="multi-select-field">
+                  <button
+                    type="button"
+                    class="multi-select-trigger"
+                    @click="radarSetupMenuOpen = !radarSetupMenuOpen"
+                  >
+                    <span>{{ radarSetupSummary(configWidget) }}</span>
+                    <span class="multi-select-caret">{{ radarSetupMenuOpen ? '▴' : '▾' }}</span>
+                  </button>
+                  <div v-if="radarSetupMenuOpen" class="multi-select-menu">
+                    <label
+                      v-for="type in radarSetupOptions"
+                      :key="type.value"
+                      class="multi-select-option"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="selectedRadarSetupTypes(configWidget).includes(type.value)"
+                        @change="toggleRadarSetupType(configWidget, type.value, checkboxValue($event))"
+                      />
+                      <span>{{ type.label }}</span>
+                    </label>
+                    <button
+                      v-if="selectedRadarSetupTypes(configWidget).length"
+                      type="button"
+                      class="multi-select-clear"
+                      @click="patchConfig(configWidget, { setup_types: [], setup_type: null })"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
               </label>
               <label class="config-field">
                 <span>State</span>
@@ -627,7 +655,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import DashboardAlertsWidget from '@/components/dashboard/DashboardAlertsWidget.vue'
 import DashboardAdvancedChartWidget from '@/components/dashboard/DashboardAdvancedChartWidget.vue'
 import DashboardEconomicCalendarWidget from '@/components/dashboard/DashboardEconomicCalendarWidget.vue'
@@ -683,6 +711,7 @@ const screeners = ref<ScreenerOut[]>([])
 const renamingTabId = ref<number | null>(null)
 const tabRenameDraft = ref('')
 const configWidget = ref<DashboardWidget | null>(null)
+const radarSetupMenuOpen = ref(false)
 const quickLinkWidgetId = ref<number | null>(null)
 const quickLinkMenuPos = ref({ x: 0, y: 0 })
 
@@ -723,6 +752,10 @@ const widgetCatalog: Array<{
 const widgets = computed(() =>
   [...(dashboardStore.activeTab?.widgets ?? [])].sort((a, b) => a.position - b.position || a.id - b.id)
 )
+
+watch(() => configWidget.value?.id ?? null, () => {
+  radarSetupMenuOpen.value = false
+})
 
 const quickLinkWidget = computed(() =>
   widgets.value.find(widget => widget.id === quickLinkWidgetId.value) ?? null
@@ -888,6 +921,7 @@ function defaultConfig(type: DashboardWidgetType) {
     return {
       timeframe: 'D1',
       setup_type: '',
+      setup_types: [],
       state: 'confirmed',
       min_score: 0.6,
       limit: 6,
@@ -931,6 +965,55 @@ function defaultConfig(type: DashboardWidgetType) {
     }
   }
   return { symbol: 'SPY', timeframe: 'D1', chartType: 'line', barLimit: 300 }
+}
+
+const radarSetupOptions = [
+  { value: 'approaching_support', label: 'Approaching support' },
+  { value: 'approaching_resistance', label: 'Approaching resistance' },
+  { value: 'compression_support', label: 'Compression support' },
+  { value: 'compression_resistance', label: 'Compression resistance' },
+  { value: 'breakout', label: 'Breakout' },
+  { value: 'breakout_retest', label: 'Breakout retest' },
+  { value: 'breakdown', label: 'Breakdown' },
+  { value: 'breakdown_retest', label: 'Breakdown retest' },
+  { value: 'fakeout', label: 'Fakeout' },
+  { value: 'fakedown', label: 'Fakedown' },
+  { value: 'failed_reclaim', label: 'Failed reclaim' },
+  { value: 'failed_breakdown_recovery', label: 'Failed breakdown recovery' },
+  { value: 'reclaim', label: 'Reclaim' },
+  { value: 'rejection', label: 'Rejection' },
+]
+
+function selectedRadarSetupTypes(widget: DashboardWidget) {
+  const values = Array.isArray(widget.config.setup_types)
+    ? widget.config.setup_types.map((value: unknown) => String(value || '').trim()).filter(Boolean)
+    : []
+  if (values.length) return values
+  const single = String(widget.config.setup_type || '').trim()
+  return single ? [single] : []
+}
+
+function radarSetupSummary(widget: DashboardWidget) {
+  const values = selectedRadarSetupTypes(widget)
+  if (!values.length) return 'All setups'
+  if (values.length === 1) {
+    return radarSetupOptions.find(option => option.value === values[0])?.label ?? values[0]
+  }
+  return `${values.length} setups selected`
+}
+
+function updateRadarSetupTypes(widget: DashboardWidget, values: string[]) {
+  patchConfig(widget, {
+    setup_types: values,
+    setup_type: values.length === 1 ? values[0] : null,
+  })
+}
+
+function toggleRadarSetupType(widget: DashboardWidget, value: string, checked: boolean) {
+  const next = new Set(selectedRadarSetupTypes(widget))
+  if (checked) next.add(value)
+  else next.delete(value)
+  updateRadarSetupTypes(widget, [...next])
 }
 
 async function duplicateWidget(widget: DashboardWidget) {
@@ -1607,6 +1690,67 @@ function onDashboardClick() {
   padding: 7px 8px;
   font-family: inherit;
   font-size: 11px;
+}
+.multi-select-field {
+  position: relative;
+}
+.multi-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #050505;
+  color: #ccc;
+  border: 1px solid #282828;
+  border-radius: 4px;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.multi-select-caret {
+  color: #777;
+  flex-shrink: 0;
+}
+.multi-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 248px;
+  overflow: auto;
+  background: #101010;
+  border: 1px solid #2b2b2b;
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.42);
+}
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8b8b8;
+  font-size: 11px;
+}
+.multi-select-option input {
+  margin: 0;
+}
+.multi-select-clear {
+  margin-top: 4px;
+  align-self: flex-start;
+  background: #171717;
+  color: #9fbfe4;
+  border: 1px solid #2f2f2f;
+  border-radius: 4px;
+  padding: 5px 7px;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
 }
 .linked-instrument-summary {
   display: grid;

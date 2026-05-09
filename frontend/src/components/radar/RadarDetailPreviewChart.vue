@@ -70,8 +70,8 @@ onMounted(refreshPreview)
 
 <style scoped>
 .radar-preview {
-  height: 214px;
-  min-height: 214px;
+  height: 280px;
+  min-height: 280px;
   border: 1px solid #1a1a1a;
   border-radius: 6px;
   background: #0a0a0a;

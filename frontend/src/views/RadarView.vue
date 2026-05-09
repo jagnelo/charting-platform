@@ -64,16 +64,44 @@
           <div v-else-if="!radarStore.detections.length" class="empty-row">
             No detections. Run a scan or relax the filters.
           </div>
+          <div v-else-if="isCompactResults" class="detections-card-list">
+            <button
+              v-for="detection in radarStore.detections"
+              :key="detection.id"
+              type="button"
+              class="detection-card"
+              :class="{ active: radarStore.selectedDetection?.id === detection.id }"
+              @click="selectDetection(detection.id)"
+            >
+              <div class="detection-card-top">
+                <span class="td-symbol">{{ detection.instrument_symbol }}</span>
+                <span class="td-score">{{ detection.score.toFixed(2) }}</span>
+              </div>
+              <div class="detection-card-main">
+                <span class="detection-card-setup">{{ labelForSetup(detection.setup_type) }}</span>
+                <span class="td-setup-sub">{{ formatRadarEventLabel(detection) }}</span>
+              </div>
+              <div class="detection-card-meta">
+                <span :class="['state-pill', `state-pill--${detection.state}`]">{{ labelForState(detection.state) }}</span>
+                <span class="td-dim">#{{ formatThreadSequence(detection) || '—' }}</span>
+                <span class="td-dim">{{ formatRadarEventDate(detection) }}</span>
+              </div>
+              <div class="detection-card-meta detection-card-meta--bottom">
+                <span class="td-dim">Level {{ formatPrice(detection.key_level_price) }}</span>
+                <span class="td-dim">{{ formatOutcomeStatusCompact(detection) }}</span>
+              </div>
+            </button>
+          </div>
           <table v-else class="detections-table">
             <thead>
               <tr>
                 <th>Symbol</th>
                 <th>Setup</th>
                 <th>State</th>
-                <th>Seq</th>
-                <th>Event date</th>
+                <th class="col-seq">Seq</th>
+                <th class="col-event">Event date</th>
                 <th>Score</th>
-                <th>Level</th>
+                <th class="col-level">Level</th>
                 <th>Outcome</th>
               </tr>
             </thead>
@@ -92,10 +120,10 @@
                 <td class="td-state">
                   <span :class="['state-pill', `state-pill--${detection.state}`]">{{ labelForState(detection.state) }}</span>
                 </td>
-                <td class="td-mono td-dim">{{ formatThreadSequence(detection) }}</td>
-                <td class="td-mono td-dim">{{ formatRadarEventDate(detection) }}</td>
+                <td class="td-mono td-dim col-seq">{{ formatThreadSequence(detection) }}</td>
+                <td class="td-mono td-dim col-event">{{ formatRadarEventDate(detection) }}</td>
                 <td class="td-score">{{ detection.score.toFixed(2) }}</td>
-                <td class="td-mono">{{ formatPrice(detection.key_level_price) }}</td>
+                <td class="td-mono col-level">{{ formatPrice(detection.key_level_price) }}</td>
                 <td class="td-mono td-dim">{{ formatOutcomeStatusCompact(detection) }}</td>
               </tr>
             </tbody>
@@ -677,8 +705,10 @@ const SCORE_FACTOR_HINTS: Record<string, string> = {
 function scoreFactorHint(key: string): string {
   return SCORE_FACTOR_HINTS[key] ?? ''
 }
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1440)
 const runningScan = computed(() => scanPending.value || latestRun.value?.status === 'running')
 const workflowPending = computed(() => workflowPendingAction.value !== null)
+const isCompactResults = computed(() => viewportWidth.value < 1180)
 const RADAR_STATE_SEQUENCE_PRIORITY: Record<RadarState, number> = {
   developing: 0,
   confirmed: 1,
@@ -702,6 +732,10 @@ function titleCaseWords(value: string) {
 
 function labelForState(state: RadarState) {
   return titleCaseWords(state.replace(/_/g, ' '))
+}
+
+function syncViewportWidth() {
+  viewportWidth.value = window.innerWidth
 }
 
 function formatOutcomeStatus(status: RadarDetection['outcome_status']) {
@@ -1104,6 +1138,7 @@ onMounted(async () => {
       detailWidth.value = clampDetailWidth(parsed)
     }
   }
+  window.addEventListener('resize', syncViewportWidth)
   radarStore.loadSavedViews()
   await watchlistStore.loadWatchlists()
   await refresh()
@@ -1111,6 +1146,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopDetailResize()
+  window.removeEventListener('resize', syncViewportWidth)
 })
 </script>
 
@@ -1337,7 +1373,7 @@ onBeforeUnmount(() => {
 
 /* ── Detection list ─────────────────────────────────────────────────────────── */
 .radar-results {
-  flex: 1 1 560px;
+  flex: 1 1 460px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1346,8 +1382,66 @@ onBeforeUnmount(() => {
 
 .detections-table-wrap {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   min-width: 0;
+}
+
+.detections-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detection-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+  background: #0f0f0f;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  padding: 10px 11px;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.detection-card:hover {
+  border-color: #23384d;
+  background: #101418;
+}
+
+.detection-card.active {
+  background: #0f1f2e;
+  border-color: #274969;
+}
+
+.detection-card-top,
+.detection-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detection-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detection-card-setup {
+  color: #d3d3d3;
+}
+
+.detection-card-meta {
+  flex-wrap: wrap;
+}
+
+.detection-card-meta--bottom {
+  color: #666;
 }
 
 .empty-row {
@@ -1361,6 +1455,7 @@ onBeforeUnmount(() => {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  min-width: 0;
 }
 
 .detections-table th {
@@ -1398,6 +1493,7 @@ onBeforeUnmount(() => {
 
 .td-setup {
   color: #aaa;
+  white-space: normal;
 }
 
 .td-setup > span {
@@ -1431,7 +1527,7 @@ onBeforeUnmount(() => {
 /* ── Detail panel ───────────────────────────────────────────────────────────── */
 .radar-detail {
   flex: 0 1 auto;
-  flex-shrink: 0;
+  flex-shrink: 1;
   border: 1px solid #1a1a1a;
   border-radius: 6px;
   background: #0d0d0d;
@@ -1439,7 +1535,8 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 100%;
-  min-width: 320px;
+  min-width: 280px;
+  max-width: min(520px, 42vw);
 }
 
 .empty-detail {
@@ -1828,6 +1925,26 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1320px) {
+  .col-seq,
+  .col-event,
+  .col-level {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .page-header,
+  .page-header-left {
+    flex-wrap: wrap;
+  }
+
+  .radar-detail {
+    max-width: min(420px, 44vw);
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 760px) {
   .page-header,
   .page-header-left {
     flex-wrap: wrap;

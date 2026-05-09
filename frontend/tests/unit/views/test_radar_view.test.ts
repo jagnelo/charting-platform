@@ -180,6 +180,7 @@ const detailDetection = {
 describe('RadarView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    window.innerWidth = 1440
     vi.resetAllMocks()
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/radar/runs') {
@@ -377,6 +378,31 @@ describe('RadarView', () => {
     await vi.waitFor(() => {
       expect(wrapper.find('.radar-busy-overlay').exists()).toBe(false)
     })
+  })
+
+  it('uses a compact detection list when horizontal space gets tight', async () => {
+    window.innerWidth = 1040
+    window.dispatchEvent(new Event('resize'))
+
+    const wrapper = mount(RadarView, {
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
+      },
+    })
+
+    await flushPromises()
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('AAPL')
+    })
+
+    expect(wrapper.find('.detections-card-list').exists()).toBe(true)
+    expect(wrapper.find('.detections-table').exists()).toBe(false)
+    expect(wrapper.text()).toContain('AAPL')
+    expect(wrapper.text()).toContain('Breakout')
   })
 
   it('passes timeframe filters and executes radar workflows', async () => {
