@@ -131,7 +131,8 @@
             </div>
             <UPlotChart
               :comparison-series="comparisonSeries"
-              :radar-overlays="activeRadarOverlays"
+              :overlay-indicators="activeRadarIndicators"
+              :overlay-drawings="activeRadarDrawings"
             />
           </template>
         </div>
@@ -223,7 +224,8 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
-import type { ChartComparisonSeries, OHLCVBar, RadarOverlay, Timeframe } from '@/types'
+import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
+import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
@@ -339,20 +341,24 @@ const comparisonLegend = computed(() =>
   }))
 )
 
-const activeRadarOverlays = computed<RadarOverlay[]>(() => {
-  const focusedId = radarStore.focusedChartDetectionId
-  const hasFocusedDetection =
-    focusedId != null && radarStore.activeChartDetectionIds.includes(focusedId)
+const activeRadarDetections = computed(() =>
+  radarStore.chartDetections.filter(detection => radarStore.isChartDetectionActive(detection.id))
+)
 
-  return radarStore.chartDetections
-    .filter(detection => radarStore.isChartDetectionActive(detection.id))
-    .flatMap(detection => {
-      const opacity = !hasFocusedDetection || detection.id === focusedId ? 1 : 0.24
-      return (detection.evidence?.overlays ?? []).map(overlay => ({
-        ...overlay,
-        opacity,
-      }))
-    })
+const activeRadarIndicators = computed(() => {
+  const focusedId = radarStore.focusedChartDetectionId
+  return buildRadarIndicatorOverlays(activeRadarDetections.value, focusedId)
+})
+
+const activeRadarDrawings = computed(() => {
+  return mergeChartDrawingsWithRadar(
+    drawStore.drawings.filter(drawing => (drawing.indicator_key ?? null) === null),
+    buildRadarDrawingOverlays(activeRadarDetections.value, radarStore.focusedChartDetectionId),
+    {
+      instrumentId: chartStore.instrument?.id ?? null,
+      timeframe: chartStore.timeframe,
+    },
+  )
 })
 
 function formatPercent(value: number | null | undefined) {

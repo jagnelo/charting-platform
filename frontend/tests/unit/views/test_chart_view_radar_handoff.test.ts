@@ -118,7 +118,7 @@ describe('ChartView radar handoff', () => {
           invalidated_at: null,
           created_at: '2026-05-05T00:00:05Z',
           updated_at: '2026-05-05T00:00:05Z',
-          evidence: { overlays: [], metrics: {}, structures: [] },
+          evidence: { overlays: [], indicator_visuals: [], drawing_visuals: [], metrics: {}, structures: [] },
         },
       ]
       radarStore.activeChartDetectionIds = preferredDetectionId != null ? [preferredDetectionId] : []

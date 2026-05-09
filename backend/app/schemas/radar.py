@@ -6,28 +6,33 @@ from app.models.ohlcv import Timeframe
 from app.models.radar import RadarOutcomeStatus, RadarRunStatus, RadarSetupType, RadarState
 
 
-class RadarOverlayPoint(BaseModel):
-    time: int
-    price: float
-
-
-class RadarOverlay(BaseModel):
-    kind: str
+class RadarIndicatorVisualOut(BaseModel):
+    type: str
+    params: dict
+    style: dict
+    pane: str = "main"
     role: str | None = None
     label: str | None = None
-    color: str | None = None
-    dash_pattern: list[int] | None = None
-    start_time: int | None = None
-    end_time: int | None = None
-    price_low: float | None = None
-    price_high: float | None = None
-    time: int | None = None
-    price: float | None = None
-    points: list[RadarOverlayPoint] | None = None
+    source_tag: str | None = None
+
+
+class RadarDrawingVisualOut(BaseModel):
+    drawing_type: str
+    indicator_key: str | None = None
+    label: str | None = None
+    notes: str | None = None
+    data: dict
+    style: dict
+    is_visible: bool = True
+    is_locked: bool = True
+    source_role: str | None = None
+    source_tag: str | None = None
 
 
 class RadarEvidenceOut(BaseModel):
-    overlays: list[RadarOverlay]
+    overlays: list[dict] = []
+    indicator_visuals: list[RadarIndicatorVisualOut] = []
+    drawing_visuals: list[RadarDrawingVisualOut] = []
     metrics: dict
     structures: list[dict]
 

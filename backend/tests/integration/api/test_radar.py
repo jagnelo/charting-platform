@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from sqlalchemy import select
+
 
 def _seed_radar_bars(
     db,
@@ -113,7 +115,7 @@ class TestRadarAPI:
         detail_res = client.get(f"/api/v1/radar/detections/{detection_id}", headers=auth_headers)
         assert detail_res.status_code == 200
         detail = detail_res.json()
-        assert detail["evidence"]["overlays"]
+        assert detail["evidence"]["indicator_visuals"] or detail["evidence"]["drawing_visuals"]
         assert "metrics" in detail["evidence"]
         assert detail["thread"] is not None
         assert detail["thread_history"]
@@ -122,15 +124,25 @@ class TestRadarAPI:
         assert "entry_price" in detail["evidence"]["metrics"]
         assert "target_price" in detail["evidence"]["metrics"]
         assert isinstance(detail["evidence"]["metrics"]["invalidation_price"], float)
-        inv_overlays = [
-            o for o in detail["evidence"]["overlays"] if o.get("role") == "invalidation"
+        inv_drawings = [
+            drawing
+            for drawing in detail["evidence"]["drawing_visuals"]
+            if drawing.get("source_role") == "invalidation"
         ]
-        assert inv_overlays, "Expected an invalidation overlay in evidence"
-        assert inv_overlays[0]["kind"] == "line"
-        assert [o for o in detail["evidence"]["overlays"] if o.get("role") == "entry"]
-        assert [o for o in detail["evidence"]["overlays"] if o.get("role") == "target"]
+        assert inv_drawings, "Expected an invalidation drawing in evidence"
+        assert inv_drawings[0]["drawing_type"] == "horizontal_line"
+        assert [
+            drawing
+            for drawing in detail["evidence"]["drawing_visuals"]
+            if drawing.get("source_role") == "entry"
+        ]
+        assert [
+            drawing
+            for drawing in detail["evidence"]["drawing_visuals"]
+            if drawing.get("source_role") == "target"
+        ]
         assert (
-            inv_overlays[0]["points"][0]["price"]
+            inv_drawings[0]["data"]["points"][0]["price"]
             == detail["evidence"]["metrics"]["invalidation_price"]
         )
 
@@ -209,12 +221,16 @@ class TestRadarAPI:
         }
 
     def test_repeat_runs_continue_thread_history(self, client, auth_headers, db, instrument):
+        from app.models.radar import RadarDetection
+
         _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
 
         first_run = client.post("/api/v1/radar/run", headers=auth_headers)
         assert first_run.status_code == 200
+        detection_count_after_first = len(db.execute(select(RadarDetection)).scalars().all())
         second_run = client.post("/api/v1/radar/run", headers=auth_headers)
         assert second_run.status_code == 200
+        detection_count_after_second = len(db.execute(select(RadarDetection)).scalars().all())
 
         detections = client.get("/api/v1/radar/detections", headers=auth_headers).json()
         assert detections
@@ -232,6 +248,7 @@ class TestRadarAPI:
         assert detail["thread"]["detection_count"] == 1
         assert detail["thread_event_index"] is not None
         assert len(detail["thread_history"]) == detail["thread"]["detection_count"]
+        assert detection_count_after_second == detection_count_after_first
         identity_rows = {
             (
                 row.get("thread_id"),

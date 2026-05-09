@@ -11,7 +11,8 @@
       :enable-overlay-interactions="false"
       :enable-keyboard="false"
       :show-controls="false"
-      :radar-overlays="detection.evidence?.overlays ?? []"
+      :overlay-indicators="previewIndicators"
+      :overlay-drawings="previewDrawings"
     />
   </div>
 </template>
@@ -20,6 +21,7 @@
 import { computed, onMounted, provide, watch } from 'vue'
 
 import UPlotChart from '@/components/chart/UPlotChart.vue'
+import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
 import { usePanelStore } from '@/stores/chart'
 import type { RadarDetection } from '@/types'
 
@@ -31,6 +33,20 @@ const panelId = computed(() => `radar-preview-${props.detection?.id ?? 'empty'}`
 provide('panelId', panelId.value)
 
 const store = usePanelStore(panelId.value)
+const previewDetections = computed(() => (props.detection ? [props.detection] : []))
+const previewIndicators = computed(() =>
+  buildRadarIndicatorOverlays(previewDetections.value, props.detection?.id ?? null)
+)
+const previewDrawings = computed(() =>
+  mergeChartDrawingsWithRadar(
+    [],
+    buildRadarDrawingOverlays(previewDetections.value, props.detection?.id ?? null),
+    {
+      instrumentId: props.detection?.instrument_id ?? null,
+      timeframe: props.detection?.timeframe ?? null,
+    },
+  )
+)
 
 async function refreshPreview() {
   if (!props.detection) {

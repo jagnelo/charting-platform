@@ -227,19 +227,77 @@ async def _load_bars(db: AsyncSession, instrument_id: int, timeframe: Timeframe)
     return rows
 
 
-def _series_points(data: OHLCVSeries, values: list[float | None], color: str, label: str) -> dict:
-    pairs = [
-        {"time": int(ts), "price": float(val)}
-        for ts, val in zip(data.timestamps.tolist(), values, strict=False)
-        if val is not None and not math.isnan(val)
-    ]
-    if len(pairs) > LINE_SAMPLE_POINTS:
-        last_pair = pairs[-1]
-        step = max(1, len(pairs) // LINE_SAMPLE_POINTS)
-        pairs = pairs[::step]
-        if pairs[-1] != last_pair:
-            pairs.append(last_pair)
-    return {"kind": "line", "label": label, "color": color, "points": pairs}
+def _indicator_visual(
+    indicator_type: str,
+    *,
+    params: dict,
+    color: str,
+    line_width: float,
+    pane: str = "main",
+    role: str | None = None,
+    label: str | None = None,
+) -> dict:
+    return {
+        "type": indicator_type,
+        "params": params,
+        "style": {
+            "color": color,
+            "lineWidth": line_width,
+        },
+        "pane": pane,
+        "role": role,
+        "label": label,
+        "source_tag": "radar",
+    }
+
+
+def _drawing_point(ts: int, price: float) -> dict:
+    return {"time": int(ts), "price": round(float(price), 4)}
+
+
+def _drawing_style(
+    *,
+    color: str,
+    line_width: float = 1.2,
+    opacity: float = 1.0,
+    filled: bool | None = None,
+    dash_pattern: list[int] | None = None,
+) -> dict:
+    style: dict[str, object] = {
+        "color": color,
+        "lineWidth": line_width,
+        "opacity": opacity,
+    }
+    if filled is not None:
+        style["filled"] = filled
+    if dash_pattern:
+        style["dashPattern"] = dash_pattern
+    return style
+
+
+def _drawing_visual(
+    drawing_type: str,
+    *,
+    points: list[dict],
+    style: dict,
+    label: str | None = None,
+    source_role: str | None = None,
+    data: dict | None = None,
+    indicator_key: str | None = None,
+) -> dict:
+    payload = {
+        "drawing_type": drawing_type,
+        "indicator_key": indicator_key,
+        "label": label,
+        "notes": None,
+        "data": {"points": points, **(data or {})},
+        "style": style,
+        "is_visible": True,
+        "is_locked": True,
+        "source_role": source_role,
+        "source_tag": "radar",
+    }
+    return payload
 
 
 def _extract_pivots(values: list[float], timestamps: list[int], highs: bool) -> list[Pivot]:
@@ -313,7 +371,7 @@ def _latest_valid(series: list[float]) -> float | None:
 
 def _ema_context(data: OHLCVSeries) -> tuple[dict[str, float], list[dict]]:
     levels: dict[str, float] = {}
-    overlays: list[dict] = []
+    visuals: list[dict] = []
     colors = {20: "#6ec6ff", 50: "#ffd166", 200: "#f4978e"}
     for period in EMA_PERIODS:
         series = compute_indicator("ema", data, {"period": period})["ema"].tolist()
@@ -321,15 +379,17 @@ def _ema_context(data: OHLCVSeries) -> tuple[dict[str, float], list[dict]]:
         if latest is None:
             continue
         levels[f"ema_{period}"] = latest
-        overlays.append(
-            _series_points(
-                data,
-                [None if math.isnan(v) else float(v) for v in series],
-                colors[period],
-                f"EMA {period}",
+        visuals.append(
+            _indicator_visual(
+                "ema",
+                params={"period": period},
+                color=colors[period],
+                line_width=1.0,
+                role=f"ema_{period}",
+                label=f"EMA {period}",
             )
         )
-    return levels, overlays
+    return levels, visuals
 
 
 def _atr_latest(data: OHLCVSeries) -> float | None:
@@ -413,13 +473,14 @@ def _avwap_from_anchor(
     latest = _latest_valid(values)
     if latest is None:
         return None, None
-    overlay = _series_points(
-        data,
-        [None if math.isnan(v) else float(v) for v in values],
-        "#c77dff",
-        label,
+    overlay = _indicator_visual(
+        "avwap",
+        params={"anchor_timestamp": anchor_ts},
+        color="#c77dff",
+        line_width=1.0,
+        role=role,
+        label=label,
     )
-    overlay["role"] = role
     return latest, overlay
 
 
@@ -505,27 +566,29 @@ def _build_score(
 
 
 def _make_zone_overlay(zone: Zone, timestamps: list[int], latest_ts: int, color: str) -> dict:
-    return {
-        "kind": "zone",
-        "role": zone.role,
-        "label": f"{zone.role.title()} zone",
-        "color": color,
-        "start_time": timestamps[max(0, zone.first_touch_index - 3)],
-        "end_time": latest_ts,
-        "price_low": round(zone.low, 4),
-        "price_high": round(zone.high, 4),
-    }
+    start_ts = timestamps[max(0, zone.first_touch_index - 3)]
+    return _drawing_visual(
+        "rectangle",
+        points=[
+            _drawing_point(start_ts, zone.high),
+            _drawing_point(latest_ts, zone.low),
+        ],
+        style=_drawing_style(color=color, line_width=1.0, opacity=0.62, filled=True),
+        label=f"{zone.role.title()} zone",
+        source_role=zone.role,
+        data={"filled": True},
+    )
 
 
 def _make_marker(ts: int, price: float, label: str, color: str, role: str) -> dict:
-    return {
-        "kind": "marker",
-        "role": role,
-        "label": label,
-        "color": color,
-        "time": ts,
-        "price": round(price, 4),
-    }
+    return _drawing_visual(
+        "text_box",
+        points=[_drawing_point(ts, price)],
+        style=_drawing_style(color=color, line_width=1.0, opacity=1.0),
+        label=label,
+        source_role=role,
+        data={"text": label},
+    )
 
 
 def _week52_levels(
@@ -660,17 +723,17 @@ def _trendline_price_at(trendline: Trendline, index: int) -> float:
 
 
 def _make_trendline_overlay(trendline: Trendline, color: str, label: str) -> dict:
-    return {
-        "kind": "line",
-        "role": f"{trendline.role}_trendline",
-        "label": label,
-        "color": color,
-        "dash_pattern": [3, 2],
-        "points": [
-            {"time": trendline.start_ts, "price": round(trendline.start_price, 4)},
-            {"time": trendline.end_ts, "price": round(trendline.end_price, 4)},
+    return _drawing_visual(
+        "trendline",
+        points=[
+            _drawing_point(trendline.start_ts, trendline.start_price),
+            _drawing_point(trendline.end_ts, trendline.end_price),
         ],
-    }
+        style=_drawing_style(color=color, line_width=1.0, opacity=0.9, dash_pattern=[3, 2]),
+        label=label,
+        source_role=f"{trendline.role}_trendline",
+        data={"extendRight": False, "extendLeft": False},
+    )
 
 
 def _pattern_structures(
@@ -733,16 +796,18 @@ def _gap_zones(bars: list[OHLCVBar], timestamps: list[int]) -> list[GapZone]:
 
 
 def _make_gap_overlay(gap: GapZone) -> dict:
-    return {
-        "kind": "zone",
-        "role": gap.kind,
-        "label": gap.kind.replace("_", " "),
-        "color": "#5fa8d3" if gap.kind == "up_gap" else "#d9779b",
-        "start_time": gap.start_ts,
-        "end_time": gap.end_ts,
-        "price_low": round(gap.low, 4),
-        "price_high": round(gap.high, 4),
-    }
+    color = "#5fa8d3" if gap.kind == "up_gap" else "#d9779b"
+    return _drawing_visual(
+        "rectangle",
+        points=[
+            _drawing_point(gap.start_ts, gap.high),
+            _drawing_point(gap.end_ts, gap.low),
+        ],
+        style=_drawing_style(color=color, line_width=1.0, opacity=0.5, filled=True),
+        label=gap.kind.replace("_", " "),
+        source_role=gap.kind,
+        data={"filled": True},
+    )
 
 
 def _choose_avwap_anchors(
@@ -882,17 +947,13 @@ def _invalidation_price(setup_type: RadarSetupType, zone: Zone) -> float:
 
 
 def _make_invalidation_overlay(inv_price: float, timestamps: list[int], latest_ts: int) -> dict:
-    return {
-        "kind": "line",
-        "role": "invalidation",
-        "label": "Invalidation",
-        "color": "#ef5350",
-        "dash_pattern": [6, 3],
-        "points": [
-            {"time": timestamps[0], "price": inv_price},
-            {"time": latest_ts, "price": inv_price},
-        ],
-    }
+    return _drawing_visual(
+        "horizontal_line",
+        points=[_drawing_point(timestamps[0], inv_price)],
+        style=_drawing_style(color="#ef5350", line_width=1.0, opacity=0.95, dash_pattern=[6, 3]),
+        label="Invalidation",
+        source_role="invalidation",
+    )
 
 
 def _make_level_overlay(
@@ -905,19 +966,18 @@ def _make_level_overlay(
     color: str,
     dash_pattern: list[int] | None = None,
 ) -> dict:
-    overlay = {
-        "kind": "line",
-        "role": role,
-        "label": label,
-        "color": color,
-        "points": [
-            {"time": timestamps[0], "price": price},
-            {"time": latest_ts, "price": price},
-        ],
-    }
-    if dash_pattern:
-        overlay["dash_pattern"] = dash_pattern
-    return overlay
+    return _drawing_visual(
+        "horizontal_line",
+        points=[_drawing_point(timestamps[0], price)],
+        style=_drawing_style(
+            color=color,
+            line_width=1.05,
+            opacity=0.92,
+            dash_pattern=dash_pattern,
+        ),
+        label=label,
+        source_role=role,
+    )
 
 
 def _entry_price(setup_type: RadarSetupType, zone: Zone) -> float:
@@ -1039,8 +1099,9 @@ def _candidate_evidence(
 ) -> dict:
     return {
         **base,
-        "overlays": [
-            *base["overlays"],
+        "overlays": [],
+        "drawing_visuals": [
+            *(base.get("drawing_visuals") or []),
             _make_level_overlay(
                 entry_price,
                 timestamps,
@@ -1188,6 +1249,40 @@ def _find_duplicate_thread_detection(
         reverse=True,
     )
     return matches[0]
+
+
+def _refresh_duplicate_detection(
+    detection: RadarDetection,
+    candidate: DetectionCandidate,
+    *,
+    run_id: int,
+    thread: RadarSetupThread,
+    thread_event_index: int,
+) -> None:
+    detection.run_id = run_id
+    detection.thread = thread
+    detection.timeframe = thread.timeframe
+    detection.setup_type = candidate.setup_type
+    detection.score = candidate.score
+    detection.observed_at = candidate.observed_at
+    detection.signal_at = candidate.signal_at
+    detection.context_at = candidate.context_at
+    detection.state = candidate.state
+    detection.state_reason = candidate.state_reason
+    detection.fresh_until = candidate.fresh_until
+    detection.thread_event_index = thread_event_index
+    detection.key_level_price = candidate.key_level_price
+    detection.entry_price = candidate.entry_price
+    detection.invalidation_price = candidate.invalidation_price
+    detection.target_price = candidate.target_price
+    detection.summary = candidate.summary
+    detection.invalidation_hint = candidate.invalidation_hint
+    detection.evidence_json = candidate.evidence
+    detection.score_factors = candidate.score_factors
+    detection.outcome_status = RadarOutcomeStatus.OPEN
+    detection.outcome_last_evaluated_at = None
+    detection.target_hit_at = None
+    detection.invalidated_at = None
 
 
 def _latest_thread_detection(thread: RadarSetupThread) -> RadarDetection | None:
@@ -1805,31 +1900,52 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
         )
         score = float(score_factors["normalized_score"])
 
-        overlays = [
+        drawing_visuals = [
             _make_zone_overlay(
                 zone, timestamps, latest_ts, "#2ec4b6" if zone.role == "support" else "#ff9f1c"
             ),
             _make_marker(latest_ts, close, "Current", "#ffffff", "price"),
         ]
-        overlays.extend(ema_overlays)
+        indicator_visuals = list(ema_overlays)
         if support_trendline is not None:
-            overlays.append(
+            drawing_visuals.append(
                 _make_trendline_overlay(support_trendline, "#4ecdc4", "Support trendline")
             )
         if resistance_trendline is not None:
-            overlays.append(
+            drawing_visuals.append(
                 _make_trendline_overlay(resistance_trendline, "#f08a5d", "Resistance trendline")
             )
         if avwap_overlay is not None:
-            overlays.append(avwap_overlay)
+            indicator_visuals.append(avwap_overlay)
         if secondary_avwap_overlay is not None:
-            overlays.append(secondary_avwap_overlay)
+            indicator_visuals.append(secondary_avwap_overlay)
+        if squeeze.score >= 0.6:
+            indicator_visuals.extend(
+                [
+                    _indicator_visual(
+                        "bb",
+                        params={"period": 20, "std_dev": 2},
+                        color="#80cbc4",
+                        line_width=1.0,
+                        role="bb_squeeze_context",
+                        label="BB 20,2",
+                    ),
+                    _indicator_visual(
+                        "keltner",
+                        params={"period": 20, "atr_period": 10, "multiplier": 1.5},
+                        color="#ce93d8",
+                        line_width=1.0,
+                        role="keltner_squeeze_context",
+                        label="Keltner 20,10,1.5",
+                    ),
+                ]
+            )
         for gap in nearby_gaps:
-            overlays.append(_make_gap_overlay(gap))
+            drawing_visuals.append(_make_gap_overlay(gap))
         for key, level in contextual_levels.items():
             if abs(float(level["price"]) - zone.center) > max(atr * 1.5, close * 0.02):
                 continue
-            overlays.append(
+            drawing_visuals.append(
                 _make_level_overlay(
                     round(float(level["price"]), 4),
                     timestamps,
@@ -1842,7 +1958,9 @@ def analyze_instrument(instrument: Instrument, bars: list[OHLCVBar]) -> list[Det
             )
 
         evidence = {
-            "overlays": overlays,
+            "overlays": [],
+            "indicator_visuals": indicator_visuals,
+            "drawing_visuals": drawing_visuals,
             "metrics": {
                 "close": round(close, 4),
                 "atr_14": round(atr, 4),
@@ -2260,32 +2378,40 @@ async def run_radar_scan(
                     thread.current_setup_type = candidate.setup_type
                     thread.current_state = candidate.state
                     thread.state_changed_at = candidate.signal_at
+                    _refresh_duplicate_detection(
+                        duplicate_detection,
+                        candidate,
+                        run_id=run.id,
+                        thread=thread,
+                        thread_event_index=thread_event_index,
+                    )
+                    detection = duplicate_detection
                 else:
                     thread_event_index = _apply_candidate_to_thread(candidate, thread)
-                detection = RadarDetection(
-                    run_id=run.id,
-                    instrument_id=instrument.id,
-                    thread=thread,
-                    timeframe=timeframe,
-                    setup_type=candidate.setup_type,
-                    score=candidate.score,
-                    observed_at=candidate.observed_at,
-                    signal_at=candidate.signal_at,
-                    context_at=candidate.context_at,
-                    state=candidate.state,
-                    state_reason=candidate.state_reason,
-                    fresh_until=candidate.fresh_until,
-                    thread_event_index=thread_event_index,
-                    key_level_price=candidate.key_level_price,
-                    entry_price=candidate.entry_price,
-                    invalidation_price=candidate.invalidation_price,
-                    target_price=candidate.target_price,
-                    summary=candidate.summary,
-                    invalidation_hint=candidate.invalidation_hint,
-                    evidence_json=candidate.evidence,
-                    score_factors=candidate.score_factors,
-                )
-                db.add(detection)
+                    detection = RadarDetection(
+                        run_id=run.id,
+                        instrument_id=instrument.id,
+                        thread=thread,
+                        timeframe=timeframe,
+                        setup_type=candidate.setup_type,
+                        score=candidate.score,
+                        observed_at=candidate.observed_at,
+                        signal_at=candidate.signal_at,
+                        context_at=candidate.context_at,
+                        state=candidate.state,
+                        state_reason=candidate.state_reason,
+                        fresh_until=candidate.fresh_until,
+                        thread_event_index=thread_event_index,
+                        key_level_price=candidate.key_level_price,
+                        entry_price=candidate.entry_price,
+                        invalidation_price=candidate.invalidation_price,
+                        target_price=candidate.target_price,
+                        summary=candidate.summary,
+                        invalidation_hint=candidate.invalidation_hint,
+                        evidence_json=candidate.evidence,
+                        score_factors=candidate.score_factors,
+                    )
+                    db.add(detection)
                 detections.append(detection)
                 instrument_run_detections.append(detection)
 
@@ -2394,8 +2520,9 @@ async def run_radar_scan(
                     evidence={
                         **(previous_detection.evidence_json or {}),
                         "metrics": transition_metrics_payload,
-                        "overlays": [
-                            *((previous_detection.evidence_json or {}).get("overlays", [])),
+                        "overlays": [],
+                        "drawing_visuals": [
+                            *((previous_detection.evidence_json or {}).get("drawing_visuals", [])),
                             _make_marker(
                                 transition_marker_ts,
                                 transition_price,

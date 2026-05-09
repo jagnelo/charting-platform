@@ -137,7 +137,7 @@ class TestRadarEngine:
         for detection in detections:
             assert 0.0 <= detection.score <= 1.0
             assert detection.fresh_until == detection.observed_at
-            assert detection.evidence["overlays"]
+            assert detection.evidence["indicator_visuals"] or detection.evidence["drawing_visuals"]
 
     def test_fakeout_detection_is_classified(self):
         prices = [100, 104, 108, 111, 108, 104] * 18
@@ -225,34 +225,41 @@ class TestRadarEngine:
             assert "entry_price" in det.evidence["metrics"]
             assert "target_price" in det.evidence["metrics"]
             assert "risk_reward" in det.evidence["metrics"]
-            overlay_roles = {overlay.get("role") for overlay in det.evidence["overlays"]}
-            assert {"entry", "invalidation", "target"}.issubset(overlay_roles)
+            drawing_roles = {
+                drawing.get("source_role") for drawing in det.evidence["drawing_visuals"]
+            }
+            assert {"entry", "invalidation", "target"}.issubset(drawing_roles)
 
-    def test_evidence_overlays_contain_invalidation_line(self):
+    def test_evidence_drawings_contain_invalidation_line(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]
         detections = analyze_instrument(_instrument(), _make_bars(prices))
         assert detections
         for det in detections:
-            inv_overlays = [o for o in det.evidence["overlays"] if o.get("role") == "invalidation"]
-            assert inv_overlays, f"No invalidation overlay for {det.setup_type}"
-            ov = inv_overlays[0]
-            assert ov["kind"] == "line"
-            assert ov["label"] == "Invalidation"
-            assert len(ov["points"]) == 2
+            inv_drawings = [
+                drawing
+                for drawing in det.evidence["drawing_visuals"]
+                if drawing.get("source_role") == "invalidation"
+            ]
+            assert inv_drawings, f"No invalidation drawing for {det.setup_type}"
+            drawing = inv_drawings[0]
+            assert drawing["drawing_type"] == "horizontal_line"
+            assert drawing["label"] == "Invalidation"
+            assert len(drawing["data"]["points"]) == 1
 
-    def test_invalidation_price_matches_overlay_price(self):
+    def test_invalidation_price_matches_drawing_price(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
         prices += [98, 97, 96, 97, 98]
         detections = analyze_instrument(_instrument(), _make_bars(prices))
         assert detections
         for det in detections:
             inv_price = det.evidence["metrics"]["invalidation_price"]
-            inv_overlay = next(
-                o for o in det.evidence["overlays"] if o.get("role") == "invalidation"
+            inv_drawing = next(
+                drawing
+                for drawing in det.evidence["drawing_visuals"]
+                if drawing.get("source_role") == "invalidation"
             )
-            assert inv_overlay["points"][0]["price"] == inv_price
-            assert inv_overlay["points"][1]["price"] == inv_price
+            assert inv_drawing["data"]["points"][0]["price"] == inv_price
 
     def test_score_factors_have_all_expected_keys(self):
         prices = [95, 100, 95, 100, 95, 100] * 20
@@ -434,17 +441,18 @@ class TestRadarEngine:
             if det.setup_type == RadarSetupType.APPROACHING_SUPPORT
         )
 
-        avwap_overlay = next(
-            overlay
-            for overlay in detection.evidence["overlays"]
-            if overlay.get("role") == "avwap_primary"
+        avwap_visual = next(
+            visual
+            for visual in detection.evidence["indicator_visuals"]
+            if visual.get("role") == "avwap_primary"
         )
 
         assert detection.evidence["metrics"]["avwap"] is not None
-        assert avwap_overlay["label"].startswith("AVWAP")
-        assert avwap_overlay["points"]
+        assert avwap_visual["label"].startswith("AVWAP")
+        assert avwap_visual["type"] == "avwap"
         assert (
-            detection.evidence["metrics"]["avwap_anchor_time"] == avwap_overlay["points"][0]["time"]
+            detection.evidence["metrics"]["avwap_anchor_time"]
+            == avwap_visual["params"]["anchor_timestamp"]
         )
 
     def test_resistance_avwap_is_anchored_to_latest_zone_touch(self):
@@ -454,17 +462,18 @@ class TestRadarEngine:
             if det.setup_type == RadarSetupType.REJECTION
         )
 
-        avwap_overlay = next(
-            overlay
-            for overlay in detection.evidence["overlays"]
-            if overlay.get("role") == "avwap_primary"
+        avwap_visual = next(
+            visual
+            for visual in detection.evidence["indicator_visuals"]
+            if visual.get("role") == "avwap_primary"
         )
 
         assert detection.evidence["metrics"]["avwap"] is not None
-        assert avwap_overlay["label"].startswith("AVWAP")
-        assert avwap_overlay["points"]
+        assert avwap_visual["label"].startswith("AVWAP")
+        assert avwap_visual["type"] == "avwap"
         assert (
-            detection.evidence["metrics"]["avwap_anchor_time"] == avwap_overlay["points"][0]["time"]
+            detection.evidence["metrics"]["avwap_anchor_time"]
+            == avwap_visual["params"]["anchor_timestamp"]
         )
 
     def test_long_outcome_marks_target_hit(self):

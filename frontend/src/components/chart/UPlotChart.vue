@@ -213,14 +213,19 @@ import {
   indicatorDisplayName,
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
+import {
+  mergeChartIndicatorsWithRadar,
+  radarIndicatorSignature,
+} from '@/lib/radar/visuals'
 import type { DrawingPoint }   from '@/lib/drawings/types'
-import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, RadarOverlay, Timeframe, ChartBarType } from '@/types'
+import type { ChartComparisonSeries, ChartDrawing, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 
 const props = withDefaults(defineProps<{
   chartType?: ChartBarType
   overlayDrawings?: ChartDrawing[]
+  overlayIndicators?: IndicatorConfig[]
   overlayAlerts?: PriceAlert[]
   showIndicators?: boolean
   showOverlays?: boolean
@@ -228,7 +233,6 @@ const props = withDefaults(defineProps<{
   enableKeyboard?: boolean
   showControls?: boolean
   comparisonSeries?: ChartComparisonSeries[]
-  radarOverlays?: RadarOverlay[]
 }>(), {
   showIndicators: true,
   showOverlays: true,
@@ -264,28 +268,39 @@ const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
 const keyboardEnabled    = computed(() => props.enableKeyboard)
 const controlsEnabled    = computed(() => props.showControls)
-const visibleActiveIndicators = computed(() =>
+const baseVisibleIndicators = computed(() =>
   props.showIndicators ? chartStore.activeIndicators : []
+)
+const visibleActiveIndicators = computed(() =>
+  mergeChartIndicatorsWithRadar(baseVisibleIndicators.value, props.overlayIndicators ?? [])
 )
 const visibleComparisonSeries = computed(() =>
   (props.comparisonSeries ?? []).filter(series => series.values.some(v => v != null && Number.isFinite(v)))
 )
 const visibleAlerts = computed(() => props.overlayAlerts ?? alertsStore.alerts)
+function chartDrawingToRenderable(d: ChartDrawing): AnyDrawing {
+  return {
+    id: d.id,
+    type: d.drawing_type as DrawingType,
+    points: (d.data as any).points ?? [],
+    style: d.style,
+    label: d.label,
+    isSelected: d.id === drawStore.selectedId,
+    isLocked: d.is_locked,
+    isVisible: d.is_visible,
+    sourceTag: (d as any).sourceTag ?? (d as any).__radarSourceTag ?? null,
+    radarLinked: (d as any).radarLinked ?? !!(d as any).__radarSource,
+    radarHighlightOpacity: (d as any).radarHighlightOpacity ?? (d as any).__radarHighlightOpacity,
+    radarRoles: (d as any).radarRoles ?? (d as any).__radarRoles,
+    indicatorKey: d.indicator_key ?? null,
+    ...(d.data as any),
+  }
+}
 const renderableDrawings = computed<AnyDrawing[]>(() => {
   if (!props.overlayDrawings) return drawStore.renderableDrawings
   return [...props.overlayDrawings].reverse()
-    .filter(d => d.is_visible)
-    .map(d => ({
-      id: d.id,
-      type: d.drawing_type as DrawingType,
-      points: (d.data as any).points ?? [],
-      style: d.style,
-      label: d.label,
-      isSelected: false,
-      isLocked: true,
-      isVisible: d.is_visible,
-      ...(d.data as any),
-    }))
+    .filter(d => d.is_visible && (d.indicator_key ?? null) === null)
+    .map(chartDrawingToRenderable)
 })
 
 const rootRef          = ref<HTMLDivElement | null>(null)
@@ -822,99 +837,18 @@ function positionEventPopover(clientX: number, clientY: number): { x: number; y:
 
 function renderVisualOverlays() {
   drawingRenderer?.renderAll(drawingOverlayList(null), measurementOverlay())
-  renderRadarOverlays()
   for (const pane of subPanes.value) {
     const renderer = subDrawingRenderers[pane.key]
     if (renderer) renderer.renderAll(drawingOverlayList(pane.config.type))
   }
 }
 
-function renderRadarOverlays() {
-  if (!uplot || !drawingCanvasRef.value || !props.radarOverlays?.length) return
-  const plot = uplot
-  const ctx = drawingCanvasRef.value.getContext('2d')
-  if (!ctx) return
-
-  ctx.save()
-  for (const overlay of props.radarOverlays) {
-    const color = overlay.color ?? '#4ea8de'
-    const opacity = overlay.opacity != null ? Math.max(0.08, Math.min(1, overlay.opacity)) : 1
-    ctx.globalAlpha = opacity
-    if (overlay.kind === 'zone' && overlay.start_time != null && overlay.end_time != null && overlay.price_low != null && overlay.price_high != null) {
-      const x1 = plot.valToPos(timeToBarIndex(overlay.start_time), 'x')
-      const x2 = plot.valToPos(timeToBarIndex(overlay.end_time), 'x')
-      const y1 = plot.valToPos(overlay.price_high, 'y')
-      const y2 = plot.valToPos(overlay.price_low, 'y')
-      ctx.fillStyle = `${color}22`
-      ctx.strokeStyle = color
-      ctx.lineWidth = 1
-      ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
-      ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
-      if (overlay.label) {
-        ctx.fillStyle = color
-        ctx.font = '11px monospace'
-        ctx.fillText(overlay.label, Math.min(x1, x2) + 4, Math.min(y1, y2) - 4)
-      }
-      continue
-    }
-
-    if (overlay.kind === 'line' && overlay.points?.length) {
-      ctx.beginPath()
-      ctx.strokeStyle = color
-      ctx.lineWidth = overlay.role?.startsWith('week52') ? 1 : 1.35
-      ctx.setLineDash(overlay.dash_pattern ?? (overlay.role?.startsWith('week52') ? [5, 4] : []))
-      overlay.points.forEach((point, index) => {
-        const x = plot.valToPos(timeToBarIndex(point.time), 'x')
-        const y = plot.valToPos(point.price, 'y')
-        if (index === 0) ctx.moveTo(x, y)
-        else ctx.lineTo(x, y)
-      })
-      ctx.stroke()
-      ctx.setLineDash([])
-      if (overlay.role === 'invalidation' && overlay.label && overlay.points.length) {
-        const lastPt = overlay.points[overlay.points.length - 1]
-        const lx = plot.valToPos(timeToBarIndex(lastPt.time), 'x')
-        const ly = plot.valToPos(lastPt.price, 'y')
-        ctx.fillStyle = color
-        ctx.font = '10px monospace'
-        ctx.fillText(overlay.label, lx - 76, ly - 4)
-      }
-      continue
-    }
-
-    if (overlay.kind === 'marker' && overlay.time != null && overlay.price != null) {
-      const x = plot.valToPos(timeToBarIndex(overlay.time), 'x')
-      const y = plot.valToPos(overlay.price, 'y')
-      ctx.beginPath()
-      ctx.fillStyle = color
-      ctx.arc(x, y, 4, 0, Math.PI * 2)
-      ctx.fill()
-      if (overlay.label) {
-        ctx.font = '11px monospace'
-        ctx.fillText(overlay.label, x + 6, y - 6)
-      }
-    }
-    ctx.globalAlpha = 1
-  }
-  ctx.restore()
-}
-
 function drawingOverlayList(indicatorKey: string | null): AnyDrawing[] {
   if (!overlaysEnabled.value) return []
-  const base: AnyDrawing[] = props.overlayDrawings && indicatorKey === null
+  const base: AnyDrawing[] = props.overlayDrawings
     ? [...props.overlayDrawings].reverse()
-        .filter(d => d.is_visible)
-        .map(d => ({
-          id: d.id,
-          type: d.drawing_type as DrawingType,
-          points: (d.data as any).points ?? [],
-          style: d.style,
-          label: d.label,
-          isSelected: false,
-          isLocked: true,
-          isVisible: d.is_visible,
-          ...(d.data as any),
-        }))
+        .filter(d => d.is_visible && (d.indicator_key ?? null) === indicatorKey)
+        .map(chartDrawingToRenderable)
     : drawStore.renderableDrawingsFor(indicatorKey)
   if (!overlayInteractionsEnabled.value) return base
   // Show live preview only in the pane currently being drawn on
@@ -1255,6 +1189,7 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
         if (selIdx == null) return
         const selInd = chartStore.indicators[selIdx]
         if (!selInd) return
+        const selectedSignature = radarIndicatorSignature(selInd)
 
         const expandedList = buildExpandedMainIndList()
         const dpr = devicePixelRatio || 1
@@ -1267,13 +1202,13 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
 
         for (let ei = 0; ei < expandedList.length; ei++) {
           const meta = expandedList[ei]
-          if (meta.ind !== selInd) continue
+          if (radarIndicatorSignature(meta.ind) !== selectedSignature) continue
 
           const seriesData = (u.data as number[][])[6 + ei]
           if (!seriesData) continue
 
           ctx.strokeStyle = meta.color
-          ctx.lineWidth   = ((meta.ind.style.lineWidth ?? 1.5) + 1.5) * dpr
+          ctx.lineWidth   = ((meta.ind.style.lineWidth ?? 1) + 1.5) * dpr
           ctx.shadowColor = meta.color
           ctx.shadowBlur  = 8
           ctx.setLineDash([])
@@ -1290,6 +1225,58 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
           }
           ctx.stroke()
         }
+        ctx.restore()
+      }],
+    },
+  }
+}
+
+function radarIndicatorHighlightPlugin(): uPlot.Plugin {
+  return {
+    hooks: {
+      draw: [(u: uPlot) => {
+        const expandedList = buildExpandedMainIndList()
+        const dpr = devicePixelRatio || 1
+        const { ctx } = u
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height)
+        ctx.clip()
+
+        for (let ei = 0; ei < expandedList.length; ei++) {
+          const meta = expandedList[ei]
+          const radarOpacity = (meta.ind as any).__radarHighlightOpacity as number | undefined
+          const radarSource = (meta.ind as any).__radarSource as 'overlay' | 'reuse' | undefined
+          if (!radarSource || !radarOpacity) continue
+
+          const seriesData = (u.data as number[][])[6 + ei]
+          if (!seriesData) continue
+
+          ctx.strokeStyle = meta.color
+          ctx.lineWidth = ((meta.ind.style.lineWidth ?? 1) + (radarSource === 'reuse' ? 1.4 : 0.8)) * dpr
+          ctx.shadowColor = meta.color
+          ctx.shadowBlur = (radarSource === 'reuse' ? 11 : 7) * Math.max(0.28, radarOpacity)
+          ctx.globalAlpha = Math.min(1, 0.7 + radarOpacity * 0.3)
+          ctx.setLineDash([])
+          ctx.beginPath()
+
+          let started = false
+          for (let i = 0; i < seriesData.length; i++) {
+            const val = seriesData[i]
+            if (val == null || isNaN(val)) { started = false; continue }
+            const x = u.valToPos((u.data[0] as number[])[i], 'x', true)
+            const y = u.valToPos(val, 'y', true)
+            if (!started) {
+              ctx.moveTo(x, y)
+              started = true
+            } else {
+              ctx.lineTo(x, y)
+            }
+          }
+          ctx.stroke()
+        }
+
         ctx.restore()
       }],
     },
@@ -1324,7 +1311,7 @@ function buildSeries(): uPlot.Series[] {
       label:  meta.label,
       scale:  'y',
       stroke: meta.color,
-      width:  meta.ind.style.lineWidth ?? 1.5,
+      width:  meta.ind.style.lineWidth ?? 1,
       points: { show: false },
     })
   }
@@ -1508,6 +1495,7 @@ async function initChart() {
     ),
     alertEventsPlugin(() => alertFiringMarkers.value),
     indicatorHighlightPlugin(),
+    radarIndicatorHighlightPlugin(),
     yAxisProjectionsPlugin(() => getProjectionItems()),
     optionsLevelsPlugin(() => optionsExposureStore.data?.key_levels ?? null),
   ]
@@ -2123,7 +2111,7 @@ async function buildSubPanes() {
         ...outputs.map(o => ({
           label:  o.label,
           stroke: o.color,
-          width:  pane.config.style.lineWidth ?? 1.5,
+          width:  pane.config.style.lineWidth ?? 1,
           points: { show: false },
         })),
       ],
@@ -2473,7 +2461,7 @@ function setupDrawingInteraction(u: uPlot) {
       chartStore.addIndicator({
         type: 'avwap',
         params: { anchor_timestamp: anchorTime },
-        style: { color: '#80cbc4', lineWidth: 2 },
+        style: { color: '#80cbc4', lineWidth: 1 },
         pane: 'main',
       })
       drawStore.setAvwapDrop(false)
@@ -2849,7 +2837,11 @@ function findHitIndicator(u: uPlot, my: number, barIdx: number): number | null {
     if (val == null || isNaN(val)) continue
     const py = u.valToPos(val, 'y')
     if (Math.abs(my - py) < HIT) {
-      return chartStore.indicators.indexOf(expandedList[ei].ind)
+      const signature = radarIndicatorSignature(expandedList[ei].ind)
+      const storeIndex = chartStore.indicators.findIndex(indicator =>
+        radarIndicatorSignature(indicator) === signature
+      )
+      if (storeIndex >= 0) return storeIndex
     }
   }
   return null
@@ -2863,6 +2855,7 @@ function findHitDrawing(u: uPlot, mx: number, my: number): AnyDrawing | null {
 function findHitDrawingInList(u: uPlot, drawings: AnyDrawing[], mx: number, my: number): AnyDrawing | null {
   const HIT = 8
   for (const d of drawings) {
+    if ((d.id ?? 0) < 0) continue
     if (!d.points?.length) continue
     const toX = (time: number) => u.valToPos(drawingTimeToBarIndex(time), 'x')
     if (d.type === 'horizontal_line') {
@@ -2954,7 +2947,7 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType, indicato
     half_circle: '#f06292',
   }
   activeDrawingPaneKey = null
-  await drawStore.saveDrawing({ type, points, style: { color: colors[type] ?? '#fff', lineWidth: 1.5 } } as any, false, indicatorKey)
+  await drawStore.saveDrawing({ type, points, style: { color: colors[type] ?? '#fff', lineWidth: 1 } } as any, false, indicatorKey)
   renderVisualOverlays()
 }
 
@@ -3051,7 +3044,8 @@ watch(visibleAlerts, () => {
 watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVisuals() })
 watch(() => visibleAlerts.value.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
-watch(() => props.radarOverlays, () => { redrawVisuals() }, { deep: true })
+watch(() => props.overlayDrawings, () => { redrawVisuals() }, { deep: true })
+watch(() => props.overlayIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })
 watch(showApproxVolumeProfile,    () => { initChart() })

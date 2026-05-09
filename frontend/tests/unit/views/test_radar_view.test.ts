@@ -77,7 +77,9 @@ const summaryDetection = {
 const detailDetection = {
   ...summaryDetection,
   evidence: {
-    overlays: [{ kind: 'zone', label: 'Resistance zone', price_low: 110, price_high: 112 }],
+    overlays: [],
+    indicator_visuals: [],
+    drawing_visuals: [],
     metrics: {
       close: 113.2,
       atr_14: 2.1,

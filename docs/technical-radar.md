@@ -11,7 +11,7 @@ The repository now includes a first-pass **Technical Radar v1** plus a broader *
 - thread-level current state tracking
 - a synchronous/manual scan entrypoint at `POST /api/v1/radar/run`
 - a dedicated `/radar` frontend surface
-- chart-side, non-editable radar evidence overlays
+- chart-side, non-editable radar evidence rendered through native chart indicators and drawings
 - a chart-side radar sub-panel that lists all current detections for the loaded instrument
 - persisted score factors and evidence payloads so the UI can explain why a setup ranked where it did
 - actionable level fields (`entry_price`, `invalidation_price`, `target_price`) carried through backend and frontend
@@ -87,7 +87,7 @@ Represents one persisted opportunity:
 - `evidence_json`
 - `score_factors`
 
-`evidence_json` is deliberately machine-owned, not user-editable. It is designed to feed chart overlays and explainability UI directly.
+`evidence_json` is deliberately machine-owned, not user-editable. It is designed to feed native chart indicators, drawings, and explainability UI directly.
 
 ### `radar_setup_thread`
 
@@ -141,12 +141,20 @@ These are derived from a broader structure set than the original v1 baseline:
 
 ## Current evidence payload shape
 
-The evidence payload is structured around chart-ready overlays plus explainability metadata:
+The evidence payload is structured around native chart visual primitives plus explainability metadata:
 
+- `indicator_visuals`
+  - `ema`
+  - `avwap`
+  - `bb`
+  - `keltner`
+- `drawing_visuals`
+  - `rectangle`
+  - `trendline`
+  - `horizontal_line`
+  - `text_box`
 - `overlays`
-  - `zone`
-  - `line`
-  - `marker`
+  - legacy compatibility field, now expected to remain empty for current radar-generated evidence
 - `metrics`
   - `close`
   - `atr_14`
@@ -177,7 +185,7 @@ The evidence payload is structured around chart-ready overlays plus explainabili
 - `structures`
   - high-level structure metadata such as role, touch count, timing, trendline, gap, and pattern context
 
-The chart renders these as a separate visual layer from saved drawings so radar evidence remains inspectable without becoming editable chart state.
+The chart renders these through the same native indicator and drawing pipelines used elsewhere in the platform. Radar evidence remains non-editable and machine-owned, but it now reuses matching user indicators/drawings rather than drawing duplicate bespoke radar-only geometry on top.
 
 `signal_time` and `context_time` serve different purposes:
 
@@ -216,7 +224,7 @@ The main radar page currently provides:
 - saved views
 - symbol filter
 - minimum-score filter
-- fresh-only toggle
+- open-only toggle
 - latest run summary
 - ranked detection list
 - detail panel with score factors, evidence metrics, and an action-plan block

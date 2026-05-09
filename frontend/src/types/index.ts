@@ -169,29 +169,33 @@ export type RadarOutcomeStatus =
   | 'invalidated'
   | 'stale'
 
-export interface RadarOverlayPoint {
-  time: number
-  price: number
-}
-
-export interface RadarOverlay {
-  kind: 'zone' | 'line' | 'marker'
+export interface RadarIndicatorVisual {
+  type: IndicatorType
+  params: Record<string, unknown>
+  style: { color: string; lineWidth: number }
+  pane?: 'main' | 'separate'
   role?: string | null
   label?: string | null
-  color?: string | null
-  opacity?: number | null
-  dash_pattern?: number[] | null
-  start_time?: number | null
-  end_time?: number | null
-  price_low?: number | null
-  price_high?: number | null
-  time?: number | null
-  price?: number | null
-  points?: RadarOverlayPoint[] | null
+  source_tag?: string | null
+}
+
+export interface RadarDrawingVisual {
+  drawing_type: DrawingType
+  indicator_key?: string | null
+  label?: string | null
+  notes?: string | null
+  data: Record<string, unknown>
+  style: DrawingStyle
+  is_visible: boolean
+  is_locked: boolean
+  source_role?: string | null
+  source_tag?: string | null
 }
 
 export interface RadarEvidence {
-  overlays: RadarOverlay[]
+  overlays: Array<Record<string, unknown>>
+  indicator_visuals: RadarIndicatorVisual[]
+  drawing_visuals: RadarDrawingVisual[]
   metrics: Record<string, unknown>
   structures: Array<Record<string, unknown>>
 }

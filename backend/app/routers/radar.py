@@ -222,6 +222,8 @@ def _to_detail(detection: RadarDetection) -> RadarDetectionDetailOut:
         **summary.model_dump(),
         evidence=RadarEvidenceOut(
             overlays=(detection.evidence_json or {}).get("overlays", []),
+            indicator_visuals=(detection.evidence_json or {}).get("indicator_visuals", []),
+            drawing_visuals=(detection.evidence_json or {}).get("drawing_visuals", []),
             metrics=(detection.evidence_json or {}).get("metrics", {}),
             structures=(detection.evidence_json or {}).get("structures", []),
         ),

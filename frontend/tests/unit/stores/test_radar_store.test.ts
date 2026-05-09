@@ -42,7 +42,7 @@ function detection(overrides: Record<string, unknown> = {}) {
     summary: 'Radar detection summary',
     invalidation_hint: 'Invalidate above 184.20',
     score_factors: { normalized_score: 0.7 },
-    evidence: { overlays: [], metrics: {}, structures: [] },
+    evidence: { overlays: [], indicator_visuals: [], drawing_visuals: [], metrics: {}, structures: [] },
     created_at: '2026-05-05T12:00:05Z',
     updated_at: '2026-05-05T12:00:05Z',
     ...overrides,
@@ -98,7 +98,9 @@ describe('useRadarStore', () => {
           observed_at: '2026-05-05T11:00:00Z',
           signal_at: '2026-05-05T11:00:00Z',
           evidence: {
-            overlays: [{ kind: 'zone' }],
+            overlays: [],
+            indicator_visuals: [],
+            drawing_visuals: [{ drawing_type: 'rectangle', data: { points: [] }, style: {}, is_visible: true, is_locked: true }],
             metrics: { signal_time: 1746435600 },
             structures: [{ last_touch_time: 1746435600 }],
           },
@@ -112,7 +114,9 @@ describe('useRadarStore', () => {
           observed_at: '2026-05-05T11:00:00Z',
           signal_at: '2026-05-05T08:00:00Z',
           evidence: {
-            overlays: [{ kind: 'zone' }],
+            overlays: [],
+            indicator_visuals: [],
+            drawing_visuals: [{ drawing_type: 'rectangle', data: { points: [] }, style: {}, is_visible: true, is_locked: true }],
             metrics: { signal_time: 1746424800 },
             structures: [{ last_touch_time: 1746424800 }],
           },
@@ -138,6 +142,8 @@ describe('useRadarStore', () => {
         signal_at: '2026-05-05T11:00:00Z',
         evidence: {
           overlays: [],
+          indicator_visuals: [],
+          drawing_visuals: [],
           metrics: { signal_time: 1746435600 },
           structures: [{ last_touch_time: 1746435600 }],
         },
@@ -150,6 +156,8 @@ describe('useRadarStore', () => {
         signal_at: '2026-05-05T08:00:00Z',
         evidence: {
           overlays: [],
+          indicator_visuals: [],
+          drawing_visuals: [],
           metrics: { signal_time: 1746424800 },
           structures: [{ last_touch_time: 1746424800 }],
         },

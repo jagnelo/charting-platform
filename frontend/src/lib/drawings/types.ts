@@ -14,6 +14,10 @@ export interface DrawingBase {
   isSelected?: boolean
   isLocked?: boolean
   isVisible?: boolean
+  sourceTag?: string | null
+  radarLinked?: boolean
+  radarHighlightOpacity?: number
+  radarRoles?: string[]
 }
 
 export interface TrendlineDrawing extends DrawingBase {
