@@ -60,15 +60,35 @@ export class DrawingRenderer {
 
   private applyStyle(drawing: AnyDrawing) {
     const s = drawing.style
+    const stroke = s.color ?? '#ffffff'
     this.ctx.strokeStyle = s.color ?? '#ffffff'
-    this.ctx.fillStyle = (s.color ?? '#ffffff') + '33'  // 20% alpha fill
-    this.ctx.lineWidth = Math.max(0.5, s.lineWidth ?? 1.5)
+    this.ctx.fillStyle = this.withFillAlpha(stroke, 0.2)
+    this.ctx.lineWidth = Math.max(0.35, s.lineWidth ?? 0.75)
     this.ctx.globalAlpha = s.opacity ?? 1
+    if ((drawing as AnyDrawing).radarLinked) {
+      this.ctx.shadowColor = s.color ?? '#7dd3fc'
+      this.ctx.shadowBlur = 4 * Math.max(0.24, (drawing as AnyDrawing).radarHighlightOpacity ?? 0.75)
+    }
     if (s.dashPattern?.length) {
       this.ctx.setLineDash(s.dashPattern)
     } else {
       this.ctx.setLineDash([])
     }
+  }
+
+  private withFillAlpha(color: string, opacity: number) {
+    if (!color.startsWith('#')) return color
+    const hex = color.slice(1)
+    const expanded = hex.length === 3
+      ? hex.split('').map(ch => ch + ch).join('')
+      : hex.length === 6
+        ? hex
+        : hex.length === 8
+          ? hex.slice(0, 6)
+          : null
+    if (!expanded) return color
+    const alpha = Math.max(0, Math.min(255, Math.round(opacity * 255)))
+    return `#${expanded}${alpha.toString(16).padStart(2, '0')}`
   }
 
   render(drawing: AnyDrawing) {
@@ -120,6 +140,23 @@ export class DrawingRenderer {
     ctx.restore()
   }
 
+  private renderBadgeLabel(text: string, x: number, y: number, color: string, sourceTag?: string | null) {
+    const ctx = this.ctx
+    const label = sourceTag ? `${text} · ${sourceTag.toUpperCase()}` : text
+    ctx.save()
+    ctx.font = '10px monospace'
+    const width = ctx.measureText(label).width + 8
+    ctx.fillStyle = '#0b0f16dd'
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1
+    ctx.fillRect(x, y - 12, width, 14)
+    ctx.strokeRect(x, y - 12, width, 14)
+    ctx.fillStyle = color
+    ctx.globalAlpha = 1
+    ctx.fillText(label, x + 4, y - 2)
+    ctx.restore()
+  }
+
   private renderTrendline(d: TrendlineDrawing) {
     if (d.points.length < 2) return
     const [x1, y1] = this.toPixel(d.points[0].time, d.points[0].price)
@@ -150,6 +187,9 @@ export class DrawingRenderer {
     if (d.isSelected) {
       this.drawHandle(x1, y1)
       this.drawHandle(x2, y2)
+    }
+    if (d.label) {
+      this.renderBadgeLabel(d.label, Math.min(x1, x2) + 6, Math.min(y1, y2) - 4, d.style.color ?? '#fff', d.sourceTag)
     }
   }
 
@@ -293,6 +333,9 @@ export class DrawingRenderer {
       this.drawHandle(x1, y1)
       this.drawHandle(x2, y2)
     }
+    if (d.label) {
+      this.renderBadgeLabel(d.label, rx + 4, ry - 4, d.style.color ?? '#fff', d.sourceTag)
+    }
   }
 
   private renderCircle(d: RectangleDrawing) {
@@ -323,6 +366,9 @@ export class DrawingRenderer {
     this.ctx.fillStyle = d.style.color ?? '#fff'
     this.ctx.globalAlpha = 1
     this.ctx.fillText(d.label ?? d.text ?? '', x, y)
+    if (d.label && d.sourceTag) {
+      this.renderBadgeLabel(d.sourceTag.toUpperCase(), x + 6, y - 10, d.style.color ?? '#fff')
+    }
   }
 
   private renderArrow(d: TrendlineDrawing) {

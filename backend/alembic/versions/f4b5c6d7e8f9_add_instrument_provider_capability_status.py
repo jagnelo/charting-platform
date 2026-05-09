@@ -5,10 +5,10 @@ Revises: e2f3a4b5c6d7
 Create Date: 2026-04-28 11:20:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "f4b5c6d7e8f9"
@@ -32,9 +32,38 @@ provider_capability = postgresql.ENUM(
 )
 
 
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            BEGIN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
-    bind = op.get_bind()
-    provider_capability.create(bind, checkfirst=True)
+    _create_enum_if_missing(
+        "providercapability",
+        (
+            "INSTRUMENT_SEARCH",
+            "INSTRUMENT_METADATA",
+            "PRICE_HISTORY",
+            "LATEST_PRICE",
+            "INSTRUMENT_EVENTS",
+            "INSTRUMENT_IDENTIFIERS",
+            "UNIVERSE_DISCOVERY",
+            "OPTION_CHAIN",
+            "OPTION_QUOTE_HISTORY",
+        ),
+    )
 
     op.create_table(
         "instrument_provider_capability_status",

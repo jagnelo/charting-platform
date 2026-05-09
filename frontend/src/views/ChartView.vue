@@ -131,7 +131,8 @@
             </div>
             <UPlotChart
               :comparison-series="comparisonSeries"
-              :radar-overlays="activeRadarOverlays"
+              :overlay-indicators="activeRadarIndicators"
+              :overlay-drawings="activeRadarDrawings"
             />
           </template>
         </div>
@@ -223,7 +224,8 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
-import type { ChartComparisonSeries, OHLCVBar, RadarOverlay, Timeframe } from '@/types'
+import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
+import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
 
 const chartStore      = useChartStore()
 const layoutStore     = useLayoutStore()
@@ -339,10 +341,24 @@ const comparisonLegend = computed(() =>
   }))
 )
 
-const activeRadarOverlays = computed<RadarOverlay[]>(() => {
-  return radarStore.chartDetections
-    .filter(detection => radarStore.isChartDetectionActive(detection.id))
-    .flatMap(detection => detection.evidence?.overlays ?? [])
+const activeRadarDetections = computed(() =>
+  radarStore.chartDetections.filter(detection => radarStore.isChartDetectionActive(detection.id))
+)
+
+const activeRadarIndicators = computed(() => {
+  const focusedId = radarStore.focusedChartDetectionId
+  return buildRadarIndicatorOverlays(activeRadarDetections.value, focusedId)
+})
+
+const activeRadarDrawings = computed(() => {
+  return mergeChartDrawingsWithRadar(
+    drawStore.drawings.filter(drawing => (drawing.indicator_key ?? null) === null),
+    buildRadarDrawingOverlays(activeRadarDetections.value, radarStore.focusedChartDetectionId),
+    {
+      instrumentId: chartStore.instrument?.id ?? null,
+      timeframe: chartStore.timeframe,
+    },
+  )
 })
 
 function formatPercent(value: number | null | undefined) {
@@ -467,7 +483,7 @@ async function syncRadarOverlays() {
     chartStore.instrument.id,
     chartStore.instrument.symbol,
   )
-  await radarStore.loadChartDetections(chartStore.instrument.id, detectionId)
+  await radarStore.loadChartDetections(chartStore.instrument.id, chartStore.timeframe, detectionId)
 }
 
 function stripLegacyRadarDetectionQuery() {
@@ -487,6 +503,7 @@ watch(currentTf, async (tf) => {
     await alertsStore.loadAlerts(inst.id)
   }
   await loadComparisonBars()
+  await syncRadarOverlays()
 })
 
 watch(() => chartStore.bars.length, () => {
@@ -564,6 +581,10 @@ onMounted(async () => {
   await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
+  const pending = radarStore.pendingChartDetection
+  if (sym && pending?.instrumentSymbol === sym.toUpperCase() && currentTf.value !== pending.timeframe) {
+    currentTf.value = pending.timeframe
+  }
   if (sym) {
     await onSymbolSelect(sym)
   }

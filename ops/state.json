@@ -1,13 +1,13 @@
 {
-  "active_task_id": "technical-radar-v1",
+  "active_task_id": "technical-radar-v2",
   "active_worker": "Codex",
-  "worker_session_started_at": "2026-04-30T22:50:48Z",
+  "worker_session_started_at": "2026-05-07T17:55:00Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-04T23:20:00Z",
-  "last_commit": "4f38182",
+  "last_handoff_at": "2026-05-09T18:26:25Z",
+  "last_commit": "93360e7",
   "git_ready_to_commit": true,
   "validation": {
-    "backend_tests": "partial",
+    "backend_tests": "passed",
     "frontend_tests": "passed",
     "frontend_build": "passed",
     "playwright": "not_run",
@@ -15,10 +15,11 @@
     "backend_log_check": "not_run"
   },
   "notes": [
-    "Technical Radar v1 backend, frontend, tests, and documentation are implemented on feat/technical-radar-v1.",
-    "Commits currently staged in history: bf2526d backend, dfabcfc frontend, df0df8e tests, 4f38182 docs.",
-    "Full backend unit and frontend unit suites passed on the current branch state, along with targeted radar lint/type checks.",
-    "Backend integration and stack-backed browser validation remain blocked here because Docker container creation stalls before Postgres/Redis can start.",
-    "The integration harness now supports TEST_DATABASE_URL and TEST_REDIS_URL so future runs can reuse already-running services when testcontainers is flaky."
+    "Radar v2 branch work is in progress on feat/technical-radar-v2 with additional uncommitted dashboard/radar UX and native-visual tuning changes ready to commit.",
+    "The dashboard radar widget now supports explicit dropdown-style multi-setup filtering instead of a free-text setup field.",
+    "The dashboard radar widget now opens an in-widget radar detail overlay on row click instead of redirecting immediately to /chart.",
+    "The /radar view now preserves its split layout longer under reduced horizontal space and switches its detections pane into a compact card list before the table becomes unreadable.",
+    "Radar-owned native visuals now use calmer glow and thinner default line widths across shared indicator/drawing primitives.",
+    "Targeted frontend radar/dashboard/widget tests passed, frontend type-check passed, and the full frontend unit suite passed."
   ]
 }

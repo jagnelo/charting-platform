@@ -3,31 +3,36 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.models.ohlcv import Timeframe
-from app.models.radar import RadarRunStatus, RadarSetupType
+from app.models.radar import RadarOutcomeStatus, RadarRunStatus, RadarSetupType, RadarState
 
 
-class RadarOverlayPoint(BaseModel):
-    time: int
-    price: float
-
-
-class RadarOverlay(BaseModel):
-    kind: str
+class RadarIndicatorVisualOut(BaseModel):
+    type: str
+    params: dict
+    style: dict
+    pane: str = "main"
     role: str | None = None
     label: str | None = None
-    color: str | None = None
-    dash_pattern: list[int] | None = None
-    start_time: int | None = None
-    end_time: int | None = None
-    price_low: float | None = None
-    price_high: float | None = None
-    time: int | None = None
-    price: float | None = None
-    points: list[RadarOverlayPoint] | None = None
+    source_tag: str | None = None
+
+
+class RadarDrawingVisualOut(BaseModel):
+    drawing_type: str
+    indicator_key: str | None = None
+    label: str | None = None
+    notes: str | None = None
+    data: dict
+    style: dict
+    is_visible: bool = True
+    is_locked: bool = True
+    source_role: str | None = None
+    source_tag: str | None = None
 
 
 class RadarEvidenceOut(BaseModel):
-    overlays: list[RadarOverlay]
+    overlays: list[dict] = []
+    indicator_visuals: list[RadarIndicatorVisualOut] = []
+    drawing_visuals: list[RadarDrawingVisualOut] = []
     metrics: dict
     structures: list[dict]
 
@@ -58,6 +63,8 @@ class RadarSetupThreadOut(BaseModel):
     context_role: str | None
     reference_price: float
     current_setup_type: RadarSetupType
+    current_state: RadarState
+    state_changed_at: datetime
     started_at: datetime
     last_seen_at: datetime
     detection_count: int
@@ -75,13 +82,27 @@ class RadarDetectionSummaryOut(BaseModel):
     observed_at: datetime
     signal_at: datetime
     context_at: datetime | None
+    state: RadarState
+    state_reason: str | None
     fresh_until: datetime
     thread_id: int | None
     thread_event_index: int | None
     key_level_price: float | None
+    entry_price: float | None
+    invalidation_price: float | None
+    target_price: float | None
+    outcome_status: RadarOutcomeStatus
+    outcome_last_evaluated_at: datetime | None
+    bars_since_signal: int
+    max_favorable_excursion_pct: float | None
+    max_adverse_excursion_pct: float | None
+    target_hit_at: datetime | None
+    invalidated_at: datetime | None
     summary: str
     invalidation_hint: str | None
     score_factors: dict
+    created_at: datetime
+    updated_at: datetime
 
 
 class RadarThreadEventOut(BaseModel):
@@ -91,10 +112,45 @@ class RadarThreadEventOut(BaseModel):
     observed_at: datetime
     signal_at: datetime
     context_at: datetime | None
+    state: RadarState
+    state_reason: str | None
     thread_event_index: int | None
     key_level_price: float | None
+    entry_price: float | None
+    invalidation_price: float | None
+    target_price: float | None
+    outcome_status: RadarOutcomeStatus
+    outcome_last_evaluated_at: datetime | None
+    bars_since_signal: int
+    max_favorable_excursion_pct: float | None
+    max_adverse_excursion_pct: float | None
+    target_hit_at: datetime | None
+    invalidated_at: datetime | None
     summary: str
     invalidation_hint: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class RadarOutcomeSummaryOut(BaseModel):
+    timeframe: Timeframe
+    setup_type: RadarSetupType
+    total: int
+    open_count: int
+    target_hit_count: int
+    invalidated_count: int
+    stale_count: int
+    target_hit_rate: float
+    invalidated_rate: float
+    stale_rate: float
+    avg_mfe_pct: float | None
+    avg_mae_pct: float | None
+
+
+class RadarWatchlistActionOut(BaseModel):
+    watchlist_id: int
+    watchlist_name: str
+    item_id: int
 
 
 class RadarDetectionDetailOut(RadarDetectionSummaryOut):

@@ -18,6 +18,23 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            BEGIN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
@@ -42,21 +59,14 @@ def upgrade() -> None:
     )
 
     if "instrument_event" not in tables:
-        postgresql.ENUM(
-            "EARNINGS",
-            "EARNINGS_ESTIMATE",
-            "DIVIDEND",
-            "EX_DIVIDEND",
-            "SPLIT",
-            name="instrumenteventtype",
-        ).create(bind, checkfirst=True)
-        postgresql.ENUM(
-            "PRE_MARKET",
-            "POST_MARKET",
-            "DURING_MARKET",
-            "UNKNOWN",
-            name="eventtimehint",
-        ).create(bind, checkfirst=True)
+        _create_enum_if_missing(
+            "instrumenteventtype",
+            ("EARNINGS", "EARNINGS_ESTIMATE", "DIVIDEND", "EX_DIVIDEND", "SPLIT"),
+        )
+        _create_enum_if_missing(
+            "eventtimehint",
+            ("PRE_MARKET", "POST_MARKET", "DURING_MARKET", "UNKNOWN"),
+        )
         op.create_table(
             "instrument_event",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),

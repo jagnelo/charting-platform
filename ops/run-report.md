@@ -197,3 +197,154 @@ Append a short entry after each worker session.
 ### Next step
 
 - In a healthy Docker-enabled environment, bring up the stack, run `make test-int`, run the Playwright radar flow, and visually confirm `/radar` plus chart overlay behavior against migrated live services.
+
+---
+
+## 2026-05-07 - Radar v2 broader baseline
+
+### Worker
+
+- Codex
+
+### Task
+
+- Start Technical Radar v2 from `master`, implement the broader agreed continuation scope, deepen radar/backend/frontend tests, and reconcile the related docs/TODOs.
+
+### Completed
+
+- Created `feat/technical-radar-v2` and fixed the top-level TODO numbering while updating the radar roadmap to reflect the real v1 baseline.
+- Implemented the Radar v2 backend/model expansion:
+  - `RadarState`
+  - retest, fakeout/failure, and compression setup families
+  - persisted `state`, `state_reason`, `entry_price`, `invalidation_price`, and `target_price` on detections
+  - persisted `current_state` and `state_changed_at` on `radar_setup_thread`
+
+### Timestamp
+
+- 2026-05-09T18:56:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Improve the Radar v2 dashboard/radar UX by replacing the widget’s free-text setup filter, preserving the split `/radar` layout under moderate width loss, and toning down reused native radar visuals.
+
+### Completed
+
+- Increased the radar detail preview chart height to improve readability inside the `/radar` detail pane.
+- Replaced the dashboard radar widget’s free-text setup filter path with explicit multi-select setup options in `DashboardView`, with merged multi-setup querying in `DashboardRadarWidget`.
+- Adjusted the `/radar` layout so it keeps the detections/results split much longer and uses table scrolling instead of prematurely collapsing into a detail-dominant single-column view.
+- Reduced shared default indicator/drawing line widths and softened radar-owned indicator/drawing highlight glow so reused native visuals are less spectral and less cluttered.
+- Added dashboard radar widget test coverage for multi-setup filtering.
+
+### Validation
+
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_dashboard_radar_widget.test.ts tests/unit/views/test_radar_view.test.ts tests/unit/views/test_chart_view_radar_handoff.test.ts tests/unit/stores/test_radar_store.test.ts tests/unit/lib/test_radar_visuals.test.ts`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
+
+### Problems found
+
+- Radar V2 unit coverage is solid for the touched widget/store/view/helpers, but browser-level responsive/dashboard interaction coverage is still thinner than the unit/integration layer.
+- The dashboard radar widget still routes row clicks to `/chart`; that behavior now stands out more and needs a product/UX decision rather than another silent code tweak.
+
+### Assumptions
+
+- Multi-setup widget filtering should be explicit and discoverable, with zero selections meaning “all setups”.
+- Moderate width loss on desktop should preserve the same split radar layout; only genuinely narrow screens should stack the panels.
+- Radar-native highlights should remain secondary to price and user-owned context even when reused through the same primitives.
+
+### Next step
+
+- Commit the current radar UX/native-visual adjustments, then decide the dashboard click interaction model and whether to add browser/E2E coverage around the new responsive/widget behavior.
+
+### Timestamp
+
+- 2026-05-09T18:26:25Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Refine the newer radar/dashboard UX: replace the awkward widget setup picker, stop radar widget row clicks from redirecting away, make `/radar` remain usable under tighter widths, and deepen the thin responsive/widget test coverage.
+
+### Completed
+
+- Replaced the dashboard radar widget’s setup filter config with a dropdown-style checkbox picker of supported setup types.
+- Reworked the dashboard radar widget so clicking a row opens a local detail overlay instead of navigating straight to `/chart`; `Open chart` is now an explicit action.
+- Tightened `/radar` responsive behavior further by preserving the split layout longer and switching the detections pane into a compact card list before the table becomes unreadable.
+- Added a deferred TODO entry for the future idea of letting multi-instrument dashboard widgets publish clicked instruments into dashboard link groups.
+- Expanded the frontend tests specifically in the previously thin areas:
+  - dashboard radar widget interaction coverage
+  - compact `/radar` detections-list behavior under tighter widths
+
+### Validation
+
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_dashboard_radar_widget.test.ts tests/unit/views/test_radar_view.test.ts`
+- `rtk make test-fe`
+
+### Problems found
+
+- The first responsive radar-view test failed because it asserted the compact markup before the async detection data had rendered; waiting for the loaded state fixed it.
+- The first DashboardView type-check pass failed because the new local watcher needed the `watch` import explicitly added.
+
+### Assumptions
+
+- A dropdown-style checkbox picker is a better fit for optional multi-setup filtering than a raw HTML multi-select box.
+- Radar widget rows should show more information locally first; navigation away from the dashboard should be an explicit action.
+- When horizontal space gets tighter, a compact detections card list is more usable than forcing a wide table into an unreadable state.
+
+### Next step
+
+- Commit the current dashboard/radar UX refinements, then decide whether to add browser/E2E coverage around the new in-widget radar detail flow and compact `/radar` layout.
+  - migration `a1b2c3d4e5f6_add_radar_v2_state_and_retests.py`
+- Extended the radar engine with:
+  - state assignment and automatic invalidated / expired transitions
+  - action-level calculation and overlays
+  - richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
+  - diagonal trendline, gap, and simple pattern-structure context
+  - richer score factors and thread-event dedupe across reruns
+- Extended the radar API and schemas with state filtering and richer state/action/thread fields in detection summaries, details, and thread-history rows.
+- Extended the frontend radar surfaces with:
+  - state filter UI
+  - saved radar views
+  - instrument timeline and richer detail/action-plan rendering
+  - dashboard radar widget support
+  - chart-side focus/detail block and focus-aware overlay dimming
+  - more robust timestamp humanization
+- Expanded tests and docs across:
+  - backend unit tests
+  - backend radar API integration tests
+  - frontend radar store/view/component tests
+  - `docs/technical-radar.md`, `docs/api.md`, `docs/architecture.md`, `docs/testing.md`, and `docs/project-todos.md`
+
+### Validation
+
+- `rtk backend/.venv/bin/python -m py_compile backend/app/models/radar.py backend/app/models/__init__.py backend/app/routers/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/tests/unit/services/test_radar_engine.py backend/tests/integration/api/test_radar.py`
+- `rtk backend/.venv/bin/python -m ruff check backend/app/models/__init__.py backend/app/models/radar.py backend/app/routers/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/tests/unit/services/test_radar_engine.py backend/tests/integration/api/test_radar.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_radar.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_dashboard_radar_widget.test.ts tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts tests/unit/views/test_chart_view_radar_handoff.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk make test-unit`
+
+### Problems found
+
+- Running backend unit and integration files together in one direct pytest invocation can still trigger the Docker/testcontainers fixture path and fail on Docker socket permissions in this environment, even though the radar integration file itself passes when run directly.
+- Existing repo-level deprecation warnings from Pydantic and JOSE still appear in backend test output but are outside this radar change-set.
+
+### Assumptions
+
+- Daily-focused Radar v2 can still use date-level chronology for many events even while adding richer structures and lifecycle semantics.
+- The current pattern layer should stay explainable and lightweight rather than trying to infer complex discretionary chart patterns with opaque rules.
+- Focus-aware overlay dimming is an acceptable first overlap-management step before fuller grouping/stacking semantics exist.
+
+### Next step
+
+- Group the current Radar v2 branch changes into isolated commits, then optionally run browser/E2E signoff for `/radar`, the dashboard radar widget, and `/chart/:symbol` before merging.

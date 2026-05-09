@@ -137,6 +137,20 @@ Radar-specific frontend coverage now includes:
 
 - radar store ordering / activation behavior
 - `/radar` scan-lock behavior during manual runs
+- `/radar` state-aware detail rendering and action-plan presentation
+- timeframe-aware radar filtering, history loading, and outcome-summary loading
+- radar-to-alert and radar-to-watchlist workflow actions
+- dashboard radar widget timeframe rendering
+
+Radar-specific backend coverage now includes:
+
+- richer structure and setup-family classification
+- AVWAP anchor behavior
+- duplicate-thread-event dedupe across reruns
+- timeframe-specific radar runs and filtering
+- instrument history and outcome-summary endpoints
+- radar alert/watchlist action endpoints
+- forward-outcome evaluation fields (`outcome_status`, bars-since-signal, MFE/MAE)
 - `/radar` setup-thread history rendering
 - instrument-details day-range and 52-week occurrence hover text
 - `/radar -> /chart` preferred detection handoff
@@ -144,7 +158,19 @@ Radar-specific frontend coverage now includes:
 Radar-specific backend coverage now also includes:
 
 - candidate signal/context timestamps
+- breakout-retest / breakdown-retest classification
+- fakeout classification
+- richer structure evidence (trendline / gap / pattern context)
+- persisted action-level and state evidence fields
 - setup-thread matching and event-index continuity helpers
+- invalidated-transition integration coverage across repeat runs
+- radar API state filtering and action-evidence responses
+
+Radar-specific frontend coverage now also includes:
+
+- saved radar view persistence
+- dashboard radar widget loading/rendering
+- `/chart` radar handoff and focused chart detection behavior
 
 ---
 

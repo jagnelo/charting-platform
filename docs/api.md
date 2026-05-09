@@ -270,11 +270,19 @@ Return recent radar scan executions.
 | Parameter | Type | Description |
 |---|---|---|
 | `limit` | int | Max number of recent runs to return (default `5`) |
+| `timeframe` | string | Optional timeframe filter |
 
 ---
 
 ### POST /radar/run
 Trigger a synchronous radar scan over the current active instrument universe.
+
+**Request body**
+```json
+{
+  "timeframe": "H4"
+}
+```
 
 **Response** `200 OK`
 ```json
@@ -300,18 +308,35 @@ Each summary row now also includes:
 
 - `signal_at`
 - `context_at`
+- `state`
+- `state_reason`
 - `thread_id`
 - `thread_event_index`
+- `entry_price`
+- `invalidation_price`
+- `target_price`
+- `outcome_status`
+- `outcome_last_evaluated_at`
+- `bars_since_signal`
+- `max_favorable_excursion_pct`
+- `max_adverse_excursion_pct`
+- `target_hit_at`
+- `invalidated_at`
+
+Current setup values include `approaching_support`, `approaching_resistance`, `breakout`, `breakout_retest`, `breakdown`, `breakdown_retest`, `fakeout`, `fakedown`, `failed_reclaim`, `failed_breakdown_recovery`, `compression_support`, `compression_resistance`, `reclaim`, and `rejection`.
 
 **Query parameters**
 
 | Parameter | Type | Description |
 |---|---|---|
+| `timeframe` | string | Optional timeframe filter |
 | `setup_type` | string | Optional setup filter |
+| `state` | string | Optional state filter (`developing`, `confirmed`, `resolved`, `invalidated`, `stale`) |
 | `min_score` | float | Minimum normalized score (0-1) |
 | `symbol` | string | Case-insensitive symbol substring filter |
 | `limit` | int | Max rows to return |
-| `fresh_only` | bool | Exclude expired detections |
+| `active_only` | bool | Exclude non-open detections (`resolved`, `invalidated`, `stale`) |
+| `fresh_only` | bool | Deprecated alias for `active_only` |
 
 ---
 
@@ -321,8 +346,11 @@ Return one radar detection with its full evidence payload:
 - chart overlays
 - evidence metrics
 - extracted structure metadata
+- action-plan fields (`entry_price`, `invalidation_price`, `target_price`)
 - current setup-thread summary
 - ordered thread history for that setup storyline
+
+The evidence payload can now include AVWAP anchor provenance, all-time / YTD / rolling-window context, and gap / trendline / simple pattern metadata.
 
 ---
 
@@ -334,6 +362,65 @@ This is the endpoint used by the chart page to:
 - populate the chart-side radar sub-panel for the loaded instrument
 - render non-editable radar evidence overlays separate from saved drawings
 - restore a preferred detection when navigation originated from `/radar`
+- support focus-aware overlay rendering when multiple detections are enabled on the same symbol
+
+**Query parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `timeframe` | string | Optional timeframe filter |
+| `detection_id` | int | Optional preferred detection id |
+| `active_only` | bool | Exclude non-open detections (`resolved`, `invalidated`, `stale`) |
+| `fresh_only` | bool | Deprecated alias for `active_only` |
+
+---
+
+### GET /radar/instruments/{instrument_id}/history
+Return prior radar detections for one instrument, ordered by signal time.
+
+**Query parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `timeframe` | string | Optional timeframe filter |
+| `limit` | int | Max rows to return (default `150`) |
+
+---
+
+### GET /radar/outcomes/summary
+Return grouped forward-outcome summaries by timeframe and setup type.
+
+Each row includes:
+
+- `timeframe`
+- `setup_type`
+- `total`
+- `open_count`
+- `target_hit_count`
+- `invalidated_count`
+- `stale_count`
+- `target_hit_rate`
+- `invalidated_rate`
+- `stale_rate`
+- `avg_mfe_pct`
+- `avg_mae_pct`
+
+---
+
+### POST /radar/detections/{detection_id}/actions/add-to-watchlist
+Add the detection’s instrument to a target watchlist, or to the default radar watchlist when none is specified.
+
+**Request body**
+```json
+{
+  "watchlist_id": 9
+}
+```
+
+---
+
+### POST /radar/detections/{detection_id}/actions/create-price-alert
+Create a price alert around the detection’s actionable level using the setup’s directional bias.
 
 ---
 

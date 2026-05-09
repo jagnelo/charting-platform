@@ -8,14 +8,31 @@ Create Date: 2026-05-04 00:00:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
+from alembic import op
 
 revision: str = "b7c8d9e0f1a2"
 down_revision: str | None = "a7b8c9d0e1f2"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+
+def _create_enum_if_missing(name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join(f"'{value}'" for value in values)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            BEGIN
+                EXECUTE format($ddl$CREATE TYPE %I AS ENUM ({quoted_values})$ddl$, '{name}');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END;
+        END
+        $$;
+        """
+    )
 
 
 def upgrade() -> None:
@@ -39,9 +56,18 @@ def upgrade() -> None:
         name="timeframe",
         create_type=False,
     )
-    bind = op.get_bind()
-    radar_run_status.create(bind, checkfirst=True)
-    radar_setup_type.create(bind, checkfirst=True)
+    _create_enum_if_missing("radarrunstatus", ("RUNNING", "COMPLETED", "FAILED"))
+    _create_enum_if_missing(
+        "radarsetuptype",
+        (
+            "APPROACHING_SUPPORT",
+            "APPROACHING_RESISTANCE",
+            "BREAKOUT",
+            "BREAKDOWN",
+            "RECLAIM",
+            "REJECTION",
+        ),
+    )
 
     op.create_table(
         "radar_run",
