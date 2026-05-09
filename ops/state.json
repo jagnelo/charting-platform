@@ -3,8 +3,8 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-07T17:55:00Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-08T00:38:00Z",
-  "last_commit": "bdfad22",
+  "last_handoff_at": "2026-05-09T18:26:25Z",
+  "last_commit": "93360e7",
   "git_ready_to_commit": true,
   "validation": {
     "backend_tests": "passed",
@@ -15,10 +15,11 @@
     "backend_log_check": "not_run"
   },
   "notes": [
-    "Radar v2 branch work is in progress on feat/technical-radar-v2 and is not committed yet.",
-    "The current Radar v2 baseline now includes richer structures, fakeout/failure/compression setup families, lifecycle transitions, timeframe-aware runs/filters/history, alert/watchlist workflows, outcome summaries, a radar dashboard widget, and chart-side focus-aware overlay handling.",
-    "Targeted radar backend unit tests passed, direct radar API integration tests passed, and the full backend unit suite passed via make test-unit.",
-    "Targeted frontend radar tests passed, frontend type-check passed, and the full frontend unit suite passed via make test-fe.",
-    "A combined backend unit+integration pytest invocation can still fail on Docker socket permissions in this environment because it falls back into the testcontainers fixture path."
+    "Radar v2 branch work is in progress on feat/technical-radar-v2 with additional uncommitted dashboard/radar UX and native-visual tuning changes ready to commit.",
+    "The dashboard radar widget now supports explicit dropdown-style multi-setup filtering instead of a free-text setup field.",
+    "The dashboard radar widget now opens an in-widget radar detail overlay on row click instead of redirecting immediately to /chart.",
+    "The /radar view now preserves its split layout longer under reduced horizontal space and switches its detections pane into a compact card list before the table becomes unreadable.",
+    "Radar-owned native visuals now use calmer glow and thinner default line widths across shared indicator/drawing primitives.",
+    "Targeted frontend radar/dashboard/widget tests passed, frontend type-check passed, and the full frontend unit suite passed."
   ]
 }

@@ -1628,6 +1628,51 @@ Why this was deferred:
 - Solving this correctly is architectural work, not a small feature patch.
 - Its value rises as more broad evaluators come online, especially radar expansion, breadth analysis, and future signal/strategy engines.
 
+### 13. Let multi-instrument dashboard widgets publish clicked instruments into dashboard link groups
+Status: `Deferred`
+
+Context:
+- We discussed a future dashboard interaction model where clicking an instrument inside a multi-instrument widget would not have to navigate away from the dashboard.
+- The main idea was that widgets such as:
+  - radar
+  - watchlists
+  - screener results
+  - heat maps
+  - and similar multi-instrument widgets
+  could eventually publish the clicked instrument into a chosen dashboard link group.
+- Linked quote/chart/details/options widgets could then update live from that click, preserving dashboard flow instead of forcing a route change.
+- We explicitly chose not to build this immediately, but we do not want to lose the concept.
+
+What this should eventually solve:
+- Allow multi-instrument widgets to act as dashboard instrument publishers, not only as isolated result lists.
+- Preserve a clear distinction between:
+  - widgets that consume a linked instrument
+  - widgets that can publish one when a user clicks a row/tile/item
+- Let users inspect a result locally first, then optionally broadcast that instrument context to the rest of the dashboard.
+
+Open questions to settle later:
+- How should a multi-instrument widget declare which link group it publishes into?
+  - fixed per widget
+  - chosen in widget config
+  - chosen ad hoc during interaction
+- Should a widget be allowed to consume one link group while publishing into another?
+- What is the UX split between:
+  - local row/detail inspection
+  - broadcasting to a link group
+  - opening the full `/chart` route
+- How do we make this predictable enough that users understand whether they are:
+  - selecting something locally
+  - updating a dashboard-wide context
+  - or navigating away?
+
+Suggested direction:
+- Treat this as a dashboard interaction-system feature, not as radar-only behavior.
+- Keep current widget-local detail interactions simple until the broader publisher/consumer dashboard-link model is designed properly.
+
+Why this was deferred:
+- It is cross-cutting dashboard architecture, not a small widget tweak.
+- We do not want to bolt it onto one widget first and then retrofit the dashboard model later.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.
