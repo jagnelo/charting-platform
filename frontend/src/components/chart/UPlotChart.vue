@@ -862,7 +862,7 @@ function drawingOverlayList(indicatorKey: string | null): AnyDrawing[] {
     {
       type: drawStore.activeToolType as DrawingType,
       points: previewPoints,
-      style: { color: '#ffffff88', lineWidth: 1 },
+      style: { color: '#ffffff88', lineWidth: 0.75 },
       isVisible: true,
     } as any,
   ]
@@ -1208,9 +1208,9 @@ function indicatorHighlightPlugin(): uPlot.Plugin {
           if (!seriesData) continue
 
           ctx.strokeStyle = meta.color
-          ctx.lineWidth   = ((meta.ind.style.lineWidth ?? 1) + 1.5) * dpr
+          ctx.lineWidth   = ((meta.ind.style.lineWidth ?? 0.75) + 1.1) * dpr
           ctx.shadowColor = meta.color
-          ctx.shadowBlur  = 8
+          ctx.shadowBlur  = 5
           ctx.setLineDash([])
           ctx.beginPath()
 
@@ -1254,10 +1254,10 @@ function radarIndicatorHighlightPlugin(): uPlot.Plugin {
           if (!seriesData) continue
 
           ctx.strokeStyle = meta.color
-          ctx.lineWidth = ((meta.ind.style.lineWidth ?? 1) + (radarSource === 'reuse' ? 1.4 : 0.8)) * dpr
+          ctx.lineWidth = ((meta.ind.style.lineWidth ?? 0.75) + (radarSource === 'reuse' ? 0.45 : 0.18)) * dpr
           ctx.shadowColor = meta.color
-          ctx.shadowBlur = (radarSource === 'reuse' ? 11 : 7) * Math.max(0.28, radarOpacity)
-          ctx.globalAlpha = Math.min(1, 0.7 + radarOpacity * 0.3)
+          ctx.shadowBlur = (radarSource === 'reuse' ? 4.5 : 2.8) * Math.max(0.2, radarOpacity)
+          ctx.globalAlpha = Math.min(0.78, 0.36 + radarOpacity * 0.28)
           ctx.setLineDash([])
           ctx.beginPath()
 
@@ -1311,7 +1311,7 @@ function buildSeries(): uPlot.Series[] {
       label:  meta.label,
       scale:  'y',
       stroke: meta.color,
-      width:  meta.ind.style.lineWidth ?? 1,
+      width:  meta.ind.style.lineWidth ?? 0.75,
       points: { show: false },
     })
   }
@@ -2111,7 +2111,7 @@ async function buildSubPanes() {
         ...outputs.map(o => ({
           label:  o.label,
           stroke: o.color,
-          width:  pane.config.style.lineWidth ?? 1,
+      width:  pane.config.style.lineWidth ?? 0.75,
           points: { show: false },
         })),
       ],
@@ -2461,7 +2461,7 @@ function setupDrawingInteraction(u: uPlot) {
       chartStore.addIndicator({
         type: 'avwap',
         params: { anchor_timestamp: anchorTime },
-        style: { color: '#80cbc4', lineWidth: 1 },
+        style: { color: '#80cbc4', lineWidth: 0.75 },
         pane: 'main',
       })
       drawStore.setAvwapDrop(false)
@@ -2947,7 +2947,7 @@ async function finishDrawing(points: DrawingPoint[], type: DrawingType, indicato
     half_circle: '#f06292',
   }
   activeDrawingPaneKey = null
-  await drawStore.saveDrawing({ type, points, style: { color: colors[type] ?? '#fff', lineWidth: 1 } } as any, false, indicatorKey)
+  await drawStore.saveDrawing({ type, points, style: { color: colors[type] ?? '#fff', lineWidth: 0.75 } } as any, false, indicatorKey)
   renderVisualOverlays()
 }
 

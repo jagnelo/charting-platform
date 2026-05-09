@@ -1026,7 +1026,7 @@ const editingInd = ref<IndicatorConfig | null>(null)
 const allTimeframes = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN'] as const
 const indFields  = reactive({
   color: '#fff',
-  lineWidth: 1,
+  lineWidth: 0.75,
   params: {} as Record<string, unknown>,
   tfMode: 'all' as 'all'|'locked',
   lockedTimeframes: [] as string[],
@@ -1038,7 +1038,7 @@ function openIndEditor(i: number) {
   editingIndIdx = i
   editingInd.value = ind
   indFields.color            = ind.style.color
-  indFields.lineWidth        = ind.style.lineWidth ?? 1
+  indFields.lineWidth        = ind.style.lineWidth ?? 0.75
   indFields.params           = normalizeIndicatorParams(ind.type, ind.params)
   indFields.lockedTimeframes = ind.lockedTimeframes ? [...ind.lockedTimeframes] : []
   indFields.tfMode           = indFields.lockedTimeframes.length ? 'locked' : 'all'
@@ -1129,14 +1129,14 @@ function indAlertLabel(a: IndicatorAlert): string {
 // ── Drawing editor ────────────────────────────────────────────────────────────
 const drawEditorOpen = ref(false)
 const editingDraw    = ref<ChartDrawing | null>(null)
-const drawFields     = reactive({ color: '#fff', lineWidth: 1, label: '', notes: '' })
+const drawFields     = reactive({ color: '#fff', lineWidth: 0.75, label: '', notes: '' })
 const drawPoints     = ref<Array<{ time: number; price: number }>>([])
 let   drawOriginalPoints: Array<{ time: number; price: number }> = []
 
 function openDrawEditor(d: ChartDrawing) {
   editingDraw.value    = d
   drawFields.color     = d.style?.color ?? '#ffffff'
-  drawFields.lineWidth = d.style?.lineWidth ?? 1
+  drawFields.lineWidth = d.style?.lineWidth ?? 0.75
   drawFields.label     = d.label ?? ''
   drawFields.notes     = d.notes ?? ''
   const pts = ((d.data as any)?.points ?? []) as Array<{ time: number; price: number }>

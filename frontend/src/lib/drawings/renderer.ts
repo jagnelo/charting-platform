@@ -63,11 +63,11 @@ export class DrawingRenderer {
     const stroke = s.color ?? '#ffffff'
     this.ctx.strokeStyle = s.color ?? '#ffffff'
     this.ctx.fillStyle = this.withFillAlpha(stroke, 0.2)
-    this.ctx.lineWidth = Math.max(0.5, s.lineWidth ?? 1)
+    this.ctx.lineWidth = Math.max(0.35, s.lineWidth ?? 0.75)
     this.ctx.globalAlpha = s.opacity ?? 1
     if ((drawing as AnyDrawing).radarLinked) {
       this.ctx.shadowColor = s.color ?? '#7dd3fc'
-      this.ctx.shadowBlur = 8 * Math.max(0.35, (drawing as AnyDrawing).radarHighlightOpacity ?? 0.75)
+      this.ctx.shadowBlur = 4 * Math.max(0.24, (drawing as AnyDrawing).radarHighlightOpacity ?? 0.75)
     }
     if (s.dashPattern?.length) {
       this.ctx.setLineDash(s.dashPattern)
