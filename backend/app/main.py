@@ -25,6 +25,7 @@ from app.routers import (
     radar,
     screener,
     screener_alerts,
+    strategy_lab,
     watchlists,
 )
 from app.services.alert_engine import run_alert_check
@@ -93,6 +94,7 @@ app.include_router(radar.router, prefix=PREFIX)
 app.include_router(alerts.router, prefix=PREFIX)
 app.include_router(alert_history.router, prefix=PREFIX)
 app.include_router(screener.router, prefix=PREFIX)
+app.include_router(strategy_lab.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)

@@ -455,7 +455,7 @@ Why this was deferred:
 - The real value comes from building the supervisor workflow around these rules, which is a separate piece of work from day-to-day platform development.
 
 ### 7. Build a Strategy Lab with backtesting, walk-forward testing, and paper forward testing, likely powered by Nautilus Trader as the simulation engine
-Status: `Deferred`
+Status: `In progress`
 
 Context:
 - Right after the Technical Radar / Level-of-Interest initiative, the next major research feature discussed was a strategy research and validation layer: a place where users can define strategies, run historical backtests, compare strategies against one another, and later forward test them in a paper/simulated manner.
@@ -516,6 +516,14 @@ Guiding architectural principles:
 - Support a future in which another engine or custom executor could sit behind the same platform-owned orchestration interfaces.
 
 What remains:
+
+- Continue from the newly landed Strategy Lab foundation now present in the codebase, which already establishes:
+  - persisted strategy definitions, versions, and runs
+  - a backend strategy-engine abstraction boundary with engine capability discovery
+  - a first platform-engine execution path that records real universe/coverage research snapshots
+  - a first frontend Strategy Lab surface for creating definitions, publishing versions, and launching persisted runs
+  - a clean separation between this research layer and present-looking products like Radar and Screeners
+- Evolve that foundation from "persisted research/run orchestration and coverage validation" into full historical simulation and evaluation.
 
 - Design and implement a platform-owned strategy domain model, including concepts such as:
   - strategy definition

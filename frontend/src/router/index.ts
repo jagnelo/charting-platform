@@ -8,6 +8,7 @@ import SettingsView  from '@/views/SettingsView.vue'
 import ScreenerView  from '@/views/ScreenerView.vue'
 import WatchlistView from '@/views/WatchlistView.vue'
 import RadarView     from '@/views/RadarView.vue'
+import StrategyLabView from '@/views/StrategyLabView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +20,7 @@ export const router = createRouter({
     { path: '/chart/:symbol(.*)', component: ChartView },
     { path: '/alerts',        component: AlertsView },
     { path: '/radar',         component: RadarView },
+    { path: '/strategy-lab',  component: StrategyLabView },
     { path: '/screener',      component: ScreenerView },
     { path: '/watchlist',     component: WatchlistView },
     { path: '/settings',      component: SettingsView },

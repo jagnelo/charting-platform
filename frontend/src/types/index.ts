@@ -816,6 +816,87 @@ export interface Dashboard {
   updated_at: string
 }
 
+// ── Strategy Lab ──────────────────────────────────────────────────────────────
+
+export type StrategySourceType = 'custom' | 'radar'
+export type StrategyDefinitionType = 'rules' | 'dsl' | 'python' | 'signal_source'
+export type StrategyEngineType = 'platform' | 'nautilus'
+export type StrategyTestMode = 'backtest' | 'walk_forward' | 'paper_forward'
+export type StrategyRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled'
+
+export interface StrategyVersion {
+  id: number
+  strategy_id: number
+  version_number: number
+  engine_type: StrategyEngineType | string
+  definition_snapshot: Record<string, any>
+  parameter_schema: Record<string, any>
+  default_parameters: Record<string, any>
+  universe_config: Record<string, any>
+  benchmark_config: Record<string, any>
+  execution_model: Record<string, any>
+  notes?: string | null
+  is_current: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyRun {
+  id: number
+  strategy_id: number
+  strategy_version_id: number
+  requested_by_user_id: number
+  engine_type: StrategyEngineType | string
+  test_mode: StrategyTestMode | string
+  status: StrategyRunStatus | string
+  timeframe?: string | null
+  started_at?: string | null
+  completed_at?: string | null
+  date_from?: string | null
+  date_to?: string | null
+  parameter_values: Record<string, any>
+  universe_config: Record<string, any>
+  benchmark_config: Record<string, any>
+  execution_assumptions: Record<string, any>
+  engine_run_ref?: string | null
+  result_summary: Record<string, any>
+  artifact_manifest: Record<string, any>
+  warning_log: any[]
+  error_log?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyDefinition {
+  id: number
+  user_id: number
+  name: string
+  description?: string | null
+  source_type: StrategySourceType | string
+  definition_type: StrategyDefinitionType | string
+  is_active: boolean
+  tags: string[]
+  metadata: Record<string, any>
+  versions: StrategyVersion[]
+  runs: StrategyRun[]
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyEngineCapability {
+  key: StrategyEngineType | string
+  label: string
+  is_available: boolean
+  supports_walk_forward: boolean
+  supports_paper_forward: boolean
+  notes?: string | null
+}
+
+export interface StrategyRunSubmitResponse {
+  run: StrategyRun
+  engine: StrategyEngineCapability
+}
+
 // ── Screener ──────────────────────────────────────────────────────────────────
 
 export type PriceChangePeriod = '1D' | '1W' | '1M' | 'MTD' | 'YTD' | '1Y'
