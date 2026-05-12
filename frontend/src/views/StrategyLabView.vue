@@ -11,7 +11,7 @@
 
       <div class="sidebar-note">
         <strong>Current focus</strong>
-        <p>Rule-built strategies are fully editable here now. Platform-signal replays will plug into the same workspace next.</p>
+        <p>Use this workspace to build, revise, and test strategies across backtest, walk-forward, and paper-forward research modes.</p>
       </div>
 
       <div class="definition-list">
@@ -86,18 +86,34 @@
         </div>
         <div class="hero-card">
           <span class="hero-label">Universe</span>
-          <strong>{{ logicDraft.symbols.length }}</strong>
-          <small>{{ logicDraft.symbols.slice(0, 4).join(', ') || 'Add symbols to define the strategy universe.' }}</small>
+          <strong>
+            {{
+              universeMode === 'watchlist'
+                ? (selectedWatchlist?.items.length ?? 0)
+                : universeMode === 'screener'
+                  ? 1
+                  : logicDraft.symbols.length
+            }}
+          </strong>
+          <small>
+            {{
+              universeMode === 'watchlist'
+                ? (selectedWatchlist?.name || 'Pick a watchlist universe.')
+                : universeMode === 'screener'
+                  ? (selectedScreener?.name || 'Pick a screener-backed universe.')
+                  : (logicDraft.symbols.slice(0, 4).join(', ') || 'Add symbols to define the strategy universe.')
+            }}
+          </small>
         </div>
         <div class="hero-card">
-          <span class="hero-label">Entry rules</span>
-          <strong>{{ logicDraft.conditions.length }}</strong>
-          <small>{{ logicDraft.entry_logic === 'all' ? 'All conditions must align' : 'Any one condition can trigger' }}</small>
+          <span class="hero-label">{{ sourceType === 'radar' ? 'Signal filters' : 'Entry rules' }}</span>
+          <strong>{{ sourceType === 'radar' ? radarDraft.setup_types.length || radarSetupOptions.length : conditionCount }}</strong>
+          <small>{{ sourceType === 'radar' ? 'Selected Radar setup families' : (rootGroupMode === 'all' ? 'All branches must align' : 'Any branch may trigger') }}</small>
         </div>
         <div class="hero-card">
-          <span class="hero-label">Backtests</span>
+          <span class="hero-label">Research runs</span>
           <strong>{{ selectedRuns.length }}</strong>
-          <small>{{ selectedRunDetail?.result_summary?.performance?.trade_count != null ? `${selectedRunDetail.result_summary.performance.trade_count} trades in selected run` : 'Run a backtest to inspect performance.' }}</small>
+          <small>{{ selectedRunDetail?.result_summary?.performance?.trade_count != null ? `${selectedRunDetail.result_summary.performance.trade_count} trades in selected run` : 'Run a strategy test to inspect performance.' }}</small>
         </div>
       </div>
 
@@ -114,6 +130,13 @@
             <label class="field">
               <span class="field-label">Name</span>
               <input v-model="draft.name" class="form-input" placeholder="Momentum Continuation" />
+            </label>
+            <label class="field">
+              <span class="field-label">Source</span>
+              <select v-model="sourceType" class="form-select">
+                <option value="custom">Custom rules</option>
+                <option value="radar">Platform signal research</option>
+              </select>
             </label>
             <label class="field">
               <span class="field-label">Tags</span>
@@ -136,28 +159,76 @@
           <div class="subsection">
             <div class="subsection-head">
               <h4>Universe</h4>
-              <HoverTooltip text="Add the symbols this strategy should evaluate by default. You can still run one-off backtests on a smaller subset later.">
+              <HoverTooltip text="Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.">
                 <button type="button" class="help-dot" aria-label="Universe info">i</button>
               </HoverTooltip>
             </div>
 
-            <div class="chip-row">
-              <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
-                {{ symbol }}
-                <button type="button" @click="removeSymbol(symbol)">×</button>
-              </span>
-              <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
+            <div class="form-grid two-up">
+              <label class="field">
+                <span class="field-label">Universe type</span>
+                <select v-model="universeMode" class="form-select">
+                  <option value="symbols">Manual symbols</option>
+                  <option value="watchlist">Watchlist</option>
+                  <option value="screener">Latest screener result</option>
+                </select>
+              </label>
+              <label v-if="universeMode === 'watchlist'" class="field">
+                <span class="field-label">Watchlist</span>
+                <select v-model="selectedWatchlistId" class="form-select">
+                  <option :value="null">Select watchlist</option>
+                  <option v-for="watchlist in availableWatchlists" :key="watchlist.id" :value="watchlist.id">
+                    {{ watchlist.name }}
+                  </option>
+                </select>
+              </label>
+              <label v-else-if="universeMode === 'screener'" class="field">
+                <span class="field-label">Screener</span>
+                <select v-model="selectedScreenerId" class="form-select">
+                  <option :value="null">Select screener</option>
+                  <option v-for="screener in availableScreeners" :key="screener.id" :value="screener.id">
+                    {{ screener.name }}
+                  </option>
+                </select>
+              </label>
             </div>
 
-            <div class="inline-form">
-              <input
-                v-model="symbolInput"
-                class="form-input"
-                placeholder="Add symbol (e.g. AAPL)"
-                @keydown.enter.prevent="addSymbolsFromInput"
-              />
-              <button class="btn-secondary" type="button" @click="addSymbolsFromInput">Add</button>
-            </div>
+            <template v-if="universeMode === 'symbols'">
+              <div class="chip-row">
+                <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
+                  {{ symbol }}
+                  <button type="button" @click="removeSymbol(symbol)">×</button>
+                </span>
+                <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
+              </div>
+
+              <div class="inline-form">
+                <input
+                  v-model="symbolInput"
+                  class="form-input"
+                  placeholder="Add symbol (e.g. AAPL)"
+                  @keydown.enter.prevent="addSymbolsFromInput"
+                />
+                <button class="btn-secondary" type="button" @click="addSymbolsFromInput">Add</button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="chip-row">
+                <span
+                  v-if="universeMode === 'watchlist'"
+                  v-for="item in selectedWatchlist?.items.slice(0, 10) ?? []"
+                  :key="item.id"
+                  class="symbol-chip symbol-chip--alt"
+                >
+                  {{ item.symbol || item.name || item.instrument_id }}
+                </span>
+                <span v-if="universeMode === 'watchlist' && !selectedWatchlist" class="empty-inline">Select a watchlist to define the universe.</span>
+                <span v-if="universeMode === 'screener' && selectedScreener" class="symbol-chip symbol-chip--alt">
+                  {{ selectedScreener.name }}
+                </span>
+                <span v-if="universeMode === 'screener' && !selectedScreener" class="empty-inline">Select a screener to use its latest results as the research universe.</span>
+              </div>
+            </template>
           </div>
 
           <div class="form-grid three-up">
@@ -184,85 +255,79 @@
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h3>Entry logic</h3>
-              <p>Choose how conditions combine and what market relationships should create an entry signal.</p>
-            </div>
-            <button class="btn-secondary" type="button" @click="addCondition">+ Condition</button>
-          </div>
-
-          <div class="form-grid two-up">
-            <label class="field">
-              <span class="field-label">
-                Trigger mode
-                <HoverTooltip text="All means every condition must be true together. Any means one matching condition is enough to create a signal.">
-                  <button type="button" class="help-dot" aria-label="Trigger mode info">i</button>
-                </HoverTooltip>
-              </span>
-              <select v-model="logicDraft.entry_logic" class="form-select">
-                <option value="all">All conditions</option>
-                <option value="any">Any condition</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Revision note</span>
-              <input v-model="versionNotes" class="form-input" placeholder="What changed in this revision?" />
-            </label>
-          </div>
-
-          <div class="condition-list">
-            <div v-for="(condition, index) in logicDraft.conditions" :key="condition.id" class="condition-card">
-              <div class="condition-head">
-                <strong>Condition {{ index + 1 }}</strong>
-                <button
-                  v-if="logicDraft.conditions.length > 1"
-                  class="icon-btn"
-                  type="button"
-                  @click="removeCondition(condition.id)"
-                >
-                  Remove
-                </button>
-              </div>
-
-              <div class="condition-grid">
-                <label class="field">
-                  <span class="field-label">Left side</span>
-                  <select v-model="condition.leftKind" class="form-select">
-                    <option v-for="option in leftSideOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-                <label v-if="needsPeriod(condition.leftKind)" class="field">
-                  <span class="field-label">Period</span>
-                  <input v-model.number="condition.leftPeriod" type="number" min="1" class="form-input" />
-                </label>
-                <label class="field">
-                  <span class="field-label">Relationship</span>
-                  <select v-model="condition.operator" class="form-select">
-                    <option v-for="option in operatorOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span class="field-label">Right side</span>
-                  <select v-model="condition.rightKind" class="form-select">
-                    <option v-for="option in rightSideOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-                <label v-if="condition.rightKind === 'value'" class="field">
-                  <span class="field-label">Value</span>
-                  <input v-model.number="condition.rightValue" type="number" step="0.01" class="form-input" />
-                </label>
-                <label v-if="needsPeriod(condition.rightKind)" class="field">
-                  <span class="field-label">Period</span>
-                  <input v-model.number="condition.rightPeriod" type="number" min="1" class="form-input" />
-                </label>
-              </div>
+              <h3>{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
+              <p>
+                {{
+                  sourceType === 'radar'
+                    ? 'Choose which Radar detections should be replayed and validated through this research run.'
+                    : 'Choose how conditions combine and what market relationships should create an entry signal.'
+                }}
+              </p>
             </div>
           </div>
+
+          <template v-if="sourceType === 'custom'">
+            <div class="form-grid one-up">
+              <label class="field">
+                <span class="field-label">Revision note</span>
+                <input v-model="versionNotes" class="form-input" placeholder="What changed in this revision?" />
+              </label>
+            </div>
+            <div class="tree-builder-note">
+              Use nested <code>All</code>, <code>Any</code>, and <code>NOT</code> groups to express the full rule tree instead of flattening everything into one list.
+            </div>
+            <StrategyRuleTreeEditor
+              :node="logicDraft.ruleTree"
+              :depth="0"
+              :can-remove="false"
+              :left-side-options="leftSideOptions"
+              :right-side-options="rightSideOptions"
+              :operator-options="operatorOptions"
+              @remove="removeNodeFromTree"
+              @add-condition="addConditionToTree"
+              @add-group="(nodeId, type) => addGroupToTree(nodeId, type)"
+            />
+          </template>
+          <template v-else>
+            <div class="form-grid two-up">
+              <label class="field">
+                <span class="field-label">Revision note</span>
+                <input v-model="versionNotes" class="form-input" placeholder="What changed in this revision?" />
+              </label>
+              <label class="field">
+                <span class="field-label">Minimum score</span>
+                <input v-model.number="radarDraft.min_score" type="number" min="0" max="1" step="0.01" class="form-input" />
+              </label>
+            </div>
+            <div class="form-grid two-up">
+              <label class="field">
+                <span class="field-label">Setup families</span>
+                <div class="check-grid">
+                  <label v-for="option in radarSetupOptions" :key="option.value" class="check-pill">
+                    <input
+                      :checked="radarDraft.setup_types.includes(option.value)"
+                      type="checkbox"
+                      @change="toggleMultiValue(radarDraft.setup_types, option.value)"
+                    />
+                    <span>{{ option.label }}</span>
+                  </label>
+                </div>
+              </label>
+              <label class="field">
+                <span class="field-label">States</span>
+                <div class="check-grid">
+                  <label v-for="option in radarStateOptions" :key="option.value" class="check-pill">
+                    <input
+                      :checked="radarDraft.states.includes(option.value)"
+                      type="checkbox"
+                      @change="toggleMultiValue(radarDraft.states, option.value)"
+                    />
+                    <span>{{ option.label }}</span>
+                  </label>
+                </div>
+              </label>
+            </div>
+          </template>
 
           <div class="rule-preview">
             <span class="rule-preview__label">How this reads</span>
@@ -308,19 +373,31 @@
               </span>
               <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="1" step="1" class="form-input" />
             </label>
+            <label class="field">
+              <span class="field-label">Break-even after R</span>
+              <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
+            </label>
+            <label class="field">
+              <span class="field-label">Trail stop after R</span>
+              <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
+            </label>
+            <label class="field">
+              <span class="field-label">Max entries</span>
+              <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
+            </label>
           </div>
 
           <div class="execution-summary">
             <strong>Execution model</strong>
-            <p>Entries and exits are simulated directly from the completed bar stream. Stops, targets, time exits, slippage, and commissions are all applied when you run the backtest.</p>
+            <p>Entries and exits are simulated directly from the completed bar stream. Stops, targets, break-even promotion, trailing logic, pyramiding, slippage, and commissions are all applied when you run the research job.</p>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h3>Backtest</h3>
-              <p>Run the current published revision over a chosen time range and inspect the resulting trades and curve.</p>
+              <h3>Research runs</h3>
+              <p>Run the current published revision as a straight backtest, a segmented walk-forward pass, or a paper-forward style continuation window.</p>
             </div>
             <button
               v-if="currentVersion && !isNew"
@@ -329,19 +406,19 @@
               @click="runCurrentVersion"
               :disabled="strategyLab.isRunning"
             >
-              {{ strategyLab.isRunning ? 'Running…' : 'Run backtest' }}
+              {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
             </button>
           </div>
 
           <div class="mode-strip">
-            <span class="mode-pill mode-pill--active">Backtest</span>
-            <span class="mode-pill">Walk forward</span>
-            <span class="mode-pill">Paper forward</span>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" @click="runDraft.test_mode = 'backtest'">Backtest</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'paper_forward' }" @click="runDraft.test_mode = 'paper_forward'">Paper forward</button>
           </div>
 
           <div class="form-grid three-up">
             <label class="field">
-              <span class="field-label">Backtest timeframe</span>
+              <span class="field-label">Run timeframe</span>
               <select v-model="runDraft.timeframe" class="form-select">
                 <option value="">Use strategy timeframe</option>
                 <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
@@ -371,6 +448,66 @@
               <span class="field-label">Commission per trade</span>
               <input v-model.number="runDraft.commission_per_trade" type="number" min="0" step="0.1" class="form-input" />
             </label>
+            <label class="field">
+              <span class="field-label">Max concurrent positions</span>
+              <input v-model.number="runDraft.max_concurrent_positions" type="number" min="1" step="1" class="form-input" />
+            </label>
+            <label class="field">
+              <span class="field-label">Max portfolio risk %</span>
+              <input v-model.number="runDraft.max_portfolio_risk_pct" type="number" min="0.5" step="0.5" class="form-input" />
+            </label>
+            <label class="field">
+              <span class="field-label">Max symbol allocation %</span>
+              <input v-model.number="runDraft.max_symbol_allocation_pct" type="number" min="1" max="100" step="1" class="form-input" />
+            </label>
+          </div>
+
+          <div v-if="runDraft.test_mode === 'walk_forward'" class="form-grid two-up">
+            <label class="field">
+              <span class="field-label">Segments</span>
+              <input v-model.number="runDraft.walk_forward_segments" type="number" min="2" step="1" class="form-input" />
+            </label>
+            <label class="field">
+              <span class="field-label">Training share</span>
+              <input v-model.number="runDraft.walk_forward_training_share" type="number" min="0.3" max="0.9" step="0.05" class="form-input" />
+            </label>
+          </div>
+
+          <div v-if="runDraft.test_mode === 'paper_forward'" class="form-grid two-up">
+            <label class="field">
+              <span class="field-label">Forward window bars</span>
+              <input v-model.number="runDraft.paper_forward_bars" type="number" min="5" step="1" class="form-input" />
+            </label>
+            <div class="run-mode-note">
+              Refreshing a paper-forward run replays the same published logic against the latest available bars and appends a monitor snapshot so you can track evolution over time.
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head">
+              <h4>Parameter sweep</h4>
+              <HoverTooltip text="Turn this on to evaluate a small grid of stop, target, and holding-period combinations alongside the main run.">
+                <button type="button" class="help-dot" aria-label="Parameter sweep info">i</button>
+              </HoverTooltip>
+            </div>
+            <label class="field field--checkbox">
+              <input v-model="runDraft.optimization_enabled" type="checkbox" />
+              <span>Evaluate parameter sweep leaderboard</span>
+            </label>
+            <div v-if="runDraft.optimization_enabled" class="form-grid three-up">
+              <label class="field">
+                <span class="field-label">Stop % values</span>
+                <input v-model="runDraft.stop_loss_pct_values" class="form-input" placeholder="1.5, 2, 2.5, 3" />
+              </label>
+              <label class="field">
+                <span class="field-label">Target R values</span>
+                <input v-model="runDraft.take_profit_rr_values" class="form-input" placeholder="1.5, 2, 2.5, 3" />
+              </label>
+              <label class="field">
+                <span class="field-label">Max bars values</span>
+                <input v-model="runDraft.max_bars_in_trade_values" class="form-input" placeholder="10, 15, 20, 30" />
+              </label>
+            </div>
           </div>
 
           <div class="subsection">
@@ -427,11 +564,40 @@
         <div class="panel-head">
           <div>
             <h3>Results</h3>
-            <p>Inspect how the selected backtest behaved, which trades it took, and where the main risks showed up.</p>
+            <p>Inspect returns, benchmark context, drawdowns, symbol attribution, optimization output, and execution details for the selected run.</p>
+          </div>
+          <div v-if="selectedRunDetail" class="detail-actions">
+            <button
+              v-if="selectedRunDetail.test_mode === 'paper_forward'"
+              class="btn-secondary"
+              type="button"
+              @click="refreshPaperForwardRun"
+              :disabled="strategyLab.isRunning"
+            >
+              {{ strategyLab.isRunning ? 'Refreshing…' : 'Refresh paper-forward' }}
+            </button>
+            <button class="btn-secondary" type="button" @click="exportSummaryJson">Export summary</button>
+            <button class="btn-secondary" type="button" @click="exportTradesCsv">Export trades CSV</button>
           </div>
         </div>
 
         <div v-if="selectedRunDetail" class="run-detail">
+          <div class="form-grid two-up" v-if="selectedRuns.length > 1">
+            <label class="field">
+              <span class="field-label">Compare against</span>
+              <select v-model="compareRunId" class="form-select">
+                <option :value="null">No comparison</option>
+                <option
+                  v-for="run in compareCandidates"
+                  :key="run.id"
+                  :value="run.id"
+                >
+                  {{ formatDateTime(run.created_at) }} · {{ humanizeToken(run.test_mode) }}
+                </option>
+              </select>
+            </label>
+          </div>
+
           <div class="run-summary-grid">
             <div class="summary-card">
               <span class="summary-label">Net return</span>
@@ -460,12 +626,34 @@
               <div class="equity-panel">
                 <div class="equity-panel__head">
                   <strong>Equity curve</strong>
-                  <span>{{ selectedRunDetail.result_summary.result_kind === 'rules_backtest' ? 'Backtest progression' : 'Research snapshot' }}</span>
+                  <span>{{ humanizeToken(selectedRunDetail.result_summary.result_kind || selectedRunDetail.test_mode) }}</span>
                 </div>
                 <svg v-if="equityPolyline" viewBox="0 0 320 120" class="equity-chart" role="img" aria-label="Equity curve">
                   <polyline :points="equityPolyline" />
                 </svg>
                 <div v-else class="empty-inline">No equity curve for this run yet.</div>
+              </div>
+
+              <div class="equity-panel">
+                <div class="equity-panel__head">
+                  <strong>Benchmark</strong>
+                  <span>{{ selectedRunDetail.result_summary.benchmark?.symbol || 'No benchmark' }}</span>
+                </div>
+                <svg v-if="benchmarkPolyline" viewBox="0 0 320 120" class="equity-chart equity-chart--benchmark" role="img" aria-label="Benchmark curve">
+                  <polyline :points="benchmarkPolyline" />
+                </svg>
+                <div v-else class="empty-inline">No benchmark curve for this run yet.</div>
+              </div>
+
+              <div class="equity-panel">
+                <div class="equity-panel__head">
+                  <strong>Drawdown</strong>
+                  <span>{{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess</span>
+                </div>
+                <svg v-if="drawdownPolyline" viewBox="0 0 320 120" class="equity-chart equity-chart--drawdown" role="img" aria-label="Drawdown curve">
+                  <polyline :points="drawdownPolyline" />
+                </svg>
+                <div v-else class="empty-inline">No drawdown curve for this run yet.</div>
               </div>
 
               <div class="warnings-panel">
@@ -480,6 +668,123 @@
             </div>
 
             <div class="result-column result-column--wide">
+              <div class="result-panels-grid">
+                <div class="mini-panel">
+                  <div class="subsection-head"><h4>Monthly returns</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="row in monthlyReturns.slice(0, 8)" :key="row.period">
+                      <span>{{ row.period }}</span>
+                      <strong>{{ row.return_pct != null ? formatPercent(row.return_pct) : '—' }}</strong>
+                    </li>
+                    <li v-if="!monthlyReturns.length">No monthly return breakdown yet.</li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel">
+                  <div class="subsection-head"><h4>Quarterly returns</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="row in quarterlyReturns.slice(0, 6)" :key="row.period">
+                      <span>{{ row.period }}</span>
+                      <strong>{{ row.return_pct != null ? formatPercent(row.return_pct) : '—' }}</strong>
+                    </li>
+                    <li v-if="!quarterlyReturns.length">No quarterly return breakdown yet.</li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel">
+                  <div class="subsection-head"><h4>Per symbol</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="row in symbolPerformance.slice(0, 8)" :key="row.symbol">
+                      <span>{{ row.symbol }}</span>
+                      <strong>{{ formatMoney(row.net_pnl) }}</strong>
+                    </li>
+                    <li v-if="!symbolPerformance.length">No per-symbol attribution yet.</li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="selectedRunDetail.result_summary.portfolio">
+                  <div class="subsection-head"><h4>Portfolio controls</h4></div>
+                  <ul class="detail-list">
+                    <li>
+                      <span>Accepted trades</span>
+                      <strong>{{ selectedRunDetail.result_summary.portfolio.accepted_trade_count ?? 0 }}</strong>
+                    </li>
+                    <li>
+                      <span>Rejected trades</span>
+                      <strong>{{ selectedRunDetail.result_summary.portfolio.rejected_trade_count ?? 0 }}</strong>
+                    </li>
+                    <li>
+                      <span>Peak concurrent</span>
+                      <strong>{{ selectedRunDetail.result_summary.portfolio.peak_concurrent_positions ?? 0 }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="selectedRunDetail.result_summary.signal_summary">
+                  <div class="subsection-head"><h4>Signal replay</h4></div>
+                  <ul class="detail-list">
+                    <li>
+                      <span>Signals</span>
+                      <strong>{{ selectedRunDetail.result_summary.signal_summary.signal_count ?? 0 }}</strong>
+                    </li>
+                    <li>
+                      <span>Replayed</span>
+                      <strong>{{ selectedRunDetail.result_summary.signal_summary.replayed_signal_count ?? 0 }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="optimizationRows.length">
+                  <div class="subsection-head"><h4>Optimization</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="(row, index) in optimizationRows.slice(0, 5)" :key="`${row.stop_loss_pct}-${row.take_profit_rr}-${row.max_bars_in_trade}`">
+                      <span>#{{ index + 1 }} · {{ row.stop_loss_pct }}% / {{ row.take_profit_rr }}R / {{ row.max_bars_in_trade }} bars</span>
+                      <strong>{{ formatMoney(row.net_pnl) }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="walkForwardSegments.length">
+                  <div class="subsection-head"><h4>Walk-forward</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="segment in walkForwardSegments" :key="segment.segment">
+                      <span>Segment {{ segment.segment }}</span>
+                      <strong>{{ segment.out_sample_return_pct != null ? formatPercent(segment.out_sample_return_pct) : '—' }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="paperForwardSnapshots.length">
+                  <div class="subsection-head"><h4>Paper-forward monitor</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="snapshot in paperForwardSnapshots.slice(-6).reverse()" :key="snapshot.snapshot_at">
+                      <span>{{ formatShortDateTime(snapshot.snapshot_at) }}</span>
+                      <strong>{{ formatMoney(snapshot.latest_equity) }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="comparisonRows.length">
+                  <div class="subsection-head"><h4>Run comparison</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="row in comparisonRows" :key="row.label">
+                      <span>{{ row.label }}</span>
+                      <strong>{{ row.current }} vs {{ row.compare }}</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mini-panel" v-if="tradeDistributions.r_histogram?.length">
+                  <div class="subsection-head"><h4>R distribution</h4></div>
+                  <ul class="detail-list">
+                    <li v-for="(row, index) in tradeDistributions.r_histogram.slice(0, 6)" :key="`r-${index}`">
+                      <span>{{ row.lower }} → {{ row.upper }}</span>
+                      <strong>{{ row.count }}</strong>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
               <div class="trade-table-wrap">
                 <table class="trade-table">
                   <thead>
@@ -525,14 +830,18 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
+import StrategyRuleTreeEditor from '@/components/strategy/StrategyRuleTreeEditor.vue'
+import { api } from '@/lib/api'
 import { useStrategyLabStore } from '@/stores/strategyLab'
-import type { StrategyDefinition, StrategyRun, StrategyVersion } from '@/types'
+import type { StrategyDefinition, StrategyRun, StrategyVersion, Watchlist } from '@/types'
 
 type RuleSideKind = 'close' | 'sma' | 'ema' | 'rsi'
 type RuleOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'crosses_above' | 'crosses_below'
+type StrategyUniverseMode = 'symbols' | 'watchlist' | 'screener'
 
-interface BuilderCondition {
+interface BuilderConditionNode {
   id: string
+  kind: 'condition'
   leftKind: RuleSideKind
   leftPeriod: number
   operator: RuleOperator
@@ -541,8 +850,59 @@ interface BuilderCondition {
   rightValue: number
 }
 
+interface BuilderGroupNode {
+  id: string
+  kind: 'group'
+  type: 'all' | 'any'
+  children: BuilderRuleNode[]
+}
+
+interface BuilderNotNode {
+  id: string
+  kind: 'not'
+  condition: BuilderRuleNode | null
+}
+
+type BuilderRuleNode = BuilderConditionNode | BuilderGroupNode | BuilderNotNode
+
+interface RadarReplayDraft {
+  setup_types: string[]
+  states: string[]
+  min_score: number
+}
+
+interface ScreenerOption {
+  id: number
+  name: string
+}
+
 const strategyLab = useStrategyLabStore()
+const availableWatchlists = ref<Watchlist[]>([])
+const availableScreeners = ref<ScreenerOption[]>([])
 const timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
+const radarSetupOptions = [
+  { value: 'approaching_support', label: 'Approaching support' },
+  { value: 'approaching_resistance', label: 'Approaching resistance' },
+  { value: 'breakout', label: 'Breakout' },
+  { value: 'breakout_retest', label: 'Breakout retest' },
+  { value: 'breakdown', label: 'Breakdown' },
+  { value: 'breakdown_retest', label: 'Breakdown retest' },
+  { value: 'fakeout', label: 'Fakeout' },
+  { value: 'fakedown', label: 'Fakedown' },
+  { value: 'failed_reclaim', label: 'Failed reclaim' },
+  { value: 'failed_breakdown_recovery', label: 'Failed breakdown recovery' },
+  { value: 'compression_support', label: 'Compression support' },
+  { value: 'compression_resistance', label: 'Compression resistance' },
+  { value: 'reclaim', label: 'Reclaim' },
+  { value: 'rejection', label: 'Rejection' },
+]
+const radarStateOptions = [
+  { value: 'developing', label: 'Developing' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'resolved', label: 'Resolved' },
+  { value: 'invalidated', label: 'Invalidated' },
+  { value: 'stale', label: 'Stale' },
+]
 const leftSideOptions = [
   { value: 'close', label: 'Close price' },
   { value: 'sma', label: 'SMA' },
@@ -570,6 +930,11 @@ const tagsInput = ref('')
 const versionNotes = ref('')
 const symbolInput = ref('')
 const runSymbolInput = ref('')
+const sourceType = ref<'custom' | 'radar'>('custom')
+const universeMode = ref<StrategyUniverseMode>('symbols')
+const selectedWatchlistId = ref<number | null>(null)
+const selectedScreenerId = ref<number | null>(null)
+const compareRunId = ref<number | null>(null)
 
 const draft = reactive({
   name: '',
@@ -580,16 +945,25 @@ const draft = reactive({
 const logicDraft = reactive({
   timeframe: 'D1',
   direction: 'long',
-  entry_logic: 'all',
   stop_loss_pct: 2,
   take_profit_rr: 2,
   max_bars_in_trade: 20,
+  break_even_rr: 0,
+  trailing_stop_rr: 0,
+  pyramiding_max_entries: 1,
   benchmark_symbol: 'SPY',
   symbols: [] as string[],
-  conditions: [createCondition()] as BuilderCondition[],
+  ruleTree: createGroupNode('all', [createConditionNode()]) as BuilderGroupNode,
+})
+
+const radarDraft = reactive<RadarReplayDraft>({
+  setup_types: [],
+  states: [],
+  min_score: 0.65,
 })
 
 const runDraft = reactive({
+  test_mode: 'backtest' as 'backtest' | 'walk_forward' | 'paper_forward',
   timeframe: '',
   date_from: '',
   date_to: '',
@@ -597,6 +971,16 @@ const runDraft = reactive({
   risk_per_trade_pct: 1,
   slippage_bps: 5,
   commission_per_trade: 0,
+  walk_forward_segments: 3,
+  walk_forward_training_share: 0.6,
+  paper_forward_bars: 20,
+  max_concurrent_positions: 4,
+  max_portfolio_risk_pct: 4,
+  max_symbol_allocation_pct: 35,
+  optimization_enabled: false,
+  stop_loss_pct_values: '1.5, 2, 2.5, 3',
+  take_profit_rr_values: '1.5, 2, 2.5, 3',
+  max_bars_in_trade_values: '10, 15, 20, 30',
   overrideSymbols: [] as string[],
 })
 
@@ -605,10 +989,31 @@ const currentVersion = computed<StrategyVersion | null>(() =>
   ?? strategyLab.selectedDefinition?.versions[0]
   ?? null
 )
+const selectedWatchlist = computed(() =>
+  availableWatchlists.value.find(item => item.id === selectedWatchlistId.value) ?? null
+)
+const selectedScreener = computed(() =>
+  availableScreeners.value.find(item => item.id === selectedScreenerId.value) ?? null
+)
 
 const selectedRuns = computed<StrategyRun[]>(() => strategyLab.selectedDefinition?.runs ?? [])
 const selectedRunDetail = computed<StrategyRun | null>(() =>
   selectedRuns.value.find(run => run.id === strategyLab.selectedRunId) ?? selectedRuns.value[0] ?? null
+)
+const compareCandidates = computed<StrategyRun[]>(() =>
+  selectedRunDetail.value
+    ? selectedRuns.value.filter(run => run.id !== selectedRunDetail.value?.id)
+    : []
+)
+const compareRun = computed<StrategyRun | null>(() =>
+  selectedRuns.value.find(run => run.id === compareRunId.value) ?? null
+)
+const conditionCount = computed(() => countConditionLeaves(logicDraft.ruleTree))
+const rootGroupMode = computed(() => logicDraft.ruleTree.type)
+const paperForwardSnapshots = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.paper_forward?.monitor_snapshots)
+    ? selectedRunDetail.value?.result_summary?.paper_forward?.monitor_snapshots
+    : []
 )
 
 const performance = computed<Record<string, number | null>>(() =>
@@ -621,39 +1026,126 @@ const visibleTrades = computed<any[]>(() =>
     : []
 )
 
+const benchmarkCurve = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.benchmark?.equity_curve)
+    ? selectedRunDetail.value?.result_summary?.benchmark?.equity_curve
+    : []
+)
+
+const drawdownCurve = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.analytics?.drawdown_curve)
+    ? selectedRunDetail.value?.result_summary?.analytics?.drawdown_curve
+    : []
+)
+
+const monthlyReturns = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.analytics?.monthly_returns)
+    ? selectedRunDetail.value?.result_summary?.analytics?.monthly_returns
+    : []
+)
+
+const quarterlyReturns = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.analytics?.quarterly_returns)
+    ? selectedRunDetail.value?.result_summary?.analytics?.quarterly_returns
+    : []
+)
+
+const symbolPerformance = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.symbol_performance)
+    ? selectedRunDetail.value?.result_summary?.symbol_performance
+    : []
+)
+
+const optimizationRows = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.optimization?.leaderboard)
+    ? selectedRunDetail.value?.result_summary?.optimization?.leaderboard
+    : []
+)
+
+const walkForwardSegments = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.walk_forward?.segments)
+    ? selectedRunDetail.value?.result_summary?.walk_forward?.segments
+    : []
+)
+
+const tradeDistributions = computed<Record<string, any>>(() =>
+  selectedRunDetail.value?.result_summary?.analytics?.trade_distributions ?? {}
+)
+
+const comparisonRows = computed(() => {
+  if (!selectedRunDetail.value || !compareRun.value) return []
+  return [
+    comparisonMetric('Net return', selectedRunDetail.value.result_summary?.performance?.net_return_pct, compareRun.value.result_summary?.performance?.net_return_pct, '%'),
+    comparisonMetric('Win rate', selectedRunDetail.value.result_summary?.performance?.win_rate, compareRun.value.result_summary?.performance?.win_rate, '%'),
+    comparisonMetric('Expectancy', selectedRunDetail.value.result_summary?.performance?.expectancy_r, compareRun.value.result_summary?.performance?.expectancy_r, 'R'),
+    comparisonMetric('Drawdown', selectedRunDetail.value.result_summary?.performance?.max_drawdown_pct, compareRun.value.result_summary?.performance?.max_drawdown_pct, '%'),
+    comparisonMetric('Trade count', selectedRunDetail.value.result_summary?.performance?.trade_count, compareRun.value.result_summary?.performance?.trade_count, ''),
+  ]
+})
+
 const equityPolyline = computed(() => {
   const points = selectedRunDetail.value?.result_summary?.equity_curve
   if (!Array.isArray(points) || points.length < 2) return ''
   const values = points.map((point: any) => Number(point.equity)).filter(Number.isFinite)
   if (values.length < 2) return ''
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const width = 320
-  const height = 120
-  return values
-    .map((value, index) => {
-      const x = (index / Math.max(values.length - 1, 1)) * width
-      const y = max === min ? height / 2 : height - ((value - min) / (max - min)) * (height - 12) - 6
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
+  return buildPolyline(values, 320, 120)
+})
+
+const benchmarkPolyline = computed(() => {
+  const values = benchmarkCurve.value.map((point: any) => Number(point.equity)).filter(Number.isFinite)
+  if (values.length < 2) return ''
+  return buildPolyline(values, 320, 120)
+})
+
+const drawdownPolyline = computed(() => {
+  const values = drawdownCurve.value
+    .map((point: any) => Number(point.drawdown_pct))
+    .filter(Number.isFinite)
+  if (values.length < 2) return ''
+  return buildPolyline(values, 320, 120)
 })
 
 const strategyNarrative = computed(() => {
-  const conditionText = logicDraft.conditions.map(describeCondition).join(
-    logicDraft.entry_logic === 'all' ? ' and ' : ' or ',
-  )
-  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using a ${logicDraft.stop_loss_pct}% stop, a ${logicDraft.take_profit_rr}R target, and a ${logicDraft.max_bars_in_trade}-bar time exit.`
+  if (sourceType.value === 'radar') {
+    const setupText = radarDraft.setup_types.length
+      ? radarDraft.setup_types.map(humanizeToken).join(', ')
+      : 'all setup families'
+    const stateText = radarDraft.states.length
+      ? radarDraft.states.map(humanizeToken).join(', ')
+      : 'all lifecycle states'
+    return `Replay ${setupText} Radar signals on ${logicDraft.timeframe}, filtering to ${stateText} and score ${radarDraft.min_score.toFixed(2)} or higher, then evaluate them with the current stop, target, and timing model.`
+  }
+  const conditionText = describeRuleNode(logicDraft.ruleTree)
+  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using a ${logicDraft.stop_loss_pct}% stop, a ${logicDraft.take_profit_rr}R target, break-even after ${logicDraft.break_even_rr}R, trailing after ${logicDraft.trailing_stop_rr}R, and a ${logicDraft.max_bars_in_trade}-bar time exit.`
 })
 
 const canPublish = computed(() =>
   Boolean(draft.name.trim())
-  && logicDraft.symbols.length > 0
-  && logicDraft.conditions.length > 0
+  && (
+    logicDraft.symbols.length > 0
+    || selectedWatchlistId.value != null
+    || selectedScreenerId.value != null
+  )
+  && (
+    sourceType.value === 'radar'
+      || conditionCount.value > 0
+  )
 )
 
 onMounted(async () => {
-  await strategyLab.loadAll()
+  await Promise.all([
+    strategyLab.loadAll(),
+    api.get<Watchlist[]>('/watchlists').then(rows => {
+      availableWatchlists.value = rows
+    }).catch(() => {
+      availableWatchlists.value = []
+    }),
+    api.get<ScreenerOption[]>('/screeners').then(rows => {
+      availableScreeners.value = rows.map(row => ({ id: row.id, name: row.name }))
+    }).catch(() => {
+      availableScreeners.value = []
+    }),
+  ])
   hydrateFromSelection(strategyLab.selectedDefinition)
 })
 
@@ -661,9 +1153,19 @@ watch(() => strategyLab.selectedDefinition, value => {
   hydrateFromSelection(value)
 })
 
-function createCondition(overrides: Partial<BuilderCondition> = {}): BuilderCondition {
+watch(universeMode, mode => {
+  if (mode !== 'watchlist') selectedWatchlistId.value = null
+  if (mode !== 'screener') selectedScreenerId.value = null
+})
+
+function createNodeId() {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function createConditionNode(overrides: Partial<BuilderConditionNode> = {}): BuilderConditionNode {
   return {
-    id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: createNodeId(),
+    kind: 'condition',
     leftKind: 'close',
     leftPeriod: 20,
     operator: 'gt',
@@ -674,25 +1176,56 @@ function createCondition(overrides: Partial<BuilderCondition> = {}): BuilderCond
   }
 }
 
+function createGroupNode(
+  type: 'all' | 'any',
+  children: BuilderRuleNode[] = [createConditionNode()],
+): BuilderGroupNode {
+  return {
+    id: createNodeId(),
+    kind: 'group',
+    type,
+    children,
+  }
+}
+
+function createNotNode(condition: BuilderRuleNode | null = createConditionNode()): BuilderNotNode {
+  return {
+    id: createNodeId(),
+    kind: 'not',
+    condition,
+  }
+}
+
 function startNew() {
   isNew.value = true
   strategyLab.selectDefinition(null)
   draft.name = ''
   draft.description = ''
   draft.is_active = true
+  sourceType.value = 'custom'
+  universeMode.value = 'symbols'
+  selectedWatchlistId.value = null
+  selectedScreenerId.value = null
+  compareRunId.value = null
   tagsInput.value = ''
   versionNotes.value = ''
   symbolInput.value = ''
   runSymbolInput.value = ''
   logicDraft.timeframe = 'D1'
   logicDraft.direction = 'long'
-  logicDraft.entry_logic = 'all'
   logicDraft.stop_loss_pct = 2
   logicDraft.take_profit_rr = 2
   logicDraft.max_bars_in_trade = 20
+  logicDraft.break_even_rr = 0
+  logicDraft.trailing_stop_rr = 0
+  logicDraft.pyramiding_max_entries = 1
   logicDraft.benchmark_symbol = 'SPY'
   logicDraft.symbols = []
-  logicDraft.conditions = [createCondition()]
+  logicDraft.ruleTree = createGroupNode('all', [createConditionNode()])
+  radarDraft.setup_types = []
+  radarDraft.states = []
+  radarDraft.min_score = 0.65
+  runDraft.test_mode = 'backtest'
   runDraft.timeframe = ''
   runDraft.date_from = ''
   runDraft.date_to = ''
@@ -700,6 +1233,16 @@ function startNew() {
   runDraft.risk_per_trade_pct = 1
   runDraft.slippage_bps = 5
   runDraft.commission_per_trade = 0
+  runDraft.walk_forward_segments = 3
+  runDraft.walk_forward_training_share = 0.6
+  runDraft.paper_forward_bars = 20
+  runDraft.max_concurrent_positions = 4
+  runDraft.max_portfolio_risk_pct = 4
+  runDraft.max_symbol_allocation_pct = 35
+  runDraft.optimization_enabled = false
+  runDraft.stop_loss_pct_values = '1.5, 2, 2.5, 3'
+  runDraft.take_profit_rr_values = '1.5, 2, 2.5, 3'
+  runDraft.max_bars_in_trade_values = '10, 15, 20, 30'
   runDraft.overrideSymbols = []
 }
 
@@ -718,41 +1261,83 @@ function hydrateFromSelection(definition: StrategyDefinition | null | undefined)
   draft.name = definition.name
   draft.description = definition.description ?? ''
   draft.is_active = definition.is_active
+  sourceType.value = definition.source_type === 'radar' ? 'radar' : 'custom'
   tagsInput.value = definition.tags.join(', ')
 
   const liveVersion = definition.versions.find(version => version.is_current) ?? definition.versions[0]
   hydrateFromVersion(liveVersion)
+  compareRunId.value = definition.runs[1]?.id ?? null
 }
 
 function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   if (!version) return
   const snapshot = version.definition_snapshot ?? {}
   const risk = snapshot.risk ?? {}
+  const radarFilters = snapshot.radar_filters ?? {}
+  const executionModel = version.execution_model ?? {}
   versionNotes.value = version.notes ?? ''
   logicDraft.timeframe = String(snapshot.timeframe ?? 'D1')
   logicDraft.direction = String(snapshot.direction ?? 'long')
-  logicDraft.entry_logic = String(snapshot.entry_logic ?? 'all')
   logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
   logicDraft.take_profit_rr = toPositiveNumber(risk.take_profit_rr, 2)
   logicDraft.max_bars_in_trade = Math.max(1, Math.round(toPositiveNumber(risk.max_bars_in_trade, 20)))
+  logicDraft.break_even_rr = Math.max(0, Number(risk.break_even_rr ?? 0))
+  logicDraft.trailing_stop_rr = Math.max(0, Number(risk.trailing_stop_rr ?? 0))
+  logicDraft.pyramiding_max_entries = Math.max(1, Math.round(toPositiveNumber(risk.pyramiding_max_entries, 1)))
   logicDraft.benchmark_symbol = String(version.benchmark_config?.symbol ?? 'SPY')
-  logicDraft.symbols = normalizeSymbols(version.universe_config?.symbols ?? [])
+  if (version.universe_config?.watchlist_id != null) {
+    universeMode.value = 'watchlist'
+    selectedWatchlistId.value = Number(version.universe_config.watchlist_id)
+    selectedScreenerId.value = null
+    logicDraft.symbols = []
+  } else if (version.universe_config?.screener_id != null) {
+    universeMode.value = 'screener'
+    selectedScreenerId.value = Number(version.universe_config.screener_id)
+    selectedWatchlistId.value = null
+    logicDraft.symbols = []
+  } else {
+    universeMode.value = 'symbols'
+    selectedWatchlistId.value = null
+    selectedScreenerId.value = null
+    logicDraft.symbols = normalizeSymbols(version.universe_config?.symbols ?? [])
+  }
+  radarDraft.setup_types = Array.isArray(radarFilters.setup_types)
+    ? radarFilters.setup_types.map((value: unknown) => String(value))
+    : []
+  radarDraft.states = Array.isArray(radarFilters.states)
+    ? radarFilters.states.map((value: unknown) => String(value))
+    : []
+  radarDraft.min_score = Number(radarFilters.min_score ?? 0.65)
+  runDraft.max_concurrent_positions = Math.max(
+    1,
+    Math.round(Number(executionModel.max_concurrent_positions ?? 4) || 4),
+  )
+  runDraft.max_portfolio_risk_pct = Math.max(
+    0.5,
+    Number(executionModel.max_portfolio_risk_pct ?? 4) || 4,
+  )
+  runDraft.max_symbol_allocation_pct = Math.max(
+    1,
+    Number(executionModel.max_symbol_allocation_pct ?? 35) || 35,
+  )
 
   const rawConditions = Array.isArray(snapshot.conditions) ? snapshot.conditions : []
-  logicDraft.conditions = rawConditions.length
-    ? rawConditions.map(parseCondition)
-    : [createCondition()]
+  logicDraft.ruleTree = parseRuleTree(
+    snapshot.condition_tree,
+    String(snapshot.entry_logic ?? 'all'),
+    rawConditions,
+  )
 }
 
-function parseCondition(raw: Record<string, any>): BuilderCondition {
+function parseCondition(raw: Record<string, any>): BuilderConditionNode {
   const leftKind = raw.left_source === 'indicator'
     ? normalizeIndicatorKind(raw.left_indicator)
     : 'close'
-  let rightKind: BuilderCondition['rightKind'] = 'value'
+  let rightKind: BuilderConditionNode['rightKind'] = 'value'
   if (raw.right_source === 'indicator') rightKind = normalizeIndicatorKind(raw.right_indicator)
   else if (raw.right_source === 'price') rightKind = 'close'
 
-  return createCondition({
+  return createConditionNode({
     leftKind,
     leftPeriod: Math.max(1, Math.round(toPositiveNumber(raw.left_period, 20))),
     operator: normalizeOperator(raw.operator),
@@ -774,12 +1359,131 @@ function normalizeOperator(value: unknown): RuleOperator {
     : 'gt'
 }
 
-function addCondition() {
-  logicDraft.conditions.push(createCondition())
+function parseRuleTree(
+  rawTree: unknown,
+  fallbackEntryLogic: string,
+  rawConditions: unknown[],
+): BuilderGroupNode {
+  const parsed = parseRuleNode(rawTree)
+  if (parsed?.kind === 'group') return parsed
+  if (parsed) return createGroupNode('all', [parsed])
+  if (rawConditions.length) {
+    const children = rawConditions
+      .filter((item): item is Record<string, any> => typeof item === 'object' && item !== null)
+      .map(parseCondition)
+    return createGroupNode(
+      fallbackEntryLogic === 'any' ? 'any' : 'all',
+      children.length ? children : [createConditionNode()],
+    )
+  }
+  return createGroupNode(fallbackEntryLogic === 'any' ? 'any' : 'all', [createConditionNode()])
 }
 
-function removeCondition(id: string) {
-  logicDraft.conditions = logicDraft.conditions.filter(condition => condition.id !== id)
+function parseRuleNode(raw: unknown): BuilderRuleNode | null {
+  if (!raw || typeof raw !== 'object') return null
+  const node = raw as Record<string, any>
+  const nodeType = String(node.type ?? node.entry_logic ?? '').toLowerCase()
+  if (nodeType === 'not') {
+    return createNotNode(parseRuleNode(node.condition))
+  }
+  if (nodeType === 'all' || nodeType === 'any') {
+    const children = Array.isArray(node.conditions)
+      ? node.conditions
+          .map(parseRuleNode)
+          .filter((item): item is BuilderRuleNode => item != null)
+      : []
+    return createGroupNode(nodeType, children.length ? children : [createConditionNode()])
+  }
+  return parseCondition(node)
+}
+
+function countConditionLeaves(node: BuilderRuleNode | null): number {
+  if (!node) return 0
+  if (node.kind === 'condition') return 1
+  if (node.kind === 'not') return countConditionLeaves(node.condition)
+  return node.children.reduce((total, child) => total + countConditionLeaves(child), 0)
+}
+
+function compileRuleNode(node: BuilderRuleNode): Record<string, any> {
+  if (node.kind === 'condition') return compileCondition(node)
+  if (node.kind === 'not') {
+    return {
+      type: 'not',
+      condition: node.condition ? compileRuleNode(node.condition) : null,
+    }
+  }
+  return {
+    type: node.type,
+    conditions: node.children.map(compileRuleNode),
+  }
+}
+
+function flattenConditionNodes(node: BuilderRuleNode | null): BuilderConditionNode[] {
+  if (!node) return []
+  if (node.kind === 'condition') return [node]
+  if (node.kind === 'not') return flattenConditionNodes(node.condition)
+  return node.children.flatMap(child => flattenConditionNodes(child))
+}
+
+function addConditionToTree(targetId: string) {
+  applyNodeMutation(logicDraft.ruleTree, targetId, target => {
+    if (target.kind === 'group') target.children.push(createConditionNode())
+    if (target.kind === 'not') target.condition = createConditionNode()
+  })
+}
+
+function addGroupToTree(targetId: string, type: 'all' | 'any' | 'not') {
+  applyNodeMutation(logicDraft.ruleTree, targetId, target => {
+    const nextNode = type === 'not' ? createNotNode() : createGroupNode(type)
+    if (target.kind === 'group') target.children.push(nextNode)
+    if (target.kind === 'not') target.condition = nextNode
+  })
+}
+
+function removeNodeFromTree(nodeId: string) {
+  if (logicDraft.ruleTree.id === nodeId) {
+    logicDraft.ruleTree = createGroupNode('all', [createConditionNode()])
+    return
+  }
+  removeNodeRecursive(logicDraft.ruleTree, nodeId)
+}
+
+function removeNodeRecursive(node: BuilderRuleNode, nodeId: string): boolean {
+  if (node.kind === 'group') {
+    const index = node.children.findIndex(child => child.id === nodeId)
+    if (index !== -1) {
+      node.children.splice(index, 1)
+      if (!node.children.length) node.children.push(createConditionNode())
+      return true
+    }
+    return node.children.some(child => removeNodeRecursive(child, nodeId))
+  }
+  if (node.kind === 'not') {
+    if (node.condition?.id === nodeId) {
+      node.condition = createConditionNode()
+      return true
+    }
+    if (node.condition) return removeNodeRecursive(node.condition, nodeId)
+  }
+  return false
+}
+
+function applyNodeMutation(
+  node: BuilderRuleNode,
+  targetId: string,
+  mutation: (node: BuilderRuleNode) => void,
+): boolean {
+  if (node.id === targetId) {
+    mutation(node)
+    return true
+  }
+  if (node.kind === 'group') {
+    return node.children.some(child => applyNodeMutation(child, targetId, mutation))
+  }
+  if (node.kind === 'not' && node.condition) {
+    return applyNodeMutation(node.condition, targetId, mutation)
+  }
+  return false
 }
 
 function addSymbolsFromInput() {
@@ -790,6 +1494,12 @@ function addSymbolsFromInput() {
 function addRunSymbolsFromInput() {
   runDraft.overrideSymbols = mergeSymbols(runDraft.overrideSymbols, runSymbolInput.value)
   runSymbolInput.value = ''
+}
+
+function toggleMultiValue(target: string[], value: string) {
+  const index = target.indexOf(value)
+  if (index === -1) target.push(value)
+  else target.splice(index, 1)
 }
 
 function removeSymbol(symbol: string) {
@@ -813,44 +1523,77 @@ function normalizeSymbols(values: unknown[]) {
 }
 
 function buildVersionPayload() {
+  const flatConditions = flattenConditionNodes(logicDraft.ruleTree)
+  const riskConfig = {
+    stop_loss_pct: logicDraft.stop_loss_pct,
+    take_profit_rr: logicDraft.take_profit_rr,
+    max_bars_in_trade: logicDraft.max_bars_in_trade,
+    break_even_rr: logicDraft.break_even_rr,
+    trailing_stop_rr: logicDraft.trailing_stop_rr,
+    pyramiding_max_entries: logicDraft.pyramiding_max_entries,
+  }
   return {
     definition_snapshot: {
-      timeframe: logicDraft.timeframe,
-      direction: logicDraft.direction,
-      entry_logic: logicDraft.entry_logic,
-      conditions: logicDraft.conditions.map(compileCondition),
-      risk: {
-        stop_loss_pct: logicDraft.stop_loss_pct,
-        take_profit_rr: logicDraft.take_profit_rr,
-        max_bars_in_trade: logicDraft.max_bars_in_trade,
-      },
+      ...(sourceType.value === 'radar'
+        ? {
+            timeframe: logicDraft.timeframe,
+            radar_filters: {
+              timeframe: logicDraft.timeframe,
+              setup_types: radarDraft.setup_types,
+              states: radarDraft.states,
+              min_score: radarDraft.min_score,
+            },
+            risk: riskConfig,
+          }
+        : {
+            timeframe: logicDraft.timeframe,
+            direction: logicDraft.direction,
+            entry_logic: logicDraft.ruleTree.type,
+            condition_tree: compileRuleNode(logicDraft.ruleTree),
+            conditions: flatConditions.map(compileCondition),
+            risk: riskConfig,
+          }),
     },
     parameter_schema: {
       stop_loss_pct: { type: 'number', min: 0.1 },
       take_profit_rr: { type: 'number', min: 0.25 },
       max_bars_in_trade: { type: 'integer', min: 1 },
+      break_even_rr: { type: 'number', min: 0 },
+      trailing_stop_rr: { type: 'number', min: 0 },
+      pyramiding_max_entries: { type: 'integer', min: 1 },
     },
     default_parameters: {
       stop_loss_pct: logicDraft.stop_loss_pct,
       take_profit_rr: logicDraft.take_profit_rr,
       max_bars_in_trade: logicDraft.max_bars_in_trade,
+      break_even_rr: logicDraft.break_even_rr,
+      trailing_stop_rr: logicDraft.trailing_stop_rr,
+      pyramiding_max_entries: logicDraft.pyramiding_max_entries,
     },
     universe_config: {
-      symbols: logicDraft.symbols,
+      ...(universeMode.value === 'watchlist' && selectedWatchlistId.value != null
+        ? { watchlist_id: selectedWatchlistId.value }
+        : universeMode.value === 'screener' && selectedScreenerId.value != null
+          ? { screener_id: selectedScreenerId.value }
+          : { symbols: logicDraft.symbols }),
     },
     benchmark_config: logicDraft.benchmark_symbol.trim()
       ? { symbol: logicDraft.benchmark_symbol.trim().toUpperCase() }
       : {},
     execution_model: {
       entry: 'next_bar_open',
-      exits: ['stop_loss', 'take_profit', 'time_exit'],
+      exits: ['stop_loss', 'take_profit', 'time_exit', 'break_even', 'trailing_stop'],
       sizing: 'percent_risk',
+      max_entries: logicDraft.pyramiding_max_entries,
+      max_concurrent_positions: runDraft.max_concurrent_positions,
+      max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
+      max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,
     },
     notes: versionNotes.value.trim() || null,
   }
 }
 
-function compileCondition(condition: BuilderCondition) {
+function compileCondition(condition: BuilderConditionNode) {
   return {
     left_source: condition.leftKind === 'close' ? 'price' : 'indicator',
     ...(condition.leftKind === 'close'
@@ -902,7 +1645,7 @@ async function publishStrategy() {
 async function runCurrentVersion() {
   if (!currentVersion.value) return
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
-    test_mode: 'backtest',
+    test_mode: runDraft.test_mode,
     timeframe: runDraft.timeframe || null,
     date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
     date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
@@ -913,17 +1656,74 @@ async function runCurrentVersion() {
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
       slippage_bps: runDraft.slippage_bps,
       commission_per_trade: runDraft.commission_per_trade,
+      max_concurrent_positions: runDraft.max_concurrent_positions,
+      max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
+      max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,
+      walk_forward_segments: runDraft.walk_forward_segments,
+      walk_forward_training_share: runDraft.walk_forward_training_share,
+      paper_forward_bars: runDraft.paper_forward_bars,
+      optimization: {
+        enabled: runDraft.optimization_enabled,
+        stop_loss_pct_values: parseNumberList(runDraft.stop_loss_pct_values),
+        take_profit_rr_values: parseNumberList(runDraft.take_profit_rr_values),
+        max_bars_in_trade_values: parseIntegerList(runDraft.max_bars_in_trade_values),
+      },
     },
   })
   strategyLab.selectedRunId = submitted.id
+}
+
+async function refreshPaperForwardRun() {
+  if (!selectedRunDetail.value || selectedRunDetail.value.test_mode !== 'paper_forward') return
+  const refreshed = await strategyLab.refreshRun(selectedRunDetail.value.id)
+  strategyLab.selectedRunId = refreshed.id
+}
+
+function exportSummaryJson() {
+  if (!selectedRunDetail.value) return
+  downloadBlob(
+    `strategy-run-${selectedRunDetail.value.id}.json`,
+    'application/json',
+    JSON.stringify(selectedRunDetail.value.result_summary ?? {}, null, 2),
+  )
+}
+
+function exportTradesCsv() {
+  if (!visibleTrades.value.length || !selectedRunDetail.value) return
+  const header = ['symbol', 'side', 'entry_at', 'exit_at', 'entry_price', 'exit_price', 'pnl', 'r_multiple', 'exit_reason']
+  const rows = visibleTrades.value.map((trade: any) => [
+    trade.instrument_symbol,
+    trade.side,
+    trade.entry_at,
+    trade.exit_at,
+    trade.entry_price,
+    trade.exit_price,
+    trade.pnl,
+    trade.r_multiple,
+    trade.exit_reason,
+  ])
+  const csv = [header, ...rows]
+    .map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  downloadBlob(`strategy-run-${selectedRunDetail.value.id}-trades.csv`, 'text/csv', csv)
+}
+
+function downloadBlob(filename: string, mimeType: string, content: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function buildDefinitionPayload() {
   return {
     name: draft.name.trim(),
     description: draft.description.trim() || null,
-    source_type: 'custom',
-    definition_type: 'rules',
+    source_type: sourceType.value,
+    definition_type: sourceType.value === 'radar' ? 'signal_source' : 'rules',
     is_active: draft.is_active,
     tags: parseTags(tagsInput.value),
     metadata: {},
@@ -942,11 +1742,19 @@ function parseTags(raw: string) {
     .filter(Boolean)
 }
 
-function needsPeriod(kind: BuilderCondition['rightKind'] | RuleSideKind) {
+function needsPeriod(kind: BuilderConditionNode['rightKind'] | RuleSideKind) {
   return kind === 'sma' || kind === 'ema' || kind === 'rsi'
 }
 
-function describeCondition(condition: BuilderCondition) {
+function describeRuleNode(node: BuilderRuleNode | null): string {
+  if (!node) return ''
+  if (node.kind === 'condition') return describeCondition(node)
+  if (node.kind === 'not') return `not (${describeRuleNode(node.condition) || 'empty rule'})`
+  const joiner = node.type === 'all' ? ' and ' : ' or '
+  return node.children.map(describeRuleNode).filter(Boolean).join(joiner)
+}
+
+function describeCondition(condition: BuilderConditionNode) {
   const left = describeSide(condition.leftKind, condition.leftPeriod)
   const right = condition.rightKind === 'value'
     ? `${condition.rightValue}`
@@ -955,10 +1763,52 @@ function describeCondition(condition: BuilderCondition) {
   return `${left} ${operator} ${right}`
 }
 
-function describeSide(kind: BuilderCondition['rightKind'], period: number) {
+function describeSide(kind: BuilderConditionNode['rightKind'], period: number) {
   if (kind === 'close') return 'close price'
   if (kind === 'value') return 'value'
   return `${kind.toUpperCase()}(${period})`
+}
+
+function parseNumberList(raw: string) {
+  return raw
+    .split(',')
+    .map(value => Number(value.trim()))
+    .filter(value => Number.isFinite(value))
+}
+
+function parseIntegerList(raw: string) {
+  return raw
+    .split(',')
+    .map(value => Math.round(Number(value.trim())))
+    .filter(value => Number.isFinite(value) && value > 0)
+}
+
+function buildPolyline(values: number[], width: number, height: number) {
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  return values
+    .map((value, index) => {
+      const x = (index / Math.max(values.length - 1, 1)) * width
+      const y = max === min ? height / 2 : height - ((value - min) / (max - min)) * (height - 12) - 6
+      return `${x.toFixed(2)},${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+function comparisonMetric(label: string, current: unknown, compare: unknown, suffix: string) {
+  const currentValue = Number(current)
+  const compareValue = Number(compare)
+  const printableCurrent = Number.isFinite(currentValue)
+    ? `${currentValue.toFixed(suffix === '' ? 0 : 2)}${suffix}`
+    : '—'
+  const printableCompare = Number.isFinite(compareValue)
+    ? `${compareValue.toFixed(suffix === '' ? 0 : 2)}${suffix}`
+    : '—'
+  return {
+    label,
+    current: printableCurrent,
+    compare: printableCompare,
+  }
 }
 
 function toPositiveNumber(value: unknown, fallback: number) {
@@ -1203,7 +2053,8 @@ function formatR(value: unknown) {
 .panel,
 .condition-card,
 .equity-panel,
-.warnings-panel {
+.warnings-panel,
+.mini-panel {
   background: #111;
   border: 1px solid #1b1b1b;
   border-radius: 14px;
@@ -1334,6 +2185,25 @@ function formatR(value: unknown) {
   min-height: 30px;
 }
 
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #232323;
+  border-radius: 10px;
+  background: #0b0b0b;
+  color: #c8c8c8;
+  font-size: 11px;
+}
+
 .symbol-chip {
   gap: 8px;
 }
@@ -1378,6 +2248,21 @@ function formatR(value: unknown) {
   background: #0d1116;
 }
 
+.tree-builder-note,
+.run-mode-note {
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid #21262c;
+  background: #0d1116;
+  color: #8ea7ba;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.tree-builder-note code {
+  color: #d4e7f4;
+}
+
 .rule-preview__label {
   display: block;
   margin-bottom: 6px;
@@ -1398,6 +2283,10 @@ function formatR(value: unknown) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.mode-pill {
+  cursor: pointer;
 }
 
 .run-summary-grid {
@@ -1426,6 +2315,18 @@ function formatR(value: unknown) {
   gap: 16px;
 }
 
+.result-panels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mini-panel {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
 .equity-panel,
 .warnings-panel {
   padding: 14px;
@@ -1450,6 +2351,14 @@ function formatR(value: unknown) {
   fill: none;
   stroke: #62b2ea;
   stroke-width: 2;
+}
+
+.equity-chart--benchmark polyline {
+  stroke: #d6a85a;
+}
+
+.equity-chart--drawdown polyline {
+  stroke: #dd7373;
 }
 
 .detail-list {
@@ -1552,7 +2461,8 @@ function formatR(value: unknown) {
 
 @media (max-width: 1380px) {
   .hero-strip,
-  .run-summary-grid {
+  .run-summary-grid,
+  .result-panels-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1586,7 +2496,8 @@ function formatR(value: unknown) {
   .form-grid.three-up,
   .condition-grid,
   .hero-strip,
-  .run-summary-grid {
+  .run-summary-grid,
+  .result-panels-grid {
     grid-template-columns: 1fr;
   }
 

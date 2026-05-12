@@ -113,6 +113,23 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     }
   }
 
+  async function refreshRun(runId: number) {
+    isRunning.value = true
+    error.value = null
+    try {
+      const refreshed = await api.post<StrategyRun>(`/strategy-lab/runs/${runId}/refresh`, {})
+      await refreshDefinition(refreshed.strategy_id)
+      selectedDefinitionId.value = refreshed.strategy_id
+      selectedRunId.value = refreshed.id
+      return refreshed
+    } catch (err: any) {
+      error.value = err?.message ?? 'Failed to refresh strategy run'
+      throw err
+    } finally {
+      isRunning.value = false
+    }
+  }
+
   function selectDefinition(id: number | null) {
     selectedDefinitionId.value = id
     selectedRunId.value = null
@@ -134,6 +151,7 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     updateDefinition,
     publishVersion,
     runVersion,
+    refreshRun,
     selectDefinition,
   }
 })

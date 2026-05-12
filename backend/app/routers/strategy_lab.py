@@ -257,3 +257,36 @@ async def submit_run(
     await db.commit()
     await db.refresh(run)
     return StrategyRunSubmitOut.model_validate(run)
+
+
+@router.post("/runs/{run_id}/refresh", response_model=StrategyRunSubmitOut)
+async def refresh_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    run_stmt = (
+        select(StrategyRun)
+        .join(StrategyDefinition, StrategyDefinition.id == StrategyRun.strategy_id)
+        .join(StrategyVersion, StrategyVersion.id == StrategyRun.strategy_version_id)
+        .where(StrategyDefinition.user_id == current_user.id, StrategyRun.id == run_id)
+        .options(
+            selectinload(StrategyRun.strategy),
+            selectinload(StrategyRun.strategy_version),
+        )
+    )
+    run = (await db.execute(run_stmt)).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Strategy run not found")
+    if run.test_mode != "paper_forward":
+        raise HTTPException(status_code=409, detail="Only paper-forward runs can be refreshed")
+
+    await execute_strategy_run(
+        db,
+        strategy=run.strategy,
+        version=run.strategy_version,
+        run=run,
+    )
+    await db.commit()
+    await db.refresh(run)
+    return StrategyRunSubmitOut.model_validate(run)

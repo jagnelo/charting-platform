@@ -102,6 +102,34 @@ const definition = {
           { ts: '2026-02-01T00:00:00Z', equity: 102500 },
           { ts: '2026-03-01T00:00:00Z', equity: 112500 },
         ],
+        analytics: {
+          drawdown_curve: [
+            { ts: '2026-01-01T00:00:00Z', drawdown_pct: 0 },
+            { ts: '2026-02-01T00:00:00Z', drawdown_pct: 1.5 },
+          ],
+          monthly_returns: [
+            { period: '2026-01', return_pct: 2.5 },
+            { period: '2026-02', return_pct: 4.1 },
+          ],
+        },
+        benchmark: {
+          symbol: 'SPY',
+          equity_curve: [
+            { ts: '2026-01-01T00:00:00Z', equity: 100000 },
+            { ts: '2026-02-01T00:00:00Z', equity: 101200 },
+          ],
+        },
+        benchmark_comparison: {
+          excess_return_pct: 3.2,
+        },
+        symbol_performance: [
+          { symbol: 'AAPL', net_pnl: 1250.45, trade_count: 2, win_rate: 50, avg_r: 1.1 },
+        ],
+        optimization: {
+          leaderboard: [
+            { stop_loss_pct: 2, take_profit_rr: 2.5, max_bars_in_trade: 18, net_pnl: 1250.45, avg_r: 1.1 },
+          ],
+        },
         trades: [
           {
             instrument_symbol: 'AAPL',
@@ -132,6 +160,24 @@ describe('StrategyLabView', () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/strategy-lab/definitions') return Promise.resolve([definition])
       if (path === '/strategy-lab/definitions/4') return Promise.resolve(definition)
+      if (path === '/watchlists') {
+        return Promise.resolve([
+          {
+            id: 3,
+            name: 'Growth',
+            is_default: false,
+            is_managed: false,
+            is_locked: false,
+            position: 0,
+            items: [{ id: 1, instrument_id: 1, symbol: 'AAPL', position: 0 }],
+          },
+        ])
+      }
+      if (path === '/screeners') {
+        return Promise.resolve([
+          { id: 7, name: 'Momentum Universe' },
+        ])
+      }
       return Promise.resolve([])
     })
     ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
@@ -168,6 +214,8 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).not.toContain('Nautilus')
     expect(api.get).not.toHaveBeenCalledWith('/strategy-lab/engines')
+    expect(wrapper.text()).toContain('Benchmark')
+    expect(wrapper.text()).toContain('Monthly returns')
   })
 
   it('creates a strategy from the visual builder without JSON payload editing', async () => {
@@ -191,6 +239,10 @@ describe('StrategyLabView', () => {
       initial_version: expect.objectContaining({
         definition_snapshot: expect.objectContaining({
           conditions: expect.any(Array),
+          condition_tree: expect.objectContaining({
+            type: 'all',
+            conditions: expect.any(Array),
+          }),
           timeframe: 'D1',
         }),
         universe_config: { symbols: ['NVDA', 'AMD'] },
@@ -217,6 +269,9 @@ describe('StrategyLabView', () => {
     expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.objectContaining({
       definition_snapshot: expect.objectContaining({
         conditions: expect.any(Array),
+        condition_tree: expect.objectContaining({
+          type: 'all',
+        }),
       }),
     }))
 
@@ -230,6 +285,83 @@ describe('StrategyLabView', () => {
       execution_assumptions: expect.objectContaining({
         initial_capital: 100000,
         risk_per_trade_pct: 1,
+      }),
+    }))
+  })
+
+  it('supports walk-forward mode, watchlist universes, and optimization inputs', async () => {
+    const wrapper = mount(StrategyLabView)
+
+    await flushPromises()
+
+    await wrapper.get('select').setValue('custom')
+    const selects = wrapper.findAll('select')
+    await selects[1].setValue('watchlist')
+    await flushPromises()
+    const watchlistSelect = wrapper.findAll('select').find(node => node.element instanceof HTMLSelectElement && Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'Growth'))
+    expect(watchlistSelect).toBeTruthy()
+    await watchlistSelect!.setValue('3')
+    await wrapper.findAll('.mode-pill')[1].trigger('click')
+    const optimizationCheckbox = wrapper.findAll('input[type="checkbox"]').find(node =>
+      node.element instanceof HTMLInputElement
+      && node.element.type === 'checkbox'
+      && node.element.closest('.subsection')?.textContent?.includes('Parameter sweep')
+    )
+    expect(optimizationCheckbox).toBeTruthy()
+    await optimizationCheckbox!.setValue(true)
+    await flushPromises()
+    await wrapper.get('input[placeholder="1.5, 2, 2.5, 3"]').setValue('1.5, 2')
+
+    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run walk-forward')
+    expect(runButton).toBeTruthy()
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      test_mode: 'walk_forward',
+      execution_assumptions: expect.objectContaining({
+        optimization: expect.objectContaining({
+          enabled: true,
+        }),
+      }),
+    }))
+  })
+
+  it('publishes radar replay strategies with screener universes from the visual builder', async () => {
+    const wrapper = mount(StrategyLabView)
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-header .btn-primary').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Radar Breakout Replay')
+    const selects = wrapper.findAll('select')
+    await selects[0].setValue('radar')
+    await flushPromises()
+    await wrapper.findAll('select')[1].setValue('screener')
+    await flushPromises()
+    const screenerSelect = wrapper.findAll('select').find(node =>
+      Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'Momentum Universe'),
+    )
+    expect(screenerSelect).toBeTruthy()
+    await screenerSelect!.setValue('7')
+    const breakoutCheckbox = wrapper.findAll('input[type="checkbox"]').find(node =>
+      node.element.closest('.check-pill')?.textContent?.includes('Breakout'),
+    )
+    expect(breakoutCheckbox).toBeTruthy()
+    await breakoutCheckbox!.setValue(true)
+    await wrapper.get('.detail-header .btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      source_type: 'radar',
+      definition_type: 'signal_source',
+      initial_version: expect.objectContaining({
+        universe_config: { screener_id: 7 },
+        definition_snapshot: expect.objectContaining({
+          radar_filters: expect.objectContaining({
+            setup_types: ['breakout'],
+          }),
+        }),
       }),
     }))
   })

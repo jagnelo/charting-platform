@@ -128,11 +128,16 @@ class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     direction: str = "long"
     entry_logic: str = "all"
     conditions: tuple[dict[str, Any], ...] = ()
+    condition_tree: dict[str, Any] | None = None
+    signal_events: tuple[dict[str, Any], ...] = ()
     stop_loss_pct: float = 2.0
     take_profit_rr: float = 2.0
     max_bars_in_trade: int = 20
     risk_per_trade_pct: float = 1.0
     capital_base: float = 100_000.0
+    break_even_rr: float = 0.0
+    trailing_stop_rr: float = 0.0
+    pyramiding_max_entries: int = 1
 
 
 class StrategyLabNautilusStrategy(Strategy):
@@ -146,10 +151,32 @@ class StrategyLabNautilusStrategy(Strategy):
         self.exit_reasons: dict[str, str] = {}
         self.equity_curve: list[tuple[int, float]] = []
         self.warnings: list[str] = []
+        self._signal_events = sorted(
+            [dict(event) for event in self.config.signal_events],
+            key=lambda event: event.get("signal_at", ""),
+        )
+        self._signal_index = 0
+        self._pending_signal_plan: dict[str, Any] | None = None
 
+        self._register_tree_indicators(self.config.condition_tree)
         for condition in self.config.conditions:
             self._ensure_indicator(condition, "left")
             self._ensure_indicator(condition, "right")
+
+    def _register_tree_indicators(self, node: dict[str, Any] | None) -> None:
+        if not node:
+            return
+        node_type = str(node.get("type") or node.get("entry_logic") or "").lower()
+        if node_type in {"all", "any", "not"}:
+            for child in node.get("conditions", []) or []:
+                if isinstance(child, dict):
+                    self._register_tree_indicators(child)
+            child = node.get("condition")
+            if isinstance(child, dict):
+                self._register_tree_indicators(child)
+            return
+        self._ensure_indicator(node, "left")
+        self._ensure_indicator(node, "right")
 
     def _ensure_indicator(self, condition: dict[str, Any], side: str) -> None:
         if condition.get(f"{side}_source") != "indicator":
@@ -189,18 +216,38 @@ class StrategyLabNautilusStrategy(Strategy):
         condition_values = [
             self._condition_values(condition, bar) for condition in self.config.conditions
         ]
+        due_signal = self._next_due_signal(bar)
 
         if self.active_position_id is not None:
             if self._maybe_exit(bar):
                 self._record_equity(bar.ts_event)
                 self._previous_values = condition_values
                 return
-        elif not self._has_pending_orders() and self._should_enter(condition_values):
+            if not self._has_pending_orders() and self._should_add_to_position(
+                condition_values, bar
+            ):
+                self._submit_entry(bar)
+        elif due_signal is not None and not self._has_pending_orders():
+            self._submit_entry(bar, signal_plan=due_signal)
+        elif not self._has_pending_orders() and self._should_enter(condition_values, bar):
             self._submit_entry(bar)
 
         self._sync_active_position()
         self._record_equity(bar.ts_event)
         self._previous_values = condition_values
+
+    def _next_due_signal(self, bar: Bar) -> dict[str, Any] | None:
+        while self._signal_index < len(self._signal_events):
+            event = self._signal_events[self._signal_index]
+            signal_ts = event.get("signal_ts")
+            if signal_ts is None:
+                self._signal_index += 1
+                continue
+            if int(signal_ts) > int(bar.ts_event):
+                return None
+            self._signal_index += 1
+            return event
+        return None
 
     def _has_pending_orders(self) -> bool:
         return bool(self.cache.orders_open_count() or self.cache.orders_inflight_count())
@@ -217,10 +264,37 @@ class StrategyLabNautilusStrategy(Strategy):
             self.position_plans[position_id]["bars_elapsed"] = (
                 int(self.position_plans[position_id].get("bars_elapsed", 0)) + 1
             )
+            self.position_plans[position_id]["entry_count"] = max(
+                int(self.position_plans[position_id].get("entry_count", 1)),
+                1,
+            )
             return
 
         entry_price = float(position.avg_px_open)
-        if self.config.direction == "long":
+        pending_plan = dict(self._pending_signal_plan or {})
+        plan_direction = str(pending_plan.get("side") or self.config.direction)
+        if pending_plan:
+            stop_price = float(pending_plan.get("stop_price") or 0.0)
+            target_price = float(pending_plan.get("target_price") or 0.0)
+            planned_entry = float(pending_plan.get("entry_price") or entry_price)
+            if stop_price <= 0 or target_price <= 0:
+                pending_plan = {}
+            else:
+                self.position_plans[position_id] = {
+                    "entry_price": planned_entry,
+                    "stop_price": stop_price,
+                    "target_price": target_price,
+                    "bars_elapsed": 0,
+                    "best_price": entry_price,
+                    "entry_count": 1,
+                    "direction": plan_direction,
+                    "setup_type": pending_plan.get("setup_type"),
+                    "signal_score": pending_plan.get("score"),
+                }
+                self._pending_signal_plan = None
+                return
+
+        if plan_direction == "long":
             stop_price = entry_price * (1.0 - self.config.stop_loss_pct / 100.0)
             target_price = entry_price + (entry_price - stop_price) * self.config.take_profit_rr
         else:
@@ -231,7 +305,11 @@ class StrategyLabNautilusStrategy(Strategy):
             "stop_price": stop_price,
             "target_price": target_price,
             "bars_elapsed": 0,
+            "best_price": entry_price,
+            "entry_count": 1,
+            "direction": plan_direction,
         }
+        self._pending_signal_plan = None
 
     def _record_equity(self, ts_event: int) -> None:
         total_pnl = sum(
@@ -243,15 +321,21 @@ class StrategyLabNautilusStrategy(Strategy):
         else:
             self.equity_curve.append((ts_event, equity))
 
-    def _submit_entry(self, bar: Bar) -> None:
-        reference_price = bar.close.as_double()
-        risk_distance = reference_price * (self.config.stop_loss_pct / 100.0)
+    def _submit_entry(self, bar: Bar, signal_plan: dict[str, Any] | None = None) -> None:
+        reference_price = (
+            float(signal_plan.get("entry_price")) if signal_plan else bar.close.as_double()
+        )
+        if signal_plan and signal_plan.get("stop_price") is not None:
+            risk_distance = abs(reference_price - float(signal_plan["stop_price"]))
+        else:
+            risk_distance = reference_price * (self.config.stop_loss_pct / 100.0)
         if risk_distance <= 0:
             return
         risk_budget = self.config.capital_base * (self.config.risk_per_trade_pct / 100.0)
         raw_quantity = max(risk_budget / risk_distance, 1.0)
         quantity = self.instrument.make_qty(Decimal(str(raw_quantity)))
-        side = OrderSide.BUY if self.config.direction == "long" else OrderSide.SELL
+        side_token = str(signal_plan.get("side") if signal_plan else self.config.direction).lower()
+        side = OrderSide.BUY if side_token == "long" else OrderSide.SELL
         order = self.order_factory.market(
             instrument_id=self.config.instrument_id,
             order_side=side,
@@ -259,6 +343,12 @@ class StrategyLabNautilusStrategy(Strategy):
             time_in_force=TimeInForce.GTC,
         )
         self.submit_order(order)
+        if signal_plan:
+            self._pending_signal_plan = dict(signal_plan)
+        if self.active_position_id is not None and self.active_position_id in self.position_plans:
+            self.position_plans[self.active_position_id]["entry_count"] = (
+                int(self.position_plans[self.active_position_id].get("entry_count", 1)) + 1
+            )
 
     def _maybe_exit(self, bar: Bar) -> bool:
         if self.active_position_id is None:
@@ -269,12 +359,39 @@ class StrategyLabNautilusStrategy(Strategy):
 
         high = bar.high.as_double()
         low = bar.low.as_double()
+        entry_price = float(plan["entry_price"])
         stop_price = float(plan["stop_price"])
         target_price = float(plan["target_price"])
         bars_elapsed = int(plan.get("bars_elapsed", 0))
+        best_price = float(plan.get("best_price") or entry_price)
+        direction = str(plan.get("direction") or self.config.direction).lower()
+        risk_distance = abs(entry_price - stop_price)
+
+        if direction == "long":
+            best_price = max(best_price, high)
+        else:
+            best_price = min(best_price, low)
+        plan["best_price"] = best_price
+
+        if risk_distance > 0 and self.config.break_even_rr > 0:
+            if direction == "long":
+                if high >= entry_price + risk_distance * self.config.break_even_rr:
+                    stop_price = max(stop_price, entry_price)
+            else:
+                if low <= entry_price - risk_distance * self.config.break_even_rr:
+                    stop_price = min(stop_price, entry_price)
+            plan["stop_price"] = stop_price
+
+        if risk_distance > 0 and self.config.trailing_stop_rr > 0:
+            trail_distance = risk_distance * self.config.trailing_stop_rr
+            if direction == "long":
+                stop_price = max(stop_price, best_price - trail_distance)
+            else:
+                stop_price = min(stop_price, best_price + trail_distance)
+            plan["stop_price"] = stop_price
 
         reason: str | None = None
-        if self.config.direction == "long":
+        if direction == "long":
             if low <= stop_price:
                 reason = "stop_loss"
             elif high >= target_price:
@@ -319,11 +436,15 @@ class StrategyLabNautilusStrategy(Strategy):
             return float(value)
         return None
 
-    def _should_enter(self, current_values: list[tuple[float | None, float | None]]) -> bool:
-        if not self.config.conditions:
+    def _should_enter(
+        self, current_values: list[tuple[float | None, float | None]], bar: Bar
+    ) -> bool:
+        if not self.config.conditions and not self.config.condition_tree:
             return False
         if self._indicator_cache and not self.indicators_initialized():
             return False
+        if self.config.condition_tree:
+            return self._evaluate_condition_tree(self.config.condition_tree, bar)
 
         matches: list[bool] = []
         for index, condition in enumerate(self.config.conditions):
@@ -343,6 +464,48 @@ class StrategyLabNautilusStrategy(Strategy):
         if self.config.entry_logic == "any":
             return any(matches)
         return all(matches)
+
+    def _should_add_to_position(
+        self, current_values: list[tuple[float | None, float | None]], bar: Bar
+    ) -> bool:
+        if self.active_position_id is None:
+            return False
+        plan = self.position_plans.get(self.active_position_id)
+        if plan is None:
+            return False
+        if int(plan.get("entry_count", 1)) >= max(self.config.pyramiding_max_entries, 1):
+            return False
+        return self._should_enter(current_values, bar)
+
+    def _evaluate_condition_tree(self, node: dict[str, Any] | None, bar: Bar) -> bool:
+        if not node:
+            return False
+        node_type = str(node.get("type") or node.get("entry_logic") or "").lower()
+        if node_type in {"all", "any"}:
+            children = [
+                child for child in node.get("conditions", []) or [] if isinstance(child, dict)
+            ]
+            if not children:
+                return False
+            results = [self._evaluate_condition_tree(child, bar) for child in children]
+            return all(results) if node_type == "all" else any(results)
+        if node_type == "not":
+            child = node.get("condition")
+            return not self._evaluate_condition_tree(
+                child if isinstance(child, dict) else None, bar
+            )
+
+        left, right = self._condition_values(node, bar)
+        prev_left = prev_right = None
+        if self._previous_values:
+            prev_left, prev_right = self._previous_values[0]
+        return self._evaluate_condition(
+            condition=node,
+            left=left,
+            right=right,
+            prev_left=prev_left,
+            prev_right=prev_right,
+        )
 
     def _evaluate_condition(
         self,
@@ -389,6 +552,7 @@ def run_single_instrument_nautilus_backtest(
     direction: str,
     entry_logic: str,
     conditions: list[dict[str, Any]],
+    condition_tree: dict[str, Any] | None,
     stop_loss_pct: float,
     take_profit_rr: float,
     max_bars_in_trade: int,
@@ -396,6 +560,10 @@ def run_single_instrument_nautilus_backtest(
     risk_per_trade_pct: float,
     slippage_bps: float,
     commission_per_trade: float,
+    break_even_rr: float = 0.0,
+    trailing_stop_rr: float = 0.0,
+    pyramiding_max_entries: int = 1,
+    signal_events: list[dict[str, Any]] | None = None,
 ) -> SingleInstrumentBacktestResult:
     nautilus_instrument, bar_type, nautilus_bars, ts_index_map = build_nautilus_bars(
         symbol=instrument.symbol,
@@ -410,11 +578,24 @@ def run_single_instrument_nautilus_backtest(
             direction=direction,
             entry_logic=entry_logic,
             conditions=tuple(conditions),
+            condition_tree=condition_tree,
+            signal_events=tuple(
+                {
+                    **event,
+                    "signal_ts": dt_to_unix_nanos(event["signal_at"].astimezone(UTC))
+                    if isinstance(event.get("signal_at"), datetime)
+                    else event.get("signal_ts"),
+                }
+                for event in (signal_events or [])
+            ),
             stop_loss_pct=stop_loss_pct,
             take_profit_rr=take_profit_rr,
             max_bars_in_trade=max_bars_in_trade,
             risk_per_trade_pct=risk_per_trade_pct,
             capital_base=capital_base,
+            break_even_rr=break_even_rr,
+            trailing_stop_rr=trailing_stop_rr,
+            pyramiding_max_entries=max(1, pyramiding_max_entries),
         )
     )
 

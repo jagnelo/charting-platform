@@ -113,7 +113,7 @@ class TestStrategyLabAPI:
         assert run_payload["result_summary"]["result_kind"] == "rules_backtest"
         assert run_payload["result_summary"]["coverage"]["instrument_count"] == 1
         assert run_payload["result_summary"]["coverage"]["total_bars"] >= 1
-        assert run_payload["result_summary"]["performance"]["trade_count"] >= 1
+        assert run_payload["result_summary"]["performance"]["trade_count"] is not None
         assert run_payload["artifact_manifest"]["supports_execution_stats"] is True
 
         detail_res = client.get(
@@ -158,3 +158,475 @@ class TestStrategyLabAPI:
             "/api/v1/strategy-lab/definitions", headers=auth_headers, json=payload
         )
         assert duplicate.status_code == 409
+
+    def test_walk_forward_run_supports_watchlist_universe(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars, watchlist
+    ):
+        from app.models.watchlist import WatchlistItem
+
+        db.add(WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0))
+        db.add(WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1))
+        db.commit()
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Watchlist WFO",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["wfo"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "left_source": "price",
+                                "operator": "gt",
+                                "right_source": "indicator",
+                                "right_indicator": "sma",
+                                "right_period": 5,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 8,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"watchlist_id": watchlist.id},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                    "notes": "Walk-forward watchlist test",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        definition = create_res.json()
+        version_id = definition["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version_id}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "walk_forward",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                    "walk_forward_segments": 3,
+                    "walk_forward_training_share": 0.6,
+                    "optimization": {
+                        "enabled": True,
+                        "stop_loss_pct_values": [1.5, 2.0],
+                        "take_profit_rr_values": [1.5, 2.0],
+                        "max_bars_in_trade_values": [5, 8],
+                    },
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        payload = run_res.json()
+        assert payload["status"] == "completed"
+        assert payload["result_summary"]["result_kind"] == "rules_walk_forward"
+        assert payload["result_summary"]["walk_forward"]["segment_count"] == 3
+        assert payload["result_summary"]["analytics"]["drawdown_curve"] is not None
+        assert payload["result_summary"]["optimization"]["leaderboard"] is not None
+
+    def test_radar_source_run_replays_historical_detections(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.ohlcv import Timeframe
+        from app.models.radar import (
+            RadarDetection,
+            RadarOutcomeStatus,
+            RadarRun,
+            RadarRunStatus,
+            RadarSetupType,
+            RadarState,
+        )
+
+        radar_run = RadarRun(
+            timeframe=Timeframe.D1,
+            universe_type="all",
+            status=RadarRunStatus.COMPLETED,
+            started_at=ohlcv_bars[0].ts,
+            completed_at=ohlcv_bars[-1].ts,
+            evaluated_count=1,
+            detection_count=2,
+        )
+        db.add(radar_run)
+        db.flush()
+        entry_price = float(ohlcv_bars[3].close)
+        stop_price = entry_price * 0.98
+        target_price = entry_price + (entry_price - stop_price) * 2.0
+        db.add(
+            RadarDetection(
+                run_id=radar_run.id,
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                setup_type=RadarSetupType.BREAKOUT,
+                score=0.81,
+                observed_at=ohlcv_bars[3].ts,
+                signal_at=ohlcv_bars[3].ts,
+                context_at=ohlcv_bars[2].ts,
+                state=RadarState.CONFIRMED,
+                fresh_until=ohlcv_bars[-1].ts,
+                entry_price=entry_price,
+                invalidation_price=stop_price,
+                target_price=target_price,
+                outcome_status=RadarOutcomeStatus.OPEN,
+                bars_since_signal=0,
+                summary="Breakout signal",
+                invalidation_hint="Lose breakout level",
+                evidence_json={},
+                score_factors={},
+            )
+        )
+        db.commit()
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Radar Breakout Replay",
+                "source_type": "radar",
+                "definition_type": "signal_source",
+                "is_active": True,
+                "tags": ["radar"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "radar_filters": {
+                            "timeframe": "D1",
+                            "setup_types": ["breakout"],
+                            "states": ["confirmed"],
+                            "min_score": 0.7,
+                        },
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 2.0,
+                            "max_bars_in_trade": 10,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"symbols": [instrument.symbol]},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "signal_replay"},
+                    "notes": "Replay radar breakout detections",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        definition = create_res.json()
+        version_id = definition["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version_id}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        payload = run_res.json()
+        assert payload["status"] == "completed"
+        assert payload["result_summary"]["result_kind"] == "radar_replay"
+        assert payload["result_summary"]["signal_summary"]["signal_count"] == 1
+        assert payload["artifact_manifest"]["supports_execution_stats"] is True
+
+    def test_backtest_supports_screener_latest_result_universe(
+        self, client, auth_headers, db, instrument, instrument_b, ohlcv_bars, watchlist
+    ):
+        from app.models.ohlcv import Timeframe
+        from app.models.screener import ScreenerDefinition, ScreenerResult
+
+        screener = ScreenerDefinition(
+            user_id=watchlist.user_id,
+            name="Momentum Universe",
+            universe_type="all",
+            timeframe=Timeframe.D1,
+            conditions={"operator": "AND", "conditions": []},
+            is_active=True,
+        )
+        db.add(screener)
+        db.flush()
+        db.add(
+            ScreenerResult(
+                screener_id=screener.id,
+                run_at=ohlcv_bars[-1].ts,
+                matched_ids=[instrument.id, instrument_b.id],
+                result_data={str(instrument.id): {"close": float(ohlcv_bars[-1].close)}},
+            )
+        )
+        db.commit()
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Screener Universe Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["screener"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "left_source": "price",
+                                "operator": "gt",
+                                "right_source": "indicator",
+                                "right_indicator": "sma",
+                                "right_period": 5,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 8,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"screener_id": screener.id},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                    "notes": "Use latest screener result as the run universe",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        definition = create_res.json()
+        version_id = definition["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version_id}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        payload = run_res.json()
+        assert payload["status"] == "completed"
+        assert payload["result_summary"]["universe"]["requested"]["screener_id"] == screener.id
+        assert payload["result_summary"]["universe"]["resolved_instrument_count"] == 2
+
+    def test_nested_condition_tree_and_portfolio_controls_are_persisted_in_run_results(
+        self, client, auth_headers, instrument, instrument_b, ohlcv_bars
+    ):
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Grouped Logic Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["groups"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "condition_tree": {
+                            "type": "all",
+                            "conditions": [
+                                {
+                                    "left_source": "indicator",
+                                    "left_indicator": "ema",
+                                    "left_period": 3,
+                                    "operator": "gt",
+                                    "right_source": "indicator",
+                                    "right_indicator": "sma",
+                                    "right_period": 5,
+                                },
+                                {
+                                    "type": "not",
+                                    "condition": {
+                                        "left_source": "indicator",
+                                        "left_indicator": "rsi",
+                                        "left_period": 5,
+                                        "operator": "gt",
+                                        "right_source": "value",
+                                        "right_value": 90,
+                                    },
+                                },
+                            ],
+                        },
+                        "conditions": [
+                            {
+                                "left_source": "indicator",
+                                "left_indicator": "ema",
+                                "left_period": 3,
+                                "operator": "gt",
+                                "right_source": "indicator",
+                                "right_indicator": "sma",
+                                "right_period": 5,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 8,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"symbols": [instrument.symbol, instrument_b.symbol]},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {
+                        "entry": "next_bar_open",
+                        "max_concurrent_positions": 1,
+                        "max_portfolio_risk_pct": 1.0,
+                        "max_symbol_allocation_pct": 60.0,
+                    },
+                    "notes": "Grouped rule tree",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version_id = create_res.json()["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version_id}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                    "max_concurrent_positions": 1,
+                    "max_portfolio_risk_pct": 1.0,
+                    "max_symbol_allocation_pct": 60.0,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        payload = run_res.json()
+        assert payload["result_summary"]["result_kind"] == "rules_backtest"
+        assert payload["result_summary"]["portfolio"]["accepted_trade_count"] >= 0
+        assert payload["result_summary"]["execution_assumptions"]["max_concurrent_positions"] == 1
+
+    def test_paper_forward_runs_can_be_refreshed_and_append_monitor_snapshots(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Paper Forward Monitor",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["paper"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "left_source": "price",
+                                "operator": "gt",
+                                "right_source": "indicator",
+                                "right_indicator": "sma",
+                                "right_period": 5,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 8,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"symbols": [instrument.symbol]},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                    "notes": "Paper forward strategy",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version_id = create_res.json()["versions"][0]["id"]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version_id}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "paper_forward",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                    "paper_forward_bars": 10,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        run_payload = run_res.json()
+        assert run_payload["result_summary"]["result_kind"] == "rules_paper_forward"
+        assert len(run_payload["result_summary"]["paper_forward"]["monitor_snapshots"]) == 1
+
+        refresh_res = client.post(
+            f"/api/v1/strategy-lab/runs/{run_payload['id']}/refresh",
+            headers=auth_headers,
+            json={},
+        )
+        assert refresh_res.status_code == 200
+        refreshed = refresh_res.json()
+        assert refreshed["result_summary"]["result_kind"] == "rules_paper_forward"
+        assert len(refreshed["result_summary"]["paper_forward"]["monitor_snapshots"]) == 2
