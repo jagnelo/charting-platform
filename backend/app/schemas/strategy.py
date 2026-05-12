@@ -4,14 +4,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.strategy import (
     StrategyDefinitionType,
-    StrategyEngineType,
     StrategySourceType,
     StrategyTestMode,
 )
 
 
 class StrategyVersionSeed(BaseModel):
-    engine_type: StrategyEngineType = StrategyEngineType.PLATFORM
     definition_snapshot: dict = Field(default_factory=dict)
     parameter_schema: dict = Field(default_factory=dict)
     default_parameters: dict = Field(default_factory=dict)
@@ -63,7 +61,6 @@ class StrategyVersionOut(BaseModel):
     id: int
     strategy_id: int
     version_number: int
-    engine_type: str
     definition_snapshot: dict
     parameter_schema: dict
     default_parameters: dict
@@ -83,7 +80,6 @@ class StrategyRunOut(BaseModel):
     strategy_id: int
     strategy_version_id: int
     requested_by_user_id: int
-    engine_type: str
     test_mode: str
     status: str
     timeframe: str | None
@@ -126,15 +122,5 @@ class StrategyDefinitionDetailOut(StrategyDefinitionSummaryOut):
     pass
 
 
-class StrategyEngineCapabilityOut(BaseModel):
-    key: str
-    label: str
-    is_available: bool
-    supports_walk_forward: bool
-    supports_paper_forward: bool
-    notes: str | None = None
-
-
-class StrategyRunSubmitOut(BaseModel):
-    run: StrategyRunOut
-    engine: StrategyEngineCapabilityOut
+class StrategyRunSubmitOut(StrategyRunOut):
+    pass

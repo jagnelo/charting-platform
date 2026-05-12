@@ -820,7 +820,6 @@ export interface Dashboard {
 
 export type StrategySourceType = 'custom' | 'radar'
 export type StrategyDefinitionType = 'rules' | 'dsl' | 'python' | 'signal_source'
-export type StrategyEngineType = 'platform' | 'nautilus'
 export type StrategyTestMode = 'backtest' | 'walk_forward' | 'paper_forward'
 export type StrategyRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled'
 
@@ -828,7 +827,6 @@ export interface StrategyVersion {
   id: number
   strategy_id: number
   version_number: number
-  engine_type: StrategyEngineType | string
   definition_snapshot: Record<string, any>
   parameter_schema: Record<string, any>
   default_parameters: Record<string, any>
@@ -846,7 +844,6 @@ export interface StrategyRun {
   strategy_id: number
   strategy_version_id: number
   requested_by_user_id: number
-  engine_type: StrategyEngineType | string
   test_mode: StrategyTestMode | string
   status: StrategyRunStatus | string
   timeframe?: string | null
@@ -881,20 +878,6 @@ export interface StrategyDefinition {
   runs: StrategyRun[]
   created_at: string
   updated_at: string
-}
-
-export interface StrategyEngineCapability {
-  key: StrategyEngineType | string
-  label: string
-  is_available: boolean
-  supports_walk_forward: boolean
-  supports_paper_forward: boolean
-  notes?: string | null
-}
-
-export interface StrategyRunSubmitResponse {
-  run: StrategyRun
-  engine: StrategyEngineCapability
 }
 
 // ── Screener ──────────────────────────────────────────────────────────────────

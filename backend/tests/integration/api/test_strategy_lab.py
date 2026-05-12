@@ -16,10 +16,26 @@ class TestStrategyLabAPI:
                 "tags": ["momentum", "swing"],
                 "metadata": {"owner": "test"},
                 "initial_version": {
-                    "engine_type": "platform",
-                    "definition_snapshot": {"timeframe": "D1", "logic": "close > sma20"},
-                    "parameter_schema": {"lookback": {"type": "integer", "default": 20}},
-                    "default_parameters": {"lookback": 20},
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "left_source": "price",
+                                "operator": "gt",
+                                "right_source": "value",
+                                "right_value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 5,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
                     "universe_config": {"symbols": ["AAPL"]},
                     "benchmark_config": {"symbol": "SPY"},
                     "execution_model": {"entry": "next_bar_open"},
@@ -31,7 +47,7 @@ class TestStrategyLabAPI:
         created = create_res.json()
         assert created["name"] == "Momentum Pilot"
         assert created["versions"][0]["version_number"] == 1
-        assert created["versions"][0]["engine_type"] == "platform"
+        assert created["versions"][0]["definition_snapshot"]["timeframe"] == "D1"
 
         list_res = client.get("/api/v1/strategy-lab/definitions", headers=auth_headers)
         assert list_res.status_code == 200
@@ -41,10 +57,27 @@ class TestStrategyLabAPI:
             f"/api/v1/strategy-lab/definitions/{created['id']}/versions",
             headers=auth_headers,
             json={
-                "engine_type": "platform",
-                "definition_snapshot": {"timeframe": "D1", "logic": "close > ema50"},
-                "parameter_schema": {"ema_period": {"type": "integer", "default": 50}},
-                "default_parameters": {"ema_period": 50},
+                "definition_snapshot": {
+                    "timeframe": "D1",
+                    "direction": "long",
+                    "entry_logic": "all",
+                    "conditions": [
+                        {
+                            "left_source": "price",
+                            "operator": "gt",
+                            "right_source": "indicator",
+                            "right_indicator": "sma",
+                            "right_period": 5,
+                        }
+                    ],
+                    "risk": {
+                        "stop_loss_pct": 2.0,
+                        "take_profit_rr": 1.2,
+                        "max_bars_in_trade": 7,
+                    },
+                },
+                "parameter_schema": {},
+                "default_parameters": {},
                 "universe_config": {"symbols": ["AAPL"]},
                 "benchmark_config": {"symbol": "QQQ"},
                 "execution_model": {"entry": "close_confirmation"},
@@ -64,19 +97,24 @@ class TestStrategyLabAPI:
                 "timeframe": "D1",
                 "date_from": date_from,
                 "date_to": date_to,
-                "parameter_values": {"ema_period": 50},
+                "parameter_values": {},
                 "universe_config": {"symbols": ["AAPL"]},
-                "execution_assumptions": {"slippage_bps": 5},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                },
             },
         )
         assert run_res.status_code == 201
         run_payload = run_res.json()
-        assert run_payload["run"]["status"] == "completed"
-        assert run_payload["run"]["engine_type"] == "platform"
-        assert run_payload["run"]["result_summary"]["coverage"]["instrument_count"] == 1
-        assert run_payload["run"]["result_summary"]["coverage"]["total_bars"] >= 1
-        assert run_payload["run"]["result_summary"]["readiness"]["has_coverage"] is True
-        assert run_payload["engine"]["is_available"] is True
+        assert run_payload["status"] == "completed"
+        assert run_payload["result_summary"]["result_kind"] == "rules_backtest"
+        assert run_payload["result_summary"]["coverage"]["instrument_count"] == 1
+        assert run_payload["result_summary"]["coverage"]["total_bars"] >= 1
+        assert run_payload["result_summary"]["performance"]["trade_count"] >= 1
+        assert run_payload["artifact_manifest"]["supports_execution_stats"] is True
 
         detail_res = client.get(
             f"/api/v1/strategy-lab/definitions/{created['id']}",
@@ -85,11 +123,11 @@ class TestStrategyLabAPI:
         assert detail_res.status_code == 200
         detail = detail_res.json()
         assert detail["runs"]
-        assert detail["runs"][0]["id"] == run_payload["run"]["id"]
+        assert detail["runs"][0]["id"] == run_payload["id"]
 
         runs_res = client.get("/api/v1/strategy-lab/runs", headers=auth_headers)
         assert runs_res.status_code == 200
-        assert any(item["id"] == run_payload["run"]["id"] for item in runs_res.json())
+        assert any(item["id"] == run_payload["id"] for item in runs_res.json())
 
     def test_duplicate_definition_name_is_rejected(self, client, auth_headers):
         payload = {
@@ -101,7 +139,6 @@ class TestStrategyLabAPI:
             "tags": [],
             "metadata": {},
             "initial_version": {
-                "engine_type": "platform",
                 "definition_snapshot": {},
                 "parameter_schema": {},
                 "default_parameters": {},

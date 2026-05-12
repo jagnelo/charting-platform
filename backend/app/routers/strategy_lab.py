@@ -12,18 +12,13 @@ from app.schemas.strategy import (
     StrategyDefinitionDetailOut,
     StrategyDefinitionSummaryOut,
     StrategyDefinitionUpdate,
-    StrategyEngineCapabilityOut,
     StrategyRunCreate,
     StrategyRunOut,
     StrategyRunSubmitOut,
     StrategyVersionCreate,
     StrategyVersionOut,
 )
-from app.services.strategy_lab import (
-    execute_strategy_run,
-    get_strategy_engine,
-    list_strategy_engines,
-)
+from app.services.strategy_lab import execute_strategy_run
 
 router = APIRouter(prefix="/strategy-lab", tags=["strategy-lab"])
 
@@ -54,11 +49,6 @@ async def _load_definition_or_404(
     if strategy is None:
         raise HTTPException(status_code=404, detail="Strategy definition not found")
     return strategy
-
-
-@router.get("/engines", response_model=list[StrategyEngineCapabilityOut])
-async def get_engines(current_user: User = Depends(get_current_user)):
-    return list_strategy_engines()
 
 
 @router.get("/definitions", response_model=list[StrategyDefinitionSummaryOut])
@@ -103,7 +93,6 @@ async def create_definition(
     )
     version = StrategyVersion(
         version_number=1,
-        engine_type=body.initial_version.engine_type.value,
         definition_snapshot=body.initial_version.definition_snapshot,
         parameter_schema=body.initial_version.parameter_schema,
         default_parameters=body.initial_version.default_parameters,
@@ -165,7 +154,6 @@ async def create_version(
     version = StrategyVersion(
         strategy_id=strategy.id,
         version_number=next_version,
-        engine_type=body.engine_type.value,
         definition_snapshot=body.definition_snapshot,
         parameter_schema=body.parameter_schema,
         default_parameters=body.default_parameters,
@@ -245,15 +233,6 @@ async def submit_run(
     if version is None:
         raise HTTPException(status_code=404, detail="Strategy version not found")
 
-    try:
-        engine = get_strategy_engine(version.engine_type)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if not engine.is_available:
-        raise HTTPException(
-            status_code=409, detail=engine.notes or "Selected engine is not available"
-        )
-
     run = StrategyRun(
         strategy_id=version.strategy_id,
         strategy_version_id=version.id,
@@ -277,4 +256,4 @@ async def submit_run(
     await execute_strategy_run(db, strategy=version.strategy, version=version, run=run)
     await db.commit()
     await db.refresh(run)
-    return StrategyRunSubmitOut(run=StrategyRunOut.model_validate(run), engine=engine)
+    return StrategyRunSubmitOut.model_validate(run)

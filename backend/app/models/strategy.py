@@ -87,7 +87,7 @@ class StrategyVersion(Base, TimestampMixin):
     )
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     engine_type: Mapped[str] = mapped_column(
-        String(32), nullable=False, default=StrategyEngineType.PLATFORM.value
+        String(32), nullable=False, default=StrategyEngineType.NAUTILUS.value
     )
     definition_snapshot: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     parameter_schema: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

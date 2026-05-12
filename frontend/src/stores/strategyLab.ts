@@ -4,15 +4,12 @@ import { defineStore } from 'pinia'
 import { api } from '@/lib/api'
 import type {
   StrategyDefinition,
-  StrategyEngineCapability,
   StrategyRun,
-  StrategyRunSubmitResponse,
   StrategyVersion,
 } from '@/types'
 
 export const useStrategyLabStore = defineStore('strategy_lab', () => {
   const definitions = ref<StrategyDefinition[]>([])
-  const engines = ref<StrategyEngineCapability[]>([])
   const selectedDefinitionId = ref<number | null>(null)
   const selectedRunId = ref<number | null>(null)
   const isLoading = ref(false)
@@ -32,12 +29,7 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     isLoading.value = true
     error.value = null
     try {
-      const [loadedDefinitions, loadedEngines] = await Promise.all([
-        api.get<StrategyDefinition[]>('/strategy-lab/definitions'),
-        api.get<StrategyEngineCapability[]>('/strategy-lab/engines'),
-      ])
-      definitions.value = loadedDefinitions
-      engines.value = loadedEngines
+      definitions.value = await api.get<StrategyDefinition[]>('/strategy-lab/definitions')
       if (!selectedDefinitionId.value || !definitions.value.some(item => item.id === selectedDefinitionId.value)) {
         selectedDefinitionId.value = definitions.value[0]?.id ?? null
       }
@@ -108,10 +100,10 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     isRunning.value = true
     error.value = null
     try {
-      const submitted = await api.post<StrategyRunSubmitResponse>(`/strategy-lab/versions/${versionId}/runs`, payload)
-      await refreshDefinition(submitted.run.strategy_id)
-      selectedDefinitionId.value = submitted.run.strategy_id
-      selectedRunId.value = submitted.run.id
+      const submitted = await api.post<StrategyRun>(`/strategy-lab/versions/${versionId}/runs`, payload)
+      await refreshDefinition(submitted.strategy_id)
+      selectedDefinitionId.value = submitted.strategy_id
+      selectedRunId.value = submitted.id
       return submitted
     } catch (err: any) {
       error.value = err?.message ?? 'Failed to run strategy version'
@@ -128,7 +120,6 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
 
   return {
     definitions,
-    engines,
     selectedDefinitionId,
     selectedRunId,
     selectedDefinition,
