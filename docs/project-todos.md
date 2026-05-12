@@ -529,91 +529,85 @@ What remains:
   - The current user value is real:
     - users can visually define a strategy
     - persist and version it
-    - run a historical backtest
-    - inspect summary metrics, an equity curve, warnings, and trades
+    - run historical backtests, walk-forward passes, and paper-forward-style continuation windows
+    - inspect summary metrics, equity curves, benchmark context, warnings, trades, per-symbol attribution, and richer distributions
   - But the current implementation is still materially earlier-stage than mature competitors.
   - It should be treated as a functioning v1 research product, not a finished research lab.
 
 - Capture the current gaps versus stronger competitors and use them as the roadmap for continuing this feature:
-  - **Walk-forward and paper-forward are not truly implemented yet.**
-    - The current surface is still backtest-centric.
-    - Walk-forward exists conceptually in the product design but not yet as a real end-to-end workflow with split configuration, rolling windows, out-of-sample summaries, and result surfaces.
-    - Paper-forward exists conceptually but not yet as a persistent live simulated monitoring loop over newly arriving data.
+  - **Walk-forward and paper-forward are now real product surfaces, but still not deep enough yet.**
+    - The current surface now exposes real walk-forward research segments and refreshable paper-forward monitoring snapshots, but it is still not a full end-to-end research/deployment workflow.
+    - Walk-forward still needs deeper split configuration, rolling calibration/evaluation behavior, and richer out-of-sample stability surfaces.
+    - Paper-forward now persists monitor snapshots on refresh, but it still is not a continuously scheduled live simulated monitoring loop over newly arriving data.
     - This is one of the largest product gaps because many stronger competitors let users validate not only historical fit but also forward behavior.
-  - **The visual rule builder is still shallow compared with mature builders.**
-    - Current rule authoring is good enough for straightforward conditions, but still limited.
+  - **The visual rule builder is materially stronger now, but still not broad enough for every serious strategy.**
+    - Current rule authoring now supports nested `All` / `Any` / `NOT` groups and grouped precedence instead of only a flat condition list, but it is still limited.
     - Missing:
-      - nested condition groups
-      - deeper boolean composition (`AND`/`OR` groups, negation, grouped precedence)
       - broader condition families
       - richer multi-timeframe logic
       - more session/time/event filters
       - stronger validation of structurally invalid rule combinations
     - This makes the current builder useful for simple systems but too narrow for many real strategies.
-  - **Execution modeling is still thin.**
+  - **Execution modeling is still thinner than it should be.**
     - Current support is centered on:
       - bar-driven entries/exits
       - stop loss
       - R-multiple target
       - time exit
+      - break-even promotion
+      - trailing-stop adjustment
+      - capped pyramiding / multi-entry behavior
       - slippage/commission assumptions
     - Missing:
       - partial exits
-      - trailing stops
-      - break-even promotion
-      - scale-in / pyramiding
       - richer order semantics
       - more advanced contingent-order workflows
       - more nuanced time-in-force and expiry handling where relevant
     - This is a major realism gap versus competitors and a major determinant of whether a backtest says anything useful.
-  - **Multi-symbol portfolio simulation is still simplified.**
-    - Current multi-symbol handling slices capital across the requested symbols, runs per-symbol simulations, then recombines results.
-    - This is not yet a full portfolio-aware scheduler/executor.
+  - **Multi-symbol portfolio simulation is improved, but still not production-grade.**
+    - Current multi-symbol handling now applies portfolio-level trade acceptance controls such as concurrent-position caps, portfolio-risk caps, and symbol-allocation caps before building the combined portfolio result.
+    - This is still not yet a full portfolio-aware scheduler/executor.
     - Missing:
-      - capital contention across simultaneous opportunities
-      - realistic position prioritization
-      - maximum concurrent position policies
+      - deeper capital contention modeling across simultaneous opportunities
+      - realistic position prioritization policies
       - sector exposure caps
-      - allocation constraints
-      - portfolio-level risk budgeting
-      - realistic handling of cash reservation and overlapping trades
+      - more realistic cash reservation and overlapping-trade handling
     - This is one of the biggest reasons current multi-symbol results should be considered directionally useful rather than fully production-grade.
-  - **Analytics are still thin compared with serious research platforms.**
+  - **Analytics are still thinner than serious research platforms, even though the baseline is now broader.**
     - Current outputs are useful but still compact:
       - summary metrics
       - equity curve
+      - benchmark overlay / excess-return context
+      - drawdown curve
+      - monthly/quarterly performance breakdowns
       - warnings
       - trade list
+      - per-symbol attribution
+      - trade histograms/distributions
     - Missing:
-      - benchmark comparison charts
-      - dedicated drawdown curve
-      - monthly/quarterly performance breakdowns
       - MAE/MFE distributions
-      - holding-time distributions
-      - trade outcome histograms
-      - richer per-symbol attribution views
-      - strategy-to-strategy comparison surfaces
-      - run-to-run diffing between revisions
+      - deeper holding-time and trade-outcome analytics
+      - broader strategy-to-strategy comparison surfaces
+      - richer run-to-run diffing between revisions
       - broader cohort/regime analysis
     - Competitors extract a large amount of user value from rich post-run analysis; this remains an important growth area.
-  - **Parameter exploration and robustness analysis are not there yet.**
+  - **Parameter exploration and robustness analysis are still early.**
     - Missing:
-      - parameter sweeps
+      - richer parameter sweeps than the current bounded leaderboard
       - optimization batches
       - sensitivity heatmaps
       - robustness summaries across periods/universes
       - overfitting detection aids
       - version-to-version comparison under the same scenario matrix
     - Without this, users can test a strategy, but cannot yet systematically improve it at scale.
-  - **Radar/screener/platform-signal research integration is still missing.**
+  - **Radar/screener/platform-signal research integration is only partially in place.**
     - One of the most important strategic goals discussed was to use Strategy Lab as the shared validation layer for both:
       - user-authored strategies
       - platform-owned signal sources like Radar
-    - That second half is still missing.
+    - That second half is now started, but not yet broad enough.
     - Missing:
-      - Radar replay as a Strategy Lab source
-      - historical Radar signal extraction by setup family / timeframe / score bucket / date range
       - apples-to-apples comparison of custom strategies versus Radar signals
+      - screener-derived signal replay rather than only latest-result screener universes
       - later, if valuable, screener-derived or other platform-owned signal/event replay
     - This is a major latent value source because it turns Strategy Lab into the place where platform intelligence is validated and improved, not just user-authored logic.
   - **Asset-model breadth and realism are still limited.**
@@ -629,33 +623,30 @@ What remains:
       - more complete venue/account/execution semantics per asset class
       - more nuanced data-shape support where the strategy depends on more than simple OHLCV bars
     - This means Strategy Lab is already real, but not yet broad enough to inherit the full breadth of the platform’s instrument universe.
-  - **The results UI is still more of a compact report than a full research workstation.**
-    - Current UI is a meaningful improvement over raw JSON, but still not yet a rich analysis environment.
+  - **The results UI is still more of an enhanced report than a full research workstation.**
+    - Current UI is now materially broader, with richer analytics panes, comparison, export, grouped rule authoring, and paper-forward refresh/monitor surfaces, but it is still not yet a full analysis environment.
     - Missing:
       - stronger result navigation
-      - richer tabs/panels for analytics
-      - side-by-side run comparison
+      - richer dedicated tabs/panels for analytics
       - stronger visual benchmarking
       - saved result views
       - revision history comparison workflows
-      - richer export surfaces
+      - broader export surfaces
     - This is not just polish; research UX determines whether users can actually learn anything from their runs.
   - **Backtest/live continuity is still underexploited.**
     - One major reason Nautilus is valuable is that it supports a deeper parity model between historical and forward/live semantics.
     - We are not using that deeply yet.
     - Missing:
-      - a true paper-forward loop
-      - state continuity from historical run definitions into forward simulation
-      - operational surfaces that let users monitor a running simulated strategy over fresh incoming data
+      - a continuously scheduled paper-forward loop
+      - deeper state continuity from historical run definitions into forward simulation
+      - richer operational surfaces that let users monitor a running simulated strategy over fresh incoming data
     - This is a major future-value area.
-  - **Benchmarking is not yet first-class enough.**
-    - Benchmark symbols/config exist, but benchmarking is still thin compared with what users expect.
+  - **Benchmarking is better than before, but still not first-class enough.**
+    - Benchmark symbols/config now feed benchmark curves and excess-return reporting, but the overall benchmarking workflow is still thinner than what users expect.
     - Missing:
-      - explicit equity-curve-vs-benchmark visuals
-      - excess return reporting
       - relative drawdown reporting
       - benchmark cohort comparison
-      - benchmark-aware run summaries beyond a thin stored concept
+      - benchmark-aware run summaries beyond the current baseline
     - This is important because users do not just care whether a strategy "made money"; they care whether it beat a passive alternative.
   - **The feature does not yet fully exploit the rest of the platform.**
     - Long-term value should come from Strategy Lab acting as the validation/research layer for:
@@ -672,8 +663,8 @@ What remains:
   - Current flaws:
     - too narrow for many real-world strategies
     - too weak in portfolio realism
-    - too thin in result analysis
-    - too isolated from platform-owned signals
+    - still too thin in result analysis relative to competitors
+    - platform-signal research is started but not yet broad enough
     - too limited in asset/model breadth
   - Current value:
     - real no-code/low-code visual strategy authoring
