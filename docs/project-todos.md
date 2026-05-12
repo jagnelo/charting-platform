@@ -517,13 +517,174 @@ Guiding architectural principles:
 
 What remains:
 
-- Continue from the newly landed Strategy Lab foundation now present in the codebase, which already establishes:
+- Continue from the current Strategy Lab baseline now present in the codebase, which already establishes:
   - persisted strategy definitions, versions, and runs
-  - a backend strategy-engine abstraction boundary with engine capability discovery
-  - a first platform-engine execution path that records real universe/coverage research snapshots
-  - a first frontend Strategy Lab surface for creating definitions, publishing versions, and launching persisted runs
+  - a visual-first frontend builder for rule-based strategies instead of raw JSON authoring
+  - a backend run path that now uses Nautilus Trader for backtesting/simulation instead of the earlier in-house placeholder path
+  - persisted backtest outputs exposed in platform-owned result schemas and shown in a platform-native UI
   - a clean separation between this research layer and present-looking products like Radar and Screeners
-- Evolve that foundation from "persisted research/run orchestration and coverage validation" into full historical simulation and evaluation.
+- Evolve that baseline from "good first visual backtest workspace backed by Nautilus" into a serious research workstation that can credibly compete with stronger retail/professional strategy-testing products.
+
+- Be explicit about the current product boundary and current limitations so future work does not overestimate how complete this feature already is:
+  - The current user value is real:
+    - users can visually define a strategy
+    - persist and version it
+    - run a historical backtest
+    - inspect summary metrics, an equity curve, warnings, and trades
+  - But the current implementation is still materially earlier-stage than mature competitors.
+  - It should be treated as a functioning v1 research product, not a finished research lab.
+
+- Capture the current gaps versus stronger competitors and use them as the roadmap for continuing this feature:
+  - **Walk-forward and paper-forward are not truly implemented yet.**
+    - The current surface is still backtest-centric.
+    - Walk-forward exists conceptually in the product design but not yet as a real end-to-end workflow with split configuration, rolling windows, out-of-sample summaries, and result surfaces.
+    - Paper-forward exists conceptually but not yet as a persistent live simulated monitoring loop over newly arriving data.
+    - This is one of the largest product gaps because many stronger competitors let users validate not only historical fit but also forward behavior.
+  - **The visual rule builder is still shallow compared with mature builders.**
+    - Current rule authoring is good enough for straightforward conditions, but still limited.
+    - Missing:
+      - nested condition groups
+      - deeper boolean composition (`AND`/`OR` groups, negation, grouped precedence)
+      - broader condition families
+      - richer multi-timeframe logic
+      - more session/time/event filters
+      - stronger validation of structurally invalid rule combinations
+    - This makes the current builder useful for simple systems but too narrow for many real strategies.
+  - **Execution modeling is still thin.**
+    - Current support is centered on:
+      - bar-driven entries/exits
+      - stop loss
+      - R-multiple target
+      - time exit
+      - slippage/commission assumptions
+    - Missing:
+      - partial exits
+      - trailing stops
+      - break-even promotion
+      - scale-in / pyramiding
+      - richer order semantics
+      - more advanced contingent-order workflows
+      - more nuanced time-in-force and expiry handling where relevant
+    - This is a major realism gap versus competitors and a major determinant of whether a backtest says anything useful.
+  - **Multi-symbol portfolio simulation is still simplified.**
+    - Current multi-symbol handling slices capital across the requested symbols, runs per-symbol simulations, then recombines results.
+    - This is not yet a full portfolio-aware scheduler/executor.
+    - Missing:
+      - capital contention across simultaneous opportunities
+      - realistic position prioritization
+      - maximum concurrent position policies
+      - sector exposure caps
+      - allocation constraints
+      - portfolio-level risk budgeting
+      - realistic handling of cash reservation and overlapping trades
+    - This is one of the biggest reasons current multi-symbol results should be considered directionally useful rather than fully production-grade.
+  - **Analytics are still thin compared with serious research platforms.**
+    - Current outputs are useful but still compact:
+      - summary metrics
+      - equity curve
+      - warnings
+      - trade list
+    - Missing:
+      - benchmark comparison charts
+      - dedicated drawdown curve
+      - monthly/quarterly performance breakdowns
+      - MAE/MFE distributions
+      - holding-time distributions
+      - trade outcome histograms
+      - richer per-symbol attribution views
+      - strategy-to-strategy comparison surfaces
+      - run-to-run diffing between revisions
+      - broader cohort/regime analysis
+    - Competitors extract a large amount of user value from rich post-run analysis; this remains an important growth area.
+  - **Parameter exploration and robustness analysis are not there yet.**
+    - Missing:
+      - parameter sweeps
+      - optimization batches
+      - sensitivity heatmaps
+      - robustness summaries across periods/universes
+      - overfitting detection aids
+      - version-to-version comparison under the same scenario matrix
+    - Without this, users can test a strategy, but cannot yet systematically improve it at scale.
+  - **Radar/screener/platform-signal research integration is still missing.**
+    - One of the most important strategic goals discussed was to use Strategy Lab as the shared validation layer for both:
+      - user-authored strategies
+      - platform-owned signal sources like Radar
+    - That second half is still missing.
+    - Missing:
+      - Radar replay as a Strategy Lab source
+      - historical Radar signal extraction by setup family / timeframe / score bucket / date range
+      - apples-to-apples comparison of custom strategies versus Radar signals
+      - later, if valuable, screener-derived or other platform-owned signal/event replay
+    - This is a major latent value source because it turns Strategy Lab into the place where platform intelligence is validated and improved, not just user-authored logic.
+  - **Asset-model breadth and realism are still limited.**
+    - The current Nautilus adapter is strongest for equity-style, OHLCV-bar-based strategies.
+    - It is not yet a broad, fully generalized research layer for:
+      - futures
+      - options
+      - FX
+      - crypto
+      - synthetic/expression instruments
+    - Missing:
+      - broader canonical instrument-to-Nautilus mapping
+      - more complete venue/account/execution semantics per asset class
+      - more nuanced data-shape support where the strategy depends on more than simple OHLCV bars
+    - This means Strategy Lab is already real, but not yet broad enough to inherit the full breadth of the platform’s instrument universe.
+  - **The results UI is still more of a compact report than a full research workstation.**
+    - Current UI is a meaningful improvement over raw JSON, but still not yet a rich analysis environment.
+    - Missing:
+      - stronger result navigation
+      - richer tabs/panels for analytics
+      - side-by-side run comparison
+      - stronger visual benchmarking
+      - saved result views
+      - revision history comparison workflows
+      - richer export surfaces
+    - This is not just polish; research UX determines whether users can actually learn anything from their runs.
+  - **Backtest/live continuity is still underexploited.**
+    - One major reason Nautilus is valuable is that it supports a deeper parity model between historical and forward/live semantics.
+    - We are not using that deeply yet.
+    - Missing:
+      - a true paper-forward loop
+      - state continuity from historical run definitions into forward simulation
+      - operational surfaces that let users monitor a running simulated strategy over fresh incoming data
+    - This is a major future-value area.
+  - **Benchmarking is not yet first-class enough.**
+    - Benchmark symbols/config exist, but benchmarking is still thin compared with what users expect.
+    - Missing:
+      - explicit equity-curve-vs-benchmark visuals
+      - excess return reporting
+      - relative drawdown reporting
+      - benchmark cohort comparison
+      - benchmark-aware run summaries beyond a thin stored concept
+    - This is important because users do not just care whether a strategy "made money"; they care whether it beat a passive alternative.
+  - **The feature does not yet fully exploit the rest of the platform.**
+    - Long-term value should come from Strategy Lab acting as the validation/research layer for:
+      - watchlists
+      - screeners
+      - Radar
+      - baskets
+      - breadth views
+      - economic events / context filters
+    - Today that integration is still early.
+    - This is one of the biggest strategic advantages available to this platform over standalone testing products, so it should be treated as a first-class roadmap lane.
+
+- Distinguish clearly between the current flaws and the future opportunities for extracting more value:
+  - Current flaws:
+    - too narrow for many real-world strategies
+    - too weak in portfolio realism
+    - too thin in result analysis
+    - too isolated from platform-owned signals
+    - too limited in asset/model breadth
+  - Current value:
+    - real no-code/low-code visual strategy authoring
+    - real Nautilus-backed backtesting in the backend
+    - versioned/persisted strategy research objects
+    - an integrated foundation that already fits the rest of the platform better than an external standalone tool would
+  - Major future value sources:
+    - use Strategy Lab as the validation layer for Radar
+    - use Strategy Lab as the experimentation/tuning layer for platform-owned signal engines
+    - connect watchlists/screeners/baskets/Radar directly into research universes and signal sources
+    - grow it into a differentiated integrated research layer rather than just a generic backtester UI
 
 - Design and implement a platform-owned strategy domain model, including concepts such as:
   - strategy definition
