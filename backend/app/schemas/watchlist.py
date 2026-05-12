@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class WatchlistCreate(BaseModel):
@@ -15,6 +15,8 @@ class WatchlistItemCreate(BaseModel):
 
 
 class WatchlistItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     instrument_id: int
     position: int
@@ -23,11 +25,10 @@ class WatchlistItemRead(BaseModel):
     symbol: str | None = None
     name: str | None = None
 
-    class Config:
-        from_attributes = True
-
 
 class WatchlistRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     description: str | None = None
@@ -40,6 +41,3 @@ class WatchlistRead(BaseModel):
     position: int = 0
     created_at: datetime
     items: list[WatchlistItemRead] = []
-
-    class Config:
-        from_attributes = True

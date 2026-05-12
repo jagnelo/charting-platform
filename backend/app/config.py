@@ -2,7 +2,7 @@ import json
 import os
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -112,10 +112,11 @@ class Settings(BaseSettings):
             return json.loads(v)
         return v
 
-    class Config:
-        env_file = os.environ.get("ENV_FILE", ".env.dev")
-        case_sensitive = True
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=os.environ.get("ENV_FILE", ".env.dev"),
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
 settings = Settings()

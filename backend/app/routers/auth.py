@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,14 +34,13 @@ class TokenResponse(BaseModel):
 
 
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     email: str
     display_name: str | None
     is_admin: bool
-
-    class Config:
-        from_attributes = True
 
 
 class UserSettingsUpdate(BaseModel):

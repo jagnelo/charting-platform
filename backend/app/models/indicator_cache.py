@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -40,7 +40,7 @@ class IndicatorCache(Base):
         Text, nullable=False
     )  # human-readable, not used as key
     computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     last_ts: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # JSON-encoded list of {key: str, values: list[float|null]} — one entry per output series

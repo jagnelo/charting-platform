@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +30,8 @@ class IndicatorAlertCreate(BaseModel):
 
 
 class IndicatorAlertOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     instrument_id: int
     timeframe: Timeframe
@@ -46,9 +48,6 @@ class IndicatorAlertOut(BaseModel):
     trigger_count: int
     last_indicator_value: Decimal | None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 @router.get("", response_model=list[IndicatorAlertOut])

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +30,8 @@ class ScreenerCreate(BaseModel):
 
 
 class ScreenerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     description: str | None
@@ -42,11 +44,10 @@ class ScreenerOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ScreenerResultOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     screener_id: int
     run_at: datetime
@@ -54,9 +55,6 @@ class ScreenerResultOut(BaseModel):
     matched_ids: list
     result_data: dict
     error: str | None
-
-    class Config:
-        from_attributes = True
 
 
 @router.get("", response_model=list[ScreenerOut])

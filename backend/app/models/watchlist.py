@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -84,7 +84,7 @@ class WatchlistItem(Base):
     )
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     added_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
