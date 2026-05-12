@@ -1,26 +1,24 @@
-# Task queue for unattended/multi-agent work.
-#
-# Rules:
-# - Keep tasks small and concrete.
-# - Each task must define validation.
-# - Status values:
-#   - pending
-#   - in_progress
-#   - blocked
-#   - done
-
 tasks:
-  - id: example-001
-    title: Example task
-    status: pending
-    priority: medium
+  - id: strategy-lab
+    title: Expand Strategy Lab across the remaining roadmap gaps
+    status: in_progress
+    priority: high
     scope: >
-      Replace this with a real task. Keep it specific and bounded.
+      Continue extending Strategy Lab toward the documented roadmap: platform signal replay,
+      broader universes, richer analytics, comparison/export tooling, deeper execution modeling,
+      stronger paper-forward support, more realistic multi-symbol research behavior,
+      and richer grouped rule authoring.
     definition_of_done:
-      - Code changes completed
-      - Relevant tests passed
+      - Code changes completed for the selected Strategy Lab roadmap slice
+      - Relevant backend/frontend tests passed
       - Handoff updated
     validation:
-      - backend-tests
-      - frontend-build
-    notes: []
+      - backend-unit
+      - backend-integration
+      - frontend-tests
+      - type-check
+      - e2e-when-routed-flows-are-affected
+    notes:
+      - Radar replay and screener-backed universes were added in the latest session.
+      - Grouped rule-tree authoring, portfolio-control summaries, and refreshable paper-forward monitor snapshots were added in the current session.
+      - Remaining largest gaps are broader condition families/validation, deeper comparison and robustness tooling, fuller portfolio realism, and broader asset/signal coverage.
