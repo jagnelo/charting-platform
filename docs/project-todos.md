@@ -591,6 +591,15 @@ What remains:
       - richer run-to-run diffing between revisions
       - broader cohort/regime analysis
     - Competitors extract a large amount of user value from rich post-run analysis; this remains an important growth area.
+  - **Multi-strategy correlation and composition research is still too shallow.**
+    - We discussed wanting users to go beyond isolated strategy runs and evaluate how multiple strategies behave together as a portfolio.
+    - Missing:
+      - rolling correlation stability between strategies rather than only static snapshots
+      - covariance/clustering analysis of strategy behavior
+      - marginal contribution to portfolio return, volatility, and drawdown when adding or removing one strategy from a mix
+      - portfolio-of-strategies simulation with configurable capital-allocation and rebalance rules
+      - optimization/screening flows that help users deliberately combine lower-correlation strategies to reduce drawdowns and smooth equity curves
+    - This is an important competitive gap because many users ultimately care more about the behavior of the combined strategy portfolio than about the headline metrics of one isolated system.
   - **Parameter exploration and robustness analysis are still early.**
     - Missing:
       - richer parameter sweeps than the current bounded leaderboard
@@ -849,8 +858,13 @@ What remains:
   - compare strategies over the same universe/date range
   - compare strategies by regime
   - correlation matrix of strategy returns
+  - rolling correlation stability across time/regimes
   - covariance/diversification analysis
+  - clustering/similarity analysis of strategy behavior
   - portfolio-construction ideas such as combining less-correlated strategies
+  - portfolio-of-strategies simulation with configurable weights, capital-allocation rules, and rebalance cadence
+  - marginal contribution analysis: "what happens to portfolio return, volatility, Sharpe, and drawdown if this strategy is added or removed?"
+  - optimization/screening flows that favor complementary lower-correlation strategies rather than only the highest standalone return
   - ranking by robustness instead of raw total return alone
 
 - Support walk-forward / out-of-sample research directly rather than treating it as an afterthought, including:
@@ -896,6 +910,7 @@ What remains:
   - walk-forward results view
   - strategy comparison view
   - portfolio-of-strategies comparison view
+  - multi-strategy composition / allocation workspace
   - paper forward-testing monitor
 
 - Add rich visualizations, such as:
@@ -906,6 +921,8 @@ What remains:
   - heatmaps by month/week/regime
   - parameter sweep heatmaps
   - correlation matrices between strategies
+  - rolling correlation charts between strategies
+  - portfolio contribution and marginal-risk charts for multi-strategy mixes
   - contribution / attribution charts
   - benchmark overlays
   - trade markers on the main chart where appropriate
@@ -1398,19 +1415,65 @@ Frontend:
 
 ---
 
-#### Shared design principles across 10a–10d
+#### 10e. Cross-instrument correlation and relationship analysis
+
+Context:
+- While strategy-to-strategy correlation belongs primarily in Strategy Lab, we also discussed a separate need for **instrument-level correlation analysis** as a more general market-analysis tool.
+- This should not be treated only as a strategy-testing concern. Users may want to answer questions such as:
+  - "How correlated are these two instruments over the last 3/6/12 months?"
+  - "Which members of this basket are moving most independently from the rest?"
+  - "Which instruments are highly correlated so I should avoid doubling the same exposure?"
+  - "Which instruments could diversify this watchlist or basket?"
+- This feature sits naturally adjacent to baskets, ETF holdings navigation, breadth, watchlists, and Strategy Lab because all of those surfaces benefit from understanding cross-instrument relationships.
+
+What remains:
+
+Backend / analytics:
+- Define a reusable correlation-analysis service that can compute, at minimum:
+  - return correlation matrices across a selected set of instruments
+  - rolling correlations between pairs or groups
+  - covariance matrices
+  - optionally beta-style relative sensitivity for common benchmark pairs
+- Support multiple selectable lookback windows and return granularities so users can compare short-term vs medium-term vs long-term relationships.
+- Support applying the service to:
+  - arbitrary manually selected instruments
+  - watchlists
+  - baskets
+  - ETF holdings baskets
+  - Strategy Lab result universes where useful
+- Later, if valuable, extend into adjacent relationship measures such as relative strength, cointegration/pair-candidate analysis, or cluster/group detection.
+
+Frontend / product surfaces:
+- A standalone correlation analysis view or panel where users can:
+  - pick a set of instruments/watchlists/baskets
+  - choose the lookback window and return granularity
+  - inspect matrix and pairwise outputs
+- Correlation heatmaps and sortable pair tables.
+- Rolling pair-correlation charts for selected instrument pairs.
+- Cross-basket or watchlist comparison views that highlight concentration vs diversification.
+- Later, dashboard widgets for compact correlation snapshots or "top correlated / least correlated" lists.
+
+Why this matters:
+- This is useful even outside Strategy Lab because it helps users reason about hidden exposure concentration across watchlists, baskets, and manually selected instruments.
+- It also creates a natural bridge into multi-strategy and portfolio-construction research by giving the platform a common language for diversification at both the instrument and strategy levels.
+
+---
+
+#### Shared design principles across 10a–10e
 
 - **Baskets are first-class objects.** They are not just lists; they carry weights, metadata, classification, and a potential synthetic price series. The domain model should reflect this from the start.
 - **ETF-derived baskets are a special case of the same model.** User baskets and ETF holdings baskets share the same backend schema and frontend surfaces; the distinction is managed vs unmanaged ownership and refresh semantics.
 - **The basket model feeds other platform features.** Baskets should be usable as: chart synthetic instruments, screener universes (item 3), Strategy Lab universes (item 7), radar filter slices (item 5), and breadth analysis targets. These integrations should inform the basket schema design so it isn't retrofitted later.
 - **Breadth analysis should be additive, not a re-architecture.** The breadth engine reads member OHLCV histories that already exist in the platform. It does not require new data infrastructure, only a computation layer on top of existing data.
 - **Sector/industry classification for mixed baskets remains an open design question.** The taxonomy used for classification should be revisited once downstream use cases (breadth grouping, radar slicing) clarify what granularity is actually needed.
+- **Cross-instrument correlation analysis should reuse the same universe-selection building blocks.** Watchlists, baskets, ETF holdings, and later Strategy Lab result sets should be usable as correlation-analysis inputs without needing a separate parallel selector model.
 
 Phasing expectations:
 - Phase 1: Custom basket creation/editing with equal and custom weights, basket charted as a synthetic price series, basic basket list/detail UI.
 - Phase 2: ETF holdings data ingestion, ETF-as-basket materialisation, holdings navigation UI.
 - Phase 3: Breadth analysis engine, breadth snapshot views, breadth time-series charting.
 - Phase 4: Basket breadth dashboard widgets, cross-basket comparison views, integration with radar and screener universe selectors.
+- Phase 5: Cross-instrument correlation analysis surfaces, rolling correlation views, and integration of those relationship tools into watchlists/baskets/Strategy Lab workflows.
 
 Why this was deferred:
 - Baskets are a foundational building block but depend on having a stable instrument model (already done) and clear downstream consumers.
