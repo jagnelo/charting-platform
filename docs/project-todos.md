@@ -655,6 +655,7 @@ What remains:
     - Missing:
       - relative drawdown reporting
       - benchmark cohort comparison
+      - strategy-as-benchmark workflows where another strategy/run can be treated as the benchmark rather than only a passive instrument
       - benchmark-aware run summaries beyond the current baseline
     - This is important because users do not just care whether a strategy "made money"; they care whether it beat a passive alternative.
   - **The feature does not yet fully exploit the rest of the platform.**
@@ -743,6 +744,83 @@ What remains:
   - screener results
   - radar-discovered instruments
   - later, dynamic universes refreshed by scheduled rules
+- Be explicit that the current Strategy Lab screener-universe implementation is intentionally only a **snapshot universe** for now:
+  - the current `Latest screener result` behavior should be treated as:
+    - "take the screener membership as of run submission time"
+    - freeze that basket
+    - run the strategy historically over that fixed symbol set
+  - keep this current approach in place for now because it is simpler, deterministic, and already useful for:
+    - testing a strategy on a screener-defined basket
+    - comparing strategies over the same frozen screener membership
+    - ad hoc research without introducing time-varying universe lifecycle complexity
+- Add a future **dynamic screener universe** mode for Strategy Lab rather than treating screener-universe research as permanently snapshot-only:
+  - the long-term user-facing concept should likely be something closer to `Screener universe` or `Dynamic screener universe`, not only `Latest screener result`
+  - the intended behavior is:
+    - during a simulated run, the screener is re-evaluated through simulated time
+    - at each refresh point, only the data that would have existed at that historical moment is used
+    - the eligible symbol basket can change over time as the screener membership changes
+  - this should be modeled as a time-varying **entry-eligibility universe**, not as a simplistic "replace the whole portfolio immediately" mechanism
+- When implementing the dynamic screener universe mode, explicitly define and persist the following policies so behavior is unambiguous and testable:
+  - **Refresh cadence**
+    - every bar
+    - every N bars
+    - daily
+    - weekly
+    - or another configured rebalance cadence
+  - **Evaluation timing**
+    - whether the screener membership for a bar is computed:
+      - on the close of that bar
+      - on the next bar open
+      - or on another explicit decision point
+    - this matters because the screener output must not peek into data not yet available at the simulated decision moment
+  - **Entry eligibility policy**
+    - only symbols currently in the screener membership are eligible for new entries
+    - newly-added symbols become eligible only from the next defined execution/rebalance point
+    - symbols removed from the screener should no longer accept fresh entries unless they later re-enter
+  - **Open-position removal policy**
+    - define what happens when a symbol leaves the screener while a position is already open
+    - supported policies should eventually include:
+      - `hold_until_exit`
+      - `force_exit_on_removal`
+      - `grace_period_after_removal`
+    - the most natural default discussed was:
+      - a symbol leaving the screener only blocks new entries
+      - existing positions continue to be managed by their own stop/target/time-exit logic until they close naturally
+  - **Re-entry policy**
+    - if a symbol leaves the screener and later re-enters, it should become eligible again
+    - re-entry should still respect the strategy's own entry logic and portfolio rules rather than blindly re-open a position just because the screener includes it again
+  - **Portfolio interaction policy**
+    - because the eligible universe changes over time, dynamic screener universes must work cleanly with:
+      - capital contention
+      - concurrent-position limits
+      - symbol-allocation caps
+      - portfolio-risk caps
+      - any later sector/exposure caps
+    - this means the screener universe should be treated as an upstream candidate filter, not as a direct instruction to allocate capital to everything newly included
+- Treat dynamic screener universes as a first-class simulation concern rather than a small UI tweak:
+  - the backtest engine will need a scheduled screener-refresh mechanism during simulation
+  - the strategy run must be able to evaluate screener conditions point-in-time against historical data available at each simulated step
+  - run artifacts/results should make it possible to inspect:
+    - when screener refreshes happened
+    - how membership changed over time
+    - which trades were allowed or blocked because of screener membership at that moment
+  - if helpful, later expose a membership timeline artifact showing:
+    - symbols entering/leaving the screener universe through time
+    - position lifecycle relative to that changing universe
+- Keep a clean product distinction between the two screener-universe modes once both exist:
+  - **Snapshot screener universe**
+    - fixed basket
+    - easier to reason about
+    - useful for static-basket research
+  - **Dynamic screener universe**
+    - membership evolves over simulated time
+    - more realistic for strategy behavior
+    - requires explicit lifecycle policies
+- Do not blur these modes together silently:
+  - users should know whether a strategy run used:
+    - a frozen screener snapshot
+    - or a time-evolving screener universe
+  - this choice should be visible in run configuration and stored in run artifacts/results for reproducibility
 
 - Add a platform-owned signal-source abstraction for research/test runs so the same testing layer can evaluate:
   - user-authored strategies that generate entries/exits from rules
