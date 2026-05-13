@@ -882,7 +882,7 @@ export interface StrategyDefinition {
 
 // ── Screener ──────────────────────────────────────────────────────────────────
 
-export type PriceChangePeriod = '1D' | '1W' | '1M' | 'MTD' | 'YTD' | '1Y'
+export type PriceChangePeriod = '1D' | '1W' | '1M' | '3M' | '6M' | 'MTD' | 'QTD' | 'YTD' | '1Y'
 
 export type ScreenerConditionType =
   | 'indicator_threshold'

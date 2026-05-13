@@ -323,6 +323,62 @@ async def _load_bars_for_strategy(
     return list((await db.execute(stmt)).scalars().all())
 
 
+def _iter_condition_nodes(node: Any) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if isinstance(node, dict):
+        rows.append(node)
+        for child in node.get("conditions", []) or []:
+            rows.extend(_iter_condition_nodes(child))
+        rows.extend(_iter_condition_nodes(node.get("condition")))
+    elif isinstance(node, list):
+        for child in node:
+            rows.extend(_iter_condition_nodes(child))
+    return rows
+
+
+def _condition_types_used(
+    conditions: list[dict[str, Any]],
+    condition_tree: dict[str, Any] | None,
+) -> set[str]:
+    rows = _iter_condition_nodes(conditions) + _iter_condition_nodes(condition_tree)
+    return {
+        str(row.get("type") or "").lower()
+        for row in rows
+        if isinstance(row, dict) and row.get("type")
+    }
+
+
+def _build_instrument_context(instrument: Instrument) -> dict[str, Any]:
+    fundamentals: dict[str, Any] = {
+        "currency": instrument.currency,
+    }
+    if instrument.equity_detail is not None:
+        fundamentals.update(
+            {
+                "sector": instrument.equity_detail.sector,
+                "industry": instrument.equity_detail.industry,
+                "country": instrument.equity_detail.country,
+                "exchange_mic": instrument.equity_detail.exchange_mic,
+                "market_cap_tier": instrument.equity_detail.market_cap_tier,
+                "employees": instrument.equity_detail.employees,
+            }
+        )
+    stats: dict[str, Any] = {}
+    if instrument.stats is not None:
+        stats.update(
+            {
+                "week52_high": instrument.stats.week52_high,
+                "week52_low": instrument.stats.week52_low,
+                "avg_volume_30d": instrument.stats.avg_volume_30d,
+                "pe_ratio": instrument.stats.pe_ratio,
+                "market_cap": instrument.stats.market_cap,
+                "beta": instrument.stats.beta,
+                "dividend_yield": instrument.stats.dividend_yield,
+            }
+        )
+    return {"fundamentals": fundamentals, "stats": stats}
+
+
 def _max_drawdown_pct(equity_curve: list[dict[str, float | str]]) -> float:
     peak = None
     max_dd = 0.0
@@ -651,6 +707,11 @@ async def _run_rules_backtest(
     logic = str(definition.get("entry_logic", "all")).lower()
     conditions = list(definition.get("conditions", []))
     condition_tree = definition.get("condition_tree")
+    condition_types = _condition_types_used(conditions, condition_tree if isinstance(condition_tree, dict) else None)
+    requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
+    requires_weekly_aux = bool(
+        {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"} & condition_types
+    ) and timeframe != Timeframe.W1
 
     if not conditions:
         warnings.append("No entry conditions were defined; no trades can be simulated.")
@@ -668,6 +729,28 @@ async def _run_rules_backtest(
         if len(bars) < 3:
             warnings.append(f"{instrument.symbol} does not have enough bars for simulation.")
             continue
+        daily_bars = (
+            await _load_bars_for_strategy(
+                db,
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                date_from=run.date_from,
+                date_to=run.date_to,
+            )
+            if requires_daily_aux
+            else []
+        )
+        weekly_bars = (
+            await _load_bars_for_strategy(
+                db,
+                instrument_id=instrument.id,
+                timeframe=Timeframe.W1,
+                date_from=run.date_from,
+                date_to=run.date_to,
+            )
+            if requires_weekly_aux
+            else []
+        )
         covered_symbols.append(instrument.symbol)
         coverage_total_bars += len(bars)
         instrument_result = run_single_instrument_nautilus_backtest(
@@ -689,6 +772,9 @@ async def _run_rules_backtest(
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             pyramiding_max_entries=pyramiding_max_entries,
+            daily_bars=daily_bars,
+            weekly_bars=weekly_bars,
+            instrument_context=_build_instrument_context(instrument),
         )
         trades.extend(instrument_result.trades)
         warnings.extend(instrument_result.warnings)
@@ -1379,6 +1465,14 @@ async def _maybe_run_parameter_sweep(
     logic = str(definition.get("entry_logic", "all")).lower()
     conditions = list(definition.get("conditions", []))
     condition_tree = definition.get("condition_tree")
+    condition_types = _condition_types_used(
+        conditions,
+        condition_tree if isinstance(condition_tree, dict) else None,
+    )
+    requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
+    requires_weekly_aux = bool(
+        {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"} & condition_types
+    ) and timeframe != Timeframe.W1
     capital_slice = initial_capital / max(len(instrument_rows), 1)
     for combo in combos[:20]:
         combo_trades: list[NautilusTrade] = []
@@ -1392,6 +1486,28 @@ async def _maybe_run_parameter_sweep(
             )
             if len(bars) < 3:
                 continue
+            daily_bars = (
+                await _load_bars_for_strategy(
+                    db,
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    date_from=run.date_from,
+                    date_to=run.date_to,
+                )
+                if requires_daily_aux
+                else []
+            )
+            weekly_bars = (
+                await _load_bars_for_strategy(
+                    db,
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    date_from=run.date_from,
+                    date_to=run.date_to,
+                )
+                if requires_weekly_aux
+                else []
+            )
             result = run_single_instrument_nautilus_backtest(
                 instrument=instrument,
                 bars=bars,
@@ -1413,6 +1529,9 @@ async def _maybe_run_parameter_sweep(
                 pyramiding_max_entries=int(
                     definition.get("risk", {}).get("pyramiding_max_entries", 1)
                 ),
+                daily_bars=daily_bars,
+                weekly_bars=weekly_bars,
+                instrument_context=_build_instrument_context(instrument),
             )
             combo_trades.extend(result.trades)
         if not combo_trades:

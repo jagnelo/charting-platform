@@ -138,6 +138,17 @@ async def update_definition(
     return await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
 
 
+@router.delete("/definitions/{strategy_id}", status_code=204)
+async def delete_definition(
+    strategy_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
+    await db.delete(strategy)
+    await db.commit()
+
+
 @router.post(
     "/definitions/{strategy_id}/versions", response_model=StrategyVersionOut, status_code=201
 )

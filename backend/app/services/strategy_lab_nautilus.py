@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -58,6 +58,46 @@ def _timeframe_to_bar_spec(timeframe: Timeframe) -> str:
         Timeframe.MN: "1-MONTH",
     }
     return mapping[timeframe]
+
+
+def _period_start(period: str, reference_at: datetime) -> datetime:
+    anchor = reference_at.astimezone(UTC)
+    today = anchor.date()
+    if period == "1D":
+        return datetime(today.year, today.month, today.day, tzinfo=UTC) - timedelta(days=1)
+    if period == "1W":
+        return anchor - timedelta(weeks=1)
+    if period == "1M":
+        month = today.month - 1 or 12
+        year = today.year - (1 if today.month == 1 else 0)
+        d = date(year, month, min(today.day, 28))
+        return datetime(d.year, d.month, d.day, tzinfo=UTC)
+    if period == "3M":
+        month = today.month - 3
+        year = today.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        d = date(year, month, min(today.day, 28))
+        return datetime(d.year, d.month, d.day, tzinfo=UTC)
+    if period == "6M":
+        month = today.month - 6
+        year = today.year
+        if month <= 0:
+            month += 12
+            year -= 1
+        d = date(year, month, min(today.day, 28))
+        return datetime(d.year, d.month, d.day, tzinfo=UTC)
+    if period == "MTD":
+        return datetime(today.year, today.month, 1, tzinfo=UTC)
+    if period == "QTD":
+        q_start_month = ((today.month - 1) // 3) * 3 + 1
+        return datetime(today.year, q_start_month, 1, tzinfo=UTC)
+    if period == "YTD":
+        return datetime(today.year, 1, 1, tzinfo=UTC)
+    if period == "1Y":
+        return datetime(today.year - 1, today.month, min(today.day, 28), tzinfo=UTC)
+    return anchor - timedelta(days=1)
 
 
 def build_nautilus_bars(
@@ -125,6 +165,7 @@ class SingleInstrumentBacktestResult:
 class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     instrument_id: InstrumentId
     bar_type: BarType
+    timeframe: str = "D1"
     direction: str = "long"
     entry_logic: str = "all"
     conditions: tuple[dict[str, Any], ...] = ()
@@ -138,6 +179,11 @@ class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     break_even_rr: float = 0.0
     trailing_stop_rr: float = 0.0
     pyramiding_max_entries: int = 1
+    daily_closes: tuple[float, ...] = ()
+    daily_timestamps: tuple[int, ...] = ()
+    weekly_closes: tuple[float, ...] = ()
+    weekly_timestamps: tuple[int, ...] = ()
+    instrument_context: dict[str, Any] | None = None
 
 
 class StrategyLabNautilusStrategy(Strategy):
@@ -146,6 +192,8 @@ class StrategyLabNautilusStrategy(Strategy):
         self.instrument = None
         self._indicator_cache: dict[tuple[str, int], Any] = {}
         self._previous_values: list[tuple[float | None, float | None]] | None = None
+        self._previous_indicator_values: dict[tuple[str, int], float] = {}
+        self._bar_snapshots: list[dict[str, float]] = []
         self.active_position_id: str | None = None
         self.position_plans: dict[str, dict[str, float | int | str]] = {}
         self.exit_reasons: dict[str, str] = {}
@@ -160,8 +208,7 @@ class StrategyLabNautilusStrategy(Strategy):
 
         self._register_tree_indicators(self.config.condition_tree)
         for condition in self.config.conditions:
-            self._ensure_indicator(condition, "left")
-            self._ensure_indicator(condition, "right")
+            self._ensure_condition_indicators(condition)
 
     def _register_tree_indicators(self, node: dict[str, Any] | None) -> None:
         if not node:
@@ -175,14 +222,38 @@ class StrategyLabNautilusStrategy(Strategy):
             if isinstance(child, dict):
                 self._register_tree_indicators(child)
             return
-        self._ensure_indicator(node, "left")
-        self._ensure_indicator(node, "right")
+        self._ensure_condition_indicators(node)
+
+    def _ensure_condition_indicators(self, condition: dict[str, Any]) -> None:
+        if self._is_shared_condition(condition):
+            indicator = condition.get("indicator")
+            params = condition.get("params") or {}
+            if isinstance(indicator, str):
+                self._ensure_indicator_ref(indicator, int(params.get("period") or 0))
+            indicator_a = condition.get("indicator_a") or {}
+            if isinstance(indicator_a, dict):
+                self._ensure_indicator_ref(
+                    str(indicator_a.get("type") or ""),
+                    int((indicator_a.get("params") or {}).get("period") or 0),
+                )
+            indicator_b = condition.get("indicator_b") or {}
+            if isinstance(indicator_b, dict):
+                self._ensure_indicator_ref(
+                    str(indicator_b.get("type") or ""),
+                    int((indicator_b.get("params") or {}).get("period") or 0),
+                )
+            return
+        self._ensure_indicator(condition, "left")
+        self._ensure_indicator(condition, "right")
 
     def _ensure_indicator(self, condition: dict[str, Any], side: str) -> None:
         if condition.get(f"{side}_source") != "indicator":
             return
         indicator = str(condition.get(f"{side}_indicator") or "").lower()
         period = int(condition.get(f"{side}_period") or 0)
+        self._ensure_indicator_ref(indicator, period)
+
+    def _ensure_indicator_ref(self, indicator: str, period: int) -> None:
         key = (indicator, period)
         if key in self._indicator_cache or period <= 0:
             return
@@ -213,8 +284,12 @@ class StrategyLabNautilusStrategy(Strategy):
 
     def on_bar(self, bar: Bar) -> None:
         self._sync_active_position()
+        self._append_bar_snapshot(bar)
         condition_values = [
-            self._condition_values(condition, bar) for condition in self.config.conditions
+            self._condition_values(condition, bar)
+            if not self._is_shared_condition(condition)
+            else (None, None)
+            for condition in self.config.conditions
         ]
         due_signal = self._next_due_signal(bar)
 
@@ -222,6 +297,7 @@ class StrategyLabNautilusStrategy(Strategy):
             if self._maybe_exit(bar):
                 self._record_equity(bar.ts_event)
                 self._previous_values = condition_values
+                self._snapshot_indicator_values()
                 return
             if not self._has_pending_orders() and self._should_add_to_position(
                 condition_values, bar
@@ -235,6 +311,7 @@ class StrategyLabNautilusStrategy(Strategy):
         self._sync_active_position()
         self._record_equity(bar.ts_event)
         self._previous_values = condition_values
+        self._snapshot_indicator_values()
 
     def _next_due_signal(self, bar: Bar) -> dict[str, Any] | None:
         while self._signal_index < len(self._signal_events):
@@ -412,6 +489,28 @@ class StrategyLabNautilusStrategy(Strategy):
         self.close_all_positions(self.config.instrument_id)
         return True
 
+    def _append_bar_snapshot(self, bar: Bar) -> None:
+        self._bar_snapshots.append(
+            {
+                "ts": float(bar.ts_event),
+                "open": bar.open.as_double(),
+                "high": bar.high.as_double(),
+                "low": bar.low.as_double(),
+                "close": bar.close.as_double(),
+                "volume": bar.volume.as_double(),
+            }
+        )
+        if len(self._bar_snapshots) > 6000:
+            self._bar_snapshots = self._bar_snapshots[-4000:]
+
+    def _snapshot_indicator_values(self) -> None:
+        snapshot: dict[tuple[str, int], float] = {}
+        for key, instance in self._indicator_cache.items():
+            value = getattr(instance, "value", None)
+            if value is not None:
+                snapshot[key] = float(value)
+        self._previous_indicator_values = snapshot
+
     def _condition_values(
         self, condition: dict[str, Any], bar: Bar
     ) -> tuple[float | None, float | None]:
@@ -436,6 +535,23 @@ class StrategyLabNautilusStrategy(Strategy):
             return float(value)
         return None
 
+    def _is_shared_condition(self, condition: dict[str, Any]) -> bool:
+        return str(condition.get("type") or "") in {
+            "indicator_threshold",
+            "indicator_cross",
+            "price_indicator",
+            "price_threshold",
+            "price_change",
+            "price_change_period",
+            "performance",
+            "week52_new_high",
+            "week52_new_low",
+            "pct_from_52w_high",
+            "pct_from_52w_low",
+            "stats_filter",
+            "fundamental_filter",
+        }
+
     def _should_enter(
         self, current_values: list[tuple[float | None, float | None]], bar: Bar
     ) -> bool:
@@ -448,6 +564,9 @@ class StrategyLabNautilusStrategy(Strategy):
 
         matches: list[bool] = []
         for index, condition in enumerate(self.config.conditions):
+            if self._is_shared_condition(condition):
+                matches.append(self._evaluate_shared_condition(condition, bar))
+                continue
             left, right = current_values[index]
             prev_left = prev_right = None
             if self._previous_values is not None and index < len(self._previous_values):
@@ -499,6 +618,8 @@ class StrategyLabNautilusStrategy(Strategy):
         prev_left = prev_right = None
         if self._previous_values:
             prev_left, prev_right = self._previous_values[0]
+        if self._is_shared_condition(node):
+            return self._evaluate_shared_condition(node, bar)
         return self._evaluate_condition(
             condition=node,
             left=left,
@@ -543,11 +664,263 @@ class StrategyLabNautilusStrategy(Strategy):
             )
         return False
 
+    def _evaluate_shared_condition(self, condition: dict[str, Any], bar: Bar) -> bool:
+        condition_type = str(condition.get("type") or "")
+        operator = str(condition.get("op") or condition.get("operator") or "gt").lower()
+
+        if condition_type == "indicator_threshold":
+            indicator = str(condition.get("indicator") or "").lower()
+            period = int((condition.get("params") or {}).get("period") or 0)
+            current = self._current_indicator_value(indicator, period)
+            target = self._numeric(condition.get("value"))
+            return self._compare_numeric(operator, current, target)
+
+        if condition_type == "indicator_cross":
+            indicator_a = condition.get("indicator_a") or {}
+            indicator_b = condition.get("indicator_b") or {}
+            a_key = (
+                str(indicator_a.get("type") or "").lower(),
+                int((indicator_a.get("params") or {}).get("period") or 0),
+            )
+            b_key = (
+                str(indicator_b.get("type") or "").lower(),
+                int((indicator_b.get("params") or {}).get("period") or 0),
+            )
+            current_a = self._current_indicator_value(*a_key)
+            current_b = self._current_indicator_value(*b_key)
+            prev_a = self._previous_indicator_values.get(a_key)
+            prev_b = self._previous_indicator_values.get(b_key)
+            return self._compare_numeric(operator, current_a, current_b, prev_a, prev_b)
+
+        if condition_type == "price_indicator":
+            field = str(condition.get("field") or "close").lower()
+            current = self._bar_field_value(bar, field)
+            indicator = str(condition.get("indicator") or "").lower()
+            period = int((condition.get("params") or {}).get("period") or 0)
+            target = self._current_indicator_value(indicator, period)
+            prev_left = self._previous_bar_field_value(field)
+            prev_right = self._previous_indicator_values.get((indicator, period))
+            return self._compare_numeric(operator, current, target, prev_left, prev_right)
+
+        if condition_type == "price_threshold":
+            field = str(condition.get("field") or "close").lower()
+            current = self._bar_field_value(bar, field)
+            target = self._numeric(condition.get("value"))
+            return self._compare_numeric(operator, current, target)
+
+        if condition_type == "price_change":
+            lookback_bars = max(1, int(condition.get("lookback_bars") or 1))
+            prior_close = self._historical_close(lookback_bars)
+            current_close = bar.close.as_double()
+            if prior_close in {None, 0}:
+                return False
+            change = (current_close - prior_close) / prior_close
+            return self._compare_numeric(operator, change, self._numeric(condition.get("value")))
+
+        if condition_type == "price_change_period":
+            change = self._series_change_from_period(
+                timestamps=[int(row["ts"]) for row in self._bar_snapshots],
+                closes=[float(row["close"]) for row in self._bar_snapshots],
+                period=str(condition.get("period") or "1D"),
+            )
+            if change is None:
+                return False
+            return self._compare_numeric(operator, change, self._numeric(condition.get("value")))
+
+        if condition_type == "performance":
+            timestamps, closes = self._daily_series()
+            change = self._series_change_from_period(
+                timestamps=timestamps,
+                closes=closes,
+                period=str(condition.get("period") or "1D"),
+            )
+            if change is None:
+                return False
+            return self._compare_numeric(operator, change, self._numeric(condition.get("value")))
+
+        if condition_type == "week52_new_high":
+            closes = self._weekly_closes()
+            if len(closes) < 2:
+                return False
+            trailing = closes[-52:] if len(closes) >= 52 else closes
+            current = trailing[-1]
+            prior_high = max(trailing[:-1]) if len(trailing) > 1 else current
+            return current >= prior_high
+
+        if condition_type == "week52_new_low":
+            closes = self._weekly_closes()
+            if len(closes) < 2:
+                return False
+            trailing = closes[-52:] if len(closes) >= 52 else closes
+            current = trailing[-1]
+            prior_low = min(trailing[:-1]) if len(trailing) > 1 else current
+            return current <= prior_low
+
+        if condition_type == "pct_from_52w_high":
+            closes = self._weekly_closes()
+            if not closes:
+                return False
+            rolling_high = max(closes[-52:] if len(closes) >= 52 else closes)
+            if rolling_high == 0:
+                return False
+            distance = (rolling_high - closes[-1]) / rolling_high
+            return self._compare_numeric(operator, distance, self._numeric(condition.get("value")))
+
+        if condition_type == "pct_from_52w_low":
+            closes = self._weekly_closes()
+            if not closes:
+                return False
+            rolling_low = min(closes[-52:] if len(closes) >= 52 else closes)
+            if rolling_low == 0:
+                return False
+            distance = (closes[-1] - rolling_low) / rolling_low
+            return self._compare_numeric(operator, distance, self._numeric(condition.get("value")))
+
+        if condition_type == "stats_filter":
+            field = str(condition.get("field") or "")
+            actual = (self.config.instrument_context or {}).get("stats", {}).get(field)
+            return self._compare_numeric(operator, self._numeric(actual), self._numeric(condition.get("value")))
+
+        if condition_type == "fundamental_filter":
+            field = str(condition.get("field") or "")
+            actual = (self.config.instrument_context or {}).get("fundamentals", {}).get(field)
+            if actual is None:
+                return False
+            if isinstance(actual, str):
+                expected = str(condition.get("value") or "")
+                return self._compare_text(operator, actual, expected)
+            return self._compare_numeric(operator, self._numeric(actual), self._numeric(condition.get("value")))
+
+        return False
+
+    def _current_indicator_value(self, indicator: str, period: int) -> float | None:
+        instance = self._indicator_cache.get((indicator, period))
+        value = getattr(instance, "value", None) if instance is not None else None
+        if value is None:
+            return None
+        return float(value)
+
+    def _bar_field_value(self, bar: Bar, field: str) -> float | None:
+        if field == "open":
+            return bar.open.as_double()
+        if field == "high":
+            return bar.high.as_double()
+        if field == "low":
+            return bar.low.as_double()
+        if field == "close":
+            return bar.close.as_double()
+        if field == "volume":
+            return bar.volume.as_double()
+        return None
+
+    def _previous_bar_field_value(self, field: str) -> float | None:
+        if len(self._bar_snapshots) < 2:
+            return None
+        return self._bar_snapshots[-2].get(field)
+
+    def _historical_close(self, bars_back: int) -> float | None:
+        if len(self._bar_snapshots) <= bars_back:
+            return None
+        return self._bar_snapshots[-1 - bars_back]["close"]
+
+    def _daily_series(self) -> tuple[list[int], list[float]]:
+        if self.config.timeframe.upper() == "D1":
+            return (
+                [int(row["ts"]) for row in self._bar_snapshots],
+                [float(row["close"]) for row in self._bar_snapshots],
+            )
+        return (
+            [int(value) for value in self.config.daily_timestamps],
+            [float(value) for value in self.config.daily_closes],
+        )
+
+    def _weekly_closes(self) -> list[float]:
+        if self.config.timeframe.upper() == "W1":
+            return [float(row["close"]) for row in self._bar_snapshots]
+        return [float(value) for value in self.config.weekly_closes]
+
+    def _series_change_from_period(
+        self,
+        *,
+        timestamps: list[int],
+        closes: list[float],
+        period: str,
+    ) -> float | None:
+        if len(closes) < 2 or len(timestamps) < 2:
+            return None
+        reference_at = datetime.fromtimestamp(timestamps[-1] / 1_000_000_000, tz=UTC)
+        period_start_ts = _period_start(period, reference_at).timestamp() * 1_000_000_000
+        ref_idx = None
+        for index, ts in enumerate(timestamps):
+            if ts >= period_start_ts:
+                ref_idx = index
+                break
+        if ref_idx is None or ref_idx == len(closes) - 1:
+            return None
+        ref = float(closes[ref_idx])
+        current = float(closes[-1])
+        if ref == 0:
+            return 0.0
+        return (current - ref) / ref
+
+    def _numeric(self, value: Any) -> float | None:
+        if value is None:
+            return None
+        return float(value)
+
+    def _compare_text(self, operator: str, actual: str, expected: str) -> bool:
+        lhs = actual.lower()
+        rhs = expected.lower()
+        if operator == "eq":
+            return lhs == rhs
+        if operator == "contains":
+            return rhs in lhs
+        return False
+
+    def _compare_numeric(
+        self,
+        operator: str,
+        left: float | None,
+        right: float | None,
+        prev_left: float | None = None,
+        prev_right: float | None = None,
+    ) -> bool:
+        if left is None or right is None:
+            return False
+        if operator == "gt":
+            return left > right
+        if operator == "gte":
+            return left >= right
+        if operator == "eq":
+            return abs(left - right) < 1e-9
+        if operator == "lt":
+            return left < right
+        if operator == "lte":
+            return left <= right
+        if operator == "crosses_above":
+            return (
+                prev_left is not None
+                and prev_right is not None
+                and prev_left <= prev_right
+                and left > right
+            )
+        if operator == "crosses_below":
+            return (
+                prev_left is not None
+                and prev_right is not None
+                and prev_left >= prev_right
+                and left < right
+            )
+        return False
+
 
 def run_single_instrument_nautilus_backtest(
     *,
     instrument: Instrument,
     bars: list[OHLCVBar],
+    daily_bars: list[OHLCVBar] | None = None,
+    weekly_bars: list[OHLCVBar] | None = None,
+    instrument_context: dict[str, Any] | None = None,
     timeframe: Timeframe,
     direction: str,
     entry_logic: str,
@@ -575,6 +948,7 @@ def run_single_instrument_nautilus_backtest(
         StrategyLabNautilusConfig(
             instrument_id=nautilus_instrument.id,
             bar_type=bar_type,
+            timeframe=timeframe.value,
             direction=direction,
             entry_logic=entry_logic,
             conditions=tuple(conditions),
@@ -596,6 +970,15 @@ def run_single_instrument_nautilus_backtest(
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             pyramiding_max_entries=max(1, pyramiding_max_entries),
+            daily_closes=tuple(float(bar.close) for bar in (daily_bars or [])),
+            daily_timestamps=tuple(
+                dt_to_unix_nanos(bar.ts.astimezone(UTC)) for bar in (daily_bars or [])
+            ),
+            weekly_closes=tuple(float(bar.close) for bar in (weekly_bars or [])),
+            weekly_timestamps=tuple(
+                dt_to_unix_nanos(bar.ts.astimezone(UTC)) for bar in (weekly_bars or [])
+            ),
+            instrument_context=instrument_context or {},
         )
     )
 

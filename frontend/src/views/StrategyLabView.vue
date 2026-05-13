@@ -1,50 +1,81 @@
 <template>
   <div class="strategy-lab-view">
-    <aside class="strategy-sidebar">
-      <div class="sidebar-header">
-        <div>
-          <h1>Strategy Lab</h1>
-          <p>Build rule-based strategies, publish revisions, and backtest them visually.</p>
+    <aside
+      class="strategy-sidebar"
+      :class="{ 'strategy-sidebar--collapsed': sidebarCollapsed }"
+      :style="sidebarCollapsed ? undefined : { width: `${sidebarWidth}px` }"
+    >
+      <div v-if="!sidebarCollapsed" class="strategy-sidebar-body">
+        <div class="sidebar-header">
+          <div>
+            <h1>Strategy Lab</h1>
+          </div>
         </div>
-        <button class="btn-primary" type="button" @click="startNew">+ New</button>
+
+        <div class="definition-list definition-list--dense">
+          <button
+            v-if="!strategyLab.definitions.length"
+            type="button"
+            class="definition-item definition-item--new sidebar-new-btn"
+            @click="startNew"
+          >
+            + New
+          </button>
+          <button
+            v-for="definition in strategyLab.definitions"
+            :key="definition.id"
+            type="button"
+            class="definition-item"
+            :class="{ active: strategyLab.selectedDefinitionId === definition.id }"
+            @click="selectDefinition(definition.id)"
+          >
+            <div class="definition-tile definition-tile--dense">
+              <span class="state-dot definition-state-dot" :class="{ inactive: !definition.is_active }" />
+              <div class="definition-copy">
+                <strong>{{ definition.name }}</strong>
+                <small>
+                  v{{ definition.versions[0]?.version_number ?? 1 }}
+                </small>
+                <div v-if="definitionDisplayTags(definition).length" class="definition-tags">
+                  <span
+                    v-for="tag in definitionDisplayTags(definition)"
+                    :key="tag"
+                    class="definition-tag"
+                    :style="tagPillStyle(tag)"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </button>
+          <button
+            v-if="strategyLab.definitions.length"
+            type="button"
+            class="definition-item definition-item--new sidebar-new-btn"
+            @click="startNew"
+          >
+            + New
+          </button>
+        </div>
       </div>
 
-      <div class="sidebar-note">
-        <strong>Current focus</strong>
-        <p>Use this workspace to build, revise, and test strategies across backtest, walk-forward, and paper-forward research modes.</p>
-      </div>
-
-      <div class="definition-list">
-        <button
-          v-for="definition in strategyLab.definitions"
-          :key="definition.id"
-          type="button"
-          class="definition-item"
-          :class="{ active: strategyLab.selectedDefinitionId === definition.id }"
-          @click="selectDefinition(definition.id)"
-        >
-          <div class="definition-head">
-            <strong>{{ definition.name }}</strong>
-            <span class="state-dot" :class="{ inactive: !definition.is_active }">
-              {{ definition.is_active ? 'Active' : 'Paused' }}
-            </span>
-          </div>
-          <div class="definition-meta">
-            <span>{{ definition.tags.join(' · ') || 'Rule-built strategy' }}</span>
-            <span v-if="definition.versions[0]">· v{{ definition.versions[0].version_number }}</span>
-          </div>
-          <div v-if="definition.runs[0]" class="definition-runline">
-            Last backtest: {{ humanizeToken(definition.runs[0].status) }}
-            <span v-if="definition.runs[0].result_summary?.performance?.trade_count != null">
-              · {{ definition.runs[0].result_summary.performance.trade_count }} trades
-            </span>
-          </div>
-        </button>
-        <div v-if="!strategyLab.definitions.length && !strategyLab.isLoading" class="empty-state">
-          No strategies yet.
-        </div>
-      </div>
+      <button
+        class="sidebar-toggle-strip"
+        :title="sidebarCollapsed ? 'Expand strategy list' : 'Collapse strategy list'"
+        type="button"
+        @click="sidebarCollapsed = !sidebarCollapsed"
+      >
+        {{ sidebarCollapsed ? '▸' : '◂' }}
+      </button>
     </aside>
+    <ResizeHandle
+      direction="horizontal"
+      :value="sidebarCollapsed ? STRATEGY_SIDEBAR_COLLAPSED_WIDTH : sidebarWidth"
+      :min="sidebarCollapsed ? STRATEGY_SIDEBAR_COLLAPSED_WIDTH : STRATEGY_SIDEBAR_MIN_WIDTH"
+      :max="STRATEGY_SIDEBAR_MAX_WIDTH"
+      @change="resizeSidebar"
+    />
 
     <section class="strategy-main">
       <div v-if="strategyLab.error" class="error-banner">{{ strategyLab.error }}</div>
@@ -52,20 +83,52 @@
       <div class="detail-header">
         <div>
           <h2>{{ isNew ? 'New Strategy' : draft.name || 'Strategy' }}</h2>
-          <p>
-            Build the logic visually, then publish a revision when you want that version to become the one you backtest.
-          </p>
         </div>
         <div class="detail-actions">
-          <button class="btn-secondary" type="button" @click="reload" :disabled="strategyLab.isLoading">Refresh</button>
+          <button
+            class="btn-secondary btn-icon-only"
+            type="button"
+            title="Refresh"
+            aria-label="Refresh"
+            @click="reload"
+            :disabled="strategyLab.isLoading"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M13.5 3.5v3h-3" />
+              <path d="M12.2 6A5 5 0 1 0 13 10" />
+            </svg>
+          </button>
           <button
             v-if="!isNew && strategyLab.selectedDefinition"
-            class="btn-secondary"
+            class="btn-secondary btn-icon-only"
             type="button"
+            title="Save profile"
+            aria-label="Save profile"
             @click="saveProfileOnly"
             :disabled="strategyLab.isSaving"
           >
-            {{ strategyLab.isSaving ? 'Saving…' : 'Save profile' }}
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 2.5h8l2 2V13.5H3z" />
+              <path d="M5 2.5v4h5v-4" />
+              <path d="M5 13.5V9h6v4.5" />
+            </svg>
+          </button>
+          <button
+            v-if="!isNew && strategyLab.selectedDefinition"
+            class="btn-danger btn-icon-only"
+            type="button"
+            title="Delete strategy"
+            aria-label="Delete strategy"
+            @click="showDeleteModal = true"
+            :disabled="strategyLab.isSaving"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3.5 4.5h9" />
+              <path d="M6 2.5h4" />
+              <path d="M5 4.5v8h6v-8" />
+              <path d="M7 6.5v4" />
+              <path d="M9 6.5v4" />
+            </svg>
           </button>
           <button
             class="btn-primary"
@@ -82,188 +145,249 @@
         <div class="hero-card">
           <span class="hero-label">Current revision</span>
           <strong>{{ currentVersion ? `v${currentVersion.version_number}` : 'Draft only' }}</strong>
-          <small>{{ currentVersion?.notes || 'Publish a revision to lock this logic in and test it.' }}</small>
         </div>
         <div class="hero-card">
           <span class="hero-label">Universe</span>
           <strong>
             {{
-              universeMode === 'watchlist'
+              sourceType === 'radar' && universeMode === 'radar'
+                ? 'Dynamic'
+                : universeMode === 'watchlist'
                 ? (selectedWatchlist?.items.length ?? 0)
                 : universeMode === 'screener'
                   ? 1
                   : logicDraft.symbols.length
             }}
           </strong>
-          <small>
-            {{
-              universeMode === 'watchlist'
-                ? (selectedWatchlist?.name || 'Pick a watchlist universe.')
-                : universeMode === 'screener'
-                  ? (selectedScreener?.name || 'Pick a screener-backed universe.')
-                  : (logicDraft.symbols.slice(0, 4).join(', ') || 'Add symbols to define the strategy universe.')
-            }}
-          </small>
         </div>
         <div class="hero-card">
           <span class="hero-label">{{ sourceType === 'radar' ? 'Signal filters' : 'Entry rules' }}</span>
           <strong>{{ sourceType === 'radar' ? radarDraft.setup_types.length || radarSetupOptions.length : conditionCount }}</strong>
-          <small>{{ sourceType === 'radar' ? 'Selected Radar setup families' : (rootGroupMode === 'all' ? 'All branches must align' : 'Any branch may trigger') }}</small>
         </div>
         <div class="hero-card">
           <span class="hero-label">Research runs</span>
           <strong>{{ selectedRuns.length }}</strong>
-          <small>{{ selectedRunDetail?.result_summary?.performance?.trade_count != null ? `${selectedRunDetail.result_summary.performance.trade_count} trades in selected run` : 'Run a strategy test to inspect performance.' }}</small>
         </div>
       </div>
 
-      <div class="detail-grid">
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h3>Strategy profile</h3>
-              <p>Name the strategy, describe it briefly, and define the market it should scan.</p>
-            </div>
-          </div>
-
-          <div class="form-grid two-up">
-            <label class="field">
-              <span class="field-label">Name</span>
-              <input v-model="draft.name" class="form-input" placeholder="Momentum Continuation" />
-            </label>
-            <label class="field">
-              <span class="field-label">Source</span>
-              <select v-model="sourceType" class="form-select">
-                <option value="custom">Custom rules</option>
-                <option value="radar">Platform signal research</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Tags</span>
-              <input v-model="tagsInput" class="form-input" placeholder="momentum, swing, equities" />
-            </label>
-            <label class="field field--full">
-              <span class="field-label">Description</span>
-              <textarea
-                v-model="draft.description"
-                class="form-textarea form-textarea--short"
-                placeholder="What market behaviour is this strategy trying to capture?"
-              />
-            </label>
-            <label class="field field--checkbox">
-              <input v-model="draft.is_active" type="checkbox" />
-              <span>Strategy is active</span>
-            </label>
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-head">
-              <h4>Universe</h4>
-              <HoverTooltip text="Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.">
-                <button type="button" class="help-dot" aria-label="Universe info">i</button>
-              </HoverTooltip>
+      <div class="detail-columns">
+        <div class="detail-column">
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Strategy profile</h3></div>
             </div>
 
             <div class="form-grid two-up">
               <label class="field">
-                <span class="field-label">Universe type</span>
-                <select v-model="universeMode" class="form-select">
-                  <option value="symbols">Manual symbols</option>
-                  <option value="watchlist">Watchlist</option>
-                  <option value="screener">Latest screener result</option>
+                <span class="field-label">
+                  Name
+                  <span v-if="showNameValidation" class="field-inline-hint">Required</span>
+                </span>
+                <input
+                  v-model="draft.name"
+                  class="form-input"
+                  :class="{ 'form-input--invalid': showNameValidation }"
+                  placeholder="Momentum Continuation"
+                />
+              </label>
+              <label class="field">
+                <span class="field-label">Source</span>
+                <select v-model="sourceType" class="form-select">
+                  <option value="custom">Custom rules</option>
+                  <option value="radar">Platform signal research</option>
                 </select>
               </label>
-              <label v-if="universeMode === 'watchlist'" class="field">
-                <span class="field-label">Watchlist</span>
-                <select v-model="selectedWatchlistId" class="form-select">
-                  <option :value="null">Select watchlist</option>
-                  <option v-for="watchlist in availableWatchlists" :key="watchlist.id" :value="watchlist.id">
-                    {{ watchlist.name }}
-                  </option>
-                </select>
+              <label class="field">
+                <span class="field-label">Tags</span>
+                <TagPicker
+                  v-model="draft.tags"
+                  :options="availableTags"
+                  placeholder="Add or reuse tags"
+                />
               </label>
-              <label v-else-if="universeMode === 'screener'" class="field">
-                <span class="field-label">Screener</span>
-                <select v-model="selectedScreenerId" class="form-select">
-                  <option :value="null">Select screener</option>
-                  <option v-for="screener in availableScreeners" :key="screener.id" :value="screener.id">
-                    {{ screener.name }}
-                  </option>
-                </select>
+              <label class="field field--full">
+                <span class="field-label">Description</span>
+                <textarea
+                  v-model="draft.description"
+                  class="form-textarea form-textarea--short"
+                  placeholder="What market behaviour is this strategy trying to capture?"
+                />
+              </label>
+              <label class="field field--checkbox">
+                <input v-model="draft.is_active" type="checkbox" />
+                <span>Strategy is active</span>
               </label>
             </div>
 
-            <template v-if="universeMode === 'symbols'">
-              <div class="chip-row">
-                <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
-                  {{ symbol }}
-                  <button type="button" @click="removeSymbol(symbol)">×</button>
-                </span>
-                <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
+            <div class="subsection">
+              <div class="subsection-head">
+                <div class="subsection-title">
+                  <h4>{{ sourceType === 'radar' ? 'Universe scope' : 'Universe' }}</h4>
+                  <HoverTooltip :text="sourceType === 'radar'
+                    ? 'Radar provides the source instruments by default. Use the scope controls only when you want to narrow replay to a manual symbol list, watchlist, or screener result.'
+                    : 'Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.'">
+                    <button type="button" class="help-dot" aria-label="Universe info">i</button>
+                  </HoverTooltip>
+                </div>
               </div>
 
-              <div class="inline-form">
-                <input
-                  v-model="symbolInput"
-                  class="form-input"
-                  placeholder="Add symbol (e.g. AAPL)"
-                  @keydown.enter.prevent="addSymbolsFromInput"
+              <div class="form-grid two-up">
+                <label class="field">
+                  <span class="field-label">
+                    Universe type
+                    <span v-if="showUniverseValidation" class="field-inline-hint">Required</span>
+                  </span>
+                  <select v-model="universeMode" class="form-select" :class="{ 'form-select--invalid': showUniverseValidation }">
+                    <option v-if="sourceType === 'radar'" value="radar">Radar outputs</option>
+                    <option value="symbols">Manual symbols</option>
+                    <option value="watchlist">Watchlist</option>
+                    <option value="screener">Latest screener result</option>
+                  </select>
+                </label>
+                <label v-if="universeMode === 'watchlist'" class="field">
+                  <span class="field-label">Watchlist</span>
+                  <select v-model="selectedWatchlistId" class="form-select">
+                    <option :value="null">Select watchlist</option>
+                    <option v-for="watchlist in availableWatchlists" :key="watchlist.id" :value="watchlist.id">
+                      {{ watchlist.name }}
+                    </option>
+                  </select>
+                </label>
+                <label v-else-if="universeMode === 'screener'" class="field">
+                  <span class="field-label">Screener</span>
+                  <select v-model="selectedScreenerId" class="form-select">
+                    <option :value="null">Select screener</option>
+                    <option v-for="screener in availableScreeners" :key="screener.id" :value="screener.id">
+                      {{ screener.name }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <template v-if="universeMode === 'radar'">
+                <div class="empty-inline">Using Radar outputs.</div>
+              </template>
+              <template v-else-if="universeMode === 'symbols'">
+                <div class="chip-row">
+                  <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
+                    {{ symbol }}
+                    <button type="button" @click="removeSymbol(symbol)">×</button>
+                  </span>
+                  <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
+                </div>
+
+                <div class="inline-search">
+                  <SearchBar
+                    v-model="symbolInput"
+                    placeholder="Add symbol (e.g. AAPL)"
+                    mode="picker"
+                    fluid
+                    :show-recent="false"
+                    :show-screener-link="false"
+                    @select="addSelectedSymbol"
+                  />
+                </div>
+              </template>
+              <template v-else>
+                <div class="chip-row">
+                  <span
+                    v-if="universeMode === 'watchlist'"
+                    v-for="item in selectedWatchlist?.items.slice(0, 10) ?? []"
+                    :key="item.id"
+                    class="symbol-chip symbol-chip--alt"
+                  >
+                    {{ item.symbol || item.name || item.instrument_id }}
+                  </span>
+                  <span v-if="universeMode === 'watchlist' && !selectedWatchlist" class="empty-inline">Select a watchlist to define the universe.</span>
+                  <span v-if="universeMode === 'screener' && selectedScreener" class="symbol-chip symbol-chip--alt">
+                    {{ selectedScreener.name }}
+                  </span>
+                  <span v-if="universeMode === 'screener' && !selectedScreener" class="empty-inline">Select a screener to use its latest results as the research universe.</span>
+                </div>
+              </template>
+            </div>
+
+            <div class="form-grid three-up">
+              <label class="field">
+                <span class="field-label">Timeframe</span>
+                <select v-model="logicDraft.timeframe" class="form-select">
+                  <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">Direction</span>
+                <select v-model="logicDraft.direction" class="form-select">
+                  <option value="long">Long</option>
+                  <option value="short">Short</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">Benchmark</span>
+                <SearchBar
+                  v-model="logicDraft.benchmark_symbol"
+                  placeholder="SPY"
+                  mode="picker"
+                  fluid
+                  :show-recent="false"
+                  :show-screener-link="false"
                 />
-                <button class="btn-secondary" type="button" @click="addSymbolsFromInput">Add</button>
-              </div>
-            </template>
-            <template v-else>
-              <div class="chip-row">
-                <span
-                  v-if="universeMode === 'watchlist'"
-                  v-for="item in selectedWatchlist?.items.slice(0, 10) ?? []"
-                  :key="item.id"
-                  class="symbol-chip symbol-chip--alt"
-                >
-                  {{ item.symbol || item.name || item.instrument_id }}
-                </span>
-                <span v-if="universeMode === 'watchlist' && !selectedWatchlist" class="empty-inline">Select a watchlist to define the universe.</span>
-                <span v-if="universeMode === 'screener' && selectedScreener" class="symbol-chip symbol-chip--alt">
-                  {{ selectedScreener.name }}
-                </span>
-                <span v-if="universeMode === 'screener' && !selectedScreener" class="empty-inline">Select a screener to use its latest results as the research universe.</span>
-              </div>
-            </template>
+              </label>
+            </div>
           </div>
 
-          <div class="form-grid three-up">
-            <label class="field">
-              <span class="field-label">Timeframe</span>
-              <select v-model="logicDraft.timeframe" class="form-select">
-                <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Direction</span>
-              <select v-model="logicDraft.direction" class="form-select">
-                <option value="long">Long</option>
-                <option value="short">Short</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Benchmark</span>
-              <input v-model="logicDraft.benchmark_symbol" class="form-input" placeholder="SPY" />
-            </label>
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Risk and exits</h3></div>
+            </div>
+
+            <div class="form-grid three-up">
+              <label class="field">
+                <span class="field-label">
+                  Stop loss %
+                  <HoverTooltip text="Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget.">
+                    <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Target (R)
+                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. 2R means the target sits two times the stop distance away from the entry.">
+                    <button type="button" class="help-dot" aria-label="Target info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0.25" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Max bars in trade
+                  <HoverTooltip text="If the trade has not hit stop or target by this many bars, it is closed as a time exit.">
+                    <button type="button" class="help-dot" aria-label="Max bars info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="1" step="1" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">Break-even after R</span>
+                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">Trail stop after R</span>
+                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">Max entries</span>
+                <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="panel">
+        <div class="detail-column">
+          <div class="panel">
           <div class="panel-head">
-            <div>
-              <h3>{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
-              <p>
-                {{
-                  sourceType === 'radar'
-                    ? 'Choose which Radar detections should be replayed and validated through this research run.'
-                    : 'Choose how conditions combine and what market relationships should create an entry signal.'
-                }}
-              </p>
-            </div>
+            <div><h3>{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3></div>
           </div>
 
           <template v-if="sourceType === 'custom'">
@@ -273,16 +397,15 @@
                 <input v-model="versionNotes" class="form-input" placeholder="What changed in this revision?" />
               </label>
             </div>
-            <div class="tree-builder-note">
-              Use nested <code>All</code>, <code>Any</code>, and <code>NOT</code> groups to express the full rule tree instead of flattening everything into one list.
+            <div class="cb-header cb-header--strategy">
+              <span class="section-label">Technical conditions</span>
+              <span class="tree-builder-kicker">{{ rootGroupMode === 'all' ? 'Match ALL at the root' : 'Match ANY at the root' }}</span>
             </div>
             <StrategyRuleTreeEditor
               :node="logicDraft.ruleTree"
               :depth="0"
               :can-remove="false"
-              :left-side-options="leftSideOptions"
-              :right-side-options="rightSideOptions"
-              :operator-options="operatorOptions"
+              :type-options="STRATEGY_LAB_CONDITION_TYPE_OPTIONS"
               @remove="removeNodeFromTree"
               @add-condition="addConditionToTree"
               @add-group="(nodeId, type) => addGroupToTree(nodeId, type)"
@@ -302,28 +425,72 @@
             <div class="form-grid two-up">
               <label class="field">
                 <span class="field-label">Setup families</span>
-                <div class="check-grid">
-                  <label v-for="option in radarSetupOptions" :key="option.value" class="check-pill">
-                    <input
-                      :checked="radarDraft.setup_types.includes(option.value)"
-                      type="checkbox"
-                      @change="toggleMultiValue(radarDraft.setup_types, option.value)"
-                    />
-                    <span>{{ option.label }}</span>
-                  </label>
+                <div class="multi-select-field">
+                  <button
+                    type="button"
+                    class="multi-select-trigger"
+                    @click="toggleRadarMenu('setup')"
+                  >
+                    <span>{{ radarSetupSummary }}</span>
+                    <span class="multi-select-caret">{{ radarSetupMenuOpen ? '▴' : '▾' }}</span>
+                  </button>
+                  <div v-if="radarSetupMenuOpen" class="multi-select-menu">
+                    <label
+                      v-for="option in radarSetupOptions"
+                      :key="option.value"
+                      class="multi-select-option"
+                    >
+                      <input
+                        :checked="radarDraft.setup_types.includes(option.value)"
+                        type="checkbox"
+                        @change="toggleRadarDraftValue(radarDraft.setup_types, option.value, checkboxValue($event))"
+                      />
+                      <span>{{ option.label }}</span>
+                    </label>
+                    <button
+                      v-if="radarDraft.setup_types.length"
+                      type="button"
+                      class="multi-select-clear"
+                      @click="radarDraft.setup_types = []"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
                 </div>
               </label>
               <label class="field">
                 <span class="field-label">States</span>
-                <div class="check-grid">
-                  <label v-for="option in radarStateOptions" :key="option.value" class="check-pill">
-                    <input
-                      :checked="radarDraft.states.includes(option.value)"
-                      type="checkbox"
-                      @change="toggleMultiValue(radarDraft.states, option.value)"
-                    />
-                    <span>{{ option.label }}</span>
-                  </label>
+                <div class="multi-select-field">
+                  <button
+                    type="button"
+                    class="multi-select-trigger"
+                    @click="toggleRadarMenu('state')"
+                  >
+                    <span>{{ radarStateSummary }}</span>
+                    <span class="multi-select-caret">{{ radarStateMenuOpen ? '▴' : '▾' }}</span>
+                  </button>
+                  <div v-if="radarStateMenuOpen" class="multi-select-menu">
+                    <label
+                      v-for="option in radarStateOptions"
+                      :key="option.value"
+                      class="multi-select-option"
+                    >
+                      <input
+                        :checked="radarDraft.states.includes(option.value)"
+                        type="checkbox"
+                        @change="toggleRadarDraftValue(radarDraft.states, option.value, checkboxValue($event))"
+                      />
+                      <span>{{ option.label }}</span>
+                    </label>
+                    <button
+                      v-if="radarDraft.states.length"
+                      type="button"
+                      class="multi-select-clear"
+                      @click="radarDraft.states = []"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
                 </div>
               </label>
             </div>
@@ -333,72 +500,11 @@
             <span class="rule-preview__label">How this reads</span>
             <p>{{ strategyNarrative }}</p>
           </div>
-        </div>
-      </div>
+          </div>
 
-      <div class="detail-grid detail-grid--bottom">
-        <div class="panel">
+          <div class="panel">
           <div class="panel-head">
-            <div>
-              <h3>Risk and exits</h3>
-              <p>Define how far the idea can move against you, how much reward you want, and how long trades can stay open.</p>
-            </div>
-          </div>
-
-          <div class="form-grid three-up">
-            <label class="field">
-              <span class="field-label">
-                Stop loss %
-                <HoverTooltip text="Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget.">
-                  <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
-                </HoverTooltip>
-              </span>
-              <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
-            </label>
-            <label class="field">
-              <span class="field-label">
-                Target (R)
-                <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. 2R means the target sits two times the stop distance away from the entry.">
-                  <button type="button" class="help-dot" aria-label="Target info">i</button>
-                </HoverTooltip>
-              </span>
-              <input v-model.number="logicDraft.take_profit_rr" type="number" min="0.25" step="0.25" class="form-input" />
-            </label>
-            <label class="field">
-              <span class="field-label">
-                Max bars in trade
-                <HoverTooltip text="If the trade has not hit stop or target by this many bars, it is closed as a time exit.">
-                  <button type="button" class="help-dot" aria-label="Max bars info">i</button>
-                </HoverTooltip>
-              </span>
-              <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="1" step="1" class="form-input" />
-            </label>
-            <label class="field">
-              <span class="field-label">Break-even after R</span>
-              <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
-            </label>
-            <label class="field">
-              <span class="field-label">Trail stop after R</span>
-              <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
-            </label>
-            <label class="field">
-              <span class="field-label">Max entries</span>
-              <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
-            </label>
-          </div>
-
-          <div class="execution-summary">
-            <strong>Execution model</strong>
-            <p>Entries and exits are simulated directly from the completed bar stream. Stops, targets, break-even promotion, trailing logic, pyramiding, slippage, and commissions are all applied when you run the research job.</p>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h3>Research runs</h3>
-              <p>Run the current published revision as a straight backtest, a segmented walk-forward pass, or a paper-forward style continuation window.</p>
-            </div>
+            <div><h3>Research runs</h3></div>
             <button
               v-if="currentVersion && !isNew"
               class="btn-primary"
@@ -478,17 +584,16 @@
               <span class="field-label">Forward window bars</span>
               <input v-model.number="runDraft.paper_forward_bars" type="number" min="5" step="1" class="form-input" />
             </label>
-            <div class="run-mode-note">
-              Refreshing a paper-forward run replays the same published logic against the latest available bars and appends a monitor snapshot so you can track evolution over time.
-            </div>
           </div>
 
           <div class="subsection">
             <div class="subsection-head">
-              <h4>Parameter sweep</h4>
-              <HoverTooltip text="Turn this on to evaluate a small grid of stop, target, and holding-period combinations alongside the main run.">
-                <button type="button" class="help-dot" aria-label="Parameter sweep info">i</button>
-              </HoverTooltip>
+              <div class="subsection-title">
+                <h4>Parameter sweep</h4>
+                <HoverTooltip text="Turn this on to evaluate a small grid of stop, target, and holding-period combinations alongside the main run.">
+                  <button type="button" class="help-dot" aria-label="Parameter sweep info">i</button>
+                </HoverTooltip>
+              </div>
             </div>
             <label class="field field--checkbox">
               <input v-model="runDraft.optimization_enabled" type="checkbox" />
@@ -512,10 +617,12 @@
 
           <div class="subsection">
             <div class="subsection-head">
-              <h4>Optional run subset</h4>
-              <HoverTooltip text="Leave this empty to backtest the full published universe. Add symbols here only when you want to run the same strategy on a smaller subset.">
-                <button type="button" class="help-dot" aria-label="Run subset info">i</button>
-              </HoverTooltip>
+              <div class="subsection-title">
+                <h4>Optional run subset</h4>
+                <HoverTooltip text="Leave this empty to backtest the full published universe. Add symbols here only when you want to run the same strategy on a smaller subset.">
+                  <button type="button" class="help-dot" aria-label="Run subset info">i</button>
+                </HoverTooltip>
+              </div>
             </div>
             <div class="chip-row">
               <span v-for="symbol in runDraft.overrideSymbols" :key="symbol" class="symbol-chip symbol-chip--alt">
@@ -524,14 +631,16 @@
               </span>
               <span v-if="!runDraft.overrideSymbols.length" class="empty-inline">Using the published strategy universe.</span>
             </div>
-            <div class="inline-form">
-              <input
+            <div class="inline-search">
+              <SearchBar
                 v-model="runSymbolInput"
-                class="form-input"
                 placeholder="Optional subset symbol"
-                @keydown.enter.prevent="addRunSymbolsFromInput"
+                mode="picker"
+                fluid
+                :show-recent="false"
+                :show-screener-link="false"
+                @select="addSelectedRunSymbol"
               />
-              <button class="btn-secondary" type="button" @click="addRunSymbolsFromInput">Add</button>
             </div>
           </div>
 
@@ -559,25 +668,52 @@
           </div>
         </div>
       </div>
+      </div>
 
       <div class="panel panel--results">
         <div class="panel-head">
-          <div>
-            <h3>Results</h3>
-            <p>Inspect returns, benchmark context, drawdowns, symbol attribution, optimization output, and execution details for the selected run.</p>
-          </div>
+          <div><h3>Results</h3></div>
           <div v-if="selectedRunDetail" class="detail-actions">
             <button
               v-if="selectedRunDetail.test_mode === 'paper_forward'"
-              class="btn-secondary"
+              class="btn-secondary btn-icon-only"
               type="button"
+              title="Refresh paper-forward"
+              aria-label="Refresh paper-forward"
               @click="refreshPaperForwardRun"
               :disabled="strategyLab.isRunning"
             >
-              {{ strategyLab.isRunning ? 'Refreshing…' : 'Refresh paper-forward' }}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M13.5 3.5v3h-3" />
+                <path d="M12.2 6A5 5 0 1 0 13 10" />
+              </svg>
             </button>
-            <button class="btn-secondary" type="button" @click="exportSummaryJson">Export summary</button>
-            <button class="btn-secondary" type="button" @click="exportTradesCsv">Export trades CSV</button>
+            <button
+              class="btn-secondary btn-icon-only"
+              type="button"
+              title="Export summary"
+              aria-label="Export summary"
+              @click="exportSummaryJson"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 2.5v7" />
+                <path d="M5.5 7 8 9.5 10.5 7" />
+                <path d="M3 12.5h10" />
+              </svg>
+            </button>
+            <button
+              class="btn-secondary btn-icon-only"
+              type="button"
+              title="Export trades CSV"
+              aria-label="Export trades CSV"
+              @click="exportTradesCsv"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 2.5v7" />
+                <path d="M5.5 7 8 9.5 10.5 7" />
+                <path d="M3 12.5h10" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -815,14 +951,24 @@
                     </tr>
                   </tbody>
                 </table>
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
         <div v-else class="empty-state">Run a backtest, then select it here to inspect the results.</div>
       </div>
     </section>
+
+    <TextPromptModal
+      v-model="showDeleteModal"
+      title="Delete Strategy"
+      :message="deleteStrategyMessage"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      :show-input="false"
+      @submit="deleteCurrentStrategy"
+    />
   </div>
 </template>
 
@@ -830,24 +976,28 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
+import ResizeHandle from '@/components/common/ResizeHandle.vue'
+import SearchBar from '@/components/common/SearchBar.vue'
+import TagPicker from '@/components/common/TagPicker.vue'
+import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import StrategyRuleTreeEditor from '@/components/strategy/StrategyRuleTreeEditor.vue'
 import { api } from '@/lib/api'
+import {
+  STRATEGY_LAB_CONDITION_TYPE_OPTIONS,
+  createDefaultTechnicalCondition,
+  describeTechnicalCondition,
+  normalizeTechnicalCondition,
+  type TechnicalConditionDraft,
+} from '@/lib/technicalConditions'
 import { useStrategyLabStore } from '@/stores/strategyLab'
 import type { StrategyDefinition, StrategyRun, StrategyVersion, Watchlist } from '@/types'
 
-type RuleSideKind = 'close' | 'sma' | 'ema' | 'rsi'
-type RuleOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'crosses_above' | 'crosses_below'
-type StrategyUniverseMode = 'symbols' | 'watchlist' | 'screener'
+type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener'
 
 interface BuilderConditionNode {
   id: string
   kind: 'condition'
-  leftKind: RuleSideKind
-  leftPeriod: number
-  operator: RuleOperator
-  rightKind: 'value' | RuleSideKind
-  rightPeriod: number
-  rightValue: number
+  condition: TechnicalConditionDraft
 }
 
 interface BuilderGroupNode {
@@ -876,6 +1026,13 @@ interface ScreenerOption {
   name: string
 }
 
+const STRATEGY_SIDEBAR_STORAGE_KEY = 'strategyLab.sidebar.v1'
+const STRATEGY_SIDEBAR_MIN_WIDTH = 272
+const STRATEGY_SIDEBAR_MAX_WIDTH = 420
+const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
+const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
+const initialSidebarState = loadStrategySidebarState()
+
 const strategyLab = useStrategyLabStore()
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
@@ -903,30 +1060,7 @@ const radarStateOptions = [
   { value: 'invalidated', label: 'Invalidated' },
   { value: 'stale', label: 'Stale' },
 ]
-const leftSideOptions = [
-  { value: 'close', label: 'Close price' },
-  { value: 'sma', label: 'SMA' },
-  { value: 'ema', label: 'EMA' },
-  { value: 'rsi', label: 'RSI' },
-]
-const rightSideOptions = [
-  { value: 'value', label: 'Fixed value' },
-  { value: 'close', label: 'Close price' },
-  { value: 'sma', label: 'SMA' },
-  { value: 'ema', label: 'EMA' },
-  { value: 'rsi', label: 'RSI' },
-]
-const operatorOptions = [
-  { value: 'gt', label: 'is above' },
-  { value: 'gte', label: 'is at or above' },
-  { value: 'lt', label: 'is below' },
-  { value: 'lte', label: 'is at or below' },
-  { value: 'crosses_above', label: 'crosses above' },
-  { value: 'crosses_below', label: 'crosses below' },
-]
-
 const isNew = ref(false)
-const tagsInput = ref('')
 const versionNotes = ref('')
 const symbolInput = ref('')
 const runSymbolInput = ref('')
@@ -935,11 +1069,17 @@ const universeMode = ref<StrategyUniverseMode>('symbols')
 const selectedWatchlistId = ref<number | null>(null)
 const selectedScreenerId = ref<number | null>(null)
 const compareRunId = ref<number | null>(null)
+const showDeleteModal = ref(false)
+const radarSetupMenuOpen = ref(false)
+const radarStateMenuOpen = ref(false)
+const sidebarWidth = ref(initialSidebarState.width)
+const sidebarCollapsed = ref(initialSidebarState.collapsed)
 
 const draft = reactive({
   name: '',
   description: '',
   is_active: true,
+  tags: [] as string[],
 })
 
 const logicDraft = reactive({
@@ -953,7 +1093,7 @@ const logicDraft = reactive({
   pyramiding_max_entries: 1,
   benchmark_symbol: 'SPY',
   symbols: [] as string[],
-  ruleTree: createGroupNode('all', [createConditionNode()]) as BuilderGroupNode,
+  ruleTree: createGroupNode('all', []) as BuilderGroupNode,
 })
 
 const radarDraft = reactive<RadarReplayDraft>({
@@ -995,6 +1135,18 @@ const selectedWatchlist = computed(() =>
 const selectedScreener = computed(() =>
   availableScreeners.value.find(item => item.id === selectedScreenerId.value) ?? null
 )
+const availableTags = computed(() =>
+  Array.from(new Set(strategyLab.definitions.flatMap(definition => normalizeTags(definition.tags)))).sort((a, b) =>
+    a.localeCompare(b),
+  )
+)
+const radarSetupSummary = computed(() => summarizeRadarOptions(radarDraft.setup_types, radarSetupOptions, 'All setup families'))
+const radarStateSummary = computed(() => summarizeRadarOptions(radarDraft.states, radarStateOptions, 'All states'))
+const deleteStrategyMessage = computed(() => {
+  const name = strategyLab.selectedDefinition?.name?.trim()
+  if (!name) return 'Delete this strategy? This action cannot be undone.'
+  return `Delete strategy "${name}"? This action cannot be undone.`
+})
 
 const selectedRuns = computed<StrategyRun[]>(() => strategyLab.selectedDefinition?.runs ?? [])
 const selectedRunDetail = computed<StrategyRun | null>(() =>
@@ -1119,17 +1271,28 @@ const strategyNarrative = computed(() => {
   return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using a ${logicDraft.stop_loss_pct}% stop, a ${logicDraft.take_profit_rr}R target, break-even after ${logicDraft.break_even_rr}R, trailing after ${logicDraft.trailing_stop_rr}R, and a ${logicDraft.max_bars_in_trade}-bar time exit.`
 })
 
+const hasUniverseSelection = computed(() =>
+  (sourceType.value === 'radar' && universeMode.value === 'radar')
+  || logicDraft.symbols.length > 0
+  || selectedWatchlistId.value != null
+  || selectedScreenerId.value != null,
+)
+
+const hasEntryLogic = computed(() =>
+  sourceType.value === 'radar' || conditionCount.value > 0
+)
+
 const canPublish = computed(() =>
   Boolean(draft.name.trim())
-  && (
-    logicDraft.symbols.length > 0
-    || selectedWatchlistId.value != null
-    || selectedScreenerId.value != null
-  )
-  && (
-    sourceType.value === 'radar'
-      || conditionCount.value > 0
-  )
+  && hasUniverseSelection.value
+  && (isNew.value || hasEntryLogic.value)
+)
+const showNameValidation = computed(() => !draft.name.trim())
+const showUniverseValidation = computed(() =>
+  !(sourceType.value === 'radar' && universeMode.value === 'radar')
+  && logicDraft.symbols.length === 0
+  && selectedWatchlistId.value == null
+  && selectedScreenerId.value == null,
 )
 
 onMounted(async () => {
@@ -1149,6 +1312,10 @@ onMounted(async () => {
   hydrateFromSelection(strategyLab.selectedDefinition)
 })
 
+watch([sidebarWidth, sidebarCollapsed], ([width, collapsed]) => {
+  persistStrategySidebarState({ width, collapsed })
+})
+
 watch(() => strategyLab.selectedDefinition, value => {
   hydrateFromSelection(value)
 })
@@ -1156,6 +1323,22 @@ watch(() => strategyLab.selectedDefinition, value => {
 watch(universeMode, mode => {
   if (mode !== 'watchlist') selectedWatchlistId.value = null
   if (mode !== 'screener') selectedScreenerId.value = null
+  if (mode !== 'symbols') logicDraft.symbols = []
+})
+
+watch(() => sourceType.value, value => {
+  if (value === 'radar') {
+    if (
+      universeMode.value === 'symbols'
+      && !logicDraft.symbols.length
+      && selectedWatchlistId.value == null
+      && selectedScreenerId.value == null
+    ) {
+      universeMode.value = 'radar'
+    }
+    return
+  }
+  if (universeMode.value === 'radar') universeMode.value = 'symbols'
 })
 
 function createNodeId() {
@@ -1166,19 +1349,14 @@ function createConditionNode(overrides: Partial<BuilderConditionNode> = {}): Bui
   return {
     id: createNodeId(),
     kind: 'condition',
-    leftKind: 'close',
-    leftPeriod: 20,
-    operator: 'gt',
-    rightKind: 'sma',
-    rightPeriod: 20,
-    rightValue: 50,
+    condition: createDefaultTechnicalCondition(),
     ...overrides,
   }
 }
 
 function createGroupNode(
   type: 'all' | 'any',
-  children: BuilderRuleNode[] = [createConditionNode()],
+  children: BuilderRuleNode[] = [],
 ): BuilderGroupNode {
   return {
     id: createNodeId(),
@@ -1188,7 +1366,7 @@ function createGroupNode(
   }
 }
 
-function createNotNode(condition: BuilderRuleNode | null = createConditionNode()): BuilderNotNode {
+function createNotNode(condition: BuilderRuleNode | null = null): BuilderNotNode {
   return {
     id: createNodeId(),
     kind: 'not',
@@ -1207,7 +1385,7 @@ function startNew() {
   selectedWatchlistId.value = null
   selectedScreenerId.value = null
   compareRunId.value = null
-  tagsInput.value = ''
+  draft.tags = []
   versionNotes.value = ''
   symbolInput.value = ''
   runSymbolInput.value = ''
@@ -1221,7 +1399,7 @@ function startNew() {
   logicDraft.pyramiding_max_entries = 1
   logicDraft.benchmark_symbol = 'SPY'
   logicDraft.symbols = []
-  logicDraft.ruleTree = createGroupNode('all', [createConditionNode()])
+  logicDraft.ruleTree = createGroupNode('all', [])
   radarDraft.setup_types = []
   radarDraft.states = []
   radarDraft.min_score = 0.65
@@ -1262,7 +1440,7 @@ function hydrateFromSelection(definition: StrategyDefinition | null | undefined)
   draft.description = definition.description ?? ''
   draft.is_active = definition.is_active
   sourceType.value = definition.source_type === 'radar' ? 'radar' : 'custom'
-  tagsInput.value = definition.tags.join(', ')
+  draft.tags = normalizeTags(definition.tags)
 
   const liveVersion = definition.versions.find(version => version.is_current) ?? definition.versions[0]
   hydrateFromVersion(liveVersion)
@@ -1296,7 +1474,7 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     selectedWatchlistId.value = null
     logicDraft.symbols = []
   } else {
-    universeMode.value = 'symbols'
+    universeMode.value = sourceType.value === 'radar' ? 'radar' : 'symbols'
     selectedWatchlistId.value = null
     selectedScreenerId.value = null
     logicDraft.symbols = normalizeSymbols(version.universe_config?.symbols ?? [])
@@ -1330,33 +1508,9 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
 }
 
 function parseCondition(raw: Record<string, any>): BuilderConditionNode {
-  const leftKind = raw.left_source === 'indicator'
-    ? normalizeIndicatorKind(raw.left_indicator)
-    : 'close'
-  let rightKind: BuilderConditionNode['rightKind'] = 'value'
-  if (raw.right_source === 'indicator') rightKind = normalizeIndicatorKind(raw.right_indicator)
-  else if (raw.right_source === 'price') rightKind = 'close'
-
   return createConditionNode({
-    leftKind,
-    leftPeriod: Math.max(1, Math.round(toPositiveNumber(raw.left_period, 20))),
-    operator: normalizeOperator(raw.operator),
-    rightKind,
-    rightPeriod: Math.max(1, Math.round(toPositiveNumber(raw.right_period, 20))),
-    rightValue: Number(raw.right_value ?? 50),
+    condition: normalizeTechnicalCondition(raw),
   })
-}
-
-function normalizeIndicatorKind(value: unknown): RuleSideKind {
-  const token = String(value ?? '').toLowerCase()
-  return ['sma', 'ema', 'rsi'].includes(token) ? token as RuleSideKind : 'close'
-}
-
-function normalizeOperator(value: unknown): RuleOperator {
-  const token = String(value ?? '').toLowerCase()
-  return operatorOptions.some(option => option.value === token)
-    ? token as RuleOperator
-    : 'gt'
 }
 
 function parseRuleTree(
@@ -1373,10 +1527,10 @@ function parseRuleTree(
       .map(parseCondition)
     return createGroupNode(
       fallbackEntryLogic === 'any' ? 'any' : 'all',
-      children.length ? children : [createConditionNode()],
+      children,
     )
   }
-  return createGroupNode(fallbackEntryLogic === 'any' ? 'any' : 'all', [createConditionNode()])
+  return createGroupNode(fallbackEntryLogic === 'any' ? 'any' : 'all', [])
 }
 
 function parseRuleNode(raw: unknown): BuilderRuleNode | null {
@@ -1392,7 +1546,7 @@ function parseRuleNode(raw: unknown): BuilderRuleNode | null {
           .map(parseRuleNode)
           .filter((item): item is BuilderRuleNode => item != null)
       : []
-    return createGroupNode(nodeType, children.length ? children : [createConditionNode()])
+    return createGroupNode(nodeType, children)
   }
   return parseCondition(node)
 }
@@ -1442,7 +1596,7 @@ function addGroupToTree(targetId: string, type: 'all' | 'any' | 'not') {
 
 function removeNodeFromTree(nodeId: string) {
   if (logicDraft.ruleTree.id === nodeId) {
-    logicDraft.ruleTree = createGroupNode('all', [createConditionNode()])
+    logicDraft.ruleTree = createGroupNode('all', [])
     return
   }
   removeNodeRecursive(logicDraft.ruleTree, nodeId)
@@ -1453,14 +1607,13 @@ function removeNodeRecursive(node: BuilderRuleNode, nodeId: string): boolean {
     const index = node.children.findIndex(child => child.id === nodeId)
     if (index !== -1) {
       node.children.splice(index, 1)
-      if (!node.children.length) node.children.push(createConditionNode())
       return true
     }
     return node.children.some(child => removeNodeRecursive(child, nodeId))
   }
   if (node.kind === 'not') {
     if (node.condition?.id === nodeId) {
-      node.condition = createConditionNode()
+      node.condition = null
       return true
     }
     if (node.condition) return removeNodeRecursive(node.condition, nodeId)
@@ -1486,20 +1639,35 @@ function applyNodeMutation(
   return false
 }
 
-function addSymbolsFromInput() {
-  logicDraft.symbols = mergeSymbols(logicDraft.symbols, symbolInput.value)
+function addSelectedSymbol(symbol: string) {
+  logicDraft.symbols = mergeSymbols(logicDraft.symbols, [symbol])
   symbolInput.value = ''
 }
 
-function addRunSymbolsFromInput() {
-  runDraft.overrideSymbols = mergeSymbols(runDraft.overrideSymbols, runSymbolInput.value)
+function addSelectedRunSymbol(symbol: string) {
+  runDraft.overrideSymbols = mergeSymbols(runDraft.overrideSymbols, [symbol])
   runSymbolInput.value = ''
 }
 
-function toggleMultiValue(target: string[], value: string) {
-  const index = target.indexOf(value)
-  if (index === -1) target.push(value)
-  else target.splice(index, 1)
+function checkboxValue(event: Event) {
+  return (event.target as HTMLInputElement | null)?.checked === true
+}
+
+function toggleRadarDraftValue(target: string[], value: string, checked: boolean) {
+  const next = new Set(target)
+  if (checked) next.add(value)
+  else next.delete(value)
+  target.splice(0, target.length, ...next)
+}
+
+function toggleRadarMenu(kind: 'setup' | 'state') {
+  if (kind === 'setup') {
+    radarSetupMenuOpen.value = !radarSetupMenuOpen.value
+    if (radarSetupMenuOpen.value) radarStateMenuOpen.value = false
+    return
+  }
+  radarStateMenuOpen.value = !radarStateMenuOpen.value
+  if (radarStateMenuOpen.value) radarSetupMenuOpen.value = false
 }
 
 function removeSymbol(symbol: string) {
@@ -1510,9 +1678,9 @@ function removeRunSymbol(symbol: string) {
   runDraft.overrideSymbols = runDraft.overrideSymbols.filter(item => item !== symbol)
 }
 
-function mergeSymbols(current: string[], raw: string) {
+function mergeSymbols(current: string[], rawValues: string[]) {
   const next = new Set(current)
-  for (const symbol of normalizeSymbols(raw.split(/[,\s]+/))) next.add(symbol)
+  for (const symbol of normalizeSymbols(rawValues)) next.add(symbol)
   return Array.from(next)
 }
 
@@ -1520,6 +1688,95 @@ function normalizeSymbols(values: unknown[]) {
   return values
     .map(value => String(value ?? '').trim().toUpperCase())
     .filter(Boolean)
+}
+
+function resizeSidebar(next: number) {
+  if (next <= STRATEGY_SIDEBAR_COLLAPSED_WIDTH + 8) {
+    sidebarCollapsed.value = true
+    return
+  }
+  sidebarCollapsed.value = false
+  sidebarWidth.value = Math.max(
+    STRATEGY_SIDEBAR_MIN_WIDTH,
+    Math.min(STRATEGY_SIDEBAR_MAX_WIDTH, Math.round(next)),
+  )
+}
+
+function loadStrategySidebarState() {
+  try {
+    const raw = localStorage.getItem(STRATEGY_SIDEBAR_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return {
+      width: typeof parsed.width === 'number' ? parsed.width : STRATEGY_SIDEBAR_DEFAULT_WIDTH,
+      collapsed: parsed.collapsed === true,
+    }
+  } catch {
+    return {
+      width: STRATEGY_SIDEBAR_DEFAULT_WIDTH,
+      collapsed: false,
+    }
+  }
+}
+
+function stringHash(value: string) {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(index)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+function normalizeTagValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
+function normalizeTags(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .map(value => normalizeTagValue(String(value ?? '')))
+        .filter(Boolean),
+    ),
+  )
+}
+
+function definitionDisplayTags(definition: StrategyDefinition) {
+  if (!isNew.value && strategyLab.selectedDefinitionId === definition.id) {
+    return normalizeTags(draft.tags)
+  }
+  return normalizeTags(definition.tags)
+}
+
+function tagPillStyle(tag: string) {
+  const hue = stringHash(tag.trim().toLowerCase() || tag) % 360
+  return {
+    '--tag-bg': `hsl(${hue} 42% 13%)`,
+    '--tag-border': `hsl(${hue} 38% 25%)`,
+    '--tag-color': `hsl(${hue} 82% 80%)`,
+  }
+}
+
+function persistStrategySidebarState(value: { width: number; collapsed: boolean }) {
+  try {
+    localStorage.setItem(STRATEGY_SIDEBAR_STORAGE_KEY, JSON.stringify(value))
+  } catch {
+    // Ignore unavailable storage and keep the in-memory state.
+  }
+}
+
+function summarizeRadarOptions(
+  values: string[],
+  options: Array<{ value: string; label: string }>,
+  emptyLabel: string,
+) {
+  if (!values.length) return emptyLabel
+  if (values.length === 1) return options.find(option => option.value === values[0])?.label ?? humanizeToken(values[0])
+  return `${values.length} selected`
 }
 
 function buildVersionPayload() {
@@ -1571,7 +1828,9 @@ function buildVersionPayload() {
       pyramiding_max_entries: logicDraft.pyramiding_max_entries,
     },
     universe_config: {
-      ...(universeMode.value === 'watchlist' && selectedWatchlistId.value != null
+      ...(universeMode.value === 'radar'
+        ? {}
+        : universeMode.value === 'watchlist' && selectedWatchlistId.value != null
         ? { watchlist_id: selectedWatchlistId.value }
         : universeMode.value === 'screener' && selectedScreenerId.value != null
           ? { screener_id: selectedScreenerId.value }
@@ -1595,26 +1854,8 @@ function buildVersionPayload() {
 
 function compileCondition(condition: BuilderConditionNode) {
   return {
-    left_source: condition.leftKind === 'close' ? 'price' : 'indicator',
-    ...(condition.leftKind === 'close'
-      ? {}
-      : {
-          left_indicator: condition.leftKind,
-          left_period: condition.leftPeriod,
-        }),
-    operator: condition.operator,
-    ...(condition.rightKind === 'value'
-      ? {
-          right_source: 'value',
-          right_value: condition.rightValue,
-        }
-      : condition.rightKind === 'close'
-        ? { right_source: 'price' }
-        : {
-            right_source: 'indicator',
-            right_indicator: condition.rightKind,
-            right_period: condition.rightPeriod,
-          }),
+    ...condition.condition,
+    op: condition.condition.op ?? 'gt',
   }
 }
 
@@ -1622,6 +1863,19 @@ async function saveProfileOnly() {
   if (!strategyLab.selectedDefinition) return
   const updated = await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, buildDefinitionPayload())
   hydrateFromSelection(updated)
+}
+
+async function deleteCurrentStrategy() {
+  const current = strategyLab.selectedDefinition
+  if (!current) return
+  await strategyLab.deleteDefinition(current.id)
+  showDeleteModal.value = false
+  if (strategyLab.selectedDefinition) {
+    hydrateFromSelection(strategyLab.selectedDefinition)
+    isNew.value = false
+    return
+  }
+  startNew()
 }
 
 async function publishStrategy() {
@@ -1725,7 +1979,7 @@ function buildDefinitionPayload() {
     source_type: sourceType.value,
     definition_type: sourceType.value === 'radar' ? 'signal_source' : 'rules',
     is_active: draft.is_active,
-    tags: parseTags(tagsInput.value),
+    tags: normalizeTags(draft.tags),
     metadata: {},
   }
 }
@@ -1733,17 +1987,6 @@ function buildDefinitionPayload() {
 async function reload() {
   await strategyLab.loadAll()
   hydrateFromSelection(strategyLab.selectedDefinition)
-}
-
-function parseTags(raw: string) {
-  return raw
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(Boolean)
-}
-
-function needsPeriod(kind: BuilderConditionNode['rightKind'] | RuleSideKind) {
-  return kind === 'sma' || kind === 'ema' || kind === 'rsi'
 }
 
 function describeRuleNode(node: BuilderRuleNode | null): string {
@@ -1755,18 +1998,7 @@ function describeRuleNode(node: BuilderRuleNode | null): string {
 }
 
 function describeCondition(condition: BuilderConditionNode) {
-  const left = describeSide(condition.leftKind, condition.leftPeriod)
-  const right = condition.rightKind === 'value'
-    ? `${condition.rightValue}`
-    : describeSide(condition.rightKind, condition.rightPeriod)
-  const operator = operatorOptions.find(option => option.value === condition.operator)?.label ?? condition.operator
-  return `${left} ${operator} ${right}`
-}
-
-function describeSide(kind: BuilderConditionNode['rightKind'], period: number) {
-  if (kind === 'close') return 'close price'
-  if (kind === 'value') return 'value'
-  return `${kind.toUpperCase()}(${period})`
+  return describeTechnicalCondition(condition.condition)
 }
 
 function parseNumberList(raw: string) {
@@ -1874,23 +2106,61 @@ function formatR(value: unknown) {
   min-height: 0;
   background: #080808;
   color: #d0d0d0;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .strategy-sidebar {
-  width: 292px;
-  min-width: 256px;
-  max-width: 320px;
+  width: 308px;
+  min-width: 272px;
+  max-width: 340px;
   border-right: 1px solid #171717;
   background: #0c0c0c;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-height: 0;
+}
+
+.strategy-sidebar--collapsed {
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+}
+
+.strategy-sidebar-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-toggle-strip {
+  width: 16px;
+  flex-shrink: 0;
+  align-self: stretch;
+  border: none;
+  border-left: 1px solid #1a1a1a;
+  background: #0d0d0d;
+  color: #444;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.sidebar-toggle-strip:hover {
+  color: #aaa;
+  background: #111;
 }
 
 .sidebar-header,
 .detail-header,
 .panel-head,
-.subsection-head,
 .condition-head {
   display: flex;
   align-items: flex-start;
@@ -1898,15 +2168,28 @@ function formatR(value: unknown) {
   gap: 12px;
 }
 
+.subsection-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.subsection-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sidebar-header {
-  padding: 14px 14px 12px;
+  padding: 12px 12px 10px;
   border-bottom: 1px solid #171717;
 }
 
 .sidebar-header h1,
 .detail-header h2,
 .panel h3 {
-  font-size: 17px;
+  font-size: 15px;
   color: #f2f2f2;
   margin-bottom: 4px;
 }
@@ -1914,35 +2197,44 @@ function formatR(value: unknown) {
 .sidebar-header p,
 .detail-header p,
 .panel-head p,
-.sidebar-note p,
 .execution-summary p {
   color: #7e7e7e;
   font-size: 11px;
   line-height: 1.45;
 }
 
-.sidebar-note {
-  margin: 12px 14px 0;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid #1d262d;
-  background: linear-gradient(180deg, #10141a, #0d1015);
-}
-
-.sidebar-note strong {
-  display: block;
-  font-size: 12px;
-  color: #d9eef8;
-  margin-bottom: 6px;
-}
-
-.definition-list {
+.definition-list,
+.definition-list--dense {
   flex: 1;
   min-height: 0;
   overflow: auto;
   padding: 10px;
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.sidebar-new-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+}
+
+.definition-item--new {
+  border-style: solid;
+  border-color: #2b3952;
+  color: #7ec2ff;
+  background: #10253b;
+}
+
+.definition-item--new:hover {
+  border-color: #3f5d89;
+  color: #d2e4f2;
+  background: #14304d;
 }
 
 .definition-item,
@@ -1951,10 +2243,16 @@ function formatR(value: unknown) {
   text-align: left;
   background: #111;
   border: 1px solid #1c1c1c;
-  border-radius: 10px;
-  padding: 11px 12px;
+  border-radius: 4px;
+  padding: 8px 9px;
   cursor: pointer;
   color: inherit;
+}
+
+.definition-item {
+  min-height: 0;
+  padding: 7px 8px;
+  flex: 0 0 auto;
 }
 
 .definition-item.active,
@@ -1971,6 +2269,63 @@ function formatR(value: unknown) {
   gap: 12px;
 }
 
+.definition-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.definition-tile--dense {
+  min-height: 34px;
+}
+
+.definition-state-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.definition-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.definition-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.definition-tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--tag-border);
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  font-size: 9px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.definition-copy strong,
+.definition-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.definition-copy strong {
+  font-size: 11px;
+  color: #eef2f5;
+}
+
 .definition-meta,
 .definition-runline,
 .run-item__meta {
@@ -1984,8 +2339,7 @@ function formatR(value: unknown) {
 
 .state-dot,
 .status-chip,
-.mode-pill,
-.symbol-chip {
+.mode-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2026,9 +2380,9 @@ function formatR(value: unknown) {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 18px;
+  padding: 16px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
   align-content: start;
 }
 
@@ -2040,7 +2394,7 @@ function formatR(value: unknown) {
 }
 
 .hero-strip,
-.detail-grid {
+.detail-columns {
   display: grid;
   gap: 16px;
 }
@@ -2057,13 +2411,15 @@ function formatR(value: unknown) {
 .mini-panel {
   background: #111;
   border: 1px solid #1b1b1b;
-  border-radius: 14px;
+  border-radius: 4px;
 }
 
 .hero-card {
-  padding: 14px;
+  padding: 12px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  align-content: start;
+  min-height: 92px;
 }
 
 .hero-label,
@@ -2072,12 +2428,15 @@ function formatR(value: unknown) {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 .hero-card strong,
 .summary-card strong {
   color: #f2f2f2;
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.1;
+  display: block;
 }
 
 .hero-card small,
@@ -2088,32 +2447,35 @@ function formatR(value: unknown) {
   line-height: 1.4;
 }
 
-.detail-grid {
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-}
-
-.detail-grid--bottom {
+.detail-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
 }
 
-.panel {
-  padding: 16px;
+.detail-column {
   display: grid;
   gap: 16px;
+  align-content: start;
+}
+
+.panel {
+  padding: 14px;
+  display: grid;
+  gap: 14px;
   min-width: 0;
 }
 
 .subsection,
 .run-detail {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .subsection h4,
 .panel--results h4,
 .equity-panel strong {
   color: #f0f0f0;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .form-grid {
@@ -2142,7 +2504,7 @@ function formatR(value: unknown) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding-top: 26px;
+  padding-top: 0;
   color: #b4b4b4;
   font-size: 12px;
 }
@@ -2155,18 +2517,37 @@ function formatR(value: unknown) {
   gap: 8px;
 }
 
+.field-inline-hint {
+  color: #d7a06d;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
   width: 100%;
   border: 1px solid #2a2a2a;
-  border-radius: 10px;
-  background: #0b0b0b;
-  color: #dfdfdf;
-  padding: 10px 12px;
+  border-radius: 3px;
+  background: #141414;
+  color: #ccc;
+  padding: 5px 8px;
   font: inherit;
   font-size: 12px;
   min-width: 0;
+  box-sizing: border-box;
+}
+
+.form-select {
+  min-height: 32px;
+}
+
+.form-input--invalid,
+.form-select--invalid,
+.form-textarea--invalid {
+  border-color: #6c3b3b;
+  box-shadow: 0 0 0 1px rgba(108, 59, 59, 0.18);
 }
 
 .form-textarea {
@@ -2185,27 +2566,24 @@ function formatR(value: unknown) {
   min-height: 30px;
 }
 
-.check-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.check-pill {
+.symbol-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 8px 10px;
-  border: 1px solid #232323;
-  border-radius: 10px;
-  background: #0b0b0b;
-  color: #c8c8c8;
+  justify-content: flex-start;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  min-height: 24px;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 11px;
-}
-
-.symbol-chip {
-  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid #2b5a3f;
+  background: #132417;
+  color: #9edfb5;
 }
 
 .symbol-chip button,
@@ -2217,9 +2595,107 @@ function formatR(value: unknown) {
   font: inherit;
 }
 
-.inline-form {
+.symbol-chip button {
+  padding: 0;
+  line-height: 1;
+}
+
+.inline-search {
   display: flex;
-  gap: 10px;
+  width: 100%;
+}
+
+.inline-search :deep(.search-input-wrap) {
+  min-height: 32px;
+  border-color: #232323;
+  border-radius: 3px;
+  background: #0b0b0b;
+}
+
+.inline-search :deep(.search-input) {
+  font-size: 11px;
+  color: #c8c8c8;
+}
+
+.field :deep(.search-input-wrap) {
+  min-height: 32px;
+  border-color: #232323;
+  border-radius: 3px;
+  background: #0b0b0b;
+}
+
+.field :deep(.search-input) {
+  font-size: 11px;
+  color: #c8c8c8;
+}
+
+.multi-select-field {
+  position: relative;
+}
+
+.multi-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  background: #050505;
+  color: #ccc;
+  border: 1px solid #282828;
+  border-radius: 4px;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.multi-select-caret {
+  color: #777;
+  flex-shrink: 0;
+}
+
+.multi-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 248px;
+  overflow: auto;
+  background: #101010;
+  border: 1px solid #2b2b2b;
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.42);
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8b8b8;
+  font-size: 11px;
+}
+
+.multi-select-option input {
+  margin: 0;
+}
+
+.multi-select-clear {
+  margin-top: 4px;
+  align-self: flex-start;
+  background: #171717;
+  color: #9fbfe4;
+  border: 1px solid #2f2f2f;
+  border-radius: 4px;
+  padding: 5px 7px;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
 }
 
 .condition-list,
@@ -2242,21 +2718,37 @@ function formatR(value: unknown) {
 
 .rule-preview,
 .execution-summary {
-  padding: 13px 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   border: 1px solid #21262c;
   background: #0d1116;
 }
 
 .tree-builder-note,
 .run-mode-note {
-  padding: 13px 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   border: 1px solid #21262c;
   background: #0d1116;
   color: #8ea7ba;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.55;
+}
+
+.tree-builder-note--compact {
+  margin-top: -4px;
+}
+
+.cb-header--strategy {
+  margin-bottom: 0;
+}
+
+.section-label,
+.tree-builder-kicker {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .tree-builder-note code {
@@ -2296,9 +2788,9 @@ function formatR(value: unknown) {
 }
 
 .summary-card {
-  padding: 13px 14px;
+  padding: 12px;
   border: 1px solid #1f2328;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #0c0f12;
   display: grid;
   gap: 5px;
@@ -2322,14 +2814,14 @@ function formatR(value: unknown) {
 }
 
 .mini-panel {
-  padding: 14px;
+  padding: 12px;
   display: grid;
   gap: 10px;
 }
 
 .equity-panel,
 .warnings-panel {
-  padding: 14px;
+  padding: 12px;
 }
 
 .equity-panel__head {
@@ -2373,7 +2865,7 @@ function formatR(value: unknown) {
 .trade-table-wrap {
   overflow: auto;
   border: 1px solid #1f1f1f;
-  border-radius: 12px;
+  border-radius: 4px;
 }
 
 .trade-table {
@@ -2412,11 +2904,12 @@ function formatR(value: unknown) {
 }
 
 .btn-primary,
-.btn-secondary {
-  border-radius: 10px;
-  padding: 9px 12px;
+.btn-secondary,
+.btn-danger {
+  border-radius: 3px;
+  padding: 7px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   border: 1px solid #2b3952;
 }
@@ -2430,6 +2923,32 @@ function formatR(value: unknown) {
   background: #111;
   color: #bbb;
   border-color: #2a2a2a;
+}
+
+.btn-danger {
+  background: #1d1112;
+  color: #efb1b1;
+  border-color: #5a2d30;
+}
+
+.btn-icon-only {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-only svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .help-dot {
@@ -2473,7 +2992,7 @@ function formatR(value: unknown) {
 }
 
 @media (max-width: 1180px) {
-  .detail-grid,
+  .detail-columns,
   .result-layout {
     grid-template-columns: 1fr;
   }
@@ -2494,15 +3013,10 @@ function formatR(value: unknown) {
 
   .form-grid.two-up,
   .form-grid.three-up,
-  .condition-grid,
   .hero-strip,
   .run-summary-grid,
   .result-panels-grid {
     grid-template-columns: 1fr;
-  }
-
-  .inline-form {
-    flex-direction: column;
   }
 }
 </style>

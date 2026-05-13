@@ -1,7 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument
+from app.models.instrument_stats import InstrumentStats
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.strategy_lab_nautilus import run_single_instrument_nautilus_backtest
 
@@ -201,4 +202,159 @@ def test_nautilus_backtest_supports_nested_condition_trees():
     )
 
     assert result.trades
+    assert result.total_positions >= 1
+
+
+def test_nautilus_backtest_supports_shared_condition_payloads():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    price = 100.0
+    for index in range(30):
+        ts = start + timedelta(days=index)
+        open_ = price
+        high = price + 3.0
+        low = price - 1.0
+        close = price + 2.0
+        bars.append(_bar(ts, open_, high, low, close))
+        price += 1.0
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[
+            {
+                "type": "price_indicator",
+                "field": "close",
+                "op": "gt",
+                "indicator": "sma",
+                "params": {"period": 3},
+            },
+            {
+                "type": "price_change",
+                "lookback_bars": 3,
+                "op": "gt",
+                "value": 0.01,
+            },
+        ],
+        condition_tree={
+            "type": "all",
+            "conditions": [
+                {
+                    "type": "price_indicator",
+                    "field": "close",
+                    "op": "gt",
+                    "indicator": "ema",
+                    "params": {"period": 3},
+                },
+                {
+                    "type": "price_change_period",
+                    "period": "1W",
+                    "op": "gt",
+                    "value": 0.01,
+                },
+            ],
+        },
+        stop_loss_pct=2.0,
+        take_profit_rr=1.5,
+        max_bars_in_trade=4,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=None,
+    )
+
+    assert result.equity_curve
+    assert result.total_positions >= 1
+
+
+def test_nautilus_backtest_supports_fundamental_stats_and_performance_filters():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    instrument.equity_detail = EquityDetail(
+        instrument_id=1,
+        sector="Technology",
+        industry="Consumer Electronics",
+        country="US",
+        exchange_mic="XNAS",
+        market_cap_tier="mega",
+        employees=100000,
+    )
+    instrument.stats = InstrumentStats(
+        instrument_id=1,
+        market_cap=Decimal("2500000000000"),
+        avg_volume_30d=Decimal("80000000"),
+        pe_ratio=Decimal("28"),
+        beta=Decimal("1.2"),
+        dividend_yield=Decimal("0.005"),
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    daily_bars = []
+    price = 100.0
+    for index in range(25):
+        ts = start + timedelta(days=index)
+        daily_bars.append(_bar(ts, price, price + 2.0, price - 1.0, price + 1.5))
+        price += 1.0
+    weekly_bars = [daily_bars[index] for index in range(0, len(daily_bars), 5)]
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=weekly_bars,
+        daily_bars=daily_bars,
+        weekly_bars=weekly_bars,
+        instrument_context={
+            "fundamentals": {
+                "sector": "Technology",
+                "industry": "Consumer Electronics",
+                "country": "US",
+                "exchange_mic": "XNAS",
+                "market_cap_tier": "mega",
+                "currency": "USD",
+                "employees": 100000,
+            },
+            "stats": {
+                "market_cap": 2500000000000,
+                "avg_volume_30d": 80000000,
+                "pe_ratio": 28,
+                "beta": 1.2,
+                "dividend_yield": 0.005,
+            },
+        },
+        timeframe=Timeframe.W1,
+        direction="long",
+        entry_logic="all",
+        conditions=[
+            {"type": "fundamental_filter", "field": "sector", "op": "eq", "value": "Technology"},
+            {"type": "stats_filter", "field": "market_cap", "op": "gt", "value": 1_000_000},
+            {"type": "performance", "period": "1M", "op": "gt", "value": 0.01},
+        ],
+        condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=1.5,
+        max_bars_in_trade=4,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=None,
+    )
+
+    assert result.equity_curve
     assert result.total_positions >= 1

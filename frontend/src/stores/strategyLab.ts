@@ -81,6 +81,24 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     }
   }
 
+  async function deleteDefinition(id: number) {
+    isSaving.value = true
+    error.value = null
+    try {
+      await api.delete(`/strategy-lab/definitions/${id}`)
+      definitions.value = definitions.value.filter(item => item.id !== id)
+      if (selectedDefinitionId.value === id) {
+        selectedDefinitionId.value = definitions.value[0]?.id ?? null
+        selectedRunId.value = null
+      }
+    } catch (err: any) {
+      error.value = err?.message ?? 'Failed to delete strategy definition'
+      throw err
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   async function publishVersion(strategyId: number, payload: Record<string, any>) {
     isSaving.value = true
     error.value = null
@@ -149,6 +167,7 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     refreshDefinition,
     createDefinition,
     updateDefinition,
+    deleteDefinition,
     publishVersion,
     runVersion,
     refreshRun,

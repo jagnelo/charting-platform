@@ -211,126 +211,10 @@
           </div>
 
           <div v-for="(cond, i) in draftConditions" :key="i" class="condition-row">
-            <select v-model="cond.type" class="form-select cond-type" @change="onCondTypeChange(cond)">
-              <option value="indicator_threshold">Indicator vs Value</option>
-              <option value="indicator_cross">Indicator vs Indicator</option>
-              <option value="price_threshold">Price vs Value</option>
-              <option value="price_change_period">Price % Change (period)</option>
-              <option value="price_change">Price % Change (bars)</option>
-              <option value="performance">Performance (calendar)</option>
-              <option value="week52_new_high">52-Week New High</option>
-              <option value="week52_new_low">52-Week New Low</option>
-              <option value="pct_from_52w_high">% from 52W High</option>
-              <option value="pct_from_52w_low">% from 52W Low</option>
-              <option value="stats_filter">Stats Filter</option>
-            </select>
-
-            <template v-if="cond.type === 'indicator_threshold'">
-              <select v-model="cond.indicator" class="form-select cond-ind">
-                <option v-for="ind in INDICATOR_TYPES" :key="ind" :value="ind">{{ ind.toUpperCase() }}</option>
-              </select>
-              <input
-                v-if="['rsi','sma','ema','bb','atr','stoch','cci','adx'].includes(cond.indicator)"
-                v-model.number="cond.params.period"
-                type="number" class="form-input cond-param" placeholder="period"
-              />
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="lt">&lt;</option><option value="lte">≤</option>
-                <option value="gt">&gt;</option><option value="gte">≥</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.01" />
-            </template>
-
-            <template v-else-if="cond.type === 'indicator_cross'">
-              <select v-model="cond.indicator_a.type" class="form-select cond-ind">
-                <option v-for="ind in INDICATOR_TYPES" :key="ind" :value="ind">{{ ind.toUpperCase() }}</option>
-              </select>
-              <span class="cond-label">crosses</span>
-              <select v-model="cond.op" class="form-select" style="width:120px">
-                <option value="crosses_above">above</option>
-                <option value="crosses_below">below</option>
-                <option value="gt">above (current)</option>
-                <option value="lt">below (current)</option>
-              </select>
-              <select v-model="cond.indicator_b.type" class="form-select cond-ind">
-                <option v-for="ind in INDICATOR_TYPES" :key="ind" :value="ind">{{ ind.toUpperCase() }}</option>
-              </select>
-            </template>
-
-            <template v-else-if="cond.type === 'price_threshold'">
-              <select v-model="cond.field" class="form-select cond-ind">
-                <option value="close">Close</option><option value="open">Open</option>
-                <option value="high">High</option><option value="low">Low</option>
-                <option value="volume">Volume</option>
-              </select>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="gt">&gt;</option><option value="lt">&lt;</option>
-                <option value="gte">≥</option><option value="lte">≤</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.01" />
-            </template>
-
-            <template v-else-if="cond.type === 'price_change_period'">
-              <span class="cond-label">over</span>
-              <select v-model="cond.period" class="form-select" style="width:70px">
-                <option v-for="p in PERIODS" :key="p" :value="p">{{ p }}</option>
-              </select>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="gt">&gt;</option><option value="lt">&lt;</option>
-                <option value="gte">≥</option><option value="lte">≤</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.03" />
-            </template>
-
-            <template v-else-if="cond.type === 'price_change'">
-              <span class="cond-label">over</span>
-              <input v-model.number="cond.lookback_bars" type="number" class="form-input cond-param" placeholder="bars" />
-              <span class="cond-label">bars</span>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="gt">&gt;</option><option value="lt">&lt;</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.03" />
-            </template>
-
-            <template v-else-if="cond.type === 'performance'">
-              <span class="cond-label">over</span>
-              <select v-model="cond.period" class="form-select" style="width:70px">
-                <option v-for="p in PERIODS" :key="p" :value="p">{{ p }}</option>
-              </select>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="gt">&gt;</option><option value="lt">&lt;</option>
-                <option value="gte">≥</option><option value="lte">≤</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.05" />
-            </template>
-
-            <!-- 52-week new high/low: no extra controls needed -->
-            <template v-else-if="cond.type === 'week52_new_high' || cond.type === 'week52_new_low'">
-              <span class="cond-label" style="color:#888;font-style:italic">W1 bars · no parameters</span>
-            </template>
-
-            <template v-else-if="cond.type === 'pct_from_52w_high' || cond.type === 'pct_from_52w_low'">
-              <span class="cond-label">is</span>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="lt">&lt;</option><option value="lte">≤</option>
-                <option value="gt">&gt;</option><option value="gte">≥</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="0.001" placeholder="0.05" />
-              <span class="cond-label">(as decimal, e.g. 0.05 = 5%)</span>
-            </template>
-
-            <template v-else-if="cond.type === 'stats_filter'">
-              <select v-model="cond.field" class="form-select cond-ind">
-                <option v-for="f in STATS_FIELDS" :key="f.value" :value="f.value">{{ f.label }}</option>
-              </select>
-              <select v-model="cond.op" class="form-select cond-op">
-                <option value="gt">&gt;</option><option value="lt">&lt;</option>
-                <option value="gte">≥</option><option value="lte">≤</option>
-              </select>
-              <input v-model.number="cond.value" type="number" class="form-input cond-val" step="1" placeholder="value" />
-            </template>
-
-            <button class="btn-remove-cond" @click="draftConditions.splice(i, 1)">✕</button>
+            <TechnicalConditionEditor
+              v-model="draftConditions[i]"
+              @remove="draftConditions.splice(i, 1)"
+            />
           </div>
 
           <button class="btn-add-cond" @click="addCondition">+ Add Technical Condition</button>
@@ -528,7 +412,9 @@ import { useWatchlistStore } from '@/stores/watchlist'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
+import TechnicalConditionEditor from '@/components/common/TechnicalConditionEditor.vue'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
+import { createDefaultTechnicalCondition, normalizeTechnicalCondition } from '@/lib/technicalConditions'
 import { VueDraggable } from 'vue-draggable-plus'
 
 const route = useRoute()
@@ -737,16 +623,6 @@ const displayResult    = computed(() =>
 )
 
 const TIMEFRAMES = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN']
-const INDICATOR_TYPES = ['rsi','sma','ema','macd','bb','vwap','avwap','atr','stoch','cci','adx']
-const PERIODS = ['1D','1W','1M','3M','6M','MTD','QTD','YTD','1Y']
-const STATS_FIELDS = [
-  { value: 'market_cap',    label: 'Market Cap' },
-  { value: 'pe_ratio',      label: 'P/E Ratio' },
-  { value: 'beta',          label: 'Beta' },
-  { value: 'avg_volume_30d',label: 'Avg Volume (30d)' },
-  { value: 'dividend_yield',label: 'Dividend Yield' },
-]
-
 // ── Draft state ───────────────────────────────────────────────────────────────
 
 const draft = reactive({ name: '', timeframe: 'D1', universe_type: 'all' })
@@ -787,7 +663,9 @@ function editScreener(s: Screener) {
   const conds = s.conditions
   if (conds?.operator) {
     draftRootOp.value = conds.operator
-    draftConditions.value = (conds.conditions || []).filter((c: any) => c.type !== 'fundamental_filter')
+    draftConditions.value = (conds.conditions || [])
+      .filter((c: any) => c.type !== 'fundamental_filter')
+      .map((c: any) => normalizeTechnicalCondition(c))
     // Re-hydrate fundamental filters
     for (const c of (conds.conditions || [])) {
       if (c.type === 'fundamental_filter' && c.field in fundamentals) {
@@ -799,32 +677,7 @@ function editScreener(s: Screener) {
 }
 
 function addCondition() {
-  draftConditions.value.push({
-    type: 'indicator_threshold',
-    indicator: 'rsi',
-    params: { period: 14 },
-    op: 'lt',
-    value: 30,
-  })
-}
-
-function onCondTypeChange(cond: any) {
-  if (cond.type === 'price_change_period' || cond.type === 'performance') {
-    cond.period = '1D'
-    cond.op = 'gt'
-    cond.value = 0
-  } else if (cond.type === 'indicator_cross') {
-    cond.indicator_a = { type: 'sma', params: { period: 20 } }
-    cond.indicator_b = { type: 'sma', params: { period: 50 } }
-    cond.op = 'crosses_above'
-  } else if (cond.type === 'pct_from_52w_high' || cond.type === 'pct_from_52w_low') {
-    cond.op = 'lt'
-    cond.value = 0.05
-  } else if (cond.type === 'stats_filter') {
-    cond.field = 'market_cap'
-    cond.op = 'gt'
-    cond.value = 0
-  }
+  draftConditions.value.push(createDefaultTechnicalCondition())
 }
 
 function buildConditions(): any {

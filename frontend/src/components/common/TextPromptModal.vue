@@ -4,7 +4,7 @@
       <div class="prompt-modal" role="dialog" aria-modal="true" :aria-label="title">
         <div class="prompt-title">{{ title }}</div>
         <div v-if="message" class="prompt-message">{{ message }}</div>
-        <label v-if="label" class="prompt-label">
+        <label v-if="showInput && label" class="prompt-label">
           <span>{{ label }}</span>
           <input
             ref="inputRef"
@@ -16,7 +16,7 @@
           />
         </label>
         <input
-          v-else
+          v-else-if="showInput"
           ref="inputRef"
           v-model="draft"
           class="prompt-input"
@@ -27,7 +27,12 @@
         <div v-if="error" class="prompt-error">{{ error }}</div>
         <div class="prompt-actions">
           <button class="prompt-btn" type="button" @click="close">{{ cancelLabel }}</button>
-          <button class="prompt-btn prompt-btn--primary" type="button" :disabled="!draft.trim()" @click="submit">
+          <button
+            class="prompt-btn prompt-btn--primary"
+            type="button"
+            :disabled="showInput && !draft.trim()"
+            @click="submit"
+          >
             {{ confirmLabel }}
           </button>
         </div>
@@ -49,6 +54,7 @@ const props = withDefaults(defineProps<{
   cancelLabel?: string
   initialValue?: string
   error?: string
+  showInput?: boolean
 }>(), {
   message: '',
   label: '',
@@ -57,6 +63,7 @@ const props = withDefaults(defineProps<{
   cancelLabel: 'Cancel',
   initialValue: '',
   error: '',
+  showInput: true,
 })
 
 const emit = defineEmits<{
@@ -73,6 +80,7 @@ watch(
     if (!open) return
     draft.value = props.initialValue
     await nextTick()
+    if (!props.showInput) return
     inputRef.value?.focus()
     inputRef.value?.select()
   },
@@ -92,7 +100,7 @@ function close() {
 
 function submit() {
   const value = draft.value.trim()
-  if (!value) return
+  if (props.showInput && !value) return
   emit('submit', value)
 }
 </script>

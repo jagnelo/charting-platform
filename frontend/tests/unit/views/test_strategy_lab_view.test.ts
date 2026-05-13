@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import SearchBar from '@/components/common/SearchBar.vue'
 import StrategyLabView from '@/views/StrategyLabView.vue'
 
 vi.mock('@/lib/api', () => ({
@@ -10,6 +11,7 @@ vi.mock('@/lib/api', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -157,7 +159,7 @@ describe('StrategyLabView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
-    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
       if (path === '/strategy-lab/definitions') return Promise.resolve([definition])
       if (path === '/strategy-lab/definitions/4') return Promise.resolve(definition)
       if (path === '/watchlists') {
@@ -177,6 +179,15 @@ describe('StrategyLabView', () => {
         return Promise.resolve([
           { id: 7, name: 'Momentum Universe' },
         ])
+      }
+      if (path === '/instruments/search') {
+        const q = String(params?.q ?? '').trim().toUpperCase()
+        return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
+      }
+      if (path.startsWith('/instruments/') && path !== '/instruments/search') {
+        return Promise.resolve({
+          symbol: decodeURIComponent(path.split('/').pop() ?? '').toUpperCase(),
+        })
       }
       return Promise.resolve([])
     })
@@ -198,10 +209,46 @@ describe('StrategyLabView', () => {
       return Promise.resolve({})
     })
     ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValue(definition)
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValue({})
   })
 
+  function mountView() {
+    return mount(StrategyLabView, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+  }
+
+  function findSearchBar(wrapper: ReturnType<typeof mount>, placeholder: string) {
+    const component = wrapper.findAllComponents(SearchBar).find(node => node.props('placeholder') === placeholder)
+    expect(component).toBeTruthy()
+    return component!
+  }
+
+  async function commitPicker(wrapper: ReturnType<typeof mount>, placeholder: string, value: string) {
+    const component = findSearchBar(wrapper, placeholder)
+    const input = component.get('input')
+    await input.setValue(value)
+    await new Promise(resolve => setTimeout(resolve, 280))
+    await flushPromises()
+    const results = component.findAll('.result-item')
+    expect(results.length).toBeGreaterThan(0)
+    await results[0].trigger('click')
+    await flushPromises()
+  }
+
+  async function addTechnicalCondition(wrapper: ReturnType<typeof mount>) {
+    const addButton = wrapper.findAll('button').find(button => button.text().includes('Add technical condition'))
+    expect(addButton).toBeTruthy()
+    await addButton!.trigger('click')
+    await flushPromises()
+  }
+
   it('loads the visual builder and hides engine branding', async () => {
-    const wrapper = mount(StrategyLabView)
+    const wrapper = mountView()
 
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('Momentum Pilot')
@@ -218,16 +265,33 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Monthly returns')
   })
 
-  it('creates a strategy from the visual builder without JSON payload editing', async () => {
-    const wrapper = mount(StrategyLabView)
+  it('supports collapsing the strategy sidebar', async () => {
+    const wrapper = mountView()
 
     await flushPromises()
 
-    await wrapper.get('.sidebar-header .btn-primary').trigger('click')
+    await wrapper.get('.sidebar-toggle-strip').trigger('click')
+    expect(wrapper.get('.strategy-sidebar').classes()).toContain('strategy-sidebar--collapsed')
+
+    await wrapper.get('.sidebar-toggle-strip').trigger('click')
+    expect(wrapper.get('.strategy-sidebar').classes()).not.toContain('strategy-sidebar--collapsed')
+  })
+
+  it('creates a strategy from the visual builder without JSON payload editing', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
     await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Breakout Stack')
     await wrapper.get('textarea.form-textarea--short').setValue('Trend strategy')
-    await wrapper.get('input[placeholder="Add symbol (e.g. AAPL)"]').setValue('NVDA, AMD')
-    await wrapper.get('.subsection .btn-secondary').trigger('click')
+    await addTechnicalCondition(wrapper)
+    const tagInput = wrapper.get('input[placeholder="Add or reuse tags"]')
+    await tagInput.setValue('breakout')
+    await tagInput.trigger('keydown.enter')
+    await flushPromises()
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'NVDA')
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'AMD')
     await wrapper.get('.detail-header .btn-primary').trigger('click')
 
     await flushPromises()
@@ -236,6 +300,7 @@ describe('StrategyLabView', () => {
       name: 'Breakout Stack',
       definition_type: 'rules',
       source_type: 'custom',
+      tags: ['breakout'],
       initial_version: expect.objectContaining({
         definition_snapshot: expect.objectContaining({
           conditions: expect.any(Array),
@@ -250,8 +315,168 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('allows publishing screener-style fundamental conditions from the visual builder', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Fundamental Rotation')
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'AAPL')
+    await addTechnicalCondition(wrapper)
+
+    const conditionTypeSelect = wrapper.findAll('select').find(node =>
+      Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'Fundamental Filter'),
+    )
+    expect(conditionTypeSelect).toBeTruthy()
+    await conditionTypeSelect!.setValue('fundamental_filter')
+    await flushPromises()
+
+    const textConditionInput = wrapper.findAll('.tech-cond-card input.form-input').find(node =>
+      node.element instanceof HTMLInputElement && node.element.type === 'text',
+    )
+    expect(textConditionInput).toBeTruthy()
+    await textConditionInput!.setValue('Technology')
+
+    await wrapper.get('.detail-header .btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      initial_version: expect.objectContaining({
+        definition_snapshot: expect.objectContaining({
+          conditions: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'fundamental_filter',
+              field: 'sector',
+              op: 'eq',
+              value: 'Technology',
+            }),
+          ]),
+        }),
+      }),
+    }))
+  })
+
+  it('allows creating a new strategy once name and universe are set, even before adding conditions', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Blank Draft')
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'AAPL')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeUndefined()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      name: 'Blank Draft',
+      initial_version: expect.objectContaining({
+        definition_snapshot: expect.objectContaining({
+          conditions: [],
+          condition_tree: expect.objectContaining({
+            type: 'all',
+            conditions: [],
+          }),
+        }),
+        universe_config: { symbols: ['AAPL'] },
+      }),
+    }))
+  })
+
+  it('keeps the sidebar card tags in sync with live draft tags', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    const tagInput = wrapper.get('.tag-picker .tag-input')
+    await tagInput.setValue('swing test')
+    await tagInput.trigger('keydown.enter')
+    await flushPromises()
+
+    const sidebarTags = wrapper.findAll('.definition-item.active .definition-tag').map(node => node.text())
+    expect(sidebarTags).toContain('momentum')
+    expect(sidebarTags).toContain('swing-test')
+  })
+
+  it('shows clear creation blockers for a new incomplete strategy', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('input[placeholder="Momentum Continuation"]').classes()).toContain('form-input--invalid')
+    const universeSelect = wrapper.findAll('select').find(node =>
+      Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'Manual symbols'),
+    )
+    expect(universeSelect).toBeTruthy()
+    expect(universeSelect!.classes()).toContain('form-select--invalid')
+    expect(wrapper.text()).toContain('Name Required')
+    expect(wrapper.text()).toContain('Universe type Required')
+    expect(wrapper.text()).not.toContain('Condition 1')
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeDefined()
+  })
+
+  it('allows radar strategies to use radar outputs as the default universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Radar Native Replay')
+    await wrapper.findAll('select')[0].setValue('radar')
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Universe type Required')
+    expect(wrapper.text()).toContain('Using Radar outputs.')
+
+    await wrapper.get('.detail-header .btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      source_type: 'radar',
+      initial_version: expect.objectContaining({
+        universe_config: {},
+      }),
+    }))
+  })
+
+  it('publishes only resolved benchmark and subset symbols from search pickers', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await commitPicker(wrapper, 'SPY', 'QQQ')
+    await commitPicker(wrapper, 'Optional subset symbol', 'NVDA')
+
+    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      universe_config: { symbols: ['NVDA'] },
+    }))
+
+    const noteInput = wrapper.get('input[placeholder="What changed in this revision?"]')
+    await noteInput.setValue('Benchmark update')
+    await wrapper.get('.detail-header .btn-primary').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.objectContaining({
+      benchmark_config: { symbol: 'QQQ' },
+    }))
+  })
+
   it('publishes revisions and runs backtests from the current visual state', async () => {
-    const wrapper = mount(StrategyLabView)
+    const wrapper = mountView()
 
     await flushPromises()
 
@@ -289,8 +514,24 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('starts a new custom strategy with an empty rule builder until the user adds a condition', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Root logic')
+    expect(wrapper.text()).toContain('Add technical condition')
+    expect(wrapper.text()).not.toContain('Condition 1')
+
+    await addTechnicalCondition(wrapper)
+
+    expect(wrapper.text()).toContain('Condition 1')
+  })
+
   it('supports walk-forward mode, watchlist universes, and optimization inputs', async () => {
-    const wrapper = mount(StrategyLabView)
+    const wrapper = mountView()
 
     await flushPromises()
 
@@ -328,11 +569,11 @@ describe('StrategyLabView', () => {
   })
 
   it('publishes radar replay strategies with screener universes from the visual builder', async () => {
-    const wrapper = mount(StrategyLabView)
+    const wrapper = mountView()
 
     await flushPromises()
 
-    await wrapper.get('.sidebar-header .btn-primary').trigger('click')
+    await wrapper.get('.sidebar-new-btn').trigger('click')
     await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Radar Breakout Replay')
     const selects = wrapper.findAll('select')
     await selects[0].setValue('radar')
@@ -344,11 +585,16 @@ describe('StrategyLabView', () => {
     )
     expect(screenerSelect).toBeTruthy()
     await screenerSelect!.setValue('7')
-    const breakoutCheckbox = wrapper.findAll('input[type="checkbox"]').find(node =>
-      node.element.closest('.check-pill')?.textContent?.includes('Breakout'),
-    )
+    const setupTrigger = wrapper.findAll('.multi-select-trigger')[0]
+    expect(setupTrigger).toBeTruthy()
+    await setupTrigger!.trigger('click')
+    await flushPromises()
+    const breakoutCheckbox = wrapper.findAll('.multi-select-menu .multi-select-option').find(node =>
+      node.text().includes('Breakout'),
+    )?.find('input')
     expect(breakoutCheckbox).toBeTruthy()
     await breakoutCheckbox!.setValue(true)
+    await flushPromises()
     await wrapper.get('.detail-header .btn-primary').trigger('click')
     await flushPromises()
 
@@ -364,5 +610,23 @@ describe('StrategyLabView', () => {
         }),
       }),
     }))
+  })
+
+  it('deletes strategies from the current selection', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.detail-actions .btn-danger').trigger('click')
+    await flushPromises()
+    expect(document.body.textContent).toContain('Delete Strategy')
+    expect(document.body.textContent).toContain('Delete strategy "Momentum Pilot"? This action cannot be undone.')
+    const confirmButton = Array.from(document.body.querySelectorAll('button')).find(button =>
+      button.textContent?.trim() === 'Delete',
+    )
+    expect(confirmButton).toBeTruthy()
+    ;(confirmButton as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect(api.delete).toHaveBeenCalledWith('/strategy-lab/definitions/4')
   })
 })
