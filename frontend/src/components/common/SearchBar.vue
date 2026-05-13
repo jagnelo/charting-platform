@@ -1,5 +1,5 @@
 <template>
-  <div class="search-bar" ref="rootRef">
+  <div class="search-bar" :class="{ 'search-bar--fluid': fluid }" ref="rootRef">
     <div class="search-input-wrap">
       <span class="search-icon">⌕</span>
       <input
@@ -10,7 +10,7 @@
         class="search-input"
         @input="onInput"
         @focus="onFocus"
-        @keydown.escape="clear"
+        @keydown.escape="handleEscape"
         @keydown.enter="selectFirst"
         @keydown.arrow-down.prevent="moveDown"
         @keydown.arrow-up.prevent="moveUp"
@@ -26,27 +26,17 @@
         @mouseenter="highlightIdx = 0"
       >
         <span class="r-symbol r-expr-icon">f(x)</span>
-        <span class="r-name">Create expression chart: <em>{{ query }}</em></span>
+        <span class="r-name">{{ expressionActionLabel }}: <em>{{ query }}</em></span>
         <span class="r-type">Synthetic</span>
       </div>
       <template v-else>
         <template v-if="query.trim() && !isExpression">
           <div
-            v-if="canDirectOpenSymbol"
-            :class="['result-item', 'result-item--direct', { highlighted: highlightIdx === 0 }]"
-            @click="selectDirectSymbol"
-            @mouseenter="highlightIdx = 0"
-          >
-            <span class="r-symbol">{{ directSymbol }}</span>
-            <span class="r-name">Open chart for <em>{{ directSymbol }}</em></span>
-            <span class="r-type">Direct</span>
-          </div>
-          <div
             v-for="(r, i) in results"
             :key="r.symbol"
-            :class="['result-item', { highlighted: i + directResultOffset === highlightIdx }]"
+            :class="['result-item', { highlighted: i === highlightIdx }]"
             @click="select(r)"
-            @mouseenter="highlightIdx = i + directResultOffset"
+            @mouseenter="highlightIdx = i"
           >
             <span class="r-symbol">{{ r.symbol }}</span>
             <span class="r-name">{{ r.name }}</span>
@@ -54,20 +44,22 @@
           </div>
         </template>
         <template v-else>
-          <div class="recent-title">Recently viewed</div>
-          <div
-            v-for="(r, i) in recentStore.recent"
-            :key="r.symbol"
-            :class="['result-item', { highlighted: i === highlightIdx }]"
-            @click="selectRecent(r.symbol)"
-            @mouseenter="highlightIdx = i"
-          >
-            <span class="r-symbol">{{ r.symbol }}</span>
-            <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
-            <span class="r-type">Recent</span>
-          </div>
+          <template v-if="showRecentResults">
+            <div class="recent-title">Recently viewed</div>
+            <div
+              v-for="(r, i) in recentStore.recent"
+              :key="r.symbol"
+              :class="['result-item', { highlighted: i === highlightIdx }]"
+              @click="selectRecent(r.symbol)"
+              @mouseenter="highlightIdx = i"
+            >
+              <span class="r-symbol">{{ r.symbol }}</span>
+              <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
+              <span class="r-type">Recent</span>
+            </div>
+          </template>
         </template>
-        <div v-if="query.trim() && !isExpression" class="screener-link-row">
+        <div v-if="showScreenerShortcut && query.trim() && !isExpression" class="screener-link-row">
           <router-link :to="`/screener?q=${encodeURIComponent(query)}`" class="screener-link" @click="clear">
             Open in Screener →
           </router-link>
@@ -85,10 +77,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { api } from '@/lib/api'
 import {
-  classifyInstrumentInput,
   ensureKnownInstrumentSymbol,
   formatInstrumentLookupError,
   getInstrumentInputHint,
@@ -99,20 +90,45 @@ import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string }
 
-withDefaults(defineProps<{ placeholder?: string }>(), { placeholder: 'Symbol…' })
-const emit = defineEmits<{ select: [symbol: string] }>()
+const props = withDefaults(defineProps<{
+  placeholder?: string
+  modelValue?: string
+  mode?: 'chart' | 'picker'
+  fluid?: boolean
+  showRecent?: boolean
+  showScreenerLink?: boolean
+}>(), {
+  placeholder: 'Symbol…',
+  modelValue: '',
+  mode: 'chart',
+  fluid: false,
+  showRecent: true,
+  showScreenerLink: undefined,
+})
+const emit = defineEmits<{
+  select: [symbol: string]
+  'update:modelValue': [value: string]
+}>()
 const recentStore = useRecentInstrumentsStore()
 
-const query            = ref('')
+const query            = ref(props.modelValue)
 const results          = ref<SearchResult[]>([])
 const loading          = ref(false)
 const highlightIdx     = ref(0)
 const rootRef          = ref<HTMLDivElement | null>(null)
+const inputRef         = ref<HTMLInputElement | null>(null)
 const expressionSelected = ref(false)
 const dropdownDismissed  = ref(true)
 const errorMessage       = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+const showRecentResults = computed(() => props.showRecent)
+const showScreenerShortcut = computed(() =>
+  props.showScreenerLink ?? props.mode === 'chart'
+)
+const expressionActionLabel = computed(() =>
+  props.mode === 'chart' ? 'Create expression chart' : 'Use expression instrument'
+)
 const isExpression = computed(() => !expressionSelected.value && isExpressionInput(query.value.trim()))
 const canResolveExpression = computed(() =>
   !expressionSelected.value && isResolvableExpressionInput(query.value.trim())
@@ -120,23 +136,18 @@ const canResolveExpression = computed(() =>
 const expressionHint = computed(() =>
   expressionSelected.value ? '' : getInstrumentInputHint(query.value.trim())
 )
-const directInput = computed(() => classifyInstrumentInput(query.value))
-const directSymbol = computed(() =>
-  directInput.value.kind === 'symbol' ? directInput.value.value : ''
-)
-const canDirectOpenSymbol = computed(() =>
-  !expressionSelected.value && directInput.value.kind === 'symbol' && directSymbol.value.length > 0
-)
-const directResultOffset = computed(() => (canDirectOpenSymbol.value ? 1 : 0))
 const showDropdown = computed(() =>
   !dropdownDismissed.value
   && (
     isExpression.value
-    || canDirectOpenSymbol.value
     || results.value.length > 0
-    || (!query.value.trim() && recentStore.recent.length > 0)
+    || (!query.value.trim() && showRecentResults.value && recentStore.recent.length > 0)
   )
 )
+
+watch(() => props.modelValue, value => {
+  if (value !== query.value) query.value = value ?? ''
+})
 
 async function onInput() {
   expressionSelected.value = false
@@ -163,41 +174,20 @@ function onFocus() {
 }
 
 function select(r: SearchResult) {
-  emit('select', r.symbol)
-  recentStore.add(r.symbol, r.name)
-  query.value = r.symbol
-  results.value = []
-  dropdownDismissed.value = true
-}
-
-function selectDirectSymbol() {
-  if (!directSymbol.value) return
-  emit('select', directSymbol.value)
-  recentStore.add(directSymbol.value)
-  query.value = directSymbol.value
-  results.value = []
-  dropdownDismissed.value = true
+  commitSelection(r.symbol, r.name)
 }
 
 function selectRecent(symbol: string) {
-  emit('select', symbol)
-  recentStore.add(symbol)
-  query.value = symbol
-  results.value = []
-  dropdownDismissed.value = true
+  commitSelection(symbol)
 }
 
 async function selectExpression() {
   const expr = query.value.trim()
   loading.value = true
   try {
-    const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
-    emit('select', instr.symbol)
-    recentStore.add(instr.symbol, expr)
-    query.value = instr.symbol
-    results.value = []
+    const symbol = await ensureKnownInstrumentSymbol(expr)
+    commitSelection(symbol, expr)
     expressionSelected.value = true
-    dropdownDismissed.value = true
   } catch (e) {
     errorMessage.value = formatInstrumentLookupError(expr, e)
   } finally {
@@ -205,20 +195,21 @@ async function selectExpression() {
   }
 }
 
+function commitSelection(symbol: string, label?: string) {
+  emit('update:modelValue', symbol)
+  emit('select', symbol)
+  recentStore.add(symbol, label)
+  query.value = symbol
+  results.value = []
+  dropdownDismissed.value = true
+  errorMessage.value = ''
+}
+
 function selectFirst() {
   if (isExpression.value) { void selectExpression(); return }
   if (query.value.trim()) {
-    if (canDirectOpenSymbol.value && highlightIdx.value === 0) {
-      selectDirectSymbol()
-      return
-    }
-    const resultIndex = highlightIdx.value - directResultOffset.value
-    if (resultIndex >= 0 && resultIndex < results.value.length) {
-      select(results.value[resultIndex])
-      return
-    }
-    if (canDirectOpenSymbol.value) {
-      selectDirectSymbol()
+    if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
+      select(results.value[highlightIdx.value])
       return
     }
   }
@@ -229,17 +220,42 @@ function selectFirst() {
 
 function moveDown() {
   const len = query.value.trim()
-    ? results.value.length + directResultOffset.value
+    ? results.value.length
     : recentStore.recent.length
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
-function clear()    { query.value = ''; results.value = []; expressionSelected.value = false; dropdownDismissed.value = true; errorMessage.value = '' }
+function clear()    {
+  query.value = ''
+  results.value = []
+  expressionSelected.value = false
+  dropdownDismissed.value = true
+  errorMessage.value = ''
+  emit('update:modelValue', '')
+}
+
+function handleEscape() {
+  if (props.mode === 'picker') {
+    results.value = []
+    dropdownDismissed.value = true
+    errorMessage.value = ''
+    resetToCommitted()
+    return
+  }
+  clear()
+}
+
+function resetToCommitted() {
+  const committed = props.modelValue ?? ''
+  if (query.value !== committed) query.value = committed
+}
 
 function handleClickOutside(e: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
     results.value = []
     dropdownDismissed.value = true
+    errorMessage.value = ''
+    resetToCommitted()
   }
 }
 
@@ -251,6 +267,10 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 .search-bar {
   position: relative;
   width: 280px;
+}
+
+.search-bar--fluid {
+  width: 100%;
 }
 
 .search-input-wrap {
@@ -306,8 +326,6 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 .result-item.highlighted { background: #1a2a3a; }
 .result-item--expr { border-left: 2px solid #64b5f6; }
 .result-item--expr em { color: #64b5f6; font-style: normal; font-family: 'JetBrains Mono', monospace; }
-.result-item--direct { border-left: 2px solid #2f8f77; }
-.result-item--direct em { color: #2fceb0; font-style: normal; font-family: 'JetBrains Mono', monospace; }
 .recent-title {
   padding: 7px 10px 4px;
   color: #555;

@@ -68,14 +68,12 @@ describe('SearchBar', () => {
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'AAPL' })
     expect(wrapper.text()).toContain('Apple Inc.')
 
-    await wrapper.find('.result-item').trigger('click')
+    await wrapper.findAll('.result-item')[0].trigger('click')
     expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
   })
 
-  it('shows a direct-open row immediately for ticker input', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation(
-      () => new Promise(() => {}),
-    )
+  it('does not offer or emit a raw direct symbol when search returns no provider matches', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
 
     const wrapper = mount(SearchBar, {
       global: {
@@ -86,13 +84,16 @@ describe('SearchBar', () => {
     })
 
     await wrapper.find('input').setValue('TSLA')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await wrapper.find('input').trigger('keydown.enter')
+    await flushPromises()
     await nextTick()
 
-    expect(wrapper.text()).toContain('Open chart for')
-    expect(wrapper.text()).toContain('TSLA')
-
-    await wrapper.find('.result-item--direct').trigger('click')
-    expect(wrapper.emitted('select')?.[0]).toEqual(['TSLA'])
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'TSLA' })
+    expect(wrapper.text()).not.toContain('Open chart for')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('select')).toBeUndefined()
   })
 
   it('resolves expression queries and emits the resulting symbol on enter', async () => {
@@ -133,5 +134,27 @@ describe('SearchBar', () => {
 
     expect(api.post).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('Finish the expression to continue.')
+  })
+
+  it('resets picker-mode draft text back to the committed instrument on escape', async () => {
+    const wrapper = mount(SearchBar, {
+      props: {
+        mode: 'picker',
+        modelValue: 'SPY',
+      },
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    const input = wrapper.find('input')
+    await input.setValue('APPLE')
+    await input.trigger('keydown.escape')
+    await flushPromises()
+
+    expect((input.element as HTMLInputElement).value).toBe('SPY')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 })

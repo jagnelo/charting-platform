@@ -52,10 +52,8 @@ describe('DashboardInstrumentSearch', () => {
     expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
   })
 
-  it('tries raw symbol when the query is not in search results', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce({ symbol: 'MCD' })
+  it('does not emit a symbol when provider search returns no results', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
 
     const wrapper = mount(DashboardInstrumentSearch, {
       props: { modelValue: '' },
@@ -67,14 +65,12 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
     await nextTick()
 
-    const items = [...document.body.querySelectorAll('.dash-search-item')]
-    const rawButton = items[items.length - 1] as HTMLButtonElement
-    rawButton.click()
+    await wrapper.find('input').trigger('keydown.enter')
     await flushPromises()
     await nextTick()
 
-    expect(api.get).toHaveBeenLastCalledWith('/instruments/MCD')
-    expect(wrapper.emitted('select')?.[0]).toEqual(['MCD'])
+    expect(document.body.querySelectorAll('.dash-search-item').length).toBe(0)
+    expect(wrapper.emitted('select')).toBeUndefined()
   })
 
   it('does not resolve incomplete expressions or emit draft updates while typing', async () => {

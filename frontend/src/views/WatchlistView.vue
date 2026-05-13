@@ -98,7 +98,7 @@
 
         <!-- Add via SearchBar — hidden for managed or locked watchlists -->
         <div v-if="!activeWl.is_managed && !activeWl.is_locked" class="wlm-add">
-          <SearchBar placeholder="Symbol…" @select="addToActive" />
+          <SearchBar placeholder="Symbol…" mode="picker" @select="addToActive" />
           <SparkTfSelector />
         </div>
         <div v-else class="wlm-add wlm-add--readonly">
