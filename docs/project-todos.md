@@ -1600,6 +1600,90 @@ Why this deserves a dedicated roadmap item:
 
 Desired global policy:
 - Split OHLCV consumers into three explicit classes and apply different rules to each.
+- Also be explicit that this item governs **price/coverage acquisition**, not all provider communication in general.
+- A separate but adjacent platform rule needs to be preserved:
+  - some flows are fundamentally about **instrument discovery / identity / metadata**
+  - other flows are about **OHLCV / freshness / historical coverage**
+  - those must not be conflated, because the correct provider-access policy is different for each
+
+#### 11a0. Separate instrument discovery/materialization from OHLCV acquisition
+
+The platform should explicitly model two adjacent but different responsibilities:
+
+- **Instrument discovery / identity / metadata**
+  - "What is this thing?"
+  - search results
+  - canonical symbol resolution
+  - provider symbol mappings
+  - provider profile / metadata ingestion
+  - provider-overlap reconciliation and mastering
+- **Market-data acquisition / freshness / coverage**
+  - "Do we have the price/history needed for this use case?"
+  - OHLCV completeness
+  - latest-bar freshness
+  - missing-slice repair
+  - background refresh/seed orchestration
+
+This roadmap item is primarily about the second responsibility, but the first one must be documented alongside it so provider-access boundaries stay coherent.
+
+Current gap we discussed:
+- provider-backed search results can be shown in the UI without necessarily materializing a canonical `Instrument` row in the DB
+- that creates downstream incoherence, because a symbol can be:
+  - real according to provider search
+  - visible/selectable in the UI
+  - but still absent from the platform DB until some later route explicitly instantiates it
+- this affects flows like Strategy Lab universes and any other picker-driven feature that assumes selected provider-backed instruments are already locally materialized
+
+Desired future behavior:
+- when the user selects a provider-backed instrument from a search/picker flow, the platform should be able to:
+  - fetch lightweight metadata/profile details
+  - instantiate or reconcile a canonical local `Instrument` row
+  - register provider-symbol identity mappings
+  - merge overlaps appropriately if the instrument already exists under another provider identity
+- this should happen **without** automatically fetching OHLCV unless a separate policy explicitly asks for it
+
+In other words:
+- metadata discovery/materialization should be allowed to talk to providers
+- broad OHLCV consumers should still be forbidden from doing ad hoc provider fetches inside evaluation loops
+
+This gives the platform the desirable model we discussed:
+- search/discovery makes an instrument locally known
+- OHLCV/history is still fetched later on demand or by scheduled preparation flows
+- features like Strategy Lab, Screener, Radar, and Alerts can then assume:
+  - selected instruments are real platform objects
+  - but price data may still be cold and must go through the shared OHLCV coordinator
+
+Provider-access boundary to preserve:
+- **Allowed to call providers for identity/metadata/materialization**
+  - `/instruments/search` follow-up selection flows
+  - explicit instrument-add or instrument-picker commit flows
+  - `/instruments/{symbol}` resolution/lookup
+  - expression constituent resolution
+  - instrument mastering / background sync jobs
+- **Not allowed to call providers directly for OHLCV as part of evaluation**
+  - Radar
+  - Screener
+  - Strategy Lab
+  - Alerts
+  - breadth evaluators
+  - any broad decision engine
+- those OHLCV consumers must instead go through the shared coverage/freshness coordinator defined below
+
+Search-time lightweight instrument materialization should therefore eventually become a first-class platform behavior:
+- provider search may remain a lightweight discovery step by itself
+- but once the user actually selects a result for use in the platform, the system should:
+  - materialize/reconcile that instrument into the DB
+  - persist canonical identity and provider-symbol mappings
+  - optionally enqueue a background OHLCV bootstrap
+- the OHLCV bootstrap, if any, should be asynchronous and policy-driven:
+  - it should not block search UX unnecessarily
+  - it should not blur the line between metadata instantiation and price acquisition
+
+This should align cleanly with the rest of this roadmap item:
+- interactive/search flows are allowed to create or reconcile instrument metadata
+- OHLCV consumers remain DB-first and coordinator-driven
+- first discovery may enqueue background history seeding
+- evaluators later rely on preflight readiness rather than silently fetching bars themselves
 
 #### 11a. Interactive, user-driven data views
 
