@@ -82,7 +82,10 @@
 
       <div class="detail-header">
         <div>
-          <h2>{{ isNew ? 'New Strategy' : draft.name || 'Strategy' }}</h2>
+          <div class="detail-title-row">
+            <h2>{{ isNew ? 'New Strategy' : draft.name || 'Strategy' }}</h2>
+            <span v-if="currentVersion && !isNew" class="detail-version-pill">v{{ currentVersion.version_number }}</span>
+          </div>
         </div>
         <div class="detail-actions">
           <button
@@ -138,35 +141,6 @@
           >
             {{ strategyLab.isSaving ? 'Saving…' : isNew ? 'Create strategy' : 'Publish revision' }}
           </button>
-        </div>
-      </div>
-
-      <div class="hero-strip">
-        <div class="hero-card">
-          <span class="hero-label">Current revision</span>
-          <strong>{{ currentVersion ? `v${currentVersion.version_number}` : 'Draft only' }}</strong>
-        </div>
-        <div class="hero-card">
-          <span class="hero-label">Universe</span>
-          <strong>
-            {{
-              sourceType === 'radar' && universeMode === 'radar'
-                ? 'Dynamic'
-                : universeMode === 'watchlist'
-                ? (selectedWatchlist?.items.length ?? 0)
-                : universeMode === 'screener'
-                  ? 1
-                  : logicDraft.symbols.length
-            }}
-          </strong>
-        </div>
-        <div class="hero-card">
-          <span class="hero-label">{{ sourceType === 'radar' ? 'Signal filters' : 'Entry rules' }}</span>
-          <strong>{{ sourceType === 'radar' ? radarDraft.setup_types.length || radarSetupOptions.length : conditionCount }}</strong>
-        </div>
-        <div class="hero-card">
-          <span class="hero-label">Research runs</span>
-          <strong>{{ selectedRuns.length }}</strong>
         </div>
       </div>
 
@@ -337,7 +311,7 @@
 
           <div class="panel">
             <div class="panel-head">
-              <div><h3>Risk and exits</h3></div>
+              <div><h3>Risk</h3></div>
             </div>
 
             <div class="form-grid three-up">
@@ -352,35 +326,73 @@
               </label>
               <label class="field">
                 <span class="field-label">
+                  Break-even after R
+                  <HoverTooltip text="Move the stop to the entry price once the trade reaches this many R units in open profit. 1R equals the initial stop distance.">
+                    <button type="button" class="help-dot" aria-label="Break-even info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Trail distance (R)
+                  <HoverTooltip text="Trailing stop distance expressed in R units, not percent. 1R equals the initial stop distance. Example: 1.5R trails the stop 1.5 initial-risk units behind the best price reached.">
+                    <button type="button" class="help-dot" aria-label="Trailing stop info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Max entries
+                  <HoverTooltip text="Maximum number of entries allowed for the same idea, including scale-ins or pyramiding attempts.">
+                    <button type="button" class="help-dot" aria-label="Max entries info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Exits</h3></div>
+            </div>
+
+            <div class="form-grid two-up">
+              <label class="field">
+                <span class="field-label">
                   Target (R)
-                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. 2R means the target sits two times the stop distance away from the entry.">
+                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Set to 0 to disable fixed profit targets and rely on condition-based or time-based exits instead.">
                     <button type="button" class="help-dot" aria-label="Target info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0.25" step="0.25" class="form-input" />
+                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" />
               </label>
               <label class="field">
                 <span class="field-label">
                   Max bars in trade
-                  <HoverTooltip text="If the trade has not hit stop or target by this many bars, it is closed as a time exit.">
+                  <HoverTooltip text="If greater than 0, close the trade after this many bars if no other exit fired first. Set to 0 to disable time-based exits.">
                     <button type="button" class="help-dot" aria-label="Max bars info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="1" step="1" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">Break-even after R</span>
-                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">Trail stop after R</span>
-                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">Max entries</span>
-                <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
+                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" />
               </label>
             </div>
+
+            <div class="cb-header cb-header--strategy">
+              <span class="section-label">Exit conditions</span>
+              <span class="tree-builder-kicker">{{ exitRootGroupMode === 'all' ? 'Match ALL at the root' : 'Match ANY at the root' }}</span>
+            </div>
+            <StrategyRuleTreeEditor
+              :node="logicDraft.exitRuleTree"
+              :depth="0"
+              :can-remove="false"
+              :type-options="STRATEGY_LAB_CONDITION_TYPE_OPTIONS"
+              @remove="removeNodeFromExitTree"
+              @add-condition="addConditionToExitTree"
+              @add-group="(nodeId, type) => addGroupToExitTree(nodeId, type)"
+            />
           </div>
         </div>
 
@@ -507,11 +519,11 @@
             <div><h3>Research runs</h3></div>
             <button
               v-if="currentVersion && !isNew"
-              class="btn-primary"
-              type="button"
-              @click="runCurrentVersion"
-              :disabled="strategyLab.isRunning"
-            >
+            class="btn-primary"
+            type="button"
+            @click="runCurrentVersion"
+            :disabled="strategyLab.isRunning || showRunSubsetValidation"
+          >
               {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
             </button>
           </div>
@@ -616,31 +628,57 @@
           </div>
 
           <div class="subsection">
-            <div class="subsection-head">
-              <div class="subsection-title">
-                <h4>Optional run subset</h4>
-                <HoverTooltip text="Leave this empty to backtest the full published universe. Add symbols here only when you want to run the same strategy on a smaller subset.">
-                  <button type="button" class="help-dot" aria-label="Run subset info">i</button>
-                </HoverTooltip>
-              </div>
-            </div>
-            <div class="chip-row">
-              <span v-for="symbol in runDraft.overrideSymbols" :key="symbol" class="symbol-chip symbol-chip--alt">
-                {{ symbol }}
-                <button type="button" @click="removeRunSymbol(symbol)">×</button>
-              </span>
-              <span v-if="!runDraft.overrideSymbols.length" class="empty-inline">Using the published strategy universe.</span>
-            </div>
-            <div class="inline-search">
-              <SearchBar
-                v-model="runSymbolInput"
-                placeholder="Optional subset symbol"
-                mode="picker"
-                fluid
-                :show-recent="false"
-                :show-screener-link="false"
-                @select="addSelectedRunSymbol"
-              />
+            <button
+              type="button"
+              class="advanced-toggle"
+              @click="showAdvancedRunOptions = !showAdvancedRunOptions"
+            >
+              <span>Advanced run options</span>
+              <span>{{ showAdvancedRunOptions ? '▴' : '▾' }}</span>
+            </button>
+
+            <div v-show="showAdvancedRunOptions" class="advanced-panel">
+              <template v-if="availableRunSubsetSymbols.length">
+                <div class="subsection-head">
+                  <div class="subsection-title">
+                    <h4>Run subset</h4>
+                    <HoverTooltip text="Use this only when you want to test a smaller slice of the already-published universe without changing the saved strategy universe itself.">
+                      <button type="button" class="help-dot" aria-label="Run subset info">i</button>
+                    </HoverTooltip>
+                  </div>
+                </div>
+
+                <label class="field field--checkbox">
+                  <input v-model="runDraft.use_subset" type="checkbox" />
+                  <span>Limit this run to a subset of the published universe</span>
+                </label>
+
+                <div v-if="runDraft.use_subset" class="multi-select-field">
+                  <button
+                    type="button"
+                    class="multi-select-trigger"
+                    :class="{ 'form-select--invalid': showRunSubsetValidation }"
+                    @click="runSubsetMenuOpen = !runSubsetMenuOpen"
+                  >
+                    <span>{{ runSubsetSummary }}</span>
+                    <span class="multi-select-caret">{{ runSubsetMenuOpen ? '▴' : '▾' }}</span>
+                  </button>
+                  <div v-if="runSubsetMenuOpen" class="multi-select-menu">
+                    <label
+                      v-for="symbol in availableRunSubsetSymbols"
+                      :key="symbol"
+                      class="multi-select-option"
+                    >
+                      <input
+                        :checked="runDraft.overrideSymbols.includes(symbol)"
+                        type="checkbox"
+                        @change="toggleRunSubsetSymbol(symbol, checkboxValue($event))"
+                      />
+                      <span>{{ symbol }}</span>
+                    </label>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -688,32 +726,26 @@
                 <path d="M12.2 6A5 5 0 1 0 13 10" />
               </svg>
             </button>
-            <button
-              class="btn-secondary btn-icon-only"
-              type="button"
-              title="Export summary"
-              aria-label="Export summary"
-              @click="exportSummaryJson"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 2.5v7" />
-                <path d="M5.5 7 8 9.5 10.5 7" />
-                <path d="M3 12.5h10" />
-              </svg>
-            </button>
-            <button
-              class="btn-secondary btn-icon-only"
-              type="button"
-              title="Export trades CSV"
-              aria-label="Export trades CSV"
-              @click="exportTradesCsv"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 2.5v7" />
-                <path d="M5.5 7 8 9.5 10.5 7" />
-                <path d="M3 12.5h10" />
-              </svg>
-            </button>
+            <div ref="exportMenuRef" class="export-menu" @click.stop>
+              <button
+                class="btn-secondary btn-icon-only export-menu__trigger"
+                type="button"
+                title="Export"
+                aria-label="Export"
+                @click="exportMenuOpen = !exportMenuOpen"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M8 2.5v7" />
+                  <path d="M5.5 7 8 9.5 10.5 7" />
+                  <path d="M3 12.5h10" />
+                </svg>
+                <span class="export-menu__caret">{{ exportMenuOpen ? '▴' : '▾' }}</span>
+              </button>
+              <div v-if="exportMenuOpen" class="export-menu__panel">
+                <button type="button" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
+                <button type="button" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -738,7 +770,12 @@
             <div class="summary-card">
               <span class="summary-label">Net return</span>
               <strong>{{ formatPercent(performance.net_return_pct) }}</strong>
-              <small>{{ performance.trade_count ?? 0 }} trades</small>
+              <small v-if="(performance.open_position_count ?? 0) > 0">
+                {{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed ·
+                {{ performance.open_position_count ?? 0 }} open ·
+                {{ formatMoney(performance.unrealized_pnl) }} unrealized
+              </small>
+              <small v-else>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed</small>
             </div>
             <div class="summary-card">
               <span class="summary-label">Win rate</span>
@@ -753,7 +790,10 @@
             <div class="summary-card">
               <span class="summary-label">Coverage</span>
               <strong>{{ selectedRunDetail.result_summary.coverage?.total_bars ?? 0 }} bars</strong>
-              <small>{{ selectedRunDetail.result_summary.coverage?.instruments_with_data ?? 0 }} symbols with data</small>
+              <small>
+                <template v-if="coverageDurationLabel">{{ coverageDurationLabel }} · </template>
+                {{ selectedRunDetail.result_summary.coverage?.instruments_with_data ?? 0 }} symbols with data
+              </small>
             </div>
           </div>
 
@@ -761,13 +801,27 @@
             <div class="result-column">
               <div class="equity-panel">
                 <div class="equity-panel__head">
-                  <strong>Equity curve</strong>
-                  <span>{{ humanizeToken(selectedRunDetail.result_summary.result_kind || selectedRunDetail.test_mode) }}</span>
+                  <strong>Performance</strong>
+                  <span>
+                    {{
+                      selectedRunDetail.result_summary.benchmark?.symbol
+                        ? `Strategy vs ${selectedRunDetail.result_summary.benchmark.symbol}`
+                        : humanizeToken(selectedRunDetail.result_summary.result_kind || selectedRunDetail.test_mode)
+                    }}
+                  </span>
                 </div>
-                <svg v-if="equityPolyline" viewBox="0 0 320 120" class="equity-chart" role="img" aria-label="Equity curve">
-                  <polyline :points="equityPolyline" />
-                </svg>
-                <div v-else class="empty-inline">No equity curve for this run yet.</div>
+                <StrategyResultChart
+                  :series="performanceChartSeries"
+                  label="Strategy performance versus benchmark"
+                  :percent="true"
+                  empty-label="No performance curve for this run yet."
+                />
+                <div v-if="benchmarkCoverageNote" class="equity-panel__footnote">
+                  {{ benchmarkCoverageNote }}
+                </div>
+                <div v-if="selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct != null" class="equity-panel__footnote">
+                  {{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess versus benchmark
+                </div>
               </div>
 
               <div class="equity-panel">
@@ -775,10 +829,20 @@
                   <strong>Benchmark</strong>
                   <span>{{ selectedRunDetail.result_summary.benchmark?.symbol || 'No benchmark' }}</span>
                 </div>
-                <svg v-if="benchmarkPolyline" viewBox="0 0 320 120" class="equity-chart equity-chart--benchmark" role="img" aria-label="Benchmark curve">
-                  <polyline :points="benchmarkPolyline" />
-                </svg>
-                <div v-else class="empty-inline">No benchmark curve for this run yet.</div>
+                <div class="detail-list detail-list--benchmark-meta">
+                  <div>
+                    <span>Benchmark return</span>
+                    <strong>{{ benchmarkReturnLabel }}</strong>
+                  </div>
+                  <div>
+                    <span>Strategy return</span>
+                    <strong>{{ strategyReturnLabel }}</strong>
+                  </div>
+                </div>
+                <div v-if="!benchmarkCurve.length" class="empty-inline">No benchmark curve for this run yet.</div>
+                <div v-else-if="benchmarkCoverageNote" class="equity-panel__footnote">
+                  {{ benchmarkCoverageNote }}
+                </div>
               </div>
 
               <div class="equity-panel">
@@ -786,20 +850,78 @@
                   <strong>Drawdown</strong>
                   <span>{{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess</span>
                 </div>
-                <svg v-if="drawdownPolyline" viewBox="0 0 320 120" class="equity-chart equity-chart--drawdown" role="img" aria-label="Drawdown curve">
-                  <polyline :points="drawdownPolyline" />
-                </svg>
-                <div v-else class="empty-inline">No drawdown curve for this run yet.</div>
+                <StrategyResultChart
+                  :series="drawdownChartSeries"
+                  label="Drawdown curve"
+                  :percent="true"
+                  :show-legend="false"
+                  empty-label="No drawdown curve for this run yet."
+                />
               </div>
 
-              <div class="warnings-panel">
-                <div class="subsection-head">
-                  <h4>Warnings</h4>
+              <div class="equity-panel">
+                <div class="equity-panel__head">
+                  <strong>Position evolution</strong>
+                  <div class="equity-panel__head-meta">
+                    <span>{{ positionTimelines.length }} positions</span>
+                    <div class="chart-mode-toggle" role="group" aria-label="Position evolution value mode">
+                      <button
+                        type="button"
+                        class="chart-mode-toggle__button"
+                        :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'currency' }"
+                        aria-label="Show position evolution in currency"
+                        @click="positionEvolutionMode = 'currency'"
+                      >
+                        $
+                      </button>
+                      <button
+                        type="button"
+                        class="chart-mode-toggle__button"
+                        :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'percent' }"
+                        aria-label="Show position evolution in percent"
+                        @click="positionEvolutionMode = 'percent'"
+                      >
+                        %
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <ul class="detail-list">
-                  <li v-for="warning in selectedRunDetail.warning_log" :key="warning">{{ warning }}</li>
-                  <li v-if="!selectedRunDetail.warning_log.length">No warnings.</li>
-                </ul>
+                <StrategyResultChart
+                  :series="positionEvolutionSeries"
+                  label="Per-position evolution"
+                  :currency="positionEvolutionMode === 'currency'"
+                  :percent="positionEvolutionMode === 'percent'"
+                  :show-legend="false"
+                  :height="164"
+                  :focus-nearest-series="true"
+                  empty-label="No closed positions are available for evolution yet."
+                />
+              </div>
+
+              <div class="equity-panel">
+                <div class="equity-panel__head">
+                  <strong>Portfolio capital</strong>
+                  <span>Deployed vs idle</span>
+                </div>
+                <StrategyResultChart
+                  :series="portfolioCapitalSeries"
+                  label="Portfolio capital over time"
+                  :currency="true"
+                  empty-label="No portfolio capital timeline for this run yet."
+                />
+              </div>
+
+              <div class="equity-panel">
+                <div class="equity-panel__head">
+                  <strong>Open positions</strong>
+                  <span>Count over time</span>
+                </div>
+                <StrategyResultChart
+                  :series="portfolioPositionsSeries"
+                  label="Open positions over time"
+                  :show-legend="false"
+                  empty-label="No open-position timeline for this run yet."
+                />
               </div>
             </div>
 
@@ -807,53 +929,28 @@
               <div class="result-panels-grid">
                 <div class="mini-panel">
                   <div class="subsection-head"><h4>Monthly returns</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="row in monthlyReturns.slice(0, 8)" :key="row.period">
-                      <span>{{ row.period }}</span>
-                      <strong>{{ row.return_pct != null ? formatPercent(row.return_pct) : '—' }}</strong>
-                    </li>
-                    <li v-if="!monthlyReturns.length">No monthly return breakdown yet.</li>
-                  </ul>
+                  <ReturnsHeatmap
+                    :rows="monthlyReturns"
+                    mode="monthly"
+                    empty-label="No monthly return breakdown yet."
+                  />
                 </div>
 
                 <div class="mini-panel">
                   <div class="subsection-head"><h4>Quarterly returns</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="row in quarterlyReturns.slice(0, 6)" :key="row.period">
-                      <span>{{ row.period }}</span>
-                      <strong>{{ row.return_pct != null ? formatPercent(row.return_pct) : '—' }}</strong>
-                    </li>
-                    <li v-if="!quarterlyReturns.length">No quarterly return breakdown yet.</li>
-                  </ul>
+                  <ReturnsHeatmap
+                    :rows="quarterlyReturns"
+                    mode="quarterly"
+                    empty-label="No quarterly return breakdown yet."
+                  />
                 </div>
 
                 <div class="mini-panel">
                   <div class="subsection-head"><h4>Per symbol</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="row in symbolPerformance.slice(0, 8)" :key="row.symbol">
-                      <span>{{ row.symbol }}</span>
-                      <strong>{{ formatMoney(row.net_pnl) }}</strong>
-                    </li>
-                    <li v-if="!symbolPerformance.length">No per-symbol attribution yet.</li>
-                  </ul>
-                </div>
-
-                <div class="mini-panel" v-if="selectedRunDetail.result_summary.portfolio">
-                  <div class="subsection-head"><h4>Portfolio controls</h4></div>
-                  <ul class="detail-list">
-                    <li>
-                      <span>Accepted trades</span>
-                      <strong>{{ selectedRunDetail.result_summary.portfolio.accepted_trade_count ?? 0 }}</strong>
-                    </li>
-                    <li>
-                      <span>Rejected trades</span>
-                      <strong>{{ selectedRunDetail.result_summary.portfolio.rejected_trade_count ?? 0 }}</strong>
-                    </li>
-                    <li>
-                      <span>Peak concurrent</span>
-                      <strong>{{ selectedRunDetail.result_summary.portfolio.peak_concurrent_positions ?? 0 }}</strong>
-                    </li>
-                  </ul>
+                  <SymbolPerformanceBars
+                    :rows="symbolPerformance"
+                    empty-label="No per-symbol attribution yet."
+                  />
                 </div>
 
                 <div class="mini-panel" v-if="selectedRunDetail.result_summary.signal_summary">
@@ -912,42 +1009,49 @@
 
                 <div class="mini-panel" v-if="tradeDistributions.r_histogram?.length">
                   <div class="subsection-head"><h4>R distribution</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="(row, index) in tradeDistributions.r_histogram.slice(0, 6)" :key="`r-${index}`">
-                      <span>{{ row.lower }} → {{ row.upper }}</span>
-                      <strong>{{ row.count }}</strong>
-                    </li>
-                  </ul>
+                  <DistributionBars
+                    :rows="tradeDistributions.r_histogram"
+                    empty-label="No R distribution yet."
+                  />
                 </div>
               </div>
 
               <div class="trade-table-wrap">
+                <div class="subsection-head subsection-head--table">
+                  <h4>Execution log</h4>
+                </div>
                 <table class="trade-table">
                   <thead>
                     <tr>
+                      <th>Time</th>
+                      <th>Event</th>
                       <th>Symbol</th>
                       <th>Side</th>
-                      <th>Entry</th>
-                      <th>Exit</th>
+                      <th>Price</th>
+                      <th>Size</th>
                       <th>P&amp;L</th>
-                      <th>R</th>
                       <th>Reason</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="trade in visibleTrades" :key="`${trade.instrument_symbol}-${trade.entry_at}-${trade.exit_at}`">
-                      <td>{{ trade.instrument_symbol }}</td>
-                      <td>{{ humanizeToken(trade.side) }}</td>
-                      <td>{{ formatShortDateTime(trade.entry_at) }}</td>
-                      <td>{{ formatShortDateTime(trade.exit_at) }}</td>
-                      <td :class="{ positive: Number(trade.pnl) > 0, negative: Number(trade.pnl) < 0 }">
-                        {{ formatMoney(trade.pnl) }}
+                    <tr v-for="event in executionLog" :key="`${event.position_id}-${event.event_type}-${event.ts}`">
+                      <td>{{ formatShortDateTime(event.ts) }}</td>
+                      <td>{{ humanizeToken(event.event_type) }}</td>
+                      <td>{{ event.symbol || '—' }}</td>
+                      <td>{{ event.side ? humanizeToken(event.side) : '—' }}</td>
+                      <td>{{ event.price != null ? formatMoney(event.price) : '—' }}</td>
+                      <td>{{ event.quantity != null ? Number(event.quantity).toFixed(2) : '—' }}</td>
+                      <td :class="{ positive: Number(event.pnl) > 0, negative: Number(event.pnl) < 0 }">
+                        <div v-if="event.pnl != null" class="pnl-cell">
+                          <strong>{{ formatMoney(event.pnl) }}</strong>
+                          <small v-if="event.pnl_pct != null">{{ formatSignedPercent(event.pnl_pct) }}</small>
+                        </div>
+                        <template v-else>—</template>
                       </td>
-                      <td>{{ formatR(trade.r_multiple) }}</td>
-                      <td>{{ humanizeToken(trade.exit_reason) }}</td>
+                      <td>{{ humanizeToken(event.reason || event.event_type) }}</td>
                     </tr>
-                    <tr v-if="!visibleTrades.length">
-                      <td colspan="7" class="trade-table__empty">No trades were recorded for this run.</td>
+                    <tr v-if="!executionLog.length">
+                      <td colspan="8" class="trade-table__empty">No execution events were recorded for this run.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -973,13 +1077,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ResizeHandle from '@/components/common/ResizeHandle.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import TagPicker from '@/components/common/TagPicker.vue'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
+import DistributionBars from '@/components/strategy/DistributionBars.vue'
+import ReturnsHeatmap from '@/components/strategy/ReturnsHeatmap.vue'
+import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
+import StrategyResultChart from '@/components/strategy/StrategyResultChart.vue'
 import StrategyRuleTreeEditor from '@/components/strategy/StrategyRuleTreeEditor.vue'
 import { api } from '@/lib/api'
 import {
@@ -1063,7 +1171,6 @@ const radarStateOptions = [
 const isNew = ref(false)
 const versionNotes = ref('')
 const symbolInput = ref('')
-const runSymbolInput = ref('')
 const sourceType = ref<'custom' | 'radar'>('custom')
 const universeMode = ref<StrategyUniverseMode>('symbols')
 const selectedWatchlistId = ref<number | null>(null)
@@ -1072,6 +1179,10 @@ const compareRunId = ref<number | null>(null)
 const showDeleteModal = ref(false)
 const radarSetupMenuOpen = ref(false)
 const radarStateMenuOpen = ref(false)
+const showAdvancedRunOptions = ref(false)
+const runSubsetMenuOpen = ref(false)
+const exportMenuOpen = ref(false)
+const exportMenuRef = ref<HTMLElement | null>(null)
 const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
 
@@ -1094,6 +1205,7 @@ const logicDraft = reactive({
   benchmark_symbol: 'SPY',
   symbols: [] as string[],
   ruleTree: createGroupNode('all', []) as BuilderGroupNode,
+  exitRuleTree: createGroupNode('all', []) as BuilderGroupNode,
 })
 
 const radarDraft = reactive<RadarReplayDraft>({
@@ -1121,6 +1233,7 @@ const runDraft = reactive({
   stop_loss_pct_values: '1.5, 2, 2.5, 3',
   take_profit_rr_values: '1.5, 2, 2.5, 3',
   max_bars_in_trade_values: '10, 15, 20, 30',
+  use_subset: false,
   overrideSymbols: [] as string[],
 })
 
@@ -1135,6 +1248,13 @@ const selectedWatchlist = computed(() =>
 const selectedScreener = computed(() =>
   availableScreeners.value.find(item => item.id === selectedScreenerId.value) ?? null
 )
+const availableRunSubsetSymbols = computed(() => {
+  if (universeMode.value === 'symbols') return [...logicDraft.symbols]
+  if (universeMode.value === 'watchlist') {
+    return normalizeSymbols((selectedWatchlist.value?.items ?? []).map(item => item.symbol || item.name || ''))
+  }
+  return []
+})
 const availableTags = computed(() =>
   Array.from(new Set(strategyLab.definitions.flatMap(definition => normalizeTags(definition.tags)))).sort((a, b) =>
     a.localeCompare(b),
@@ -1162,6 +1282,8 @@ const compareRun = computed<StrategyRun | null>(() =>
 )
 const conditionCount = computed(() => countConditionLeaves(logicDraft.ruleTree))
 const rootGroupMode = computed(() => logicDraft.ruleTree.type)
+const exitConditionCount = computed(() => countConditionLeaves(logicDraft.exitRuleTree))
+const exitRootGroupMode = computed(() => logicDraft.exitRuleTree.type)
 const paperForwardSnapshots = computed<any[]>(() =>
   Array.isArray(selectedRunDetail.value?.result_summary?.paper_forward?.monitor_snapshots)
     ? selectedRunDetail.value?.result_summary?.paper_forward?.monitor_snapshots
@@ -1172,11 +1294,33 @@ const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
 )
 
+const coverageDurationLabel = computed(() => {
+  const coverage = selectedRunDetail.value?.result_summary?.coverage
+  const totalBars = Number(coverage?.total_bars ?? 0)
+  const instrumentsWithData = Math.max(1, Number(coverage?.instruments_with_data ?? 0) || 1)
+  if (!Number.isFinite(totalBars) || totalBars <= 0) return ''
+  const timeframe = String(
+    selectedRunDetail.value?.timeframe
+      || currentVersion.value?.definition_snapshot?.timeframe
+      || 'D1',
+  )
+  const averageBarsPerSymbol = totalBars / instrumentsWithData
+  const span = humanizeBarSpan(averageBarsPerSymbol, timeframe)
+  return span ? `≈ ${span} per symbol on ${timeframe}` : ''
+})
+
 const visibleTrades = computed<any[]>(() =>
   Array.isArray(selectedRunDetail.value?.result_summary?.trades)
     ? selectedRunDetail.value?.result_summary?.trades
     : []
 )
+
+const executionLog = computed<any[]>(() => {
+  const rows = Array.isArray(selectedRunDetail.value?.result_summary?.execution_log)
+    ? selectedRunDetail.value?.result_summary?.execution_log
+    : []
+  return [...rows].sort((left, right) => String(left.ts ?? '').localeCompare(String(right.ts ?? '')))
+})
 
 const benchmarkCurve = computed<any[]>(() =>
   Array.isArray(selectedRunDetail.value?.result_summary?.benchmark?.equity_curve)
@@ -1223,6 +1367,16 @@ const walkForwardSegments = computed<any[]>(() =>
 const tradeDistributions = computed<Record<string, any>>(() =>
   selectedRunDetail.value?.result_summary?.analytics?.trade_distributions ?? {}
 )
+const positionTimelines = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.position_timelines)
+    ? selectedRunDetail.value?.result_summary?.position_timelines
+    : []
+)
+const portfolioTimeline = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.portfolio_timeline)
+    ? selectedRunDetail.value?.result_summary?.portfolio_timeline
+    : []
+)
 
 const comparisonRows = computed(() => {
   if (!selectedRunDetail.value || !compareRun.value) return []
@@ -1235,26 +1389,98 @@ const comparisonRows = computed(() => {
   ]
 })
 
-const equityPolyline = computed(() => {
-  const points = selectedRunDetail.value?.result_summary?.equity_curve
-  if (!Array.isArray(points) || points.length < 2) return ''
-  const values = points.map((point: any) => Number(point.equity)).filter(Number.isFinite)
-  if (values.length < 2) return ''
-  return buildPolyline(values, 320, 120)
+const performanceChartSeries = computed(() => {
+  const strategyCurve = Array.isArray(selectedRunDetail.value?.result_summary?.equity_curve)
+    ? selectedRunDetail.value?.result_summary?.equity_curve
+    : []
+  const benchmarkSeries = benchmarkCurve.value
+
+  const series = [
+    buildNormalizedChartSeries(strategyCurve, 'Strategy', '#64b5f6', 'equity'),
+    buildNormalizedChartSeries(
+      benchmarkSeries,
+      selectedRunDetail.value?.result_summary?.benchmark?.symbol || 'Benchmark',
+      '#e0b35b',
+      'equity',
+    ),
+  ]
+
+  return series.filter((item): item is NonNullable<typeof item> => item != null)
 })
 
-const benchmarkPolyline = computed(() => {
-  const values = benchmarkCurve.value.map((point: any) => Number(point.equity)).filter(Number.isFinite)
-  if (values.length < 2) return ''
-  return buildPolyline(values, 320, 120)
+const drawdownChartSeries = computed(() => {
+  const series = buildRawChartSeries(drawdownCurve.value, 'Drawdown', '#ef7f88', 'drawdown_pct')
+  return series ? [series] : []
 })
 
-const drawdownPolyline = computed(() => {
-  const values = drawdownCurve.value
-    .map((point: any) => Number(point.drawdown_pct))
-    .filter(Number.isFinite)
-  if (values.length < 2) return ''
-  return buildPolyline(values, 320, 120)
+const strategyReturnLabel = computed(() => {
+  const strategyCurve = Array.isArray(selectedRunDetail.value?.result_summary?.equity_curve)
+    ? selectedRunDetail.value?.result_summary?.equity_curve
+    : []
+  return formatSeriesReturn(strategyCurve, 'equity')
+})
+
+const benchmarkReturnLabel = computed(() => formatSeriesReturn(benchmarkCurve.value, 'equity'))
+const benchmarkCoverageNote = computed(() => {
+  const firstBenchmarkTs = String(benchmarkCurve.value[0]?.ts ?? '')
+  const runStart = String(selectedRunDetail.value?.date_from ?? '')
+  if (!firstBenchmarkTs || !runStart) return ''
+  const firstBenchmarkAt = new Date(firstBenchmarkTs).getTime()
+  const runStartAt = new Date(runStart).getTime()
+  if (!Number.isFinite(firstBenchmarkAt) || !Number.isFinite(runStartAt) || firstBenchmarkAt <= runStartAt) {
+    return ''
+  }
+  return `Benchmark coverage starts on ${formatShortDateTime(firstBenchmarkTs)}. Earlier benchmark bars are unavailable for this run.`
+})
+const runSubsetSummary = computed(() => {
+  if (!runDraft.use_subset) return 'Use full universe'
+  if (!runDraft.overrideSymbols.length) return 'Select at least one symbol'
+  if (runDraft.overrideSymbols.length === 1) return runDraft.overrideSymbols[0]
+  return `${runDraft.overrideSymbols.length} selected`
+})
+const showRunSubsetValidation = computed(() =>
+  runDraft.use_subset && runDraft.overrideSymbols.length === 0
+)
+const positionEvolutionMode = ref<'currency' | 'percent'>('currency')
+const positionEvolutionSeries = computed(() =>
+  positionTimelines.value.map((timeline, index) => ({
+    label: String(timeline.label || `${timeline.symbol || 'Position'} #${index + 1}`),
+    color: seriesColorForKey(String(timeline.position_id || timeline.label || `${timeline.symbol || 'position'}-${index}`)),
+    points: Array.isArray(timeline.points)
+      ? timeline.points
+          .map((point: any) => ({
+            ts: String(point.ts ?? ''),
+            value: positionEvolutionPointValue(timeline, Number(point.value)),
+            detail: point.detail ? String(point.detail) : null,
+            marker: point.marker ? String(point.marker) : null,
+          }))
+          .filter((point: any) => point.ts && Number.isFinite(point.value))
+      : [],
+  })).filter(series => series.points.length >= 2)
+)
+const portfolioCapitalSeries = computed(() => {
+  const deployed = buildRawChartSeries(
+    portfolioTimeline.value,
+    'Deployed capital',
+    '#7ec2ff',
+    'deployed_capital',
+  )
+  const idle = buildRawChartSeries(
+    portfolioTimeline.value,
+    'Idle capital',
+    '#7fd38c',
+    'idle_capital',
+  )
+  return [deployed, idle].filter((series): series is NonNullable<typeof series> => series != null)
+})
+const portfolioPositionsSeries = computed(() => {
+  const openPositions = buildRawChartSeries(
+    portfolioTimeline.value,
+    'Open positions',
+    '#e0b35b',
+    'open_position_count',
+  )
+  return openPositions ? [openPositions] : []
 })
 
 const strategyNarrative = computed(() => {
@@ -1265,10 +1491,13 @@ const strategyNarrative = computed(() => {
     const stateText = radarDraft.states.length
       ? radarDraft.states.map(humanizeToken).join(', ')
       : 'all lifecycle states'
-    return `Replay ${setupText} Radar signals on ${logicDraft.timeframe}, filtering to ${stateText} and score ${radarDraft.min_score.toFixed(2)} or higher, then evaluate them with the current stop, target, and timing model.`
+    return `Replay ${setupText} Radar signals on ${logicDraft.timeframe}, filtering to ${stateText} and score ${radarDraft.min_score.toFixed(2)} or higher, then evaluate them with the current risk and exit model.`
   }
   const conditionText = describeRuleNode(logicDraft.ruleTree)
-  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using a ${logicDraft.stop_loss_pct}% stop, a ${logicDraft.take_profit_rr}R target, break-even after ${logicDraft.break_even_rr}R, trailing after ${logicDraft.trailing_stop_rr}R, and a ${logicDraft.max_bars_in_trade}-bar time exit.`
+  const exitText = describeRuleNode(logicDraft.exitRuleTree)
+  const fixedTargetText = logicDraft.take_profit_rr > 0 ? `${logicDraft.take_profit_rr}R fixed target` : 'no fixed profit target'
+  const timeExitText = logicDraft.max_bars_in_trade > 0 ? `${logicDraft.max_bars_in_trade}-bar time exit` : 'no time exit'
+  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, risking ${logicDraft.stop_loss_pct}% with break-even after ${logicDraft.break_even_rr}R and a trailing stop distance of ${logicDraft.trailing_stop_rr}R, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
 })
 
 const hasUniverseSelection = computed(() =>
@@ -1312,18 +1541,46 @@ onMounted(async () => {
   hydrateFromSelection(strategyLab.selectedDefinition)
 })
 
+function handleDocumentPointerDown(event: Event) {
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (exportMenuRef.value?.contains(target)) return
+  exportMenuOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', handleDocumentPointerDown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleDocumentPointerDown)
+})
+
 watch([sidebarWidth, sidebarCollapsed], ([width, collapsed]) => {
   persistStrategySidebarState({ width, collapsed })
 })
 
 watch(() => strategyLab.selectedDefinition, value => {
   hydrateFromSelection(value)
+  exportMenuOpen.value = false
 })
 
 watch(universeMode, mode => {
   if (mode !== 'watchlist') selectedWatchlistId.value = null
   if (mode !== 'screener') selectedScreenerId.value = null
   if (mode !== 'symbols') logicDraft.symbols = []
+})
+
+watch(availableRunSubsetSymbols, symbols => {
+  if (symbols.length) {
+    const allowed = new Set(symbols)
+    runDraft.overrideSymbols = runDraft.overrideSymbols.filter(symbol => allowed.has(symbol))
+    return
+  }
+  if (!['symbols', 'watchlist'].includes(universeMode.value)) {
+    runDraft.use_subset = false
+    runSubsetMenuOpen.value = false
+  }
 })
 
 watch(() => sourceType.value, value => {
@@ -1388,7 +1645,6 @@ function startNew() {
   draft.tags = []
   versionNotes.value = ''
   symbolInput.value = ''
-  runSymbolInput.value = ''
   logicDraft.timeframe = 'D1'
   logicDraft.direction = 'long'
   logicDraft.stop_loss_pct = 2
@@ -1400,6 +1656,7 @@ function startNew() {
   logicDraft.benchmark_symbol = 'SPY'
   logicDraft.symbols = []
   logicDraft.ruleTree = createGroupNode('all', [])
+  logicDraft.exitRuleTree = createGroupNode('all', [])
   radarDraft.setup_types = []
   radarDraft.states = []
   radarDraft.min_score = 0.65
@@ -1421,7 +1678,10 @@ function startNew() {
   runDraft.stop_loss_pct_values = '1.5, 2, 2.5, 3'
   runDraft.take_profit_rr_values = '1.5, 2, 2.5, 3'
   runDraft.max_bars_in_trade_values = '10, 15, 20, 30'
+  runDraft.use_subset = false
   runDraft.overrideSymbols = []
+  showAdvancedRunOptions.value = false
+  runSubsetMenuOpen.value = false
 }
 
 function selectDefinition(id: number) {
@@ -1444,21 +1704,23 @@ function hydrateFromSelection(definition: StrategyDefinition | null | undefined)
 
   const liveVersion = definition.versions.find(version => version.is_current) ?? definition.versions[0]
   hydrateFromVersion(liveVersion)
-  compareRunId.value = definition.runs[1]?.id ?? null
+  compareRunId.value = null
 }
 
 function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   if (!version) return
   const snapshot = version.definition_snapshot ?? {}
   const risk = snapshot.risk ?? {}
+  const exits = snapshot.exits ?? {}
   const radarFilters = snapshot.radar_filters ?? {}
   const executionModel = version.execution_model ?? {}
+  const runDefaults = executionModel.run_defaults ?? {}
   versionNotes.value = version.notes ?? ''
   logicDraft.timeframe = String(snapshot.timeframe ?? 'D1')
   logicDraft.direction = String(snapshot.direction ?? 'long')
   logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
-  logicDraft.take_profit_rr = toPositiveNumber(risk.take_profit_rr, 2)
-  logicDraft.max_bars_in_trade = Math.max(1, Math.round(toPositiveNumber(risk.max_bars_in_trade, 20)))
+  logicDraft.take_profit_rr = Math.max(0, Number(exits.take_profit_rr ?? risk.take_profit_rr ?? 2) || 0)
+  logicDraft.max_bars_in_trade = Math.max(0, Math.round(Number(exits.max_bars_in_trade ?? risk.max_bars_in_trade ?? 20) || 0))
   logicDraft.break_even_rr = Math.max(0, Number(risk.break_even_rr ?? 0))
   logicDraft.trailing_stop_rr = Math.max(0, Number(risk.trailing_stop_rr ?? 0))
   logicDraft.pyramiding_max_entries = Math.max(1, Math.round(toPositiveNumber(risk.pyramiding_max_entries, 1)))
@@ -1498,12 +1760,42 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     1,
     Number(executionModel.max_symbol_allocation_pct ?? 35) || 35,
   )
+  runDraft.test_mode = ['backtest', 'walk_forward', 'paper_forward'].includes(String(runDefaults.test_mode))
+    ? runDefaults.test_mode
+    : 'backtest'
+  runDraft.timeframe = String(runDefaults.timeframe ?? '')
+  runDraft.date_from = toDateInputValue(runDefaults.date_from)
+  runDraft.date_to = toDateInputValue(runDefaults.date_to)
+  runDraft.initial_capital = Math.max(1000, Number(runDefaults.initial_capital ?? 100000) || 100000)
+  runDraft.risk_per_trade_pct = Math.max(0.1, Number(runDefaults.risk_per_trade_pct ?? 1) || 1)
+  runDraft.slippage_bps = Math.max(0, Number(runDefaults.slippage_bps ?? 5) || 0)
+  runDraft.commission_per_trade = Math.max(0, Number(runDefaults.commission_per_trade ?? 0) || 0)
+  runDraft.walk_forward_segments = Math.max(2, Math.round(Number(runDefaults.walk_forward_segments ?? 3) || 3))
+  runDraft.walk_forward_training_share = Math.min(
+    0.9,
+    Math.max(0.3, Number(runDefaults.walk_forward_training_share ?? 0.6) || 0.6),
+  )
+  runDraft.paper_forward_bars = Math.max(5, Math.round(Number(runDefaults.paper_forward_bars ?? 20) || 20))
+  runDraft.optimization_enabled = runDefaults.optimization_enabled === true
+  runDraft.stop_loss_pct_values = String(runDefaults.stop_loss_pct_values ?? '1.5, 2, 2.5, 3')
+  runDraft.take_profit_rr_values = String(runDefaults.take_profit_rr_values ?? '1.5, 2, 2.5, 3')
+  runDraft.max_bars_in_trade_values = String(runDefaults.max_bars_in_trade_values ?? '10, 15, 20, 30')
+  runDraft.overrideSymbols = normalizeSymbols(Array.isArray(runDefaults.override_symbols) ? runDefaults.override_symbols : [])
+  runDraft.use_subset = runDraft.overrideSymbols.length > 0
+  showAdvancedRunOptions.value = false
+  runSubsetMenuOpen.value = false
 
   const rawConditions = Array.isArray(snapshot.conditions) ? snapshot.conditions : []
   logicDraft.ruleTree = parseRuleTree(
     snapshot.condition_tree,
     String(snapshot.entry_logic ?? 'all'),
     rawConditions,
+  )
+  const rawExitConditions = Array.isArray(exits.conditions) ? exits.conditions : []
+  logicDraft.exitRuleTree = parseRuleTree(
+    exits.condition_tree,
+    String(exits.logic ?? exits.exit_logic ?? 'all'),
+    rawExitConditions,
   )
 }
 
@@ -1580,14 +1872,34 @@ function flattenConditionNodes(node: BuilderRuleNode | null): BuilderConditionNo
 }
 
 function addConditionToTree(targetId: string) {
-  applyNodeMutation(logicDraft.ruleTree, targetId, target => {
+  addConditionToBuilderTree(logicDraft.ruleTree, targetId)
+}
+
+function addConditionToExitTree(targetId: string) {
+  addConditionToBuilderTree(logicDraft.exitRuleTree, targetId)
+}
+
+function addConditionToBuilderTree(tree: BuilderGroupNode, targetId: string) {
+  applyNodeMutation(tree, targetId, target => {
     if (target.kind === 'group') target.children.push(createConditionNode())
     if (target.kind === 'not') target.condition = createConditionNode()
   })
 }
 
 function addGroupToTree(targetId: string, type: 'all' | 'any' | 'not') {
-  applyNodeMutation(logicDraft.ruleTree, targetId, target => {
+  addGroupToBuilderTree(logicDraft.ruleTree, targetId, type)
+}
+
+function addGroupToExitTree(targetId: string, type: 'all' | 'any' | 'not') {
+  addGroupToBuilderTree(logicDraft.exitRuleTree, targetId, type)
+}
+
+function addGroupToBuilderTree(
+  tree: BuilderGroupNode,
+  targetId: string,
+  type: 'all' | 'any' | 'not',
+) {
+  applyNodeMutation(tree, targetId, target => {
     const nextNode = type === 'not' ? createNotNode() : createGroupNode(type)
     if (target.kind === 'group') target.children.push(nextNode)
     if (target.kind === 'not') target.condition = nextNode
@@ -1595,11 +1907,21 @@ function addGroupToTree(targetId: string, type: 'all' | 'any' | 'not') {
 }
 
 function removeNodeFromTree(nodeId: string) {
-  if (logicDraft.ruleTree.id === nodeId) {
-    logicDraft.ruleTree = createGroupNode('all', [])
+  removeNodeFromBuilderTree('entry', nodeId)
+}
+
+function removeNodeFromExitTree(nodeId: string) {
+  removeNodeFromBuilderTree('exit', nodeId)
+}
+
+function removeNodeFromBuilderTree(target: 'entry' | 'exit', nodeId: string) {
+  const tree = target === 'entry' ? logicDraft.ruleTree : logicDraft.exitRuleTree
+  if (tree.id === nodeId) {
+    if (target === 'entry') logicDraft.ruleTree = createGroupNode('all', [])
+    else logicDraft.exitRuleTree = createGroupNode('all', [])
     return
   }
-  removeNodeRecursive(logicDraft.ruleTree, nodeId)
+  removeNodeRecursive(tree, nodeId)
 }
 
 function removeNodeRecursive(node: BuilderRuleNode, nodeId: string): boolean {
@@ -1644,11 +1966,6 @@ function addSelectedSymbol(symbol: string) {
   symbolInput.value = ''
 }
 
-function addSelectedRunSymbol(symbol: string) {
-  runDraft.overrideSymbols = mergeSymbols(runDraft.overrideSymbols, [symbol])
-  runSymbolInput.value = ''
-}
-
 function checkboxValue(event: Event) {
   return (event.target as HTMLInputElement | null)?.checked === true
 }
@@ -1676,6 +1993,14 @@ function removeSymbol(symbol: string) {
 
 function removeRunSymbol(symbol: string) {
   runDraft.overrideSymbols = runDraft.overrideSymbols.filter(item => item !== symbol)
+}
+
+function toggleRunSubsetSymbol(symbol: string, checked: boolean) {
+  if (checked) {
+    runDraft.overrideSymbols = mergeSymbols(runDraft.overrideSymbols, [symbol])
+    return
+  }
+  removeRunSymbol(symbol)
 }
 
 function mergeSymbols(current: string[], rawValues: string[]) {
@@ -1745,6 +2070,30 @@ function normalizeTags(values: string[]) {
   )
 }
 
+function positionEvolutionPointValue(timeline: any, rawValue: number) {
+  if (!Number.isFinite(rawValue)) return Number.NaN
+  if (positionEvolutionMode.value === 'currency') return rawValue
+  const denominator = positionEvolutionDenominator(timeline)
+  if (!Number.isFinite(denominator) || denominator <= 0) return rawValue
+  return (rawValue / denominator) * 100
+}
+
+function positionEvolutionDenominator(timeline: any) {
+  const entryPrice = Number(timeline?.entry_price)
+  const quantity = Number(timeline?.quantity)
+  const entryNotional = Math.abs(entryPrice * quantity)
+  if (Number.isFinite(entryNotional) && entryNotional > 0) return entryNotional
+
+  const pnl = Number(timeline?.pnl)
+  const pnlPct = Number(timeline?.pnl_pct)
+  if (Number.isFinite(pnl) && Number.isFinite(pnlPct) && pnlPct !== 0) {
+    const impliedNotional = Math.abs(pnl / (pnlPct / 100))
+    if (Number.isFinite(impliedNotional) && impliedNotional > 0) return impliedNotional
+  }
+
+  return Number.NaN
+}
+
 function definitionDisplayTags(definition: StrategyDefinition) {
   if (!isNew.value && strategyLab.selectedDefinitionId === definition.id) {
     return normalizeTags(draft.tags)
@@ -1759,6 +2108,11 @@ function tagPillStyle(tag: string) {
     '--tag-border': `hsl(${hue} 38% 25%)`,
     '--tag-color': `hsl(${hue} 82% 80%)`,
   }
+}
+
+function seriesColorForKey(key: string) {
+  const hue = stringHash(key.trim().toLowerCase() || key) % 360
+  return `hsl(${hue} 72% 66%)`
 }
 
 function persistStrategySidebarState(value: { width: number; collapsed: boolean }) {
@@ -1781,13 +2135,19 @@ function summarizeRadarOptions(
 
 function buildVersionPayload() {
   const flatConditions = flattenConditionNodes(logicDraft.ruleTree)
+  const flatExitConditions = flattenConditionNodes(logicDraft.exitRuleTree)
   const riskConfig = {
     stop_loss_pct: logicDraft.stop_loss_pct,
-    take_profit_rr: logicDraft.take_profit_rr,
-    max_bars_in_trade: logicDraft.max_bars_in_trade,
     break_even_rr: logicDraft.break_even_rr,
     trailing_stop_rr: logicDraft.trailing_stop_rr,
     pyramiding_max_entries: logicDraft.pyramiding_max_entries,
+  }
+  const exitsConfig = {
+    take_profit_rr: logicDraft.take_profit_rr,
+    max_bars_in_trade: logicDraft.max_bars_in_trade,
+    logic: logicDraft.exitRuleTree.type,
+    condition_tree: compileRuleNode(logicDraft.exitRuleTree),
+    conditions: flatExitConditions.map(compileCondition),
   }
   return {
     definition_snapshot: {
@@ -1801,6 +2161,7 @@ function buildVersionPayload() {
               min_score: radarDraft.min_score,
             },
             risk: riskConfig,
+            exits: exitsConfig,
           }
         : {
             timeframe: logicDraft.timeframe,
@@ -1809,12 +2170,13 @@ function buildVersionPayload() {
             condition_tree: compileRuleNode(logicDraft.ruleTree),
             conditions: flatConditions.map(compileCondition),
             risk: riskConfig,
+            exits: exitsConfig,
           }),
     },
     parameter_schema: {
       stop_loss_pct: { type: 'number', min: 0.1 },
-      take_profit_rr: { type: 'number', min: 0.25 },
-      max_bars_in_trade: { type: 'integer', min: 1 },
+      take_profit_rr: { type: 'number', min: 0 },
+      max_bars_in_trade: { type: 'integer', min: 0 },
       break_even_rr: { type: 'number', min: 0 },
       trailing_stop_rr: { type: 'number', min: 0 },
       pyramiding_max_entries: { type: 'integer', min: 1 },
@@ -1841,12 +2203,37 @@ function buildVersionPayload() {
       : {},
     execution_model: {
       entry: 'next_bar_open',
-      exits: ['stop_loss', 'take_profit', 'time_exit', 'break_even', 'trailing_stop'],
+      exits: [
+        'stop_loss',
+        ...(logicDraft.take_profit_rr > 0 ? ['take_profit'] : []),
+        ...(logicDraft.max_bars_in_trade > 0 ? ['time_exit'] : []),
+        ...(logicDraft.break_even_rr > 0 ? ['break_even'] : []),
+        ...(logicDraft.trailing_stop_rr > 0 ? ['trailing_stop'] : []),
+        ...(exitConditionCount.value > 0 ? ['condition_exit'] : []),
+      ],
       sizing: 'percent_risk',
       max_entries: logicDraft.pyramiding_max_entries,
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
       max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,
+      run_defaults: {
+        test_mode: runDraft.test_mode,
+        timeframe: runDraft.timeframe || null,
+        date_from: runDraft.date_from || null,
+        date_to: runDraft.date_to || null,
+        initial_capital: runDraft.initial_capital,
+        risk_per_trade_pct: runDraft.risk_per_trade_pct,
+        slippage_bps: runDraft.slippage_bps,
+        commission_per_trade: runDraft.commission_per_trade,
+        walk_forward_segments: runDraft.walk_forward_segments,
+        walk_forward_training_share: runDraft.walk_forward_training_share,
+        paper_forward_bars: runDraft.paper_forward_bars,
+        optimization_enabled: runDraft.optimization_enabled,
+        stop_loss_pct_values: runDraft.stop_loss_pct_values,
+        take_profit_rr_values: runDraft.take_profit_rr_values,
+        max_bars_in_trade_values: runDraft.max_bars_in_trade_values,
+        override_symbols: runDraft.use_subset ? runDraft.overrideSymbols : [],
+      },
     },
     notes: versionNotes.value.trim() || null,
   }
@@ -1860,9 +2247,13 @@ function compileCondition(condition: BuilderConditionNode) {
 }
 
 async function saveProfileOnly() {
-  if (!strategyLab.selectedDefinition) return
-  const updated = await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, buildDefinitionPayload())
-  hydrateFromSelection(updated)
+  if (!strategyLab.selectedDefinition || !currentVersion.value) return
+  const definitionPayload = buildDefinitionPayload()
+  const versionPayload = buildVersionPayload()
+  await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
+  await strategyLab.updateVersion(currentVersion.value.id, strategyLab.selectedDefinition.id, versionPayload)
+  const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
+  hydrateFromSelection(refreshed)
 }
 
 async function deleteCurrentStrategy() {
@@ -1879,11 +2270,12 @@ async function deleteCurrentStrategy() {
 }
 
 async function publishStrategy() {
-  const payload = buildDefinitionPayload()
+  const definitionPayload = buildDefinitionPayload()
+  const versionPayload = buildVersionPayload()
   if (isNew.value) {
     const created = await strategyLab.createDefinition({
-      ...payload,
-      initial_version: buildVersionPayload(),
+      ...definitionPayload,
+      initial_version: versionPayload,
     })
     strategyLab.selectedDefinitionId = created.id
     hydrateFromSelection(created)
@@ -1891,8 +2283,8 @@ async function publishStrategy() {
     return
   }
   if (!strategyLab.selectedDefinition) return
-  await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, payload)
-  await strategyLab.publishVersion(strategyLab.selectedDefinition.id, buildVersionPayload())
+  await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
+  await strategyLab.publishVersion(strategyLab.selectedDefinition.id, versionPayload)
   await reload()
 }
 
@@ -1904,7 +2296,9 @@ async function runCurrentVersion() {
     date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
     date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
     parameter_values: {},
-    universe_config: runDraft.overrideSymbols.length ? { symbols: runDraft.overrideSymbols } : {},
+    universe_config: runDraft.use_subset && runDraft.overrideSymbols.length
+      ? { symbols: runDraft.overrideSymbols }
+      : {},
     execution_assumptions: {
       initial_capital: runDraft.initial_capital,
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
@@ -1931,6 +2325,15 @@ async function refreshPaperForwardRun() {
   if (!selectedRunDetail.value || selectedRunDetail.value.test_mode !== 'paper_forward') return
   const refreshed = await strategyLab.refreshRun(selectedRunDetail.value.id)
   strategyLab.selectedRunId = refreshed.id
+}
+
+function handleExport(kind: 'summary' | 'trades') {
+  exportMenuOpen.value = false
+  if (kind === 'summary') {
+    exportSummaryJson()
+    return
+  }
+  exportTradesCsv()
 }
 
 function exportSummaryJson() {
@@ -2015,16 +2418,69 @@ function parseIntegerList(raw: string) {
     .filter(value => Number.isFinite(value) && value > 0)
 }
 
-function buildPolyline(values: number[], width: number, height: number) {
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  return values
-    .map((value, index) => {
-      const x = (index / Math.max(values.length - 1, 1)) * width
-      const y = max === min ? height / 2 : height - ((value - min) / (max - min)) * (height - 12) - 6
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
+function toDateInputValue(value: unknown) {
+  if (!value) return ''
+  const normalized = String(value)
+  return normalized.includes('T') ? normalized.slice(0, 10) : normalized
+}
+
+function buildNormalizedChartSeries(
+  rows: any[],
+  label: string,
+  color: string,
+  valueKey: string,
+) {
+  if (!Array.isArray(rows) || rows.length < 2) return null
+  const normalizedRows = rows
+    .map((row: any) => ({
+      ts: String(row.ts ?? ''),
+      value: Number(row[valueKey]),
+    }))
+    .filter(row => row.ts && Number.isFinite(row.value))
+  if (normalizedRows.length < 2) return null
+  const base = normalizedRows.find(row => row.value !== 0)?.value ?? normalizedRows[0].value
+  if (!Number.isFinite(base) || base === 0) return null
+  return {
+    label,
+    color,
+    points: normalizedRows.map(row => ({
+      ts: row.ts,
+      value: ((row.value - base) / base) * 100,
+    })),
+  }
+}
+
+function buildRawChartSeries(
+  rows: any[],
+  label: string,
+  color: string,
+  valueKey: string,
+) {
+  if (!Array.isArray(rows) || rows.length < 2) return null
+  const normalizedRows = rows
+    .map((row: any) => ({
+      ts: String(row.ts ?? ''),
+      value: Number(row[valueKey]),
+    }))
+    .filter(row => row.ts && Number.isFinite(row.value))
+  if (normalizedRows.length < 2) return null
+  return {
+    label,
+    color,
+    points: normalizedRows,
+  }
+}
+
+function formatSeriesReturn(rows: any[], valueKey: string) {
+  if (!Array.isArray(rows) || rows.length < 2) return '—'
+  const values = rows
+    .map((row: any) => Number(row[valueKey]))
+    .filter(Number.isFinite)
+  if (values.length < 2) return '—'
+  const first = values.find(value => value !== 0) ?? values[0]
+  const last = values[values.length - 1]
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return '—'
+  return formatPercent(((last - first) / first) * 100)
 }
 
 function comparisonMetric(label: string, current: unknown, compare: unknown, suffix: string) {
@@ -2081,6 +2537,12 @@ function formatPercent(value: unknown) {
   return `${numeric.toFixed(2)}%`
 }
 
+function formatSignedPercent(value: unknown) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  return `${numeric > 0 ? '+' : ''}${numeric.toFixed(2)}%`
+}
+
 function formatMoney(value: unknown) {
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return '—'
@@ -2095,6 +2557,58 @@ function formatR(value: unknown) {
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return '—'
   return `${numeric.toFixed(2)}R`
+}
+
+function humanizeBarSpan(barCount: number, timeframe: string | null | undefined) {
+  const normalizedTimeframe = String(timeframe ?? '').toUpperCase()
+  const minutesPerBar = ({
+    M1: 1,
+    M5: 5,
+    M15: 15,
+    M30: 30,
+    H1: 60,
+    H2: 120,
+    H4: 240,
+    H12: 720,
+    D1: 1440,
+    W1: 10080,
+    MN: 43200,
+  } as Record<string, number>)[normalizedTimeframe]
+
+  if (!minutesPerBar || !Number.isFinite(barCount) || barCount <= 0) return ''
+
+  const totalMinutes = barCount * minutesPerBar
+  const totalDays = totalMinutes / 1440
+  if (totalDays >= 365) {
+    const years = Math.floor(totalDays / 365)
+    const months = Math.round((totalDays - years * 365) / 30.4375)
+    if (months >= 12) return `${years + 1}y`
+    return months > 0 ? `${years}y ${months}mo` : `${years}y`
+  }
+  if (totalDays >= 30) {
+    const months = Math.floor(totalDays / 30.4375)
+    const days = Math.round(totalDays - months * 30.4375)
+    return days > 0 ? `${months}mo ${days}d` : `${months}mo`
+  }
+  if (totalDays >= 7) {
+    const weeks = Math.floor(totalDays / 7)
+    const days = Math.round(totalDays - weeks * 7)
+    return days > 0 ? `${weeks}w ${days}d` : `${weeks}w`
+  }
+  if (totalDays >= 1) {
+    const days = Math.floor(totalDays)
+    const hours = Math.round((totalDays - days) * 24)
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+  }
+
+  const totalHours = totalMinutes / 60
+  if (totalHours >= 1) {
+    const hours = Math.floor(totalHours)
+    const minutes = Math.round((totalHours - hours) * 60)
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+  }
+
+  return `${Math.max(1, Math.round(totalMinutes))}m`
 }
 </script>
 
@@ -2244,7 +2758,7 @@ function formatR(value: unknown) {
   background: #111;
   border: 1px solid #1c1c1c;
   border-radius: 4px;
-  padding: 8px 9px;
+  padding: 7px 9px;
   cursor: pointer;
   color: inherit;
 }
@@ -2266,7 +2780,7 @@ function formatR(value: unknown) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .definition-tile {
@@ -2329,12 +2843,31 @@ function formatR(value: unknown) {
 .definition-meta,
 .definition-runline,
 .run-item__meta {
-  margin-top: 6px;
+  margin-top: 3px;
   color: #7e7e7e;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.35;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.run-item {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.run-item__header {
+  align-items: flex-start;
+}
+
+.run-item__header strong {
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .state-dot,
@@ -2393,36 +2926,41 @@ function formatR(value: unknown) {
   gap: 10px;
 }
 
-.hero-strip,
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-version-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid #27313b;
+  border-radius: 999px;
+  background: #12171c;
+  color: #86b2d4;
+  font-size: 11px;
+  line-height: 1;
+}
+
 .detail-columns {
   display: grid;
   gap: 16px;
 }
 
-.hero-strip {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.hero-card,
 .panel,
 .condition-card,
 .equity-panel,
-.warnings-panel,
 .mini-panel {
   background: #111;
   border: 1px solid #1b1b1b;
   border-radius: 4px;
 }
 
-.hero-card {
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  min-height: 92px;
-}
-
-.hero-label,
 .summary-label {
   color: #6f6f6f;
   font-size: 11px;
@@ -2431,7 +2969,6 @@ function formatR(value: unknown) {
   line-height: 1;
 }
 
-.hero-card strong,
 .summary-card strong {
   color: #f2f2f2;
   font-size: 16px;
@@ -2439,7 +2976,6 @@ function formatR(value: unknown) {
   display: block;
 }
 
-.hero-card small,
 .summary-card small,
 .equity-panel__head span {
   color: #7c7c7c;
@@ -2515,6 +3051,31 @@ function formatR(value: unknown) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.advanced-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #9d9d9d;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.advanced-toggle:hover {
+  color: #d0d0d0;
+}
+
+.advanced-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .field-inline-hint {
@@ -2704,6 +3265,13 @@ function formatR(value: unknown) {
   gap: 12px;
 }
 
+.run-list {
+  gap: 8px;
+  max-height: 332px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .condition-card {
   padding: 14px;
   display: grid;
@@ -2827,8 +3395,55 @@ function formatR(value: unknown) {
 .equity-panel__head {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.equity-panel__head-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid #23262b;
+  border-radius: 999px;
+  background: #101113;
+}
+
+.chart-mode-toggle__button {
+  min-width: 28px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #7f848b;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.chart-mode-toggle__button:hover {
+  color: #d4d7dc;
+}
+
+.chart-mode-toggle__button--active {
+  background: #1f5f9a;
+  color: #eff6ff;
+}
+
+.equity-panel__footnote {
+  margin-top: 8px;
+  color: #7d7d7d;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .equity-chart {
@@ -2862,6 +3477,23 @@ function formatR(value: unknown) {
   line-height: 1.5;
 }
 
+.detail-list--benchmark-meta {
+  gap: 10px;
+}
+
+.detail-list--benchmark-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #9d9d9d;
+  font-size: 11px;
+}
+
+.detail-list--benchmark-meta strong {
+  color: #e8e8e8;
+  font-size: 12px;
+}
+
 .trade-table-wrap {
   overflow: auto;
   border: 1px solid #1f1f1f;
@@ -2893,6 +3525,21 @@ function formatR(value: unknown) {
 .trade-table__empty {
   color: #737373;
   text-align: center;
+}
+
+.pnl-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.pnl-cell strong {
+  font-weight: 700;
+}
+
+.pnl-cell small {
+  color: #7d7d7d;
+  font-size: 10px;
+  line-height: 1.2;
 }
 
 .positive {
@@ -2951,6 +3598,56 @@ function formatR(value: unknown) {
   stroke-linejoin: round;
 }
 
+.export-menu {
+  position: relative;
+}
+
+.export-menu__trigger {
+  width: auto;
+  min-width: 42px;
+  padding: 0 6px;
+  gap: 3px;
+}
+
+.export-menu__caret {
+  font-size: 9px;
+  color: #8c8c8c;
+  line-height: 1;
+}
+
+.export-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 148px;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid #262626;
+  border-radius: 4px;
+  background: #111;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 12;
+}
+
+.export-menu__item {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #d4d4d4;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.export-menu__item:hover {
+  background: #171717;
+  border-color: #2a2a2a;
+}
+
 .help-dot {
   width: 16px;
   height: 16px;
@@ -2979,7 +3676,6 @@ function formatR(value: unknown) {
 }
 
 @media (max-width: 1380px) {
-  .hero-strip,
   .run-summary-grid,
   .result-panels-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3013,7 +3709,6 @@ function formatR(value: unknown) {
 
   .form-grid.two-up,
   .form-grid.three-up,
-  .hero-strip,
   .run-summary-grid,
   .result-panels-grid {
     grid-template-columns: 1fr;

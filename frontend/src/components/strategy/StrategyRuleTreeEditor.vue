@@ -4,10 +4,20 @@
       <div class="condition-card">
         <div class="condition-head">
           <strong>{{ label || 'Condition' }}</strong>
+          <button
+            v-if="canRemove"
+            class="icon-btn icon-btn--danger condition-head__remove"
+            type="button"
+            title="Remove condition"
+            aria-label="Remove condition"
+            @click="$emit('remove', node.id)"
+          >
+            ×
+          </button>
         </div>
         <TechnicalConditionEditor
           :model-value="node.condition"
-          :can-remove="canRemove"
+          :can-remove="false"
           :type-options="typeOptions"
           @remove="$emit('remove', node.id)"
         />
@@ -23,11 +33,13 @@
           </div>
           <button
             v-if="canRemove"
-            class="icon-btn icon-btn--danger"
+            class="icon-btn icon-btn--danger group-head__remove"
             type="button"
+            title="Remove group"
+            aria-label="Remove group"
             @click="$emit('remove', node.id)"
           >
-            Remove
+            ×
           </button>
         </div>
 
@@ -79,11 +91,13 @@
             </label>
             <button
               v-if="canRemove"
-              class="icon-btn icon-btn--danger"
+              class="icon-btn icon-btn--danger group-head__remove"
               type="button"
+              title="Remove group"
+              aria-label="Remove group"
               @click="$emit('remove', node.id)"
             >
-              Remove
+              ×
             </button>
           </div>
         </div>
@@ -190,6 +204,7 @@ function forwardAddGroup(nodeId: string, type: 'all' | 'any' | 'not') {
   border-radius: 4px;
   background: #0d0d0d;
   padding: 12px;
+  position: relative;
 }
 
 .group-card {
@@ -206,12 +221,37 @@ function forwardAddGroup(nodeId: string, type: 'all' | 'any' | 'not') {
   gap: 12px;
 }
 
+.condition-head {
+  padding-right: 40px;
+}
+
+.condition-head__remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .group-head-controls {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.group-head__remove {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .group-head p {
@@ -240,7 +280,7 @@ function forwardAddGroup(nodeId: string, type: 'all' | 'any' | 'not') {
 }
 
 .icon-btn--danger {
-  min-height: 32px;
+  min-height: 28px;
 }
 
 .group-builder-actions {

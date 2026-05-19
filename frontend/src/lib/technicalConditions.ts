@@ -1,6 +1,9 @@
-import type { PriceChangePeriod } from '@/types'
+import { cloneDefaultIndicator, INDICATOR_BY_TYPE, INDICATOR_CATALOG, normalizeIndicatorParams as normalizeCatalogIndicatorParams } from '@/lib/indicators/catalog'
+import type { IndicatorType, PriceChangePeriod } from '@/types'
 
-export type SupportedIndicatorType = 'rsi' | 'sma' | 'ema'
+export type SupportedIndicatorType = IndicatorType
+export type TechnicalIndicatorParamValue = string | number | boolean
+export type TechnicalIndicatorParams = Record<string, TechnicalIndicatorParamValue>
 
 export type TechnicalConditionType =
   | 'indicator_threshold'
@@ -19,17 +22,15 @@ export type TechnicalConditionType =
 
 export interface TechnicalIndicatorRef {
   type: SupportedIndicatorType
-  params: {
-    period: number
-  }
+  params: TechnicalIndicatorParams
+  output?: string
 }
 
 export interface TechnicalConditionDraft {
   type: TechnicalConditionType
   indicator?: SupportedIndicatorType
-  params?: {
-    period: number
-  }
+  params?: TechnicalIndicatorParams
+  output?: string
   indicator_a?: TechnicalIndicatorRef
   indicator_b?: TechnicalIndicatorRef
   op?: string
@@ -39,7 +40,11 @@ export interface TechnicalConditionDraft {
   lookback_bars?: number
 }
 
-export const SUPPORTED_INDICATOR_TYPES: SupportedIndicatorType[] = ['rsi', 'sma', 'ema']
+export const SUPPORTED_INDICATOR_TYPES: SupportedIndicatorType[] = INDICATOR_CATALOG.map(item => item.type)
+export const TECHNICAL_INDICATOR_OPTIONS = INDICATOR_CATALOG.map(item => ({
+  value: item.type,
+  label: item.pickerLabel,
+}))
 export const PERIOD_OPTIONS: PriceChangePeriod[] = ['1D', '1W', '1M', '3M', '6M', 'MTD', 'QTD', 'YTD', '1Y']
 export const STATS_FIELDS = [
   { value: 'market_cap', label: 'Market Cap' },
@@ -79,13 +84,93 @@ export const STRATEGY_LAB_CONDITION_TYPE_OPTIONS: Array<{ value: TechnicalCondit
   { value: 'fundamental_filter', label: 'Fundamental Filter' },
 ]
 
+const INDICATOR_OUTPUT_OPTIONS: Partial<Record<SupportedIndicatorType, Array<{ value: string; label: string }>>> = {
+  macd: [
+    { value: 'macd', label: 'MACD line' },
+    { value: 'signal', label: 'Signal line' },
+    { value: 'histogram', label: 'Histogram' },
+  ],
+  bb: [
+    { value: 'bb_upper', label: 'Upper band' },
+    { value: 'bb_mid', label: 'Middle band' },
+    { value: 'bb_lower', label: 'Lower band' },
+  ],
+  stoch: [
+    { value: 'stoch_k', label: '%K' },
+    { value: 'stoch_d', label: '%D' },
+  ],
+  adx: [
+    { value: 'adx', label: 'ADX' },
+    { value: 'plus_di', label: '+DI' },
+    { value: 'minus_di', label: '-DI' },
+  ],
+  ichimoku: [
+    { value: 'ichimoku_tenkan', label: 'Tenkan' },
+    { value: 'ichimoku_kijun', label: 'Kijun' },
+    { value: 'ichimoku_senkou_a', label: 'Senkou A' },
+    { value: 'ichimoku_senkou_b', label: 'Senkou B' },
+    { value: 'ichimoku_chikou', label: 'Chikou' },
+  ],
+  donchian: [
+    { value: 'donchian_upper', label: 'Upper channel' },
+    { value: 'donchian_mid', label: 'Middle channel' },
+    { value: 'donchian_lower', label: 'Lower channel' },
+  ],
+  keltner: [
+    { value: 'keltner_upper', label: 'Upper channel' },
+    { value: 'keltner_mid', label: 'Middle channel' },
+    { value: 'keltner_lower', label: 'Lower channel' },
+  ],
+  aroon: [
+    { value: 'aroon_up', label: 'Aroon up' },
+    { value: 'aroon_down', label: 'Aroon down' },
+    { value: 'aroon_osc', label: 'Aroon oscillator' },
+  ],
+  pivot_points: [
+    { value: 'pp', label: 'Pivot point' },
+    { value: 'r1', label: 'Resistance 1' },
+    { value: 'r2', label: 'Resistance 2' },
+    { value: 'r3', label: 'Resistance 3' },
+    { value: 's1', label: 'Support 1' },
+    { value: 's2', label: 'Support 2' },
+    { value: 's3', label: 'Support 3' },
+  ],
+}
+
+export function getTechnicalIndicatorParamDefs(type: SupportedIndicatorType) {
+  return INDICATOR_BY_TYPE[type]?.params ?? []
+}
+
+export function getTechnicalIndicatorOutputOptions(type: SupportedIndicatorType) {
+  return INDICATOR_OUTPUT_OPTIONS[type] ?? []
+}
+
+function defaultIndicatorParams(type: SupportedIndicatorType): TechnicalIndicatorParams {
+  return normalizeCatalogIndicatorParams(type, cloneDefaultIndicator(type).params) as TechnicalIndicatorParams
+}
+
+function defaultIndicatorOutput(type: SupportedIndicatorType): string | undefined {
+  return getTechnicalIndicatorOutputOptions(type)[0]?.value
+}
+
+export function createDefaultTechnicalIndicatorRef(
+  type: SupportedIndicatorType = 'rsi',
+): TechnicalIndicatorRef {
+  return {
+    type,
+    params: defaultIndicatorParams(type),
+    output: defaultIndicatorOutput(type),
+  }
+}
+
 export function createDefaultTechnicalCondition(
   type: TechnicalConditionType = 'indicator_threshold',
 ): TechnicalConditionDraft {
   const condition: TechnicalConditionDraft = {
     type: 'indicator_threshold',
     indicator: 'rsi',
-    params: { period: 14 },
+    params: defaultIndicatorParams('rsi'),
+    output: defaultIndicatorOutput('rsi'),
     op: 'lt',
     value: 30,
   }
@@ -99,7 +184,8 @@ export function resetTechnicalConditionForType(
   target.type = type
   if (type === 'indicator_threshold') {
     target.indicator = 'rsi'
-    target.params = { period: 14 }
+    target.params = defaultIndicatorParams('rsi')
+    target.output = defaultIndicatorOutput('rsi')
     target.op = 'lt'
     target.value = 30
     delete target.indicator_a
@@ -110,11 +196,13 @@ export function resetTechnicalConditionForType(
     return target
   }
   if (type === 'indicator_cross') {
-    target.indicator_a = { type: 'sma', params: { period: 20 } }
-    target.indicator_b = { type: 'sma', params: { period: 50 } }
+    target.indicator_a = createDefaultTechnicalIndicatorRef('sma')
+    target.indicator_b = createDefaultTechnicalIndicatorRef('sma')
+    target.indicator_b.params = { ...target.indicator_b.params, period: 50 }
     target.op = 'crosses_above'
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.field
     delete target.period
     delete target.lookback_bars
@@ -125,7 +213,8 @@ export function resetTechnicalConditionForType(
     target.field = 'close'
     target.op = 'gt'
     target.indicator = 'sma'
-    target.params = { period: 20 }
+    target.params = defaultIndicatorParams('sma')
+    target.output = defaultIndicatorOutput('sma')
     delete target.indicator_a
     delete target.indicator_b
     delete target.period
@@ -139,6 +228,7 @@ export function resetTechnicalConditionForType(
     target.value = 0
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.period
@@ -151,6 +241,7 @@ export function resetTechnicalConditionForType(
     target.value = 0
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.field
@@ -163,6 +254,7 @@ export function resetTechnicalConditionForType(
     target.value = 0
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.field
@@ -174,6 +266,7 @@ export function resetTechnicalConditionForType(
     target.value = 0.05
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.field
@@ -187,6 +280,7 @@ export function resetTechnicalConditionForType(
     target.value = 0
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.period
@@ -199,6 +293,7 @@ export function resetTechnicalConditionForType(
     target.value = ''
     delete target.indicator
     delete target.params
+    delete target.output
     delete target.indicator_a
     delete target.indicator_b
     delete target.period
@@ -207,6 +302,7 @@ export function resetTechnicalConditionForType(
   }
   delete target.indicator
   delete target.params
+  delete target.output
   delete target.indicator_a
   delete target.indicator_b
   delete target.field
@@ -226,18 +322,23 @@ export function normalizeTechnicalCondition(raw: Record<string, unknown>): Techn
     condition.indicator = normalizeIndicatorType(raw.indicator)
   }
   if ('params' in raw && raw.params && typeof raw.params === 'object') {
-    condition.params = { period: clampPeriod((raw.params as any).period, condition.params?.period ?? 14) }
+    condition.params = normalizeIndicatorParamsForType(condition.indicator ?? 'rsi', raw.params as Record<string, unknown>)
   }
+  if ('output' in raw && raw.output != null) condition.output = normalizeIndicatorOutput(condition.indicator ?? 'rsi', raw.output)
   if ('indicator_a' in raw && raw.indicator_a && typeof raw.indicator_a === 'object') {
+    const indicatorType = normalizeIndicatorType((raw.indicator_a as any).type)
     condition.indicator_a = {
-      type: normalizeIndicatorType((raw.indicator_a as any).type),
-      params: { period: clampPeriod((raw.indicator_a as any).params?.period, 20) },
+      type: indicatorType,
+      params: normalizeIndicatorParamsForType(indicatorType, (raw.indicator_a as any).params),
+      output: normalizeIndicatorOutput(indicatorType, (raw.indicator_a as any).output),
     }
   }
   if ('indicator_b' in raw && raw.indicator_b && typeof raw.indicator_b === 'object') {
+    const indicatorType = normalizeIndicatorType((raw.indicator_b as any).type)
     condition.indicator_b = {
-      type: normalizeIndicatorType((raw.indicator_b as any).type),
-      params: { period: clampPeriod((raw.indicator_b as any).params?.period, 50) },
+      type: indicatorType,
+      params: normalizeIndicatorParamsForType(indicatorType, (raw.indicator_b as any).params),
+      output: normalizeIndicatorOutput(indicatorType, (raw.indicator_b as any).output),
     }
   }
   if ('op' in raw && raw.op != null) condition.op = String(raw.op)
@@ -254,13 +355,13 @@ export function describeTechnicalCondition(condition: TechnicalConditionDraft): 
   const op = condition.op ?? 'gt'
   const operatorText = describeOperator(op)
   if (condition.type === 'indicator_threshold') {
-    return `${formatIndicator(condition.indicator, condition.params?.period)} ${operatorText} ${condition.value ?? 0}`
+    return `${formatIndicator(condition.indicator, condition.params, condition.output)} ${operatorText} ${condition.value ?? 0}`
   }
   if (condition.type === 'indicator_cross') {
-    return `${formatIndicator(condition.indicator_a?.type, condition.indicator_a?.params?.period)} ${describeCrossOperator(op)} ${formatIndicator(condition.indicator_b?.type, condition.indicator_b?.params?.period)}`
+    return `${formatIndicator(condition.indicator_a?.type, condition.indicator_a?.params, condition.indicator_a?.output)} ${describeCrossOperator(op)} ${formatIndicator(condition.indicator_b?.type, condition.indicator_b?.params, condition.indicator_b?.output)}`
   }
   if (condition.type === 'price_indicator') {
-    return `${humanizeField(condition.field ?? 'close')} ${describeOperator(op)} ${formatIndicator(condition.indicator, condition.params?.period)}`
+    return `${humanizeField(condition.field ?? 'close')} ${describeOperator(op)} ${formatIndicator(condition.indicator, condition.params, condition.output)}`
   }
   if (condition.type === 'price_threshold') {
     return `${humanizeField(condition.field ?? 'close')} ${operatorText} ${condition.value ?? 0}`
@@ -281,8 +382,22 @@ export function describeTechnicalCondition(condition: TechnicalConditionDraft): 
   return 'custom condition'
 }
 
-function formatIndicator(indicator: unknown, period: unknown): string {
-  return `${String(indicator ?? 'indicator').toUpperCase()}(${clampPeriod(period, 14)})`
+function formatIndicator(
+  indicator: unknown,
+  params: TechnicalIndicatorParams | undefined,
+  output?: string,
+): string {
+  const type = normalizeIndicatorType(indicator)
+  const label = INDICATOR_BY_TYPE[type]?.label?.toUpperCase() ?? String(indicator ?? 'indicator').toUpperCase()
+  const defs = getTechnicalIndicatorParamDefs(type)
+  const normalized = normalizeIndicatorParamsForType(type, params)
+  const paramValues = defs
+    .map(def => normalized[def.key])
+    .filter(value => value !== undefined && value !== null && value !== '')
+    .map(value => typeof value === 'boolean' ? (value ? 'on' : 'off') : String(value))
+  const outputLabel = getTechnicalIndicatorOutputOptions(type).find(item => item.value === output)?.label
+  const base = paramValues.length ? `${label}(${paramValues.join(',')})` : label
+  return outputLabel ? `${base} · ${outputLabel}` : base
 }
 
 function normalizeIndicatorType(value: unknown): SupportedIndicatorType {
@@ -290,6 +405,26 @@ function normalizeIndicatorType(value: unknown): SupportedIndicatorType {
   return SUPPORTED_INDICATOR_TYPES.includes(token as SupportedIndicatorType)
     ? token as SupportedIndicatorType
     : 'rsi'
+}
+
+function normalizeIndicatorParamsForType(
+  type: SupportedIndicatorType,
+  params: Record<string, unknown> | undefined,
+): TechnicalIndicatorParams {
+  return {
+    ...defaultIndicatorParams(type),
+    ...(normalizeCatalogIndicatorParams(type, params ?? {}) as TechnicalIndicatorParams),
+  }
+}
+
+function normalizeIndicatorOutput(
+  type: SupportedIndicatorType,
+  value: unknown,
+): string | undefined {
+  const options = getTechnicalIndicatorOutputOptions(type)
+  if (!options.length) return undefined
+  const token = String(value ?? '')
+  return options.some(option => option.value === token) ? token : options[0].value
 }
 
 function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalConditionDraft | null {
@@ -303,11 +438,13 @@ function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalCondit
       type: 'indicator_cross',
       indicator_a: {
         type: normalizeIndicatorType(raw.left_indicator),
-        params: { period: clampPeriod(raw.left_period, 20) },
+        params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.left_indicator), { period: clampPeriod(raw.left_period, 20) }),
+        output: defaultIndicatorOutput(normalizeIndicatorType(raw.left_indicator)),
       },
       indicator_b: {
         type: normalizeIndicatorType(raw.right_indicator),
-        params: { period: clampPeriod(raw.right_period, 50) },
+        params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.right_indicator), { period: clampPeriod(raw.right_period, 50) }),
+        output: defaultIndicatorOutput(normalizeIndicatorType(raw.right_indicator)),
       },
       op: operator,
     }
@@ -317,7 +454,8 @@ function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalCondit
     return {
       type: 'indicator_threshold',
       indicator: normalizeIndicatorType(raw.left_indicator),
-      params: { period: clampPeriod(raw.left_period, 14) },
+      params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.left_indicator), { period: clampPeriod(raw.left_period, 14) }),
+      output: defaultIndicatorOutput(normalizeIndicatorType(raw.left_indicator)),
       op: operator,
       value: Number(raw.right_value ?? 0),
     }
@@ -327,7 +465,8 @@ function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalCondit
     return {
       type: 'indicator_threshold',
       indicator: normalizeIndicatorType(raw.right_indicator),
-      params: { period: clampPeriod(raw.right_period, 14) },
+      params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.right_indicator), { period: clampPeriod(raw.right_period, 14) }),
+      output: defaultIndicatorOutput(normalizeIndicatorType(raw.right_indicator)),
       op: flipOperator(operator),
       value: Number(raw.left_value ?? 0),
     }
@@ -338,7 +477,8 @@ function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalCondit
       type: 'price_indicator',
       field: 'close',
       indicator: normalizeIndicatorType(raw.right_indicator),
-      params: { period: clampPeriod(raw.right_period, 20) },
+      params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.right_indicator), { period: clampPeriod(raw.right_period, 20) }),
+      output: defaultIndicatorOutput(normalizeIndicatorType(raw.right_indicator)),
       op: operator,
     }
   }
@@ -348,7 +488,8 @@ function normalizeLegacyCondition(raw: Record<string, unknown>): TechnicalCondit
       type: 'price_indicator',
       field: 'close',
       indicator: normalizeIndicatorType(raw.left_indicator),
-      params: { period: clampPeriod(raw.left_period, 20) },
+      params: normalizeIndicatorParamsForType(normalizeIndicatorType(raw.left_indicator), { period: clampPeriod(raw.left_period, 20) }),
+      output: defaultIndicatorOutput(normalizeIndicatorType(raw.left_indicator)),
       op: flipOperator(operator),
     }
   }

@@ -114,6 +114,21 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     }
   }
 
+  async function updateVersion(versionId: number, strategyId: number, payload: Record<string, any>) {
+    isSaving.value = true
+    error.value = null
+    try {
+      const updated = await api.patch<StrategyVersion>(`/strategy-lab/versions/${versionId}`, payload)
+      await refreshDefinition(strategyId)
+      return updated
+    } catch (err: any) {
+      error.value = err?.message ?? 'Failed to update strategy version'
+      throw err
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   async function runVersion(versionId: number, payload: Record<string, any>) {
     isRunning.value = true
     error.value = null
@@ -169,6 +184,7 @@ export const useStrategyLabStore = defineStore('strategy_lab', () => {
     updateDefinition,
     deleteDefinition,
     publishVersion,
+    updateVersion,
     runVersion,
     refreshRun,
     selectDefinition,

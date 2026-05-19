@@ -23,6 +23,10 @@ async function flushPromises() {
   await nextTick()
 }
 
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 const definition = {
   id: 4,
   user_id: 1,
@@ -93,6 +97,9 @@ const definition = {
         coverage: { total_bars: 120, instruments_with_data: 1 },
         performance: {
           trade_count: 6,
+          closed_trade_count: 6,
+          open_position_count: 1,
+          unrealized_pnl: 312.45,
           net_return_pct: 12.5,
           win_rate: 66.67,
           expectancy_r: 0.72,
@@ -124,6 +131,24 @@ const definition = {
         benchmark_comparison: {
           excess_return_pct: 3.2,
         },
+        position_timelines: [
+          {
+            position_id: 'AAPL-1-2026-02-02T00:00:00Z',
+            label: 'AAPL #1',
+            symbol: 'AAPL',
+            side: 'long',
+            entry_at: '2026-02-02T00:00:00Z',
+            exit_at: '2026-02-08T00:00:00Z',
+            pnl: 1250.45,
+            r_multiple: 1.84,
+            exit_reason: 'take_profit',
+            points: [
+              { ts: '2026-02-02T00:00:00Z', value: 0, detail: 'Entry · AAPL LONG · 10.00 @ 100.00', marker: 'entry' },
+              { ts: '2026-02-05T00:00:00Z', value: 650.12 },
+              { ts: '2026-02-08T00:00:00Z', value: 1250.45, detail: 'Exit · take profit · 112.50 · 1.84R', marker: 'exit' },
+            ],
+          },
+        ],
         symbol_performance: [
           { symbol: 'AAPL', net_pnl: 1250.45, trade_count: 2, win_rate: 50, avg_r: 1.1 },
         ],
@@ -141,6 +166,36 @@ const definition = {
             pnl: 1250.45,
             r_multiple: 1.84,
             exit_reason: 'take_profit',
+          },
+        ],
+        execution_log: [
+          {
+            ts: '2026-02-02T00:00:00Z',
+            event_type: 'entry',
+            position_id: 'AAPL-2026-02-02T00:00:00Z',
+            symbol: 'AAPL',
+            side: 'long',
+            quantity: 10,
+            price: 100,
+            notional: 1000,
+            pnl: null,
+            pnl_pct: null,
+            r_multiple: null,
+            reason: 'entry_signal',
+          },
+          {
+            ts: '2026-02-08T00:00:00Z',
+            event_type: 'exit',
+            position_id: 'AAPL-2026-02-02T00:00:00Z',
+            symbol: 'AAPL',
+            side: 'long',
+            quantity: 10,
+            price: 112.5,
+            notional: 1000,
+            pnl: 1250.45,
+            pnl_pct: 12.5,
+            r_multiple: 1.84,
+            reason: 'take_profit',
           },
         ],
       },
@@ -208,7 +263,30 @@ describe('StrategyLabView', () => {
       }
       return Promise.resolve({})
     })
-    ;(api.patch as ReturnType<typeof vi.fn>).mockResolvedValue(definition)
+    ;(api.patch as ReturnType<typeof vi.fn>).mockImplementation((path: string, payload?: any) => {
+      if (path === '/strategy-lab/definitions/4') {
+        return Promise.resolve({
+          ...clone(definition),
+          name: payload?.name ?? definition.name,
+          description: payload?.description ?? definition.description,
+          tags: payload?.tags ?? definition.tags,
+          is_active: payload?.is_active ?? definition.is_active,
+        })
+      }
+      if (path === '/strategy-lab/versions/8') {
+        return Promise.resolve({
+          ...clone(definition).versions[0],
+          definition_snapshot: payload?.definition_snapshot ?? definition.versions[0].definition_snapshot,
+          parameter_schema: payload?.parameter_schema ?? definition.versions[0].parameter_schema,
+          default_parameters: payload?.default_parameters ?? definition.versions[0].default_parameters,
+          universe_config: payload?.universe_config ?? definition.versions[0].universe_config,
+          benchmark_config: payload?.benchmark_config ?? definition.versions[0].benchmark_config,
+          execution_model: payload?.execution_model ?? definition.versions[0].execution_model,
+          notes: payload?.notes ?? definition.versions[0].notes,
+        })
+      }
+      return Promise.resolve(clone(definition))
+    })
     ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValue({})
   })
 
@@ -263,6 +341,30 @@ describe('StrategyLabView', () => {
     expect(api.get).not.toHaveBeenCalledWith('/strategy-lab/engines')
     expect(wrapper.text()).toContain('Benchmark')
     expect(wrapper.text()).toContain('Monthly returns')
+    expect(wrapper.text()).toContain('Position evolution')
+    expect(wrapper.text()).toContain('Portfolio capital')
+    expect(wrapper.text()).toContain('Execution log')
+    expect(wrapper.text()).toContain('6 closed')
+    expect(wrapper.text()).toContain('1 open')
+    expect(wrapper.text()).toContain('$312.45 unrealized')
+    expect(wrapper.text()).toContain('$1,250.45')
+    expect(wrapper.text()).toContain('+12.50%')
+    const positionEvolutionChart = wrapper
+      .findAllComponents({ name: 'StrategyResultChart' })
+      .find(component => component.props('label') === 'Per-position evolution')
+    expect(positionEvolutionChart).toBeTruthy()
+    expect(positionEvolutionChart!.props('currency')).toBe(true)
+    expect(positionEvolutionChart!.props('percent')).toBe(false)
+    await wrapper.get('button[aria-label="Show position evolution in percent"]').trigger('click')
+    await nextTick()
+    expect(positionEvolutionChart!.props('currency')).toBe(false)
+    expect(positionEvolutionChart!.props('percent')).toBe(true)
+    expect(wrapper.findAll('button[aria-label="Export"]')).toHaveLength(1)
+    expect(wrapper.find('button[aria-label="Export summary"]').exists()).toBe(false)
+    expect(wrapper.find('button[aria-label="Export trades CSV"]').exists()).toBe(false)
+    await wrapper.get('button[aria-label="Export"]').trigger('click')
+    expect(wrapper.text()).toContain('Export summary')
+    expect(wrapper.text()).toContain('Export trades CSV')
   })
 
   it('supports collapsing the strategy sidebar', async () => {
@@ -275,6 +377,60 @@ describe('StrategyLabView', () => {
 
     await wrapper.get('.sidebar-toggle-strip').trigger('click')
     expect(wrapper.get('.strategy-sidebar').classes()).not.toContain('strategy-sidebar--collapsed')
+  })
+
+  it('does not preselect a comparison run by default', async () => {
+    const multiRunDefinition = clone(definition)
+    multiRunDefinition.runs = [
+      ...multiRunDefinition.runs,
+      {
+        ...clone(definition.runs[0]),
+        id: 13,
+        created_at: '2026-05-10T09:55:00Z',
+        started_at: '2026-05-10T09:55:00Z',
+        completed_at: '2026-05-10T09:55:01Z',
+      },
+    ]
+
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([multiRunDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(multiRunDefinition)
+      if (path === '/watchlists') {
+        return Promise.resolve([
+          {
+            id: 3,
+            name: 'Growth',
+            is_default: false,
+            is_managed: false,
+            is_locked: false,
+            position: 0,
+            items: [{ id: 1, instrument_id: 1, symbol: 'AAPL', position: 0 }],
+          },
+        ])
+      }
+      if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Momentum Universe' }])
+      if (path === '/instruments/search') {
+        const q = String(params?.q ?? '').trim().toUpperCase()
+        return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
+      }
+      if (path.startsWith('/instruments/') && path !== '/instruments/search') {
+        return Promise.resolve({
+          symbol: decodeURIComponent(path.split('/').pop() ?? '').toUpperCase(),
+        })
+      }
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const compareSelectByLabel = wrapper.findAll('select').find(node =>
+      node.element.closest('label')?.textContent?.includes('Compare against'),
+    )
+    expect(compareSelectByLabel).toBeTruthy()
+    const compareSelect = compareSelectByLabel!.element as HTMLSelectElement
+    expect(compareSelect.selectedIndex).toBe(0)
+    expect(compareSelect.options[0]?.text).toBe('No comparison')
   })
 
   it('creates a strategy from the visual builder without JSON payload editing', async () => {
@@ -344,14 +500,16 @@ describe('StrategyLabView', () => {
     expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
       initial_version: expect.objectContaining({
         definition_snapshot: expect.objectContaining({
-          conditions: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'fundamental_filter',
-              field: 'sector',
-              op: 'eq',
-              value: 'Technology',
-            }),
-          ]),
+          exits: expect.objectContaining({
+            conditions: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'fundamental_filter',
+                field: 'sector',
+                op: 'eq',
+                value: 'Technology',
+              }),
+            ]),
+          }),
         }),
       }),
     }))
@@ -448,22 +606,12 @@ describe('StrategyLabView', () => {
     }))
   })
 
-  it('publishes only resolved benchmark and subset symbols from search pickers', async () => {
+  it('publishes only resolved benchmark symbols and limits subset runs to selected universe symbols', async () => {
     const wrapper = mountView()
 
     await flushPromises()
 
     await commitPicker(wrapper, 'SPY', 'QQQ')
-    await commitPicker(wrapper, 'Optional subset symbol', 'NVDA')
-
-    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run backtest')
-    expect(runButton).toBeTruthy()
-    await runButton!.trigger('click')
-    await flushPromises()
-
-    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
-      universe_config: { symbols: ['NVDA'] },
-    }))
 
     const noteInput = wrapper.get('input[placeholder="What changed in this revision?"]')
     await noteInput.setValue('Benchmark update')
@@ -472,6 +620,38 @@ describe('StrategyLabView', () => {
 
     expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.objectContaining({
       benchmark_config: { symbol: 'QQQ' },
+    }))
+
+    wrapper.unmount()
+    setActivePinia(createPinia())
+    const subsetWrapper = mountView()
+    await flushPromises()
+    ;(subsetWrapper.get('.advanced-toggle').element as HTMLButtonElement).click()
+    await flushPromises()
+
+    const subsetToggle = subsetWrapper.get('.advanced-panel .field--checkbox input[type="checkbox"]')
+    await subsetToggle.setValue(true)
+    await flushPromises()
+
+    const subsetTrigger = subsetWrapper.findAll('button').find(button => button.text().includes('Select at least one symbol'))
+    expect(subsetTrigger).toBeTruthy()
+    await subsetTrigger!.trigger('click')
+    await flushPromises()
+
+    const subsetOptions = subsetWrapper.findAll('.multi-select-option')
+    expect(subsetOptions.map(node => node.text())).toEqual(expect.arrayContaining(['AAPL', 'MSFT']))
+    const msftOption = subsetOptions.find(node => node.text().includes('MSFT'))
+    expect(msftOption).toBeTruthy()
+    await msftOption!.get('input').setValue(true)
+    await flushPromises()
+
+    const runButton = subsetWrapper.findAll('button').find(button => button.text() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      universe_config: { symbols: ['MSFT'] },
     }))
   })
 
@@ -510,6 +690,40 @@ describe('StrategyLabView', () => {
       execution_assumptions: expect.objectContaining({
         initial_capital: 100000,
         risk_per_trade_pct: 1,
+      }),
+    }))
+  })
+
+  it('saves the current draft version including conditions and run defaults', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await addTechnicalCondition(wrapper)
+    const dateInputs = wrapper.findAll('input[type="date"]')
+    expect(dateInputs).toHaveLength(2)
+    await dateInputs[0].setValue('2026-02-01')
+    await dateInputs[1].setValue('2026-04-30')
+    const capitalInput = wrapper.findAll('input.form-input').find(node =>
+      node.element instanceof HTMLInputElement && node.element.type === 'number' && node.element.value === '100000',
+    )
+    expect(capitalInput).toBeTruthy()
+    await capitalInput!.setValue('250000')
+
+    const saveButton = wrapper.get('button[aria-label="Save profile"]')
+    await saveButton.trigger('click')
+    await flushPromises()
+
+    expect(api.patch).toHaveBeenCalledWith('/strategy-lab/versions/8', expect.objectContaining({
+      definition_snapshot: expect.objectContaining({
+        conditions: expect.any(Array),
+      }),
+      execution_model: expect.objectContaining({
+        run_defaults: expect.objectContaining({
+          date_from: '2026-02-01',
+          date_to: '2026-04-30',
+          initial_capital: 250000,
+        }),
       }),
     }))
   })

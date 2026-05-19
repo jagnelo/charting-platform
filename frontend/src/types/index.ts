@@ -887,6 +887,7 @@ export type PriceChangePeriod = '1D' | '1W' | '1M' | '3M' | '6M' | 'MTD' | 'QTD'
 export type ScreenerConditionType =
   | 'indicator_threshold'
   | 'indicator_cross'
+  | 'price_indicator'
   | 'price_threshold'
   | 'price_change'
   | 'price_change_period'
