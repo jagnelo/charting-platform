@@ -76,6 +76,71 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-19T23:25:51Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Continue the long-running Strategy Lab expansion pass by closing concrete frontend/backend gaps from the latest user review cycle, validating the real API path, and commit the accumulated work in isolated changesets.
+
+### Completed
+
+- Deepened Strategy Lab backend execution/persistence:
+  - version draft patching so run/profile state no longer resets to defaults
+  - dense equity/portfolio history over the full run horizon
+  - accepted open-position handling with `open_at_end` execution-log rows and unrealized result stats
+  - portfolio-constraint alignment between closed and still-open positions
+  - async ORM eager-loading fix for instrument context during runs
+- Broadened shared Screener/Strategy Lab condition support:
+  - full Screener condition surface in Strategy Lab
+  - shared platform indicator catalog rather than only RSI/SMA/EMA
+  - condition-based exit trees using the same rule-builder foundation as entries
+- Reworked the Strategy Lab frontend workspace:
+  - persisted draft/version editing
+  - split `Risk` and `Exits`
+  - advanced optional run-subset selector constrained to explicit-universe members
+  - no comparison selected by default
+  - interactive performance/drawdown/portfolio/position charts
+  - chart preset-window controls for long time horizons
+  - visual monthly/quarterly heatmaps plus structured per-symbol / R-distribution views
+  - execution-log/result-view alignment and compact run-history rows without clipping
+- Committed the accumulated work in isolated feature commits:
+  - `d724915 feat(strategy-lab): deepen execution and persistence`
+  - `9e1eb75 feat(strategy-lab): upgrade builder and results workspace`
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk python3 -m py_compile backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+
+### Problems found
+
+- A few `git commit` attempts initially failed because staging and commit commands were launched in parallel, leaving a transient stale `.git/index.lock`; rerunning sequentially fixed it cleanly.
+- Docker-backed Strategy Lab integration still needs escalated Docker socket access in this shell.
+
+### Assumptions
+
+- For long-horizon Strategy Lab charts, preset time windows plus shifting are the right first interaction model before adding freeform brush/pan support.
+- Open positions at run end should remain unrealized but still appear in result stats, execution events, and position-evolution views.
+
+### Next step
+
+- Continue with the next unresolved Strategy Lab roadmap slice:
+  - multi-timeframe strategy support
+  - richer risk/sizing models
+  - remaining text-first result panels
+  - data-coverage preflight/acquisition before runs
+
+### Timestamp
+
 - 2026-04-30T22:50:48Z
 
 ### Worker

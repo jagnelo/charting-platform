@@ -3,8 +3,7 @@
 ## Current task
 
 - ID: strategy-lab
-- Title: Expand Strategy Lab toward the remaining roadmap gaps: platform signal replay, broader universes, richer analytics, comparison/export, and deeper execution modeling.
-  - and continue through grouped rule authoring, portfolio controls, and paper-forward monitoring.
+- Title: Expand Strategy Lab toward the remaining roadmap gaps: richer condition coverage, deeper execution/persistence, broader results tooling, and stronger frontend UX consistency.
 
 ## Current worker
 
@@ -14,106 +13,105 @@
 
 ## Completed in this session
 
-- Extended the backend Strategy Lab execution path in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1):
-  - internal engine-capability registry for the simulation path
-  - screener-backed universes via latest screener results
-  - Radar replay as a first-class Strategy Lab source
-  - richer analytics including drawdown, monthly/quarterly returns, and trade histograms
-  - broader artifact/provenance metadata on completed runs
-- Added another backend pass in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1):
-  - portfolio-level acceptance controls across multi-symbol trades
-  - portfolio summaries and rejected-trade reporting on run results
-  - refreshable paper-forward monitor snapshots on the same persisted run
-- Extended the Nautilus adapter in [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
-  - signal-event replay support
-  - per-signal stop/target/side handling
-  - break-even, trailing, and pyramiding support kept on the same execution path
-- Expanded the Nautilus adapter tests to cover nested condition-tree execution.
-- Expanded Strategy Lab integration/unit coverage:
-  - Radar replay integration test
-  - screener-universe integration test
-  - signal-event Nautilus unit test
-  - grouped-rule-tree integration test
-  - paper-forward refresh integration test
-  - portfolio-constraint unit tests
-- Reworked the Strategy Lab view in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - screener-backed universe selection
-  - Radar-source authoring UI with setup/state/score filters
-  - richer execution controls for break-even, trailing, and max entries
-  - run comparison selector
-  - export actions for summary JSON and trades CSV
-  - richer results panes for quarterly returns, signal replay, and trade distributions
-- Added a grouped visual rule builder through [StrategyRuleTreeEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyRuleTreeEditor.vue:1):
-  - nested `All` / `Any` / `NOT` groups
-  - condition-tree persistence in published revisions
-  - paper-forward refresh action and portfolio-control inputs in the run form
-- Expanded frontend Strategy Lab view tests in [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1) to cover radar-source authoring and screener universes.
-  - also now assert grouped rule-tree payloads are published.
+- Deepened backend Strategy Lab execution and persistence in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), and [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1):
+  - version-draft persistence via version patching
+  - eager-loaded instrument context fix for async ORM run execution
+  - dense portfolio/equity history reconstruction over the full run horizon
+  - accepted open-position accounting and `open_at_end` execution-log events
+  - portfolio constraint application aligned across closed and open positions
+  - richer result-summary splits for realized vs unrealized state
+- Broadened shared condition support across Screener and Strategy Lab in [backend/app/services/screener_engine.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/screener_engine.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [frontend/src/lib/technicalConditions.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/lib/technicalConditions.ts:1), and [frontend/src/components/common/TechnicalConditionEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/common/TechnicalConditionEditor.vue:1):
+  - full Screener condition surface in Strategy Lab
+  - shared platform indicator catalog instead of the old RSI/SMA/EMA subset
+  - structured grouped rule-tree authoring retained on top of the shared condition editor
+- Reworked Strategy Lab risk/exits and version authoring UX in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/StrategyRuleTreeEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyRuleTreeEditor.vue:1), [frontend/src/stores/strategyLab.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/stores/strategyLab.ts:1), and [frontend/src/types/index.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/types/index.ts:1):
+  - true persisted draft/profile state instead of resetting to defaults
+  - split `Risk` from `Exits`
+  - condition-based exit trees using the same shared rule system as entries
+  - advanced optional run subset limited to explicit-universe members only
+  - corrected no-comparison-by-default behavior for run comparison
+- Reworked the Strategy Lab results workspace in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
+  - [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1)
+  - [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1)
+  - [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1)
+  - [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1)
+  - performance vs benchmark overlay chart
+  - interactive drawdown / portfolio / position charts
+  - time-range presets with window shifting for long-horizon charts
+  - in-chart hover panels, corrected hover alignment, dynamic Y-axis gutter sizing, and live-width chart scaling
+  - visual monthly/quarterly heatmaps and structured per-symbol / R-distribution visuals
+  - execution log expanded beyond closed trades and aligned with position evolution
+  - compacted but unclipped run-history rows
 
 ## Pending
 
-- The Strategy Lab roadmap in `docs/project-todos.md` is reduced but still not exhausted.
+- The Strategy Lab roadmap is still not exhausted.
 - Largest remaining gaps after this pass:
-  - broader condition families and stronger rule validation beyond the new grouped builder
-  - deeper portfolio realism beyond the new acceptance controls
-  - richer run/revision comparison and robustness workspace
-  - broader platform-signal research beyond Radar replay and screener latest-result universes
-  - richer asset-model breadth beyond current equity-style OHLCV focus
-  - a continuously scheduled paper-forward loop instead of manual refresh snapshots
+  - multi-timeframe strategy logic and/or timeframe batch testing
+  - richer risk models: ATR/structure/indicator stops, broader sizing models, deeper portfolio caps
+  - chart zoom/pan beyond the new preset-window controls
+  - dynamic screener universes instead of the current snapshot universe mode
+  - broader asset-model realism beyond the current equity-style OHLCV focus
+  - remaining text-first result panels: signal replay, optimization, walk-forward, paper-forward monitor, run comparison
+  - data-coverage preflight / acquisition before Strategy Lab runs so multi-year requests are guaranteed or clearly blocked
 
 ## Exact next step
 
-- Continue on `feat/strategy-lab` by tackling one of the remaining heavyweight roadmap areas next:
-  1. richer comparison/robustness workspace
-  2. broader rule-condition families and validation
-  3. deeper portfolio realism beyond acceptance caps
-  4. continuously scheduled paper-forward monitoring
+- Continue on `feat/strategy-lab` by tackling the next high-value unfinished area:
+  1. multi-timeframe strategy support
+  2. deeper risk/sizing models
+  3. richer results workspace for the remaining text-first panels
+  4. data-coverage preflight and acquisition before run execution
 
 ## Files touched
 
+- `backend/app/routers/strategy_lab.py`
+- `backend/app/schemas/strategy.py`
+- `backend/app/services/screener_engine.py`
 - `backend/app/services/strategy_lab.py`
 - `backend/app/services/strategy_lab_nautilus.py`
-- `backend/app/routers/strategy_lab.py`
 - `backend/tests/integration/api/test_strategy_lab.py`
+- `backend/tests/unit/services/test_screener_engine.py`
 - `backend/tests/unit/services/test_strategy_lab_nautilus.py`
 - `backend/tests/unit/services/test_strategy_lab_service.py`
+- `frontend/src/components/common/TechnicalConditionEditor.vue`
+- `frontend/src/components/strategy/DistributionBars.vue`
+- `frontend/src/components/strategy/ReturnsHeatmap.vue`
+- `frontend/src/components/strategy/StrategyResultChart.vue`
 - `frontend/src/components/strategy/StrategyRuleTreeEditor.vue`
+- `frontend/src/components/strategy/SymbolPerformanceBars.vue`
+- `frontend/src/lib/technicalConditions.ts`
 - `frontend/src/stores/strategyLab.ts`
+- `frontend/src/types/index.ts`
 - `frontend/src/views/StrategyLabView.vue`
+- `frontend/tests/unit/components/test_strategy_result_chart.test.ts`
+- `frontend/tests/unit/components/test_strategy_rule_tree_editor.test.ts`
+- `frontend/tests/unit/components/test_technical_condition_editor.test.ts`
+- `frontend/tests/unit/lib/test_technical_conditions.test.ts`
 - `frontend/tests/unit/views/test_strategy_lab_view.test.ts`
-- `docs/project-todos.md`
 
 ## Validation run
 
-- `rtk backend/.venv/bin/python -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/integration/api/test_strategy_lab.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
-- `rtk backend/.venv/bin/python -m py_compile backend/app/services/strategy_lab.py backend/app/routers/strategy_lab.py backend/tests/integration/api/test_strategy_lab.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk make test-unit`
 - `rtk make test-fe`
-- `rtk make test-int` with Docker access
-- `rtk make test-stack-up`
-- `rtk make test-e2e`
-- `rtk make test-stack-down` with Docker access
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/routers/strategy_lab.py backend/tests/integration/api/test_strategy_lab.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk python3 -m py_compile backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
 
 ## Errors / warnings / logs
 
-- A plain non-escalated Docker-backed integration run failed on socket permissions in this shell; rerunning with Docker access succeeded.
-- One initial broad validation pass incorrectly launched `test-e2e` and `test-stack-down` in parallel; rerunning the stack/browser sequence in order succeeded.
-- Backend-only `ruff` is clean; trying to point `ruff` at Vue SFC files directly is invalid and was discarded.
+- Committing staged backend/frontend files in parallel created transient stale `.git/index.lock` failures; retrying the commits sequentially succeeded.
+- Docker-backed integration still requires escalated access in this shell for the local Docker socket.
 
 ## Assumptions made
 
-- Radar replay should remain a platform-owned black-box signal source in the UI, while still becoming historically researchable inside Strategy Lab.
-- The latest screener result is the right first screener-backed universe contract before adding fuller screener signal replay.
-- Export surfaces can stay client-side for now; they do not need a new backend artifact API to be immediately useful.
-- The first portfolio-realism pass should be implemented as post-simulation portfolio acceptance rules before attempting a deeper global scheduler.
-- Paper-forward persistence can live inside the existing run artifact first; it does not require new DB tables to become useful.
+- Position evolution should offer both currency and percent modes, while execution-log P&L should show both absolute and percent context.
+- Strategy Lab chart range controls should start with preset windows and window shifting, not a full freeform brush/zoom system.
+- Open positions at run end should contribute unrealized state and execution events without being folded into realized P&L.
 
 ## Ready to commit?
 
-- no
-- if no, why: this session intentionally leaves Strategy Lab work uncommitted because Strategy Lab still has meaningful roadmap left even after the grouped-builder / portfolio-control / paper-forward-monitor pass.
+- yes
+- if no, why: n/a
