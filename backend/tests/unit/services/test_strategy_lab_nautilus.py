@@ -70,17 +70,19 @@ def test_nautilus_backtest_runs_and_returns_trades():
         commission_per_trade=1.0,
     )
 
-    assert result.trades
+    assert result.trades or result.open_positions
     assert result.total_orders >= 2
     assert result.total_positions >= 1
     assert result.equity_curve
-    assert result.trades[0].instrument_symbol == "AAPL"
-    assert result.trades[0].exit_reason in {
-        "take_profit",
-        "time_exit",
-        "session_close",
-        "stop_loss",
-    }
+    first_position = result.trades[0] if result.trades else result.open_positions[0]
+    assert first_position.instrument_symbol == "AAPL"
+    if result.trades:
+        assert result.trades[0].exit_reason in {
+            "take_profit",
+            "time_exit",
+            "stop_loss",
+            "condition_exit",
+        }
 
 
 def test_nautilus_backtest_replays_signal_events():
@@ -201,7 +203,7 @@ def test_nautilus_backtest_supports_nested_condition_trees():
         signal_events=None,
     )
 
-    assert result.trades
+    assert result.trades or result.open_positions
     assert result.total_positions >= 1
 
 
@@ -265,6 +267,57 @@ def test_nautilus_backtest_supports_shared_condition_payloads():
                 },
             ],
         },
+        stop_loss_pct=2.0,
+        take_profit_rr=1.5,
+        max_bars_in_trade=4,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=None,
+    )
+
+    assert result.equity_curve
+    assert result.total_positions >= 1
+
+
+def test_nautilus_backtest_supports_broader_indicator_catalog_in_shared_conditions():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    price = 100.0
+    for index in range(40):
+        ts = start + timedelta(days=index)
+        open_ = price
+        high = price + 3.0
+        low = price - 1.0
+        close = price + 1.5
+        bars.append(_bar(ts, open_, high, low, close))
+        price += 1.1
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[
+            {
+                "type": "price_indicator",
+                "field": "close",
+                "op": "gt",
+                "indicator": "wma",
+                "params": {"period": 5},
+            },
+        ],
+        condition_tree=None,
         stop_loss_pct=2.0,
         take_profit_rr=1.5,
         max_bars_in_trade=4,
@@ -358,3 +411,105 @@ def test_nautilus_backtest_supports_fundamental_stats_and_performance_filters():
 
     assert result.equity_curve
     assert result.total_positions >= 1
+
+
+def test_nautilus_backtest_supports_condition_based_exits():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    closes = [100.0, 101.0, 102.0, 104.5, 105.0, 105.5]
+    for index, close in enumerate(closes):
+        ts = start + timedelta(days=index)
+        bars.append(_bar(ts, close - 0.5, close + 1.0, close - 1.0, close))
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        exit_logic="all",
+        exit_conditions=[
+            {"type": "price_threshold", "field": "close", "op": "gt", "value": 103.0},
+        ],
+        exit_condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=[
+            {
+                "signal_at": bars[1].ts,
+                "side": "long",
+                "entry_price": float(bars[1].close),
+                "stop_price": float(bars[1].close) * 0.98,
+                "target_price": 0.0,
+            }
+        ],
+    )
+
+    assert result.trades
+    assert result.trades[0].exit_reason == "condition_exit"
+
+
+def test_nautilus_backtest_reports_open_positions_with_unrealized_pnl():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    closes = [100.0, 101.0, 102.5, 103.0, 104.0]
+    for index, close in enumerate(closes):
+        ts = start + timedelta(days=index)
+        bars.append(_bar(ts, close - 0.5, close + 1.0, close - 1.0, close))
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        exit_logic="all",
+        exit_conditions=[],
+        exit_condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        signal_events=[
+            {
+                "signal_at": bars[1].ts,
+                "side": "long",
+                "entry_price": float(bars[1].close),
+                "stop_price": float(bars[1].close) * 0.98,
+                "target_price": 0.0,
+            }
+        ],
+    )
+
+    assert not result.trades
+    assert result.open_positions
+    assert result.open_positions[0].status == "open"
+    assert result.open_positions[0].unrealized_pnl > 0

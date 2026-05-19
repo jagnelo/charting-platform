@@ -44,6 +44,10 @@ class StrategyVersionCreate(StrategyVersionSeed):
     pass
 
 
+class StrategyVersionUpdate(StrategyVersionSeed):
+    pass
+
+
 class StrategyRunCreate(BaseModel):
     test_mode: StrategyTestMode = StrategyTestMode.BACKTEST
     timeframe: str | None = None

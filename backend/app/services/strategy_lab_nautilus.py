@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
+import numpy as np
 from nautilus_trader.backtest.config import BacktestEngineConfig
 from nautilus_trader.backtest.engine import BacktestEngine
 from nautilus_trader.common.config import LoggingConfig
@@ -24,6 +25,12 @@ from nautilus_trader.trading.strategy import Strategy
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.services.indicators import (
+    INDICATOR_REGISTRY,
+    OHLCVSeries,
+    compute_indicator,
+    normalize_indicator_params,
+)
 
 
 def _nanos_to_iso(value: int | None) -> str | None:
@@ -153,8 +160,28 @@ class NautilusTrade:
 
 
 @dataclass
+class NautilusOpenPosition:
+    instrument_id: int
+    instrument_symbol: str
+    side: str
+    entry_at: str
+    current_at: str
+    entry_price: float
+    current_price: float
+    stop_price: float
+    target_price: float
+    quantity: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+    r_multiple: float
+    bars_held: int
+    status: str = "open"
+
+
+@dataclass
 class SingleInstrumentBacktestResult:
     trades: list[NautilusTrade]
+    open_positions: list[NautilusOpenPosition]
     equity_curve: list[dict[str, float | str]]
     warnings: list[str] = field(default_factory=list)
     total_events: int = 0
@@ -170,6 +197,9 @@ class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     entry_logic: str = "all"
     conditions: tuple[dict[str, Any], ...] = ()
     condition_tree: dict[str, Any] | None = None
+    exit_logic: str = "all"
+    exit_conditions: tuple[dict[str, Any], ...] = ()
+    exit_condition_tree: dict[str, Any] | None = None
     signal_events: tuple[dict[str, Any], ...] = ()
     stop_loss_pct: float = 2.0
     take_profit_rr: float = 2.0
@@ -193,6 +223,7 @@ class StrategyLabNautilusStrategy(Strategy):
         self._indicator_cache: dict[tuple[str, int], Any] = {}
         self._previous_values: list[tuple[float | None, float | None]] | None = None
         self._previous_indicator_values: dict[tuple[str, int], float] = {}
+        self._shared_indicator_series_cache: dict[tuple[str, tuple[tuple[str, str], ...], int], dict[str, np.ndarray]] = {}
         self._bar_snapshots: list[dict[str, float]] = []
         self.active_position_id: str | None = None
         self.position_plans: dict[str, dict[str, float | int | str]] = {}
@@ -207,7 +238,10 @@ class StrategyLabNautilusStrategy(Strategy):
         self._pending_signal_plan: dict[str, Any] | None = None
 
         self._register_tree_indicators(self.config.condition_tree)
+        self._register_tree_indicators(self.config.exit_condition_tree)
         for condition in self.config.conditions:
+            self._ensure_condition_indicators(condition)
+        for condition in self.config.exit_conditions:
             self._ensure_condition_indicators(condition)
 
     def _register_tree_indicators(self, node: dict[str, Any] | None) -> None:
@@ -226,22 +260,6 @@ class StrategyLabNautilusStrategy(Strategy):
 
     def _ensure_condition_indicators(self, condition: dict[str, Any]) -> None:
         if self._is_shared_condition(condition):
-            indicator = condition.get("indicator")
-            params = condition.get("params") or {}
-            if isinstance(indicator, str):
-                self._ensure_indicator_ref(indicator, int(params.get("period") or 0))
-            indicator_a = condition.get("indicator_a") or {}
-            if isinstance(indicator_a, dict):
-                self._ensure_indicator_ref(
-                    str(indicator_a.get("type") or ""),
-                    int((indicator_a.get("params") or {}).get("period") or 0),
-                )
-            indicator_b = condition.get("indicator_b") or {}
-            if isinstance(indicator_b, dict):
-                self._ensure_indicator_ref(
-                    str(indicator_b.get("type") or ""),
-                    int((indicator_b.get("params") or {}).get("period") or 0),
-                )
             return
         self._ensure_indicator(condition, "left")
         self._ensure_indicator(condition, "right")
@@ -373,10 +391,18 @@ class StrategyLabNautilusStrategy(Strategy):
 
         if plan_direction == "long":
             stop_price = entry_price * (1.0 - self.config.stop_loss_pct / 100.0)
-            target_price = entry_price + (entry_price - stop_price) * self.config.take_profit_rr
+            target_price = (
+                entry_price + (entry_price - stop_price) * self.config.take_profit_rr
+                if self.config.take_profit_rr > 0
+                else 0.0
+            )
         else:
             stop_price = entry_price * (1.0 + self.config.stop_loss_pct / 100.0)
-            target_price = entry_price - (stop_price - entry_price) * self.config.take_profit_rr
+            target_price = (
+                entry_price - (stop_price - entry_price) * self.config.take_profit_rr
+                if self.config.take_profit_rr > 0
+                else 0.0
+            )
         self.position_plans[position_id] = {
             "entry_price": entry_price,
             "stop_price": stop_price,
@@ -471,15 +497,18 @@ class StrategyLabNautilusStrategy(Strategy):
         if direction == "long":
             if low <= stop_price:
                 reason = "stop_loss"
-            elif high >= target_price:
+            elif target_price > 0 and high >= target_price:
                 reason = "take_profit"
         else:
             if high >= stop_price:
                 reason = "stop_loss"
-            elif low <= target_price:
+            elif target_price > 0 and low <= target_price:
                 reason = "take_profit"
 
-        if reason is None and bars_elapsed >= self.config.max_bars_in_trade:
+        if reason is None and self._should_exit_by_conditions(bar):
+            reason = "condition_exit"
+
+        if reason is None and self.config.max_bars_in_trade > 0 and bars_elapsed >= self.config.max_bars_in_trade:
             reason = "time_exit"
 
         if reason is None:
@@ -502,6 +531,7 @@ class StrategyLabNautilusStrategy(Strategy):
         )
         if len(self._bar_snapshots) > 6000:
             self._bar_snapshots = self._bar_snapshots[-4000:]
+        self._shared_indicator_series_cache = {}
 
     def _snapshot_indicator_values(self) -> None:
         snapshot: dict[tuple[str, int], float] = {}
@@ -596,6 +626,36 @@ class StrategyLabNautilusStrategy(Strategy):
             return False
         return self._should_enter(current_values, bar)
 
+    def _should_exit_by_conditions(self, bar: Bar) -> bool:
+        if not self.config.exit_conditions and not self.config.exit_condition_tree:
+            return False
+        if self._indicator_cache and not self.indicators_initialized():
+            return False
+        if self.config.exit_condition_tree:
+            return self._evaluate_condition_tree(self.config.exit_condition_tree, bar)
+
+        matches: list[bool] = []
+        for condition in self.config.exit_conditions:
+            if self._is_shared_condition(condition):
+                matches.append(self._evaluate_shared_condition(condition, bar))
+                continue
+            left, right = self._condition_values(condition, bar)
+            prev_left = prev_right = None
+            if self._previous_values:
+                prev_left, prev_right = self._previous_values[0]
+            matches.append(
+                self._evaluate_condition(
+                    condition=condition,
+                    left=left,
+                    right=right,
+                    prev_left=prev_left,
+                    prev_right=prev_right,
+                )
+            )
+        if not matches:
+            return False
+        return any(matches) if self.config.exit_logic == "any" else all(matches)
+
     def _evaluate_condition_tree(self, node: dict[str, Any] | None, bar: Bar) -> bool:
         if not node:
             return False
@@ -670,36 +730,35 @@ class StrategyLabNautilusStrategy(Strategy):
 
         if condition_type == "indicator_threshold":
             indicator = str(condition.get("indicator") or "").lower()
-            period = int((condition.get("params") or {}).get("period") or 0)
-            current = self._current_indicator_value(indicator, period)
+            params = condition.get("params") or {}
+            output = str(condition.get("output") or "")
+            current, _previous = self._shared_indicator_values(indicator, params, output)
             target = self._numeric(condition.get("value"))
             return self._compare_numeric(operator, current, target)
 
         if condition_type == "indicator_cross":
             indicator_a = condition.get("indicator_a") or {}
             indicator_b = condition.get("indicator_b") or {}
-            a_key = (
+            current_a, prev_a = self._shared_indicator_values(
                 str(indicator_a.get("type") or "").lower(),
-                int((indicator_a.get("params") or {}).get("period") or 0),
+                indicator_a.get("params") or {},
+                str(indicator_a.get("output") or ""),
             )
-            b_key = (
+            current_b, prev_b = self._shared_indicator_values(
                 str(indicator_b.get("type") or "").lower(),
-                int((indicator_b.get("params") or {}).get("period") or 0),
+                indicator_b.get("params") or {},
+                str(indicator_b.get("output") or ""),
             )
-            current_a = self._current_indicator_value(*a_key)
-            current_b = self._current_indicator_value(*b_key)
-            prev_a = self._previous_indicator_values.get(a_key)
-            prev_b = self._previous_indicator_values.get(b_key)
             return self._compare_numeric(operator, current_a, current_b, prev_a, prev_b)
 
         if condition_type == "price_indicator":
             field = str(condition.get("field") or "close").lower()
             current = self._bar_field_value(bar, field)
             indicator = str(condition.get("indicator") or "").lower()
-            period = int((condition.get("params") or {}).get("period") or 0)
-            target = self._current_indicator_value(indicator, period)
+            params = condition.get("params") or {}
+            output = str(condition.get("output") or "")
+            target, prev_right = self._shared_indicator_values(indicator, params, output)
             prev_left = self._previous_bar_field_value(field)
-            prev_right = self._previous_indicator_values.get((indicator, period))
             return self._compare_numeric(operator, current, target, prev_left, prev_right)
 
         if condition_type == "price_threshold":
@@ -799,6 +858,80 @@ class StrategyLabNautilusStrategy(Strategy):
         if value is None:
             return None
         return float(value)
+
+    def _shared_indicator_values(
+        self,
+        indicator: str,
+        params: dict[str, Any],
+        output: str,
+    ) -> tuple[float | None, float | None]:
+        series = self._shared_indicator_output_series(indicator, params, output)
+        if series is None or len(series) == 0:
+            return None, None
+        finite_indices = [index for index, value in enumerate(series) if not np.isnan(value)]
+        if not finite_indices:
+            return None, None
+        current_index = finite_indices[-1]
+        current = float(series[current_index])
+        previous = float(series[finite_indices[-2]]) if len(finite_indices) >= 2 else None
+        return current, previous
+
+    def _shared_indicator_output_series(
+        self,
+        indicator: str,
+        params: dict[str, Any],
+        output: str,
+    ) -> np.ndarray | None:
+        result = self._shared_indicator_result(indicator, params)
+        if not result:
+            return None
+        output_key = output if output in result else self._default_indicator_output(indicator)
+        if not output_key or output_key not in result:
+            output_key = next(iter(result.keys()), None)
+        if not output_key:
+            return None
+        return result.get(output_key)
+
+    def _shared_indicator_result(
+        self,
+        indicator: str,
+        params: dict[str, Any],
+    ) -> dict[str, np.ndarray] | None:
+        indicator_type = str(indicator or "").lower()
+        if indicator_type not in INDICATOR_REGISTRY:
+            self.warnings.append(f"Unsupported indicator '{indicator_type}' ignored.")
+            return None
+        normalized_params = normalize_indicator_params(indicator_type, dict(params or {}))
+        cache_key = (
+            indicator_type,
+            tuple(sorted((str(key), str(value)) for key, value in normalized_params.items())),
+            len(self._bar_snapshots),
+        )
+        if cache_key in self._shared_indicator_series_cache:
+            return self._shared_indicator_series_cache[cache_key]
+        data = self._shared_indicator_data()
+        result = compute_indicator(indicator_type, data, normalized_params)
+        self._shared_indicator_series_cache[cache_key] = result
+        return result
+
+    def _shared_indicator_data(self) -> OHLCVSeries:
+        return OHLCVSeries(
+            timestamps=np.array(
+                [int(row["ts"] / 1_000_000_000) for row in self._bar_snapshots],
+                dtype=np.int64,
+            ),
+            opens=np.array([float(row["open"]) for row in self._bar_snapshots], dtype=np.float64),
+            highs=np.array([float(row["high"]) for row in self._bar_snapshots], dtype=np.float64),
+            lows=np.array([float(row["low"]) for row in self._bar_snapshots], dtype=np.float64),
+            closes=np.array([float(row["close"]) for row in self._bar_snapshots], dtype=np.float64),
+            volumes=np.array([float(row["volume"]) for row in self._bar_snapshots], dtype=np.float64),
+        )
+
+    def _default_indicator_output(self, indicator: str) -> str | None:
+        definition = INDICATOR_REGISTRY.get(indicator)
+        if definition is None or not definition.output_keys:
+            return None
+        return str(definition.output_keys[0])
 
     def _bar_field_value(self, bar: Bar, field: str) -> float | None:
         if field == "open":
@@ -926,6 +1059,9 @@ def run_single_instrument_nautilus_backtest(
     entry_logic: str,
     conditions: list[dict[str, Any]],
     condition_tree: dict[str, Any] | None,
+    exit_logic: str = "all",
+    exit_conditions: list[dict[str, Any]] | None = None,
+    exit_condition_tree: dict[str, Any] | None = None,
     stop_loss_pct: float,
     take_profit_rr: float,
     max_bars_in_trade: int,
@@ -953,6 +1089,9 @@ def run_single_instrument_nautilus_backtest(
             entry_logic=entry_logic,
             conditions=tuple(conditions),
             condition_tree=condition_tree,
+            exit_logic=exit_logic,
+            exit_conditions=tuple(exit_conditions or []),
+            exit_condition_tree=exit_condition_tree,
             signal_events=tuple(
                 {
                     **event,
@@ -1007,6 +1146,11 @@ def run_single_instrument_nautilus_backtest(
         result = engine.get_result()
 
         trades: list[NautilusTrade] = []
+        open_positions: list[NautilusOpenPosition] = []
+        last_ts = int(nautilus_bars[-1].ts_event) if nautilus_bars else 0
+        current_at = _nanos_to_iso(last_ts) or ""
+        current_price = float(bars[-1].close) if bars else 0.0
+        last_index = len(nautilus_bars) - 1
         for position in engine.cache.positions_closed():
             payload = position.to_dict()
             position_id = str(payload["position_id"])
@@ -1035,6 +1179,31 @@ def run_single_instrument_nautilus_backtest(
             exit_ts = int(payload["ts_closed"])
             entry_index = ts_index_map.get(entry_ts, 0)
             exit_index = ts_index_map.get(exit_ts, entry_index)
+            exit_reason = strategy.exit_reasons.get(position_id, "session_close")
+            if exit_reason == "session_close":
+                if side == "long":
+                    unrealized_pnl = (adjusted_exit - adjusted_entry) * quantity - commission_per_trade
+                else:
+                    unrealized_pnl = (adjusted_entry - adjusted_exit) * quantity - commission_per_trade
+                open_positions.append(
+                    NautilusOpenPosition(
+                        instrument_id=instrument.id,
+                        instrument_symbol=instrument.symbol,
+                        side=side,
+                        entry_at=_nanos_to_iso(entry_ts) or "",
+                        current_at=_nanos_to_iso(exit_ts) or current_at,
+                        entry_price=round(adjusted_entry, 6),
+                        current_price=round(adjusted_exit, 6),
+                        stop_price=round(stop_price, 6),
+                        target_price=round(target_price, 6),
+                        quantity=round(quantity, 4),
+                        unrealized_pnl=round(unrealized_pnl, 4),
+                        unrealized_pnl_pct=round(pnl_pct, 4),
+                        r_multiple=round((unrealized_pnl / risk_unit), 4) if risk_unit > 0 else 0.0,
+                        bars_held=max(1, exit_index - entry_index + 1),
+                    )
+                )
+                continue
             trades.append(
                 NautilusTrade(
                     instrument_id=instrument.id,
@@ -1051,7 +1220,50 @@ def run_single_instrument_nautilus_backtest(
                     pnl_pct=round(pnl_pct, 4),
                     r_multiple=round((pnl / risk_unit), 4) if risk_unit > 0 else 0.0,
                     bars_held=max(1, exit_index - entry_index + 1),
-                    exit_reason=strategy.exit_reasons.get(position_id, "session_close"),
+                    exit_reason=exit_reason,
+                )
+            )
+        for position in engine.cache.positions_open():
+            payload = position.to_dict()
+            position_id = str(payload["position_id"])
+            entry_price = float(payload["avg_px_open"])
+            if str(payload.get("entry") or "").upper() == "BUY":
+                side = "long"
+                adjusted_entry = entry_price * (1.0 + slippage_bps / 10000.0)
+                adjusted_mark = current_price * (1.0 - slippage_bps / 10000.0)
+            else:
+                side = "short"
+                adjusted_entry = entry_price * (1.0 - slippage_bps / 10000.0)
+                adjusted_mark = current_price * (1.0 + slippage_bps / 10000.0)
+
+            quantity = float(payload.get("peak_qty") or payload.get("quantity") or 0.0)
+            plan = strategy.position_plans.get(position_id, {})
+            stop_price = float(plan.get("stop_price") or 0.0)
+            target_price = float(plan.get("target_price") or 0.0)
+            if side == "long":
+                unrealized_pnl = (adjusted_mark - adjusted_entry) * quantity - commission_per_trade
+            else:
+                unrealized_pnl = (adjusted_entry - adjusted_mark) * quantity - commission_per_trade
+            risk_unit = abs(adjusted_entry - stop_price) * quantity if stop_price else 0.0
+            pnl_pct = (unrealized_pnl / capital_base * 100.0) if capital_base > 0 else 0.0
+            entry_ts = int(payload["ts_opened"])
+            entry_index = ts_index_map.get(entry_ts, 0)
+            open_positions.append(
+                NautilusOpenPosition(
+                    instrument_id=instrument.id,
+                    instrument_symbol=instrument.symbol,
+                    side=side,
+                    entry_at=_nanos_to_iso(entry_ts) or "",
+                    current_at=current_at,
+                    entry_price=round(adjusted_entry, 6),
+                    current_price=round(adjusted_mark, 6),
+                    stop_price=round(stop_price, 6),
+                    target_price=round(target_price, 6),
+                    quantity=round(quantity, 4),
+                    unrealized_pnl=round(unrealized_pnl, 4),
+                    unrealized_pnl_pct=round(pnl_pct, 4),
+                    r_multiple=round((unrealized_pnl / risk_unit), 4) if risk_unit > 0 else 0.0,
+                    bars_held=max(1, last_index - entry_index + 1),
                 )
             )
 
@@ -1068,6 +1280,7 @@ def run_single_instrument_nautilus_backtest(
             ]
         return SingleInstrumentBacktestResult(
             trades=trades,
+            open_positions=open_positions,
             equity_curve=equity_curve,
             warnings=list(dict.fromkeys(strategy.warnings)),
             total_events=int(result.total_events),

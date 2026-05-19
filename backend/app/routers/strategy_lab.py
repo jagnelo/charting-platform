@@ -17,6 +17,7 @@ from app.schemas.strategy import (
     StrategyRunSubmitOut,
     StrategyVersionCreate,
     StrategyVersionOut,
+    StrategyVersionUpdate,
 )
 from app.services.strategy_lab import execute_strategy_run
 
@@ -188,6 +189,35 @@ async def list_versions(
 ):
     strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
     return strategy.versions
+
+
+@router.patch("/versions/{version_id}", response_model=StrategyVersionOut)
+async def update_version(
+    version_id: int,
+    body: StrategyVersionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    version_stmt = (
+        select(StrategyVersion)
+        .join(StrategyDefinition, StrategyDefinition.id == StrategyVersion.strategy_id)
+        .where(StrategyDefinition.user_id == current_user.id, StrategyVersion.id == version_id)
+    )
+    version = (await db.execute(version_stmt)).scalar_one_or_none()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Strategy version not found")
+
+    version.definition_snapshot = body.definition_snapshot
+    version.parameter_schema = body.parameter_schema
+    version.default_parameters = body.default_parameters
+    version.universe_config = body.universe_config
+    version.benchmark_config = body.benchmark_config
+    version.execution_model = body.execution_model
+    version.notes = body.notes
+
+    await db.commit()
+    await db.refresh(version)
+    return version
 
 
 @router.get("/runs", response_model=list[StrategyRunOut])

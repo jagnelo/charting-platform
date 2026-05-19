@@ -114,6 +114,8 @@ class TestStrategyLabAPI:
         assert run_payload["result_summary"]["coverage"]["instrument_count"] == 1
         assert run_payload["result_summary"]["coverage"]["total_bars"] >= 1
         assert run_payload["result_summary"]["performance"]["trade_count"] is not None
+        assert len(run_payload["result_summary"]["equity_curve"]) >= len(ohlcv_bars)
+        assert len(run_payload["result_summary"]["portfolio_timeline"]) >= len(ohlcv_bars)
         assert run_payload["artifact_manifest"]["supports_execution_stats"] is True
 
         detail_res = client.get(
@@ -184,6 +186,88 @@ class TestStrategyLabAPI:
             headers=auth_headers,
         )
         assert fetch_res.status_code == 404
+
+    def test_update_version_persists_strategy_draft_defaults(self, client, auth_headers):
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Save Draft",
+                "description": None,
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["draft"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 5,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"symbols": ["AAPL"]},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                    "notes": None,
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version_id = create_res.json()["versions"][0]["id"]
+
+        update_res = client.patch(
+            f"/api/v1/strategy-lab/versions/{version_id}",
+            headers=auth_headers,
+            json={
+                "definition_snapshot": {
+                    "timeframe": "D1",
+                    "direction": "long",
+                    "entry_logic": "all",
+                    "condition_tree": {
+                        "type": "all",
+                        "conditions": [
+                            {"type": "price_threshold", "field": "close", "op": "gt", "value": 0}
+                        ],
+                    },
+                    "conditions": [
+                        {"type": "price_threshold", "field": "close", "op": "gt", "value": 0}
+                    ],
+                    "risk": {
+                        "stop_loss_pct": 2.0,
+                        "take_profit_rr": 1.5,
+                        "max_bars_in_trade": 5,
+                    },
+                },
+                "parameter_schema": {},
+                "default_parameters": {},
+                "universe_config": {"symbols": ["AAPL"]},
+                "benchmark_config": {"symbol": "QQQ"},
+                "execution_model": {
+                    "entry": "next_bar_open",
+                    "run_defaults": {
+                        "date_from": "2026-02-01",
+                        "date_to": "2026-04-30",
+                        "initial_capital": 250000,
+                    },
+                },
+                "notes": "Saved draft defaults",
+            },
+        )
+        assert update_res.status_code == 200
+        payload = update_res.json()
+        assert payload["definition_snapshot"]["conditions"]
+        assert payload["benchmark_config"]["symbol"] == "QQQ"
+        assert payload["execution_model"]["run_defaults"]["date_from"] == "2026-02-01"
+        assert payload["execution_model"]["run_defaults"]["date_to"] == "2026-04-30"
+        assert payload["execution_model"]["run_defaults"]["initial_capital"] == 250000
 
     def test_duplicate_definition_name_is_rejected(self, client, auth_headers):
         payload = {
@@ -699,6 +783,16 @@ class TestStrategyLabAPI:
         assert payload["result_summary"]["result_kind"] == "rules_backtest"
         assert payload["result_summary"]["portfolio"]["accepted_trade_count"] >= 0
         assert payload["result_summary"]["execution_assumptions"]["max_concurrent_positions"] == 1
+        assert isinstance(payload["result_summary"]["position_timelines"], list)
+        assert isinstance(payload["result_summary"]["execution_log"], list)
+        assert isinstance(payload["result_summary"]["portfolio_timeline"], list)
+        if payload["result_summary"]["trades"]:
+            assert payload["result_summary"]["position_timelines"]
+            first_timeline = payload["result_summary"]["position_timelines"][0]
+            assert "points" in first_timeline
+            assert len(first_timeline["points"]) >= 2
+            assert payload["result_summary"]["execution_log"]
+            assert payload["result_summary"]["portfolio_timeline"]
 
     def test_paper_forward_runs_can_be_refreshed_and_append_monitor_snapshots(
         self, client, auth_headers, instrument, ohlcv_bars

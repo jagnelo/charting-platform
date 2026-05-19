@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -26,6 +27,7 @@ from app.models.strategy import (
 )
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.services.strategy_lab_nautilus import (
+    NautilusOpenPosition,
     NautilusTrade,
     run_single_instrument_nautilus_backtest,
 )
@@ -229,6 +231,12 @@ async def _resolve_universe_instruments(
     universe_config: dict,
     warnings: list[str],
 ) -> list[Instrument]:
+    def instrument_stmt():
+        return select(Instrument).options(
+            selectinload(Instrument.equity_detail),
+            selectinload(Instrument.stats),
+        )
+
     instrument_ids = [
         int(value) for value in universe_config.get("instrument_ids", []) if value is not None
     ]
@@ -244,7 +252,7 @@ async def _resolve_universe_instruments(
             warnings.append(f"Watchlist {watchlist_id} could not be found.")
             return []
         stmt = (
-            select(Instrument)
+            instrument_stmt()
             .join(WatchlistItem, WatchlistItem.instrument_id == Instrument.id)
             .where(WatchlistItem.watchlist_id == watchlist.id)
             .order_by(WatchlistItem.position.asc(), Instrument.symbol.asc())
@@ -278,18 +286,16 @@ async def _resolve_universe_instruments(
                 f"Screener '{screener.name}' did not match any instruments in its latest run."
             )
             return []
-        stmt = select(Instrument).where(Instrument.id.in_(matched_ids)).order_by(Instrument.symbol)
+        stmt = instrument_stmt().where(Instrument.id.in_(matched_ids)).order_by(Instrument.symbol)
         return list((await db.execute(stmt)).scalars().all())
 
     if instrument_ids:
-        stmt = (
-            select(Instrument).where(Instrument.id.in_(instrument_ids)).order_by(Instrument.symbol)
-        )
+        stmt = instrument_stmt().where(Instrument.id.in_(instrument_ids)).order_by(Instrument.symbol)
         return list((await db.execute(stmt)).scalars().all())
 
     if symbols:
         stmt = (
-            select(Instrument)
+            instrument_stmt()
             .where(func.upper(Instrument.symbol).in_(symbols))
             .order_by(Instrument.symbol)
         )
@@ -345,6 +351,27 @@ def _condition_types_used(
         str(row.get("type") or "").lower()
         for row in rows
         if isinstance(row, dict) and row.get("type")
+    }
+
+
+def _extract_risk_and_exit_config(definition: dict[str, Any]) -> dict[str, Any]:
+    risk = definition.get("risk", {})
+    exits = definition.get("exits", {})
+    if not isinstance(risk, dict):
+        risk = {}
+    if not isinstance(exits, dict):
+        exits = {}
+
+    return {
+        "stop_loss_pct": float(risk.get("stop_loss_pct", 3)),
+        "break_even_rr": float(risk.get("break_even_rr", 0)),
+        "trailing_stop_rr": float(risk.get("trailing_stop_rr", 0)),
+        "pyramiding_max_entries": int(risk.get("pyramiding_max_entries", 1)),
+        "take_profit_rr": float(exits.get("take_profit_rr", risk.get("take_profit_rr", 2))),
+        "max_bars_in_trade": int(exits.get("max_bars_in_trade", risk.get("max_bars_in_trade", 20))),
+        "exit_logic": str(exits.get("logic") or exits.get("exit_logic") or "all").lower(),
+        "exit_conditions": list(exits.get("conditions", [])) if isinstance(exits.get("conditions"), list) else [],
+        "exit_condition_tree": exits.get("condition_tree") if isinstance(exits.get("condition_tree"), dict) else None,
     }
 
 
@@ -521,41 +548,375 @@ def _build_portfolio_equity_curve(
     return curve
 
 
+def _build_dense_portfolio_history(
+    trades: list[NautilusTrade],
+    *,
+    open_positions: list[NautilusOpenPosition] | None = None,
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+    initial_capital: float,
+    fallback_ts: str,
+) -> dict[str, list[dict[str, float | int | str]]]:
+    open_positions = open_positions or []
+    all_timestamps = sorted(
+        {
+            bar.ts.astimezone(UTC).isoformat()
+            for bars in bars_by_instrument.values()
+            for bar in bars
+        },
+        key=_parse_iso_datetime,
+    )
+    if not all_timestamps:
+        return {
+            "equity_curve": [{"ts": fallback_ts, "equity": round(initial_capital, 4)}],
+            "portfolio_timeline": [
+                {
+                    "ts": fallback_ts,
+                    "open_position_count": 0,
+                    "deployed_capital": 0.0,
+                    "idle_capital": round(initial_capital, 4),
+                    "realized_pnl": 0.0,
+                    "total_equity": round(initial_capital, 4),
+                    "event_type": "baseline",
+                }
+            ],
+        }
+
+    bars_by_ts: dict[str, list[tuple[int, float]]] = defaultdict(list)
+    for instrument_id, bars in bars_by_instrument.items():
+        for bar in bars:
+            bars_by_ts[bar.ts.astimezone(UTC).isoformat()].append((instrument_id, float(bar.close)))
+
+    entry_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    exit_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for trade in trades:
+        direction = 1.0 if str(trade.side).lower() == "long" else -1.0
+        event_payload = {
+            "position_id": f"{trade.instrument_symbol}-{trade.entry_at}",
+            "instrument_id": trade.instrument_id,
+            "quantity": float(trade.quantity),
+            "entry_price": float(trade.entry_price),
+            "exit_price": float(trade.exit_price),
+            "pnl": float(trade.pnl),
+            "side": str(trade.side).lower(),
+            "direction": direction,
+        }
+        entry_events[trade.entry_at].append(event_payload)
+        exit_events[trade.exit_at].append(event_payload)
+
+    for position in open_positions:
+        direction = 1.0 if str(position.side).lower() == "long" else -1.0
+        entry_events[position.entry_at].append(
+            {
+                "position_id": f"{position.instrument_symbol}-{position.entry_at}",
+                "instrument_id": position.instrument_id,
+                "quantity": float(position.quantity),
+                "entry_price": float(position.entry_price),
+                "exit_price": float(position.current_price),
+                "pnl": float(position.unrealized_pnl),
+                "side": str(position.side).lower(),
+                "direction": direction,
+                "status": "open",
+            }
+        )
+
+    current_close_by_instrument: dict[int, float] = {}
+    open_positions: dict[str, dict[str, Any]] = {}
+    cash = float(initial_capital)
+    realized_pnl = 0.0
+    equity_curve: list[dict[str, float | str]] = []
+    portfolio_timeline: list[dict[str, float | int | str]] = []
+
+    for ts in all_timestamps:
+        for instrument_id, close_price in bars_by_ts.get(ts, []):
+            current_close_by_instrument[instrument_id] = float(close_price)
+
+        event_type = "mark"
+        if exit_events.get(ts):
+            event_type = "exit"
+            for event in exit_events[ts]:
+                signed_quantity = float(event["quantity"]) * float(event["direction"])
+                cash += signed_quantity * float(event["entry_price"]) + float(event["pnl"])
+                realized_pnl += float(event["pnl"])
+                open_positions.pop(str(event["position_id"]), None)
+
+        if entry_events.get(ts):
+            if event_type == "mark":
+                event_type = "entry"
+            for event in entry_events[ts]:
+                signed_quantity = float(event["quantity"]) * float(event["direction"])
+                cash -= signed_quantity * float(event["entry_price"])
+                open_positions[str(event["position_id"])] = dict(event)
+
+        deployed_capital = 0.0
+        position_value = 0.0
+        for position in open_positions.values():
+            current_price = current_close_by_instrument.get(
+                int(position["instrument_id"]),
+                float(position["entry_price"]),
+            )
+            quantity = float(position["quantity"])
+            direction = float(position["direction"])
+            deployed_capital += abs(quantity * current_price)
+            position_value += direction * quantity * current_price
+
+        equity = cash + position_value
+        equity_curve.append({"ts": ts, "equity": round(equity, 4)})
+        portfolio_timeline.append(
+            {
+                "ts": ts,
+                "open_position_count": len(open_positions),
+                "deployed_capital": round(deployed_capital, 4),
+                "idle_capital": round(cash, 4),
+                "realized_pnl": round(realized_pnl, 4),
+                "total_equity": round(equity, 4),
+                "event_type": event_type,
+            }
+        )
+
+    if equity_curve[0]["ts"] != fallback_ts and _parse_iso_datetime(fallback_ts) < _parse_iso_datetime(
+        str(equity_curve[0]["ts"])
+    ):
+        baseline = {"ts": fallback_ts, "equity": round(initial_capital, 4)}
+        equity_curve.insert(0, baseline)
+        portfolio_timeline.insert(
+            0,
+            {
+                "ts": fallback_ts,
+                "open_position_count": 0,
+                "deployed_capital": 0.0,
+                "idle_capital": round(initial_capital, 4),
+                "realized_pnl": 0.0,
+                "total_equity": round(initial_capital, 4),
+                "event_type": "baseline",
+            },
+        )
+
+    return {
+        "equity_curve": equity_curve,
+        "portfolio_timeline": portfolio_timeline,
+    }
+
+
+def _build_position_timelines(
+    trades: list[NautilusTrade],
+    *,
+    open_positions: list[NautilusOpenPosition] | None = None,
+    bars_by_instrument: dict[int, list[OHLCVBar]],
+) -> list[dict[str, Any]]:
+    open_positions = open_positions or []
+    if not trades and not open_positions:
+        return []
+
+    symbol_counts: dict[str, int] = defaultdict(int)
+    timelines: list[dict[str, Any]] = []
+
+    for trade in sorted(
+        trades,
+        key=lambda item: (_parse_iso_datetime(item.entry_at), item.instrument_symbol, item.exit_at),
+    ):
+        symbol_counts[trade.instrument_symbol] += 1
+        entry_dt = _parse_iso_datetime(trade.entry_at)
+        exit_dt = _parse_iso_datetime(trade.exit_at)
+        bars = bars_by_instrument.get(trade.instrument_id, [])
+        in_window = [bar for bar in bars if entry_dt < bar.ts.astimezone(UTC) < exit_dt]
+        direction = 1.0 if str(trade.side).lower() == "long" else -1.0
+
+        points: list[dict[str, Any]] = [
+            {
+                "ts": trade.entry_at,
+                "value": 0.0,
+                "detail": (
+                    f"Entry · {trade.instrument_symbol} {trade.side.upper()} · "
+                    f"{trade.quantity:.2f} @ {trade.entry_price:.2f}"
+                ),
+                "marker": "entry",
+            }
+        ]
+
+        for bar in in_window:
+            close_price = float(bar.close)
+            pnl_value = (close_price - float(trade.entry_price)) * float(trade.quantity) * direction
+            points.append(
+                {
+                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "value": round(pnl_value, 4),
+                    "detail": None,
+                    "marker": None,
+                }
+            )
+
+        points.append(
+            {
+                "ts": trade.exit_at,
+                "value": round(float(trade.pnl), 4),
+                "detail": (
+                    f"Exit · {str(trade.exit_reason).replace('_', ' ')} · "
+                    f"{trade.exit_price:.2f} · {trade.r_multiple:.2f}R"
+                ),
+                "marker": "exit",
+            }
+        )
+
+        deduped_points: list[dict[str, Any]] = []
+        by_ts: dict[str, dict[str, Any]] = {}
+        for point in points:
+            by_ts[point["ts"]] = point
+        for ts in sorted(by_ts.keys()):
+            deduped_points.append(by_ts[ts])
+
+        timelines.append(
+            {
+                "position_id": f"{trade.instrument_symbol}-{symbol_counts[trade.instrument_symbol]}-{trade.entry_at}",
+                "label": f"{trade.instrument_symbol} #{symbol_counts[trade.instrument_symbol]}",
+                "symbol": trade.instrument_symbol,
+                "side": trade.side,
+                "entry_at": trade.entry_at,
+                "exit_at": trade.exit_at,
+                "entry_price": trade.entry_price,
+                "exit_price": trade.exit_price,
+                "quantity": trade.quantity,
+                "pnl": trade.pnl,
+                "pnl_pct": trade.pnl_pct,
+                "r_multiple": trade.r_multiple,
+                "bars_held": trade.bars_held,
+                "exit_reason": trade.exit_reason,
+                "points": deduped_points,
+            }
+        )
+
+    for position in sorted(
+        open_positions,
+        key=lambda item: (_parse_iso_datetime(item.entry_at), item.instrument_symbol, item.current_at),
+    ):
+        symbol_counts[position.instrument_symbol] += 1
+        entry_dt = _parse_iso_datetime(position.entry_at)
+        current_dt = _parse_iso_datetime(position.current_at)
+        bars = bars_by_instrument.get(position.instrument_id, [])
+        in_window = [bar for bar in bars if entry_dt < bar.ts.astimezone(UTC) < current_dt]
+        direction = 1.0 if str(position.side).lower() == "long" else -1.0
+
+        points: list[dict[str, Any]] = [
+            {
+                "ts": position.entry_at,
+                "value": 0.0,
+                "detail": (
+                    f"Entry · {position.instrument_symbol} {position.side.upper()} · "
+                    f"{position.quantity:.2f} @ {position.entry_price:.2f}"
+                ),
+                "marker": "entry",
+            }
+        ]
+
+        for bar in in_window:
+            close_price = float(bar.close)
+            pnl_value = (close_price - float(position.entry_price)) * float(position.quantity) * direction
+            points.append(
+                {
+                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "value": round(pnl_value, 4),
+                    "detail": None,
+                    "marker": None,
+                }
+            )
+
+        points.append(
+            {
+                "ts": position.current_at,
+                "value": round(float(position.unrealized_pnl), 4),
+                "detail": (
+                    f"Open · mark {position.current_price:.2f} · "
+                    f"{position.r_multiple:.2f}R unrealized"
+                ),
+                "marker": "open",
+            }
+        )
+
+        deduped_points: list[dict[str, Any]] = []
+        by_ts: dict[str, dict[str, Any]] = {}
+        for point in points:
+            by_ts[point["ts"]] = point
+        for ts in sorted(by_ts.keys()):
+            deduped_points.append(by_ts[ts])
+
+        timelines.append(
+            {
+                "position_id": f"{position.instrument_symbol}-{symbol_counts[position.instrument_symbol]}-{position.entry_at}",
+                "label": f"{position.instrument_symbol} #{symbol_counts[position.instrument_symbol]}",
+                "symbol": position.instrument_symbol,
+                "side": position.side,
+                "entry_at": position.entry_at,
+                "exit_at": None,
+                "entry_price": position.entry_price,
+                "exit_price": None,
+                "current_at": position.current_at,
+                "current_price": position.current_price,
+                "quantity": position.quantity,
+                "pnl": position.unrealized_pnl,
+                "pnl_pct": position.unrealized_pnl_pct,
+                "r_multiple": position.r_multiple,
+                "bars_held": position.bars_held,
+                "exit_reason": None,
+                "status": "open",
+                "points": deduped_points,
+            }
+        )
+
+    return timelines
+
+
 def _apply_portfolio_constraints(
     trades: list[NautilusTrade],
     *,
+    open_positions: list[NautilusOpenPosition] | None = None,
     initial_capital: float,
     max_concurrent_positions: int,
     max_portfolio_risk_pct: float,
     max_symbol_allocation_pct: float,
     fallback_ts: str,
 ) -> dict[str, Any]:
+    open_positions = open_positions or []
     accepted: list[NautilusTrade] = []
+    accepted_open_positions: list[NautilusOpenPosition] = []
     rejected: list[dict[str, Any]] = []
-    open_positions: list[dict[str, Any]] = []
+    active_positions: list[dict[str, Any]] = []
     peak_concurrent = 0
 
-    for trade in sorted(
-        trades, key=lambda item: (_parse_iso_datetime(item.entry_at), item.instrument_symbol)
+    candidates: list[dict[str, Any]] = [
+        {"kind": "trade", "item": trade}
+        for trade in trades
+    ] + [
+        {"kind": "open_position", "item": position}
+        for position in open_positions
+    ]
+
+    for candidate in sorted(
+        candidates,
+        key=lambda item: (
+            _parse_iso_datetime(item["item"].entry_at),
+            item["item"].instrument_symbol,
+            getattr(item["item"], "exit_at", getattr(item["item"], "current_at", "")),
+        ),
     ):
-        entry_dt = _parse_iso_datetime(trade.entry_at)
-        open_positions = [
+        item = candidate["item"]
+        kind = str(candidate["kind"])
+        entry_dt = _parse_iso_datetime(item.entry_at)
+        active_positions = [
             position
-            for position in open_positions
+            for position in active_positions
             if _parse_iso_datetime(position["exit_at"]) > entry_dt
         ]
 
-        notional = abs(float(trade.quantity) * float(trade.entry_price))
-        risk_amount = abs(float(trade.entry_price) - float(trade.stop_price)) * float(
-            trade.quantity
+        notional = abs(float(item.quantity) * float(item.entry_price))
+        risk_amount = abs(float(item.entry_price) - float(item.stop_price)) * float(
+            item.quantity
         )
         risk_pct = (risk_amount / initial_capital * 100.0) if initial_capital > 0 else 0.0
         allocation_pct = (notional / initial_capital * 100.0) if initial_capital > 0 else 0.0
-        reserved_notional = sum(float(position["notional"]) for position in open_positions)
-        reserved_risk_pct = sum(float(position["risk_pct"]) for position in open_positions)
+        reserved_notional = sum(float(position["notional"]) for position in active_positions)
+        reserved_risk_pct = sum(float(position["risk_pct"]) for position in active_positions)
 
         rejection_reason = None
-        if len(open_positions) >= max(1, max_concurrent_positions):
+        if len(active_positions) >= max(1, max_concurrent_positions):
             rejection_reason = "max_concurrent_positions"
         elif allocation_pct > max_symbol_allocation_pct:
             rejection_reason = "max_symbol_allocation_pct"
@@ -567,8 +928,12 @@ def _apply_portfolio_constraints(
         if rejection_reason is not None:
             rejected.append(
                 {
-                    "instrument_symbol": trade.instrument_symbol,
-                    "entry_at": trade.entry_at,
+                    "instrument_symbol": item.instrument_symbol,
+                    "side": item.side,
+                    "entry_at": item.entry_at,
+                    "entry_price": float(item.entry_price),
+                    "quantity": float(item.quantity),
+                    "notional": round(notional, 4),
                     "reason": rejection_reason,
                     "risk_pct": round(risk_pct, 4),
                     "allocation_pct": round(allocation_pct, 4),
@@ -576,19 +941,180 @@ def _apply_portfolio_constraints(
             )
             continue
 
-        accepted.append(trade)
-        open_positions.append(
+        if kind == "trade":
+            accepted.append(item)
+        else:
+            accepted_open_positions.append(item)
+
+        active_positions.append(
             {
-                "exit_at": trade.exit_at,
+                "position_id": f"{item.instrument_symbol}-{item.entry_at}",
+                "exit_at": getattr(item, "exit_at", getattr(item, "current_at", "")),
                 "risk_pct": risk_pct,
                 "notional": notional,
+                "symbol": item.instrument_symbol,
+                "side": item.side,
+                "entry_at": item.entry_at,
+                "entry_price": float(item.entry_price),
+                "quantity": float(item.quantity),
             }
         )
-        peak_concurrent = max(peak_concurrent, len(open_positions))
+        peak_concurrent = max(peak_concurrent, len(active_positions))
+
+    def event_sort_key(event: dict[str, Any]) -> tuple[datetime, int, str]:
+        ts = _parse_iso_datetime(event["ts"])
+        event_order = {"entry": 0, "exit": 1, "open_at_end": 2, "rejected": 3}.get(
+            str(event["event_type"]), 4
+        )
+        return ts, event_order, str(event.get("symbol") or "")
+
+    accepted_rows = sorted(
+        accepted,
+        key=lambda item: (
+            _parse_iso_datetime(item.entry_at),
+            _parse_iso_datetime(item.exit_at),
+            item.instrument_symbol,
+        ),
+    )
+
+    execution_events: list[dict[str, Any]] = []
+    for trade in accepted_rows:
+        position_id = f"{trade.instrument_symbol}-{trade.entry_at}"
+        quantity = float(trade.quantity)
+        entry_price = float(trade.entry_price)
+        exit_price = float(trade.exit_price)
+        execution_events.append(
+            {
+                "ts": trade.entry_at,
+                "event_type": "entry",
+                "position_id": position_id,
+                "symbol": trade.instrument_symbol,
+                "side": trade.side,
+                "quantity": quantity,
+                "price": entry_price,
+                "notional": abs(quantity * entry_price),
+                "pnl": None,
+                "pnl_pct": None,
+                "r_multiple": None,
+                "reason": "entry_signal",
+            }
+        )
+        execution_events.append(
+            {
+                "ts": trade.exit_at,
+                "event_type": "exit",
+                "position_id": position_id,
+                "symbol": trade.instrument_symbol,
+                "side": trade.side,
+                "quantity": quantity,
+                "price": exit_price,
+                "notional": abs(quantity * entry_price),
+                "pnl": float(trade.pnl),
+                "pnl_pct": float(trade.pnl_pct),
+                "r_multiple": float(trade.r_multiple),
+                "reason": trade.exit_reason,
+            }
+        )
+
+    accepted_open_rows = sorted(
+        accepted_open_positions,
+        key=lambda item: (
+            _parse_iso_datetime(item.entry_at),
+            item.instrument_symbol,
+            _parse_iso_datetime(item.current_at),
+        ),
+    )
+    for position in accepted_open_rows:
+        position_id = f"{position.instrument_symbol}-{position.entry_at}"
+        quantity = float(position.quantity)
+        entry_price = float(position.entry_price)
+        current_price = float(position.current_price)
+        execution_events.append(
+            {
+                "ts": position.entry_at,
+                "event_type": "entry",
+                "position_id": position_id,
+                "symbol": position.instrument_symbol,
+                "side": position.side,
+                "quantity": quantity,
+                "price": entry_price,
+                "notional": abs(quantity * entry_price),
+                "pnl": None,
+                "pnl_pct": None,
+                "r_multiple": None,
+                "reason": "entry_signal",
+            }
+        )
+        execution_events.append(
+            {
+                "ts": position.current_at,
+                "event_type": "open_at_end",
+                "position_id": position_id,
+                "symbol": position.instrument_symbol,
+                "side": position.side,
+                "quantity": quantity,
+                "price": current_price,
+                "notional": abs(quantity * entry_price),
+                "pnl": float(position.unrealized_pnl),
+                "pnl_pct": float(position.unrealized_pnl_pct),
+                "r_multiple": float(position.r_multiple),
+                "reason": "run_end_mark",
+            }
+        )
+
+    for row in rejected:
+        execution_events.append(
+            {
+                "ts": row["entry_at"],
+                "event_type": "rejected",
+                "position_id": f"{row['instrument_symbol']}-{row['entry_at']}",
+                "symbol": row["instrument_symbol"],
+                "side": row.get("side"),
+                "quantity": row.get("quantity"),
+                "price": row.get("entry_price"),
+                "notional": row.get("notional"),
+                "pnl": None,
+                "pnl_pct": None,
+                "r_multiple": None,
+                "reason": row["reason"],
+            }
+        )
+
+    execution_events.sort(key=event_sort_key)
+
+    open_by_id: dict[str, dict[str, Any]] = {}
+    realized_pnl = 0.0
+    portfolio_timeline: list[dict[str, Any]] = []
+
+    for event in execution_events:
+        position_id = str(event["position_id"])
+        if event["event_type"] == "entry":
+            open_by_id[position_id] = {
+                "notional": float(event.get("notional") or 0.0),
+            }
+        elif event["event_type"] == "exit":
+            open_by_id.pop(position_id, None)
+            realized_pnl += float(event.get("pnl") or 0.0)
+
+        deployed_capital = sum(float(item["notional"]) for item in open_by_id.values())
+        idle_capital = max(initial_capital - deployed_capital, 0.0)
+        portfolio_timeline.append(
+            {
+                "ts": event["ts"],
+                "open_position_count": len(open_by_id),
+                "deployed_capital": round(deployed_capital, 4),
+                "idle_capital": round(idle_capital, 4),
+                "realized_pnl": round(realized_pnl, 4),
+                "event_type": event["event_type"],
+            }
+        )
 
     return {
         "accepted_trades": accepted,
+        "accepted_open_positions": accepted_open_positions,
         "rejected_trades": rejected,
+        "execution_log": execution_events,
+        "portfolio_timeline": portfolio_timeline,
         "equity_curve": _build_portfolio_equity_curve(
             accepted,
             initial_capital=initial_capital,
@@ -596,6 +1122,8 @@ def _apply_portfolio_constraints(
         ),
         "summary": {
             "accepted_trade_count": len(accepted),
+            "accepted_open_position_count": len(accepted_open_positions),
+            "accepted_position_count": len(accepted) + len(accepted_open_positions),
             "rejected_trade_count": len(rejected),
             "peak_concurrent_positions": peak_concurrent,
             "rejection_breakdown": {
@@ -675,8 +1203,10 @@ async def _run_rules_backtest(
 
     instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
     trades: list[NautilusTrade] = []
+    open_positions: list[NautilusOpenPosition] = []
     coverage_total_bars = 0
     covered_symbols: list[str] = []
+    bars_by_instrument: dict[int, list[OHLCVBar]] = {}
 
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
@@ -697,17 +1227,22 @@ async def _run_rules_backtest(
         or (version.execution_model or {}).get("max_symbol_allocation_pct")
         or 100.0
     )
-    stop_loss_pct = float(definition.get("risk", {}).get("stop_loss_pct", 3))
-    take_profit_rr = float(definition.get("risk", {}).get("take_profit_rr", 2))
-    max_bars_in_trade = int(definition.get("risk", {}).get("max_bars_in_trade", 20))
-    break_even_rr = float(definition.get("risk", {}).get("break_even_rr", 0))
-    trailing_stop_rr = float(definition.get("risk", {}).get("trailing_stop_rr", 0))
-    pyramiding_max_entries = int(definition.get("risk", {}).get("pyramiding_max_entries", 1))
+    risk_and_exits = _extract_risk_and_exit_config(definition)
+    stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    take_profit_rr = float(risk_and_exits["take_profit_rr"])
+    max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
+    break_even_rr = float(risk_and_exits["break_even_rr"])
+    trailing_stop_rr = float(risk_and_exits["trailing_stop_rr"])
+    pyramiding_max_entries = int(risk_and_exits["pyramiding_max_entries"])
     direction = str(definition.get("direction", "long")).lower()
     logic = str(definition.get("entry_logic", "all")).lower()
     conditions = list(definition.get("conditions", []))
     condition_tree = definition.get("condition_tree")
+    exit_logic = str(risk_and_exits["exit_logic"] or "all").lower()
+    exit_conditions = list(risk_and_exits["exit_conditions"])
+    exit_condition_tree = risk_and_exits["exit_condition_tree"]
     condition_types = _condition_types_used(conditions, condition_tree if isinstance(condition_tree, dict) else None)
+    condition_types |= _condition_types_used(exit_conditions, exit_condition_tree if isinstance(exit_condition_tree, dict) else None)
     requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
     requires_weekly_aux = bool(
         {"week52_new_high", "week52_new_low", "pct_from_52w_high", "pct_from_52w_low"} & condition_types
@@ -729,6 +1264,7 @@ async def _run_rules_backtest(
         if len(bars) < 3:
             warnings.append(f"{instrument.symbol} does not have enough bars for simulation.")
             continue
+        bars_by_instrument[instrument.id] = bars
         daily_bars = (
             await _load_bars_for_strategy(
                 db,
@@ -761,6 +1297,9 @@ async def _run_rules_backtest(
             entry_logic=logic,
             conditions=conditions,
             condition_tree=condition_tree if isinstance(condition_tree, dict) else None,
+            exit_logic=exit_logic,
+            exit_conditions=exit_conditions,
+            exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
             signal_events=None,
             stop_loss_pct=stop_loss_pct,
             take_profit_rr=take_profit_rr,
@@ -777,10 +1316,12 @@ async def _run_rules_backtest(
             instrument_context=_build_instrument_context(instrument),
         )
         trades.extend(instrument_result.trades)
+        open_positions.extend(instrument_result.open_positions)
         warnings.extend(instrument_result.warnings)
 
     portfolio_view = _apply_portfolio_constraints(
         trades,
+        open_positions=open_positions,
         initial_capital=initial_capital,
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
@@ -788,8 +1329,22 @@ async def _run_rules_backtest(
         fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
     )
     trades = list(portfolio_view["accepted_trades"])
+    open_positions = list(portfolio_view["accepted_open_positions"])
     rejected_trades = list(portfolio_view["rejected_trades"])
-    equity_curve = list(portfolio_view["equity_curve"])
+    dense_history = _build_dense_portfolio_history(
+        trades,
+        open_positions=open_positions,
+        bars_by_instrument=bars_by_instrument,
+        initial_capital=initial_capital,
+        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+    )
+    equity_curve = list(dense_history["equity_curve"])
+    portfolio_timeline = list(dense_history["portfolio_timeline"])
+    position_timelines = _build_position_timelines(
+        trades,
+        open_positions=open_positions,
+        bars_by_instrument=bars_by_instrument,
+    )
     if rejected_trades:
         warnings.append(f"{len(rejected_trades)} trades were rejected by portfolio controls.")
 
@@ -797,6 +1352,8 @@ async def _run_rules_backtest(
     losses = [trade for trade in trades if trade.pnl <= 0]
     total_wins = sum(trade.pnl for trade in wins)
     total_losses = abs(sum(trade.pnl for trade in losses))
+    unrealized_pnl = round(sum(position.unrealized_pnl for position in open_positions), 4)
+    realized_ending_capital = round(initial_capital + sum(trade.pnl for trade in trades), 4)
     ending_capital = float(equity_curve[-1]["equity"]) if equity_curve else initial_capital
     expectancy_r = float(np.mean([trade.r_multiple for trade in trades])) if trades else None
     avg_win_r = float(np.mean([trade.r_multiple for trade in wins])) if wins else None
@@ -863,6 +1420,19 @@ async def _run_rules_backtest(
             if initial_capital > 0
             else None,
             "trade_count": len(trades),
+            "closed_trade_count": len(trades),
+            "open_position_count": len(open_positions),
+            "total_position_count": len(trades) + len(open_positions),
+            "realized_ending_capital": realized_ending_capital,
+            "realized_net_return_pct": round(
+                ((realized_ending_capital - initial_capital) / initial_capital * 100.0), 4
+            )
+            if initial_capital > 0
+            else None,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_return_pct": round((unrealized_pnl / initial_capital) * 100.0, 4)
+            if initial_capital > 0
+            else None,
             "win_rate": round((len(wins) / len(trades) * 100.0), 4) if trades else None,
             "avg_win_r": round(avg_win_r, 4) if avg_win_r is not None else None,
             "avg_loss_r": round(avg_loss_r, 4) if avg_loss_r is not None else None,
@@ -878,18 +1448,42 @@ async def _run_rules_backtest(
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
-            "take_profit_rr": take_profit_rr,
-            "max_bars_in_trade": max_bars_in_trade,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
             "pyramiding_max_entries": pyramiding_max_entries,
+            "take_profit_rr": take_profit_rr,
+            "max_bars_in_trade": max_bars_in_trade,
             "max_concurrent_positions": max_concurrent_positions,
             "max_portfolio_risk_pct": max_portfolio_risk_pct,
             "max_symbol_allocation_pct": max_symbol_allocation_pct,
+            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree)) + len(exit_conditions),
         },
         "equity_curve": equity_curve,
         "analytics": analytics,
         "portfolio": portfolio_view["summary"],
+        "execution_log": portfolio_view["execution_log"],
+        "portfolio_timeline": portfolio_timeline,
+        "position_timelines": position_timelines,
+        "open_positions": [
+            {
+                "instrument_id": position.instrument_id,
+                "instrument_symbol": position.instrument_symbol,
+                "side": position.side,
+                "entry_at": position.entry_at,
+                "current_at": position.current_at,
+                "entry_price": position.entry_price,
+                "current_price": position.current_price,
+                "stop_price": position.stop_price,
+                "target_price": position.target_price,
+                "quantity": position.quantity,
+                "unrealized_pnl": position.unrealized_pnl,
+                "unrealized_pnl_pct": position.unrealized_pnl_pct,
+                "r_multiple": position.r_multiple,
+                "bars_held": position.bars_held,
+                "status": position.status,
+            }
+            for position in open_positions[:100]
+        ],
         "symbol_performance": _symbol_performance_snapshot(trades),
         "optimization": optimization,
         "rejected_trades": rejected_trades[:100],
@@ -1181,12 +1775,16 @@ async def _run_radar_signal_research(
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
     slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
     commission_per_trade = float(run.execution_assumptions.get("commission_per_trade", 0))
-    stop_loss_pct = float(definition.get("risk", {}).get("stop_loss_pct", 3))
-    take_profit_rr = float(definition.get("risk", {}).get("take_profit_rr", 2))
-    max_bars_in_trade = int(definition.get("risk", {}).get("max_bars_in_trade", 20))
-    break_even_rr = float(definition.get("risk", {}).get("break_even_rr", 0))
-    trailing_stop_rr = float(definition.get("risk", {}).get("trailing_stop_rr", 0))
-    pyramiding_max_entries = int(definition.get("risk", {}).get("pyramiding_max_entries", 1))
+    risk_and_exits = _extract_risk_and_exit_config(definition)
+    stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    take_profit_rr = float(risk_and_exits["take_profit_rr"])
+    max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
+    break_even_rr = float(risk_and_exits["break_even_rr"])
+    trailing_stop_rr = float(risk_and_exits["trailing_stop_rr"])
+    pyramiding_max_entries = int(risk_and_exits["pyramiding_max_entries"])
+    exit_logic = str(risk_and_exits["exit_logic"] or "all").lower()
+    exit_conditions = list(risk_and_exits["exit_conditions"])
+    exit_condition_tree = risk_and_exits["exit_condition_tree"]
     max_concurrent_positions = int(
         run.execution_assumptions.get("max_concurrent_positions")
         or (version.execution_model or {}).get("max_concurrent_positions")
@@ -1205,8 +1803,10 @@ async def _run_radar_signal_research(
 
     capital_slice = initial_capital / max(len(instrument_rows), 1)
     trades: list[NautilusTrade] = []
+    open_positions: list[NautilusOpenPosition] = []
     coverage_total_bars = 0
     covered_symbols: list[str] = []
+    bars_by_instrument: dict[int, list[OHLCVBar]] = {}
 
     for instrument in instrument_rows:
         detections = signal_groups.get(instrument.id, [])
@@ -1260,6 +1860,7 @@ async def _run_radar_signal_research(
         if len(bars) < 3:
             warnings.append(f"{instrument.symbol} does not have enough bars for signal replay.")
             continue
+        bars_by_instrument[instrument.id] = bars
         coverage_total_bars += len(bars)
         covered_symbols.append(instrument.symbol)
         instrument_result = run_single_instrument_nautilus_backtest(
@@ -1270,6 +1871,9 @@ async def _run_radar_signal_research(
             entry_logic="all",
             conditions=[],
             condition_tree=None,
+            exit_logic=exit_logic,
+            exit_conditions=exit_conditions,
+            exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
             stop_loss_pct=stop_loss_pct,
             take_profit_rr=take_profit_rr,
             max_bars_in_trade=max_bars_in_trade,
@@ -1283,10 +1887,12 @@ async def _run_radar_signal_research(
             signal_events=signal_events,
         )
         trades.extend(instrument_result.trades)
+        open_positions.extend(instrument_result.open_positions)
         warnings.extend(instrument_result.warnings)
 
     portfolio_view = _apply_portfolio_constraints(
         trades,
+        open_positions=open_positions,
         initial_capital=initial_capital,
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
@@ -1294,8 +1900,22 @@ async def _run_radar_signal_research(
         fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
     )
     trades = list(portfolio_view["accepted_trades"])
+    open_positions = list(portfolio_view["accepted_open_positions"])
     rejected_trades = list(portfolio_view["rejected_trades"])
-    equity_curve = list(portfolio_view["equity_curve"])
+    dense_history = _build_dense_portfolio_history(
+        trades,
+        open_positions=open_positions,
+        bars_by_instrument=bars_by_instrument,
+        initial_capital=initial_capital,
+        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+    )
+    equity_curve = list(dense_history["equity_curve"])
+    portfolio_timeline = list(dense_history["portfolio_timeline"])
+    position_timelines = _build_position_timelines(
+        trades,
+        open_positions=open_positions,
+        bars_by_instrument=bars_by_instrument,
+    )
     if rejected_trades:
         warnings.append(
             f"{len(rejected_trades)} replayed signals were rejected by portfolio controls."
@@ -1304,6 +1924,8 @@ async def _run_radar_signal_research(
     losses = [trade for trade in trades if trade.pnl <= 0]
     total_wins = sum(trade.pnl for trade in wins)
     total_losses = abs(sum(trade.pnl for trade in losses))
+    unrealized_pnl = round(sum(position.unrealized_pnl for position in open_positions), 4)
+    realized_ending_capital = round(initial_capital + sum(trade.pnl for trade in trades), 4)
     ending_capital = float(equity_curve[-1]["equity"]) if equity_curve else initial_capital
     expectancy_r = float(np.mean([trade.r_multiple for trade in trades])) if trades else None
     avg_win_r = float(np.mean([trade.r_multiple for trade in wins])) if wins else None
@@ -1370,6 +1992,19 @@ async def _run_radar_signal_research(
             if initial_capital > 0
             else None,
             "trade_count": len(trades),
+            "closed_trade_count": len(trades),
+            "open_position_count": len(open_positions),
+            "total_position_count": len(trades) + len(open_positions),
+            "realized_ending_capital": realized_ending_capital,
+            "realized_net_return_pct": round(
+                ((realized_ending_capital - initial_capital) / initial_capital * 100.0), 4
+            )
+            if initial_capital > 0
+            else None,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_return_pct": round((unrealized_pnl / initial_capital) * 100.0, 4)
+            if initial_capital > 0
+            else None,
             "win_rate": round((len(wins) / len(trades) * 100.0), 4) if trades else None,
             "avg_win_r": round(avg_win_r, 4) if avg_win_r is not None else None,
             "avg_loss_r": round(avg_loss_r, 4) if avg_loss_r is not None else None,
@@ -1385,18 +2020,42 @@ async def _run_radar_signal_research(
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
-            "take_profit_rr": take_profit_rr,
-            "max_bars_in_trade": max_bars_in_trade,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
             "pyramiding_max_entries": pyramiding_max_entries,
+            "take_profit_rr": take_profit_rr,
+            "max_bars_in_trade": max_bars_in_trade,
             "max_concurrent_positions": max_concurrent_positions,
             "max_portfolio_risk_pct": max_portfolio_risk_pct,
             "max_symbol_allocation_pct": max_symbol_allocation_pct,
+            "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree)) + len(exit_conditions),
         },
         "equity_curve": equity_curve,
         "analytics": analytics,
         "portfolio": portfolio_view["summary"],
+        "execution_log": portfolio_view["execution_log"],
+        "portfolio_timeline": portfolio_timeline,
+        "position_timelines": position_timelines,
+        "open_positions": [
+            {
+                "instrument_id": position.instrument_id,
+                "instrument_symbol": position.instrument_symbol,
+                "side": position.side,
+                "entry_at": position.entry_at,
+                "current_at": position.current_at,
+                "entry_price": position.entry_price,
+                "current_price": position.current_price,
+                "stop_price": position.stop_price,
+                "target_price": position.target_price,
+                "quantity": position.quantity,
+                "unrealized_pnl": position.unrealized_pnl,
+                "unrealized_pnl_pct": position.unrealized_pnl_pct,
+                "r_multiple": position.r_multiple,
+                "bars_held": position.bars_held,
+                "status": position.status,
+            }
+            for position in open_positions[:100]
+        ],
         "symbol_performance": _symbol_performance_snapshot(trades),
         "rejected_trades": rejected_trades[:100],
         "trades": [
@@ -1440,14 +2099,15 @@ async def _maybe_run_parameter_sweep(
     config = dict(run.execution_assumptions.get("optimization") or {})
     if not config.get("enabled"):
         return None
+    risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_values = config.get("stop_loss_pct_values") or [
-        definition.get("risk", {}).get("stop_loss_pct", 3)
+        risk_and_exits["stop_loss_pct"]
     ]
     target_values = config.get("take_profit_rr_values") or [
-        definition.get("risk", {}).get("take_profit_rr", 2)
+        risk_and_exits["take_profit_rr"]
     ]
     bar_values = config.get("max_bars_in_trade_values") or [
-        definition.get("risk", {}).get("max_bars_in_trade", 20)
+        risk_and_exits["max_bars_in_trade"]
     ]
     combos: list[dict] = []
     for stop_loss_pct in stop_values[:6]:
@@ -1465,9 +2125,16 @@ async def _maybe_run_parameter_sweep(
     logic = str(definition.get("entry_logic", "all")).lower()
     conditions = list(definition.get("conditions", []))
     condition_tree = definition.get("condition_tree")
+    exit_logic = str(risk_and_exits["exit_logic"] or "all").lower()
+    exit_conditions = list(risk_and_exits["exit_conditions"])
+    exit_condition_tree = risk_and_exits["exit_condition_tree"]
     condition_types = _condition_types_used(
         conditions,
         condition_tree if isinstance(condition_tree, dict) else None,
+    )
+    condition_types |= _condition_types_used(
+        exit_conditions,
+        exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
     )
     requires_daily_aux = "performance" in condition_types and timeframe != Timeframe.D1
     requires_weekly_aux = bool(
@@ -1516,6 +2183,9 @@ async def _maybe_run_parameter_sweep(
                 entry_logic=logic,
                 conditions=conditions,
                 condition_tree=condition_tree if isinstance(condition_tree, dict) else None,
+                exit_logic=exit_logic,
+                exit_conditions=exit_conditions,
+                exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
                 signal_events=None,
                 stop_loss_pct=combo["stop_loss_pct"],
                 take_profit_rr=combo["take_profit_rr"],
@@ -1524,11 +2194,9 @@ async def _maybe_run_parameter_sweep(
                 risk_per_trade_pct=risk_per_trade_pct,
                 slippage_bps=slippage_bps,
                 commission_per_trade=commission_per_trade,
-                break_even_rr=float(definition.get("risk", {}).get("break_even_rr", 0)),
-                trailing_stop_rr=float(definition.get("risk", {}).get("trailing_stop_rr", 0)),
-                pyramiding_max_entries=int(
-                    definition.get("risk", {}).get("pyramiding_max_entries", 1)
-                ),
+                break_even_rr=float(risk_and_exits["break_even_rr"]),
+                trailing_stop_rr=float(risk_and_exits["trailing_stop_rr"]),
+                pyramiding_max_entries=int(risk_and_exits["pyramiding_max_entries"]),
                 daily_bars=daily_bars,
                 weekly_bars=weekly_bars,
                 instrument_context=_build_instrument_context(instrument),
