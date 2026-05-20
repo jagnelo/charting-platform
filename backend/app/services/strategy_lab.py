@@ -147,6 +147,20 @@ def _coerce_timeframe(timeframe_value: str | None, warnings: list[str]) -> Timef
         return Timeframe.D1
 
 
+def _coerce_commission_settings(execution_assumptions: dict[str, Any]) -> tuple[str, float]:
+    raw_model = str(execution_assumptions.get("commission_model") or "fixed_round_trip")
+    commission_model = (
+        raw_model
+        if raw_model in {"fixed_round_trip", "fixed_per_order", "percent_of_notional"}
+        else "fixed_round_trip"
+    )
+    commission_value = float(
+        execution_assumptions.get("commission_value", execution_assumptions.get("commission_per_trade", 0))
+        or 0
+    )
+    return commission_model, max(commission_value, 0.0)
+
+
 def _requested_range_fits(
     *,
     date_from: datetime | None,
@@ -1607,7 +1621,7 @@ async def _run_rules_backtest(
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
     slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
-    commission_per_trade = float(run.execution_assumptions.get("commission_per_trade", 0))
+    commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
     max_concurrent_positions = int(
         run.execution_assumptions.get("max_concurrent_positions")
         or (version.execution_model or {}).get("max_concurrent_positions")
@@ -1714,7 +1728,9 @@ async def _run_rules_backtest(
             position_sizing_value=position_sizing_value,
             risk_per_trade_pct=risk_per_trade_pct,
             slippage_bps=slippage_bps,
-            commission_per_trade=commission_per_trade,
+            commission_per_trade=commission_value,
+            commission_model=commission_model,
+            commission_value=commission_value,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             hard_trailing_stop_pct=hard_trailing_stop_pct,
@@ -1794,7 +1810,8 @@ async def _run_rules_backtest(
         initial_capital=initial_capital,
         risk_per_trade_pct=risk_per_trade_pct,
         slippage_bps=slippage_bps,
-        commission_per_trade=commission_per_trade,
+        commission_model=commission_model,
+        commission_value=commission_value,
     )
     analytics = {
         "drawdown_curve": _drawdown_curve(equity_curve),
@@ -1860,7 +1877,9 @@ async def _run_rules_backtest(
             "risk_per_trade_pct": risk_per_trade_pct,
             "stop_model": stop_model,
             "slippage_bps": slippage_bps,
-            "commission_per_trade": commission_per_trade,
+            "commission_model": commission_model,
+            "commission_value": commission_value,
+            "commission_per_trade": commission_value,
             "stop_loss_pct": stop_loss_pct,
             "stop_atr_period": stop_atr_period,
             "stop_atr_multiple": stop_atr_multiple,
@@ -2191,7 +2210,7 @@ async def _run_radar_signal_research(
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
     slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
-    commission_per_trade = float(run.execution_assumptions.get("commission_per_trade", 0))
+    commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
     stop_model = str(risk_and_exits["stop_model"])
@@ -2326,7 +2345,9 @@ async def _run_radar_signal_research(
             position_sizing_value=position_sizing_value,
             risk_per_trade_pct=risk_per_trade_pct,
             slippage_bps=slippage_bps,
-            commission_per_trade=commission_per_trade,
+            commission_per_trade=commission_value,
+            commission_model=commission_model,
+            commission_value=commission_value,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             hard_trailing_stop_pct=hard_trailing_stop_pct,
@@ -2471,7 +2492,9 @@ async def _run_radar_signal_research(
             "risk_per_trade_pct": risk_per_trade_pct,
             "stop_model": stop_model,
             "slippage_bps": slippage_bps,
-            "commission_per_trade": commission_per_trade,
+            "commission_model": commission_model,
+            "commission_value": commission_value,
+            "commission_per_trade": commission_value,
             "stop_loss_pct": stop_loss_pct,
             "stop_atr_period": stop_atr_period,
             "stop_atr_multiple": stop_atr_multiple,
@@ -2553,7 +2576,8 @@ async def _maybe_run_parameter_sweep(
     initial_capital: float,
     risk_per_trade_pct: float,
     slippage_bps: float,
-    commission_per_trade: float,
+    commission_model: str,
+    commission_value: float,
 ) -> dict | None:
     config = dict(run.execution_assumptions.get("optimization") or {})
     if not config.get("enabled"):
@@ -2657,7 +2681,9 @@ async def _maybe_run_parameter_sweep(
                 position_sizing_value=float(risk_and_exits["position_sizing_value"]),
                 risk_per_trade_pct=risk_per_trade_pct,
                 slippage_bps=slippage_bps,
-                commission_per_trade=commission_per_trade,
+                commission_per_trade=commission_value,
+                commission_model=commission_model,
+                commission_value=commission_value,
                 break_even_rr=float(risk_and_exits["break_even_rr"]),
                 trailing_stop_rr=float(risk_and_exits["trailing_stop_rr"]),
                 hard_trailing_stop_pct=float(risk_and_exits["hard_trailing_stop_pct"]),

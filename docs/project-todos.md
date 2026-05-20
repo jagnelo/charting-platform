@@ -557,12 +557,14 @@ What remains:
       - break-even promotion
       - trailing-stop adjustment
       - capped pyramiding / multi-entry behavior
-      - slippage/commission assumptions
+      - slippage assumptions
+      - basic commission-model assumptions
     - Missing:
       - partial exits
       - richer order semantics
       - more advanced contingent-order workflows
       - more nuanced time-in-force and expiry handling where relevant
+      - deeper fee modeling such as exchange / regulatory fees and tiered broker schedules
     - This is a major realism gap versus competitors and a major determinant of whether a backtest says anything useful.
   - **Multi-symbol portfolio simulation is improved, but still not production-grade.**
     - Current multi-symbol handling now applies portfolio-level trade acceptance controls such as concurrent-position caps, portfolio-risk caps, and symbol-allocation caps before building the combined portfolio result.
@@ -868,6 +870,10 @@ What remains:
   - bar-based vs richer-data assumptions
   - slippage models
   - commissions / fees
+    - flat round-trip fees
+    - flat per-order fees
+    - percent-of-notional commissions
+    - later: tiered fee schedules and venue/regulatory fee components
   - spread assumptions
   - latency assumptions where meaningful
   - fill models
@@ -876,6 +882,12 @@ What remains:
   - leverage / margin assumptions
   - portfolio constraints
 - These assumptions must be visible in run configs and persisted as part of the provenance of any run result.
+
+- Extend the research engine beyond single-currency portfolio assumptions:
+  - support a user portfolio base currency distinct from the traded instrument currency
+  - translate P&L, exposure, and drawdown into the portfolio base currency for reporting
+  - model FX conversion costs when buying instruments denominated in a different currency than the portfolio base
+  - later support configurable spot-conversion pricing assumptions and broker-specific FX conversion fee schedules
 
 - Build a data-preparation/export layer from the platform's DB to the simulation engine, including:
   - selecting the required historical window

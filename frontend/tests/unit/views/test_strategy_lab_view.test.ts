@@ -136,6 +136,7 @@ const definition = {
           closed_trade_count: 6,
           open_position_count: 1,
           unrealized_pnl: 312.45,
+          unrealized_return_pct: 0.3125,
           net_return_pct: 12.5,
           win_rate: 66.67,
           expectancy_r: 0.72,
@@ -244,6 +245,25 @@ const definition = {
             pnl_pct: 12.5,
             r_multiple: 1.84,
             reason: 'take_profit',
+          },
+        ],
+        open_positions: [
+          {
+            instrument_id: 1,
+            instrument_symbol: 'AAPL',
+            side: 'long',
+            entry_at: '2026-03-10T00:00:00Z',
+            current_at: '2026-05-01T00:00:00Z',
+            entry_price: 108,
+            current_price: 111.1245,
+            stop_price: 105.84,
+            target_price: 113.4,
+            quantity: 1,
+            unrealized_pnl: 312.45,
+            unrealized_pnl_pct: 2.893,
+            r_multiple: 0.72,
+            bars_held: 35,
+            status: 'open_at_end',
           },
         ],
       },
@@ -499,7 +519,9 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Execution log')
     expect(wrapper.text()).toContain('6 closed')
     expect(wrapper.text()).toContain('1 open')
-    expect(wrapper.text()).toContain('$312.45 unrealized')
+    expect(wrapper.text()).toContain('$312.45 unrealized (+0.31%)')
+    expect(wrapper.text()).toContain('Open At End')
+    expect(wrapper.text()).toContain('Run End Mark')
     expect(wrapper.text()).toContain('$1,250.45')
     expect(wrapper.text()).toContain('+12.50%')
     const positionEvolutionChart = wrapper
@@ -980,6 +1002,8 @@ describe('StrategyLabView', () => {
       execution_assumptions: expect.objectContaining({
         initial_capital: 100000,
         risk_per_trade_pct: 1,
+        commission_model: 'fixed_round_trip',
+        commission_value: 0,
       }),
     }))
   })
@@ -1043,6 +1067,8 @@ describe('StrategyLabView', () => {
           date_from: '2026-02-01',
           date_to: '2026-04-30',
           initial_capital: 250000,
+          commission_model: 'fixed_round_trip',
+          commission_value: 0,
         }),
       }),
     }))

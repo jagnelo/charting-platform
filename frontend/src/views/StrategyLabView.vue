@@ -699,8 +699,32 @@
               <input v-model.number="runDraft.slippage_bps" type="number" min="0" step="1" class="form-input" />
             </label>
             <label class="field">
-              <span class="field-label">Commission per trade</span>
-              <input v-model.number="runDraft.commission_per_trade" type="number" min="0" step="0.1" class="form-input" />
+              <span class="field-label">
+                Commission model
+                <HoverTooltip text="Choose how broker commissions should be applied during the run: a flat round-trip fee, a flat fee on each entry/exit order, or a percent of order notional.">
+                  <button type="button" class="help-dot" aria-label="Commission model info">i</button>
+                </HoverTooltip>
+              </span>
+              <select v-model="runDraft.commission_model" class="form-select">
+                <option value="fixed_round_trip">Flat round-trip</option>
+                <option value="fixed_per_order">Flat per order</option>
+                <option value="percent_of_notional">Percent of notional</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">
+                {{ commissionValueLabel }}
+                <HoverTooltip :text="commissionValueHelp">
+                  <button type="button" class="help-dot" aria-label="Commission value info">i</button>
+                </HoverTooltip>
+              </span>
+              <input
+                v-model.number="runDraft.commission_value"
+                type="number"
+                :min="commissionValueMin"
+                :step="commissionValueStep"
+                class="form-input"
+              />
             </label>
             <label class="field">
               <span class="field-label">Max concurrent positions</span>
@@ -942,7 +966,10 @@
               <small v-if="(performance.open_position_count ?? 0) > 0">
                 {{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed ·
                 {{ performance.open_position_count ?? 0 }} open ·
-                {{ formatMoney(performance.unrealized_pnl) }} unrealized
+                {{ `${formatMoney(performance.unrealized_pnl)} unrealized` }}
+                <span v-if="performance.unrealized_return_pct != null">
+                  {{ `(${formatSignedPercent(performance.unrealized_return_pct)})` }}
+                </span>
               </small>
               <small v-else>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed</small>
             </div>
@@ -1476,7 +1503,8 @@ const runDraft = reactive({
   initial_capital: 100000,
   risk_per_trade_pct: 1,
   slippage_bps: 5,
-  commission_per_trade: 0,
+  commission_model: 'fixed_round_trip' as 'fixed_round_trip' | 'fixed_per_order' | 'percent_of_notional',
+  commission_value: 0,
   walk_forward_segments: 3,
   walk_forward_training_share: 0.6,
   paper_forward_bars: 20,
@@ -1623,11 +1651,79 @@ const visibleTrades = computed<any[]>(() =>
     : []
 )
 
+function eventSortOrder(eventType: string | null | undefined) {
+  const value = String(eventType ?? '')
+  if (value === 'entry') return 0
+  if (value === 'exit') return 1
+  if (value === 'open_at_end') return 2
+  if (value === 'rejected') return 3
+  return 4
+}
+
 const executionLog = computed<any[]>(() => {
   const rows = Array.isArray(selectedRunDetail.value?.result_summary?.execution_log)
     ? selectedRunDetail.value?.result_summary?.execution_log
     : []
-  return [...rows].sort((left, right) => String(left.ts ?? '').localeCompare(String(right.ts ?? '')))
+  const openPositions = Array.isArray(selectedRunDetail.value?.result_summary?.open_positions)
+    ? selectedRunDetail.value?.result_summary?.open_positions
+    : []
+  const normalized = [...rows]
+  const seenKeys = new Set(
+    normalized.map(event =>
+      [
+        String(event.position_id ?? ''),
+        String(event.event_type ?? ''),
+        String(event.ts ?? ''),
+      ].join('::'),
+    ),
+  )
+
+  for (const position of openPositions) {
+    const positionId = `${String(position.instrument_symbol ?? '')}-${String(position.entry_at ?? '')}`
+    const entryKey = [positionId, 'entry', String(position.entry_at ?? '')].join('::')
+    if (!seenKeys.has(entryKey)) {
+      normalized.push({
+        ts: position.entry_at,
+        event_type: 'entry',
+        position_id: positionId,
+        symbol: position.instrument_symbol,
+        side: position.side,
+        quantity: position.quantity,
+        price: position.entry_price,
+        pnl: null,
+        pnl_pct: null,
+        r_multiple: null,
+        reason: 'entry_signal',
+      })
+      seenKeys.add(entryKey)
+    }
+
+    const markKey = [positionId, 'open_at_end', String(position.current_at ?? '')].join('::')
+    if (!seenKeys.has(markKey)) {
+      normalized.push({
+        ts: position.current_at,
+        event_type: 'open_at_end',
+        position_id: positionId,
+        symbol: position.instrument_symbol,
+        side: position.side,
+        quantity: position.quantity,
+        price: position.current_price,
+        pnl: position.unrealized_pnl,
+        pnl_pct: position.unrealized_pnl_pct,
+        r_multiple: position.r_multiple,
+        reason: 'run_end_mark',
+      })
+      seenKeys.add(markKey)
+    }
+  }
+
+  return normalized.sort((left, right) => {
+    const tsCompare = String(left.ts ?? '').localeCompare(String(right.ts ?? ''))
+    if (tsCompare !== 0) return tsCompare
+    const typeCompare = eventSortOrder(left.event_type) - eventSortOrder(right.event_type)
+    if (typeCompare !== 0) return typeCompare
+    return String(left.symbol ?? '').localeCompare(String(right.symbol ?? ''))
+  })
 })
 
 const benchmarkCurve = computed<any[]>(() =>
@@ -1973,6 +2069,27 @@ const positionSizingValueHelp = computed(() => {
   return 'Sizing value for the selected model.'
 })
 
+const commissionValueLabel = computed(() => {
+  if (runDraft.commission_model === 'percent_of_notional') return 'Commission %'
+  if (runDraft.commission_model === 'fixed_per_order') return 'Commission per order'
+  return 'Commission per round-trip'
+})
+
+const commissionValueHelp = computed(() => {
+  if (runDraft.commission_model === 'percent_of_notional') {
+    return 'Percent commission applied to each entry and exit order notional. Example: 0.1 means 0.10% of the order value.'
+  }
+  if (runDraft.commission_model === 'fixed_per_order') {
+    return 'Flat commission charged on each entry and exit order, regardless of position size.'
+  }
+  return 'Flat commission charged once for the whole trade lifecycle. This preserves the older Strategy Lab flat-fee behavior.'
+})
+
+const commissionValueMin = computed(() => 0)
+const commissionValueStep = computed(() =>
+  runDraft.commission_model === 'percent_of_notional' ? 0.01 : 0.1,
+)
+
 const positionSizingValueStep = computed(() =>
   logicDraft.position_sizing_mode === 'fixed_quantity' ? 1 : 0.1,
 )
@@ -2220,7 +2337,8 @@ function startNew() {
   runDraft.initial_capital = 100000
   runDraft.risk_per_trade_pct = 1
   runDraft.slippage_bps = 5
-  runDraft.commission_per_trade = 0
+  runDraft.commission_model = 'fixed_round_trip'
+  runDraft.commission_value = 0
   runDraft.walk_forward_segments = 3
   runDraft.walk_forward_training_share = 0.6
   runDraft.paper_forward_bars = 20
@@ -2333,7 +2451,13 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   runDraft.initial_capital = Math.max(1000, Number(runDefaults.initial_capital ?? 100000) || 100000)
   runDraft.risk_per_trade_pct = Math.max(0.1, Number(runDefaults.risk_per_trade_pct ?? 1) || 1)
   runDraft.slippage_bps = Math.max(0, Number(runDefaults.slippage_bps ?? 5) || 0)
-  runDraft.commission_per_trade = Math.max(0, Number(runDefaults.commission_per_trade ?? 0) || 0)
+  runDraft.commission_model = ['fixed_round_trip', 'fixed_per_order', 'percent_of_notional'].includes(String(runDefaults.commission_model))
+    ? runDefaults.commission_model
+    : 'fixed_round_trip'
+  runDraft.commission_value = Math.max(
+    0,
+    Number(runDefaults.commission_value ?? runDefaults.commission_per_trade ?? 0) || 0,
+  )
   runDraft.walk_forward_segments = Math.max(2, Math.round(Number(runDefaults.walk_forward_segments ?? 3) || 3))
   runDraft.walk_forward_training_share = Math.min(
     0.9,
@@ -2887,7 +3011,9 @@ function buildVersionPayload() {
         initial_capital: runDraft.initial_capital,
         risk_per_trade_pct: runDraft.risk_per_trade_pct,
         slippage_bps: runDraft.slippage_bps,
-        commission_per_trade: runDraft.commission_per_trade,
+        commission_model: runDraft.commission_model,
+        commission_value: runDraft.commission_value,
+        commission_per_trade: runDraft.commission_value,
         walk_forward_segments: runDraft.walk_forward_segments,
         walk_forward_training_share: runDraft.walk_forward_training_share,
         paper_forward_bars: runDraft.paper_forward_bars,
@@ -2966,7 +3092,9 @@ async function runCurrentVersion() {
       initial_capital: runDraft.initial_capital,
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
       slippage_bps: runDraft.slippage_bps,
-      commission_per_trade: runDraft.commission_per_trade,
+      commission_model: runDraft.commission_model,
+      commission_value: runDraft.commission_value,
+      commission_per_trade: runDraft.commission_value,
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
       max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,

@@ -1219,6 +1219,8 @@ def run_single_instrument_nautilus_backtest(
     risk_per_trade_pct: float,
     slippage_bps: float,
     commission_per_trade: float,
+    commission_model: str = "fixed_round_trip",
+    commission_value: float | None = None,
     break_even_rr: float = 0.0,
     trailing_stop_rr: float = 0.0,
     hard_trailing_stop_pct: float = 0.0,
@@ -1231,6 +1233,23 @@ def run_single_instrument_nautilus_backtest(
         timeframe=timeframe,
         bars=bars,
     )
+
+    normalized_commission_model = (
+        commission_model
+        if commission_model in {"fixed_round_trip", "fixed_per_order", "percent_of_notional"}
+        else "fixed_round_trip"
+    )
+    normalized_commission_value = max(
+        float(commission_value if commission_value is not None else commission_per_trade),
+        0.0,
+    )
+
+    def commission_cost(entry_notional: float, exit_notional: float) -> float:
+        if normalized_commission_model == "fixed_per_order":
+            return normalized_commission_value * 2.0
+        if normalized_commission_model == "percent_of_notional":
+            return (abs(entry_notional) + abs(exit_notional)) * (normalized_commission_value / 100.0)
+        return normalized_commission_value
 
     strategy = StrategyLabNautilusStrategy(
         StrategyLabNautilusConfig(
@@ -1329,10 +1348,13 @@ def run_single_instrument_nautilus_backtest(
             stop_price = float(plan.get("stop_price") or 0.0)
             initial_stop_price = float(plan.get("initial_stop_price") or stop_price or 0.0)
             target_price = float(plan.get("target_price") or 0.0)
+            entry_notional = abs(adjusted_entry * quantity)
+            exit_notional = abs(adjusted_exit * quantity)
+            trade_commission = commission_cost(entry_notional, exit_notional)
             if side == "long":
-                pnl = (adjusted_exit - adjusted_entry) * quantity - commission_per_trade
+                pnl = (adjusted_exit - adjusted_entry) * quantity - trade_commission
             else:
-                pnl = (adjusted_entry - adjusted_exit) * quantity - commission_per_trade
+                pnl = (adjusted_entry - adjusted_exit) * quantity - trade_commission
             risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
             pnl_pct = (pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])
@@ -1341,10 +1363,7 @@ def run_single_instrument_nautilus_backtest(
             exit_index = ts_index_map.get(exit_ts, entry_index)
             exit_reason = strategy.exit_reasons.get(position_id, "session_close")
             if exit_reason == "session_close":
-                if side == "long":
-                    unrealized_pnl = (adjusted_exit - adjusted_entry) * quantity - commission_per_trade
-                else:
-                    unrealized_pnl = (adjusted_entry - adjusted_exit) * quantity - commission_per_trade
+                unrealized_pnl = pnl
                 open_positions.append(
                     NautilusOpenPosition(
                         instrument_id=instrument.id,
@@ -1401,10 +1420,13 @@ def run_single_instrument_nautilus_backtest(
             stop_price = float(plan.get("stop_price") or 0.0)
             initial_stop_price = float(plan.get("initial_stop_price") or stop_price or 0.0)
             target_price = float(plan.get("target_price") or 0.0)
+            entry_notional = abs(adjusted_entry * quantity)
+            mark_notional = abs(adjusted_mark * quantity)
+            trade_commission = commission_cost(entry_notional, mark_notional)
             if side == "long":
-                unrealized_pnl = (adjusted_mark - adjusted_entry) * quantity - commission_per_trade
+                unrealized_pnl = (adjusted_mark - adjusted_entry) * quantity - trade_commission
             else:
-                unrealized_pnl = (adjusted_entry - adjusted_mark) * quantity - commission_per_trade
+                unrealized_pnl = (adjusted_entry - adjusted_mark) * quantity - trade_commission
             risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
             pnl_pct = (unrealized_pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])

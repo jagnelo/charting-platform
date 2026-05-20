@@ -85,6 +85,89 @@ def test_nautilus_backtest_runs_and_returns_trades():
         }
 
 
+def test_nautilus_backtest_supports_multiple_commission_models():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = [
+        _bar(start, 100.0, 101.0, 99.0, 100.0),
+        _bar(start + timedelta(days=1), 100.0, 104.0, 99.5, 103.0),
+        _bar(start + timedelta(days=2), 103.0, 105.0, 102.0, 104.0),
+    ]
+
+    common_kwargs = dict(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0.0,
+        max_bars_in_trade=1,
+        capital_base=100000.0,
+        position_sizing_mode="fixed_quantity",
+        position_sizing_value=1.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=0.0,
+        signal_events=[
+            {
+                "signal_at": bars[0].ts,
+                "side": "long",
+                "entry_price": float(bars[0].close),
+            }
+        ],
+    )
+
+    no_fee = run_single_instrument_nautilus_backtest(
+        **common_kwargs,
+        commission_per_trade=0.0,
+        commission_model="fixed_round_trip",
+        commission_value=0.0,
+    )
+    round_trip_fee = run_single_instrument_nautilus_backtest(
+        **common_kwargs,
+        commission_per_trade=1.0,
+        commission_model="fixed_round_trip",
+        commission_value=1.0,
+    )
+    per_order_fee = run_single_instrument_nautilus_backtest(
+        **common_kwargs,
+        commission_per_trade=1.0,
+        commission_model="fixed_per_order",
+        commission_value=1.0,
+    )
+    percent_fee = run_single_instrument_nautilus_backtest(
+        **common_kwargs,
+        commission_per_trade=0.1,
+        commission_model="percent_of_notional",
+        commission_value=0.1,
+    )
+
+    assert no_fee.open_positions and round_trip_fee.open_positions and per_order_fee.open_positions and percent_fee.open_positions
+
+    no_fee_trade = no_fee.open_positions[0]
+    round_trip_trade = round_trip_fee.open_positions[0]
+    per_order_trade = per_order_fee.open_positions[0]
+    percent_trade = percent_fee.open_positions[0]
+
+    assert round(abs(no_fee_trade.unrealized_pnl - round_trip_trade.unrealized_pnl), 4) == 1.0
+    assert round(abs(round_trip_trade.unrealized_pnl - per_order_trade.unrealized_pnl), 4) == 1.0
+
+    expected_percent_commission = (
+        abs(no_fee_trade.entry_price * no_fee_trade.quantity)
+        + abs(no_fee_trade.current_price * no_fee_trade.quantity)
+    ) * 0.001
+    assert abs((no_fee_trade.unrealized_pnl - percent_trade.unrealized_pnl) - expected_percent_commission) < 0.01
+
+
 def test_nautilus_backtest_replays_signal_events():
     instrument = Instrument(
         id=1,
