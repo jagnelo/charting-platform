@@ -55,6 +55,7 @@ describe('ReturnsHeatmap', () => {
     await wrapper.findAll('.returns-heatmap__cell')[3].trigger('click')
     await flushPromises()
 
+    expect(wrapper.findAll('.returns-heatmap__cell')[3].attributes('title')).toBeUndefined()
     expect(wrapper.text()).toContain('2026-04')
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('Exit')

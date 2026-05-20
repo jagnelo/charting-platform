@@ -37,7 +37,6 @@
               'returns-heatmap__cell--negative': (cell.value ?? 0) < 0,
             }"
             :style="cellStyle(cell.value)"
-            :title="cellTitle(cell)"
             @mouseenter="showCellPopover(cell, $event, false)"
             @mouseleave="hideCellPopover(false)"
             @focus="showCellPopover(cell, $event, false)"
@@ -254,12 +253,6 @@ function compactPercent(value: number) {
   const absValue = Math.abs(value)
   if (absValue >= 10) return `${value.toFixed(0)}%`
   return `${value.toFixed(1)}%`
-}
-
-function cellTitle(cell: HeatmapCell) {
-  return cell.value == null
-    ? `${cell.period}: no data`
-    : `${cell.period}: ${valuePercent(cell.value)}`
 }
 
 const popoverStyle = computed(() => {
@@ -519,8 +512,8 @@ function formatShortDateTime(value: string) {
   z-index: 220;
   display: grid;
   gap: 10px;
-  inline-size: fit-content;
-  max-inline-size: min(460px, calc(100vw - 24px));
+  inline-size: clamp(280px, 32vw, 360px);
+  max-inline-size: min(360px, calc(100vw - 24px));
   max-block-size: min(320px, calc(100vh - 24px));
   overflow: auto;
   padding: 12px;
@@ -605,6 +598,8 @@ function formatShortDateTime(value: string) {
   margin: 0;
   color: #8b93a1;
   font-size: 10px;
+  line-height: 1.5;
+  white-space: normal;
 }
 
 .returns-heatmap__empty {
