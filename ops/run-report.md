@@ -141,6 +141,116 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T09:22:58Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Apply a focused readability pass to the Strategy Lab returns heatmaps after the new visual widget proved too compressed on a normal-sized screen.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - fixed readable minimum widths for month/quarter cells
+  - shorter in-cell percent labels
+  - horizontal overflow handling instead of compressing the grid until values become unreadable
+  - narrowed the year-label gutter so more width is preserved for the actual return cells
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - replaced the split monthly/quarterly panels with one full-width `Return breakdown` widget
+  - added monthly / quarterly / yearly selector modes
+  - yearly returns are derived from the existing monthly data when available
+- Updated [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1):
+  - dense tooltips can grow beyond the chart area instead of being confined inside it
+  - dense hover stacks switch to a wider multi-column layout for readability
+  - preset range controls now stay available consistently on shared result charts, including `Position evolution`
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - converted the Strategy Lab builder from split authoring columns into one full-width top-to-bottom flow
+  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each take the full available width
+  - removed the old mid-page split that was creating alignment and spacing issues
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The first heatmap version was structurally valid but still too compressed because it lived inside the same generic half-width mini-panel grid as everything else.
+
+### Assumptions
+
+- Preserving readable tile widths and allowing horizontal overflow when necessary is better than shrinking cells until the percentages are no longer legible.
+
+### Next step
+
+- Commit the returns-heatmap readability pass if the user is happy with the revised sizing and layout.
+
+### Timestamp
+
+- 2026-05-20T10:24:16Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Add real hard trailing-stop risk controls to Strategy Lab and finish validating/committing the remaining frontend readability and results-workspace changes.
+
+### Completed
+
+- Expanded Strategy Lab risk authoring in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - added `Hard trail %`
+  - added `Arm hard trail after gain %`
+  - persisted both fields through the saved strategy snapshot, parameter schema, default parameters, and execution-model summary
+- Expanded executable risk handling in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - hard trailing stop percent now reaches the Nautilus strategy config
+  - optional activation threshold delays arming until a trade has moved enough in favor
+  - stop exits now distinguish `stop_loss`, `break_even`, and `trailing_stop`
+  - initial stop risk is preserved for `R` calculations after stop ratcheting
+- Finalized the earlier frontend Strategy Lab workspace pass:
+  - merged monthly/quarterly heatmaps into one `Return breakdown` widget with monthly / quarterly / yearly modes
+  - improved heatmap readability and year-gutter sizing
+  - improved dense chart hovercards so they can overflow the plot area when needed
+  - exposed preset range controls consistently on shared result charts, including `Position evolution`
+  - converted the Strategy Lab builder into a full-width top-to-bottom flow
+- Committed the work in isolated changesets:
+  - `0a6d511 feat(strategy-lab): refine workspace and risk authoring`
+  - `5a3a1f3 feat(strategy-lab): add hard trailing risk rules`
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py`
+
+### Problems found
+
+- Running `git add` and `git commit` in parallel again caused transient stale `.git/index.lock` failures; rerunning the commits sequentially resolved it cleanly.
+- Docker-backed integration still requires escalated access to the local Docker socket in this shell.
+
+### Assumptions
+
+- A percent-based hard trailing stop plus a standard activation threshold is a meaningful near-term risk-model expansion without pretending ATR/structure/indicator stops already exist.
+
+### Next step
+
+- Continue from the now-clean Strategy Lab baseline with:
+  - multi-timeframe support
+  - deeper risk/sizing models beyond the new hard-trail controls
+  - remaining text-first result panels
+  - data-coverage preflight/acquisition before long-horizon runs
+
+### Timestamp
+
 - 2026-04-30T22:50:48Z
 
 ### Worker

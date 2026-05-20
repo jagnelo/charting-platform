@@ -3,8 +3,8 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-19T23:25:51Z",
-  "last_commit": "9e1eb75",
+  "last_handoff_at": "2026-05-20T10:24:16Z",
+  "last_commit": "5a3a1f3",
   "git_ready_to_commit": true,
   "validation": {
     "backend_tests": "passed",
@@ -18,6 +18,8 @@
     "Strategy Lab now persists version-draft state instead of resetting run/profile values to defaults.",
     "Strategy Lab now supports the full shared Screener condition surface and shared platform indicator catalog.",
     "Strategy Lab results now include visual heatmaps/bars, preset-window chart controls, open-at-end execution events, and aligned position-evolution versus execution-log data.",
-    "Backend unit/integration and frontend unit/type-check validation all passed for this session."
+    "Strategy Lab now uses a single full-width top-to-bottom authoring flow with a merged return-breakdown widget, denser shared-chart hover panels, and preset window controls across result charts.",
+    "Strategy Lab risk authoring and execution now support a hard trailing stop percent plus an optional activation threshold, and stop exits distinguish stop_loss, break_even, and trailing_stop outcomes.",
+    "Backend unit/service/integration validation and the full frontend suite passed for this session."
   ]
 }
