@@ -183,6 +183,44 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T16:11:25Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Clean up the `Return breakdown` tooltip behavior so the custom drilldown popover has a more consistent width and the native browser tooltip no longer competes with it.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - removed the cell `title` attribute so only the custom detailed popover appears
+  - normalized the popover to a steadier card-width range instead of `fit-content`
+  - kept the existing edge-aware positioning while avoiding the long single-line empty-state tooltip shape
+- Updated [frontend/tests/unit/components/test_returns_heatmap.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_returns_heatmap.test.ts:1) to assert the native `title` tooltip is no longer present on the drilled cell
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- The heatmap drilldown should keep one consistent custom interaction model rather than mixing a browser-native tooltip with the richer custom popover.
+
+### Next step
+
+- Continue with the remaining Strategy Lab roadmap and UX refinements from the active `strategy-lab` task.
+
+### Timestamp
+
 - 2026-04-30T22:29:31Z
 
 ### Worker

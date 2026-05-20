@@ -3,7 +3,7 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-20T16:07:32Z",
+  "last_handoff_at": "2026-05-20T16:11:25Z",
   "last_commit": "0a37ca5",
   "git_ready_to_commit": true,
   "validation": {
@@ -39,6 +39,7 @@
     "Strategy Lab now supports a richer first pass of risk modeling with ATR-based stops plus percent-risk, fixed-cash, percent-capital, and fixed-quantity sizing modes.",
     "The Per symbol and R distribution result widgets now keep their bar visuals but add summary chips plus hover/click drilldowns so their bars explain symbol attribution and closed-trade R buckets more clearly.",
     "The Per symbol and R distribution result widgets now surface their drilldown data in anchored hover/focus popovers instead of expanding bottom detail sections, so results stay visually stable and the details appear beside the hovered bar.",
+    "The Return breakdown heatmap now relies only on its custom drilldown popover, and that popover uses a steadier card width so empty periods no longer create awkward wide single-line tooltips.",
     "The shared Strategy Lab result chart now supports integer-only Y-axis ticks, and the Open positions chart uses it so position counts no longer render with fractional labels.",
     "The remaining weak result panels are now structured views rather than raw lists: signal replay breakdown, optimization leaderboard, walk-forward segments, paper-forward monitor, and run comparison table."
   ]

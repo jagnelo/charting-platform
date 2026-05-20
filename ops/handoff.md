@@ -104,6 +104,10 @@
   - `Per symbol` and `R distribution` no longer push detail blocks to the bottom of the panel stack
   - both now use anchored hover/focus popovers beside the hovered row instead of click-to-pin bottom detail areas
   - the panels now keep a stable height while still surfacing the same outcome/bucket detail near the hovered bar
+- Refined the `Return breakdown` tooltip behavior in [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - removed the native browser `title` tooltip from return cells so only the custom drilldown popover remains
+  - normalized the popover width so empty-state periods no longer render as awkward single-line strips
+  - preserved edge-aware positioning while keeping a more consistent card-like tooltip shape
 - Reworked the Strategy Lab authoring area in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) into a single full-width top-to-bottom builder flow:
   - no more split builder columns
   - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
@@ -185,6 +189,9 @@
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
