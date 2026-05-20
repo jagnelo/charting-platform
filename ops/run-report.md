@@ -183,6 +183,60 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T17:52:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Add Strategy Lab coverage visibility so users can understand how the requested run window compares with the locally available historical coverage of the selected universe and benchmark, both before running and in the results workspace.
+
+### Completed
+
+- Added new backend coverage-preview schemas in [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1) and a new `POST /api/v1/strategy-lab/coverage-preview` endpoint in [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1).
+- Expanded [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) with richer coverage builders:
+  - requested run window
+  - shared universe coverage window
+  - any-symbol coverage window
+  - per-instrument coverage status, requested bars, and explanatory notes
+  - richer benchmark coverage status and available first/last bar
+- Updated Strategy Lab run results to carry the richer coverage summaries for custom, radar, and benchmark flows instead of only a bare total-bar count.
+- Added the new [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1) and wired it into [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - `Coverage preview` during run prep
+  - `Coverage detail` in the results section
+- Extended frontend/backend tests so the preview route, richer payloads, and UI rendering are covered in:
+  - [backend/tests/integration/api/test_strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/integration/api/test_strategy_lab.py:1)
+  - [backend/tests/unit/services/test_strategy_lab_service.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/unit/services/test_strategy_lab_service.py:1)
+  - [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+
+### Validation
+
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+
+### Problems found
+
+- One lint regression surfaced during the pass because a stale local variable name (`total_bars`) remained in the strategy-foundation readiness payload after the coverage refactor; that was patched before final validation.
+- The integration suite requires Docker access in this shell, so it had to run with escalated permissions.
+
+### Assumptions
+
+- Users need to see both the collective shared coverage of the selected universe and the broader “any selected symbol has data here” range, because those answer different questions when a universe mixes long-history and short-history instruments.
+- It is more useful to call out likely-missing local history separately from naturally short listing history, even if that distinction must remain heuristic without provider-side metadata or auto-fetch.
+
+### Next step
+
+- Build on this visibility work by adding true data-coverage preflight/acquisition before run execution, so the platform can either backfill or clearly block unsupported historical windows instead of only warning about them.
+
+### Timestamp
+
 - 2026-05-20T16:11:25Z
 
 ### Worker

@@ -13,6 +13,14 @@
 
 ## Completed in this session
 
+- Added Strategy Lab coverage visibility across preparation and results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - new `POST /api/v1/strategy-lab/coverage-preview` endpoint for prep-time coverage preview
+  - richer universe coverage summaries with requested window, shared local window, any-symbol window, limiting instruments, and per-instrument notes
+  - richer benchmark coverage summaries with requested status, available first/last bar, and missing-history warnings
+  - prep-time `Coverage preview` section in `Research runs`
+  - full `Coverage detail` panel in `Results`
+  - clearer user-facing distinction between naturally short history and likely-missing local history
+  - explicit benchmark coverage timestamps with year included
 - Deepened backend Strategy Lab execution and persistence in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), and [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1):
   - version-draft persistence via version patching
   - eager-loaded instrument context fix for async ORM run execution
@@ -123,7 +131,7 @@
   - dynamic screener universes instead of the current snapshot universe mode
   - broader asset-model realism beyond the current equity-style OHLCV focus
   - remaining text-first result panels: signal replay, optimization, walk-forward, paper-forward monitor, run comparison
-  - data-coverage preflight / acquisition before Strategy Lab runs so multi-year requests are guaranteed or clearly blocked
+  - data-coverage preflight / acquisition before Strategy Lab runs so multi-year requests are guaranteed or clearly blocked rather than only explained by the new coverage preview/detail panels
 
 ## Exact next step
 
@@ -145,6 +153,7 @@
 - `backend/tests/unit/services/test_strategy_lab_nautilus.py`
 - `backend/tests/unit/services/test_strategy_lab_service.py`
 - `frontend/src/components/common/TechnicalConditionEditor.vue`
+- `frontend/src/components/strategy/StrategyCoveragePanel.vue`
 - `frontend/src/components/strategy/DistributionBars.vue`
 - `frontend/src/components/strategy/ReturnsHeatmap.vue`
 - `frontend/src/components/strategy/StrategyResultChart.vue`
