@@ -237,6 +237,80 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T17:53:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Show unrealized open-position return as both money and percent in the Strategy Lab results summary instead of only the absolute P&L.
+
+### Completed
+
+- Updated the `Net return` summary card in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so open-position runs now render unrealized P&L as:
+  - money
+  - signed percentage of starting capital
+- Updated [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1) to assert the new summary format.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The first pass rendered the value with awkward whitespace and without a sign on the percentage, so the summary and test were tightened to use the signed-percent formatter consistently.
+
+### Assumptions
+
+- In this summary card, unrealized percent should be interpreted as unrealized P&L relative to the run’s starting capital, matching the existing backend `unrealized_return_pct` semantics.
+
+### Next step
+
+- Continue with the next Strategy Lab UX or analytics refinement from the active task backlog.
+
+### Timestamp
+
+- 2026-05-20T17:57:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Ensure the Strategy Lab execution log still shows open positions when a run payload includes `open_positions` but omits the corresponding execution-log rows.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so the computed `executionLog` now:
+  - keeps existing backend execution events
+  - synthesizes missing `entry` rows from `open_positions`
+  - synthesizes missing `open_at_end` rows from `open_positions`
+  - sorts the merged event stream by timestamp and event type
+- Updated [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1) so the base fixture mirrors the inconsistent real-world case and asserts the synthesized `Open At End` / `Run End Mark` rows render.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The backend event-generation path already supports `open_at_end`, so the remaining real-world gap was older or inconsistent saved result payloads rather than the current backend logic itself.
+
+### Assumptions
+
+- It is better for the frontend to reconcile the execution log from `open_positions` data when necessary than to let the results workspace silently disagree with the position-evolution chart and summary counts.
+
+### Next step
+
+- Continue with the next Strategy Lab UX or analytics refinement from the active task backlog.
+
+### Timestamp
+
 - 2026-05-20T16:11:25Z
 
 ### Worker
@@ -1273,6 +1347,75 @@ Append a short entry after each worker session.
 ### Next step
 
 - If the user wants the current uncommitted frontend Strategy Lab refinements recorded now, commit them together in a frontend-focused changeset.
+
+---
+
+### Timestamp
+
+- 2026-05-20T18:46:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Clarify Strategy Lab commission semantics, support multiple commission models in execution assumptions, and document future multi-currency / FX conversion-cost support.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - replaced the ambiguous single `Commission per trade` input with:
+    - `Commission model`
+    - `Commission value`
+  - added explicit supported models:
+    - fixed round-trip
+    - fixed per-order
+    - percent of notional
+  - added inline copy/tooltips clarifying what each model means and how the numeric value is interpreted
+  - persisted the new fields through saved run defaults and run execution assumptions, while still carrying `commission_per_trade` as a compatibility alias
+  - tightened Strategy Lab result hydration so unrealized P&L shows both money and signed percent, and execution logs synthesize missing `entry` / `open_at_end` rows from `open_positions` when older payloads omit them
+- Updated [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1):
+  - added normalized commission-setting coercion
+  - passed `commission_model` and `commission_value` through both rules backtests and radar signal research
+  - persisted the clarified commission settings into result summaries
+- Updated [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - implemented fee handling for:
+    - fixed round-trip commissions
+    - fixed per-order commissions
+    - percent-of-notional commissions
+  - applied the selected commission model to:
+    - closed-trade P&L
+    - run-end open-position unrealized P&L
+    - mark-to-market open-position snapshots
+- Updated [backend/tests/unit/services/test_strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/unit/services/test_strategy_lab_nautilus.py:1) with explicit commission-model coverage
+- Updated [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1) to lock in the new run payload / saved-default fields
+- Updated [docs/project-todos.md](/Users/jagnelo/Documents/Projects/charting-platform/docs/project-todos.md:1):
+  - documented the new basic commission-model support
+  - added future roadmap coverage for multi-currency portfolios and FX conversion commissions when account and instrument currencies differ
+
+### Validation
+
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The old `Commission per trade` field did not state whether it was a flat fee or a percentage, which made execution assumptions ambiguous.
+- Older/inconsistent Strategy Lab run payloads can still expose open positions in summaries while omitting their matching execution-log rows, which made the frontend results table look like it only knew about closed trades.
+
+### Assumptions
+
+- `percent_of_notional` should be interpreted as a whole percentage value, so `0.1` means `0.10%`.
+- For now, percent-based commissions are applied against the sum of entry and exit/mark notional so they behave like a standard two-sided broker fee model.
+
+### Next step
+
+- If the user wants these current commission-model and execution-log fixes recorded now, commit them in a backend/frontend Strategy Lab changeset plus the usual ops handoff commit.
 
 ---
 

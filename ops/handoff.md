@@ -13,6 +13,20 @@
 
 ## Completed in this session
 
+- Clarified and expanded Strategy Lab commission semantics in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - the ambiguous single `Commission per trade` assumption is now an explicit commission model plus value
+  - supported models are:
+    - fixed round-trip commission
+    - fixed per-order commission
+    - percent of notional
+  - run defaults, execution assumptions, and result summaries now persist `commission_model` and `commission_value`, while still carrying `commission_per_trade` as a compatibility alias
+  - simulated closed trades, run-end open positions, and unrealized mark-to-market P&L now all subtract fees according to the selected commission model
+- Tightened the Strategy Lab result summary and execution log in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the `Net return` summary now shows unrealized P&L as both money and signed percent
+  - if a run payload still omits open-position execution rows, the UI synthesizes the missing `entry` and `open_at_end` rows from `open_positions` so those positions are not silently absent from the log
+- Extended the Strategy Lab execution-model roadmap in [docs/project-todos.md](/Users/jagnelo/Documents/Projects/charting-platform/docs/project-todos.md:1):
+  - documented that current support now covers basic fixed-fee and percent-of-notional commission models
+  - added future work for multi-currency portfolios and FX conversion commissions when account currency differs from instrument currency
 - Added Strategy Lab coverage visibility across preparation and results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
   - new `POST /api/v1/strategy-lab/coverage-preview` endpoint for prep-time coverage preview
   - richer universe coverage summaries with requested window, shared local window, any-symbol window, limiting instruments, and per-instrument notes
@@ -21,6 +35,10 @@
   - full `Coverage detail` panel in `Results`
   - clearer user-facing distinction between naturally short history and likely-missing local history
   - explicit benchmark coverage timestamps with year included
+- Tightened the Strategy Lab `Net return` summary card in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so open-position runs now show unrealized P&L as both:
+  - absolute money
+  - signed percent of starting capital
+- Hardened the Strategy Lab execution-log view in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so if older or inconsistent run payloads include `open_positions` but omit their matching execution events, the UI synthesizes the missing `entry` and `open_at_end` rows instead of silently hiding those positions from the log.
 - Deepened backend Strategy Lab execution and persistence in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), and [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1):
   - version-draft persistence via version patching
   - eager-loaded instrument context fix for async ORM run execution
@@ -152,6 +170,7 @@
 - `backend/tests/unit/services/test_screener_engine.py`
 - `backend/tests/unit/services/test_strategy_lab_nautilus.py`
 - `backend/tests/unit/services/test_strategy_lab_service.py`
+- `docs/project-todos.md`
 - `frontend/src/components/common/TechnicalConditionEditor.vue`
 - `frontend/src/components/strategy/StrategyCoveragePanel.vue`
 - `frontend/src/components/strategy/DistributionBars.vue`
@@ -234,6 +253,12 @@
 - `rtk npm --prefix frontend run type-check`
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
 - `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
 - `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
 - `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py`

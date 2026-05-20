@@ -3,7 +3,7 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-20T17:52:00Z",
+  "last_handoff_at": "2026-05-20T18:46:00Z",
   "last_commit": "0a37ca5",
   "git_ready_to_commit": true,
   "validation": {
@@ -42,6 +42,10 @@
     "The Return breakdown heatmap now relies only on its custom drilldown popover, and that popover uses a steadier card width so empty periods no longer create awkward wide single-line tooltips.",
     "The shared Strategy Lab result chart now supports integer-only Y-axis ticks, and the Open positions chart uses it so position counts no longer render with fractional labels.",
     "The remaining weak result panels are now structured views rather than raw lists: signal replay breakdown, optimization leaderboard, walk-forward segments, paper-forward monitor, and run comparison table.",
-    "Strategy Lab now exposes prep-time and result-time data coverage summaries for the chosen universe and benchmark, including per-instrument windows, shared available range, benchmark coverage range, and warnings when the requested run dates exceed local coverage."
+    "Strategy Lab now exposes prep-time and result-time data coverage summaries for the chosen universe and benchmark, including per-instrument windows, shared available range, benchmark coverage range, and warnings when the requested run dates exceed local coverage.",
+    "Strategy Lab net-return summaries now show unrealized open-position P&L as both absolute money and signed percent, instead of only the money value.",
+    "Strategy Lab now synthesizes missing entry/open-at-end execution-log rows from open-position payload data so open positions are not silently missing from the results log when older or inconsistent run payloads omit them.",
+    "Strategy Lab execution assumptions now support explicit commission models: fixed round-trip fees, fixed per-order fees, and percent-of-notional commissions, with the backend applying those fees to closed trades, run-end open positions, and unrealized mark-to-market P&L.",
+    "The Strategy Lab roadmap now explicitly tracks deeper execution-cost realism, including multi-currency portfolio support and FX conversion commissions when account and instrument currencies differ."
   ]
 }
