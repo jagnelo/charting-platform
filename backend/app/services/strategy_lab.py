@@ -364,6 +364,8 @@ def _extract_risk_and_exit_config(definition: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "stop_loss_pct": float(risk.get("stop_loss_pct", 3)),
+        "hard_trailing_stop_pct": float(risk.get("hard_trailing_stop_pct", 0)),
+        "hard_trailing_activation_pct": float(risk.get("hard_trailing_activation_pct", 0)),
         "break_even_rr": float(risk.get("break_even_rr", 0)),
         "trailing_stop_rr": float(risk.get("trailing_stop_rr", 0)),
         "pyramiding_max_entries": int(risk.get("pyramiding_max_entries", 1)),
@@ -1229,6 +1231,8 @@ async def _run_rules_backtest(
     )
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    hard_trailing_stop_pct = float(risk_and_exits["hard_trailing_stop_pct"])
+    hard_trailing_activation_pct = float(risk_and_exits["hard_trailing_activation_pct"])
     take_profit_rr = float(risk_and_exits["take_profit_rr"])
     max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
     break_even_rr = float(risk_and_exits["break_even_rr"])
@@ -1310,6 +1314,8 @@ async def _run_rules_backtest(
             commission_per_trade=commission_per_trade,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
+            hard_trailing_stop_pct=hard_trailing_stop_pct,
+            hard_trailing_activation_pct=hard_trailing_activation_pct,
             pyramiding_max_entries=pyramiding_max_entries,
             daily_bars=daily_bars,
             weekly_bars=weekly_bars,
@@ -1448,6 +1454,8 @@ async def _run_rules_backtest(
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
+            "hard_trailing_stop_pct": hard_trailing_stop_pct,
+            "hard_trailing_activation_pct": hard_trailing_activation_pct,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
             "pyramiding_max_entries": pyramiding_max_entries,
@@ -1777,6 +1785,8 @@ async def _run_radar_signal_research(
     commission_per_trade = float(run.execution_assumptions.get("commission_per_trade", 0))
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    hard_trailing_stop_pct = float(risk_and_exits["hard_trailing_stop_pct"])
+    hard_trailing_activation_pct = float(risk_and_exits["hard_trailing_activation_pct"])
     take_profit_rr = float(risk_and_exits["take_profit_rr"])
     max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
     break_even_rr = float(risk_and_exits["break_even_rr"])
@@ -1883,6 +1893,8 @@ async def _run_radar_signal_research(
             commission_per_trade=commission_per_trade,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
+            hard_trailing_stop_pct=hard_trailing_stop_pct,
+            hard_trailing_activation_pct=hard_trailing_activation_pct,
             pyramiding_max_entries=pyramiding_max_entries,
             signal_events=signal_events,
         )
@@ -2020,6 +2032,8 @@ async def _run_radar_signal_research(
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
+            "hard_trailing_stop_pct": hard_trailing_stop_pct,
+            "hard_trailing_activation_pct": hard_trailing_activation_pct,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
             "pyramiding_max_entries": pyramiding_max_entries,
@@ -2196,6 +2210,10 @@ async def _maybe_run_parameter_sweep(
                 commission_per_trade=commission_per_trade,
                 break_even_rr=float(risk_and_exits["break_even_rr"]),
                 trailing_stop_rr=float(risk_and_exits["trailing_stop_rr"]),
+                hard_trailing_stop_pct=float(risk_and_exits["hard_trailing_stop_pct"]),
+                hard_trailing_activation_pct=float(
+                    risk_and_exits["hard_trailing_activation_pct"]
+                ),
                 pyramiding_max_entries=int(risk_and_exits["pyramiding_max_entries"]),
                 daily_bars=daily_bars,
                 weekly_bars=weekly_bars,

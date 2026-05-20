@@ -208,6 +208,8 @@ class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     capital_base: float = 100_000.0
     break_even_rr: float = 0.0
     trailing_stop_rr: float = 0.0
+    hard_trailing_stop_pct: float = 0.0
+    hard_trailing_activation_pct: float = 0.0
     pyramiding_max_entries: int = 1
     daily_closes: tuple[float, ...] = ()
     daily_timestamps: tuple[int, ...] = ()
@@ -378,11 +380,14 @@ class StrategyLabNautilusStrategy(Strategy):
                 self.position_plans[position_id] = {
                     "entry_price": planned_entry,
                     "stop_price": stop_price,
+                    "initial_stop_price": stop_price,
                     "target_price": target_price,
                     "bars_elapsed": 0,
                     "best_price": entry_price,
                     "entry_count": 1,
                     "direction": plan_direction,
+                    "break_even_armed": False,
+                    "trailing_armed": False,
                     "setup_type": pending_plan.get("setup_type"),
                     "signal_score": pending_plan.get("score"),
                 }
@@ -406,11 +411,14 @@ class StrategyLabNautilusStrategy(Strategy):
         self.position_plans[position_id] = {
             "entry_price": entry_price,
             "stop_price": stop_price,
+            "initial_stop_price": stop_price,
             "target_price": target_price,
             "bars_elapsed": 0,
             "best_price": entry_price,
             "entry_count": 1,
             "direction": plan_direction,
+            "break_even_armed": False,
+            "trailing_armed": False,
         }
         self._pending_signal_plan = None
 
@@ -464,11 +472,12 @@ class StrategyLabNautilusStrategy(Strategy):
         low = bar.low.as_double()
         entry_price = float(plan["entry_price"])
         stop_price = float(plan["stop_price"])
+        initial_stop_price = float(plan.get("initial_stop_price") or stop_price)
         target_price = float(plan["target_price"])
         bars_elapsed = int(plan.get("bars_elapsed", 0))
         best_price = float(plan.get("best_price") or entry_price)
         direction = str(plan.get("direction") or self.config.direction).lower()
-        risk_distance = abs(entry_price - stop_price)
+        risk_distance = abs(entry_price - initial_stop_price)
 
         if direction == "long":
             best_price = max(best_price, high)
@@ -479,29 +488,78 @@ class StrategyLabNautilusStrategy(Strategy):
         if risk_distance > 0 and self.config.break_even_rr > 0:
             if direction == "long":
                 if high >= entry_price + risk_distance * self.config.break_even_rr:
-                    stop_price = max(stop_price, entry_price)
+                    next_stop = max(stop_price, entry_price)
+                    if next_stop > stop_price:
+                        plan["break_even_armed"] = True
+                    stop_price = next_stop
             else:
                 if low <= entry_price - risk_distance * self.config.break_even_rr:
-                    stop_price = min(stop_price, entry_price)
+                    next_stop = min(stop_price, entry_price)
+                    if next_stop < stop_price:
+                        plan["break_even_armed"] = True
+                    stop_price = next_stop
             plan["stop_price"] = stop_price
 
         if risk_distance > 0 and self.config.trailing_stop_rr > 0:
             trail_distance = risk_distance * self.config.trailing_stop_rr
             if direction == "long":
-                stop_price = max(stop_price, best_price - trail_distance)
+                next_stop = max(stop_price, best_price - trail_distance)
+                if next_stop > stop_price:
+                    plan["trailing_armed"] = True
+                stop_price = next_stop
             else:
-                stop_price = min(stop_price, best_price + trail_distance)
+                next_stop = min(stop_price, best_price + trail_distance)
+                if next_stop < stop_price:
+                    plan["trailing_armed"] = True
+                stop_price = next_stop
             plan["stop_price"] = stop_price
+
+        if self.config.hard_trailing_stop_pct > 0:
+            if direction == "long":
+                favorable_move_pct = (
+                    max(0.0, (best_price - entry_price) / entry_price * 100.0)
+                    if entry_price > 0
+                    else 0.0
+                )
+            else:
+                favorable_move_pct = (
+                    max(0.0, (entry_price - best_price) / entry_price * 100.0)
+                    if entry_price > 0
+                    else 0.0
+                )
+            if favorable_move_pct >= self.config.hard_trailing_activation_pct:
+                trail_distance_pct = self.config.hard_trailing_stop_pct / 100.0
+                if direction == "long":
+                    next_stop = max(stop_price, best_price * (1.0 - trail_distance_pct))
+                    if next_stop > stop_price:
+                        plan["trailing_armed"] = True
+                    stop_price = next_stop
+                else:
+                    next_stop = min(stop_price, best_price * (1.0 + trail_distance_pct))
+                    if next_stop < stop_price:
+                        plan["trailing_armed"] = True
+                    stop_price = next_stop
+                plan["stop_price"] = stop_price
 
         reason: str | None = None
         if direction == "long":
             if low <= stop_price:
-                reason = "stop_loss"
+                if bool(plan.get("trailing_armed")):
+                    reason = "trailing_stop"
+                elif bool(plan.get("break_even_armed")):
+                    reason = "break_even"
+                else:
+                    reason = "stop_loss"
             elif target_price > 0 and high >= target_price:
                 reason = "take_profit"
         else:
             if high >= stop_price:
-                reason = "stop_loss"
+                if bool(plan.get("trailing_armed")):
+                    reason = "trailing_stop"
+                elif bool(plan.get("break_even_armed")):
+                    reason = "break_even"
+                else:
+                    reason = "stop_loss"
             elif target_price > 0 and low <= target_price:
                 reason = "take_profit"
 
@@ -1071,6 +1129,8 @@ def run_single_instrument_nautilus_backtest(
     commission_per_trade: float,
     break_even_rr: float = 0.0,
     trailing_stop_rr: float = 0.0,
+    hard_trailing_stop_pct: float = 0.0,
+    hard_trailing_activation_pct: float = 0.0,
     pyramiding_max_entries: int = 1,
     signal_events: list[dict[str, Any]] | None = None,
 ) -> SingleInstrumentBacktestResult:
@@ -1108,6 +1168,8 @@ def run_single_instrument_nautilus_backtest(
             capital_base=capital_base,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
+            hard_trailing_stop_pct=hard_trailing_stop_pct,
+            hard_trailing_activation_pct=hard_trailing_activation_pct,
             pyramiding_max_entries=max(1, pyramiding_max_entries),
             daily_closes=tuple(float(bar.close) for bar in (daily_bars or [])),
             daily_timestamps=tuple(
@@ -1168,12 +1230,13 @@ def run_single_instrument_nautilus_backtest(
             quantity = float(payload.get("peak_qty") or payload.get("quantity") or 0.0)
             plan = strategy.position_plans.get(position_id, {})
             stop_price = float(plan.get("stop_price") or 0.0)
+            initial_stop_price = float(plan.get("initial_stop_price") or stop_price or 0.0)
             target_price = float(plan.get("target_price") or 0.0)
             if side == "long":
                 pnl = (adjusted_exit - adjusted_entry) * quantity - commission_per_trade
             else:
                 pnl = (adjusted_entry - adjusted_exit) * quantity - commission_per_trade
-            risk_unit = abs(adjusted_entry - stop_price) * quantity if stop_price else 0.0
+            risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
             pnl_pct = (pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])
             exit_ts = int(payload["ts_closed"])
@@ -1239,12 +1302,13 @@ def run_single_instrument_nautilus_backtest(
             quantity = float(payload.get("peak_qty") or payload.get("quantity") or 0.0)
             plan = strategy.position_plans.get(position_id, {})
             stop_price = float(plan.get("stop_price") or 0.0)
+            initial_stop_price = float(plan.get("initial_stop_price") or stop_price or 0.0)
             target_price = float(plan.get("target_price") or 0.0)
             if side == "long":
                 unrealized_pnl = (adjusted_mark - adjusted_entry) * quantity - commission_per_trade
             else:
                 unrealized_pnl = (adjusted_entry - adjusted_mark) * quantity - commission_per_trade
-            risk_unit = abs(adjusted_entry - stop_price) * quantity if stop_price else 0.0
+            risk_unit = abs(adjusted_entry - initial_stop_price) * quantity if initial_stop_price else 0.0
             pnl_pct = (unrealized_pnl / capital_base * 100.0) if capital_base > 0 else 0.0
             entry_ts = int(payload["ts_opened"])
             entry_index = ts_index_map.get(entry_ts, 0)

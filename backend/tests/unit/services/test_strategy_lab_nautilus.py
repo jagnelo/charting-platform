@@ -207,6 +207,56 @@ def test_nautilus_backtest_supports_nested_condition_trees():
     assert result.total_positions >= 1
 
 
+def test_nautilus_backtest_supports_hard_percent_trailing_stop():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = [
+        _bar(start, 100.0, 101.0, 99.0, 100.0),
+        _bar(start + timedelta(days=1), 100.0, 110.0, 100.0, 109.0),
+        _bar(start + timedelta(days=2), 109.0, 111.0, 104.0, 105.0),
+        _bar(start + timedelta(days=3), 105.0, 106.0, 103.0, 104.0),
+    ]
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=0.0,
+        commission_per_trade=0.0,
+        hard_trailing_stop_pct=3.0,
+        hard_trailing_activation_pct=5.0,
+        signal_events=[
+            {
+                "signal_at": bars[0].ts,
+                "side": "long",
+                "entry_price": float(bars[0].close),
+                "stop_price": 98.0,
+                "target_price": 130.0,
+            }
+        ],
+    )
+
+    assert result.trades
+    assert result.trades[0].exit_reason == "trailing_stop"
+    assert result.trades[0].stop_price > result.trades[0].entry_price
+
+
 def test_nautilus_backtest_supports_shared_condition_payloads():
     instrument = Instrument(
         id=1,
