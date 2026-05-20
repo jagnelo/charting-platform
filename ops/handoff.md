@@ -100,6 +100,10 @@
   - the results mini-panels now use a wrapping flex layout instead of equal-height grid rows
   - shorter panels such as `Per symbol` now shrink to their own content height instead of stretching beside taller neighbors like `R distribution`
   - the benchmark partial-coverage note now uses the full date/time formatter, so the year is always visible
+- Reworked the result-bar detail interaction in [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1) and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - `Per symbol` and `R distribution` no longer push detail blocks to the bottom of the panel stack
+  - both now use anchored hover/focus popovers beside the hovered row instead of click-to-pin bottom detail areas
+  - the panels now keep a stable height while still surfacing the same outcome/bucket detail near the hovered bar
 - Reworked the Strategy Lab authoring area in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) into a single full-width top-to-bottom builder flow:
   - no more split builder columns
   - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
@@ -180,6 +184,9 @@
 - `rtk npm --prefix frontend run type-check`
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`

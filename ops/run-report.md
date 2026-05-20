@@ -139,6 +139,50 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T16:07:32Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Replace the bottom-mounted `Per symbol` and `R distribution` detail sections with anchored hover/focus tooltips so the results workspace stops growing and shifting while being inspected.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
+  - removed click-to-pin bottom detail rendering
+  - added anchored hover/focus popovers beside the hovered symbol row
+  - kept the same symbol outcome detail without changing panel height
+- Updated [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - removed the bottom bucket detail area
+  - added anchored hover/focus popovers for bucket drilldowns
+  - kept matching-trade detail near the hovered bucket without causing layout shifts
+- Updated the matching component tests in:
+  - [frontend/tests/unit/components/test_symbol_performance_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_symbol_performance_bars.test.ts:1)
+  - [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1)
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- These two widgets should behave like hover/focus drilldown visuals rather than sticky expandable inspectors, because the user explicitly wants the detail to stay near the hovered bar and not reflow the workspace.
+
+### Next step
+
+- Continue with the remaining Strategy Lab roadmap and UX refinements from the active `strategy-lab` task.
+
+### Timestamp
+
 - 2026-04-30T22:29:31Z
 
 ### Worker
