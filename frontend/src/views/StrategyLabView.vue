@@ -1150,56 +1150,49 @@
 
                 <div class="mini-panel" v-if="selectedRunDetail.result_summary.signal_summary">
                   <div class="subsection-head"><h4>Signal replay</h4></div>
-                  <ul class="detail-list">
-                    <li>
-                      <span>Signals</span>
-                      <strong>{{ selectedRunDetail.result_summary.signal_summary.signal_count ?? 0 }}</strong>
-                    </li>
-                    <li>
-                      <span>Replayed</span>
-                      <strong>{{ selectedRunDetail.result_summary.signal_summary.replayed_signal_count ?? 0 }}</strong>
-                    </li>
-                  </ul>
+                  <SignalReplayBreakdown
+                    :signal-count="selectedRunDetail.result_summary.signal_summary.signal_count ?? 0"
+                    :replayed-signal-count="selectedRunDetail.result_summary.signal_summary.replayed_signal_count ?? 0"
+                    :setup-type-breakdown="selectedRunDetail.result_summary.signal_summary.setup_type_breakdown ?? {}"
+                  />
                 </div>
 
                 <div class="mini-panel" v-if="optimizationRows.length">
                   <div class="subsection-head"><h4>Optimization</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="(row, index) in optimizationRows.slice(0, 5)" :key="`${row.stop_loss_pct}-${row.take_profit_rr}-${row.max_bars_in_trade}`">
-                      <span>#{{ index + 1 }} · {{ row.stop_loss_pct }}% / {{ row.take_profit_rr }}R / {{ row.max_bars_in_trade }} bars</span>
-                      <strong>{{ formatMoney(row.net_pnl) }}</strong>
-                    </li>
-                  </ul>
+                  <OptimizationLeaderboard
+                    :rows="optimizationRows"
+                    empty-label="No optimization leaderboard yet."
+                  />
                 </div>
 
-                <div class="mini-panel" v-if="walkForwardSegments.length">
+                <div class="mini-panel mini-panel--wide" v-if="walkForwardSegments.length">
                   <div class="subsection-head"><h4>Walk-forward</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="segment in walkForwardSegments" :key="segment.segment">
-                      <span>Segment {{ segment.segment }}</span>
-                      <strong>{{ segment.out_sample_return_pct != null ? formatPercent(segment.out_sample_return_pct) : '—' }}</strong>
-                    </li>
-                  </ul>
+                  <WalkForwardSegments
+                    :segments="walkForwardSegments"
+                    :training-share="selectedRunDetail.result_summary.walk_forward?.training_share ?? null"
+                    :avg-out-sample-return-pct="selectedRunDetail.result_summary.walk_forward?.out_of_sample_avg_return_pct ?? null"
+                    empty-label="No walk-forward segments yet."
+                  />
                 </div>
 
-                <div class="mini-panel" v-if="paperForwardSnapshots.length">
+                <div class="mini-panel mini-panel--wide" v-if="paperForwardSnapshots.length || paperForwardCurve.length">
                   <div class="subsection-head"><h4>Paper-forward monitor</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="snapshot in paperForwardSnapshots.slice(-6).reverse()" :key="snapshot.snapshot_at">
-                      <span>{{ formatShortDateTime(snapshot.snapshot_at) }}</span>
-                      <strong>{{ formatMoney(snapshot.latest_equity) }}</strong>
-                    </li>
-                  </ul>
+                  <PaperForwardMonitorPanel
+                    :snapshots="paperForwardSnapshots"
+                    :forward-curve="paperForwardCurve"
+                    :window-bars="selectedRunDetail.result_summary.paper_forward?.window_bars ?? null"
+                    empty-label="No paper-forward monitor yet."
+                  />
                 </div>
 
-                <div class="mini-panel" v-if="comparisonRows.length">
+                <div class="mini-panel mini-panel--wide" v-if="comparisonRows.length">
                   <div class="subsection-head"><h4>Run comparison</h4></div>
-                  <ul class="detail-list">
-                    <li v-for="row in comparisonRows" :key="row.label">
-                      <span>{{ row.label }}</span>
-                      <strong>{{ row.current }} vs {{ row.compare }}</strong>
-                    </li>
-                  </ul>
+                  <RunComparisonTable
+                    :current-label="currentRunComparisonLabel"
+                    :compare-label="compareRunComparisonLabel"
+                    :rows="comparisonRows"
+                    empty-label="No comparison selected."
+                  />
                 </div>
 
                 <div class="mini-panel" v-if="tradeDistributions.r_histogram?.length">
@@ -1281,10 +1274,15 @@ import SearchBar from '@/components/common/SearchBar.vue'
 import TagPicker from '@/components/common/TagPicker.vue'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
+import OptimizationLeaderboard from '@/components/strategy/OptimizationLeaderboard.vue'
+import PaperForwardMonitorPanel from '@/components/strategy/PaperForwardMonitorPanel.vue'
 import ReturnsHeatmap from '@/components/strategy/ReturnsHeatmap.vue'
+import RunComparisonTable from '@/components/strategy/RunComparisonTable.vue'
+import SignalReplayBreakdown from '@/components/strategy/SignalReplayBreakdown.vue'
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
 import StrategyResultChart from '@/components/strategy/StrategyResultChart.vue'
 import StrategyRuleTreeEditor from '@/components/strategy/StrategyRuleTreeEditor.vue'
+import WalkForwardSegments from '@/components/strategy/WalkForwardSegments.vue'
 import { api } from '@/lib/api'
 import {
   STRATEGY_LAB_CONDITION_TYPE_OPTIONS,
@@ -1499,6 +1497,11 @@ const paperForwardSnapshots = computed<any[]>(() =>
     ? selectedRunDetail.value?.result_summary?.paper_forward?.monitor_snapshots
     : []
 )
+const paperForwardCurve = computed<any[]>(() =>
+  Array.isArray(selectedRunDetail.value?.result_summary?.paper_forward?.forward_curve)
+    ? selectedRunDetail.value?.result_summary?.paper_forward?.forward_curve
+    : []
+)
 
 const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
@@ -1651,14 +1654,24 @@ const portfolioTimeline = computed<any[]>(() =>
     : []
 )
 
+const currentRunComparisonLabel = computed(() =>
+  selectedRunDetail.value ? `${formatShortDateTime(selectedRunDetail.value.created_at)} · ${humanizeToken(selectedRunDetail.value.test_mode)}` : 'Current run',
+)
+
+const compareRunComparisonLabel = computed(() =>
+  compareRun.value ? `${formatShortDateTime(compareRun.value.created_at)} · ${humanizeToken(compareRun.value.test_mode)}` : 'Comparison run',
+)
+
 const comparisonRows = computed(() => {
   if (!selectedRunDetail.value || !compareRun.value) return []
   return [
-    comparisonMetric('Net return', selectedRunDetail.value.result_summary?.performance?.net_return_pct, compareRun.value.result_summary?.performance?.net_return_pct, '%'),
-    comparisonMetric('Win rate', selectedRunDetail.value.result_summary?.performance?.win_rate, compareRun.value.result_summary?.performance?.win_rate, '%'),
-    comparisonMetric('Expectancy', selectedRunDetail.value.result_summary?.performance?.expectancy_r, compareRun.value.result_summary?.performance?.expectancy_r, 'R'),
-    comparisonMetric('Drawdown', selectedRunDetail.value.result_summary?.performance?.max_drawdown_pct, compareRun.value.result_summary?.performance?.max_drawdown_pct, '%'),
-    comparisonMetric('Trade count', selectedRunDetail.value.result_summary?.performance?.trade_count, compareRun.value.result_summary?.performance?.trade_count, ''),
+    comparisonMetric('Net return', selectedRunDetail.value.result_summary?.performance?.net_return_pct, compareRun.value.result_summary?.performance?.net_return_pct, 'percent', 'higher'),
+    comparisonMetric('Win rate', selectedRunDetail.value.result_summary?.performance?.win_rate, compareRun.value.result_summary?.performance?.win_rate, 'percent', 'higher'),
+    comparisonMetric('Expectancy', selectedRunDetail.value.result_summary?.performance?.expectancy_r, compareRun.value.result_summary?.performance?.expectancy_r, 'r', 'higher'),
+    comparisonMetric('Drawdown', selectedRunDetail.value.result_summary?.performance?.max_drawdown_pct, compareRun.value.result_summary?.performance?.max_drawdown_pct, 'percent', 'lower'),
+    comparisonMetric('Trade count', selectedRunDetail.value.result_summary?.performance?.trade_count, compareRun.value.result_summary?.performance?.trade_count, 'count', 'higher'),
+    comparisonMetric('Unrealized', selectedRunDetail.value.result_summary?.performance?.unrealized_pnl, compareRun.value.result_summary?.performance?.unrealized_pnl, 'money', 'higher'),
+    comparisonMetric('Profit factor', selectedRunDetail.value.result_summary?.performance?.profit_factor, compareRun.value.result_summary?.performance?.profit_factor, 'plain', 'higher'),
   ]
 })
 
@@ -3023,19 +3036,59 @@ function formatSeriesReturn(rows: any[], valueKey: string) {
   return formatPercent(((last - first) / first) * 100)
 }
 
-function comparisonMetric(label: string, current: unknown, compare: unknown, suffix: string) {
+type ComparisonMetricKind = 'percent' | 'money' | 'r' | 'count' | 'plain'
+type ComparisonPreference = 'higher' | 'lower'
+
+function formatComparisonValue(value: number, kind: ComparisonMetricKind) {
+  if (kind === 'percent') return formatPercent(value)
+  if (kind === 'money') return formatMoney(value)
+  if (kind === 'r') return formatR(value)
+  if (kind === 'count') return `${Math.round(value)}`
+  return value.toFixed(2)
+}
+
+function formatComparisonDelta(value: number, kind: ComparisonMetricKind) {
+  if (!Number.isFinite(value)) return '—'
+  if (kind === 'percent') return formatSignedPercent(value)
+  if (kind === 'money') {
+    return `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatMoney(Math.abs(value))}`
+  }
+  if (kind === 'r') return `${value > 0 ? '+' : ''}${value.toFixed(2)}R`
+  if (kind === 'count') return `${value > 0 ? '+' : ''}${Math.round(value)}`
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}`
+}
+
+function comparisonMetric(
+  label: string,
+  current: unknown,
+  compare: unknown,
+  kind: ComparisonMetricKind,
+  betterWhen: ComparisonPreference,
+) {
   const currentValue = Number(current)
   const compareValue = Number(compare)
-  const printableCurrent = Number.isFinite(currentValue)
-    ? `${currentValue.toFixed(suffix === '' ? 0 : 2)}${suffix}`
-    : '—'
-  const printableCompare = Number.isFinite(compareValue)
-    ? `${compareValue.toFixed(suffix === '' ? 0 : 2)}${suffix}`
-    : '—'
+  const printableCurrent = Number.isFinite(currentValue) ? formatComparisonValue(currentValue, kind) : '—'
+  const printableCompare = Number.isFinite(compareValue) ? formatComparisonValue(compareValue, kind) : '—'
+  const deltaValue = Number.isFinite(currentValue) && Number.isFinite(compareValue)
+    ? currentValue - compareValue
+    : Number.NaN
+  let winner: 'current' | 'compare' | 'tie' | null = null
+  if (Number.isFinite(currentValue) && Number.isFinite(compareValue)) {
+    if (Math.abs(currentValue - compareValue) < 0.0001) {
+      winner = 'tie'
+    } else if (betterWhen === 'higher') {
+      winner = currentValue > compareValue ? 'current' : 'compare'
+    } else {
+      winner = currentValue < compareValue ? 'current' : 'compare'
+    }
+  }
   return {
     label,
     current: printableCurrent,
     compare: printableCompare,
+    delta: Number.isFinite(deltaValue) ? formatComparisonDelta(deltaValue, kind) : '—',
+    deltaValue,
+    winner,
   }
 }
 
@@ -4012,6 +4065,10 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .mini-panel--returns {
+  flex-basis: 100%;
+}
+
+.mini-panel--wide {
   flex-basis: 100%;
 }
 
