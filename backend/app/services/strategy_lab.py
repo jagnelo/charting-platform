@@ -133,6 +133,407 @@ async def execute_strategy_run(
     return run
 
 
+def _has_explicit_universe(universe_config: dict[str, Any] | None) -> bool:
+    config = universe_config or {}
+    return any(config.get(key) not in (None, [], "") for key in ("instrument_ids", "symbols", "watchlist_id", "screener_id"))
+
+
+def _coerce_timeframe(timeframe_value: str | None, warnings: list[str]) -> Timeframe:
+    raw_value = timeframe_value or Timeframe.D1.value
+    try:
+        return Timeframe(str(raw_value))
+    except ValueError:
+        warnings.append(f"Unknown timeframe '{raw_value}' requested; defaulted to D1.")
+        return Timeframe.D1
+
+
+def _requested_range_fits(
+    *,
+    date_from: datetime | None,
+    date_to: datetime | None,
+    available_from: datetime | None,
+    available_to: datetime | None,
+) -> bool | None:
+    if available_from is None or available_to is None:
+        return None
+    if date_from is None and date_to is None:
+        return None
+    starts_ok = date_from is None or available_from <= date_from
+    ends_ok = date_to is None or available_to >= date_to
+    return starts_ok and ends_ok
+
+
+def _instrument_requested_status(
+    *,
+    available_from: datetime | None,
+    available_to: datetime | None,
+    requested_bars: int,
+    date_from: datetime | None,
+    date_to: datetime | None,
+) -> str:
+    if available_from is None or available_to is None:
+        return "missing"
+    if requested_bars <= 0:
+        return "none"
+    starts_ok = date_from is None or available_from <= date_from
+    ends_ok = date_to is None or available_to >= date_to
+    return "full" if starts_ok and ends_ok else "partial"
+
+
+def _instrument_coverage_note(
+    instrument: Instrument,
+    *,
+    available_from: datetime | None,
+    available_to: datetime | None,
+    requested_bars: int,
+    date_from: datetime | None,
+    date_to: datetime | None,
+) -> str | None:
+    if available_from is None or available_to is None:
+        return "No local OHLCV history is stored for this timeframe."
+
+    notes: list[str] = []
+    ipo_date = getattr(instrument.equity_detail, "ipo_date", None)
+    if date_from is not None and available_from > date_from:
+        if ipo_date is not None and available_from.date() >= ipo_date >= date_from.date():
+            notes.append(f"Coverage begins after IPO ({ipo_date.isoformat()}).")
+        else:
+            notes.append("Coverage begins after the requested start; earlier local history may be missing.")
+    if date_to is not None and available_to < date_to:
+        notes.append("Coverage ends before the requested end.")
+    if requested_bars > 0 and requested_bars < 3:
+        notes.append(f"Only {requested_bars} bars fall inside the requested window.")
+    if not notes and ipo_date is not None and date_from is not None and ipo_date > date_from.date():
+        notes.append(f"Instrument IPO date is {ipo_date.isoformat()}.")
+    return " ".join(notes) if notes else None
+
+
+async def _build_universe_coverage_summary(
+    db: AsyncSession,
+    *,
+    instrument_rows: list[Instrument],
+    timeframe: Timeframe,
+    date_from: datetime | None,
+    date_to: datetime | None,
+    preview_mode: str = "resolved",
+    preview_note: str | None = None,
+) -> dict[str, Any]:
+    if not instrument_rows:
+        return {
+            "preview_mode": preview_mode,
+            "preview_note": preview_note,
+            "instrument_count": 0,
+            "instruments_with_data": 0,
+            "instruments_with_requested_data": 0,
+            "instruments_with_full_requested_coverage": 0,
+            "instruments_with_partial_requested_coverage": 0,
+            "instruments_without_requested_coverage": 0,
+            "total_bars": 0,
+            "requested_first_bar_at": None,
+            "requested_last_bar_at": None,
+            "any_coverage_from": None,
+            "any_coverage_to": None,
+            "collective_coverage_from": None,
+            "collective_coverage_to": None,
+            "requested_fits_collective_range": None,
+            "resolved_symbols": [],
+            "limiting_instruments": [],
+            "instruments": [],
+        }
+
+    instrument_ids = [row.id for row in instrument_rows]
+    full_stmt = (
+        select(
+            OHLCVBar.instrument_id,
+            func.count(OHLCVBar.id),
+            func.min(OHLCVBar.ts),
+            func.max(OHLCVBar.ts),
+        )
+        .where(OHLCVBar.timeframe == timeframe, OHLCVBar.instrument_id.in_(instrument_ids))
+        .group_by(OHLCVBar.instrument_id)
+    )
+    full_rows = (await db.execute(full_stmt)).all()
+    full_map = {
+        int(row[0]): {
+            "total_bars": int(row[1]),
+            "available_from": row[2],
+            "available_to": row[3],
+        }
+        for row in full_rows
+    }
+
+    requested_stmt = (
+        select(
+            OHLCVBar.instrument_id,
+            func.count(OHLCVBar.id),
+            func.min(OHLCVBar.ts),
+            func.max(OHLCVBar.ts),
+        )
+        .where(OHLCVBar.timeframe == timeframe, OHLCVBar.instrument_id.in_(instrument_ids))
+    )
+    if date_from is not None:
+        requested_stmt = requested_stmt.where(OHLCVBar.ts >= date_from)
+    if date_to is not None:
+        requested_stmt = requested_stmt.where(OHLCVBar.ts <= date_to)
+    requested_stmt = requested_stmt.group_by(OHLCVBar.instrument_id)
+    requested_rows = (await db.execute(requested_stmt)).all()
+    requested_map = {
+        int(row[0]): {
+            "requested_bars": int(row[1]),
+            "requested_first_bar_at": row[2],
+            "requested_last_bar_at": row[3],
+        }
+        for row in requested_rows
+    }
+
+    instrument_summaries: list[dict[str, Any]] = []
+    available_starts: list[datetime] = []
+    available_ends: list[datetime] = []
+    requested_starts: list[datetime] = []
+    requested_ends: list[datetime] = []
+
+    for instrument in sorted(instrument_rows, key=lambda row: row.symbol):
+        full = full_map.get(instrument.id, {})
+        requested = requested_map.get(instrument.id, {})
+        available_from = full.get("available_from")
+        available_to = full.get("available_to")
+        requested_first_bar_at = requested.get("requested_first_bar_at")
+        requested_last_bar_at = requested.get("requested_last_bar_at")
+        total_bars = int(full.get("total_bars") or 0)
+        requested_bars = int(requested.get("requested_bars") or 0)
+        requested_status = _instrument_requested_status(
+            available_from=available_from,
+            available_to=available_to,
+            requested_bars=requested_bars,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        note = _instrument_coverage_note(
+            instrument,
+            available_from=available_from,
+            available_to=available_to,
+            requested_bars=requested_bars,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        if available_from is not None:
+            available_starts.append(available_from)
+        if available_to is not None:
+            available_ends.append(available_to)
+        if requested_first_bar_at is not None:
+            requested_starts.append(requested_first_bar_at)
+        if requested_last_bar_at is not None:
+            requested_ends.append(requested_last_bar_at)
+        instrument_summaries.append(
+            {
+                "instrument_id": instrument.id,
+                "symbol": instrument.symbol,
+                "available_from": available_from.isoformat() if available_from else None,
+                "available_to": available_to.isoformat() if available_to else None,
+                "requested_first_bar_at": requested_first_bar_at.isoformat()
+                if requested_first_bar_at
+                else None,
+                "requested_last_bar_at": requested_last_bar_at.isoformat()
+                if requested_last_bar_at
+                else None,
+                "total_bars": total_bars,
+                "requested_bars": requested_bars,
+                "requested_status": requested_status,
+                "note": note,
+                "ipo_date": instrument.equity_detail.ipo_date.isoformat()
+                if instrument.equity_detail is not None and instrument.equity_detail.ipo_date is not None
+                else None,
+            }
+        )
+
+    instruments_with_data = sum(1 for row in instrument_summaries if row["total_bars"] > 0)
+    instruments_with_requested_data = sum(1 for row in instrument_summaries if row["requested_bars"] > 0)
+    instruments_with_full_requested_coverage = sum(
+        1 for row in instrument_summaries if row["requested_status"] == "full"
+    )
+    instruments_with_partial_requested_coverage = sum(
+        1 for row in instrument_summaries if row["requested_status"] == "partial"
+    )
+    instruments_without_requested_coverage = sum(
+        1 for row in instrument_summaries if row["requested_status"] in {"none", "missing"}
+    )
+
+    any_coverage_from = min(available_starts) if available_starts else None
+    any_coverage_to = max(available_ends) if available_ends else None
+    collective_coverage_from = max(available_starts) if available_starts else None
+    collective_coverage_to = min(available_ends) if available_ends else None
+    if (
+        collective_coverage_from is not None
+        and collective_coverage_to is not None
+        and collective_coverage_from > collective_coverage_to
+    ):
+        collective_coverage_from = None
+        collective_coverage_to = None
+
+    limiting_instruments = [
+        row
+        for row in instrument_summaries
+        if row["requested_status"] != "full" or row["note"] is not None
+    ]
+    limiting_instruments.sort(
+        key=lambda row: (
+            {"missing": 0, "none": 1, "partial": 2, "full": 3}.get(str(row["requested_status"]), 4),
+            row["symbol"],
+        )
+    )
+
+    return {
+        "preview_mode": preview_mode,
+        "preview_note": preview_note,
+        "instrument_count": len(instrument_summaries),
+        "instruments_with_data": instruments_with_data,
+        "instruments_with_requested_data": instruments_with_requested_data,
+        "instruments_with_full_requested_coverage": instruments_with_full_requested_coverage,
+        "instruments_with_partial_requested_coverage": instruments_with_partial_requested_coverage,
+        "instruments_without_requested_coverage": instruments_without_requested_coverage,
+        "total_bars": sum(int(row["requested_bars"]) for row in instrument_summaries),
+        "requested_first_bar_at": min(requested_starts).isoformat() if requested_starts else None,
+        "requested_last_bar_at": max(requested_ends).isoformat() if requested_ends else None,
+        "any_coverage_from": any_coverage_from.isoformat() if any_coverage_from else None,
+        "any_coverage_to": any_coverage_to.isoformat() if any_coverage_to else None,
+        "collective_coverage_from": collective_coverage_from.isoformat()
+        if collective_coverage_from
+        else None,
+        "collective_coverage_to": collective_coverage_to.isoformat()
+        if collective_coverage_to
+        else None,
+        "requested_fits_collective_range": _requested_range_fits(
+            date_from=date_from,
+            date_to=date_to,
+            available_from=collective_coverage_from,
+            available_to=collective_coverage_to,
+        ),
+        "resolved_symbols": [row.symbol for row in instrument_rows],
+        "limiting_instruments": limiting_instruments[:10],
+        "instruments": instrument_summaries,
+    }
+
+
+async def _build_benchmark_coverage_summary(
+    db: AsyncSession,
+    *,
+    benchmark_symbol: str,
+    timeframe: Timeframe,
+    date_from: datetime | None,
+    date_to: datetime | None,
+) -> dict[str, Any]:
+    if not benchmark_symbol:
+        return {
+            "symbol": None,
+            "preview_note": "No benchmark configured.",
+            "requested_status": "unconfigured",
+            "available_from": None,
+            "available_to": None,
+            "requested_first_bar_at": None,
+            "requested_last_bar_at": None,
+            "total_bars": 0,
+            "requested_bars": 0,
+            "requested_fits_range": None,
+        }
+
+    warnings: list[str] = []
+    instruments = await _resolve_universe_instruments(db, {"symbols": [benchmark_symbol]}, warnings)
+    if not instruments:
+        return {
+            "symbol": benchmark_symbol,
+            "preview_note": warnings[0] if warnings else "Benchmark could not be resolved.",
+            "requested_status": "missing",
+            "available_from": None,
+            "available_to": None,
+            "requested_first_bar_at": None,
+            "requested_last_bar_at": None,
+            "total_bars": 0,
+            "requested_bars": 0,
+            "requested_fits_range": None,
+        }
+
+    summary = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=[instruments[0]],
+        timeframe=timeframe,
+        date_from=date_from,
+        date_to=date_to,
+        preview_mode="resolved",
+    )
+    row = summary["instruments"][0] if summary["instruments"] else {}
+    return {
+        "symbol": benchmark_symbol,
+        "preview_note": row.get("note"),
+        "requested_status": row.get("requested_status", "missing"),
+        "available_from": row.get("available_from"),
+        "available_to": row.get("available_to"),
+        "requested_first_bar_at": row.get("requested_first_bar_at"),
+        "requested_last_bar_at": row.get("requested_last_bar_at"),
+        "total_bars": int(row.get("total_bars") or 0),
+        "requested_bars": int(row.get("requested_bars") or 0),
+        "requested_fits_range": summary.get("requested_fits_collective_range"),
+    }
+
+
+async def preview_strategy_coverage(
+    db: AsyncSession,
+    *,
+    source_type: str,
+    timeframe_value: str | None,
+    date_from: datetime | None,
+    date_to: datetime | None,
+    universe_config: dict[str, Any] | None,
+    benchmark_config: dict[str, Any] | None,
+) -> dict[str, Any]:
+    warnings: list[str] = []
+    timeframe = _coerce_timeframe(timeframe_value, warnings)
+    effective_universe = dict(universe_config or {})
+    benchmark_symbol = str((benchmark_config or {}).get("symbol") or "").upper()
+    explicit_universe = _has_explicit_universe(effective_universe)
+
+    preview_mode = "resolved"
+    preview_note: str | None = None
+    instrument_rows: list[Instrument] = []
+    if source_type == "radar" and not explicit_universe:
+        preview_mode = "signal_derived"
+        preview_note = (
+            "Radar outputs are signal-derived, so universe coverage cannot be previewed before a run unless you narrow it to explicit symbols, a watchlist, or a screener snapshot."
+        )
+    elif explicit_universe:
+        instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
+        if not instrument_rows:
+            preview_mode = "empty"
+            preview_note = warnings[0] if warnings else "No instruments resolved from the current universe."
+    else:
+        preview_mode = "empty"
+        preview_note = "Choose symbols, a watchlist, or a screener result to preview universe coverage."
+
+    universe = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=instrument_rows,
+        timeframe=timeframe,
+        date_from=date_from,
+        date_to=date_to,
+        preview_mode=preview_mode,
+        preview_note=preview_note,
+    )
+    benchmark = await _build_benchmark_coverage_summary(
+        db,
+        benchmark_symbol=benchmark_symbol,
+        timeframe=timeframe,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return {
+        "timeframe": timeframe.value,
+        "requested_date_from": date_from.isoformat() if date_from else None,
+        "requested_date_to": date_to.isoformat() if date_to else None,
+        "universe": universe,
+        "benchmark": benchmark,
+        "warnings": warnings,
+    }
+
+
 async def _run_platform_foundation(
     db: AsyncSession,
     *,
@@ -151,37 +552,25 @@ async def _run_platform_foundation(
     timeframe_value = (
         run.timeframe or version.definition_snapshot.get("timeframe") or Timeframe.D1.value
     )
-    try:
-        timeframe = Timeframe(str(timeframe_value))
-    except ValueError:
-        timeframe = Timeframe.D1
-        warnings.append(f"Unknown timeframe '{timeframe_value}' requested; defaulted to D1.")
-    bars_stmt = select(
-        OHLCVBar.instrument_id,
-        func.count(OHLCVBar.id),
-        func.min(OHLCVBar.ts),
-        func.max(OHLCVBar.ts),
-    ).where(OHLCVBar.timeframe == timeframe)
-    if instrument_ids:
-        bars_stmt = bars_stmt.where(OHLCVBar.instrument_id.in_(instrument_ids))
-    else:
-        bars_stmt = bars_stmt.where(False)
-    if run.date_from is not None:
-        bars_stmt = bars_stmt.where(OHLCVBar.ts >= run.date_from)
-    if run.date_to is not None:
-        bars_stmt = bars_stmt.where(OHLCVBar.ts <= run.date_to)
-    bars_stmt = bars_stmt.group_by(OHLCVBar.instrument_id)
-
-    coverage_rows = (await db.execute(bars_stmt)).all()
-    total_bars = sum(int(row[1]) for row in coverage_rows)
-    instruments_with_data = len(coverage_rows)
-    first_bar_at = min((row[2] for row in coverage_rows if row[2] is not None), default=None)
-    last_bar_at = max((row[3] for row in coverage_rows if row[3] is not None), default=None)
+    timeframe = _coerce_timeframe(str(timeframe_value), warnings)
+    coverage = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=instrument_rows,
+        timeframe=timeframe,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        preview_mode="resolved" if instrument_ids else "empty",
+        preview_note=None if instrument_ids else "No instruments resolved from the current universe config.",
+    )
 
     if not instrument_ids:
         warnings.append("No instruments resolved from the current universe config.")
-    if total_bars == 0:
+    if int(coverage.get("total_bars") or 0) == 0:
         warnings.append("No OHLCV coverage was found for the requested timeframe/date range.")
+    if coverage.get("requested_fits_collective_range") is False:
+        warnings.append(
+            "The requested date range exceeds the shared local coverage window of the selected universe."
+        )
     if not (version.definition_snapshot or run.parameter_values):
         warnings.append(
             "No concrete strategy logic was supplied yet; this run is a research foundation snapshot."
@@ -201,11 +590,7 @@ async def _run_platform_foundation(
             "truncated_symbol_count": max(0, len(symbols) - 25),
         },
         "coverage": {
-            "instruments_with_data": instruments_with_data,
-            "instrument_count": len(instrument_ids),
-            "total_bars": total_bars,
-            "first_bar_at": first_bar_at.isoformat() if first_bar_at else None,
-            "last_bar_at": last_bar_at.isoformat() if last_bar_at else None,
+            **coverage,
             "requested_date_from": run.date_from.isoformat() if run.date_from else None,
             "requested_date_to": run.date_to.isoformat() if run.date_to else None,
         },
@@ -219,7 +604,7 @@ async def _run_platform_foundation(
         "readiness": {
             "has_definition_snapshot": bool(version.definition_snapshot),
             "has_universe": bool(instrument_ids),
-            "has_coverage": total_bars > 0,
+            "has_coverage": int(coverage.get("total_bars") or 0) > 0,
             "requires_simulation_engine": True,
         },
         "warnings": warnings,
@@ -1202,18 +1587,22 @@ async def _run_rules_backtest(
     warnings: list[str] = []
 
     timeframe_value = run.timeframe or definition.get("timeframe") or Timeframe.D1.value
-    try:
-        timeframe = Timeframe(str(timeframe_value))
-    except ValueError:
-        timeframe = Timeframe.D1
-        warnings.append(f"Unknown timeframe '{timeframe_value}' requested; defaulted to D1.")
+    timeframe = _coerce_timeframe(str(timeframe_value), warnings)
 
     instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
     trades: list[NautilusTrade] = []
     open_positions: list[NautilusOpenPosition] = []
-    coverage_total_bars = 0
     covered_symbols: list[str] = []
     bars_by_instrument: dict[int, list[OHLCVBar]] = {}
+    coverage = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=instrument_rows,
+        timeframe=timeframe,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        preview_mode="resolved" if instrument_rows else "empty",
+        preview_note=None if instrument_rows else "No instruments resolved from the current universe.",
+    )
 
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
@@ -1302,7 +1691,6 @@ async def _run_rules_backtest(
             else []
         )
         covered_symbols.append(instrument.symbol)
-        coverage_total_bars += len(bars)
         instrument_result = run_single_instrument_nautilus_backtest(
             instrument=instrument,
             bars=bars,
@@ -1368,6 +1756,10 @@ async def _run_rules_backtest(
     )
     if rejected_trades:
         warnings.append(f"{len(rejected_trades)} trades were rejected by portfolio controls.")
+    if coverage.get("requested_fits_collective_range") is False:
+        warnings.append(
+            "The requested date range exceeds the shared local coverage window of the selected universe."
+        )
 
     wins = [trade for trade in trades if trade.pnl > 0]
     losses = [trade for trade in trades if trade.pnl <= 0]
@@ -1426,11 +1818,11 @@ async def _run_rules_backtest(
             "truncated_symbol_count": max(0, len(covered_symbols) - 25),
         },
         "coverage": {
-            "instruments_with_data": len(covered_symbols),
-            "instrument_count": len(instrument_rows),
-            "total_bars": coverage_total_bars,
+            **coverage,
             "requested_date_from": run.date_from.isoformat() if run.date_from else None,
             "requested_date_to": run.date_to.isoformat() if run.date_to else None,
+            "simulatable_instrument_count": len(covered_symbols),
+            "simulatable_symbols": covered_symbols[:25],
         },
         "performance": {
             "initial_capital": round(initial_capital, 4),
@@ -1733,20 +2125,13 @@ async def _run_radar_signal_research(
 
     radar_filters = dict(definition.get("radar_filters") or {})
     timeframe_value = run.timeframe or radar_filters.get("timeframe") or Timeframe.D1.value
-    try:
-        timeframe = Timeframe(str(timeframe_value))
-    except ValueError:
-        timeframe = Timeframe.D1
-        warnings.append(f"Unknown timeframe '{timeframe_value}' requested; defaulted to D1.")
+    timeframe = _coerce_timeframe(str(timeframe_value), warnings)
 
     setup_types = _normalize_radar_filter_values(radar_filters.get("setup_types"), RadarSetupType)
     states = _normalize_radar_filter_values(radar_filters.get("states"), RadarState)
     min_score = float(radar_filters.get("min_score", 0.0) or 0.0)
 
-    explicit_universe = any(
-        effective_universe.get(key) not in (None, [], "")
-        for key in ("instrument_ids", "symbols", "watchlist_id", "screener_id")
-    )
+    explicit_universe = _has_explicit_universe(effective_universe)
     instrument_rows = (
         await _resolve_universe_instruments(db, effective_universe, warnings)
         if explicit_universe
@@ -1791,6 +2176,10 @@ async def _run_radar_signal_research(
                 await db.execute(
                     select(Instrument)
                     .where(Instrument.id.in_(list(signal_groups.keys())))
+                    .options(
+                        selectinload(Instrument.equity_detail),
+                        selectinload(Instrument.stats),
+                    )
                     .order_by(Instrument.symbol.asc())
                 )
             )
@@ -1839,9 +2228,27 @@ async def _run_radar_signal_research(
     capital_slice = initial_capital / max(len(instrument_rows), 1)
     trades: list[NautilusTrade] = []
     open_positions: list[NautilusOpenPosition] = []
-    coverage_total_bars = 0
     covered_symbols: list[str] = []
     bars_by_instrument: dict[int, list[OHLCVBar]] = {}
+    coverage_preview_mode = "resolved"
+    coverage_preview_note: str | None = None
+    if not explicit_universe:
+        coverage_preview_mode = "signal_derived"
+        coverage_preview_note = (
+            "Coverage reflects the instruments that actually produced Radar signals for this run."
+        )
+    elif not instrument_rows:
+        coverage_preview_mode = "empty"
+        coverage_preview_note = "No instruments resolved from the current universe."
+    coverage = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=instrument_rows,
+        timeframe=timeframe,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        preview_mode=coverage_preview_mode,
+        preview_note=coverage_preview_note,
+    )
 
     for instrument in instrument_rows:
         detections = signal_groups.get(instrument.id, [])
@@ -1896,7 +2303,6 @@ async def _run_radar_signal_research(
             warnings.append(f"{instrument.symbol} does not have enough bars for signal replay.")
             continue
         bars_by_instrument[instrument.id] = bars
-        coverage_total_bars += len(bars)
         covered_symbols.append(instrument.symbol)
         instrument_result = run_single_instrument_nautilus_backtest(
             instrument=instrument,
@@ -1962,6 +2368,10 @@ async def _run_radar_signal_research(
         warnings.append(
             f"{len(rejected_trades)} replayed signals were rejected by portfolio controls."
         )
+    if coverage.get("requested_fits_collective_range") is False:
+        warnings.append(
+            "The requested date range exceeds the shared local coverage window of the replayed instrument set."
+        )
     wins = [trade for trade in trades if trade.pnl > 0]
     losses = [trade for trade in trades if trade.pnl <= 0]
     total_wins = sum(trade.pnl for trade in wins)
@@ -2010,11 +2420,11 @@ async def _run_radar_signal_research(
             "truncated_symbol_count": max(0, len(covered_symbols) - 25),
         },
         "coverage": {
-            "instruments_with_data": len(covered_symbols),
-            "instrument_count": len(instrument_rows),
-            "total_bars": coverage_total_bars,
+            **coverage,
             "requested_date_from": run.date_from.isoformat() if run.date_from else None,
             "requested_date_to": run.date_to.isoformat() if run.date_to else None,
+            "simulatable_instrument_count": len(covered_symbols),
+            "simulatable_symbols": covered_symbols[:25],
         },
         "signal_summary": {
             "signal_count": len(radar_signals),
@@ -2313,12 +2723,52 @@ async def _build_benchmark_summary(
     initial_capital: float,
 ) -> dict:
     if not benchmark_symbol:
-        return {"symbol": None, "net_return_pct": None, "equity_curve": []}
+        return {
+            "symbol": None,
+            "net_return_pct": None,
+            "equity_curve": [],
+            "coverage": {
+                "symbol": None,
+                "preview_note": "No benchmark configured.",
+                "requested_status": "unconfigured",
+                "available_from": None,
+                "available_to": None,
+                "requested_first_bar_at": None,
+                "requested_last_bar_at": None,
+                "total_bars": 0,
+                "requested_bars": 0,
+                "requested_fits_range": None,
+            },
+        }
 
     warnings: list[str] = []
     instruments = await _resolve_universe_instruments(db, {"symbols": [benchmark_symbol]}, warnings)
     if not instruments:
-        return {"symbol": benchmark_symbol, "net_return_pct": None, "equity_curve": []}
+        return {
+            "symbol": benchmark_symbol,
+            "net_return_pct": None,
+            "equity_curve": [],
+            "coverage": {
+                "symbol": benchmark_symbol,
+                "preview_note": warnings[0] if warnings else "Benchmark could not be resolved.",
+                "requested_status": "missing",
+                "available_from": None,
+                "available_to": None,
+                "requested_first_bar_at": None,
+                "requested_last_bar_at": None,
+                "total_bars": 0,
+                "requested_bars": 0,
+                "requested_fits_range": None,
+            },
+        }
+
+    coverage = await _build_benchmark_coverage_summary(
+        db,
+        benchmark_symbol=benchmark_symbol,
+        timeframe=timeframe,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
     bars = await _load_bars_for_strategy(
         db,
@@ -2328,11 +2778,21 @@ async def _build_benchmark_summary(
         date_to=date_to,
     )
     if len(bars) < 2:
-        return {"symbol": benchmark_symbol, "net_return_pct": None, "equity_curve": []}
+        return {
+            "symbol": benchmark_symbol,
+            "net_return_pct": None,
+            "equity_curve": [],
+            "coverage": coverage,
+        }
 
     first_close = float(bars[0].close)
     if first_close <= 0:
-        return {"symbol": benchmark_symbol, "net_return_pct": None, "equity_curve": []}
+        return {
+            "symbol": benchmark_symbol,
+            "net_return_pct": None,
+            "equity_curve": [],
+            "coverage": coverage,
+        }
 
     curve = [
         {
@@ -2434,9 +2894,5 @@ async def _build_benchmark_summary(
             "net_return_pct": round(((ending - initial_capital) / initial_capital * 100.0), 4),
             "max_drawdown_pct": _max_drawdown_pct(curve),
         },
-        "coverage": {
-            "first_bar_at": bars[0].ts.isoformat(),
-            "last_bar_at": bars[-1].ts.isoformat(),
-            "bar_count": len(bars),
-        },
+        "coverage": coverage,
     }

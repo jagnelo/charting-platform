@@ -59,6 +59,15 @@ class StrategyRunCreate(BaseModel):
     execution_assumptions: dict = Field(default_factory=dict)
 
 
+class StrategyCoveragePreviewRequest(BaseModel):
+    source_type: StrategySourceType = StrategySourceType.CUSTOM
+    timeframe: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    universe_config: dict = Field(default_factory=dict)
+    benchmark_config: dict = Field(default_factory=dict)
+
+
 class StrategyVersionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -128,3 +137,61 @@ class StrategyDefinitionDetailOut(StrategyDefinitionSummaryOut):
 
 class StrategyRunSubmitOut(StrategyRunOut):
     pass
+
+
+class StrategyCoverageInstrumentOut(BaseModel):
+    instrument_id: int
+    symbol: str
+    available_from: datetime | None
+    available_to: datetime | None
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    total_bars: int
+    requested_bars: int
+    requested_status: str
+    note: str | None = None
+    ipo_date: str | None = None
+
+
+class StrategyCoverageUniverseOut(BaseModel):
+    preview_mode: str
+    preview_note: str | None = None
+    instrument_count: int
+    instruments_with_data: int
+    instruments_with_requested_data: int
+    instruments_with_full_requested_coverage: int
+    instruments_with_partial_requested_coverage: int
+    instruments_without_requested_coverage: int
+    total_bars: int
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    any_coverage_from: datetime | None
+    any_coverage_to: datetime | None
+    collective_coverage_from: datetime | None
+    collective_coverage_to: datetime | None
+    requested_fits_collective_range: bool | None
+    resolved_symbols: list[str] = Field(default_factory=list)
+    limiting_instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
+    instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
+
+
+class StrategyCoverageBenchmarkOut(BaseModel):
+    symbol: str | None
+    preview_note: str | None = None
+    requested_status: str
+    available_from: datetime | None
+    available_to: datetime | None
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    total_bars: int
+    requested_bars: int
+    requested_fits_range: bool | None
+
+
+class StrategyCoveragePreviewOut(BaseModel):
+    timeframe: str
+    requested_date_from: datetime | None
+    requested_date_to: datetime | None
+    universe: StrategyCoverageUniverseOut
+    benchmark: StrategyCoverageBenchmarkOut
+    warnings: list[str] = Field(default_factory=list)

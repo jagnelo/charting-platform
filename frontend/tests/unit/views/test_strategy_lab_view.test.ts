@@ -94,7 +94,43 @@ const definition = {
       engine_run_ref: 'platform:12',
       result_summary: {
         result_kind: 'rules_backtest',
-        coverage: { total_bars: 120, instruments_with_data: 1 },
+        coverage: {
+          preview_mode: 'resolved',
+          preview_note: null,
+          instrument_count: 1,
+          instruments_with_data: 1,
+          instruments_with_requested_data: 1,
+          instruments_with_full_requested_coverage: 1,
+          instruments_with_partial_requested_coverage: 0,
+          instruments_without_requested_coverage: 0,
+          total_bars: 120,
+          requested_date_from: '2026-01-01T00:00:00Z',
+          requested_date_to: '2026-05-01T00:00:00Z',
+          requested_first_bar_at: '2026-01-01T00:00:00Z',
+          requested_last_bar_at: '2026-05-01T00:00:00Z',
+          any_coverage_from: '2025-10-01T00:00:00Z',
+          any_coverage_to: '2026-05-01T00:00:00Z',
+          collective_coverage_from: '2025-10-01T00:00:00Z',
+          collective_coverage_to: '2026-05-01T00:00:00Z',
+          requested_fits_collective_range: true,
+          resolved_symbols: ['AAPL'],
+          limiting_instruments: [],
+          instruments: [
+            {
+              instrument_id: 1,
+              symbol: 'AAPL',
+              available_from: '2025-10-01T00:00:00Z',
+              available_to: '2026-05-01T00:00:00Z',
+              requested_first_bar_at: '2026-01-01T00:00:00Z',
+              requested_last_bar_at: '2026-05-01T00:00:00Z',
+              total_bars: 220,
+              requested_bars: 120,
+              requested_status: 'full',
+              note: null,
+              ipo_date: '1980-12-12',
+            },
+          ],
+        },
         performance: {
           trade_count: 6,
           closed_trade_count: 6,
@@ -127,6 +163,18 @@ const definition = {
             { ts: '2026-01-01T00:00:00Z', equity: 100000 },
             { ts: '2026-02-01T00:00:00Z', equity: 101200 },
           ],
+          coverage: {
+            symbol: 'SPY',
+            preview_note: null,
+            requested_status: 'full',
+            available_from: '2024-01-01T00:00:00Z',
+            available_to: '2026-05-01T00:00:00Z',
+            requested_first_bar_at: '2026-01-01T00:00:00Z',
+            requested_last_bar_at: '2026-05-01T00:00:00Z',
+            total_bars: 540,
+            requested_bars: 120,
+            requested_fits_range: true,
+          },
         },
         benchmark_comparison: {
           excess_return_pct: 3.2,
@@ -210,6 +258,87 @@ const definition = {
   updated_at: '2026-05-10T10:01:01Z',
 }
 
+const coveragePreviewResponse = {
+  timeframe: 'D1',
+  requested_date_from: '2026-01-01T00:00:00Z',
+  requested_date_to: '2026-05-01T00:00:00Z',
+  universe: {
+    preview_mode: 'resolved',
+    preview_note: null,
+    instrument_count: 2,
+    instruments_with_data: 2,
+    instruments_with_requested_data: 2,
+    instruments_with_full_requested_coverage: 1,
+    instruments_with_partial_requested_coverage: 1,
+    instruments_without_requested_coverage: 0,
+    total_bars: 220,
+    requested_first_bar_at: '2026-01-01T00:00:00Z',
+    requested_last_bar_at: '2026-05-01T00:00:00Z',
+    any_coverage_from: '2025-08-01T00:00:00Z',
+    any_coverage_to: '2026-05-01T00:00:00Z',
+    collective_coverage_from: '2026-02-15T00:00:00Z',
+    collective_coverage_to: '2026-05-01T00:00:00Z',
+    requested_fits_collective_range: false,
+    resolved_symbols: ['AAPL', 'MSFT'],
+    limiting_instruments: [
+      {
+        instrument_id: 2,
+        symbol: 'MSFT',
+        available_from: '2026-02-15T00:00:00Z',
+        available_to: '2026-05-01T00:00:00Z',
+        requested_first_bar_at: '2026-02-15T00:00:00Z',
+        requested_last_bar_at: '2026-05-01T00:00:00Z',
+        total_bars: 55,
+        requested_bars: 55,
+        requested_status: 'partial',
+        note: 'Coverage begins after the requested start; earlier local history may be missing.',
+        ipo_date: null,
+      },
+    ],
+    instruments: [
+      {
+        instrument_id: 1,
+        symbol: 'AAPL',
+        available_from: '2025-10-01T00:00:00Z',
+        available_to: '2026-05-01T00:00:00Z',
+        requested_first_bar_at: '2026-01-01T00:00:00Z',
+        requested_last_bar_at: '2026-05-01T00:00:00Z',
+        total_bars: 165,
+        requested_bars: 120,
+        requested_status: 'full',
+        note: null,
+        ipo_date: '1980-12-12',
+      },
+      {
+        instrument_id: 2,
+        symbol: 'MSFT',
+        available_from: '2026-02-15T00:00:00Z',
+        available_to: '2026-05-01T00:00:00Z',
+        requested_first_bar_at: '2026-02-15T00:00:00Z',
+        requested_last_bar_at: '2026-05-01T00:00:00Z',
+        total_bars: 55,
+        requested_bars: 55,
+        requested_status: 'partial',
+        note: 'Coverage begins after the requested start; earlier local history may be missing.',
+        ipo_date: null,
+      },
+    ],
+  },
+  benchmark: {
+    symbol: 'SPY',
+    preview_note: 'Coverage begins after the requested start; earlier local history may be missing.',
+    requested_status: 'partial',
+    available_from: '2026-02-01T00:00:00Z',
+    available_to: '2026-05-01T00:00:00Z',
+    requested_first_bar_at: '2026-02-01T00:00:00Z',
+    requested_last_bar_at: '2026-05-01T00:00:00Z',
+    total_bars: 75,
+    requested_bars: 75,
+    requested_fits_range: false,
+  },
+  warnings: [],
+}
+
 describe('StrategyLabView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -249,6 +378,7 @@ describe('StrategyLabView', () => {
       return Promise.resolve([])
     })
     ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/coverage-preview') return Promise.resolve(clone(coveragePreviewResponse))
       if (path === '/strategy-lab/definitions') return Promise.resolve(definition)
       if (path === '/strategy-lab/definitions/4/versions') {
         return Promise.resolve({
@@ -405,6 +535,25 @@ describe('StrategyLabView', () => {
     expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
   })
 
+  it('shows coverage preview during run prep and detailed coverage in results', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Research runs')
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/coverage-preview', expect.objectContaining({
+      timeframe: 'D1',
+      universe_config: { symbols: ['AAPL', 'MSFT'] },
+      benchmark_config: { symbol: 'SPY' },
+    }))
+    expect(wrapper.text()).toContain('Coverage preview')
+    expect(wrapper.text()).toContain('Shared universe')
+    expect(wrapper.text()).toContain('AAPL')
+    expect(wrapper.text()).toContain('MSFT')
+    expect(wrapper.text()).toContain('Coverage detail')
+    expect(wrapper.text()).toContain('earlier local history may be missing')
+  })
+
   it('supports collapsing the strategy sidebar', async () => {
     const wrapper = mountView()
 
@@ -423,6 +572,18 @@ describe('StrategyLabView', () => {
       { ts: '2026-01-02T05:00:00Z', equity: 100000 },
       { ts: '2026-02-01T00:00:00Z', equity: 101200 },
     ]
+    delayedBenchmarkDefinition.runs[0].result_summary.benchmark.coverage = {
+      symbol: 'SPY',
+      preview_note: 'Coverage begins after the requested start; earlier benchmark bars are unavailable for this run.',
+      requested_status: 'partial',
+      available_from: '2026-01-02T05:00:00Z',
+      available_to: '2026-05-01T00:00:00Z',
+      requested_first_bar_at: '2026-01-02T05:00:00Z',
+      requested_last_bar_at: '2026-05-01T00:00:00Z',
+      total_bars: 119,
+      requested_bars: 119,
+      requested_fits_range: false,
+    }
 
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
       if (path === '/strategy-lab/definitions') return Promise.resolve([delayedBenchmarkDefinition])

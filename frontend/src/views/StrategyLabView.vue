@@ -734,6 +734,23 @@
             </label>
           </div>
 
+          <div class="subsection coverage-preview-section">
+            <div class="subsection-head">
+              <div class="subsection-title">
+                <h4>Coverage preview</h4>
+                <HoverTooltip text="Preview the local historical price coverage that matches the current run window, universe selection, run subset, and benchmark. Shared universe shows the overlap every selected symbol has in common; any selected symbol shows the broadest local range available across the chosen universe.">
+                  <button type="button" class="help-dot" aria-label="Coverage preview info">i</button>
+                </HoverTooltip>
+              </div>
+            </div>
+            <StrategyCoveragePanel
+              :coverage="coveragePreview"
+              :loading="coveragePreviewLoading"
+              :error="coveragePreviewError"
+              empty-label="Choose a universe and run window to preview local coverage."
+            />
+          </div>
+
           <div class="subsection">
             <div class="subsection-head">
               <div class="subsection-title">
@@ -941,12 +958,27 @@
             </div>
             <div class="summary-card">
               <span class="summary-label">Coverage</span>
-              <strong>{{ selectedRunDetail.result_summary.coverage?.total_bars ?? 0 }} bars</strong>
+              <strong>{{ selectedRunCoverageDetail?.universe.total_bars ?? 0 }} bars</strong>
               <small>
                 <template v-if="coverageDurationLabel">{{ coverageDurationLabel }} · </template>
-                {{ selectedRunDetail.result_summary.coverage?.instruments_with_data ?? 0 }} symbols with data
+                {{ selectedRunCoverageDetail?.universe.instruments_with_requested_data ?? selectedRunCoverageDetail?.universe.instruments_with_data ?? 0 }} symbols with requested data
               </small>
             </div>
+          </div>
+
+          <div class="coverage-detail-panel">
+            <div class="subsection-head">
+              <div class="subsection-title">
+                <h4>Coverage detail</h4>
+                <HoverTooltip text="Break down what local history was actually available for the selected run, including the shared overlap across the tested universe, each symbol’s own local range, and the benchmark’s local range.">
+                  <button type="button" class="help-dot" aria-label="Coverage detail info">i</button>
+                </HoverTooltip>
+              </div>
+            </div>
+            <StrategyCoveragePanel
+              :coverage="selectedRunCoverageDetail"
+              empty-label="Run a test to inspect detailed coverage."
+            />
           </div>
 
           <div class="result-layout">
@@ -1280,6 +1312,7 @@ import ReturnsHeatmap from '@/components/strategy/ReturnsHeatmap.vue'
 import RunComparisonTable from '@/components/strategy/RunComparisonTable.vue'
 import SignalReplayBreakdown from '@/components/strategy/SignalReplayBreakdown.vue'
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
+import StrategyCoveragePanel from '@/components/strategy/StrategyCoveragePanel.vue'
 import StrategyResultChart from '@/components/strategy/StrategyResultChart.vue'
 import StrategyRuleTreeEditor from '@/components/strategy/StrategyRuleTreeEditor.vue'
 import WalkForwardSegments from '@/components/strategy/WalkForwardSegments.vue'
@@ -1292,7 +1325,16 @@ import {
   type TechnicalConditionDraft,
 } from '@/lib/technicalConditions'
 import { useStrategyLabStore } from '@/stores/strategyLab'
-import type { StrategyDefinition, StrategyRun, StrategyVersion, Watchlist } from '@/types'
+import type {
+  StrategyCoverageInstrument,
+  StrategyCoverageBenchmark,
+  StrategyCoveragePreview,
+  StrategyCoverageUniverse,
+  StrategyDefinition,
+  StrategyRun,
+  StrategyVersion,
+  Watchlist,
+} from '@/types'
 
 type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener'
 type StrategyLabSectionKey = 'profile' | 'entry' | 'risk' | 'exits' | 'runs' | 'results'
@@ -1386,6 +1428,10 @@ const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
 const storedSectionStates = ref<StrategyLabStoredSectionStates>(initialSectionStates)
 const sectionExpanded = ref<StrategyLabSectionState>(defaultSectionState(false))
+const coveragePreview = ref<StrategyCoveragePreview | null>(null)
+const coveragePreviewLoading = ref(false)
+const coveragePreviewError = ref<string | null>(null)
+let coveragePreviewSequence = 0
 
 const draft = reactive({
   name: '',
@@ -1463,6 +1509,19 @@ const availableRunSubsetSymbols = computed(() => {
   }
   return []
 })
+const effectiveRunUniverseConfig = computed<Record<string, any>>(() => {
+  if (runDraft.use_subset && runDraft.overrideSymbols.length) {
+    return { symbols: [...runDraft.overrideSymbols] }
+  }
+  if (sourceType.value === 'radar' && universeMode.value === 'radar') return {}
+  if (universeMode.value === 'watchlist' && selectedWatchlistId.value != null) {
+    return { watchlist_id: selectedWatchlistId.value }
+  }
+  if (universeMode.value === 'screener' && selectedScreenerId.value != null) {
+    return { screener_id: selectedScreenerId.value }
+  }
+  return { symbols: [...logicDraft.symbols] }
+})
 const availableTags = computed(() =>
   Array.from(new Set(strategyLab.definitions.flatMap(definition => normalizeTags(definition.tags)))).sort((a, b) =>
     a.localeCompare(b),
@@ -1475,6 +1534,17 @@ const deleteStrategyMessage = computed(() => {
   if (!name) return 'Delete this strategy? This action cannot be undone.'
   return `Delete strategy "${name}"? This action cannot be undone.`
 })
+const coveragePreviewPayload = computed(() => ({
+  source_type: sourceType.value,
+  timeframe: runDraft.timeframe || logicDraft.timeframe || 'D1',
+  date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
+  date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
+  universe_config: effectiveRunUniverseConfig.value,
+  benchmark_config: logicDraft.benchmark_symbol.trim()
+    ? { symbol: logicDraft.benchmark_symbol.trim().toUpperCase() }
+    : {},
+}))
+const coveragePreviewSignature = computed(() => JSON.stringify(coveragePreviewPayload.value))
 
 const selectedRuns = computed<StrategyRun[]>(() => strategyLab.selectedDefinition?.runs ?? [])
 const selectedRunDetail = computed<StrategyRun | null>(() =>
@@ -1507,13 +1577,38 @@ const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
 )
 
+const selectedRunCoverageDetail = computed<StrategyCoveragePreview | null>(() => {
+  if (!selectedRunDetail.value) return null
+  const rawCoverage = selectedRunDetail.value.result_summary?.coverage as Record<string, any> | undefined
+  const runCoverage = coerceStrategyCoverageUniverse(rawCoverage)
+  if (!runCoverage) return null
+  return {
+    timeframe: String(
+      selectedRunDetail.value.timeframe
+      || currentVersion.value?.definition_snapshot?.timeframe
+      || 'D1',
+    ),
+    requested_date_from: String(rawCoverage?.requested_date_from ?? selectedRunDetail.value.date_from ?? '') || null,
+    requested_date_to: String(rawCoverage?.requested_date_to ?? selectedRunDetail.value.date_to ?? '') || null,
+    universe: runCoverage,
+    benchmark: coerceStrategyCoverageBenchmark(selectedRunDetail.value.result_summary?.benchmark?.coverage),
+    warnings: Array.isArray(selectedRunDetail.value.warning_log)
+      ? selectedRunDetail.value.warning_log.map(item => String(item))
+      : [],
+  }
+})
+
 const coverageDurationLabel = computed(() => {
-  const coverage = selectedRunDetail.value?.result_summary?.coverage
+  const coverage = selectedRunCoverageDetail.value?.universe
   const totalBars = Number(coverage?.total_bars ?? 0)
-  const instrumentsWithData = Math.max(1, Number(coverage?.instruments_with_data ?? 0) || 1)
+  const instrumentsWithData = Math.max(
+    1,
+    Number(coverage?.instruments_with_requested_data ?? coverage?.instruments_with_data ?? 0) || 1,
+  )
   if (!Number.isFinite(totalBars) || totalBars <= 0) return ''
   const timeframe = String(
-    selectedRunDetail.value?.timeframe
+    selectedRunCoverageDetail.value?.timeframe
+      || selectedRunDetail.value?.timeframe
       || currentVersion.value?.definition_snapshot?.timeframe
       || 'D1',
   )
@@ -1731,22 +1826,34 @@ const benchmarkMaxDrawdownLabel = computed(() =>
   formatPercent(selectedRunDetail.value?.result_summary?.benchmark?.performance?.max_drawdown_pct),
 )
 const benchmarkHoldSpanLabel = computed(() => {
-  const coverage = selectedRunDetail.value?.result_summary?.benchmark?.coverage
-  const first = String(coverage?.first_bar_at ?? '')
-  const last = String(coverage?.last_bar_at ?? '')
+  const coverage = selectedRunCoverageDetail.value?.benchmark
+  const first = String(coverage?.available_from ?? '')
+  const last = String(coverage?.available_to ?? '')
   if (!first || !last) return '—'
   return `${formatShortDateTime(first)} → ${formatShortDateTime(last)}`
 })
 const benchmarkCoverageNote = computed(() => {
-  const firstBenchmarkTs = String(benchmarkCurve.value[0]?.ts ?? '')
-  const runStart = String(selectedRunDetail.value?.date_from ?? '')
-  if (!firstBenchmarkTs || !runStart) return ''
-  const firstBenchmarkAt = new Date(firstBenchmarkTs).getTime()
-  const runStartAt = new Date(runStart).getTime()
-  if (!Number.isFinite(firstBenchmarkAt) || !Number.isFinite(runStartAt) || firstBenchmarkAt <= runStartAt) {
-    return ''
+  const benchmark = selectedRunCoverageDetail.value?.benchmark
+  if (!benchmark) return ''
+  const note = String(benchmark.preview_note ?? '').trim()
+  const firstRequested = String(benchmark.requested_first_bar_at ?? '')
+  const requestedStart = String(selectedRunCoverageDetail.value?.requested_date_from ?? '')
+  if (firstRequested && requestedStart) {
+    const firstRequestedAt = new Date(firstRequested).getTime()
+    const requestedStartAt = new Date(requestedStart).getTime()
+    if (
+      Number.isFinite(firstRequestedAt)
+      && Number.isFinite(requestedStartAt)
+      && firstRequestedAt > requestedStartAt
+    ) {
+      const suffix = note || 'Earlier benchmark bars are unavailable for this run.'
+      return `Benchmark coverage starts on ${formatFullCoverageDateTime(firstRequested)}. ${suffix}`
+    }
   }
-  return `Benchmark coverage starts on ${formatFullCoverageDateTime(firstBenchmarkTs)}. Earlier benchmark bars are unavailable for this run.`
+  if (note) return note
+  if (benchmark.requested_status === 'none') return 'No benchmark bars were found inside the selected run window.'
+  if (benchmark.requested_status === 'missing') return 'No benchmark history is stored locally for this timeframe.'
+  return ''
 })
 const runSubsetSummary = computed(() => {
   if (!runDraft.use_subset) return 'Use full universe'
@@ -1968,10 +2075,40 @@ watch(sectionExpanded, value => {
   persistStrategySectionState(currentSectionStateStorageKey(), value)
 }, { deep: true })
 
+watch(coveragePreviewSignature, () => {
+  scheduleCoveragePreview()
+}, { immediate: true })
+
 watch(() => strategyLab.selectedDefinition, value => {
   hydrateFromSelection(value)
   exportMenuOpen.value = false
 })
+
+function scheduleCoveragePreview() {
+  void fetchCoveragePreview()
+}
+
+async function fetchCoveragePreview() {
+  const requestId = ++coveragePreviewSequence
+  coveragePreviewLoading.value = true
+  coveragePreviewError.value = null
+  try {
+    const preview = await api.post<StrategyCoveragePreview>(
+      '/strategy-lab/coverage-preview',
+      coveragePreviewPayload.value,
+    )
+    if (requestId !== coveragePreviewSequence) return
+    coveragePreview.value = preview
+  } catch (err: any) {
+    if (requestId !== coveragePreviewSequence) return
+    coveragePreview.value = null
+    coveragePreviewError.value = err?.message ?? 'Failed to refresh coverage preview'
+  } finally {
+    if (requestId === coveragePreviewSequence) {
+      coveragePreviewLoading.value = false
+    }
+  }
+}
 
 watch(universeMode, mode => {
   if (mode !== 'watchlist') selectedWatchlistId.value = null
@@ -3036,6 +3173,90 @@ function formatSeriesReturn(rows: any[], valueKey: string) {
   return formatPercent(((last - first) / first) * 100)
 }
 
+function coerceStrategyCoverageUniverse(value: unknown): StrategyCoverageUniverse | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, any>
+  return {
+    preview_mode: String(raw.preview_mode ?? 'resolved'),
+    preview_note: raw.preview_note ? String(raw.preview_note) : null,
+    instrument_count: Number(raw.instrument_count ?? 0),
+    instruments_with_data: Number(raw.instruments_with_data ?? 0),
+    instruments_with_requested_data: Number(raw.instruments_with_requested_data ?? 0),
+    instruments_with_full_requested_coverage: Number(raw.instruments_with_full_requested_coverage ?? 0),
+    instruments_with_partial_requested_coverage: Number(raw.instruments_with_partial_requested_coverage ?? 0),
+    instruments_without_requested_coverage: Number(raw.instruments_without_requested_coverage ?? 0),
+    total_bars: Number(raw.total_bars ?? 0),
+    requested_first_bar_at: raw.requested_first_bar_at ? String(raw.requested_first_bar_at) : null,
+    requested_last_bar_at: raw.requested_last_bar_at ? String(raw.requested_last_bar_at) : null,
+    any_coverage_from: raw.any_coverage_from ? String(raw.any_coverage_from) : null,
+    any_coverage_to: raw.any_coverage_to ? String(raw.any_coverage_to) : null,
+    collective_coverage_from: raw.collective_coverage_from ? String(raw.collective_coverage_from) : null,
+    collective_coverage_to: raw.collective_coverage_to ? String(raw.collective_coverage_to) : null,
+    requested_fits_collective_range: typeof raw.requested_fits_collective_range === 'boolean'
+      ? raw.requested_fits_collective_range
+      : null,
+    resolved_symbols: Array.isArray(raw.resolved_symbols) ? raw.resolved_symbols.map((item: unknown) => String(item)) : [],
+    limiting_instruments: normalizeCoverageInstruments(raw.limiting_instruments),
+    instruments: normalizeCoverageInstruments(raw.instruments),
+    simulatable_instrument_count: Number.isFinite(Number(raw.simulatable_instrument_count))
+      ? Number(raw.simulatable_instrument_count)
+      : undefined,
+    simulatable_symbols: Array.isArray(raw.simulatable_symbols)
+      ? raw.simulatable_symbols.map((item: unknown) => String(item))
+      : undefined,
+  }
+}
+
+function normalizeCoverageInstruments(value: unknown): StrategyCoverageInstrument[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, any> => typeof item === 'object' && item !== null)
+    .map(item => ({
+      instrument_id: Number(item.instrument_id ?? 0),
+      symbol: String(item.symbol ?? ''),
+      available_from: item.available_from ? String(item.available_from) : null,
+      available_to: item.available_to ? String(item.available_to) : null,
+      requested_first_bar_at: item.requested_first_bar_at ? String(item.requested_first_bar_at) : null,
+      requested_last_bar_at: item.requested_last_bar_at ? String(item.requested_last_bar_at) : null,
+      total_bars: Number(item.total_bars ?? 0),
+      requested_bars: Number(item.requested_bars ?? 0),
+      requested_status: String(item.requested_status ?? 'missing'),
+      note: item.note ? String(item.note) : null,
+      ipo_date: item.ipo_date ? String(item.ipo_date) : null,
+    }))
+    .filter(item => item.symbol)
+}
+
+function coerceStrategyCoverageBenchmark(value: unknown): StrategyCoverageBenchmark {
+  if (!value || typeof value !== 'object') {
+    return {
+      symbol: null,
+      preview_note: 'No benchmark coverage detail is available for this run.',
+      requested_status: 'unconfigured',
+      available_from: null,
+      available_to: null,
+      requested_first_bar_at: null,
+      requested_last_bar_at: null,
+      total_bars: 0,
+      requested_bars: 0,
+      requested_fits_range: null,
+    }
+  }
+  const raw = value as Record<string, any>
+  return {
+    symbol: raw.symbol ? String(raw.symbol) : null,
+    preview_note: raw.preview_note ? String(raw.preview_note) : null,
+    requested_status: String(raw.requested_status ?? 'unconfigured'),
+    available_from: raw.available_from ? String(raw.available_from) : null,
+    available_to: raw.available_to ? String(raw.available_to) : null,
+    requested_first_bar_at: raw.requested_first_bar_at ? String(raw.requested_first_bar_at) : null,
+    requested_last_bar_at: raw.requested_last_bar_at ? String(raw.requested_last_bar_at) : null,
+    total_bars: Number(raw.total_bars ?? 0),
+    requested_bars: Number(raw.requested_bars ?? 0),
+    requested_fits_range: typeof raw.requested_fits_range === 'boolean' ? raw.requested_fits_range : null,
+  }
+}
+
 type ComparisonMetricKind = 'percent' | 'money' | 'r' | 'count' | 'plain'
 type ComparisonPreference = 'higher' | 'lower'
 
@@ -3663,6 +3884,12 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 .run-detail {
   display: grid;
   gap: 8px;
+}
+
+.coverage-preview-section,
+.coverage-detail-panel {
+  display: grid;
+  gap: 10px;
 }
 
 .subsection h4,

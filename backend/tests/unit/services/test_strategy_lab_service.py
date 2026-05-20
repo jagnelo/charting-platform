@@ -203,15 +203,30 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     ]
 
     async def fake_resolve(_db, _config, _warnings):
-        return [type('InstrumentRow', (), {'id': 1, 'symbol': 'SPY'})()]
+        return [type('InstrumentRow', (), {'id': 1, 'symbol': 'SPY', 'equity_detail': None})()]
 
     async def fake_load_bars(db, *, instrument_id, timeframe, date_from, date_to):
         assert instrument_id == 1
         assert timeframe == Timeframe.D1
         return bars
 
+    async def fake_benchmark_coverage(*_args, **_kwargs):
+        return {
+            "symbol": "SPY",
+            "preview_note": None,
+            "requested_status": "full",
+            "available_from": bars[0].ts.isoformat(),
+            "available_to": bars[-1].ts.isoformat(),
+            "requested_first_bar_at": bars[0].ts.isoformat(),
+            "requested_last_bar_at": bars[-1].ts.isoformat(),
+            "total_bars": len(bars),
+            "requested_bars": len(bars),
+            "requested_fits_range": True,
+        }
+
     monkeypatch.setattr('app.services.strategy_lab._resolve_universe_instruments', fake_resolve)
     monkeypatch.setattr('app.services.strategy_lab._load_bars_for_strategy', fake_load_bars)
+    monkeypatch.setattr('app.services.strategy_lab._build_benchmark_coverage_summary', fake_benchmark_coverage)
 
     summary = await _build_benchmark_summary(
         object(),
@@ -229,3 +244,4 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     assert summary["execution_log"][0]["event_type"] == "entry"
     assert summary["execution_log"][-1]["event_type"] == "open_at_end"
     assert summary["portfolio_timeline"][-1]["open_position_count"] == 1
+    assert summary["coverage"]["requested_status"] == "full"

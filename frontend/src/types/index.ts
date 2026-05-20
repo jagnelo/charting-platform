@@ -823,6 +823,66 @@ export type StrategyDefinitionType = 'rules' | 'dsl' | 'python' | 'signal_source
 export type StrategyTestMode = 'backtest' | 'walk_forward' | 'paper_forward'
 export type StrategyRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled'
 
+export interface StrategyCoverageInstrument {
+  instrument_id: number
+  symbol: string
+  available_from?: string | null
+  available_to?: string | null
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  total_bars: number
+  requested_bars: number
+  requested_status: string
+  note?: string | null
+  ipo_date?: string | null
+}
+
+export interface StrategyCoverageUniverse {
+  preview_mode: string
+  preview_note?: string | null
+  instrument_count: number
+  instruments_with_data: number
+  instruments_with_requested_data: number
+  instruments_with_full_requested_coverage: number
+  instruments_with_partial_requested_coverage: number
+  instruments_without_requested_coverage: number
+  total_bars: number
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  any_coverage_from?: string | null
+  any_coverage_to?: string | null
+  collective_coverage_from?: string | null
+  collective_coverage_to?: string | null
+  requested_fits_collective_range?: boolean | null
+  resolved_symbols: string[]
+  limiting_instruments: StrategyCoverageInstrument[]
+  instruments: StrategyCoverageInstrument[]
+  simulatable_instrument_count?: number
+  simulatable_symbols?: string[]
+}
+
+export interface StrategyCoverageBenchmark {
+  symbol?: string | null
+  preview_note?: string | null
+  requested_status: string
+  available_from?: string | null
+  available_to?: string | null
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  total_bars: number
+  requested_bars: number
+  requested_fits_range?: boolean | null
+}
+
+export interface StrategyCoveragePreview {
+  timeframe: string
+  requested_date_from?: string | null
+  requested_date_to?: string | null
+  universe: StrategyCoverageUniverse
+  benchmark: StrategyCoverageBenchmark
+  warnings: string[]
+}
+
 export interface StrategyVersion {
   id: number
   strategy_id: number

@@ -131,6 +131,96 @@ class TestStrategyLabAPI:
         assert runs_res.status_code == 200
         assert any(item["id"] == run_payload["id"] for item in runs_res.json())
 
+    def test_preview_strategy_coverage_summarizes_universe_and_benchmark(
+        self,
+        client,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        instrument_type,
+        ohlcv_bars,
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        benchmark = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(benchmark)
+        db.flush()
+
+        msft_start = datetime(2024, 2, 15, tzinfo=UTC)
+        for index in range(50):
+            close = Decimal(str(round(410 + index * 0.5, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=msft_start + timedelta(days=index),
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("5000000"),
+                    is_adjusted=True,
+                )
+            )
+
+        benchmark_start = datetime(2024, 3, 1, tzinfo=UTC)
+        for index in range(35):
+            close = Decimal(str(round(500 + index * 1.25, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=benchmark.id,
+                    timeframe=Timeframe.D1,
+                    ts=benchmark_start + timedelta(days=index),
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("8000000"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[9].ts.isoformat(),
+                "date_to": ohlcv_bars[90].ts.isoformat(),
+                "universe_config": {"symbols": ["AAPL", "MSFT"]},
+                "benchmark_config": {"symbol": "SPY"},
+            },
+        )
+
+        assert preview_res.status_code == 200
+        payload = preview_res.json()
+        assert payload["timeframe"] == "D1"
+        assert payload["universe"]["instrument_count"] == 2
+        assert payload["universe"]["instruments_with_full_requested_coverage"] == 1
+        assert payload["universe"]["instruments_with_partial_requested_coverage"] == 1
+        assert payload["universe"]["requested_fits_collective_range"] is False
+        assert payload["universe"]["collective_coverage_from"].startswith("2024-02-15")
+        assert payload["universe"]["limiting_instruments"][0]["symbol"] == "MSFT"
+        assert "earlier local history may be missing" in (
+            payload["universe"]["limiting_instruments"][0]["note"] or ""
+        ).lower()
+        assert payload["benchmark"]["symbol"] == "SPY"
+        assert payload["benchmark"]["requested_status"] == "partial"
+        assert payload["benchmark"]["requested_first_bar_at"].startswith("2024-03-01")
+
     def test_delete_definition_removes_strategy(self, client, auth_headers):
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",

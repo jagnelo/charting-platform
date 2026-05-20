@@ -8,6 +8,8 @@ from app.database import get_db
 from app.models.strategy import StrategyDefinition, StrategyRun, StrategyVersion
 from app.models.user import User
 from app.schemas.strategy import (
+    StrategyCoveragePreviewOut,
+    StrategyCoveragePreviewRequest,
     StrategyDefinitionCreate,
     StrategyDefinitionDetailOut,
     StrategyDefinitionSummaryOut,
@@ -19,7 +21,7 @@ from app.schemas.strategy import (
     StrategyVersionOut,
     StrategyVersionUpdate,
 )
-from app.services.strategy_lab import execute_strategy_run
+from app.services.strategy_lab import execute_strategy_run, preview_strategy_coverage
 
 router = APIRouter(prefix="/strategy-lab", tags=["strategy-lab"])
 
@@ -255,6 +257,24 @@ async def get_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Strategy run not found")
     return run
+
+
+@router.post("/coverage-preview", response_model=StrategyCoveragePreviewOut)
+async def get_coverage_preview(
+    body: StrategyCoveragePreviewRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    del current_user
+    return await preview_strategy_coverage(
+        db,
+        source_type=body.source_type.value,
+        timeframe_value=body.timeframe,
+        date_from=body.date_from,
+        date_to=body.date_to,
+        universe_config=body.universe_config,
+        benchmark_config=body.benchmark_config,
+    )
 
 
 @router.post("/versions/{version_id}/runs", response_model=StrategyRunSubmitOut, status_code=201)
