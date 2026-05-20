@@ -15,11 +15,10 @@
         type="button"
         class="symbol-bars__row-button"
         :class="{ 'symbol-bars__row-button--active': activeSymbol === row.symbol }"
-        @mouseenter="hoveredSymbol = row.symbol"
-        @mouseleave="hoveredSymbol = null"
-        @focus="hoveredSymbol = row.symbol"
-        @blur="hoveredSymbol = null"
-        @click="togglePinnedSymbol(row.symbol)"
+        @mouseenter="showTooltip(row.symbol, $event)"
+        @mouseleave="hideTooltip"
+        @focus="showTooltip(row.symbol, $event)"
+        @blur="hideTooltip"
       >
         <div class="symbol-bars__meta">
           <span class="symbol-bars__label">{{ row.symbol }}</span>
@@ -41,31 +40,42 @@
       </button>
     </div>
 
-    <div v-if="activeRow" class="symbol-bars__detail">
-      <div class="symbol-bars__detail-head">
-        <strong>{{ activeRow.symbol }}</strong>
-        <span :class="{ positive: activeRow.net_pnl > 0, negative: activeRow.net_pnl < 0 }">
-          {{ formatMoney(activeRow.net_pnl) }}
-        </span>
-      </div>
-      <div class="symbol-bars__detail-metrics">
-        <span>{{ summarizeTrades(activeRow) }}</span>
-        <span v-if="activeRow.win_rate != null">{{ formatPercent(activeRow.win_rate) }} win</span>
-        <span v-if="activeRow.avg_r != null">{{ formatR(activeRow.avg_r) }} avg</span>
-      </div>
-      <div v-if="activeEvents.length" class="symbol-bars__detail-events">
-        <div v-for="event in activeEvents" :key="`${event.position_id || event.ts}-${event.event_type}`" class="symbol-bars__detail-event">
-          <span>{{ formatShortDate(event.ts) }}</span>
-          <span>{{ humanizeToken(event.event_type) }}</span>
-          <span v-if="event.pnl != null">{{ formatMoney(event.pnl) }}</span>
-          <span v-if="event.pnl_pct != null">{{ formatPercent(event.pnl_pct) }}</span>
-          <span>{{ humanizeToken(event.reason || event.event_type) }}</span>
+    <Teleport to="body">
+      <div
+        v-if="activeRow"
+        ref="tooltipRef"
+        class="symbol-bars__tooltip"
+        :style="tooltipStyle"
+      >
+        <div class="symbol-bars__tooltip-head">
+          <strong>{{ activeRow.symbol }}</strong>
+          <span :class="{ positive: activeRow.net_pnl > 0, negative: activeRow.net_pnl < 0 }">
+            {{ formatMoney(activeRow.net_pnl) }}
+          </span>
+        </div>
+        <div class="symbol-bars__tooltip-metrics">
+          <span>{{ summarizeTrades(activeRow) }}</span>
+          <span v-if="activeRow.win_rate != null">{{ formatPercent(activeRow.win_rate) }} win</span>
+          <span v-if="activeRow.avg_r != null">{{ formatR(activeRow.avg_r) }} avg</span>
+        </div>
+        <div v-if="activeEvents.length" class="symbol-bars__tooltip-events">
+          <div
+            v-for="event in activeEvents"
+            :key="`${event.position_id || event.ts}-${event.event_type}`"
+            class="symbol-bars__tooltip-event"
+          >
+            <span>{{ formatShortDate(event.ts) }}</span>
+            <span>{{ humanizeToken(event.event_type) }}</span>
+            <span v-if="event.pnl != null">{{ formatMoney(event.pnl) }}</span>
+            <span v-if="event.pnl_pct != null">{{ formatPercent(event.pnl_pct) }}</span>
+            <span>{{ humanizeToken(event.reason || event.event_type) }}</span>
+          </div>
+        </div>
+        <div v-else class="symbol-bars__tooltip-empty">
+          No closed or marked outcomes for this symbol yet.
         </div>
       </div>
-      <div v-else class="symbol-bars__detail-empty">
-        No closed or marked outcomes for this symbol yet.
-      </div>
-    </div>
+    </Teleport>
   </div>
   <div v-else class="symbol-bars__empty">
     {{ emptyLabel }}
@@ -73,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = withDefaults(defineProps<{
   rows: Array<{
@@ -122,9 +132,10 @@ const maxAbsValue = computed(() =>
 )
 
 const hoveredSymbol = ref<string | null>(null)
-const pinnedSymbol = ref<string | null>(null)
+const tooltipRef = ref<HTMLElement | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
 
-const activeSymbol = computed(() => pinnedSymbol.value || hoveredSymbol.value)
+const activeSymbol = computed(() => hoveredSymbol.value)
 const activeRow = computed(() =>
   sortedRows.value.find(row => row.symbol === activeSymbol.value) ?? null,
 )
@@ -177,14 +188,54 @@ function humanizeToken(value?: string | null) {
     .replace(/\b\w/g, char => char.toUpperCase())
 }
 
-function togglePinnedSymbol(symbol: string) {
-  pinnedSymbol.value = pinnedSymbol.value === symbol ? null : symbol
-}
-
 function barStyle(value: number) {
   const ratio = Math.max(0.08, Math.min(1, Math.abs(value) / maxAbsValue.value))
   return { width: `${ratio * 100}%` }
 }
+
+function hideTooltip() {
+  hoveredSymbol.value = null
+}
+
+async function showTooltip(symbol: string, event: FocusEvent | MouseEvent) {
+  hoveredSymbol.value = symbol
+  await nextTick()
+  positionTooltip(event.currentTarget as HTMLElement | null)
+}
+
+function positionTooltip(anchor: HTMLElement | null) {
+  if (!anchor || !tooltipRef.value) return
+  const anchorRect = anchor.getBoundingClientRect()
+  const tooltipRect = tooltipRef.value.getBoundingClientRect()
+  const gap = 12
+  const viewportPadding = 12
+  const preferRight = anchorRect.right + gap + tooltipRect.width <= window.innerWidth - viewportPadding
+  const fallbackLeft = anchorRect.left - tooltipRect.width - gap
+  const left = preferRight
+    ? anchorRect.right + gap
+    : Math.max(viewportPadding, Math.min(fallbackLeft, window.innerWidth - tooltipRect.width - viewportPadding))
+  const top = Math.max(
+    viewportPadding,
+    Math.min(
+      anchorRect.top + anchorRect.height / 2 - tooltipRect.height / 2,
+      window.innerHeight - tooltipRect.height - viewportPadding,
+    ),
+  )
+  tooltipStyle.value = {
+    left: `${left}px`,
+    top: `${top}px`,
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', hideTooltip, true)
+  window.addEventListener('resize', hideTooltip)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', hideTooltip, true)
+  window.removeEventListener('resize', hideTooltip)
+})
 </script>
 
 <style scoped>
@@ -283,34 +334,38 @@ function barStyle(value: number) {
   font-size: 12px;
 }
 
-.symbol-bars__detail {
+.symbol-bars__tooltip {
+  position: fixed;
+  z-index: 1100;
   display: grid;
   gap: 8px;
-  margin-top: 4px;
   padding: 10px;
   border: 1px solid #1f252c;
   border-radius: 6px;
   background: #0f1319;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+  max-width: min(360px, calc(100vw - 24px));
+  pointer-events: none;
 }
 
-.symbol-bars__detail-head,
-.symbol-bars__detail-metrics,
-.symbol-bars__detail-event {
+.symbol-bars__tooltip-head,
+.symbol-bars__tooltip-metrics,
+.symbol-bars__tooltip-event {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
 }
 
-.symbol-bars__detail-head strong {
+.symbol-bars__tooltip-head strong {
   color: #f3f3f3;
   font-size: 12px;
 }
 
-.symbol-bars__detail-metrics,
-.symbol-bars__detail-events,
-.symbol-bars__detail-empty,
-.symbol-bars__detail-event {
+.symbol-bars__tooltip-metrics,
+.symbol-bars__tooltip-events,
+.symbol-bars__tooltip-empty,
+.symbol-bars__tooltip-event {
   color: #97a1b2;
   font-size: 10px;
 }

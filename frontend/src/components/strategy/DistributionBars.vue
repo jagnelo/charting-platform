@@ -12,11 +12,10 @@
         type="button"
         class="distribution-bars__row-button"
         :class="{ 'distribution-bars__row-button--active': activeBucketKey === bucketKey(row, index) }"
-        @mouseenter="hoveredBucketKey = bucketKey(row, index)"
-        @mouseleave="hoveredBucketKey = null"
-        @focus="hoveredBucketKey = bucketKey(row, index)"
-        @blur="hoveredBucketKey = null"
-        @click="togglePinnedBucket(bucketKey(row, index))"
+        @mouseenter="showTooltip(bucketKey(row, index), $event)"
+        @mouseleave="hideTooltip"
+        @focus="showTooltip(bucketKey(row, index), $event)"
+        @blur="hideTooltip"
       >
         <div class="distribution-bars__meta">
           <span>{{ shortLabel(row.lower, row.upper) }}</span>
@@ -32,23 +31,34 @@
       </button>
     </div>
 
-    <div v-if="activeBucket" class="distribution-bars__detail">
-      <div class="distribution-bars__detail-head">
-        <strong>{{ shortLabel(activeBucket.lower, activeBucket.upper) }}</strong>
-        <span>{{ activeBucket.count }} trade{{ activeBucket.count === 1 ? '' : 's' }}</span>
-      </div>
-      <div v-if="activeTrades.length" class="distribution-bars__detail-events">
-        <div v-for="trade in activeTrades" :key="`${trade.instrument_symbol || trade.symbol}-${trade.exit_at}`" class="distribution-bars__detail-event">
-          <span>{{ trade.instrument_symbol || trade.symbol || '—' }}</span>
-          <span>{{ formatR(Number(trade.r_multiple ?? 0)) }}</span>
-          <span v-if="trade.pnl != null">{{ formatMoney(Number(trade.pnl)) }}</span>
-          <span>{{ humanizeToken(trade.exit_reason || trade.reason || 'exit') }}</span>
+    <Teleport to="body">
+      <div
+        v-if="activeBucket"
+        ref="tooltipRef"
+        class="distribution-bars__tooltip"
+        :style="tooltipStyle"
+      >
+        <div class="distribution-bars__tooltip-head">
+          <strong>{{ shortLabel(activeBucket.lower, activeBucket.upper) }}</strong>
+          <span>{{ activeBucket.count }} trade{{ activeBucket.count === 1 ? '' : 's' }}</span>
+        </div>
+        <div v-if="activeTrades.length" class="distribution-bars__tooltip-events">
+          <div
+            v-for="trade in activeTrades"
+            :key="`${trade.instrument_symbol || trade.symbol}-${trade.exit_at}`"
+            class="distribution-bars__tooltip-event"
+          >
+            <span>{{ trade.instrument_symbol || trade.symbol || '—' }}</span>
+            <span>{{ formatR(Number(trade.r_multiple ?? 0)) }}</span>
+            <span v-if="trade.pnl != null">{{ formatMoney(Number(trade.pnl)) }}</span>
+            <span>{{ humanizeToken(trade.exit_reason || trade.reason || 'exit') }}</span>
+          </div>
+        </div>
+        <div v-else class="distribution-bars__tooltip-empty">
+          No closed trades in this R bucket.
         </div>
       </div>
-      <div v-else class="distribution-bars__detail-empty">
-        No closed trades in this R bucket.
-      </div>
-    </div>
+    </Teleport>
   </div>
   <div v-else class="distribution-bars__empty">
     {{ emptyLabel }}
@@ -56,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = withDefaults(defineProps<{
   rows: Array<{ lower: number; upper: number; count: number }>
@@ -114,8 +124,9 @@ const positiveTradeRateLabel = computed(() => {
 })
 
 const hoveredBucketKey = ref<string | null>(null)
-const pinnedBucketKey = ref<string | null>(null)
-const activeBucketKey = computed(() => pinnedBucketKey.value || hoveredBucketKey.value)
+const tooltipRef = ref<HTMLElement | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
+const activeBucketKey = computed(() => hoveredBucketKey.value)
 const activeBucket = computed(() =>
   normalizedRows.value.find((row, index) => bucketKey(row, index) === activeBucketKey.value) ?? null,
 )
@@ -174,10 +185,6 @@ function bucketKey(row: { lower: number; upper: number }, index: number) {
   return `${row.lower}-${row.upper}-${index}`
 }
 
-function togglePinnedBucket(key: string) {
-  pinnedBucketKey.value = pinnedBucketKey.value === key ? null : key
-}
-
 function matchingTrades(row: { lower: number; upper: number }, index: number) {
   const isLastBucket = index === normalizedRows.value.length - 1
   return normalizedTrades.value.filter(trade => {
@@ -187,6 +194,50 @@ function matchingTrades(row: { lower: number; upper: number }, index: number) {
     return isLastBucket ? value >= row.lower && value <= row.upper : value >= row.lower && value < row.upper
   })
 }
+
+function hideTooltip() {
+  hoveredBucketKey.value = null
+}
+
+async function showTooltip(key: string, event: FocusEvent | MouseEvent) {
+  hoveredBucketKey.value = key
+  await nextTick()
+  positionTooltip(event.currentTarget as HTMLElement | null)
+}
+
+function positionTooltip(anchor: HTMLElement | null) {
+  if (!anchor || !tooltipRef.value) return
+  const anchorRect = anchor.getBoundingClientRect()
+  const tooltipRect = tooltipRef.value.getBoundingClientRect()
+  const gap = 12
+  const viewportPadding = 12
+  const preferRight = anchorRect.right + gap + tooltipRect.width <= window.innerWidth - viewportPadding
+  const fallbackLeft = anchorRect.left - tooltipRect.width - gap
+  const left = preferRight
+    ? anchorRect.right + gap
+    : Math.max(viewportPadding, Math.min(fallbackLeft, window.innerWidth - tooltipRect.width - viewportPadding))
+  const top = Math.max(
+    viewportPadding,
+    Math.min(
+      anchorRect.top + anchorRect.height / 2 - tooltipRect.height / 2,
+      window.innerHeight - tooltipRect.height - viewportPadding,
+    ),
+  )
+  tooltipStyle.value = {
+    left: `${left}px`,
+    top: `${top}px`,
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', hideTooltip, true)
+  window.addEventListener('resize', hideTooltip)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', hideTooltip, true)
+  window.removeEventListener('resize', hideTooltip)
+})
 </script>
 
 <style scoped>
@@ -273,32 +324,36 @@ function matchingTrades(row: { lower: number; upper: number }, index: number) {
   font-size: 12px;
 }
 
-.distribution-bars__detail {
+.distribution-bars__tooltip {
+  position: fixed;
+  z-index: 1100;
   display: grid;
   gap: 8px;
-  margin-top: 4px;
   padding: 10px;
   border: 1px solid #1f252c;
   border-radius: 6px;
   background: #0f1319;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+  max-width: min(360px, calc(100vw - 24px));
+  pointer-events: none;
 }
 
-.distribution-bars__detail-head,
-.distribution-bars__detail-event {
+.distribution-bars__tooltip-head,
+.distribution-bars__tooltip-event {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
 }
 
-.distribution-bars__detail-head strong {
+.distribution-bars__tooltip-head strong {
   color: #f3f3f3;
   font-size: 12px;
 }
 
-.distribution-bars__detail-events,
-.distribution-bars__detail-empty,
-.distribution-bars__detail-event {
+.distribution-bars__tooltip-events,
+.distribution-bars__tooltip-empty,
+.distribution-bars__tooltip-event {
   color: #97a1b2;
   font-size: 10px;
 }

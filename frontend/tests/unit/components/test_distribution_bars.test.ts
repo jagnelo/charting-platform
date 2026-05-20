@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
 
 describe('DistributionBars', () => {
-  it('renders summary chips and bucket drilldown', async () => {
+  it('renders summary chips and bucket tooltip on hover', async () => {
     const wrapper = mount(DistributionBars, {
+      attachTo: document.body,
       props: {
         rows: [
           { lower: -1, upper: 0, count: 1 },
@@ -35,9 +36,9 @@ describe('DistributionBars', () => {
     expect(wrapper.text()).toContain('50% > 0R')
 
     const firstBucket = wrapper.find('.distribution-bars__row-button')
-    await firstBucket.trigger('click')
+    await firstBucket.trigger('mouseenter')
 
-    expect(wrapper.text()).toContain('AAPL')
-    expect(wrapper.text()).toContain('Stop Loss')
+    expect(document.body.textContent).toContain('AAPL')
+    expect(document.body.textContent).toContain('Stop Loss')
   })
 })

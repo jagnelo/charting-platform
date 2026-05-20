@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
 
 describe('SymbolPerformanceBars', () => {
-  it('renders summary chips and symbol outcome drilldown', async () => {
+  it('renders summary chips and symbol outcome tooltip on hover', async () => {
     const wrapper = mount(SymbolPerformanceBars, {
+      attachTo: document.body,
       props: {
         rows: [
           { symbol: 'AAPL', net_pnl: 1250.45, trade_count: 2, win_rate: 50, avg_r: 1.1 },
@@ -30,9 +31,9 @@ describe('SymbolPerformanceBars', () => {
     expect(wrapper.text()).toContain('Worst MSFT')
 
     const firstRow = wrapper.find('.symbol-bars__row-button')
-    await firstRow.trigger('click')
+    await firstRow.trigger('mouseenter')
 
-    expect(wrapper.text()).toContain('50.00% win')
-    expect(wrapper.text()).toContain('Take Profit')
+    expect(document.body.textContent).toContain('50.00% win')
+    expect(document.body.textContent).toContain('Take Profit')
   })
 })
