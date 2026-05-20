@@ -190,4 +190,30 @@ describe('StrategyResultChart', () => {
     expect(zoomedPoints.length).toBeLessThan(fullPoints.length)
     expect(wrapper.text()).toContain('→')
   })
+
+  it('supports integer-only y-axis labels for count-based charts', () => {
+    const wrapper = mount(StrategyResultChart, {
+      props: {
+        label: 'Open positions',
+        integerAxis: true,
+        series: [
+          {
+            label: 'Open positions',
+            color: '#e0b35b',
+            points: [
+              { ts: '2026-01-01T00:00:00Z', value: 0 },
+              { ts: '2026-01-02T00:00:00Z', value: 1 },
+              { ts: '2026-01-03T00:00:00Z', value: 2 },
+            ],
+          },
+        ],
+      },
+    })
+
+    const axisLabels = wrapper.findAll('.result-chart__axes text').map(label => label.text())
+    expect(axisLabels.length).toBeGreaterThan(0)
+    expect(axisLabels.every(label => /^-?\d+$/.test(label))).toBe(true)
+    expect(axisLabels).toContain('0')
+    expect(axisLabels).toContain('2')
+  })
 })

@@ -2,6 +2,7 @@
   <div
     ref="rootRef"
     class="result-chart"
+    :class="{ 'result-chart--hovering': !!tooltip }"
     @mouseleave="hoverIndex = null; hoverX = null; hoverY = null"
   >
     <div v-if="!series.length || !timeline.length" class="result-chart__empty">
@@ -159,6 +160,7 @@ const props = withDefaults(defineProps<{
   emptyLabel?: string
   percent?: boolean
   currency?: boolean
+  integerAxis?: boolean
   showLegend?: boolean
   height?: number
   focusNearestSeries?: boolean
@@ -166,6 +168,7 @@ const props = withDefaults(defineProps<{
   emptyLabel: 'No chart data available.',
   percent: false,
   currency: false,
+  integerAxis: false,
   showLegend: true,
   height: 132,
   focusNearestSeries: false,
@@ -295,6 +298,16 @@ const valueExtent = computed(() => {
   if (!inputValues.length) return { min: 0, max: 1 }
   let min = Math.min(...inputValues)
   let max = Math.max(...inputValues)
+  if (props.integerAxis) {
+    min = Math.floor(min)
+    max = Math.ceil(max)
+    if (min === max) {
+      return min === 0
+        ? { min: 0, max: 1 }
+        : { min: Math.min(0, min - 1), max: max + 1 }
+    }
+    return { min: Math.min(0, min), max }
+  }
   if (min === max) {
     const pad = min === 0 ? 1 : Math.abs(min) * 0.1
     min -= pad
@@ -330,6 +343,27 @@ const chartPadding = computed(() => {
 const yTicks = computed(() => {
   const ticks: Array<{ value: number; y: number }> = []
   const { min, max } = valueExtent.value
+  if (props.integerAxis) {
+    const minInt = Math.floor(min)
+    const maxInt = Math.ceil(max)
+    const span = Math.max(1, maxInt - minInt)
+    const maxTickCount = 5
+    const step = Math.max(1, Math.ceil(span / Math.max(1, maxTickCount - 1)))
+    const tickValues: number[] = []
+    for (let value = minInt; value <= maxInt; value += step) {
+      tickValues.push(value)
+    }
+    if (tickValues[tickValues.length - 1] !== maxInt) tickValues.push(maxInt)
+    const valuesDescending = Array.from(new Set(tickValues)).sort((left, right) => right - left)
+    valuesDescending.forEach((value, index) => {
+      const ratio = valuesDescending.length === 1 ? 0.5 : index / (valuesDescending.length - 1)
+      ticks.push({
+        value,
+        y: lerp(chartPadding.value.top, height.value - chartPadding.value.bottom, ratio),
+      })
+    })
+    return ticks
+  }
   for (let index = 0; index < 4; index += 1) {
     const ratio = index / 3
     const value = max - (max - min) * ratio
@@ -481,6 +515,7 @@ function lerp(start: number, end: number, ratio: number) {
 
 function formatValue(value: number) {
   if (!Number.isFinite(value)) return '—'
+  if (props.integerAxis) return `${Math.round(value)}`
   if (props.percent) return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
   if (props.currency) {
     return value.toLocaleString('en-US', {
@@ -666,7 +701,13 @@ watch(
   z-index: 0;
 }
 
+.result-chart--hovering {
+  z-index: 40;
+}
+
 .result-chart__controls {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -788,14 +829,16 @@ watch(
 .result-chart__hovercard--overlay {
   position: absolute;
   top: 18px;
-  width: clamp(260px, 30vw, 380px);
+  inline-size: fit-content;
+  min-inline-size: 160px;
+  max-inline-size: min(72vw, 680px);
   max-height: min(72vh, 520px);
   overflow: visible;
   pointer-events: none;
   backdrop-filter: blur(4px);
   background: color-mix(in srgb, #0d1116 92%, transparent);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
-  z-index: 30;
+  z-index: 50;
 }
 
 .result-chart__hovercard-date {
@@ -808,11 +851,12 @@ watch(
 }
 
 .result-chart__hovercard--dense {
-  width: clamp(320px, 40vw, 540px);
+  min-inline-size: 280px;
+  max-inline-size: min(82vw, 920px);
 }
 
 .result-chart__hovercard-items--dense {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-items: start;
   gap: 10px 12px;
 }

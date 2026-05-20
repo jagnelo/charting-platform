@@ -1,18 +1,69 @@
 <template>
   <div v-if="rows.length" class="symbol-bars">
+    <div class="symbol-bars__summary">
+      <span class="symbol-bars__summary-chip">{{ sortedRows.length }} symbols</span>
+      <span v-if="bestRow" class="symbol-bars__summary-chip">
+        Best {{ bestRow.symbol }} {{ formatMoney(bestRow.net_pnl) }}
+      </span>
+      <span v-if="worstRow" class="symbol-bars__summary-chip">
+        Worst {{ worstRow.symbol }} {{ formatMoney(worstRow.net_pnl) }}
+      </span>
+    </div>
+
     <div v-for="row in sortedRows" :key="row.symbol" class="symbol-bars__row">
-      <div class="symbol-bars__meta">
-        <span class="symbol-bars__label">{{ row.symbol }}</span>
-        <strong :class="{ positive: row.net_pnl > 0, negative: row.net_pnl < 0 }">
-          {{ formatMoney(row.net_pnl) }}
-        </strong>
+      <button
+        type="button"
+        class="symbol-bars__row-button"
+        :class="{ 'symbol-bars__row-button--active': activeSymbol === row.symbol }"
+        @mouseenter="hoveredSymbol = row.symbol"
+        @mouseleave="hoveredSymbol = null"
+        @focus="hoveredSymbol = row.symbol"
+        @blur="hoveredSymbol = null"
+        @click="togglePinnedSymbol(row.symbol)"
+      >
+        <div class="symbol-bars__meta">
+          <span class="symbol-bars__label">{{ row.symbol }}</span>
+          <strong :class="{ positive: row.net_pnl > 0, negative: row.net_pnl < 0 }">
+            {{ formatMoney(row.net_pnl) }}
+          </strong>
+        </div>
+        <div class="symbol-bars__submeta">
+          <span>{{ summarizeTrades(row) }}</span>
+          <span v-if="row.avg_r != null">{{ formatR(row.avg_r) }} avg</span>
+        </div>
+        <div class="symbol-bars__track">
+          <div
+            class="symbol-bars__bar"
+            :class="row.net_pnl >= 0 ? 'symbol-bars__bar--positive' : 'symbol-bars__bar--negative'"
+            :style="barStyle(row.net_pnl)"
+          />
+        </div>
+      </button>
+    </div>
+
+    <div v-if="activeRow" class="symbol-bars__detail">
+      <div class="symbol-bars__detail-head">
+        <strong>{{ activeRow.symbol }}</strong>
+        <span :class="{ positive: activeRow.net_pnl > 0, negative: activeRow.net_pnl < 0 }">
+          {{ formatMoney(activeRow.net_pnl) }}
+        </span>
       </div>
-      <div class="symbol-bars__track">
-        <div
-          class="symbol-bars__bar"
-          :class="row.net_pnl >= 0 ? 'symbol-bars__bar--positive' : 'symbol-bars__bar--negative'"
-          :style="barStyle(row.net_pnl)"
-        />
+      <div class="symbol-bars__detail-metrics">
+        <span>{{ summarizeTrades(activeRow) }}</span>
+        <span v-if="activeRow.win_rate != null">{{ formatPercent(activeRow.win_rate) }} win</span>
+        <span v-if="activeRow.avg_r != null">{{ formatR(activeRow.avg_r) }} avg</span>
+      </div>
+      <div v-if="activeEvents.length" class="symbol-bars__detail-events">
+        <div v-for="event in activeEvents" :key="`${event.position_id || event.ts}-${event.event_type}`" class="symbol-bars__detail-event">
+          <span>{{ formatShortDate(event.ts) }}</span>
+          <span>{{ humanizeToken(event.event_type) }}</span>
+          <span v-if="event.pnl != null">{{ formatMoney(event.pnl) }}</span>
+          <span v-if="event.pnl_pct != null">{{ formatPercent(event.pnl_pct) }}</span>
+          <span>{{ humanizeToken(event.reason || event.event_type) }}</span>
+        </div>
+      </div>
+      <div v-else class="symbol-bars__detail-empty">
+        No closed or marked outcomes for this symbol yet.
       </div>
     </div>
   </div>
@@ -22,13 +73,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = withDefaults(defineProps<{
-  rows: Array<{ symbol: string; net_pnl: number }>
+  rows: Array<{
+    symbol: string
+    net_pnl: number
+    trade_count?: number | null
+    win_rate?: number | null
+    avg_r?: number | null
+  }>
+  events?: Array<{
+    ts?: string
+    position_id?: string | null
+    event_type?: string | null
+    symbol?: string | null
+    pnl?: number | null
+    pnl_pct?: number | null
+    reason?: string | null
+  }>
   emptyLabel?: string
 }>(), {
   emptyLabel: 'No per-symbol attribution yet.',
+  events: () => [],
 })
 
 const sortedRows = computed(() =>
@@ -38,8 +105,34 @@ const sortedRows = computed(() =>
     .slice(0, 8),
 )
 
+const bestRow = computed(() =>
+  sortedRows.value.length
+    ? [...sortedRows.value].sort((left, right) => (Number(right.net_pnl) || 0) - (Number(left.net_pnl) || 0))[0]
+    : null,
+)
+
+const worstRow = computed(() =>
+  sortedRows.value.length
+    ? [...sortedRows.value].sort((left, right) => (Number(left.net_pnl) || 0) - (Number(right.net_pnl) || 0))[0]
+    : null,
+)
+
 const maxAbsValue = computed(() =>
   Math.max(1, ...sortedRows.value.map(row => Math.abs(Number(row.net_pnl) || 0))),
+)
+
+const hoveredSymbol = ref<string | null>(null)
+const pinnedSymbol = ref<string | null>(null)
+
+const activeSymbol = computed(() => pinnedSymbol.value || hoveredSymbol.value)
+const activeRow = computed(() =>
+  sortedRows.value.find(row => row.symbol === activeSymbol.value) ?? null,
+)
+const activeEvents = computed(() =>
+  props.events
+    .filter(event => event?.symbol === activeSymbol.value && ['exit', 'open_at_end'].includes(String(event?.event_type ?? '')))
+    .sort((left, right) => String(right.ts ?? '').localeCompare(String(left.ts ?? '')))
+    .slice(0, 4),
 )
 
 function formatMoney(value: number) {
@@ -51,6 +144,43 @@ function formatMoney(value: number) {
   })
 }
 
+function formatPercent(value: number) {
+  return `${value.toFixed(2)}%`
+}
+
+function formatR(value: number) {
+  return `${value.toFixed(2)}R`
+}
+
+function formatShortDate(value?: string) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function summarizeTrades(row: { trade_count?: number | null; win_rate?: number | null }) {
+  const tradeCount = Number(row.trade_count ?? 0)
+  if (!tradeCount) return 'No closed trades'
+  const parts = [`${tradeCount} trade${tradeCount === 1 ? '' : 's'}`]
+  if (row.win_rate != null) parts.push(`${formatPercent(Number(row.win_rate))} win`)
+  return parts.join(' · ')
+}
+
+function humanizeToken(value?: string | null) {
+  return String(value ?? '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase())
+}
+
+function togglePinnedSymbol(symbol: string) {
+  pinnedSymbol.value = pinnedSymbol.value === symbol ? null : symbol
+}
+
 function barStyle(value: number) {
   const ratio = Math.max(0.08, Math.min(1, Math.abs(value) / maxAbsValue.value))
   return { width: `${ratio * 100}%` }
@@ -60,12 +190,48 @@ function barStyle(value: number) {
 <style scoped>
 .symbol-bars {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  align-content: start;
+}
+
+.symbol-bars__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symbol-bars__summary-chip {
+  border: 1px solid #1f252c;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #97a1b2;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .symbol-bars__row {
+  display: block;
+}
+
+.symbol-bars__row-button {
+  width: 100%;
   display: grid;
   gap: 6px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.symbol-bars__row-button:hover,
+.symbol-bars__row-button:focus-visible,
+.symbol-bars__row-button--active {
+  border-color: #1f252c;
+  background: #10141a;
+  outline: none;
 }
 
 .symbol-bars__meta {
@@ -79,6 +245,15 @@ function barStyle(value: number) {
   color: #d7d7d7;
   font-size: 12px;
   font-weight: 700;
+}
+
+.symbol-bars__submeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #8a92a0;
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 .symbol-bars__track {
@@ -106,5 +281,45 @@ function barStyle(value: number) {
 .symbol-bars__empty {
   color: #7d8490;
   font-size: 12px;
+}
+
+.symbol-bars__detail {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px;
+  border: 1px solid #1f252c;
+  border-radius: 6px;
+  background: #0f1319;
+}
+
+.symbol-bars__detail-head,
+.symbol-bars__detail-metrics,
+.symbol-bars__detail-event {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.symbol-bars__detail-head strong {
+  color: #f3f3f3;
+  font-size: 12px;
+}
+
+.symbol-bars__detail-metrics,
+.symbol-bars__detail-events,
+.symbol-bars__detail-empty,
+.symbol-bars__detail-event {
+  color: #97a1b2;
+  font-size: 10px;
+}
+
+.positive {
+  color: #7ce5a1;
+}
+
+.negative {
+  color: #ff8f9b;
 }
 </style>

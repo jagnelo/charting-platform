@@ -214,6 +214,8 @@ describe('StrategyLabView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    window.localStorage.removeItem('strategyLab.sections.v1')
+    window.localStorage.removeItem('strategyLab.sidebar.v1')
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
       if (path === '/strategy-lab/definitions') return Promise.resolve([definition])
       if (path === '/strategy-lab/definitions/4') return Promise.resolve(definition)
@@ -306,6 +308,25 @@ describe('StrategyLabView', () => {
     return component!
   }
 
+  async function ensurePanelExpanded(wrapper: ReturnType<typeof mount>, title: string) {
+    const panel = wrapper.findAll('.panel').find(node =>
+      node.find('h3').text().trim() === title,
+    )
+    expect(panel).toBeTruthy()
+    if (!panel!.find('.panel-body').exists()) {
+      await panel!.get('.panel-head-heading').trigger('click')
+      await flushPromises()
+    }
+    expect(panel!.find('.panel-body').exists()).toBe(true)
+    return panel!
+  }
+
+  function findFieldByLabel(wrapper: ReturnType<typeof mount>, label: string) {
+    return wrapper.findAll('.field').find(node =>
+      node.find('.field-label').exists() && node.find('.field-label').text().trim().startsWith(label),
+    )
+  }
+
   async function commitPicker(wrapper: ReturnType<typeof mount>, placeholder: string, value: string) {
     const component = findSearchBar(wrapper, placeholder)
     const input = component.get('input')
@@ -332,6 +353,8 @@ describe('StrategyLabView', () => {
       expect(wrapper.text()).toContain('Momentum Pilot')
     })
 
+    await ensurePanelExpanded(wrapper, 'Research runs')
+
     expect(wrapper.text()).toContain('Strategy Lab')
     expect(wrapper.text()).toContain('Entry logic')
     expect(wrapper.text()).toContain('Backtest')
@@ -352,9 +375,21 @@ describe('StrategyLabView', () => {
     const positionEvolutionChart = wrapper
       .findAllComponents({ name: 'StrategyResultChart' })
       .find(component => component.props('label') === 'Per-position evolution')
+    const drawdownChart = wrapper
+      .findAllComponents({ name: 'StrategyResultChart' })
+      .find(component => component.props('label') === 'Drawdown curve')
     expect(positionEvolutionChart).toBeTruthy()
+    expect(drawdownChart).toBeTruthy()
     expect(positionEvolutionChart!.props('currency')).toBe(true)
     expect(positionEvolutionChart!.props('percent')).toBe(false)
+    expect(drawdownChart!.props('showLegend')).toBe(true)
+    const drawdownSeries = drawdownChart!.props('series') as Array<{ points: Array<{ value: number }> }>
+    expect(drawdownSeries).toHaveLength(2)
+    for (const series of drawdownSeries) {
+      for (const point of series.points) {
+        expect(point.value).toBeLessThanOrEqual(0)
+      }
+    }
     await wrapper.get('button[aria-label="Show position evolution in percent"]').trigger('click')
     await nextTick()
     expect(positionEvolutionChart!.props('currency')).toBe(false)
@@ -380,6 +415,93 @@ describe('StrategyLabView', () => {
 
     await wrapper.get('.sidebar-toggle-strip').trigger('click')
     expect(wrapper.get('.strategy-sidebar').classes()).not.toContain('strategy-sidebar--collapsed')
+  })
+
+  it('shows the benchmark coverage note with an explicit year when benchmark data starts later', async () => {
+    const delayedBenchmarkDefinition = clone(definition)
+    delayedBenchmarkDefinition.runs[0].result_summary.benchmark.equity_curve = [
+      { ts: '2026-01-02T05:00:00Z', equity: 100000 },
+      { ts: '2026-02-01T00:00:00Z', equity: 101200 },
+    ]
+
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([delayedBenchmarkDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(delayedBenchmarkDefinition)
+      if (path === '/watchlists') {
+        return Promise.resolve([
+          {
+            id: 3,
+            name: 'Growth',
+            is_default: false,
+            is_managed: false,
+            is_locked: false,
+            position: 0,
+            items: [{ id: 1, instrument_id: 1, symbol: 'AAPL', position: 0 }],
+          },
+        ])
+      }
+      if (path === '/screeners') {
+        return Promise.resolve([
+          { id: 7, name: 'Momentum Universe' },
+        ])
+      }
+      if (path === '/instruments/search') {
+        const q = String(params?.q ?? '').trim().toUpperCase()
+        return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
+      }
+      if (path.startsWith('/instruments/') && path !== '/instruments/search') {
+        return Promise.resolve({
+          symbol: decodeURIComponent(path.split('/').pop() ?? '').toUpperCase(),
+        })
+      }
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Benchmark coverage starts on 02/01/2026, 05:00')
+  })
+
+  it('defaults section expansion based on whether the strategy already has runs', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    const panels = wrapper.findAll('.panel')
+    expect(panels[0].find('.panel-body').exists()).toBe(false)
+    expect(panels[1].find('.panel-body').exists()).toBe(false)
+    expect(panels[2].find('.panel-body').exists()).toBe(false)
+    expect(panels[3].find('.panel-body').exists()).toBe(false)
+    expect(panels[4].find('.panel-body').exists()).toBe(false)
+    expect(panels[5].find('.panel-body').exists()).toBe(true)
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await flushPromises()
+
+    const newPanels = wrapper.findAll('.panel')
+    expect(newPanels[0].find('.panel-body').exists()).toBe(true)
+    expect(newPanels[1].find('.panel-body').exists()).toBe(true)
+    expect(newPanels[2].find('.panel-body').exists()).toBe(true)
+    expect(newPanels[3].find('.panel-body').exists()).toBe(true)
+    expect(newPanels[4].find('.panel-body').exists()).toBe(true)
+    expect(newPanels[5].find('.panel-body').exists()).toBe(false)
+  })
+
+  it('supports collapsing sections from the title as well as the chevron', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    const resultsPanel = wrapper.findAll('.panel')[5]
+    expect(resultsPanel.find('.panel-body').exists()).toBe(true)
+
+    await resultsPanel.get('.panel-head-heading').trigger('click')
+    await flushPromises()
+
+    expect(resultsPanel.find('.panel-body').exists()).toBe(false)
+    expect(resultsPanel.get('.panel-toggle').attributes('aria-expanded')).toBe('false')
   })
 
   it('does not preselect a comparison run by default', async () => {
@@ -552,6 +674,7 @@ describe('StrategyLabView', () => {
     const wrapper = mountView()
 
     await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
 
     const tagInput = wrapper.get('.tag-picker .tag-input')
     await tagInput.setValue('swing test')
@@ -611,6 +734,8 @@ describe('StrategyLabView', () => {
     const wrapper = mountView()
 
     await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+    await ensurePanelExpanded(wrapper, 'Entry logic')
 
     await commitPicker(wrapper, 'SPY', 'QQQ')
 
@@ -627,6 +752,7 @@ describe('StrategyLabView', () => {
     setActivePinia(createPinia())
     const subsetWrapper = mountView()
     await flushPromises()
+    await ensurePanelExpanded(subsetWrapper, 'Research runs')
     ;(subsetWrapper.get('.advanced-toggle').element as HTMLButtonElement).click()
     await flushPromises()
 
@@ -660,6 +786,8 @@ describe('StrategyLabView', () => {
     const wrapper = mountView()
 
     await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await ensurePanelExpanded(wrapper, 'Research runs')
 
     const noteInput = wrapper.get('input[placeholder="What changed in this revision?"]')
     await noteInput.setValue('Tighter trend logic')
@@ -699,14 +827,31 @@ describe('StrategyLabView', () => {
     const wrapper = mountView()
 
     await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Entry logic')
+    await ensurePanelExpanded(wrapper, 'Risk')
+    await ensurePanelExpanded(wrapper, 'Research runs')
 
     await addTechnicalCondition(wrapper)
-    const hardTrailField = wrapper.findAll('.field').find(node => node.text().includes('Hard trail %'))
-    const armTrailField = wrapper.findAll('.field').find(node => node.text().includes('Arm hard trail after gain %'))
-    expect(hardTrailField).toBeTruthy()
-    expect(armTrailField).toBeTruthy()
-    await hardTrailField!.get('input').setValue('3')
-    await armTrailField!.get('input').setValue('5')
+    const stopModelSelect = wrapper.findAll('select').find(node =>
+      Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'ATR multiple'),
+    )
+    const sizingModelSelect = wrapper.findAll('select').find(node =>
+      Array.from((node.element as HTMLSelectElement).options).some(option => option.text === 'Fixed cash'),
+    )
+    expect(stopModelSelect).toBeTruthy()
+    expect(sizingModelSelect).toBeTruthy()
+    await stopModelSelect!.setValue('atr')
+    await sizingModelSelect!.setValue('fixed_cash')
+    await flushPromises()
+    const atrPeriodField = findFieldByLabel(wrapper, 'ATR period')
+    const atrMultipleField = findFieldByLabel(wrapper, 'ATR multiple')
+    const fixedCashField = findFieldByLabel(wrapper, 'Cash per position')
+    expect(atrPeriodField).toBeTruthy()
+    expect(atrMultipleField).toBeTruthy()
+    expect(fixedCashField).toBeTruthy()
+    await atrPeriodField!.get('input').setValue('21')
+    await atrMultipleField!.get('input').setValue('2.5')
+    await fixedCashField!.get('input').setValue('15000')
     const dateInputs = wrapper.findAll('input[type="date"]')
     expect(dateInputs).toHaveLength(2)
     await dateInputs[0].setValue('2026-02-01')
@@ -725,8 +870,11 @@ describe('StrategyLabView', () => {
       definition_snapshot: expect.objectContaining({
         conditions: expect.any(Array),
         risk: expect.objectContaining({
-          hard_trailing_stop_pct: 3,
-          hard_trailing_activation_pct: 5,
+          stop_model: 'atr',
+          stop_atr_period: 21,
+          stop_atr_multiple: 2.5,
+          position_sizing_mode: 'fixed_cash',
+          position_sizing_value: 15000,
         }),
       }),
       execution_model: expect.objectContaining({
@@ -759,6 +907,8 @@ describe('StrategyLabView', () => {
     const wrapper = mountView()
 
     await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+    await ensurePanelExpanded(wrapper, 'Research runs')
 
     await wrapper.get('select').setValue('custom')
     const selects = wrapper.findAll('select')

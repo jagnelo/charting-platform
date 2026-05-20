@@ -147,9 +147,21 @@
       <div class="detail-columns">
           <div class="panel">
             <div class="panel-head">
-              <div><h3>Strategy profile</h3></div>
+              <div class="panel-head-title">
+                <button
+                  type="button"
+                  class="panel-toggle"
+                  :aria-expanded="sectionExpanded.profile ? 'true' : 'false'"
+                  :title="sectionExpanded.profile ? 'Collapse Strategy profile' : 'Expand Strategy profile'"
+                  @click="toggleSection('profile')"
+                >
+                  <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.profile }">▸</span>
+                </button>
+                <h3 class="panel-head-heading" @click="toggleSection('profile')">Strategy profile</h3>
+              </div>
             </div>
 
+            <div v-if="sectionExpanded.profile" class="panel-body">
             <div class="form-grid two-up">
               <label class="field">
                 <span class="field-label">
@@ -306,13 +318,26 @@
                 />
               </label>
             </div>
+            </div>
           </div>
 
           <div class="panel">
           <div class="panel-head">
-            <div><h3>{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3></div>
+            <div class="panel-head-title">
+              <button
+                type="button"
+                class="panel-toggle"
+                :aria-expanded="sectionExpanded.entry ? 'true' : 'false'"
+                :title="sectionExpanded.entry ? `Collapse ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}` : `Expand ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}`"
+                @click="toggleSection('entry')"
+              >
+                <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.entry }">▸</span>
+              </button>
+              <h3 class="panel-head-heading" @click="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
+            </div>
           </div>
 
+          <div v-if="sectionExpanded.entry" class="panel-body">
           <template v-if="sourceType === 'custom'">
             <div class="form-grid one-up">
               <label class="field">
@@ -424,30 +449,98 @@
             <p>{{ strategyNarrative }}</p>
           </div>
           </div>
+          </div>
 
           <div class="panel">
             <div class="panel-head">
-              <div><h3>Risk</h3></div>
+              <div class="panel-head-title">
+                <button
+                  type="button"
+                  class="panel-toggle"
+                  :aria-expanded="sectionExpanded.risk ? 'true' : 'false'"
+                  :title="sectionExpanded.risk ? 'Collapse Risk' : 'Expand Risk'"
+                  @click="toggleSection('risk')"
+                >
+                  <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.risk }">▸</span>
+                </button>
+                <h3 class="panel-head-heading" @click="toggleSection('risk')">Risk</h3>
+              </div>
             </div>
 
+            <div v-if="sectionExpanded.risk" class="panel-body">
             <div class="form-grid three-up">
               <label class="field">
                 <span class="field-label">
-                  Stop loss %
-                  <HoverTooltip text="Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget.">
-                    <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
+                  Stop model
+                  <HoverTooltip text="Choose whether the initial stop is a fixed percent distance from entry or a volatility-aware ATR multiple.">
+                    <button type="button" class="help-dot" aria-label="Stop model info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
+                <select v-model="logicDraft.stop_model" class="form-select">
+                  <option value="percent">Fixed percent</option>
+                  <option value="atr">ATR multiple</option>
+                </select>
               </label>
               <label class="field">
                 <span class="field-label">
-                  Hard trail %
-                  <HoverTooltip text="A percent-based trailing stop measured from the best price reached after entry. Set to 0 to disable this hard trailing stop.">
-                    <button type="button" class="help-dot" aria-label="Hard trailing stop info">i</button>
+                  {{ logicDraft.stop_model === 'atr' ? 'ATR period' : 'Stop loss %' }}
+                  <HoverTooltip :text="logicDraft.stop_model === 'atr'
+                    ? 'ATR lookback used for the volatility-based stop model. The stop sits this many ATR multiples away from the entry price.'
+                    : 'Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget when percent-risk sizing is active.'">
+                    <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.hard_trailing_stop_pct" type="number" min="0" step="0.1" class="form-input" />
+                <template v-if="logicDraft.stop_model === 'atr'">
+                  <input v-model.number="logicDraft.stop_atr_period" type="number" min="1" step="1" class="form-input" />
+                </template>
+                <template v-else>
+                  <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
+                </template>
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  {{ logicDraft.stop_model === 'atr' ? 'ATR multiple' : 'Hard trail %' }}
+                  <HoverTooltip :text="logicDraft.stop_model === 'atr'
+                    ? 'Distance from entry to the initial stop, expressed as a multiple of ATR.'
+                    : 'A percent-based trailing stop measured from the best price reached after entry. Set to 0 to disable this hard trailing stop.'">
+                    <button type="button" class="help-dot" :aria-label="logicDraft.stop_model === 'atr' ? 'ATR multiple info' : 'Hard trailing stop info'">i</button>
+                  </HoverTooltip>
+                </span>
+                <template v-if="logicDraft.stop_model === 'atr'">
+                  <input v-model.number="logicDraft.stop_atr_multiple" type="number" min="0.1" step="0.1" class="form-input" />
+                </template>
+                <template v-else>
+                  <input v-model.number="logicDraft.hard_trailing_stop_pct" type="number" min="0" step="0.1" class="form-input" />
+                </template>
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Position sizing
+                  <HoverTooltip text="Choose how to size each position: percent-risk uses the run risk budget, while the others size from fixed quantity or capital allocation.">
+                    <button type="button" class="help-dot" aria-label="Position sizing info">i</button>
+                  </HoverTooltip>
+                </span>
+                <select v-model="logicDraft.position_sizing_mode" class="form-select">
+                  <option value="percent_risk">Percent risk</option>
+                  <option value="fixed_cash">Fixed cash</option>
+                  <option value="percent_capital">% of capital</option>
+                  <option value="fixed_quantity">Fixed quantity</option>
+                </select>
+              </label>
+              <label v-if="logicDraft.position_sizing_mode !== 'percent_risk'" class="field">
+                <span class="field-label">
+                  {{ positionSizingValueLabel }}
+                  <HoverTooltip :text="positionSizingValueHelp">
+                    <button type="button" class="help-dot" aria-label="Position sizing value info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input
+                  v-model.number="logicDraft.position_sizing_value"
+                  type="number"
+                  :min="positionSizingValueMin"
+                  :step="positionSizingValueStep"
+                  class="form-input"
+                />
               </label>
               <label class="field">
                 <span class="field-label">
@@ -486,13 +579,26 @@
                 <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
               </label>
             </div>
+            </div>
           </div>
 
           <div class="panel">
             <div class="panel-head">
-              <div><h3>Exits</h3></div>
+              <div class="panel-head-title">
+                <button
+                  type="button"
+                  class="panel-toggle"
+                  :aria-expanded="sectionExpanded.exits ? 'true' : 'false'"
+                  :title="sectionExpanded.exits ? 'Collapse Exits' : 'Expand Exits'"
+                  @click="toggleSection('exits')"
+                >
+                  <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.exits }">▸</span>
+                </button>
+                <h3 class="panel-head-heading" @click="toggleSection('exits')">Exits</h3>
+              </div>
             </div>
 
+            <div v-if="sectionExpanded.exits" class="panel-body">
             <div class="form-grid two-up">
               <label class="field">
                 <span class="field-label">
@@ -527,22 +633,37 @@
               @add-condition="addConditionToExitTree"
               @add-group="(nodeId, type) => addGroupToExitTree(nodeId, type)"
             />
+            </div>
           </div>
 
           <div class="panel">
           <div class="panel-head">
-            <div><h3>Research runs</h3></div>
-            <button
-              v-if="currentVersion && !isNew"
-            class="btn-primary"
-            type="button"
-            @click="runCurrentVersion"
-            :disabled="strategyLab.isRunning || showRunSubsetValidation"
-          >
-              {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
-            </button>
+            <div class="panel-head-title">
+              <button
+                type="button"
+                class="panel-toggle"
+                :aria-expanded="sectionExpanded.runs ? 'true' : 'false'"
+                :title="sectionExpanded.runs ? 'Collapse Research runs' : 'Expand Research runs'"
+                @click="toggleSection('runs')"
+              >
+                <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.runs }">▸</span>
+              </button>
+              <h3 class="panel-head-heading" @click="toggleSection('runs')">Research runs</h3>
+            </div>
+            <div class="panel-head-controls">
+              <button
+                v-if="currentVersion && !isNew"
+                class="btn-primary"
+                type="button"
+                @click="runCurrentVersion"
+                :disabled="strategyLab.isRunning || showRunSubsetValidation"
+              >
+                {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
+              </button>
+            </div>
           </div>
 
+          <div v-if="sectionExpanded.runs" class="panel-body">
           <div class="mode-strip">
             <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" @click="runDraft.test_mode = 'backtest'">Backtest</button>
             <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
@@ -569,7 +690,7 @@
               <span class="field-label">Initial capital</span>
               <input v-model.number="runDraft.initial_capital" type="number" min="1000" step="1000" class="form-input" />
             </label>
-            <label class="field">
+            <label v-if="logicDraft.position_sizing_mode === 'percent_risk'" class="field">
               <span class="field-label">Risk per trade %</span>
               <input v-model.number="runDraft.risk_per_trade_pct" type="number" min="0.1" step="0.1" class="form-input" />
             </label>
@@ -648,8 +769,10 @@
               class="advanced-toggle"
               @click="showAdvancedRunOptions = !showAdvancedRunOptions"
             >
-              <span>Advanced run options</span>
-              <span>{{ showAdvancedRunOptions ? '▴' : '▾' }}</span>
+              <span class="advanced-toggle__title">
+                <span class="advanced-toggle__icon" :class="{ 'advanced-toggle__icon--expanded': showAdvancedRunOptions }">▸</span>
+                <span>Advanced run options</span>
+              </span>
             </button>
 
             <div v-show="showAdvancedRunOptions" class="advanced-panel">
@@ -719,50 +842,65 @@
             </button>
             <div v-if="!selectedRuns.length" class="empty-state empty-state--small">No backtests yet.</div>
           </div>
+          </div>
       </div>
       </div>
 
       <div class="panel panel--results">
         <div class="panel-head">
-          <div><h3>Results</h3></div>
-          <div v-if="selectedRunDetail" class="detail-actions">
+          <div class="panel-head-title">
             <button
-              v-if="selectedRunDetail.test_mode === 'paper_forward'"
-              class="btn-secondary btn-icon-only"
               type="button"
-              title="Refresh paper-forward"
-              aria-label="Refresh paper-forward"
-              @click="refreshPaperForwardRun"
-              :disabled="strategyLab.isRunning"
+              class="panel-toggle"
+              :aria-expanded="sectionExpanded.results ? 'true' : 'false'"
+              :title="sectionExpanded.results ? 'Collapse Results' : 'Expand Results'"
+              @click="toggleSection('results')"
             >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M13.5 3.5v3h-3" />
-                <path d="M12.2 6A5 5 0 1 0 13 10" />
-              </svg>
+              <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.results }">▸</span>
             </button>
-            <div ref="exportMenuRef" class="export-menu" @click.stop>
+            <h3 class="panel-head-heading" @click="toggleSection('results')">Results</h3>
+          </div>
+          <div class="panel-head-controls">
+            <div v-if="selectedRunDetail" class="detail-actions">
               <button
-                class="btn-secondary btn-icon-only export-menu__trigger"
+                v-if="selectedRunDetail.test_mode === 'paper_forward'"
+                class="btn-secondary btn-icon-only"
                 type="button"
-                title="Export"
-                aria-label="Export"
-                @click="exportMenuOpen = !exportMenuOpen"
+                title="Refresh paper-forward"
+                aria-label="Refresh paper-forward"
+                @click="refreshPaperForwardRun"
+                :disabled="strategyLab.isRunning"
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M8 2.5v7" />
-                  <path d="M5.5 7 8 9.5 10.5 7" />
-                  <path d="M3 12.5h10" />
+                  <path d="M13.5 3.5v3h-3" />
+                  <path d="M12.2 6A5 5 0 1 0 13 10" />
                 </svg>
-                <span class="export-menu__caret">{{ exportMenuOpen ? '▴' : '▾' }}</span>
               </button>
-              <div v-if="exportMenuOpen" class="export-menu__panel">
-                <button type="button" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
-                <button type="button" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
+              <div ref="exportMenuRef" class="export-menu" @click.stop>
+                <button
+                  class="btn-secondary btn-icon-only export-menu__trigger"
+                  type="button"
+                  title="Export"
+                  aria-label="Export"
+                  @click="exportMenuOpen = !exportMenuOpen"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M8 2.5v7" />
+                    <path d="M5.5 7 8 9.5 10.5 7" />
+                    <path d="M3 12.5h10" />
+                  </svg>
+                  <span class="export-menu__caret">{{ exportMenuOpen ? '▴' : '▾' }}</span>
+                </button>
+                <div v-if="exportMenuOpen" class="export-menu__panel">
+                  <button type="button" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
+                  <button type="button" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <div v-if="sectionExpanded.results" class="panel-body">
         <div v-if="selectedRunDetail" class="run-detail">
           <div class="form-grid two-up" v-if="selectedRuns.length > 1">
             <label class="field">
@@ -852,23 +990,40 @@
                     <span>Strategy return</span>
                     <strong>{{ strategyReturnLabel }}</strong>
                   </div>
+                  <div v-if="benchmarkMaxDrawdownLabel !== '—'">
+                    <span>Benchmark drawdown</span>
+                    <strong>{{ benchmarkMaxDrawdownLabel }}</strong>
+                  </div>
+                  <div v-if="benchmarkHoldSpanLabel !== '—'">
+                    <span>Hold span</span>
+                    <strong>{{ benchmarkHoldSpanLabel }}</strong>
+                  </div>
                 </div>
                 <div v-if="!benchmarkCurve.length" class="empty-inline">No benchmark curve for this run yet.</div>
                 <div v-else-if="benchmarkCoverageNote" class="equity-panel__footnote">
                   {{ benchmarkCoverageNote }}
                 </div>
+                <StrategyResultChart
+                  v-if="benchmarkPositionSeries.length"
+                  :series="benchmarkPositionSeries"
+                  label="Benchmark buy-and-hold position"
+                  :percent="true"
+                  :show-legend="false"
+                  :height="120"
+                  empty-label="No benchmark position path for this run yet."
+                />
               </div>
 
               <div class="equity-panel">
                 <div class="equity-panel__head">
                   <strong>Drawdown</strong>
-                  <span>{{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess</span>
+                  <span>{{ drawdownPanelLabel }}</span>
                 </div>
                 <StrategyResultChart
                   :series="drawdownChartSeries"
                   label="Drawdown curve"
                   :percent="true"
-                  :show-legend="false"
+                  :show-legend="drawdownChartSeries.length > 1"
                   empty-label="No drawdown curve for this run yet."
                 />
               </div>
@@ -933,6 +1088,7 @@
                 <StrategyResultChart
                   :series="portfolioPositionsSeries"
                   label="Open positions over time"
+                  :integer-axis="true"
                   :show-legend="false"
                   empty-label="No open-position timeline for this run yet."
                 />
@@ -979,6 +1135,7 @@
                     :rows="activeReturnsRows"
                     :mode="activeReturnsMode"
                     :empty-label="activeReturnsEmptyLabel"
+                    :cell-details="activeReturnsDetails"
                   />
                 </div>
 
@@ -986,6 +1143,7 @@
                   <div class="subsection-head"><h4>Per symbol</h4></div>
                   <SymbolPerformanceBars
                     :rows="symbolPerformance"
+                    :events="executionLog"
                     empty-label="No per-symbol attribution yet."
                   />
                 </div>
@@ -1048,6 +1206,7 @@
                   <div class="subsection-head"><h4>R distribution</h4></div>
                   <DistributionBars
                     :rows="tradeDistributions.r_histogram"
+                    :trades="visibleTrades"
                     empty-label="No R distribution yet."
                   />
                 </div>
@@ -1094,10 +1253,10 @@
                 </table>
             </div>
           </div>
+          </div>
         </div>
-      </div>
-
         <div v-else class="empty-state">Run a backtest, then select it here to inspect the results.</div>
+        </div>
       </div>
     </section>
 
@@ -1138,6 +1297,9 @@ import { useStrategyLabStore } from '@/stores/strategyLab'
 import type { StrategyDefinition, StrategyRun, StrategyVersion, Watchlist } from '@/types'
 
 type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener'
+type StrategyLabSectionKey = 'profile' | 'entry' | 'risk' | 'exits' | 'runs' | 'results'
+type StrategyLabSectionState = Record<StrategyLabSectionKey, boolean>
+type StrategyLabStoredSectionStates = Record<string, Partial<StrategyLabSectionState>>
 
 interface BuilderConditionNode {
   id: string
@@ -1176,7 +1338,9 @@ const STRATEGY_SIDEBAR_MIN_WIDTH = 272
 const STRATEGY_SIDEBAR_MAX_WIDTH = 420
 const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
 const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
+const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
 const initialSidebarState = loadStrategySidebarState()
+const initialSectionStates = loadStrategySectionStates()
 
 const strategyLab = useStrategyLabStore()
 const availableWatchlists = ref<Watchlist[]>([])
@@ -1222,6 +1386,8 @@ const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
 const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
+const storedSectionStates = ref<StrategyLabStoredSectionStates>(initialSectionStates)
+const sectionExpanded = ref<StrategyLabSectionState>(defaultSectionState(false))
 
 const draft = reactive({
   name: '',
@@ -1233,13 +1399,18 @@ const draft = reactive({
 const logicDraft = reactive({
   timeframe: 'D1',
   direction: 'long',
+  stop_model: 'percent' as 'percent' | 'atr',
   stop_loss_pct: 2,
+  stop_atr_period: 14,
+  stop_atr_multiple: 2,
   hard_trailing_stop_pct: 0,
   hard_trailing_activation_pct: 0,
   take_profit_rr: 2,
   max_bars_in_trade: 20,
   break_even_rr: 0,
   trailing_stop_rr: 0,
+  position_sizing_mode: 'percent_risk' as 'percent_risk' | 'fixed_cash' | 'percent_capital' | 'fixed_quantity',
+  position_sizing_value: 1,
   pyramiding_max_entries: 1,
   benchmark_symbol: 'SPY',
   symbols: [] as string[],
@@ -1413,6 +1584,17 @@ const yearlyReturns = computed<any[]>(() => {
     })
 })
 
+function returnsPeriodKey(ts: string | null | undefined, mode: 'monthly' | 'quarterly' | 'yearly') {
+  const value = String(ts ?? '')
+  const year = value.slice(0, 4)
+  const monthValue = Number(value.slice(5, 7))
+  if (!/^\d{4}$/.test(year)) return null
+  if (mode === 'yearly') return year
+  if (!Number.isFinite(monthValue) || monthValue < 1 || monthValue > 12) return null
+  if (mode === 'monthly') return `${year}-${String(monthValue).padStart(2, '0')}`
+  return `${year}-Q${Math.floor((monthValue - 1) / 3) + 1}`
+}
+
 const availableReturnsModes = computed<Array<'monthly' | 'quarterly' | 'yearly'>>(() => {
   const modes: Array<'monthly' | 'quarterly' | 'yearly'> = []
   if (monthlyReturns.value.length) modes.push('monthly')
@@ -1420,6 +1602,22 @@ const availableReturnsModes = computed<Array<'monthly' | 'quarterly' | 'yearly'>
   if (yearlyReturns.value.length) modes.push('yearly')
   return modes
 })
+
+function buildReturnsDetailMap(mode: 'monthly' | 'quarterly' | 'yearly') {
+  const grouped: Record<string, any[]> = {}
+  for (const event of executionLog.value) {
+    if (!['exit', 'open_at_end'].includes(String(event?.event_type ?? ''))) continue
+    const period = returnsPeriodKey(event?.ts, mode)
+    if (!period) continue
+    if (!grouped[period]) grouped[period] = []
+    grouped[period].push(event)
+  }
+
+  for (const events of Object.values(grouped)) {
+    events.sort((left, right) => String(left.ts ?? '').localeCompare(String(right.ts ?? '')))
+  }
+  return grouped
+}
 
 const symbolPerformance = computed<any[]>(() =>
   Array.isArray(selectedRunDetail.value?.result_summary?.symbol_performance)
@@ -1484,9 +1682,29 @@ const performanceChartSeries = computed(() => {
 })
 
 const drawdownChartSeries = computed(() => {
-  const series = buildRawChartSeries(drawdownCurve.value, 'Drawdown', '#ef7f88', 'drawdown_pct')
-  return series ? [series] : []
+  const strategySeries = buildRawChartSeries(
+    negateSeriesValues(drawdownCurve.value, 'drawdown_pct'),
+    'Strategy',
+    '#ef7f88',
+    'drawdown_pct',
+  )
+  const benchmarkDrawdownRows = Array.isArray(selectedRunDetail.value?.result_summary?.benchmark?.drawdown_curve)
+    ? selectedRunDetail.value?.result_summary?.benchmark?.drawdown_curve
+    : deriveDrawdownCurve(benchmarkCurve.value, 'equity')
+  const benchmarkSeries = buildRawChartSeries(
+    negateSeriesValues(benchmarkDrawdownRows, 'drawdown_pct'),
+    selectedRunDetail.value?.result_summary?.benchmark?.symbol || 'Benchmark',
+    '#e0b35b',
+    'drawdown_pct',
+  )
+  return [strategySeries, benchmarkSeries].filter((item): item is NonNullable<typeof item> => item != null)
 })
+
+const drawdownPanelLabel = computed(() => (
+  selectedRunDetail.value?.result_summary?.benchmark?.symbol
+    ? `Strategy vs ${selectedRunDetail.value.result_summary.benchmark.symbol}`
+    : 'Peak-to-trough'
+))
 
 const strategyReturnLabel = computed(() => {
   const strategyCurve = Array.isArray(selectedRunDetail.value?.result_summary?.equity_curve)
@@ -1496,6 +1714,16 @@ const strategyReturnLabel = computed(() => {
 })
 
 const benchmarkReturnLabel = computed(() => formatSeriesReturn(benchmarkCurve.value, 'equity'))
+const benchmarkMaxDrawdownLabel = computed(() =>
+  formatPercent(selectedRunDetail.value?.result_summary?.benchmark?.performance?.max_drawdown_pct),
+)
+const benchmarkHoldSpanLabel = computed(() => {
+  const coverage = selectedRunDetail.value?.result_summary?.benchmark?.coverage
+  const first = String(coverage?.first_bar_at ?? '')
+  const last = String(coverage?.last_bar_at ?? '')
+  if (!first || !last) return '—'
+  return `${formatShortDateTime(first)} → ${formatShortDateTime(last)}`
+})
 const benchmarkCoverageNote = computed(() => {
   const firstBenchmarkTs = String(benchmarkCurve.value[0]?.ts ?? '')
   const runStart = String(selectedRunDetail.value?.date_from ?? '')
@@ -1505,7 +1733,7 @@ const benchmarkCoverageNote = computed(() => {
   if (!Number.isFinite(firstBenchmarkAt) || !Number.isFinite(runStartAt) || firstBenchmarkAt <= runStartAt) {
     return ''
   }
-  return `Benchmark coverage starts on ${formatShortDateTime(firstBenchmarkTs)}. Earlier benchmark bars are unavailable for this run.`
+  return `Benchmark coverage starts on ${formatFullCoverageDateTime(firstBenchmarkTs)}. Earlier benchmark bars are unavailable for this run.`
 })
 const runSubsetSummary = computed(() => {
   if (!runDraft.use_subset) return 'Use full universe'
@@ -1528,6 +1756,10 @@ const activeReturnsRows = computed<any[]>(() => {
   if (activeReturnsMode.value === 'yearly') return yearlyReturns.value
   return monthlyReturns.value
 })
+
+const activeReturnsDetails = computed<Record<string, any[]>>(() => (
+  buildReturnsDetailMap(activeReturnsMode.value)
+))
 const activeReturnsEmptyLabel = computed(() => {
   if (activeReturnsMode.value === 'quarterly') return 'No quarterly return breakdown yet.'
   if (activeReturnsMode.value === 'yearly') return 'No yearly return breakdown yet.'
@@ -1549,6 +1781,33 @@ const positionEvolutionSeries = computed(() =>
       : [],
   })).filter(series => series.points.length >= 2)
 )
+const benchmarkPositionSeries = computed(() => {
+  const timeline = selectedRunDetail.value?.result_summary?.benchmark?.position_timeline
+  const denominator = positionEvolutionDenominator(timeline)
+  if (!timeline || !Array.isArray(timeline.points) || !Number.isFinite(denominator) || denominator <= 0) {
+    return []
+  }
+  const points = timeline.points
+    .map((point: any) => {
+      const rawValue = Number(point?.value)
+      if (!String(point?.ts ?? '') || !Number.isFinite(rawValue)) return null
+      return {
+        ts: String(point.ts),
+        value: (rawValue / denominator) * 100,
+        detail: point.detail ? String(point.detail) : null,
+        marker: point.marker ? String(point.marker) : null,
+      }
+    })
+    .filter((point: any): point is { ts: string; value: number; detail: string | null; marker: string | null } => point != null)
+  if (points.length < 2) return []
+  return [
+    {
+      label: `${selectedRunDetail.value?.result_summary?.benchmark?.symbol || 'Benchmark'} buy & hold`,
+      color: '#e0b35b',
+      points,
+    },
+  ]
+})
 const portfolioCapitalSeries = computed(() => {
   const deployed = buildRawChartSeries(
     portfolioTimeline.value,
@@ -1574,6 +1833,34 @@ const portfolioPositionsSeries = computed(() => {
   return openPositions ? [openPositions] : []
 })
 
+const positionSizingValueLabel = computed(() => {
+  if (logicDraft.position_sizing_mode === 'fixed_cash') return 'Cash per position'
+  if (logicDraft.position_sizing_mode === 'percent_capital') return 'Capital per position %'
+  if (logicDraft.position_sizing_mode === 'fixed_quantity') return 'Quantity per entry'
+  return 'Sizing value'
+})
+
+const positionSizingValueHelp = computed(() => {
+  if (logicDraft.position_sizing_mode === 'fixed_cash') {
+    return 'Allocate this much capital to each new position, regardless of stop distance.'
+  }
+  if (logicDraft.position_sizing_mode === 'percent_capital') {
+    return 'Allocate this percent of the current capital base to each new position.'
+  }
+  if (logicDraft.position_sizing_mode === 'fixed_quantity') {
+    return 'Use this fixed quantity for every new entry.'
+  }
+  return 'Sizing value for the selected model.'
+})
+
+const positionSizingValueStep = computed(() =>
+  logicDraft.position_sizing_mode === 'fixed_quantity' ? 1 : 0.1,
+)
+
+const positionSizingValueMin = computed(() =>
+  logicDraft.position_sizing_mode === 'fixed_quantity' ? 1 : 0,
+)
+
 const strategyNarrative = computed(() => {
   if (sourceType.value === 'radar') {
     const setupText = radarDraft.setup_types.length
@@ -1586,12 +1873,22 @@ const strategyNarrative = computed(() => {
   }
   const conditionText = describeRuleNode(logicDraft.ruleTree)
   const exitText = describeRuleNode(logicDraft.exitRuleTree)
+  const stopText = logicDraft.stop_model === 'atr'
+    ? `${logicDraft.stop_atr_multiple} ATR stop (${logicDraft.stop_atr_period})`
+    : `${logicDraft.stop_loss_pct}% stop`
+  const sizingText = logicDraft.position_sizing_mode === 'percent_risk'
+    ? `${runDraft.risk_per_trade_pct}% risk-per-trade sizing`
+    : logicDraft.position_sizing_mode === 'fixed_cash'
+      ? `${formatMoney(logicDraft.position_sizing_value)} fixed cash sizing`
+      : logicDraft.position_sizing_mode === 'percent_capital'
+        ? `${logicDraft.position_sizing_value}% capital sizing`
+        : `${logicDraft.position_sizing_value.toFixed(0)} fixed quantity sizing`
   const fixedTargetText = logicDraft.take_profit_rr > 0 ? `${logicDraft.take_profit_rr}R fixed target` : 'no fixed profit target'
   const timeExitText = logicDraft.max_bars_in_trade > 0 ? `${logicDraft.max_bars_in_trade}-bar time exit` : 'no time exit'
   const hardTrailText = logicDraft.hard_trailing_stop_pct > 0
     ? `, a hard ${logicDraft.hard_trailing_stop_pct}% trail${logicDraft.hard_trailing_activation_pct > 0 ? ` after a ${logicDraft.hard_trailing_activation_pct}% gain` : ''}`
     : ''
-  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, risking ${logicDraft.stop_loss_pct}% with break-even after ${logicDraft.break_even_rr}R, a trailing stop distance of ${logicDraft.trailing_stop_rr}R${hardTrailText}, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
+  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using ${stopText} and ${sizingText}, with break-even after ${logicDraft.break_even_rr}R, a trailing stop distance of ${logicDraft.trailing_stop_rr}R${hardTrailText}, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
 })
 
 const hasUniverseSelection = computed(() =>
@@ -1653,6 +1950,10 @@ onBeforeUnmount(() => {
 watch([sidebarWidth, sidebarCollapsed], ([width, collapsed]) => {
   persistStrategySidebarState({ width, collapsed })
 })
+
+watch(sectionExpanded, value => {
+  persistStrategySectionState(currentSectionStateStorageKey(), value)
+}, { deep: true })
 
 watch(() => strategyLab.selectedDefinition, value => {
   hydrateFromSelection(value)
@@ -1728,6 +2029,7 @@ function createNotNode(condition: BuilderRuleNode | null = null): BuilderNotNode
 function startNew() {
   isNew.value = true
   strategyLab.selectDefinition(null)
+  sectionExpanded.value = resolveSectionState(null, true)
   draft.name = ''
   draft.description = ''
   draft.is_active = true
@@ -1741,13 +2043,18 @@ function startNew() {
   symbolInput.value = ''
   logicDraft.timeframe = 'D1'
   logicDraft.direction = 'long'
+  logicDraft.stop_model = 'percent'
   logicDraft.stop_loss_pct = 2
+  logicDraft.stop_atr_period = 14
+  logicDraft.stop_atr_multiple = 2
   logicDraft.hard_trailing_stop_pct = 0
   logicDraft.hard_trailing_activation_pct = 0
   logicDraft.take_profit_rr = 2
   logicDraft.max_bars_in_trade = 20
   logicDraft.break_even_rr = 0
   logicDraft.trailing_stop_rr = 0
+  logicDraft.position_sizing_mode = 'percent_risk'
+  logicDraft.position_sizing_value = 1
   logicDraft.pyramiding_max_entries = 1
   logicDraft.benchmark_symbol = 'SPY'
   logicDraft.symbols = []
@@ -1792,6 +2099,7 @@ function hydrateFromSelection(definition: StrategyDefinition | null | undefined)
     return
   }
   isNew.value = false
+  sectionExpanded.value = resolveSectionState(definition, false)
   draft.name = definition.name
   draft.description = definition.description ?? ''
   draft.is_active = definition.is_active
@@ -1814,13 +2122,21 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   versionNotes.value = version.notes ?? ''
   logicDraft.timeframe = String(snapshot.timeframe ?? 'D1')
   logicDraft.direction = String(snapshot.direction ?? 'long')
+  logicDraft.stop_model = String(risk.stop_model ?? 'percent') === 'atr' ? 'atr' : 'percent'
   logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
+  logicDraft.stop_atr_period = Math.max(1, Math.round(toPositiveNumber(risk.stop_atr_period, 14)))
+  logicDraft.stop_atr_multiple = Math.max(0.1, Number(risk.stop_atr_multiple ?? 2) || 2)
   logicDraft.hard_trailing_stop_pct = Math.max(0, Number(risk.hard_trailing_stop_pct ?? 0) || 0)
   logicDraft.hard_trailing_activation_pct = Math.max(0, Number(risk.hard_trailing_activation_pct ?? 0) || 0)
   logicDraft.take_profit_rr = Math.max(0, Number(exits.take_profit_rr ?? risk.take_profit_rr ?? 2) || 0)
   logicDraft.max_bars_in_trade = Math.max(0, Math.round(Number(exits.max_bars_in_trade ?? risk.max_bars_in_trade ?? 20) || 0))
   logicDraft.break_even_rr = Math.max(0, Number(risk.break_even_rr ?? 0))
   logicDraft.trailing_stop_rr = Math.max(0, Number(risk.trailing_stop_rr ?? 0))
+  const sizingMode = String(risk.position_sizing_mode ?? 'percent_risk')
+  logicDraft.position_sizing_mode = ['percent_risk', 'fixed_cash', 'percent_capital', 'fixed_quantity'].includes(sizingMode)
+    ? (sizingMode as typeof logicDraft.position_sizing_mode)
+    : 'percent_risk'
+  logicDraft.position_sizing_value = Math.max(0, Number(risk.position_sizing_value ?? 1) || 1)
   logicDraft.pyramiding_max_entries = Math.max(1, Math.round(toPositiveNumber(risk.pyramiding_max_entries, 1)))
   logicDraft.benchmark_symbol = String(version.benchmark_config?.symbol ?? 'SPY')
   if (version.universe_config?.watchlist_id != null) {
@@ -2125,6 +2441,13 @@ function resizeSidebar(next: number) {
   )
 }
 
+function toggleSection(key: StrategyLabSectionKey) {
+  sectionExpanded.value = {
+    ...sectionExpanded.value,
+    [key]: !sectionExpanded.value[key],
+  }
+}
+
 function loadStrategySidebarState() {
   try {
     const raw = localStorage.getItem(STRATEGY_SIDEBAR_STORAGE_KEY)
@@ -2138,6 +2461,64 @@ function loadStrategySidebarState() {
       width: STRATEGY_SIDEBAR_DEFAULT_WIDTH,
       collapsed: false,
     }
+  }
+}
+
+function defaultSectionState(hasRuns: boolean): StrategyLabSectionState {
+  return hasRuns
+    ? {
+        profile: false,
+        entry: false,
+        risk: false,
+        exits: false,
+        runs: false,
+        results: true,
+      }
+    : {
+        profile: true,
+        entry: true,
+        risk: true,
+        exits: true,
+        runs: true,
+        results: false,
+      }
+}
+
+function mergeSectionState(
+  defaults: StrategyLabSectionState,
+  partial?: Partial<StrategyLabSectionState> | null,
+): StrategyLabSectionState {
+  return {
+    profile: typeof partial?.profile === 'boolean' ? partial.profile : defaults.profile,
+    entry: typeof partial?.entry === 'boolean' ? partial.entry : defaults.entry,
+    risk: typeof partial?.risk === 'boolean' ? partial.risk : defaults.risk,
+    exits: typeof partial?.exits === 'boolean' ? partial.exits : defaults.exits,
+    runs: typeof partial?.runs === 'boolean' ? partial.runs : defaults.runs,
+    results: typeof partial?.results === 'boolean' ? partial.results : defaults.results,
+  }
+}
+
+function currentSectionStateStorageKey() {
+  if (isNew.value || !strategyLab.selectedDefinition?.id) return 'draft'
+  return `strategy:${strategyLab.selectedDefinition.id}`
+}
+
+function resolveSectionState(
+  definition: StrategyDefinition | null | undefined,
+  draftMode: boolean,
+): StrategyLabSectionState {
+  const key = draftMode || !definition?.id ? 'draft' : `strategy:${definition.id}`
+  const hasRuns = draftMode ? false : (definition?.runs?.length ?? 0) > 0
+  return mergeSectionState(defaultSectionState(hasRuns), storedSectionStates.value[key] ?? null)
+}
+
+function loadStrategySectionStates(): StrategyLabStoredSectionStates {
+  try {
+    const raw = localStorage.getItem(STRATEGY_SECTION_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) as StrategyLabStoredSectionStates : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
   }
 }
 
@@ -2221,6 +2602,18 @@ function persistStrategySidebarState(value: { width: number; collapsed: boolean 
   }
 }
 
+function persistStrategySectionState(key: string, value: StrategyLabSectionState) {
+  try {
+    storedSectionStates.value = {
+      ...storedSectionStates.value,
+      [key]: value,
+    }
+    localStorage.setItem(STRATEGY_SECTION_STORAGE_KEY, JSON.stringify(storedSectionStates.value))
+  } catch {
+    // Ignore unavailable storage and keep the in-memory state.
+  }
+}
+
 function summarizeRadarOptions(
   values: string[],
   options: Array<{ value: string; label: string }>,
@@ -2235,11 +2628,16 @@ function buildVersionPayload() {
   const flatConditions = flattenConditionNodes(logicDraft.ruleTree)
   const flatExitConditions = flattenConditionNodes(logicDraft.exitRuleTree)
   const riskConfig = {
+    stop_model: logicDraft.stop_model,
     stop_loss_pct: logicDraft.stop_loss_pct,
+    stop_atr_period: logicDraft.stop_atr_period,
+    stop_atr_multiple: logicDraft.stop_atr_multiple,
     hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
     hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
     break_even_rr: logicDraft.break_even_rr,
     trailing_stop_rr: logicDraft.trailing_stop_rr,
+    position_sizing_mode: logicDraft.position_sizing_mode,
+    position_sizing_value: logicDraft.position_sizing_value,
     pyramiding_max_entries: logicDraft.pyramiding_max_entries,
   }
   const exitsConfig = {
@@ -2274,23 +2672,33 @@ function buildVersionPayload() {
           }),
     },
     parameter_schema: {
+      stop_model: { type: 'string', enum: ['percent', 'atr'] },
       stop_loss_pct: { type: 'number', min: 0.1 },
+      stop_atr_period: { type: 'integer', min: 1 },
+      stop_atr_multiple: { type: 'number', min: 0.1 },
       hard_trailing_stop_pct: { type: 'number', min: 0 },
       hard_trailing_activation_pct: { type: 'number', min: 0 },
       take_profit_rr: { type: 'number', min: 0 },
       max_bars_in_trade: { type: 'integer', min: 0 },
       break_even_rr: { type: 'number', min: 0 },
       trailing_stop_rr: { type: 'number', min: 0 },
+      position_sizing_mode: { type: 'string', enum: ['percent_risk', 'fixed_cash', 'percent_capital', 'fixed_quantity'] },
+      position_sizing_value: { type: 'number', min: 0 },
       pyramiding_max_entries: { type: 'integer', min: 1 },
     },
     default_parameters: {
+      stop_model: logicDraft.stop_model,
       stop_loss_pct: logicDraft.stop_loss_pct,
+      stop_atr_period: logicDraft.stop_atr_period,
+      stop_atr_multiple: logicDraft.stop_atr_multiple,
       hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
       hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
       take_profit_rr: logicDraft.take_profit_rr,
       max_bars_in_trade: logicDraft.max_bars_in_trade,
       break_even_rr: logicDraft.break_even_rr,
       trailing_stop_rr: logicDraft.trailing_stop_rr,
+      position_sizing_mode: logicDraft.position_sizing_mode,
+      position_sizing_value: logicDraft.position_sizing_value,
       pyramiding_max_entries: logicDraft.pyramiding_max_entries,
     },
     universe_config: {
@@ -2316,7 +2724,7 @@ function buildVersionPayload() {
         ...(logicDraft.hard_trailing_stop_pct > 0 ? ['hard_trailing_stop'] : []),
         ...(exitConditionCount.value > 0 ? ['condition_exit'] : []),
       ],
-      sizing: 'percent_risk',
+      sizing: logicDraft.position_sizing_mode,
       max_entries: logicDraft.pyramiding_max_entries,
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
@@ -2576,6 +2984,33 @@ function buildRawChartSeries(
   }
 }
 
+function deriveDrawdownCurve(rows: any[], valueKey: string) {
+  if (!Array.isArray(rows) || rows.length < 2) return []
+  let peak: number | null = null
+  return rows
+    .map((row: any) => {
+      const ts = String(row?.ts ?? '')
+      const value = Number(row?.[valueKey])
+      if (!ts || !Number.isFinite(value)) return null
+      if (peak == null || value > peak) peak = value
+      const drawdownPct = !peak || peak <= 0 ? 0 : ((peak - value) / peak) * 100
+      return {
+        ts,
+        drawdown_pct: Number(drawdownPct.toFixed(4)),
+      }
+    })
+    .filter((row): row is { ts: string; drawdown_pct: number } => row != null)
+}
+
+function negateSeriesValues(rows: any[], valueKey: string) {
+  return Array.isArray(rows)
+    ? rows.map((row: any) => ({
+      ...row,
+      [valueKey]: Number.isFinite(Number(row?.[valueKey])) ? -Math.abs(Number(row[valueKey])) : row?.[valueKey],
+    }))
+    : []
+}
+
 function formatSeriesReturn(rows: any[], valueKey: string) {
   if (!Array.isArray(rows) || rows.length < 2) return '—'
   const values = rows
@@ -2624,6 +3059,18 @@ function formatDateTime(value: string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatFullCoverageDateTime(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const year = String(date.getUTCFullYear())
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year}, ${hours}:${minutes}`
 }
 
 function formatShortDateTime(value: string | null | undefined) {
@@ -3031,6 +3478,29 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   gap: 10px;
 }
 
+.panel-head-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.panel-head-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-head-heading {
+  cursor: pointer;
+}
+
+.panel-head-heading:hover {
+  color: #f3f3f3;
+}
+
 .detail-title-row {
   display: flex;
   align-items: center;
@@ -3100,6 +3570,42 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   min-width: 0;
 }
 
+.panel-body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.panel-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #9e9e9e;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 140ms ease;
+}
+
+.panel-toggle:hover {
+  color: #e1e1e1;
+}
+
+.panel-toggle__icon {
+  display: inline-block;
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.panel-toggle__icon--expanded {
+  transform: rotate(90deg);
+}
+
 .subsection,
 .run-detail {
   display: grid;
@@ -3153,10 +3659,9 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .advanced-toggle {
-  width: 100%;
-  display: flex;
+  width: fit-content;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   padding: 0;
   border: none;
@@ -3169,6 +3674,23 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 
 .advanced-toggle:hover {
   color: #d0d0d0;
+}
+
+.advanced-toggle__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.advanced-toggle__icon {
+  display: inline-block;
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.advanced-toggle__icon--expanded {
+  transform: rotate(90deg);
 }
 
 .advanced-panel {
@@ -3475,19 +3997,22 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .result-panels-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 12px;
 }
 
 .mini-panel {
+  flex: 1 1 calc(50% - 6px);
+  min-width: min(100%, 320px);
   padding: 12px;
   display: grid;
   gap: 10px;
 }
 
 .mini-panel--returns {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
 }
 
 .equity-panel,
@@ -3781,7 +4306,7 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 @media (max-width: 1380px) {
   .run-summary-grid,
   .result-panels-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .condition-grid,
@@ -3815,6 +4340,11 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   .run-summary-grid,
   .result-panels-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mini-panel {
+    flex-basis: 100%;
+    min-width: 0;
   }
 }
 </style>
