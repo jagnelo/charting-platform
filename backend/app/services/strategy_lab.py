@@ -363,11 +363,16 @@ def _extract_risk_and_exit_config(definition: dict[str, Any]) -> dict[str, Any]:
         exits = {}
 
     return {
+        "stop_model": str(risk.get("stop_model") or "percent").lower(),
         "stop_loss_pct": float(risk.get("stop_loss_pct", 3)),
+        "stop_atr_period": int(risk.get("stop_atr_period", 14)),
+        "stop_atr_multiple": float(risk.get("stop_atr_multiple", 2)),
         "hard_trailing_stop_pct": float(risk.get("hard_trailing_stop_pct", 0)),
         "hard_trailing_activation_pct": float(risk.get("hard_trailing_activation_pct", 0)),
         "break_even_rr": float(risk.get("break_even_rr", 0)),
         "trailing_stop_rr": float(risk.get("trailing_stop_rr", 0)),
+        "position_sizing_mode": str(risk.get("position_sizing_mode") or "percent_risk").lower(),
+        "position_sizing_value": float(risk.get("position_sizing_value", 1)),
         "pyramiding_max_entries": int(risk.get("pyramiding_max_entries", 1)),
         "take_profit_rr": float(exits.get("take_profit_rr", risk.get("take_profit_rr", 2))),
         "max_bars_in_trade": int(exits.get("max_bars_in_trade", risk.get("max_bars_in_trade", 20))),
@@ -1231,12 +1236,17 @@ async def _run_rules_backtest(
     )
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    stop_model = str(risk_and_exits["stop_model"])
+    stop_atr_period = int(risk_and_exits["stop_atr_period"])
+    stop_atr_multiple = float(risk_and_exits["stop_atr_multiple"])
     hard_trailing_stop_pct = float(risk_and_exits["hard_trailing_stop_pct"])
     hard_trailing_activation_pct = float(risk_and_exits["hard_trailing_activation_pct"])
     take_profit_rr = float(risk_and_exits["take_profit_rr"])
     max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
     break_even_rr = float(risk_and_exits["break_even_rr"])
     trailing_stop_rr = float(risk_and_exits["trailing_stop_rr"])
+    position_sizing_mode = str(risk_and_exits["position_sizing_mode"])
+    position_sizing_value = float(risk_and_exits["position_sizing_value"])
     pyramiding_max_entries = int(risk_and_exits["pyramiding_max_entries"])
     direction = str(definition.get("direction", "long")).lower()
     logic = str(definition.get("entry_logic", "all")).lower()
@@ -1305,10 +1315,15 @@ async def _run_rules_backtest(
             exit_conditions=exit_conditions,
             exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
             signal_events=None,
+            stop_model=stop_model,
             stop_loss_pct=stop_loss_pct,
+            stop_atr_period=stop_atr_period,
+            stop_atr_multiple=stop_atr_multiple,
             take_profit_rr=take_profit_rr,
             max_bars_in_trade=max_bars_in_trade,
             capital_base=capital_slice,
+            position_sizing_mode=position_sizing_mode,
+            position_sizing_value=position_sizing_value,
             risk_per_trade_pct=risk_per_trade_pct,
             slippage_bps=slippage_bps,
             commission_per_trade=commission_per_trade,
@@ -1451,13 +1466,18 @@ async def _run_rules_backtest(
         "execution_assumptions": {
             "initial_capital": initial_capital,
             "risk_per_trade_pct": risk_per_trade_pct,
+            "stop_model": stop_model,
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
+            "stop_atr_period": stop_atr_period,
+            "stop_atr_multiple": stop_atr_multiple,
             "hard_trailing_stop_pct": hard_trailing_stop_pct,
             "hard_trailing_activation_pct": hard_trailing_activation_pct,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
+            "position_sizing_mode": position_sizing_mode,
+            "position_sizing_value": position_sizing_value,
             "pyramiding_max_entries": pyramiding_max_entries,
             "take_profit_rr": take_profit_rr,
             "max_bars_in_trade": max_bars_in_trade,
@@ -1785,12 +1805,17 @@ async def _run_radar_signal_research(
     commission_per_trade = float(run.execution_assumptions.get("commission_per_trade", 0))
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
+    stop_model = str(risk_and_exits["stop_model"])
+    stop_atr_period = int(risk_and_exits["stop_atr_period"])
+    stop_atr_multiple = float(risk_and_exits["stop_atr_multiple"])
     hard_trailing_stop_pct = float(risk_and_exits["hard_trailing_stop_pct"])
     hard_trailing_activation_pct = float(risk_and_exits["hard_trailing_activation_pct"])
     take_profit_rr = float(risk_and_exits["take_profit_rr"])
     max_bars_in_trade = int(risk_and_exits["max_bars_in_trade"])
     break_even_rr = float(risk_and_exits["break_even_rr"])
     trailing_stop_rr = float(risk_and_exits["trailing_stop_rr"])
+    position_sizing_mode = str(risk_and_exits["position_sizing_mode"])
+    position_sizing_value = float(risk_and_exits["position_sizing_value"])
     pyramiding_max_entries = int(risk_and_exits["pyramiding_max_entries"])
     exit_logic = str(risk_and_exits["exit_logic"] or "all").lower()
     exit_conditions = list(risk_and_exits["exit_conditions"])
@@ -1884,10 +1909,15 @@ async def _run_radar_signal_research(
             exit_logic=exit_logic,
             exit_conditions=exit_conditions,
             exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
+            stop_model=stop_model,
             stop_loss_pct=stop_loss_pct,
+            stop_atr_period=stop_atr_period,
+            stop_atr_multiple=stop_atr_multiple,
             take_profit_rr=take_profit_rr,
             max_bars_in_trade=max_bars_in_trade,
             capital_base=capital_slice,
+            position_sizing_mode=position_sizing_mode,
+            position_sizing_value=position_sizing_value,
             risk_per_trade_pct=risk_per_trade_pct,
             slippage_bps=slippage_bps,
             commission_per_trade=commission_per_trade,
@@ -2029,13 +2059,18 @@ async def _run_radar_signal_research(
         "execution_assumptions": {
             "initial_capital": initial_capital,
             "risk_per_trade_pct": risk_per_trade_pct,
+            "stop_model": stop_model,
             "slippage_bps": slippage_bps,
             "commission_per_trade": commission_per_trade,
             "stop_loss_pct": stop_loss_pct,
+            "stop_atr_period": stop_atr_period,
+            "stop_atr_multiple": stop_atr_multiple,
             "hard_trailing_stop_pct": hard_trailing_stop_pct,
             "hard_trailing_activation_pct": hard_trailing_activation_pct,
             "break_even_rr": break_even_rr,
             "trailing_stop_rr": trailing_stop_rr,
+            "position_sizing_mode": position_sizing_mode,
+            "position_sizing_value": position_sizing_value,
             "pyramiding_max_entries": pyramiding_max_entries,
             "take_profit_rr": take_profit_rr,
             "max_bars_in_trade": max_bars_in_trade,
@@ -2201,10 +2236,15 @@ async def _maybe_run_parameter_sweep(
                 exit_conditions=exit_conditions,
                 exit_condition_tree=exit_condition_tree if isinstance(exit_condition_tree, dict) else None,
                 signal_events=None,
+                stop_model=str(risk_and_exits["stop_model"]),
                 stop_loss_pct=combo["stop_loss_pct"],
+                stop_atr_period=int(risk_and_exits["stop_atr_period"]),
+                stop_atr_multiple=float(risk_and_exits["stop_atr_multiple"]),
                 take_profit_rr=combo["take_profit_rr"],
                 max_bars_in_trade=combo["max_bars_in_trade"],
                 capital_base=capital_slice,
+                position_sizing_mode=str(risk_and_exits["position_sizing_mode"]),
+                position_sizing_value=float(risk_and_exits["position_sizing_value"]),
                 risk_per_trade_pct=risk_per_trade_pct,
                 slippage_bps=slippage_bps,
                 commission_per_trade=commission_per_trade,
@@ -2302,8 +2342,101 @@ async def _build_benchmark_summary(
         for bar in bars
     ]
     ending = float(curve[-1]["equity"])
+    quantity = round(initial_capital / first_close, 8) if first_close > 0 else 0.0
+    position_timeline = {
+        "position_id": f"{benchmark_symbol}-buy-hold",
+        "label": f"{benchmark_symbol} buy & hold",
+        "symbol": benchmark_symbol,
+        "side": "long",
+        "entry_at": bars[0].ts.isoformat(),
+        "exit_at": None,
+        "current_at": bars[-1].ts.isoformat(),
+        "entry_price": round(first_close, 4),
+        "current_price": round(float(bars[-1].close), 4),
+        "quantity": quantity,
+        "pnl": round(ending - initial_capital, 4),
+        "pnl_pct": round(((ending - initial_capital) / initial_capital) * 100.0, 4)
+        if initial_capital > 0
+        else None,
+        "status": "open_at_end",
+        "points": [
+            {
+                "ts": row["ts"],
+                "value": round(float(row["equity"]) - initial_capital, 4),
+                "detail": (
+                    f"Entry · {benchmark_symbol} LONG · {quantity:.2f} @ {first_close:.2f}"
+                    if index == 0
+                    else (
+                        f"Open · mark {float(bars[-1].close):.2f} · {(((ending - initial_capital) / initial_capital) * 100.0):.2f}%"
+                        if index == len(curve) - 1
+                        else None
+                    )
+                ),
+                "marker": "entry" if index == 0 else ("open_at_end" if index == len(curve) - 1 else None),
+            }
+            for index, row in enumerate(curve)
+        ],
+    }
+    execution_log = [
+        {
+            "ts": bars[0].ts.isoformat(),
+            "event_type": "entry",
+            "position_id": f"{benchmark_symbol}-buy-hold",
+            "symbol": benchmark_symbol,
+            "side": "long",
+            "quantity": quantity,
+            "price": round(first_close, 4),
+            "notional": round(initial_capital, 4),
+            "pnl": None,
+            "pnl_pct": None,
+            "r_multiple": None,
+            "reason": "buy_and_hold_entry",
+        },
+        {
+            "ts": bars[-1].ts.isoformat(),
+            "event_type": "open_at_end",
+            "position_id": f"{benchmark_symbol}-buy-hold",
+            "symbol": benchmark_symbol,
+            "side": "long",
+            "quantity": quantity,
+            "price": round(float(bars[-1].close), 4),
+            "notional": round(float(curve[-1]["equity"]), 4),
+            "pnl": round(ending - initial_capital, 4),
+            "pnl_pct": round(((ending - initial_capital) / initial_capital) * 100.0, 4)
+            if initial_capital > 0
+            else None,
+            "r_multiple": None,
+            "reason": "buy_and_hold_mark",
+        },
+    ]
+    portfolio_timeline = [
+        {
+            "ts": row["ts"],
+            "equity": row["equity"],
+            "deployed_capital": row["equity"],
+            "idle_capital": 0.0,
+            "open_position_count": 1,
+        }
+        for row in curve
+    ]
+    drawdown_curve = _drawdown_curve(curve)
     return {
         "symbol": benchmark_symbol,
         "net_return_pct": round(((ending - initial_capital) / initial_capital * 100.0), 4),
         "equity_curve": curve,
+        "drawdown_curve": drawdown_curve,
+        "position_timeline": position_timeline,
+        "execution_log": execution_log,
+        "portfolio_timeline": portfolio_timeline,
+        "performance": {
+            "initial_capital": round(initial_capital, 4),
+            "ending_capital": round(ending, 4),
+            "net_return_pct": round(((ending - initial_capital) / initial_capital * 100.0), 4),
+            "max_drawdown_pct": _max_drawdown_pct(curve),
+        },
+        "coverage": {
+            "first_bar_at": bars[0].ts.isoformat(),
+            "last_bar_at": bars[-1].ts.isoformat(),
+            "bar_count": len(bars),
+        },
     }

@@ -257,6 +257,106 @@ def test_nautilus_backtest_supports_hard_percent_trailing_stop():
     assert result.trades[0].stop_price > result.trades[0].entry_price
 
 
+def test_nautilus_backtest_supports_fixed_cash_position_sizing():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = [
+        _bar(start, 100.0, 101.0, 99.0, 100.0),
+        _bar(start + timedelta(days=1), 100.0, 103.0, 99.5, 102.0),
+        _bar(start + timedelta(days=2), 102.0, 104.0, 101.0, 103.0),
+    ]
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=1.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        position_sizing_mode="fixed_cash",
+        position_sizing_value=1000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=0.0,
+        commission_per_trade=0.0,
+        signal_events=[
+            {
+                "signal_at": bars[0].ts,
+                "side": "long",
+                "entry_price": float(bars[0].close),
+            }
+        ],
+    )
+
+    assert result.trades
+    assert abs(result.trades[0].quantity - 10.0) < 0.05
+
+
+def test_nautilus_backtest_supports_atr_stop_model():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = [
+        _bar(start + timedelta(days=index), 100.0, 102.0, 98.0, 100.0)
+        for index in range(15)
+    ]
+    bars.extend([
+        _bar(start + timedelta(days=15), 100.0, 101.0, 99.0, 100.0),
+        _bar(start + timedelta(days=16), 100.0, 101.0, 93.0, 94.0),
+        _bar(start + timedelta(days=17), 94.0, 95.0, 92.0, 93.0),
+    ])
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        stop_model="atr",
+        stop_loss_pct=2.0,
+        stop_atr_period=14,
+        stop_atr_multiple=1.5,
+        take_profit_rr=0.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        position_sizing_mode="fixed_quantity",
+        position_sizing_value=1.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=0.0,
+        commission_per_trade=0.0,
+        signal_events=[
+            {
+                "signal_at": bars[14].ts,
+                "side": "long",
+                "entry_price": float(bars[14].close),
+            }
+        ],
+    )
+
+    assert result.trades
+    assert result.trades[0].exit_reason == "stop_loss"
+    assert abs(result.trades[0].stop_price - 94.0) < 0.5
+
+
 def test_nautilus_backtest_supports_shared_condition_payloads():
     instrument = Instrument(
         id=1,

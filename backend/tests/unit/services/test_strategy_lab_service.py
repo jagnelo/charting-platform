@@ -1,8 +1,14 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import pytest
+
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.services.strategy_lab import _apply_portfolio_constraints, _build_dense_portfolio_history
+from app.services.strategy_lab import (
+    _apply_portfolio_constraints,
+    _build_benchmark_summary,
+    _build_dense_portfolio_history,
+)
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
 
 
@@ -186,3 +192,40 @@ def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     ]
     assert result["execution_log"][-1]["symbol"] == "MSFT"
     assert result["execution_log"][-1]["pnl"] == 125.0
+
+
+@pytest.mark.asyncio
+async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatch):
+    bars = [
+        _bar(1, datetime(2026, 1, 1, tzinfo=UTC), 100.0),
+        _bar(1, datetime(2026, 1, 2, tzinfo=UTC), 105.0),
+        _bar(1, datetime(2026, 1, 3, tzinfo=UTC), 103.0),
+    ]
+
+    async def fake_resolve(_db, _config, _warnings):
+        return [type('InstrumentRow', (), {'id': 1, 'symbol': 'SPY'})()]
+
+    async def fake_load_bars(db, *, instrument_id, timeframe, date_from, date_to):
+        assert instrument_id == 1
+        assert timeframe == Timeframe.D1
+        return bars
+
+    monkeypatch.setattr('app.services.strategy_lab._resolve_universe_instruments', fake_resolve)
+    monkeypatch.setattr('app.services.strategy_lab._load_bars_for_strategy', fake_load_bars)
+
+    summary = await _build_benchmark_summary(
+        object(),
+        benchmark_symbol='SPY',
+        timeframe=Timeframe.D1,
+        date_from=bars[0].ts,
+        date_to=bars[-1].ts,
+        initial_capital=100000.0,
+    )
+
+    assert summary["symbol"] == "SPY"
+    assert summary["performance"]["net_return_pct"] == 3.0
+    assert summary["drawdown_curve"]
+    assert summary["position_timeline"]["symbol"] == "SPY"
+    assert summary["execution_log"][0]["event_type"] == "entry"
+    assert summary["execution_log"][-1]["event_type"] == "open_at_end"
+    assert summary["portfolio_timeline"][-1]["open_position_count"] == 1

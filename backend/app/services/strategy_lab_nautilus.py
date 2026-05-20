@@ -201,9 +201,14 @@ class StrategyLabNautilusConfig(StrategyConfig, frozen=True):
     exit_conditions: tuple[dict[str, Any], ...] = ()
     exit_condition_tree: dict[str, Any] | None = None
     signal_events: tuple[dict[str, Any], ...] = ()
+    stop_model: str = "percent"
     stop_loss_pct: float = 2.0
+    stop_atr_period: int = 14
+    stop_atr_multiple: float = 2.0
     take_profit_rr: float = 2.0
     max_bars_in_trade: int = 20
+    position_sizing_mode: str = "percent_risk"
+    position_sizing_value: float = 1.0
     risk_per_trade_pct: float = 1.0
     capital_base: float = 100_000.0
     break_even_rr: float = 0.0
@@ -394,17 +399,25 @@ class StrategyLabNautilusStrategy(Strategy):
                 self._pending_signal_plan = None
                 return
 
+        stop_plan = self._stop_plan_for_entry(reference_price=entry_price, direction=plan_direction)
+        if stop_plan is None:
+            stop_price = entry_price * (
+                1.0 - self.config.stop_loss_pct / 100.0
+                if plan_direction == "long"
+                else 1.0 + self.config.stop_loss_pct / 100.0
+            )
+            risk_distance = abs(entry_price - stop_price)
+        else:
+            stop_price, risk_distance = stop_plan
         if plan_direction == "long":
-            stop_price = entry_price * (1.0 - self.config.stop_loss_pct / 100.0)
             target_price = (
-                entry_price + (entry_price - stop_price) * self.config.take_profit_rr
+                entry_price + risk_distance * self.config.take_profit_rr
                 if self.config.take_profit_rr > 0
                 else 0.0
             )
         else:
-            stop_price = entry_price * (1.0 + self.config.stop_loss_pct / 100.0)
             target_price = (
-                entry_price - (stop_price - entry_price) * self.config.take_profit_rr
+                entry_price - risk_distance * self.config.take_profit_rr
                 if self.config.take_profit_rr > 0
                 else 0.0
             )
@@ -432,20 +445,92 @@ class StrategyLabNautilusStrategy(Strategy):
         else:
             self.equity_curve.append((ts_event, equity))
 
+    def _stop_plan_for_entry(
+        self,
+        *,
+        reference_price: float,
+        direction: str,
+        explicit_stop_price: float | None = None,
+    ) -> tuple[float, float] | None:
+        if explicit_stop_price is not None and explicit_stop_price > 0:
+            stop_price = explicit_stop_price
+            risk_distance = abs(reference_price - stop_price)
+            if risk_distance > 0:
+                return stop_price, risk_distance
+            return None
+
+        stop_model = str(self.config.stop_model or "percent").lower()
+        if stop_model == "atr":
+            current_atr, _previous_atr = self._shared_indicator_values(
+                "atr",
+                {"period": max(int(self.config.stop_atr_period), 1)},
+                "atr",
+            )
+            if current_atr is None or current_atr <= 0:
+                return None
+            risk_distance = current_atr * max(float(self.config.stop_atr_multiple), 0.1)
+            stop_price = (
+                reference_price - risk_distance
+                if direction == "long"
+                else reference_price + risk_distance
+            )
+            return stop_price, risk_distance
+
+        risk_distance = reference_price * (self.config.stop_loss_pct / 100.0)
+        if risk_distance <= 0:
+            return None
+        stop_price = (
+            reference_price - risk_distance
+            if direction == "long"
+            else reference_price + risk_distance
+        )
+        return stop_price, risk_distance
+
+    def _quantity_for_entry(self, *, reference_price: float, risk_distance: float) -> float | None:
+        sizing_mode = str(self.config.position_sizing_mode or "percent_risk").lower()
+        sizing_value = float(self.config.position_sizing_value or 0.0)
+
+        if sizing_mode == "fixed_quantity":
+            return sizing_value if sizing_value > 0 else None
+
+        if reference_price <= 0:
+            return None
+
+        if sizing_mode == "fixed_cash":
+            cash_budget = sizing_value
+            return (cash_budget / reference_price) if cash_budget > 0 else None
+
+        if sizing_mode == "percent_capital":
+            cash_budget = self.config.capital_base * (sizing_value / 100.0)
+            return (cash_budget / reference_price) if cash_budget > 0 else None
+
+        if risk_distance <= 0:
+            return None
+        risk_budget = self.config.capital_base * (self.config.risk_per_trade_pct / 100.0)
+        return (risk_budget / risk_distance) if risk_budget > 0 else None
+
     def _submit_entry(self, bar: Bar, signal_plan: dict[str, Any] | None = None) -> None:
         reference_price = (
             float(signal_plan.get("entry_price")) if signal_plan else bar.close.as_double()
         )
-        if signal_plan and signal_plan.get("stop_price") is not None:
-            risk_distance = abs(reference_price - float(signal_plan["stop_price"]))
-        else:
-            risk_distance = reference_price * (self.config.stop_loss_pct / 100.0)
-        if risk_distance <= 0:
-            return
-        risk_budget = self.config.capital_base * (self.config.risk_per_trade_pct / 100.0)
-        raw_quantity = max(risk_budget / risk_distance, 1.0)
-        quantity = self.instrument.make_qty(Decimal(str(raw_quantity)))
         side_token = str(signal_plan.get("side") if signal_plan else self.config.direction).lower()
+        stop_plan = self._stop_plan_for_entry(
+            reference_price=reference_price,
+            direction=side_token,
+            explicit_stop_price=float(signal_plan["stop_price"])
+            if signal_plan and signal_plan.get("stop_price") is not None
+            else None,
+        )
+        if stop_plan is None:
+            return
+        stop_price, risk_distance = stop_plan
+        raw_quantity = self._quantity_for_entry(
+            reference_price=reference_price,
+            risk_distance=risk_distance,
+        )
+        if raw_quantity is None or raw_quantity <= 0:
+            return
+        quantity = self.instrument.make_qty(Decimal(str(raw_quantity)))
         side = OrderSide.BUY if side_token == "long" else OrderSide.SELL
         order = self.order_factory.market(
             instrument_id=self.config.instrument_id,
@@ -455,7 +540,9 @@ class StrategyLabNautilusStrategy(Strategy):
         )
         self.submit_order(order)
         if signal_plan:
-            self._pending_signal_plan = dict(signal_plan)
+            pending_plan = dict(signal_plan)
+            pending_plan.setdefault("stop_price", stop_price)
+            self._pending_signal_plan = pending_plan
         if self.active_position_id is not None and self.active_position_id in self.position_plans:
             self.position_plans[self.active_position_id]["entry_count"] = (
                 int(self.position_plans[self.active_position_id].get("entry_count", 1)) + 1
@@ -1120,10 +1207,15 @@ def run_single_instrument_nautilus_backtest(
     exit_logic: str = "all",
     exit_conditions: list[dict[str, Any]] | None = None,
     exit_condition_tree: dict[str, Any] | None = None,
+    stop_model: str = "percent",
     stop_loss_pct: float,
+    stop_atr_period: int = 14,
+    stop_atr_multiple: float = 2.0,
     take_profit_rr: float,
     max_bars_in_trade: int,
     capital_base: float,
+    position_sizing_mode: str = "percent_risk",
+    position_sizing_value: float = 1.0,
     risk_per_trade_pct: float,
     slippage_bps: float,
     commission_per_trade: float,
@@ -1161,9 +1253,14 @@ def run_single_instrument_nautilus_backtest(
                 }
                 for event in (signal_events or [])
             ),
+            stop_model=stop_model,
             stop_loss_pct=stop_loss_pct,
+            stop_atr_period=max(1, stop_atr_period),
+            stop_atr_multiple=max(0.1, stop_atr_multiple),
             take_profit_rr=take_profit_rr,
             max_bars_in_trade=max_bars_in_trade,
+            position_sizing_mode=position_sizing_mode,
+            position_sizing_value=max(position_sizing_value, 0.0),
             risk_per_trade_pct=risk_per_trade_pct,
             capital_base=capital_base,
             break_even_rr=break_even_rr,
