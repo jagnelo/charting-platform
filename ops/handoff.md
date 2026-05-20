@@ -74,6 +74,17 @@
   - dense tooltips switch to a wider multi-column layout
   - overlay sizing is no longer artificially tied to the chart drawing area
   - preset range controls are now exposed consistently across shared Strategy Lab charts, including `Position evolution`
+- Applied the next `results workspace direction` pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
+  - [frontend/src/components/strategy/SignalReplayBreakdown.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SignalReplayBreakdown.vue:1)
+  - [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1)
+  - [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1)
+  - [frontend/src/components/strategy/PaperForwardMonitorPanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/PaperForwardMonitorPanel.vue:1)
+  - [frontend/src/components/strategy/RunComparisonTable.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/RunComparisonTable.vue:1)
+  - `Signal replay` now shows replay rate, dominant setup, and a setup-type bar breakdown
+  - `Optimization` is now a ranked leaderboard with sortable-style row emphasis and parameter drilldowns
+  - `Walk-forward` is now a segment-oriented panel with in-sample/out-of-sample summaries and segment detail
+  - `Paper-forward monitor` is now a small monitoring workspace with equity timeline and recent snapshots
+  - `Run comparison` is now a proper metric table with deltas and ahead/behind counts instead of a raw text list
 - Made every major Strategy Lab section collapsible in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
   - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, `Research runs`, and `Results` now collapse independently
   - section state now defaults by strategy state: strategies with runs load collapsed except `Results`, while new/never-run strategies load expanded except `Results`
@@ -111,8 +122,8 @@
 - Continue on `feat/strategy-lab` by tackling the next high-value unfinished area:
   1. multi-timeframe strategy support
   2. deeper risk/sizing models beyond the new ATR/size-model baseline
-  3. richer results workspace for the remaining text-first panels
-  4. data-coverage preflight and acquisition before run execution
+  3. data-coverage preflight and acquisition before run execution
+  4. broader portfolio-risk realism and execution semantics
 
 ## Files touched
 
@@ -155,6 +166,9 @@
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
 - `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
 - `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_signal_replay_breakdown.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/components/test_walk_forward_segments.test.ts tests/unit/components/test_paper_forward_monitor_panel.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
 - `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`

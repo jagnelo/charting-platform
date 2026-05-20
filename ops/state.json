@@ -3,8 +3,8 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-20T15:35:00Z",
-  "last_commit": "8ec4b8c",
+  "last_handoff_at": "2026-05-20T15:58:00Z",
+  "last_commit": "0a37ca5",
   "git_ready_to_commit": true,
   "validation": {
     "backend_tests": "passed",
@@ -38,6 +38,7 @@
     "Benchmark summaries now also surface synthetic buy-and-hold position, execution-log, portfolio-timeline, coverage, and max-drawdown artifacts so the benchmark reads more like an alternate strategy lens.",
     "Strategy Lab now supports a richer first pass of risk modeling with ATR-based stops plus percent-risk, fixed-cash, percent-capital, and fixed-quantity sizing modes.",
     "The Per symbol and R distribution result widgets now keep their bar visuals but add summary chips plus hover/click drilldowns so their bars explain symbol attribution and closed-trade R buckets more clearly.",
-    "The shared Strategy Lab result chart now supports integer-only Y-axis ticks, and the Open positions chart uses it so position counts no longer render with fractional labels."
+    "The shared Strategy Lab result chart now supports integer-only Y-axis ticks, and the Open positions chart uses it so position counts no longer render with fractional labels.",
+    "The remaining weak result panels are now structured views rather than raw lists: signal replay breakdown, optimization leaderboard, walk-forward segments, paper-forward monitor, and run comparison table."
   ]
 }

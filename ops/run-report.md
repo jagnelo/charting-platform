@@ -92,6 +92,53 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-20T15:58:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Implement the next `results workspace direction` slice so the remaining weak Strategy Lab result panels explain what happened instead of listing bare values.
+
+### Completed
+
+- Added new shared Strategy Lab result components:
+  - [frontend/src/components/strategy/SignalReplayBreakdown.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SignalReplayBreakdown.vue:1)
+  - [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1)
+  - [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1)
+  - [frontend/src/components/strategy/PaperForwardMonitorPanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/PaperForwardMonitorPanel.vue:1)
+  - [frontend/src/components/strategy/RunComparisonTable.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/RunComparisonTable.vue:1)
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - `Signal replay` now shows replay rate, dominant setup, and setup-type breakdown bars
+  - `Optimization` now renders as a ranked leaderboard with drilldown detail
+  - `Walk-forward` now renders as a segment panel with in-sample/out-of-sample summaries
+  - `Paper-forward monitor` now includes a monitor timeline and recent snapshot table
+  - `Run comparison` now uses a proper metric/delta table instead of a flat text list
+- Committed the results-workspace pass in an isolated commit:
+  - `0a37ca5 feat(strategy-lab): enrich results workspace`
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_signal_replay_breakdown.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/components/test_walk_forward_segments.test.ts tests/unit/components/test_paper_forward_monitor_panel.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+
+### Problems found
+
+- The first paper-forward component test used the wrong day/month substring assumption for the locale-rendered snapshot date, so it needed one expectation correction before the suite went green.
+
+### Assumptions
+
+- The best next step for the results workspace was to convert the remaining text-first panels into structured analytical views, not to replace the existing charts that were already telling the right story.
+
+### Next step
+
+- Continue with the remaining deeper Strategy Lab roadmap: multi-timeframe strategy logic, broader risk/portfolio realism, and data-coverage preflight before long-horizon runs.
+
+### Timestamp
+
 - 2026-04-30T22:29:31Z
 
 ### Worker
