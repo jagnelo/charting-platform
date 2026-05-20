@@ -340,7 +340,7 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).not.toContain('Nautilus')
     expect(api.get).not.toHaveBeenCalledWith('/strategy-lab/engines')
     expect(wrapper.text()).toContain('Benchmark')
-    expect(wrapper.text()).toContain('Monthly returns')
+    expect(wrapper.text()).toContain('Return breakdown')
     expect(wrapper.text()).toContain('Position evolution')
     expect(wrapper.text()).toContain('Portfolio capital')
     expect(wrapper.text()).toContain('Execution log')
@@ -365,6 +365,9 @@ describe('StrategyLabView', () => {
     await wrapper.get('button[aria-label="Export"]').trigger('click')
     expect(wrapper.text()).toContain('Export summary')
     expect(wrapper.text()).toContain('Export trades CSV')
+    expect(wrapper.find('button[aria-label="Show monthly returns"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Show quarterly returns"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
   })
 
   it('supports collapsing the strategy sidebar', async () => {
@@ -500,16 +503,14 @@ describe('StrategyLabView', () => {
     expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
       initial_version: expect.objectContaining({
         definition_snapshot: expect.objectContaining({
-          exits: expect.objectContaining({
-            conditions: expect.arrayContaining([
-              expect.objectContaining({
-                type: 'fundamental_filter',
-                field: 'sector',
-                op: 'eq',
-                value: 'Technology',
-              }),
-            ]),
-          }),
+          conditions: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'fundamental_filter',
+              field: 'sector',
+              op: 'eq',
+              value: 'Technology',
+            }),
+          ]),
         }),
       }),
     }))
@@ -700,6 +701,12 @@ describe('StrategyLabView', () => {
     await flushPromises()
 
     await addTechnicalCondition(wrapper)
+    const hardTrailField = wrapper.findAll('.field').find(node => node.text().includes('Hard trail %'))
+    const armTrailField = wrapper.findAll('.field').find(node => node.text().includes('Arm hard trail after gain %'))
+    expect(hardTrailField).toBeTruthy()
+    expect(armTrailField).toBeTruthy()
+    await hardTrailField!.get('input').setValue('3')
+    await armTrailField!.get('input').setValue('5')
     const dateInputs = wrapper.findAll('input[type="date"]')
     expect(dateInputs).toHaveLength(2)
     await dateInputs[0].setValue('2026-02-01')
@@ -717,6 +724,10 @@ describe('StrategyLabView', () => {
     expect(api.patch).toHaveBeenCalledWith('/strategy-lab/versions/8', expect.objectContaining({
       definition_snapshot: expect.objectContaining({
         conditions: expect.any(Array),
+        risk: expect.objectContaining({
+          hard_trailing_stop_pct: 3,
+          hard_trailing_activation_pct: 5,
+        }),
       }),
       execution_model: expect.objectContaining({
         run_defaults: expect.objectContaining({

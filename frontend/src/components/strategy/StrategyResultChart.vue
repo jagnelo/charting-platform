@@ -106,10 +106,14 @@
       <div
         v-if="tooltip"
         class="result-chart__hovercard result-chart__hovercard--overlay"
+        :class="{ 'result-chart__hovercard--dense': tooltip.dense }"
         :style="hovercardStyle"
       >
         <div class="result-chart__hovercard-date">{{ tooltip.date }}</div>
-        <div class="result-chart__hovercard-items">
+        <div
+          class="result-chart__hovercard-items"
+          :class="{ 'result-chart__hovercard-items--dense': tooltip.dense }"
+        >
           <div v-for="item in tooltip.items" :key="item.label" class="result-chart__tooltip-item">
             <b :style="{ color: item.color }">
               {{ item.label }} {{ item.value }}
@@ -226,10 +230,7 @@ const timeExtent = computed(() => {
 
 const totalSpanMs = computed(() => Math.max(0, timeExtent.value.max - timeExtent.value.min))
 
-const availableRangeOptions = computed(() => RANGE_OPTIONS.filter(option => (
-  option.durationMs == null
-  || totalSpanMs.value >= option.durationMs * 1.2
-)))
+const availableRangeOptions = computed(() => RANGE_OPTIONS)
 
 const activeRangeOption = computed(() => (
   availableRangeOptions.value.find(option => option.key === selectedRangeKey.value)
@@ -237,7 +238,7 @@ const activeRangeOption = computed(() => (
   ?? RANGE_OPTIONS[0]
 ))
 
-const showRangeControls = computed(() => availableRangeOptions.value.length > 1)
+const showRangeControls = computed(() => timeline.value.length > 1)
 
 const visibleTimeExtent = computed(() => {
   if (activeRangeOption.value.durationMs == null) return timeExtent.value
@@ -440,13 +441,13 @@ const tooltip = computed(() => {
       hour: '2-digit',
       minute: '2-digit',
     }),
+    dense: items.length >= 6,
     items: items.map(({ label, value, color, detail }) => ({ label, value, color, detail })),
   }
 })
 
 const hovercardStyle = computed(() => {
   if (hoverX.value == null) return {}
-  const cardWidth = 176
   const withinRightHalf = hoverX.value > svgWidth.value / 2
   return withinRightHalf
     ? {
@@ -661,6 +662,8 @@ watch(
 .result-chart {
   position: relative;
   min-height: 164px;
+  overflow: visible;
+  z-index: 0;
 }
 
 .result-chart__controls {
@@ -785,13 +788,14 @@ watch(
 .result-chart__hovercard--overlay {
   position: absolute;
   top: 18px;
-  width: min(176px, calc(100% - 72px));
-  max-height: calc(100% - 42px);
-  overflow: auto;
+  width: clamp(260px, 30vw, 380px);
+  max-height: min(72vh, 520px);
+  overflow: visible;
   pointer-events: none;
   backdrop-filter: blur(4px);
   background: color-mix(in srgb, #0d1116 92%, transparent);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  z-index: 30;
 }
 
 .result-chart__hovercard-date {
@@ -801,6 +805,16 @@ watch(
 .result-chart__hovercard-items {
   display: grid;
   gap: 6px;
+}
+
+.result-chart__hovercard--dense {
+  width: clamp(320px, 40vw, 540px);
+}
+
+.result-chart__hovercard-items--dense {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: start;
+  gap: 10px 12px;
 }
 
 .result-chart__tooltip-item {

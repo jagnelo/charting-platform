@@ -6,37 +6,39 @@
       <span>Gain</span>
     </div>
 
-    <div
-      class="returns-heatmap__grid"
-      :style="{ gridTemplateColumns: `56px repeat(${columns.length}, minmax(0, 1fr))` }"
-    >
-      <div class="returns-heatmap__corner" />
+    <div class="returns-heatmap__viewport">
       <div
-        v-for="column in columns"
-        :key="column.key"
-        class="returns-heatmap__col-label"
+        class="returns-heatmap__grid"
+        :style="gridStyle"
       >
-        {{ column.label }}
-      </div>
-
-      <template v-for="row in matrixRows" :key="row.label">
-        <div class="returns-heatmap__row-label">{{ row.label }}</div>
-        <button
-          v-for="cell in row.cells"
-          :key="cell.key"
-          type="button"
-          class="returns-heatmap__cell"
-          :class="{
-            'returns-heatmap__cell--empty': cell.value == null,
-            'returns-heatmap__cell--positive': (cell.value ?? 0) > 0,
-            'returns-heatmap__cell--negative': (cell.value ?? 0) < 0,
-          }"
-          :style="cellStyle(cell.value)"
-          :title="cellTitle(cell)"
+        <div class="returns-heatmap__corner" />
+        <div
+          v-for="column in columns"
+          :key="column.key"
+          class="returns-heatmap__col-label"
         >
-          <span>{{ cell.value == null ? '—' : shortPercent(cell.value) }}</span>
-        </button>
-      </template>
+          {{ column.label }}
+        </div>
+
+        <template v-for="row in matrixRows" :key="row.label">
+          <div class="returns-heatmap__row-label">{{ row.label }}</div>
+          <button
+            v-for="cell in row.cells"
+            :key="cell.key"
+            type="button"
+            class="returns-heatmap__cell"
+            :class="{
+              'returns-heatmap__cell--empty': cell.value == null,
+              'returns-heatmap__cell--positive': (cell.value ?? 0) > 0,
+              'returns-heatmap__cell--negative': (cell.value ?? 0) < 0,
+            }"
+            :style="cellStyle(cell.value)"
+            :title="cellTitle(cell)"
+          >
+            <span>{{ cell.value == null ? '—' : compactPercent(cell.value) }}</span>
+          </button>
+        </template>
+      </div>
     </div>
   </div>
 
@@ -61,7 +63,7 @@ interface HeatmapCell {
 
 const props = withDefaults(defineProps<{
   rows: ReturnRow[]
-  mode: 'monthly' | 'quarterly'
+  mode: 'monthly' | 'quarterly' | 'yearly'
   emptyLabel?: string
 }>(), {
   emptyLabel: 'No return breakdown yet.',
@@ -83,11 +85,15 @@ const columns = computed(() => (
         { key: '11', label: 'Nov' },
         { key: '12', label: 'Dec' },
       ]
-    : [
+    : props.mode === 'quarterly'
+      ? [
         { key: 'Q1', label: 'Q1' },
         { key: 'Q2', label: 'Q2' },
         { key: 'Q3', label: 'Q3' },
         { key: 'Q4', label: 'Q4' },
+      ]
+      : [
+        { key: 'YR', label: 'Return' },
       ]
 ))
 
@@ -111,7 +117,7 @@ const matrixRows = computed(() => {
   return years.map(year => ({
     label: year,
     cells: columns.value.map(column => {
-      const period = props.mode === 'monthly' ? `${year}-${column.key}` : `${year}-${column.key}`
+      const period = props.mode === 'yearly' ? year : `${year}-${column.key}`
       return {
         key: period,
         period,
@@ -119,6 +125,15 @@ const matrixRows = computed(() => {
       } satisfies HeatmapCell
     }),
   }))
+})
+
+const gridStyle = computed(() => {
+  const rowLabelWidth = 44
+  const cellWidth = props.mode === 'monthly' ? 54 : props.mode === 'quarterly' ? 72 : 96
+  return {
+    gridTemplateColumns: `${rowLabelWidth}px repeat(${columns.value.length}, minmax(${cellWidth}px, 1fr))`,
+    minWidth: `${rowLabelWidth + (columns.value.length * cellWidth) + (columns.value.length * 6)}px`,
+  }
 })
 
 const maxAbsReturn = computed(() => {
@@ -129,8 +144,10 @@ const maxAbsReturn = computed(() => {
   return values.length ? Math.max(...values, 1) : 1
 })
 
-function shortPercent(value: number) {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+function compactPercent(value: number) {
+  const absValue = Math.abs(value)
+  if (absValue >= 10) return `${value.toFixed(0)}%`
+  return `${value.toFixed(1)}%`
 }
 
 function cellTitle(cell: HeatmapCell) {
@@ -174,6 +191,12 @@ function cellStyle(value: number | null) {
   gap: 10px;
 }
 
+.returns-heatmap__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
 .returns-heatmap__legend {
   display: inline-flex;
   align-items: center;
@@ -212,12 +235,13 @@ function cellStyle(value: number | null) {
 }
 
 .returns-heatmap__row-label {
-  padding-right: 6px;
+  padding-right: 4px;
+  text-align: right;
 }
 
 .returns-heatmap__cell {
-  min-height: 32px;
-  padding: 4px 6px;
+  min-height: 36px;
+  padding: 5px 6px;
   border-radius: 8px;
   border: 1px solid var(--cell-border);
   background: var(--cell-bg);
@@ -228,7 +252,7 @@ function cellStyle(value: number | null) {
 
 .returns-heatmap__cell span {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
   white-space: nowrap;

@@ -145,7 +145,6 @@
       </div>
 
       <div class="detail-columns">
-        <div class="detail-column">
           <div class="panel">
             <div class="panel-head">
               <div><h3>Strategy profile</h3></div>
@@ -310,94 +309,6 @@
           </div>
 
           <div class="panel">
-            <div class="panel-head">
-              <div><h3>Risk</h3></div>
-            </div>
-
-            <div class="form-grid three-up">
-              <label class="field">
-                <span class="field-label">
-                  Stop loss %
-                  <HoverTooltip text="Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget.">
-                    <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">
-                  Break-even after R
-                  <HoverTooltip text="Move the stop to the entry price once the trade reaches this many R units in open profit. 1R equals the initial stop distance.">
-                    <button type="button" class="help-dot" aria-label="Break-even info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">
-                  Trail distance (R)
-                  <HoverTooltip text="Trailing stop distance expressed in R units, not percent. 1R equals the initial stop distance. Example: 1.5R trails the stop 1.5 initial-risk units behind the best price reached.">
-                    <button type="button" class="help-dot" aria-label="Trailing stop info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">
-                  Max entries
-                  <HoverTooltip text="Maximum number of entries allowed for the same idea, including scale-ins or pyramiding attempts.">
-                    <button type="button" class="help-dot" aria-label="Max entries info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
-              </label>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head">
-              <div><h3>Exits</h3></div>
-            </div>
-
-            <div class="form-grid two-up">
-              <label class="field">
-                <span class="field-label">
-                  Target (R)
-                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Set to 0 to disable fixed profit targets and rely on condition-based or time-based exits instead.">
-                    <button type="button" class="help-dot" aria-label="Target info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" />
-              </label>
-              <label class="field">
-                <span class="field-label">
-                  Max bars in trade
-                  <HoverTooltip text="If greater than 0, close the trade after this many bars if no other exit fired first. Set to 0 to disable time-based exits.">
-                    <button type="button" class="help-dot" aria-label="Max bars info">i</button>
-                  </HoverTooltip>
-                </span>
-                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" />
-              </label>
-            </div>
-
-            <div class="cb-header cb-header--strategy">
-              <span class="section-label">Exit conditions</span>
-              <span class="tree-builder-kicker">{{ exitRootGroupMode === 'all' ? 'Match ALL at the root' : 'Match ANY at the root' }}</span>
-            </div>
-            <StrategyRuleTreeEditor
-              :node="logicDraft.exitRuleTree"
-              :depth="0"
-              :can-remove="false"
-              :type-options="STRATEGY_LAB_CONDITION_TYPE_OPTIONS"
-              @remove="removeNodeFromExitTree"
-              @add-condition="addConditionToExitTree"
-              @add-group="(nodeId, type) => addGroupToExitTree(nodeId, type)"
-            />
-          </div>
-        </div>
-
-        <div class="detail-column">
-          <div class="panel">
           <div class="panel-head">
             <div><h3>{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3></div>
           </div>
@@ -512,6 +423,110 @@
             <span class="rule-preview__label">How this reads</span>
             <p>{{ strategyNarrative }}</p>
           </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Risk</h3></div>
+            </div>
+
+            <div class="form-grid three-up">
+              <label class="field">
+                <span class="field-label">
+                  Stop loss %
+                  <HoverTooltip text="Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget.">
+                    <button type="button" class="help-dot" aria-label="Stop loss info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Hard trail %
+                  <HoverTooltip text="A percent-based trailing stop measured from the best price reached after entry. Set to 0 to disable this hard trailing stop.">
+                    <button type="button" class="help-dot" aria-label="Hard trailing stop info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.hard_trailing_stop_pct" type="number" min="0" step="0.1" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Arm hard trail after gain %
+                  <HoverTooltip text="Do not activate the hard percent trail until the trade has moved this much in your favor. Set to 0 to arm it immediately from entry.">
+                    <button type="button" class="help-dot" aria-label="Hard trailing activation info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.hard_trailing_activation_pct" type="number" min="0" step="0.1" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Break-even after R
+                  <HoverTooltip text="Move the stop to the entry price once the trade reaches this many R units in open profit. 1R equals the initial stop distance.">
+                    <button type="button" class="help-dot" aria-label="Break-even info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Trail distance (R)
+                  <HoverTooltip text="Trailing stop distance expressed in R units, not percent. 1R equals the initial stop distance. Example: 1.5R trails the stop 1.5 initial-risk units behind the best price reached.">
+                    <button type="button" class="help-dot" aria-label="Trailing stop info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Max entries
+                  <HoverTooltip text="Maximum number of entries allowed for the same idea, including scale-ins or pyramiding attempts.">
+                    <button type="button" class="help-dot" aria-label="Max entries info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.pyramiding_max_entries" type="number" min="1" step="1" class="form-input" />
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Exits</h3></div>
+            </div>
+
+            <div class="form-grid two-up">
+              <label class="field">
+                <span class="field-label">
+                  Target (R)
+                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Set to 0 to disable fixed profit targets and rely on condition-based or time-based exits instead.">
+                    <button type="button" class="help-dot" aria-label="Target info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" />
+              </label>
+              <label class="field">
+                <span class="field-label">
+                  Max bars in trade
+                  <HoverTooltip text="If greater than 0, close the trade after this many bars if no other exit fired first. Set to 0 to disable time-based exits.">
+                    <button type="button" class="help-dot" aria-label="Max bars info">i</button>
+                  </HoverTooltip>
+                </span>
+                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" />
+              </label>
+            </div>
+
+            <div class="cb-header cb-header--strategy">
+              <span class="section-label">Exit conditions</span>
+              <span class="tree-builder-kicker">{{ exitRootGroupMode === 'all' ? 'Match ALL at the root' : 'Match ANY at the root' }}</span>
+            </div>
+            <StrategyRuleTreeEditor
+              :node="logicDraft.exitRuleTree"
+              :depth="0"
+              :can-remove="false"
+              :type-options="STRATEGY_LAB_CONDITION_TYPE_OPTIONS"
+              @remove="removeNodeFromExitTree"
+              @add-condition="addConditionToExitTree"
+              @add-group="(nodeId, type) => addGroupToExitTree(nodeId, type)"
+            />
           </div>
 
           <div class="panel">
@@ -704,7 +719,6 @@
             </button>
             <div v-if="!selectedRuns.length" class="empty-state empty-state--small">No backtests yet.</div>
           </div>
-        </div>
       </div>
       </div>
 
@@ -927,21 +941,44 @@
 
             <div class="result-column result-column--wide">
               <div class="result-panels-grid">
-                <div class="mini-panel">
-                  <div class="subsection-head"><h4>Monthly returns</h4></div>
+                <div class="mini-panel mini-panel--returns">
+                  <div class="subsection-head subsection-head--returns">
+                    <h4>Return breakdown</h4>
+                    <div class="chart-mode-toggle" role="group" aria-label="Return breakdown mode">
+                      <button
+                        type="button"
+                        class="chart-mode-toggle__button"
+                        :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'monthly' }"
+                        aria-label="Show monthly returns"
+                        @click="returnsViewMode = 'monthly'"
+                      >
+                        M
+                      </button>
+                      <button
+                        type="button"
+                        class="chart-mode-toggle__button"
+                        :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'quarterly' }"
+                        aria-label="Show quarterly returns"
+                        @click="returnsViewMode = 'quarterly'"
+                      >
+                        Q
+                      </button>
+                      <button
+                        v-if="yearlyReturns.length"
+                        type="button"
+                        class="chart-mode-toggle__button"
+                        :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'yearly' }"
+                        aria-label="Show yearly returns"
+                        @click="returnsViewMode = 'yearly'"
+                      >
+                        Y
+                      </button>
+                    </div>
+                  </div>
                   <ReturnsHeatmap
-                    :rows="monthlyReturns"
-                    mode="monthly"
-                    empty-label="No monthly return breakdown yet."
-                  />
-                </div>
-
-                <div class="mini-panel">
-                  <div class="subsection-head"><h4>Quarterly returns</h4></div>
-                  <ReturnsHeatmap
-                    :rows="quarterlyReturns"
-                    mode="quarterly"
-                    empty-label="No quarterly return breakdown yet."
+                    :rows="activeReturnsRows"
+                    :mode="activeReturnsMode"
+                    :empty-label="activeReturnsEmptyLabel"
                   />
                 </div>
 
@@ -1197,6 +1234,8 @@ const logicDraft = reactive({
   timeframe: 'D1',
   direction: 'long',
   stop_loss_pct: 2,
+  hard_trailing_stop_pct: 0,
+  hard_trailing_activation_pct: 0,
   take_profit_rr: 2,
   max_bars_in_trade: 20,
   break_even_rr: 0,
@@ -1346,6 +1385,42 @@ const quarterlyReturns = computed<any[]>(() =>
     : []
 )
 
+const yearlyReturns = computed<any[]>(() => {
+  const source = monthlyReturns.value.length ? monthlyReturns.value : quarterlyReturns.value
+  if (!source.length) return []
+  const grouped = new Map<string, number[]>()
+  const allYears = new Set<string>()
+  for (const row of source) {
+    const period = String(row?.period ?? '')
+    const year = period.slice(0, 4)
+    if (!/^\d{4}$/.test(year)) continue
+    allYears.add(year)
+    const rawValue = row?.return_pct
+    if (rawValue == null || !Number.isFinite(Number(rawValue))) continue
+    if (!grouped.has(year)) grouped.set(year, [])
+    grouped.get(year)!.push(Number(rawValue))
+  }
+  return Array.from(allYears)
+    .sort()
+    .map(year => {
+      const values = grouped.get(year) ?? []
+      if (!values.length) return { period: year, return_pct: null }
+      const compounded = values.reduce((acc, value) => acc * (1 + (value / 100)), 1)
+      return {
+        period: year,
+        return_pct: Number((((compounded - 1) * 100)).toFixed(4)),
+      }
+    })
+})
+
+const availableReturnsModes = computed<Array<'monthly' | 'quarterly' | 'yearly'>>(() => {
+  const modes: Array<'monthly' | 'quarterly' | 'yearly'> = []
+  if (monthlyReturns.value.length) modes.push('monthly')
+  if (quarterlyReturns.value.length) modes.push('quarterly')
+  if (yearlyReturns.value.length) modes.push('yearly')
+  return modes
+})
+
 const symbolPerformance = computed<any[]>(() =>
   Array.isArray(selectedRunDetail.value?.result_summary?.symbol_performance)
     ? selectedRunDetail.value?.result_summary?.symbol_performance
@@ -1442,6 +1517,22 @@ const showRunSubsetValidation = computed(() =>
   runDraft.use_subset && runDraft.overrideSymbols.length === 0
 )
 const positionEvolutionMode = ref<'currency' | 'percent'>('currency')
+const returnsViewMode = ref<'monthly' | 'quarterly' | 'yearly'>('monthly')
+const activeReturnsMode = computed<'monthly' | 'quarterly' | 'yearly'>(() => (
+  availableReturnsModes.value.includes(returnsViewMode.value)
+    ? returnsViewMode.value
+    : (availableReturnsModes.value[0] ?? 'monthly')
+))
+const activeReturnsRows = computed<any[]>(() => {
+  if (activeReturnsMode.value === 'quarterly') return quarterlyReturns.value
+  if (activeReturnsMode.value === 'yearly') return yearlyReturns.value
+  return monthlyReturns.value
+})
+const activeReturnsEmptyLabel = computed(() => {
+  if (activeReturnsMode.value === 'quarterly') return 'No quarterly return breakdown yet.'
+  if (activeReturnsMode.value === 'yearly') return 'No yearly return breakdown yet.'
+  return 'No monthly return breakdown yet.'
+})
 const positionEvolutionSeries = computed(() =>
   positionTimelines.value.map((timeline, index) => ({
     label: String(timeline.label || `${timeline.symbol || 'Position'} #${index + 1}`),
@@ -1497,7 +1588,10 @@ const strategyNarrative = computed(() => {
   const exitText = describeRuleNode(logicDraft.exitRuleTree)
   const fixedTargetText = logicDraft.take_profit_rr > 0 ? `${logicDraft.take_profit_rr}R fixed target` : 'no fixed profit target'
   const timeExitText = logicDraft.max_bars_in_trade > 0 ? `${logicDraft.max_bars_in_trade}-bar time exit` : 'no time exit'
-  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, risking ${logicDraft.stop_loss_pct}% with break-even after ${logicDraft.break_even_rr}R and a trailing stop distance of ${logicDraft.trailing_stop_rr}R, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
+  const hardTrailText = logicDraft.hard_trailing_stop_pct > 0
+    ? `, a hard ${logicDraft.hard_trailing_stop_pct}% trail${logicDraft.hard_trailing_activation_pct > 0 ? ` after a ${logicDraft.hard_trailing_activation_pct}% gain` : ''}`
+    : ''
+  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, risking ${logicDraft.stop_loss_pct}% with break-even after ${logicDraft.break_even_rr}R, a trailing stop distance of ${logicDraft.trailing_stop_rr}R${hardTrailText}, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
 })
 
 const hasUniverseSelection = computed(() =>
@@ -1648,6 +1742,8 @@ function startNew() {
   logicDraft.timeframe = 'D1'
   logicDraft.direction = 'long'
   logicDraft.stop_loss_pct = 2
+  logicDraft.hard_trailing_stop_pct = 0
+  logicDraft.hard_trailing_activation_pct = 0
   logicDraft.take_profit_rr = 2
   logicDraft.max_bars_in_trade = 20
   logicDraft.break_even_rr = 0
@@ -1719,6 +1815,8 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   logicDraft.timeframe = String(snapshot.timeframe ?? 'D1')
   logicDraft.direction = String(snapshot.direction ?? 'long')
   logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
+  logicDraft.hard_trailing_stop_pct = Math.max(0, Number(risk.hard_trailing_stop_pct ?? 0) || 0)
+  logicDraft.hard_trailing_activation_pct = Math.max(0, Number(risk.hard_trailing_activation_pct ?? 0) || 0)
   logicDraft.take_profit_rr = Math.max(0, Number(exits.take_profit_rr ?? risk.take_profit_rr ?? 2) || 0)
   logicDraft.max_bars_in_trade = Math.max(0, Math.round(Number(exits.max_bars_in_trade ?? risk.max_bars_in_trade ?? 20) || 0))
   logicDraft.break_even_rr = Math.max(0, Number(risk.break_even_rr ?? 0))
@@ -2138,6 +2236,8 @@ function buildVersionPayload() {
   const flatExitConditions = flattenConditionNodes(logicDraft.exitRuleTree)
   const riskConfig = {
     stop_loss_pct: logicDraft.stop_loss_pct,
+    hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
+    hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
     break_even_rr: logicDraft.break_even_rr,
     trailing_stop_rr: logicDraft.trailing_stop_rr,
     pyramiding_max_entries: logicDraft.pyramiding_max_entries,
@@ -2175,6 +2275,8 @@ function buildVersionPayload() {
     },
     parameter_schema: {
       stop_loss_pct: { type: 'number', min: 0.1 },
+      hard_trailing_stop_pct: { type: 'number', min: 0 },
+      hard_trailing_activation_pct: { type: 'number', min: 0 },
       take_profit_rr: { type: 'number', min: 0 },
       max_bars_in_trade: { type: 'integer', min: 0 },
       break_even_rr: { type: 'number', min: 0 },
@@ -2183,6 +2285,8 @@ function buildVersionPayload() {
     },
     default_parameters: {
       stop_loss_pct: logicDraft.stop_loss_pct,
+      hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
+      hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
       take_profit_rr: logicDraft.take_profit_rr,
       max_bars_in_trade: logicDraft.max_bars_in_trade,
       break_even_rr: logicDraft.break_even_rr,
@@ -2209,6 +2313,7 @@ function buildVersionPayload() {
         ...(logicDraft.max_bars_in_trade > 0 ? ['time_exit'] : []),
         ...(logicDraft.break_even_rr > 0 ? ['break_even'] : []),
         ...(logicDraft.trailing_stop_rr > 0 ? ['trailing_stop'] : []),
+        ...(logicDraft.hard_trailing_stop_pct > 0 ? ['hard_trailing_stop'] : []),
         ...(exitConditionCount.value > 0 ? ['condition_exit'] : []),
       ],
       sizing: 'percent_risk',
@@ -2984,14 +3089,8 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .detail-columns {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-}
-
-.detail-column {
-  display: grid;
-  gap: 16px;
-  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .panel {
@@ -3385,6 +3484,10 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   padding: 12px;
   display: grid;
   gap: 10px;
+}
+
+.mini-panel--returns {
+  grid-column: 1 / -1;
 }
 
 .equity-panel,
