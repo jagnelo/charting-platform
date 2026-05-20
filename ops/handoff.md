@@ -31,6 +31,11 @@
   - expanded risk authoring with hard trailing stop % and hard-trail activation threshold %
   - advanced optional run subset limited to explicit-universe members only
   - corrected no-comparison-by-default behavior for run comparison
+- Added a richer first pass of Strategy Lab stop and sizing models in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - percent or ATR-based stop models
+  - ATR period and multiple controls
+  - position sizing modes for percent risk, fixed cash, percent capital, and fixed quantity
+  - persisted sizing/stop assumptions carried through saved strategy versions and run assumptions
 - Expanded executable trailing-risk support in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
   - hard trailing stop % carried through saved strategy snapshots, run assumptions, parameter schema, and result summaries
   - optional hard-trail activation threshold before the percent trail arms
@@ -43,9 +48,18 @@
   - [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1)
   - performance vs benchmark overlay chart
   - interactive drawdown / portfolio / position charts
+  - integer-only Y-axis support on shared result charts for count-based series like `Open positions`
   - time-range presets with window shifting for long-horizon charts
   - in-chart hover panels, corrected hover alignment, dynamic Y-axis gutter sizing, and live-width chart scaling
+  - tooltip width now adapts more tightly to content instead of starting from an oversized minimum width
+  - when hovering, the active chart now lifts above surrounding panels so the tooltip sits over neighboring controls instead of being visually under them
+  - result mini-panels now top-align inside the grid so shorter panels like `R distribution` do not inherit large dead space from taller neighbors
+  - the shared `Per symbol` bars now pack to the top of their panel instead of distributing vertically across the full stretched height
+  - the drawdown chart now shows true downside (negative drawdown) instead of upward positive magnitudes
+  - the drawdown chart now overlays benchmark buy-and-hold drawdown when benchmark data exists, with legend support for strategy-vs-benchmark downside comparison
   - visual monthly/quarterly heatmaps and structured per-symbol / R-distribution visuals
+  - `Per symbol` now includes best/worst summary chips plus hover/click drilldowns showing symbol-level outcome context from execution events
+  - `R distribution` now includes closed-trade summary chips plus hover/click drilldowns showing which trades landed in each `R` bucket
   - execution log expanded beyond closed trades and aligned with position evolution
   - compacted but unclipped run-history rows
 - Applied a follow-up readability pass to [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
@@ -60,6 +74,21 @@
   - dense tooltips switch to a wider multi-column layout
   - overlay sizing is no longer artificially tied to the chart drawing area
   - preset range controls are now exposed consistently across shared Strategy Lab charts, including `Position evolution`
+- Made every major Strategy Lab section collapsible in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, `Research runs`, and `Results` now collapse independently
+  - section state now defaults by strategy state: strategies with runs load collapsed except `Results`, while new/never-run strategies load expanded except `Results`
+  - section collapse state is persisted per strategy/draft key instead of one global toggle bucket
+  - clicking the title toggles the section, not just the chevron
+  - the existing section actions remain in the header while the body folds away cleanly
+  - focused regression coverage was added in [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+- Expanded the benchmark analysis lens in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - benchmark buy-and-hold drawdown is now overlaid on the drawdown chart
+  - benchmark summaries now include hold-span, max drawdown, synthetic benchmark execution events, synthetic benchmark position evolution, and a benchmark portfolio timeline
+  - the benchmark is now surfaced more like an alternate strategy view than just a return line
+- Applied a follow-up results-layout cleanup in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the results mini-panels now use a wrapping flex layout instead of equal-height grid rows
+  - shorter panels such as `Per symbol` now shrink to their own content height instead of stretching beside taller neighbors like `R distribution`
+  - the benchmark partial-coverage note now uses the full date/time formatter, so the year is always visible
 - Reworked the Strategy Lab authoring area in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) into a single full-width top-to-bottom builder flow:
   - no more split builder columns
   - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
@@ -81,7 +110,7 @@
 
 - Continue on `feat/strategy-lab` by tackling the next high-value unfinished area:
   1. multi-timeframe strategy support
-  2. deeper risk/sizing models beyond the new hard-trailing controls
+  2. deeper risk/sizing models beyond the new ATR/size-model baseline
   3. richer results workspace for the remaining text-first panels
   4. data-coverage preflight and acquisition before run execution
 
@@ -100,8 +129,8 @@
 - `frontend/src/components/strategy/DistributionBars.vue`
 - `frontend/src/components/strategy/ReturnsHeatmap.vue`
 - `frontend/src/components/strategy/StrategyResultChart.vue`
-- `frontend/src/components/strategy/StrategyRuleTreeEditor.vue`
 - `frontend/src/components/strategy/SymbolPerformanceBars.vue`
+- `frontend/src/components/strategy/StrategyRuleTreeEditor.vue`
 - `frontend/src/lib/technicalConditions.ts`
 - `frontend/src/stores/strategyLab.ts`
 - `frontend/src/types/index.ts`
@@ -115,6 +144,45 @@
 ## Validation run
 
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
@@ -141,7 +209,6 @@
 
 ## Errors / warnings / logs
 
-- Committing staged backend/frontend files in parallel created transient stale `.git/index.lock` failures; retrying the commits sequentially succeeded.
 - Docker-backed integration still requires escalated access in this shell for the local Docker socket.
 
 ## Assumptions made
@@ -154,4 +221,3 @@
 ## Ready to commit?
 
 - yes
-- if no, why: n/a

@@ -3,8 +3,8 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-20T10:24:16Z",
-  "last_commit": "5a3a1f3",
+  "last_handoff_at": "2026-05-20T15:35:00Z",
+  "last_commit": "8ec4b8c",
   "git_ready_to_commit": true,
   "validation": {
     "backend_tests": "passed",
@@ -20,6 +20,24 @@
     "Strategy Lab results now include visual heatmaps/bars, preset-window chart controls, open-at-end execution events, and aligned position-evolution versus execution-log data.",
     "Strategy Lab now uses a single full-width top-to-bottom authoring flow with a merged return-breakdown widget, denser shared-chart hover panels, and preset window controls across result charts.",
     "Strategy Lab risk authoring and execution now support a hard trailing stop percent plus an optional activation threshold, and stop exits distinguish stop_loss, break_even, and trailing_stop outcomes.",
-    "Backend unit/service/integration validation and the full frontend suite passed for this session."
+    "The shared Strategy Lab chart tooltip now sizes much closer to its actual content instead of starting from an oversized minimum width.",
+    "The active shared Strategy Lab chart now raises above neighboring panels while hovering so the tooltip overlays surrounding controls instead of sitting underneath them.",
+    "The Strategy Lab results mini-panel grid now top-aligns cards so shorter panels like R distribution do not inherit large empty vertical gaps from taller neighbors.",
+    "The shared Per symbol bars now pack to the top of their panel instead of distributing vertically across the full stretched height.",
+    "Backend unit/service/integration validation and the full frontend suite passed for this session.",
+    "The major Strategy Lab sections now collapse independently with persisted local UI state, and focused/frontend-suite validation passed with the new section toggles in place.",
+    "Section defaults are now state-aware: strategies with runs load collapsed except Results, while new or never-run strategies load expanded except Results, and titles themselves toggle collapse.",
+    "The Strategy Lab results mini-panels now size more naturally to their own content, and the benchmark partial-coverage warning now includes the year in its timestamp.",
+    "The merged Return breakdown heatmap now caps visible year rows and scrolls after five rows so long-backtest histories do not make the panel unreasonably tall.",
+    "Return-breakdown cells now surface hover/click drilldowns derived from the execution log, showing the exit or run-end-mark events that contributed to a period when such details exist.",
+    "The return-breakdown legend now shows the actual negative and positive percentage endpoints used by the heatmap color scale, so the red/green intensity range is explicit.",
+    "Strategy Lab section collapse toggles now use a lighter left-aligned disclosure-chevron treatment beside each title instead of bordered buttons on the far right.",
+    "The Advanced run options disclosure now uses the same left-aligned chevron treatment beside its title instead of a full-width spaced-apart toggle row.",
+    "Benchmark coverage notes now use an explicit year-inclusive UTC-style timestamp formatter and have a dedicated frontend regression test for delayed benchmark coverage.",
+    "The Strategy Lab drawdown chart now plots downside as negative values and overlays the benchmark buy-and-hold drawdown so strategy-versus-benchmark pain is directly comparable.",
+    "Benchmark summaries now also surface synthetic buy-and-hold position, execution-log, portfolio-timeline, coverage, and max-drawdown artifacts so the benchmark reads more like an alternate strategy lens.",
+    "Strategy Lab now supports a richer first pass of risk modeling with ATR-based stops plus percent-risk, fixed-cash, percent-capital, and fixed-quantity sizing modes.",
+    "The Per symbol and R distribution result widgets now keep their bar visuals but add summary chips plus hover/click drilldowns so their bars explain symbol attribution and closed-trade R buckets more clearly.",
+    "The shared Strategy Lab result chart now supports integer-only Y-axis ticks, and the Open positions chart uses it so position counts no longer render with fractional labels."
   ]
 }
