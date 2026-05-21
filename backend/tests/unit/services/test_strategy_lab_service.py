@@ -8,6 +8,7 @@ from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
     _build_dense_portfolio_history,
+    _symbol_performance_snapshot,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
 
@@ -95,6 +96,12 @@ def test_apply_portfolio_constraints_rejects_overlapping_trades_when_concurrency
     assert result["summary"]["accepted_trade_count"] == 1
     assert result["summary"]["rejected_trade_count"] == 1
     assert result["rejected_trades"][0]["reason"] == "max_concurrent_positions"
+    rejected_events = [
+        event for event in result["execution_log"] if event["event_type"] == "rejected"
+    ]
+    assert len(rejected_events) == 1
+    assert rejected_events[0]["symbol"] == "MSFT"
+    assert rejected_events[0]["reason"] == "max_concurrent_positions"
 
 
 def test_apply_portfolio_constraints_builds_portfolio_equity_from_accepted_trades():
@@ -192,6 +199,27 @@ def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     ]
     assert result["execution_log"][-1]["symbol"] == "MSFT"
     assert result["execution_log"][-1]["pnl"] == 125.0
+
+
+def test_symbol_performance_snapshot_splits_realized_and_unrealized_pnl():
+    rows = _symbol_performance_snapshot(
+        [
+            _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-05T00:00:00+00:00", 200.0),
+            _trade("MSFT", "2026-01-01T00:00:00+00:00", "2026-01-05T00:00:00+00:00", -50.0),
+        ],
+        open_positions=[
+            _open_position("AAPL", "2026-01-06T00:00:00+00:00", "2026-01-08T00:00:00+00:00", 125.0),
+            _open_position("NVDA", "2026-01-06T00:00:00+00:00", "2026-01-08T00:00:00+00:00", 75.0),
+        ],
+    )
+
+    by_symbol = {row["symbol"]: row for row in rows}
+    assert by_symbol["AAPL"]["realized_pnl"] == 200.0
+    assert by_symbol["AAPL"]["unrealized_pnl"] == 125.0
+    assert by_symbol["AAPL"]["net_pnl"] == 325.0
+    assert by_symbol["AAPL"]["open_position_count"] == 1
+    assert by_symbol["NVDA"]["trade_count"] == 0
+    assert by_symbol["NVDA"]["unrealized_pnl"] == 75.0
 
 
 @pytest.mark.asyncio

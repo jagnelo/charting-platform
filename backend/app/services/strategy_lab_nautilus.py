@@ -1221,6 +1221,7 @@ def run_single_instrument_nautilus_backtest(
     commission_per_trade: float,
     commission_model: str = "fixed_round_trip",
     commission_value: float | None = None,
+    close_open_positions_at_end: bool = False,
     break_even_rr: float = 0.0,
     trailing_stop_rr: float = 0.0,
     hard_trailing_stop_pct: float = 0.0,
@@ -1362,7 +1363,7 @@ def run_single_instrument_nautilus_backtest(
             entry_index = ts_index_map.get(entry_ts, 0)
             exit_index = ts_index_map.get(exit_ts, entry_index)
             exit_reason = strategy.exit_reasons.get(position_id, "session_close")
-            if exit_reason == "session_close":
+            if exit_reason == "session_close" and not close_open_positions_at_end:
                 unrealized_pnl = pnl
                 open_positions.append(
                     NautilusOpenPosition(
@@ -1383,6 +1384,8 @@ def run_single_instrument_nautilus_backtest(
                     )
                 )
                 continue
+            if exit_reason == "session_close":
+                exit_reason = "run_end_close"
             trades.append(
                 NautilusTrade(
                     instrument_id=instrument.id,

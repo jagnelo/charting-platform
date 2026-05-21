@@ -746,3 +746,55 @@ def test_nautilus_backtest_reports_open_positions_with_unrealized_pnl():
     assert result.open_positions
     assert result.open_positions[0].status == "open"
     assert result.open_positions[0].unrealized_pnl > 0
+
+
+def test_nautilus_backtest_can_force_close_open_positions_at_run_end():
+    instrument = Instrument(
+        id=1,
+        instrument_type_id=1,
+        symbol="AAPL",
+        name="Apple Inc.",
+        currency="USD",
+        is_active=True,
+    )
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    bars = []
+    closes = [100.0, 101.0, 102.5, 103.0, 104.0]
+    for index, close in enumerate(closes):
+        ts = start + timedelta(days=index)
+        bars.append(_bar(ts, close - 0.5, close + 1.0, close - 1.0, close))
+
+    result = run_single_instrument_nautilus_backtest(
+        instrument=instrument,
+        bars=bars,
+        timeframe=Timeframe.D1,
+        direction="long",
+        entry_logic="all",
+        conditions=[],
+        condition_tree=None,
+        exit_logic="all",
+        exit_conditions=[],
+        exit_condition_tree=None,
+        stop_loss_pct=2.0,
+        take_profit_rr=0.0,
+        max_bars_in_trade=0,
+        capital_base=100000.0,
+        risk_per_trade_pct=1.0,
+        slippage_bps=5.0,
+        commission_per_trade=1.0,
+        close_open_positions_at_end=True,
+        signal_events=[
+            {
+                "signal_at": bars[1].ts,
+                "side": "long",
+                "entry_price": float(bars[1].close),
+                "stop_price": float(bars[1].close) * 0.98,
+                "target_price": 0.0,
+            }
+        ],
+    )
+
+    assert not result.open_positions
+    assert result.trades
+    assert result.trades[0].exit_reason == "run_end_close"
+    assert result.trades[0].pnl > 0

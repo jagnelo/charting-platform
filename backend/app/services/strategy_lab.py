@@ -1622,6 +1622,7 @@ async def _run_rules_backtest(
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
     slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
+    close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
     max_concurrent_positions = int(
         run.execution_assumptions.get("max_concurrent_positions")
         or (version.execution_model or {}).get("max_concurrent_positions")
@@ -1731,6 +1732,7 @@ async def _run_rules_backtest(
             commission_per_trade=commission_value,
             commission_model=commission_model,
             commission_value=commission_value,
+            close_open_positions_at_end=close_open_positions_at_end,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             hard_trailing_stop_pct=hard_trailing_stop_pct,
@@ -1770,8 +1772,6 @@ async def _run_rules_backtest(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
     )
-    if rejected_trades:
-        warnings.append(f"{len(rejected_trades)} trades were rejected by portfolio controls.")
     if coverage.get("requested_fits_collective_range") is False:
         warnings.append(
             "The requested date range exceeds the shared local coverage window of the selected universe."
@@ -1812,6 +1812,7 @@ async def _run_rules_backtest(
         slippage_bps=slippage_bps,
         commission_model=commission_model,
         commission_value=commission_value,
+        close_open_positions_at_end=close_open_positions_at_end,
     )
     analytics = {
         "drawdown_curve": _drawdown_curve(equity_curve),
@@ -1880,6 +1881,7 @@ async def _run_rules_backtest(
             "commission_model": commission_model,
             "commission_value": commission_value,
             "commission_per_trade": commission_value,
+            "close_open_positions_at_end": close_open_positions_at_end,
             "stop_loss_pct": stop_loss_pct,
             "stop_atr_period": stop_atr_period,
             "stop_atr_multiple": stop_atr_multiple,
@@ -1923,7 +1925,10 @@ async def _run_rules_backtest(
             }
             for position in open_positions[:100]
         ],
-        "symbol_performance": _symbol_performance_snapshot(trades),
+        "symbol_performance": _symbol_performance_snapshot(
+            trades,
+            open_positions=open_positions,
+        ),
         "optimization": optimization,
         "rejected_trades": rejected_trades[:100],
         "trades": [
@@ -2211,6 +2216,7 @@ async def _run_radar_signal_research(
     risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
     slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
+    close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
     risk_and_exits = _extract_risk_and_exit_config(definition)
     stop_loss_pct = float(risk_and_exits["stop_loss_pct"])
     stop_model = str(risk_and_exits["stop_model"])
@@ -2348,6 +2354,7 @@ async def _run_radar_signal_research(
             commission_per_trade=commission_value,
             commission_model=commission_model,
             commission_value=commission_value,
+            close_open_positions_at_end=close_open_positions_at_end,
             break_even_rr=break_even_rr,
             trailing_stop_rr=trailing_stop_rr,
             hard_trailing_stop_pct=hard_trailing_stop_pct,
@@ -2385,10 +2392,6 @@ async def _run_radar_signal_research(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
     )
-    if rejected_trades:
-        warnings.append(
-            f"{len(rejected_trades)} replayed signals were rejected by portfolio controls."
-        )
     if coverage.get("requested_fits_collective_range") is False:
         warnings.append(
             "The requested date range exceeds the shared local coverage window of the replayed instrument set."
@@ -2495,6 +2498,7 @@ async def _run_radar_signal_research(
             "commission_model": commission_model,
             "commission_value": commission_value,
             "commission_per_trade": commission_value,
+            "close_open_positions_at_end": close_open_positions_at_end,
             "stop_loss_pct": stop_loss_pct,
             "stop_atr_period": stop_atr_period,
             "stop_atr_multiple": stop_atr_multiple,
@@ -2538,7 +2542,10 @@ async def _run_radar_signal_research(
             }
             for position in open_positions[:100]
         ],
-        "symbol_performance": _symbol_performance_snapshot(trades),
+        "symbol_performance": _symbol_performance_snapshot(
+            trades,
+            open_positions=open_positions,
+        ),
         "rejected_trades": rejected_trades[:100],
         "trades": [
             {
@@ -2578,6 +2585,7 @@ async def _maybe_run_parameter_sweep(
     slippage_bps: float,
     commission_model: str,
     commission_value: float,
+    close_open_positions_at_end: bool,
 ) -> dict | None:
     config = dict(run.execution_assumptions.get("optimization") or {})
     if not config.get("enabled"):
@@ -2684,6 +2692,7 @@ async def _maybe_run_parameter_sweep(
                 commission_per_trade=commission_value,
                 commission_model=commission_model,
                 commission_value=commission_value,
+                close_open_positions_at_end=close_open_positions_at_end,
                 break_even_rr=float(risk_and_exits["break_even_rr"]),
                 trailing_stop_rr=float(risk_and_exits["trailing_stop_rr"]),
                 hard_trailing_stop_pct=float(risk_and_exits["hard_trailing_stop_pct"]),
@@ -2715,19 +2724,34 @@ async def _maybe_run_parameter_sweep(
 
 def _symbol_performance_snapshot(
     trades: list[NautilusTrade],
+    *,
+    open_positions: list[NautilusOpenPosition] | None = None,
 ) -> list[dict[str, float | int | str | None]]:
     grouped: dict[str, list[NautilusTrade]] = {}
     for trade in trades:
         grouped.setdefault(trade.instrument_symbol, []).append(trade)
+    open_grouped: dict[str, list[NautilusOpenPosition]] = {}
+    for position in open_positions or []:
+        open_grouped.setdefault(position.instrument_symbol, []).append(position)
 
     snapshot: list[dict[str, float | int | str | None]] = []
-    for symbol, symbol_trades in sorted(grouped.items()):
+    for symbol in sorted(set(grouped) | set(open_grouped)):
+        symbol_trades = grouped.get(symbol, [])
+        symbol_open_positions = open_grouped.get(symbol, [])
         wins = [trade for trade in symbol_trades if trade.pnl > 0]
+        realized_pnl = round(sum(trade.pnl for trade in symbol_trades), 4)
+        unrealized_pnl = round(sum(position.unrealized_pnl for position in symbol_open_positions), 4)
+        total_pnl = round(realized_pnl + unrealized_pnl, 4)
         snapshot.append(
             {
                 "symbol": symbol,
                 "trade_count": len(symbol_trades),
-                "net_pnl": round(sum(trade.pnl for trade in symbol_trades), 4),
+                "closed_trade_count": len(symbol_trades),
+                "open_position_count": len(symbol_open_positions),
+                "net_pnl": total_pnl,
+                "total_pnl": total_pnl,
+                "realized_pnl": realized_pnl,
+                "unrealized_pnl": unrealized_pnl,
                 "win_rate": round((len(wins) / len(symbol_trades) * 100.0), 4)
                 if symbol_trades
                 else None,
