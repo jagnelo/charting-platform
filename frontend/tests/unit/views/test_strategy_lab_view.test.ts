@@ -132,9 +132,13 @@ const definition = {
           ],
         },
         performance: {
+          initial_capital: 100000,
+          ending_capital: 112500,
           trade_count: 6,
           closed_trade_count: 6,
           open_position_count: 1,
+          realized_ending_capital: 112187.55,
+          realized_net_return_pct: 12.1876,
           unrealized_pnl: 312.45,
           unrealized_return_pct: 0.3125,
           net_return_pct: 12.5,
@@ -199,7 +203,18 @@ const definition = {
           },
         ],
         symbol_performance: [
-          { symbol: 'AAPL', net_pnl: 1250.45, trade_count: 2, win_rate: 50, avg_r: 1.1 },
+          {
+            symbol: 'AAPL',
+            net_pnl: 1562.9,
+            total_pnl: 1562.9,
+            realized_pnl: 1250.45,
+            unrealized_pnl: 312.45,
+            trade_count: 2,
+            closed_trade_count: 2,
+            open_position_count: 1,
+            win_rate: 50,
+            avg_r: 1.1,
+          },
         ],
         optimization: {
           leaderboard: [
@@ -246,6 +261,20 @@ const definition = {
             r_multiple: 1.84,
             reason: 'take_profit',
           },
+          {
+            ts: '2026-03-01T00:00:00Z',
+            event_type: 'rejected',
+            position_id: 'MSFT-2026-03-01T00:00:00Z',
+            symbol: 'MSFT',
+            side: 'long',
+            quantity: 1,
+            price: 300,
+            notional: 300,
+            pnl: null,
+            pnl_pct: null,
+            r_multiple: null,
+            reason: 'max_concurrent_positions',
+          },
         ],
         open_positions: [
           {
@@ -268,7 +297,7 @@ const definition = {
         ],
       },
       artifact_manifest: { result_kind: 'rules_backtest', supports_execution_stats: true },
-      warning_log: [],
+      warning_log: ['4 trades were rejected by portfolio controls.'],
       error_log: null,
       created_at: '2026-05-10T10:01:00Z',
       updated_at: '2026-05-10T10:01:01Z',
@@ -519,9 +548,16 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Execution log')
     expect(wrapper.text()).toContain('6 closed')
     expect(wrapper.text()).toContain('1 open')
-    expect(wrapper.text()).toContain('$312.45 unrealized (+0.31%)')
+    expect(wrapper.text()).toContain('Realized return')
+    expect(wrapper.text()).toContain('Realized')
+    expect(wrapper.text()).toContain('Unrealized')
+    expect(wrapper.text()).toContain('$312.45')
+    expect(wrapper.text()).toContain('+0.31%')
     expect(wrapper.text()).toContain('Open At End')
     expect(wrapper.text()).toContain('Run End Mark')
+    expect(wrapper.text()).toContain('Rejected')
+    expect(wrapper.text()).toContain('Max Concurrent Positions')
+    expect(wrapper.text()).not.toContain('4 trades were rejected by portfolio controls.')
     expect(wrapper.text()).toContain('$1,250.45')
     expect(wrapper.text()).toContain('+12.50%')
     const positionEvolutionChart = wrapper
@@ -570,6 +606,15 @@ describe('StrategyLabView', () => {
     }))
     expect(wrapper.text()).toContain('Coverage preview')
     expect(wrapper.text()).toContain('Shared universe')
+    expect(wrapper.text()).toContain('Instrument coverage')
+
+    const instrumentCoverageToggle = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('Instrument coverage'))
+    expect(instrumentCoverageToggle).toBeTruthy()
+    await instrumentCoverageToggle!.trigger('click')
+    await nextTick()
+
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('MSFT')
     expect(wrapper.text()).toContain('Coverage detail')
@@ -1004,6 +1049,7 @@ describe('StrategyLabView', () => {
         risk_per_trade_pct: 1,
         commission_model: 'fixed_round_trip',
         commission_value: 0,
+        close_open_positions_at_end: false,
       }),
     }))
   })
@@ -1046,6 +1092,9 @@ describe('StrategyLabView', () => {
     )
     expect(capitalInput).toBeTruthy()
     await capitalInput!.setValue('250000')
+    const closeAtEndField = findFieldByLabel(wrapper, 'Close open positions at run end')
+    expect(closeAtEndField).toBeTruthy()
+    await closeAtEndField!.get('input').setValue(true)
 
     const saveButton = wrapper.get('button[aria-label="Save profile"]')
     await saveButton.trigger('click')
@@ -1069,6 +1118,7 @@ describe('StrategyLabView', () => {
           initial_capital: 250000,
           commission_model: 'fixed_round_trip',
           commission_value: 0,
+          close_open_positions_at_end: true,
         }),
       }),
     }))

@@ -2,7 +2,9 @@
   <div v-if="sortedRows.length" class="optimization-panel">
     <div class="optimization-panel__summary">
       <span class="optimization-panel__summary-chip">{{ sortedRows.length }} configs</span>
-      <span class="optimization-panel__summary-chip">Best {{ formatMoney(sortedRows[0].net_pnl) }}</span>
+      <span class="optimization-panel__summary-chip">
+        Best <b :class="pnlClass(sortedRows[0].net_pnl)">{{ formatSignedMoney(sortedRows[0].net_pnl) }}</b>
+      </span>
       <span class="optimization-panel__summary-chip">Avg {{ formatR(averageR) }}</span>
     </div>
 
@@ -37,7 +39,7 @@
             <td>{{ row.max_bars_in_trade }}</td>
             <td>{{ row.trade_count }}</td>
             <td>{{ formatR(row.avg_r) }}</td>
-            <td :class="{ positive: row.net_pnl > 0, negative: row.net_pnl < 0 }">{{ formatMoney(row.net_pnl) }}</td>
+            <td :class="pnlClass(row.net_pnl)">{{ formatSignedMoney(row.net_pnl) }}</td>
           </tr>
         </tbody>
       </table>
@@ -46,7 +48,7 @@
     <div v-if="activeRow" class="optimization-panel__detail">
       <div class="optimization-panel__detail-head">
         <strong>Rank #{{ activeIndex! + 1 }}</strong>
-        <span :class="{ positive: activeRow.net_pnl > 0, negative: activeRow.net_pnl < 0 }">{{ formatMoney(activeRow.net_pnl) }}</span>
+        <span :class="pnlClass(activeRow.net_pnl)">{{ formatSignedMoney(activeRow.net_pnl) }}</span>
       </div>
       <div class="optimization-panel__detail-grid">
         <span>Stop {{ activeRow.stop_loss_pct }}%</span>
@@ -111,6 +113,23 @@ function formatMoney(value: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })
+}
+
+function formatSignedMoney(value: number) {
+  if (!Number.isFinite(Number(value))) return '—'
+  const numeric = Number(value)
+  const formatted = formatMoney(Math.abs(numeric))
+  if (numeric > 0) return `+${formatted}`
+  if (numeric < 0) return `-${formatted}`
+  return formatted
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
 }
 
 function formatR(value: number) {

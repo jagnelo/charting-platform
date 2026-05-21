@@ -54,15 +54,18 @@
       ref="tooltipRef"
       class="returns-heatmap__popover"
       :style="popoverStyle"
+      @mouseenter="popoverHovered = true"
+      @mouseleave="handlePopoverMouseLeave"
     >
       <div class="returns-heatmap__popover-head">
         <strong>{{ activePopover.period }}</strong>
-        <span>{{ activePopover.value == null ? 'No data' : valuePercent(activePopover.value) }}</span>
+        <span>{{ activePopover.value == null ? 'No realized P&L' : `${valuePercent(activePopover.value)} realized` }}</span>
       </div>
 
-      <div v-if="activePopover.details.length" class="returns-heatmap__popover-list">
+      <div v-if="activePopover.realizedDetails.length" class="returns-heatmap__popover-list">
+        <span class="returns-heatmap__popover-section-label">Resolved in period</span>
         <article
-          v-for="detail in activePopover.details"
+          v-for="detail in activePopover.realizedDetails"
           :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
           class="returns-heatmap__popover-item"
         >
@@ -79,16 +82,37 @@
             <span v-if="detail.quantity != null">{{ formatQuantity(detail.quantity) }} @ {{ formatMoney(detail.price) }}</span>
           </div>
           <div class="returns-heatmap__popover-item-pnl">
-            <strong :class="{ positive: Number(detail.pnl) > 0, negative: Number(detail.pnl) < 0 }">
-              {{ detail.pnl == null ? '—' : formatMoney(detail.pnl) }}
+            <strong :class="pnlClass(detail.pnl_pct ?? detail.pnl)">
+              {{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}
             </strong>
-            <span v-if="detail.pnl_pct != null">{{ formatSignedPercent(detail.pnl_pct) }}</span>
+            <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
           </div>
         </article>
       </div>
       <p v-else class="returns-heatmap__popover-empty">
-        No closed positions or run-end marks were recorded in this period.
+        No closed positions were recorded in this period.
       </p>
+
+      <div v-if="activePopover.unrealizedDetails.length" class="returns-heatmap__popover-list returns-heatmap__popover-list--muted">
+        <span class="returns-heatmap__popover-section-label">
+          Unrealized marks
+          <small :class="pnlClass(unrealizedTotal(activePopover.unrealizedDetails))">{{ formatUnrealizedSummary(activePopover.unrealizedDetails) }}</small>
+        </span>
+        <article
+          v-for="detail in activePopover.unrealizedDetails"
+          :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
+          class="returns-heatmap__popover-item returns-heatmap__popover-item--compact"
+        >
+          <div class="returns-heatmap__popover-item-head">
+            <strong>{{ detail.symbol || 'Unknown' }}</strong>
+            <span :class="pnlClass(detail.pnl_pct ?? detail.pnl)">{{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}</span>
+          </div>
+          <div class="returns-heatmap__popover-item-body">
+            <span>{{ formatShortDateTime(detail.ts) }}</span>
+            <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
+          </div>
+        </article>
+      </div>
     </div>
   </div>
 
@@ -128,7 +152,8 @@ interface ActivePopover {
   cellKey: string
   period: string
   value: number | null
-  details: ReturnBreakdownDetail[]
+  realizedDetails: ReturnBreakdownDetail[]
+  unrealizedDetails: ReturnBreakdownDetail[]
   left: number
   top: number
   anchorTop: number
@@ -152,6 +177,7 @@ const props = withDefaults(defineProps<{
 const rootRef = ref<HTMLElement | null>(null)
 const tooltipRef = ref<HTMLElement | null>(null)
 const activePopover = ref<ActivePopover | null>(null)
+const popoverHovered = ref(false)
 
 const columns = computed(() => (
   props.mode === 'monthly'
@@ -299,11 +325,14 @@ function showCellPopover(cell: HeatmapCell, event: Event, pinned: boolean) {
   if (!button || !root) return
 
   const rect = button.getBoundingClientRect()
+  const details = props.cellDetails[cell.period] ?? []
+  popoverHovered.value = false
   activePopover.value = {
     cellKey: cell.key,
     period: cell.period,
     value: cell.value,
-    details: props.cellDetails[cell.period] ?? [],
+    realizedDetails: details.filter(detail => String(detail.event_type ?? '') === 'exit'),
+    unrealizedDetails: details.filter(detail => String(detail.event_type ?? '') === 'open_at_end'),
     left: rect.left,
     top: rect.bottom + 10,
     anchorTop: rect.top,
@@ -325,7 +354,13 @@ function toggleCellPopover(cell: HeatmapCell, event: Event) {
 function hideCellPopover(force: boolean) {
   if (!activePopover.value) return
   if (!force && activePopover.value.pinned) return
+  if (!force && popoverHovered.value) return
   activePopover.value = null
+}
+
+function handlePopoverMouseLeave() {
+  popoverHovered.value = false
+  hideCellPopover(false)
 }
 
 function positionPopover() {
@@ -351,8 +386,10 @@ function positionPopover() {
 function handleDocumentPointerDown(event: PointerEvent) {
   if (!activePopover.value?.pinned) return
   const root = rootRef.value
+  const tooltip = tooltipRef.value
   const target = event.target
   if (root && target instanceof Node && root.contains(target)) return
+  if (tooltip && target instanceof Node && tooltip.contains(target)) return
   activePopover.value = null
 }
 
@@ -390,8 +427,44 @@ function formatMoney(value: number | null | undefined) {
   }).format(Number(value))
 }
 
+function formatSignedMoney(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(Number(value))) return '—'
+  const formatted = formatMoney(Math.abs(Number(value)))
+  if (Number(value) > 0) return `+${formatted}`
+  if (Number(value) < 0) return `-${formatted}`
+  return formatted
+}
+
 function formatSignedPercent(value: number) {
   return `${value >= 0 ? '+' : ''}${Number(value).toFixed(2)}%`
+}
+
+function formatUnrealizedSummary(details: ReturnBreakdownDetail[]) {
+  const pct = unrealizedPctTotal(details)
+  const money = formatSignedMoney(unrealizedTotal(details))
+  return pct == null
+    ? `${details.length} open · ${money}`
+    : `${details.length} open · ${formatSignedPercent(pct)} · ${money}`
+}
+
+function unrealizedTotal(details: ReturnBreakdownDetail[]) {
+  return details.reduce((sum, detail) => sum + (Number(detail.pnl) || 0), 0)
+}
+
+function unrealizedPctTotal(details: ReturnBreakdownDetail[]) {
+  const values = details
+    .map(detail => Number(detail.pnl_pct))
+    .filter(value => Number.isFinite(value))
+  if (!values.length) return null
+  return values.reduce((sum, value) => sum + value, 0)
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
 }
 
 function formatQuantity(value: number) {
@@ -514,8 +587,9 @@ function formatShortDateTime(value: string) {
   gap: 10px;
   inline-size: clamp(280px, 32vw, 360px);
   max-inline-size: min(360px, calc(100vw - 24px));
-  max-block-size: min(320px, calc(100vh - 24px));
+  max-block-size: min(460px, calc(100vh - 24px));
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   border-radius: 12px;
   border: 1px solid #243042;
@@ -542,6 +616,30 @@ function formatShortDateTime(value: string) {
   gap: 10px;
 }
 
+.returns-heatmap__popover-section-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #7f8794;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.returns-heatmap__popover-section-label small {
+  color: #9aa3b1;
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.returns-heatmap__popover-list--muted {
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(36, 48, 66, 0.65);
+}
+
 .returns-heatmap__popover-item {
   display: grid;
   gap: 4px;
@@ -552,6 +650,11 @@ function formatShortDateTime(value: string) {
 .returns-heatmap__popover-item:first-child {
   padding-top: 0;
   border-top: 0;
+}
+
+.returns-heatmap__popover-item--compact {
+  gap: 2px;
+  padding-top: 6px;
 }
 
 .returns-heatmap__popover-item-head,
@@ -591,6 +694,14 @@ function formatShortDateTime(value: string) {
 }
 
 .returns-heatmap__popover-item-pnl strong.negative {
+  color: #f2a0a6;
+}
+
+.positive {
+  color: #8be3a7;
+}
+
+.negative {
   color: #f2a0a6;
 }
 

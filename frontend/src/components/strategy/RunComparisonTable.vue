@@ -20,9 +20,9 @@
         <tbody>
           <tr v-for="row in rows" :key="row.label">
             <td>{{ row.label }}</td>
-            <td :class="{ positive: row.winner === 'current', negative: row.winner === 'compare' }">{{ row.current }}</td>
-            <td :class="{ positive: row.winner === 'compare', negative: row.winner === 'current' }">{{ row.compare }}</td>
-            <td :class="{ positive: row.winner === 'current', negative: row.winner === 'compare' }">{{ row.delta }}</td>
+            <td :class="valueClass(row, row.current, 'current')">{{ row.current }}</td>
+            <td :class="valueClass(row, row.compare, 'compare')">{{ row.compare }}</td>
+            <td :class="deltaClass(row)">{{ row.delta }}</td>
           </tr>
         </tbody>
       </table>
@@ -54,6 +54,44 @@ const props = withDefaults(defineProps<{
 
 const winCount = computed(() => props.rows.filter(row => row.winner === 'current').length)
 const lossCount = computed(() => props.rows.filter(row => row.winner === 'compare').length)
+
+function isPnlLike(row: { label: string }) {
+  return /return|p&l|unrealized|realized/i.test(row.label)
+}
+
+function signedNumber(value: string) {
+  const normalized = String(value ?? '').replace(/[$,%\s]/g, '').replace(/,/g, '')
+  const numeric = Number(normalized)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function signClass(value: string) {
+  const numeric = signedNumber(value)
+  return {
+    positive: numeric != null && numeric > 0,
+    negative: numeric != null && numeric < 0,
+  }
+}
+
+function valueClass(
+  row: { label: string; winner: 'current' | 'compare' | 'tie' | null },
+  value: string,
+  side: 'current' | 'compare',
+) {
+  if (isPnlLike(row)) return signClass(value)
+  return {
+    positive: row.winner === side,
+    negative: row.winner != null && row.winner !== 'tie' && row.winner !== side,
+  }
+}
+
+function deltaClass(row: { label: string; delta: string; winner: 'current' | 'compare' | 'tie' | null }) {
+  if (isPnlLike(row)) return signClass(row.delta)
+  return {
+    positive: row.winner === 'current',
+    negative: row.winner === 'compare',
+  }
+}
 </script>
 
 <style scoped>

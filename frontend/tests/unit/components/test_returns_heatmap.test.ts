@@ -64,6 +64,55 @@ describe('ReturnsHeatmap', () => {
     expect(wrapper.text()).toContain('-3.23%')
   })
 
+  it('keeps unrealized marks separate from realized cell value in the tooltip', async () => {
+    const wrapper = mount(ReturnsHeatmap, {
+      props: {
+        mode: 'monthly',
+        rows: [
+          { period: '2026-05', return_pct: -0.06 },
+        ],
+        cellDetails: {
+          '2026-05': [
+            {
+              ts: '2026-05-12T05:00:00Z',
+              event_type: 'exit',
+              position_id: 'MSFT-2026-05-11T05:00:00Z',
+              symbol: 'MSFT',
+              side: 'long',
+              quantity: 1,
+              price: 407.57,
+              pnl: -6.3,
+              pnl_pct: -0.82,
+              reason: 'take_profit',
+            },
+            {
+              ts: '2026-05-13T05:00:00Z',
+              event_type: 'open_at_end',
+              position_id: 'AAPL-2026-05-12T05:00:00Z',
+              symbol: 'AAPL',
+              side: 'long',
+              quantity: 1,
+              price: 298.72,
+              pnl: 2.77,
+              pnl_pct: 0.36,
+              reason: 'run_end_mark',
+            },
+          ],
+        },
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.findAll('.returns-heatmap__cell')[4].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('-0.06% realized')
+    expect(wrapper.text()).toContain('Resolved in period')
+    expect(wrapper.text()).toContain('Unrealized marks')
+    expect(wrapper.text()).toContain('1 open · +0.36% · +$2.77')
+    expect(wrapper.text()).toContain('AAPL')
+  })
+
   it('shows a no-data message when a period has no closed-position detail', async () => {
     const wrapper = mount(ReturnsHeatmap, {
       props: {
@@ -78,6 +127,6 @@ describe('ReturnsHeatmap', () => {
     await wrapper.findAll('.returns-heatmap__cell')[3].trigger('mouseenter')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('No closed positions or run-end marks were recorded in this period.')
+    expect(wrapper.text()).toContain('No closed positions were recorded in this period.')
   })
 })

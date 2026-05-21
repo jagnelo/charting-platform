@@ -48,40 +48,53 @@
         </div>
       </div>
 
-      <div v-if="coverage.universe.instruments.length" class="coverage-table-wrap">
-        <table class="coverage-table">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Available</th>
-              <th>Within request</th>
-              <th>Status</th>
-              <th>Bars</th>
-              <th>Why</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="instrument in sortedInstruments" :key="instrument.instrument_id">
-              <td>{{ instrument.symbol }}</td>
-              <td>{{ formatRange(instrument.available_from, instrument.available_to) }}</td>
-              <td>{{ formatRange(instrument.requested_first_bar_at, instrument.requested_last_bar_at) }}</td>
-              <td>
-                <span class="coverage-status-pill" :class="statusClass(instrument.requested_status)">
-                  {{ humanizeStatus(instrument.requested_status) }}
-                </span>
-              </td>
-              <td>{{ instrument.requested_bars }} / {{ instrument.total_bars }}</td>
-              <td>{{ instrument.note || (instrument.requested_status === 'full' ? 'Requested range is fully covered.' : '—') }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="coverage.universe.instruments.length" class="coverage-list-section">
+        <button
+          type="button"
+          class="coverage-list-toggle"
+          :aria-expanded="instrumentListExpanded ? 'true' : 'false'"
+          @click="instrumentListExpanded = !instrumentListExpanded"
+        >
+          <span class="coverage-list-toggle__icon" :class="{ 'coverage-list-toggle__icon--expanded': instrumentListExpanded }">▸</span>
+          <span>Instrument coverage</span>
+          <small>{{ sortedInstruments.length }} symbols</small>
+        </button>
+
+        <div v-if="instrumentListExpanded" class="coverage-table-wrap">
+          <table class="coverage-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Available</th>
+                <th>Within request</th>
+                <th>Status</th>
+                <th>Bars</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="instrument in sortedInstruments" :key="instrument.instrument_id">
+                <td>{{ instrument.symbol }}</td>
+                <td>{{ formatRange(instrument.available_from, instrument.available_to) }}</td>
+                <td>{{ formatRange(instrument.requested_first_bar_at, instrument.requested_last_bar_at) }}</td>
+                <td>
+                  <span class="coverage-status-pill" :class="statusClass(instrument.requested_status)">
+                    {{ humanizeStatus(instrument.requested_status) }}
+                  </span>
+                </td>
+                <td>{{ instrument.requested_bars }} / {{ instrument.total_bars }}</td>
+                <td>{{ instrument.note || (instrument.requested_status === 'full' ? 'Requested range is fully covered.' : '—') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { StrategyCoverageInstrument, StrategyCoveragePreview } from '@/types'
 
@@ -97,6 +110,8 @@ const props = withDefaults(defineProps<{
   error: null,
   emptyLabel: 'Coverage detail will appear here.',
 })
+
+const instrumentListExpanded = ref(false)
 
 const sortedInstruments = computed(() => {
   if (!props.coverage) return []
@@ -235,15 +250,18 @@ function summaryStateClass(tone: CoverageTone) {
 .coverage-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .coverage-panel__empty {
-  padding: 14px 16px;
+  padding: 10px 12px;
   border: 1px dashed #2a2f38;
-  border-radius: 16px;
+  border-radius: 8px;
   color: #858b95;
   background: rgba(9, 13, 20, 0.5);
+  font-size: 12px;
 }
 
 .coverage-panel__empty--error {
@@ -254,15 +272,16 @@ function summaryStateClass(tone: CoverageTone) {
 .coverage-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .coverage-summary-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 8px;
   border: 1px solid #1d232d;
   background: #0c1016;
 }
@@ -280,33 +299,37 @@ function summaryStateClass(tone: CoverageTone) {
 }
 
 .coverage-summary-card__label {
-  font-size: 0.76rem;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: #7a808d;
 }
 
 .coverage-summary-card strong {
   color: #f1f4fa;
-  font-size: 0.98rem;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .coverage-summary-card small {
   color: #8b919c;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .coverage-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .coverage-chip {
-  padding: 6px 10px;
+  padding: 4px 7px;
   border-radius: 999px;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   border: 1px solid #29303b;
   color: #c7ced8;
@@ -331,16 +354,17 @@ function summaryStateClass(tone: CoverageTone) {
 .coverage-note-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .coverage-note {
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
   border: 1px solid #243042;
   background: #0a111c;
   color: #b4bdcb;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .coverage-note--warning {
@@ -353,47 +377,94 @@ function summaryStateClass(tone: CoverageTone) {
   color: #f0a2aa;
 }
 
+.coverage-list-section {
+  display: grid;
+  gap: 8px;
+}
+
+.coverage-list-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d6dce6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coverage-list-toggle:hover,
+.coverage-list-toggle:focus-visible {
+  color: #f3f6fb;
+  outline: none;
+}
+
+.coverage-list-toggle__icon {
+  display: inline-block;
+  color: #8b95a4;
+  transform: rotate(0deg);
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+
+.coverage-list-toggle__icon--expanded {
+  transform: rotate(90deg);
+  color: #8fcaf2;
+}
+
+.coverage-list-toggle small {
+  color: #7f8794;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .coverage-table-wrap {
   max-height: 280px;
   overflow: auto;
   border: 1px solid #1b222d;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .coverage-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .coverage-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #090f17;
   color: #7d8591;
-  font-size: 0.75rem;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.11em;
   text-align: left;
 }
 
 .coverage-table tbody td {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-top: 1px solid #181d25;
   vertical-align: top;
   color: #c8ced7;
+  line-height: 1.35;
 }
 
 .coverage-status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-radius: 999px;
   border: 1px solid #29303b;
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   background: #0d1117;
 }

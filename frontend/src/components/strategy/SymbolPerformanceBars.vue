@@ -3,10 +3,10 @@
     <div class="symbol-bars__summary">
       <span class="symbol-bars__summary-chip">{{ sortedRows.length }} symbols</span>
       <span v-if="bestRow" class="symbol-bars__summary-chip">
-        Best {{ bestRow.symbol }} {{ formatMoney(bestRow.net_pnl) }}
+        Best realized {{ bestRow.symbol }} {{ formatSignedMoney(realizedPnl(bestRow)) }}
       </span>
       <span v-if="worstRow" class="symbol-bars__summary-chip">
-        Worst {{ worstRow.symbol }} {{ formatMoney(worstRow.net_pnl) }}
+        Worst realized {{ worstRow.symbol }} {{ formatSignedMoney(realizedPnl(worstRow)) }}
       </span>
     </div>
 
@@ -22,19 +22,22 @@
       >
         <div class="symbol-bars__meta">
           <span class="symbol-bars__label">{{ row.symbol }}</span>
-          <strong :class="{ positive: row.net_pnl > 0, negative: row.net_pnl < 0 }">
-            {{ formatMoney(row.net_pnl) }}
+          <strong :class="pnlClass(realizedPnl(row))">
+            {{ formatSignedMoney(realizedPnl(row)) }}
           </strong>
         </div>
         <div class="symbol-bars__submeta">
           <span>{{ summarizeTrades(row) }}</span>
+          <span class="symbol-bars__submeta-primary" :class="pnlClass(realizedPnl(row))">realized</span>
+          <span v-if="Number(row.open_position_count ?? 0) > 0" class="symbol-bars__submeta-secondary" :class="pnlClass(unrealizedPnl(row))">{{ formatSignedMoney(unrealizedPnl(row)) }} unrealized</span>
+          <span class="symbol-bars__submeta-muted" :class="pnlClass(totalPnl(row))">{{ formatSignedMoney(totalPnl(row)) }} marked</span>
           <span v-if="row.avg_r != null">{{ formatR(row.avg_r) }} avg</span>
         </div>
         <div class="symbol-bars__track">
           <div
             class="symbol-bars__bar"
-            :class="row.net_pnl >= 0 ? 'symbol-bars__bar--positive' : 'symbol-bars__bar--negative'"
-            :style="barStyle(row.net_pnl)"
+            :class="barToneClass(realizedPnl(row))"
+            :style="barStyle(realizedPnl(row))"
           />
         </div>
       </button>
@@ -49,12 +52,14 @@
       >
         <div class="symbol-bars__tooltip-head">
           <strong>{{ activeRow.symbol }}</strong>
-          <span :class="{ positive: activeRow.net_pnl > 0, negative: activeRow.net_pnl < 0 }">
-            {{ formatMoney(activeRow.net_pnl) }}
+          <span :class="pnlClass(realizedPnl(activeRow))">
+            {{ formatSignedMoney(realizedPnl(activeRow)) }} realized
           </span>
         </div>
         <div class="symbol-bars__tooltip-metrics">
           <span>{{ summarizeTrades(activeRow) }}</span>
+          <span class="symbol-bars__tooltip-secondary" :class="pnlClass(unrealizedPnl(activeRow))">{{ formatSignedMoney(unrealizedPnl(activeRow)) }} unrealized</span>
+          <span class="symbol-bars__tooltip-secondary" :class="pnlClass(totalPnl(activeRow))">{{ formatSignedMoney(totalPnl(activeRow)) }} marked</span>
           <span v-if="activeRow.win_rate != null">{{ formatPercent(activeRow.win_rate) }} win</span>
           <span v-if="activeRow.avg_r != null">{{ formatR(activeRow.avg_r) }} avg</span>
         </div>
@@ -66,8 +71,8 @@
           >
             <span>{{ formatShortDate(event.ts) }}</span>
             <span>{{ humanizeToken(event.event_type) }}</span>
-            <span v-if="event.pnl != null">{{ formatMoney(event.pnl) }}</span>
-            <span v-if="event.pnl_pct != null">{{ formatPercent(event.pnl_pct) }}</span>
+            <span v-if="event.pnl_pct != null" :class="pnlClass(event.pnl_pct)">{{ formatSignedPercent(event.pnl_pct) }}</span>
+            <span v-if="event.pnl != null" :class="pnlClass(event.pnl)">{{ formatSignedMoney(event.pnl) }}</span>
             <span>{{ humanizeToken(event.reason || event.event_type) }}</span>
           </div>
         </div>
@@ -89,6 +94,11 @@ const props = withDefaults(defineProps<{
   rows: Array<{
     symbol: string
     net_pnl: number
+    total_pnl?: number | null
+    realized_pnl?: number | null
+    unrealized_pnl?: number | null
+    closed_trade_count?: number | null
+    open_position_count?: number | null
     trade_count?: number | null
     win_rate?: number | null
     avg_r?: number | null
@@ -111,24 +121,28 @@ const props = withDefaults(defineProps<{
 const sortedRows = computed(() =>
   [...props.rows]
     .filter(row => row?.symbol)
-    .sort((left, right) => Math.abs(Number(right.net_pnl) || 0) - Math.abs(Number(left.net_pnl) || 0))
+    .sort((left, right) => {
+      const realizedDelta = Math.abs(realizedPnl(right)) - Math.abs(realizedPnl(left))
+      if (realizedDelta !== 0) return realizedDelta
+      return Math.abs(unrealizedPnl(right)) - Math.abs(unrealizedPnl(left))
+    })
     .slice(0, 8),
 )
 
 const bestRow = computed(() =>
   sortedRows.value.length
-    ? [...sortedRows.value].sort((left, right) => (Number(right.net_pnl) || 0) - (Number(left.net_pnl) || 0))[0]
+    ? [...sortedRows.value].sort((left, right) => realizedPnl(right) - realizedPnl(left))[0]
     : null,
 )
 
 const worstRow = computed(() =>
   sortedRows.value.length
-    ? [...sortedRows.value].sort((left, right) => (Number(left.net_pnl) || 0) - (Number(right.net_pnl) || 0))[0]
+    ? [...sortedRows.value].sort((left, right) => realizedPnl(left) - realizedPnl(right))[0]
     : null,
 )
 
 const maxAbsValue = computed(() =>
-  Math.max(1, ...sortedRows.value.map(row => Math.abs(Number(row.net_pnl) || 0))),
+  Math.max(1, ...sortedRows.value.map(row => Math.abs(realizedPnl(row)))),
 )
 
 const hoveredSymbol = ref<string | null>(null)
@@ -155,8 +169,22 @@ function formatMoney(value: number) {
   })
 }
 
+function formatSignedMoney(value: number) {
+  if (!Number.isFinite(Number(value))) return '—'
+  const formatted = formatMoney(Math.abs(Number(value)))
+  if (Number(value) > 0) return `+${formatted}`
+  if (Number(value) < 0) return `-${formatted}`
+  return formatted
+}
+
 function formatPercent(value: number) {
   return `${value.toFixed(2)}%`
+}
+
+function formatSignedPercent(value: number) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  return `${numeric > 0 ? '+' : ''}${numeric.toFixed(2)}%`
 }
 
 function formatR(value: number) {
@@ -174,10 +202,49 @@ function formatShortDate(value?: string) {
   })
 }
 
-function summarizeTrades(row: { trade_count?: number | null; win_rate?: number | null }) {
-  const tradeCount = Number(row.trade_count ?? 0)
-  if (!tradeCount) return 'No closed trades'
-  const parts = [`${tradeCount} trade${tradeCount === 1 ? '' : 's'}`]
+function totalPnl(row: { total_pnl?: number | null; net_pnl?: number | null }) {
+  const total = Number(row.total_pnl ?? row.net_pnl)
+  return Number.isFinite(total) ? total : 0
+}
+
+function realizedPnl(row: { realized_pnl?: number | null; net_pnl?: number | null }) {
+  const realized = Number(row.realized_pnl ?? row.net_pnl)
+  return Number.isFinite(realized) ? realized : 0
+}
+
+function unrealizedPnl(row: { unrealized_pnl?: number | null }) {
+  const unrealized = Number(row.unrealized_pnl ?? 0)
+  return Number.isFinite(unrealized) ? unrealized : 0
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
+}
+
+function barToneClass(value: unknown) {
+  const numeric = Number(value)
+  if (Number.isFinite(numeric) && numeric > 0) return 'symbol-bars__bar--positive'
+  if (Number.isFinite(numeric) && numeric < 0) return 'symbol-bars__bar--negative'
+  return 'symbol-bars__bar--neutral'
+}
+
+function summarizeTrades(row: {
+  trade_count?: number | null
+  closed_trade_count?: number | null
+  open_position_count?: number | null
+  win_rate?: number | null
+}) {
+  const tradeCount = Number(row.closed_trade_count ?? row.trade_count ?? 0)
+  const openCount = Number(row.open_position_count ?? 0)
+  if (!tradeCount && !openCount) return 'No marked trades'
+  const parts = [
+    `${tradeCount} closed`,
+    `${openCount} open`,
+  ]
   if (row.win_rate != null) parts.push(`${formatPercent(Number(row.win_rate))} win`)
   return parts.join(' · ')
 }
@@ -298,6 +365,10 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
+.symbol-bars__meta strong {
+  color: #aeb7c5;
+}
+
 .symbol-bars__submeta {
   display: flex;
   flex-wrap: wrap;
@@ -305,6 +376,18 @@ onBeforeUnmount(() => {
   color: #8a92a0;
   font-size: 10px;
   letter-spacing: 0.04em;
+}
+
+.symbol-bars__submeta-primary {
+  font-weight: 700;
+}
+
+.symbol-bars__submeta-secondary {
+  opacity: 0.86;
+}
+
+.symbol-bars__submeta-muted {
+  opacity: 0.64;
 }
 
 .symbol-bars__track {
@@ -327,6 +410,10 @@ onBeforeUnmount(() => {
 
 .symbol-bars__bar--negative {
   background: linear-gradient(90deg, #7a3137 0%, #ef7f88 100%);
+}
+
+.symbol-bars__bar--neutral {
+  background: linear-gradient(90deg, #303844 0%, #657284 100%);
 }
 
 .symbol-bars__empty {
@@ -368,6 +455,10 @@ onBeforeUnmount(() => {
 .symbol-bars__tooltip-event {
   color: #97a1b2;
   font-size: 10px;
+}
+
+.symbol-bars__tooltip-secondary {
+  opacity: 0.86;
 }
 
 .positive {

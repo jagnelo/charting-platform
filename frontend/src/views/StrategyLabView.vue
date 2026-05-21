@@ -738,6 +738,15 @@
               <span class="field-label">Max symbol allocation %</span>
               <input v-model.number="runDraft.max_symbol_allocation_pct" type="number" min="1" max="100" step="1" class="form-input" />
             </label>
+            <label class="field field--checkbox">
+              <input v-model="runDraft.close_open_positions_at_end" type="checkbox" />
+              <span class="field-label">
+                Close open positions at run end
+                <HoverTooltip text="When enabled, positions still open at the selected end date are liquidated and counted as realized P&L. When disabled, they remain open-at-end and are shown as unrealized P&L.">
+                  <button type="button" class="help-dot" aria-label="Run-end position handling info">i</button>
+                </HoverTooltip>
+              </span>
+            </label>
           </div>
 
           <div v-if="runDraft.test_mode === 'walk_forward'" class="form-grid two-up">
@@ -861,7 +870,19 @@
             </div>
           </div>
 
-          <div class="run-list">
+          <div class="scroll-list-section">
+            <button
+              type="button"
+              class="scroll-list-toggle"
+              :aria-expanded="runHistoryExpanded ? 'true' : 'false'"
+              @click="runHistoryExpanded = !runHistoryExpanded"
+            >
+              <span class="scroll-list-toggle__icon" :class="{ 'scroll-list-toggle__icon--expanded': runHistoryExpanded }">▸</span>
+              <span>Run history</span>
+              <small>{{ selectedRuns.length }} {{ selectedRuns.length === 1 ? 'run' : 'runs' }}</small>
+            </button>
+
+          <div v-if="runHistoryExpanded" class="run-list">
             <button
               v-for="run in selectedRuns"
               :key="run.id"
@@ -877,11 +898,16 @@
               <div class="run-item__meta">
                 <span>{{ run.timeframe || currentVersion?.definition_snapshot?.timeframe || 'D1' }}</span>
                 <span>·</span>
-                <span>{{ run.result_summary?.performance?.trade_count ?? 0 }} trades</span>
-                <span v-if="run.result_summary?.performance?.net_return_pct != null">· {{ formatPercent(run.result_summary.performance.net_return_pct) }}</span>
+                <span>{{ run.result_summary?.performance?.closed_trade_count ?? run.result_summary?.performance?.trade_count ?? 0 }} closed</span>
+                <span>·</span>
+                <span>{{ run.result_summary?.performance?.open_position_count ?? 0 }} open</span>
+                <span v-if="run.result_summary?.performance?.realized_net_return_pct != null" class="run-item__metric run-item__metric--primary" :class="pnlClass(run.result_summary.performance.realized_net_return_pct)">R {{ formatSignedPercent(run.result_summary.performance.realized_net_return_pct) }}</span>
+                <span v-if="run.result_summary?.performance?.unrealized_return_pct != null" class="run-item__metric run-item__metric--secondary" :class="pnlClass(run.result_summary.performance.unrealized_return_pct)">U {{ formatSignedPercent(run.result_summary.performance.unrealized_return_pct) }}</span>
+                <span v-if="run.result_summary?.performance?.net_return_pct != null" class="run-item__metric run-item__metric--muted" :class="pnlClass(run.result_summary.performance.net_return_pct)">M {{ formatSignedPercent(run.result_summary.performance.net_return_pct) }}</span>
               </div>
             </button>
             <div v-if="!selectedRuns.length" class="empty-state empty-state--small">No backtests yet.</div>
+          </div>
           </div>
           </div>
       </div>
@@ -961,17 +987,26 @@
 
           <div class="run-summary-grid">
             <div class="summary-card">
-              <span class="summary-label">Net return</span>
-              <strong>{{ formatPercent(performance.net_return_pct) }}</strong>
-              <small v-if="(performance.open_position_count ?? 0) > 0">
-                {{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed ·
-                {{ performance.open_position_count ?? 0 }} open ·
-                {{ `${formatMoney(performance.unrealized_pnl)} unrealized` }}
-                <span v-if="performance.unrealized_return_pct != null">
-                  {{ `(${formatSignedPercent(performance.unrealized_return_pct)})` }}
-                </span>
-              </small>
-              <small v-else>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed</small>
+              <span class="summary-label">Realized return</span>
+              <strong :class="pnlClass(performance.realized_net_return_pct)">{{ formatSignedPercent(performance.realized_net_return_pct) }}</strong>
+              <div class="summary-breakdown">
+                <small class="summary-breakdown__primary">
+                  <span>Realized P&amp;L</span>
+                  <b :class="pnlClass(performance.realized_net_return_pct)">{{ formatSignedPercent(performance.realized_net_return_pct) }} · {{ formatSignedMoney(realizedPnl) }}</b>
+                </small>
+                <small class="summary-breakdown__secondary">
+                  <span>Unrealized</span>
+                  <b :class="pnlClass(performance.unrealized_return_pct)">{{ formatSignedPercent(performance.unrealized_return_pct) }} · {{ formatSignedMoney(performance.unrealized_pnl) }}</b>
+                </small>
+                <small class="summary-breakdown__muted">
+                  <span>Marked total</span>
+                  <b :class="pnlClass(performance.net_return_pct)">{{ formatSignedPercent(performance.net_return_pct) }}</b>
+                </small>
+                <small>
+                  <span>Positions</span>
+                  <b>{{ performance.closed_trade_count ?? performance.trade_count ?? 0 }} closed · {{ performance.open_position_count ?? 0 }} open</b>
+                </small>
+              </div>
             </div>
             <div class="summary-card">
               <span class="summary-label">Win rate</span>
@@ -1043,11 +1078,19 @@
                 <div class="detail-list detail-list--benchmark-meta">
                   <div>
                     <span>Benchmark return</span>
-                    <strong>{{ benchmarkReturnLabel }}</strong>
+                    <strong :class="pnlClass(benchmarkReturnValue)">{{ benchmarkReturnLabel }}</strong>
                   </div>
                   <div>
-                    <span>Strategy return</span>
-                    <strong>{{ strategyReturnLabel }}</strong>
+                    <span>Strategy realized</span>
+                    <strong :class="pnlClass(performance.realized_net_return_pct)">{{ strategyRealizedReturnLabel }}</strong>
+                  </div>
+                  <div>
+                    <span>Strategy unrealized</span>
+                    <strong class="detail-list__secondary-value" :class="pnlClass(performance.unrealized_pnl)">{{ strategyUnrealizedReturnLabel }}</strong>
+                  </div>
+                  <div>
+                    <span>Strategy marked</span>
+                    <strong class="detail-list__muted-value" :class="pnlClass(performance.net_return_pct)">{{ strategyReturnLabel }}</strong>
                   </div>
                   <div v-if="benchmarkMaxDrawdownLabel !== '—'">
                     <span>Benchmark drawdown</span>
@@ -1268,6 +1311,7 @@
                 <div class="subsection-head subsection-head--table">
                   <h4>Execution log</h4>
                 </div>
+                <div class="trade-table-scroll">
                 <table class="trade-table">
                   <thead>
                     <tr>
@@ -1289,10 +1333,10 @@
                       <td>{{ event.side ? humanizeToken(event.side) : '—' }}</td>
                       <td>{{ event.price != null ? formatMoney(event.price) : '—' }}</td>
                       <td>{{ event.quantity != null ? Number(event.quantity).toFixed(2) : '—' }}</td>
-                      <td :class="{ positive: Number(event.pnl) > 0, negative: Number(event.pnl) < 0 }">
+                      <td :class="pnlClass(event.pnl_pct ?? event.pnl)">
                         <div v-if="event.pnl != null" class="pnl-cell">
-                          <strong>{{ formatMoney(event.pnl) }}</strong>
-                          <small v-if="event.pnl_pct != null">{{ formatSignedPercent(event.pnl_pct) }}</small>
+                          <strong>{{ event.pnl_pct != null ? formatSignedPercent(event.pnl_pct) : formatSignedMoney(event.pnl) }}</strong>
+                          <small v-if="event.pnl_pct != null">{{ formatSignedMoney(event.pnl) }}</small>
                         </div>
                         <template v-else>—</template>
                       </td>
@@ -1303,6 +1347,7 @@
                     </tr>
                   </tbody>
                 </table>
+                </div>
             </div>
           </div>
           </div>
@@ -1451,6 +1496,7 @@ const showAdvancedRunOptions = ref(false)
 const runSubsetMenuOpen = ref(false)
 const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
+const runHistoryExpanded = ref(false)
 const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
 const storedSectionStates = ref<StrategyLabStoredSectionStates>(initialSectionStates)
@@ -1511,6 +1557,7 @@ const runDraft = reactive({
   max_concurrent_positions: 4,
   max_portfolio_risk_pct: 4,
   max_symbol_allocation_pct: 35,
+  close_open_positions_at_end: false,
   optimization_enabled: false,
   stop_loss_pct_values: '1.5, 2, 2.5, 3',
   take_profit_rr_values: '1.5, 2, 2.5, 3',
@@ -1605,6 +1652,36 @@ const performance = computed<Record<string, number | null>>(() =>
   selectedRunDetail.value?.result_summary?.performance ?? {}
 )
 
+const initialCapital = computed(() => {
+  const value = Number(performance.value.initial_capital)
+  return Number.isFinite(value) ? value : null
+})
+
+const realizedPnl = computed(() => {
+  const realizedEnding = Number(performance.value.realized_ending_capital)
+  const initial = initialCapital.value
+  if (initial != null && Number.isFinite(realizedEnding)) return realizedEnding - initial
+
+  const ending = Number(performance.value.ending_capital)
+  const unrealized = Number(performance.value.unrealized_pnl)
+  if (initial != null && Number.isFinite(ending) && Number.isFinite(unrealized)) {
+    return ending - initial - unrealized
+  }
+
+  return null
+})
+
+const strategyRealizedReturnLabel = computed(() =>
+  formatSignedPercent(performance.value.realized_net_return_pct),
+)
+
+const strategyUnrealizedReturnLabel = computed(() => {
+  const returnLabel = formatSignedPercent(performance.value.unrealized_return_pct)
+  const pnlLabel = formatSignedMoney(performance.value.unrealized_pnl)
+  if (returnLabel === '—' && pnlLabel === '—') return '—'
+  return `${returnLabel} · ${pnlLabel}`
+})
+
 const selectedRunCoverageDetail = computed<StrategyCoveragePreview | null>(() => {
   if (!selectedRunDetail.value) return null
   const rawCoverage = selectedRunDetail.value.result_summary?.coverage as Record<string, any> | undefined
@@ -1620,9 +1697,7 @@ const selectedRunCoverageDetail = computed<StrategyCoveragePreview | null>(() =>
     requested_date_to: String(rawCoverage?.requested_date_to ?? selectedRunDetail.value.date_to ?? '') || null,
     universe: runCoverage,
     benchmark: coerceStrategyCoverageBenchmark(selectedRunDetail.value.result_summary?.benchmark?.coverage),
-    warnings: Array.isArray(selectedRunDetail.value.warning_log)
-      ? selectedRunDetail.value.warning_log.map(item => String(item))
-      : [],
+    warnings: [],
   }
 })
 
@@ -1856,12 +1931,14 @@ const compareRunComparisonLabel = computed(() =>
 const comparisonRows = computed(() => {
   if (!selectedRunDetail.value || !compareRun.value) return []
   return [
-    comparisonMetric('Net return', selectedRunDetail.value.result_summary?.performance?.net_return_pct, compareRun.value.result_summary?.performance?.net_return_pct, 'percent', 'higher'),
+    comparisonMetric('Marked return', selectedRunDetail.value.result_summary?.performance?.net_return_pct, compareRun.value.result_summary?.performance?.net_return_pct, 'percent', 'higher'),
+    comparisonMetric('Realized return', selectedRunDetail.value.result_summary?.performance?.realized_net_return_pct, compareRun.value.result_summary?.performance?.realized_net_return_pct, 'percent', 'higher'),
+    comparisonMetric('Unrealized return', selectedRunDetail.value.result_summary?.performance?.unrealized_return_pct, compareRun.value.result_summary?.performance?.unrealized_return_pct, 'percent', 'higher'),
     comparisonMetric('Win rate', selectedRunDetail.value.result_summary?.performance?.win_rate, compareRun.value.result_summary?.performance?.win_rate, 'percent', 'higher'),
     comparisonMetric('Expectancy', selectedRunDetail.value.result_summary?.performance?.expectancy_r, compareRun.value.result_summary?.performance?.expectancy_r, 'r', 'higher'),
     comparisonMetric('Drawdown', selectedRunDetail.value.result_summary?.performance?.max_drawdown_pct, compareRun.value.result_summary?.performance?.max_drawdown_pct, 'percent', 'lower'),
     comparisonMetric('Trade count', selectedRunDetail.value.result_summary?.performance?.trade_count, compareRun.value.result_summary?.performance?.trade_count, 'count', 'higher'),
-    comparisonMetric('Unrealized', selectedRunDetail.value.result_summary?.performance?.unrealized_pnl, compareRun.value.result_summary?.performance?.unrealized_pnl, 'money', 'higher'),
+    comparisonMetric('Unrealized P&L', selectedRunDetail.value.result_summary?.performance?.unrealized_pnl, compareRun.value.result_summary?.performance?.unrealized_pnl, 'money', 'higher'),
     comparisonMetric('Profit factor', selectedRunDetail.value.result_summary?.performance?.profit_factor, compareRun.value.result_summary?.performance?.profit_factor, 'plain', 'higher'),
   ]
 })
@@ -1917,6 +1994,9 @@ const strategyReturnLabel = computed(() => {
   return formatSeriesReturn(strategyCurve, 'equity')
 })
 
+const benchmarkReturnValue = computed(() =>
+  seriesReturnValue(benchmarkCurve.value, 'equity')
+)
 const benchmarkReturnLabel = computed(() => formatSeriesReturn(benchmarkCurve.value, 'equity'))
 const benchmarkMaxDrawdownLabel = computed(() =>
   formatPercent(selectedRunDetail.value?.result_summary?.benchmark?.performance?.max_drawdown_pct),
@@ -1968,9 +2048,12 @@ const activeReturnsMode = computed<'monthly' | 'quarterly' | 'yearly'>(() => (
     : (availableReturnsModes.value[0] ?? 'monthly')
 ))
 const activeReturnsRows = computed<any[]>(() => {
-  if (activeReturnsMode.value === 'quarterly') return quarterlyReturns.value
-  if (activeReturnsMode.value === 'yearly') return yearlyReturns.value
-  return monthlyReturns.value
+  const rows = activeReturnsMode.value === 'quarterly'
+    ? quarterlyReturns.value
+    : activeReturnsMode.value === 'yearly'
+      ? yearlyReturns.value
+      : monthlyReturns.value
+  return buildRealizedReturnRows(rows, activeReturnsMode.value)
 })
 
 const activeReturnsDetails = computed<Record<string, any[]>>(() => (
@@ -1981,6 +2064,34 @@ const activeReturnsEmptyLabel = computed(() => {
   if (activeReturnsMode.value === 'yearly') return 'No yearly return breakdown yet.'
   return 'No monthly return breakdown yet.'
 })
+
+function buildRealizedReturnRows(rows: any[], mode: 'monthly' | 'quarterly' | 'yearly') {
+  const denominator = Number(performance.value.initial_capital)
+  const canUsePortfolioBase = Number.isFinite(denominator) && denominator > 0
+  const realizedByPeriod = new Map<string, number>()
+  const fallbackPctByPeriod = new Map<string, number>()
+
+  for (const event of executionLog.value) {
+    if (String(event?.event_type ?? '') !== 'exit') continue
+    const period = returnsPeriodKey(event?.ts, mode)
+    if (!period) continue
+    realizedByPeriod.set(period, (realizedByPeriod.get(period) ?? 0) + (Number(event.pnl) || 0))
+    fallbackPctByPeriod.set(period, (fallbackPctByPeriod.get(period) ?? 0) + (Number(event.pnl_pct) || 0))
+  }
+
+  return rows.map(row => {
+    const period = String(row?.period ?? '')
+    if (row?.return_pct == null) return { ...row, return_pct: null }
+    const realizedPnl = realizedByPeriod.get(period) ?? 0
+    const fallbackPct = fallbackPctByPeriod.get(period) ?? 0
+    return {
+      ...row,
+      return_pct: canUsePortfolioBase
+        ? Number(((realizedPnl / denominator) * 100).toFixed(4))
+        : Number(fallbackPct.toFixed(4)),
+    }
+  })
+}
 const positionEvolutionSeries = computed(() =>
   positionTimelines.value.map((timeline, index) => ({
     label: String(timeline.label || `${timeline.symbol || 'Position'} #${index + 1}`),
@@ -2345,6 +2456,7 @@ function startNew() {
   runDraft.max_concurrent_positions = 4
   runDraft.max_portfolio_risk_pct = 4
   runDraft.max_symbol_allocation_pct = 35
+  runDraft.close_open_positions_at_end = false
   runDraft.optimization_enabled = false
   runDraft.stop_loss_pct_values = '1.5, 2, 2.5, 3'
   runDraft.take_profit_rr_values = '1.5, 2, 2.5, 3'
@@ -2442,6 +2554,7 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     1,
     Number(executionModel.max_symbol_allocation_pct ?? 35) || 35,
   )
+  runDraft.close_open_positions_at_end = runDefaults.close_open_positions_at_end === true
   runDraft.test_mode = ['backtest', 'walk_forward', 'paper_forward'].includes(String(runDefaults.test_mode))
     ? runDefaults.test_mode
     : 'backtest'
@@ -3014,6 +3127,7 @@ function buildVersionPayload() {
         commission_model: runDraft.commission_model,
         commission_value: runDraft.commission_value,
         commission_per_trade: runDraft.commission_value,
+        close_open_positions_at_end: runDraft.close_open_positions_at_end,
         walk_forward_segments: runDraft.walk_forward_segments,
         walk_forward_training_share: runDraft.walk_forward_training_share,
         paper_forward_bars: runDraft.paper_forward_bars,
@@ -3095,6 +3209,7 @@ async function runCurrentVersion() {
       commission_model: runDraft.commission_model,
       commission_value: runDraft.commission_value,
       commission_per_trade: runDraft.commission_value,
+      close_open_positions_at_end: runDraft.close_open_positions_at_end,
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
       max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,
@@ -3290,15 +3405,20 @@ function negateSeriesValues(rows: any[], valueKey: string) {
 }
 
 function formatSeriesReturn(rows: any[], valueKey: string) {
-  if (!Array.isArray(rows) || rows.length < 2) return '—'
+  const value = seriesReturnValue(rows, valueKey)
+  return value == null ? '—' : formatSignedPercent(value)
+}
+
+function seriesReturnValue(rows: any[], valueKey: string) {
+  if (!Array.isArray(rows) || rows.length < 2) return null
   const values = rows
     .map((row: any) => Number(row[valueKey]))
     .filter(Number.isFinite)
-  if (values.length < 2) return '—'
+  if (values.length < 2) return null
   const first = values.find(value => value !== 0) ?? values[0]
   const last = values[values.length - 1]
-  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return '—'
-  return formatPercent(((last - first) / first) * 100)
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return null
+  return ((last - first) / first) * 100
 }
 
 function coerceStrategyCoverageUniverse(value: unknown): StrategyCoverageUniverse | null {
@@ -3505,6 +3625,23 @@ function formatMoney(value: unknown) {
     currency: 'USD',
     maximumFractionDigits: 2,
   })
+}
+
+function formatSignedMoney(value: unknown) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  const formatted = formatMoney(Math.abs(numeric))
+  if (numeric > 0) return `+${formatted}`
+  if (numeric < 0) return `-${formatted}`
+  return formatted
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
 }
 
 function formatR(value: unknown) {
@@ -3806,6 +3943,24 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   flex-wrap: wrap;
 }
 
+.run-item__metric {
+  font-weight: 700;
+}
+
+.run-item__metric--primary {
+  color: #cfd4dc;
+}
+
+.run-item__metric--secondary {
+  font-size: 9px;
+  opacity: 0.86;
+}
+
+.run-item__metric--muted {
+  font-size: 9px;
+  opacity: 0.62;
+}
+
 .run-item {
   display: grid;
   grid-template-rows: auto auto;
@@ -3958,6 +4113,44 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   color: #7c7c7c;
   font-size: 11px;
   line-height: 1.4;
+}
+
+.summary-breakdown {
+  display: grid;
+  gap: 3px;
+}
+
+.summary-breakdown small {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.summary-breakdown b {
+  color: #cfd4dc;
+  font-weight: 700;
+  text-align: right;
+}
+
+.summary-breakdown__primary b {
+  font-size: 12px;
+}
+
+.summary-breakdown__secondary {
+  opacity: 0.88;
+}
+
+.summary-breakdown__secondary b {
+  font-size: 10px;
+}
+
+.summary-breakdown__muted {
+  opacity: 0.68;
+}
+
+.summary-breakdown__muted b {
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .detail-columns {
@@ -4294,6 +4487,52 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   gap: 12px;
 }
 
+.scroll-list-section {
+  display: grid;
+  gap: 8px;
+}
+
+.scroll-list-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d8d8d8;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scroll-list-toggle:hover,
+.scroll-list-toggle:focus-visible {
+  color: #f2f2f2;
+  outline: none;
+}
+
+.scroll-list-toggle__icon {
+  display: inline-block;
+  color: #898989;
+  transform: rotate(0deg);
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+
+.scroll-list-toggle__icon--expanded {
+  transform: rotate(90deg);
+  color: #8fcaf2;
+}
+
+.scroll-list-toggle small {
+  color: #858585;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .run-list {
   gap: 8px;
   max-height: 332px;
@@ -4534,10 +4773,27 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   font-size: 12px;
 }
 
+.detail-list--benchmark-meta .detail-list__secondary-value {
+  font-size: 11px;
+  opacity: 0.86;
+}
+
+.detail-list--benchmark-meta .detail-list__muted-value {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
 .trade-table-wrap {
-  overflow: auto;
+  padding: 12px;
   border: 1px solid #1f1f1f;
   border-radius: 4px;
+  background: #111;
+}
+
+.trade-table-scroll {
+  overflow: auto;
+  margin-inline: -12px;
+  margin-bottom: -12px;
 }
 
 .trade-table {

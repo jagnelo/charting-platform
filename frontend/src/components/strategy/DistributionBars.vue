@@ -50,7 +50,13 @@
           >
             <span>{{ trade.instrument_symbol || trade.symbol || '—' }}</span>
             <span>{{ formatR(Number(trade.r_multiple ?? 0)) }}</span>
-            <span v-if="trade.pnl != null">{{ formatMoney(Number(trade.pnl)) }}</span>
+            <span
+              v-if="trade.pnl_pct != null || trade.pnl != null"
+              :class="pnlClass(trade.pnl_pct ?? trade.pnl)"
+            >
+              {{ trade.pnl_pct == null ? formatSignedMoney(Number(trade.pnl)) : formatSignedPercent(Number(trade.pnl_pct)) }}
+            </span>
+            <span v-if="trade.pnl_pct != null && trade.pnl != null" :class="pnlClass(trade.pnl)">{{ formatSignedMoney(Number(trade.pnl)) }}</span>
             <span>{{ humanizeToken(trade.exit_reason || trade.reason || 'exit') }}</span>
           </div>
         </div>
@@ -74,6 +80,7 @@ const props = withDefaults(defineProps<{
     instrument_symbol?: string | null
     symbol?: string | null
     pnl?: number | null
+    pnl_pct?: number | null
     r_multiple?: number | null
     exit_reason?: string | null
     reason?: string | null
@@ -166,6 +173,12 @@ function formatR(value: number) {
   return `${value.toFixed(2)}R`
 }
 
+function formatSignedPercent(value: number) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  return `${numeric > 0 ? '+' : ''}${numeric.toFixed(2)}%`
+}
+
 function formatMoney(value: number) {
   return value.toLocaleString('en-US', {
     style: 'currency',
@@ -173,6 +186,23 @@ function formatMoney(value: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })
+}
+
+function formatSignedMoney(value: number) {
+  if (!Number.isFinite(Number(value))) return '—'
+  const numeric = Number(value)
+  const formatted = formatMoney(Math.abs(numeric))
+  if (numeric > 0) return `+${formatted}`
+  if (numeric < 0) return `-${formatted}`
+  return formatted
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
 }
 
 function humanizeToken(value?: string | null) {
@@ -356,5 +386,13 @@ onBeforeUnmount(() => {
 .distribution-bars__tooltip-event {
   color: #97a1b2;
   font-size: 10px;
+}
+
+.positive {
+  color: #74e39a;
+}
+
+.negative {
+  color: #ff9aa7;
 }
 </style>
