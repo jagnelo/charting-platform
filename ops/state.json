@@ -3,8 +3,8 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-20T18:46:00Z",
-  "last_commit": "0a37ca5",
+  "last_handoff_at": "2026-05-21T12:09:11Z",
+  "last_commit": "4a752d0",
   "git_ready_to_commit": true,
   "validation": {
     "backend_tests": "passed",
@@ -46,6 +46,17 @@
     "Strategy Lab net-return summaries now show unrealized open-position P&L as both absolute money and signed percent, instead of only the money value.",
     "Strategy Lab now synthesizes missing entry/open-at-end execution-log rows from open-position payload data so open positions are not silently missing from the results log when older or inconsistent run payloads omit them.",
     "Strategy Lab execution assumptions now support explicit commission models: fixed round-trip fees, fixed per-order fees, and percent-of-notional commissions, with the backend applying those fees to closed trades, run-end open positions, and unrealized mark-to-market P&L.",
-    "The Strategy Lab roadmap now explicitly tracks deeper execution-cost realism, including multi-currency portfolio support and FX conversion commissions when account and instrument currencies differ."
+    "The Strategy Lab roadmap now explicitly tracks deeper execution-cost realism, including multi-currency portfolio support and FX conversion commissions when account and instrument currencies differ.",
+    "The StrategyCoveragePanel typography has been tightened to match Strategy Lab's compact dashboard scale: smaller labels/body text, tighter table rows, and lower-radius panel chrome.",
+    "Strategy Lab run prep now exposes close_open_positions_at_end as an explicit run assumption, allowing users to choose whether run-end positions remain unrealized open-at-end marks or are force-closed into realized run_end_close trades.",
+    "Strategy Lab result summaries now label marked-to-market return explicitly and show realized P&L/return, unrealized P&L/return, and closed/open counts together.",
+    "Strategy Lab per-symbol attribution now includes realized_pnl, unrealized_pnl, total_pnl, closed_trade_count, and open_position_count so symbols with only open-at-end positions still appear in attribution.",
+    "Strategy Lab return-breakdown heatmap cells now show realized period P&L only, while open-at-end unrealized marks are separated into small tooltip context.",
+    "Return-breakdown tooltips now have more vertical room and internal scrolling so dense periods do not hide rows below the visible area.",
+    "Strategy Lab no longer emits generic rejected-trade warning messages for portfolio-control rejections; rejected attempts remain in the execution log and rejected_trades payload with exact reasons.",
+    "Strategy Lab coverage detail no longer receives generic run warnings, so the coverage subsection stays scoped to coverage and benchmark-history notes.",
+    "Strategy Lab result surfaces now prioritize realized P&L/return visually, keep unrealized P&L/return as secondary context, and color positive/negative P&L consistently across summaries, execution log, return breakdown, per-symbol attribution, R distribution, optimization, and run comparison.",
+    "Strategy Lab nested vertical scroll lists now start behind local disclosures for coverage instrument details and run history, keeping their surrounding summaries visible while avoiding accidental page-scroll capture.",
+    "Strategy Lab P&L displays now prioritize percentage return before absolute money wherever both values are available, including result summary breakdowns, execution log rows, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips."
   ]
 }

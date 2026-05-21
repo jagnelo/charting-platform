@@ -218,6 +218,135 @@ Append a short entry after each worker session.
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
 - `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
 - `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+
+### Timestamp
+
+- 2026-05-21T11:42:10Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Make realized and unrealized P&L handling consistent throughout the Strategy Lab results section, with realized P&L taking visual priority while unrealized remains visible as secondary context.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - result summary now leads with realized return and realized P&L
+  - unrealized P&L/return remains visible in a quieter supporting row
+  - marked total is retained as muted context
+  - run cards now show realized, unrealized, and marked return splits in that order
+  - benchmark metadata now separates benchmark return, strategy realized, strategy unrealized, and strategy marked return
+  - execution-log P&L values now use signed money formatting and green/red sign coloring
+- Updated result widgets so positive/negative P&L is consistently colored:
+  - [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1)
+  - [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1)
+  - [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1)
+  - [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1)
+  - [frontend/src/components/strategy/RunComparisonTable.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/RunComparisonTable.vue:1)
+- Adjusted focused tests for the realized-first result semantics.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- One per-symbol test still expected the old `Best`/`Worst` labels after realized-first attribution; the assertion was updated to match the new realized-first wording.
+
+### Assumptions
+
+- Realized P&L should be the primary result narrative; unrealized and marked-to-market totals should remain visible but visually quieter.
+
+### Next step
+
+- Continue the Strategy Lab roadmap with the next high-value backend/frontend item: data-coverage preflight acquisition, multi-timeframe execution, or deeper portfolio-risk realism.
+
+### Timestamp
+
+- 2026-05-21T11:54:02Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Make scrollable Strategy Lab lists locally collapsible so page scrolling is less likely to be caught by nested list scroll containers.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - the instrument coverage table is now behind a lightweight local disclosure
+  - the list starts collapsed
+  - summary cards, chips, and coverage notes/warnings remain visible while the table is collapsed
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - run history is now behind the same style of local disclosure
+  - the run-history scroll container only exists after the user expands it
+- Updated the Strategy Lab view regression to open the coverage list before asserting instrument-row details.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- The immediate scroll-trapping offenders were the coverage instrument table and run-history list; horizontal tables/charts were left unchanged because they do not create the same vertical wheel-scroll capture pattern.
+
+### Next step
+
+- If other nested vertical lists become annoying in normal use, apply the same local-disclosure pattern to those specific widgets rather than hiding whole sections.
+
+### Timestamp
+
+- 2026-05-21T12:09:11Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Re-orient Strategy Lab result P&L displays so percentage return takes priority over absolute money whenever both are shown.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - summary breakdown now shows realized and unrealized percentages before their absolute P&L
+  - execution-log P&L cells now lead with `pnl_pct` and show absolute money as the smaller secondary value
+- Updated [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - resolved-period tooltip rows now show P&L percent first and money second
+  - unrealized mark summaries and rows now show percent before money when a percentage is available
+- Updated [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
+  - per-symbol event tooltip rows now show event P&L percent before money when both are available
+- Updated [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - R-bucket trade tooltips now support `pnl_pct` and show it before absolute money when present
+- Updated the return-heatmap unit expectation for the new percent-first unrealized summary.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- One return-heatmap test still expected the old money-first unrealized summary; the assertion was updated to the new percent-first wording.
+
+### Assumptions
+
+- Aggregate widgets that currently have only absolute P&L and no reliable associated percentage should not invent a percentage; the percent-first rule applies where both values are available.
+
+### Next step
+
+- Add aggregate per-symbol/optimization percentage fields later if the backend can provide a reliable denominator for each aggregate P&L value.
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`
 
@@ -1347,6 +1476,246 @@ Append a short entry after each worker session.
 ### Next step
 
 - If the user wants the current uncommitted frontend Strategy Lab refinements recorded now, commit them together in a frontend-focused changeset.
+
+---
+
+### Timestamp
+
+- 2026-05-21T10:31:48Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Make Strategy Lab result P&L presentation consistently distinguish realized, unrealized, and marked-to-market outcomes.
+
+### Completed
+
+- Updated [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) so `symbol_performance` includes open-at-end positions:
+  - `realized_pnl`
+  - `unrealized_pnl`
+  - `total_pnl`
+  - `closed_trade_count`
+  - `open_position_count`
+  - `net_pnl` now remains as the marked total for existing frontend consumers
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the primary result card is now `Marked return`
+  - the card explicitly shows realized P&L/return, unrealized P&L/return, and closed/open counts together
+  - compact run-history rows show total, realized, and unrealized return splits
+  - benchmark metadata now distinguishes strategy marked, realized, and unrealized return
+  - run comparison now has marked, realized, and unrealized return rows instead of a single ambiguous net-return row
+- Updated [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1) so per-symbol attribution shows total, realized, and unrealized P&L, including symbols that only have open-at-end positions.
+- Added focused regression coverage in:
+  - [backend/tests/unit/services/test_strategy_lab_service.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/unit/services/test_strategy_lab_service.py:1)
+  - [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+  - [frontend/tests/unit/components/test_symbol_performance_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_symbol_performance_bars.test.ts:1)
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_symbol_performance_bars.test.ts`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
+
+### Problems found
+
+- Per-symbol attribution was still closed-trade-only, so symbols with only open-at-end positions could contribute to portfolio unrealized P&L while appearing absent from symbol-level attribution.
+
+### Assumptions
+
+- `net_pnl` in the symbol-performance payload should now represent marked total P&L for backward compatibility, while the explicit realized/unrealized fields remove ambiguity.
+
+### Next step
+
+- Continue the Strategy Lab roadmap from the active handoff, with data-coverage preflight/acquisition and multi-timeframe logic still among the highest-value remaining gaps.
+
+---
+
+### Timestamp
+
+- 2026-05-21T11:10:17Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Refine the Strategy Lab return-breakdown heatmap so cells represent realized period P&L only, while unrealized run-end marks remain visible but secondary.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - return-breakdown rows are now derived from execution-log `exit` events against starting capital
+  - open-at-end events no longer change cell values or color intensity
+  - period detail maps still include both exits and open-at-end marks so the tooltip can disclose them separately
+- Updated [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - popover header labels the value as realized
+  - closed/resolved positions are listed under `Resolved in period`
+  - open-at-end positions are listed separately under `Unrealized marks`
+  - dense popovers have more vertical room and scroll internally so rows below the visible area are reachable
+- Extended [frontend/tests/unit/components/test_returns_heatmap.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_returns_heatmap.test.ts:1) to cover the realized/unrealized tooltip split.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The existing heatmap used equity-curve returns, so a period could be green because of open-at-end marks even though the user wanted cells to communicate only what was resolved in that period.
+- Dense tooltips could visually imply more rows existed below without making them easy to reach.
+
+### Assumptions
+
+- Realized period cell return should be `sum(exit.pnl) / initial_capital * 100`; if initial capital is unavailable, the UI falls back to summing event `pnl_pct`.
+
+### Next step
+
+- Continue Strategy Lab result semantics cleanup if more result panels still blend realized and unrealized information ambiguously.
+
+---
+
+### Timestamp
+
+- 2026-05-21T11:17:38Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Stop showing broad rejected-trade warnings inside Strategy Lab coverage details and keep rejection information in the execution log.
+
+### Completed
+
+- Updated [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1):
+  - removed generic `N trades were rejected by portfolio controls` warnings from rules backtests
+  - removed generic replay-rejection warnings from radar replay runs
+  - kept rejected attempts in `rejected_trades` and `execution_log` where each row has the concrete symbol/time/side/size/price/reason
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - coverage detail no longer receives generic run warnings
+  - coverage panel notes now stay scoped to actual coverage status, universe notes, and benchmark coverage notes
+- Expanded regression coverage in:
+  - [backend/tests/unit/services/test_strategy_lab_service.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/unit/services/test_strategy_lab_service.py:1)
+  - [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The backend emitted a broad rejected-count warning even though exact rejected attempts already existed in execution/rejection payloads.
+- The coverage panel rendered generic run warnings, which made portfolio-control messages appear under coverage.
+
+### Assumptions
+
+- Rejected trades should be visible only as concrete execution-log/rejection-detail rows, not as broad summary warnings.
+
+### Next step
+
+- Continue improving execution-log ergonomics if rejected rows need stronger filtering, grouping, or highlighting.
+
+---
+
+### Timestamp
+
+- 2026-05-21T10:11:28Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Bring the Strategy Lab coverage preview/detail typography back in line with the rest of the page and platform.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - reduced oversized coverage-card body text
+  - tightened summary-card, note, chip, and table spacing
+  - replaced large radii with the smaller panel/control radius used elsewhere on the page
+  - moved labels, pills, and table headers to a compact pixel-based scale matching the surrounding Strategy Lab panels
+  - kept long ranges readable with wrapping instead of oversized text
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The coverage widget had scoped styles using larger `rem` typography, generous spacing, and bigger radii than the Strategy Lab page around it, making the added feature look visually unrelated to the rest of the workspace.
+
+### Assumptions
+
+- The coverage panel should behave like a compact dashboard/detail panel, not a standalone large-card widget.
+
+### Next step
+
+- Commit the focused coverage-typography pass if the user wants this small UI refinement recorded immediately.
+
+---
+
+### Timestamp
+
+- 2026-05-21T10:21:56Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Add a Strategy Lab run-prep option controlling whether positions still open at the selected end date are force-closed or left open as unrealized P&L.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - added `Close open positions at run end` as a run-prep checkbox with hover help
+  - persisted the option in saved version run defaults
+  - included `close_open_positions_at_end` in submitted run execution assumptions
+- Updated [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1):
+  - read `close_open_positions_at_end` from execution assumptions
+  - passed it through rules backtests, Radar replay runs, and optimization sweeps
+  - included the setting in result-summary execution assumptions
+- Updated [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - when disabled, session-close positions stay as `open_positions` with unrealized P&L
+  - when enabled, session-close positions become realized trades with `run_end_close` as the exit reason
+- Updated tests:
+  - [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+  - [backend/tests/unit/services/test_strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/tests/unit/services/test_strategy_lab_nautilus.py:1)
+
+### Validation
+
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q`
+
+### Problems found
+
+- The first integration run failed in the sandbox because Testcontainers could not access the local Docker socket. The same command passed with Docker access.
+
+### Assumptions
+
+- The default should preserve the current behavior: positions open at the run end remain unrealized unless the user explicitly enables force-close.
+
+### Next step
+
+- Commit the current Strategy Lab UI/backend changes when the user wants this batch recorded.
 
 ---
 

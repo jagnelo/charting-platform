@@ -13,6 +13,33 @@
 
 ## Completed in this session
 
+- Added explicit Strategy Lab run-end position handling in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - new `close_open_positions_at_end` run-prep toggle
+  - the setting is persisted in version run defaults and included in submitted execution assumptions
+  - when disabled, run-end positions remain `open_at_end` and contribute to unrealized P&L
+  - when enabled, run-end positions are force-closed as realized `run_end_close` trades
+- Made Strategy Lab result P&L semantics explicit and consistent in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
+  - portfolio summary now makes realized return/P&L the primary result signal
+  - unrealized P&L/return and marked total remain visible as secondary context
+  - run-history cards show realized, unrealized, and marked return splits, with realized visually prioritized
+  - benchmark metadata now distinguishes strategy realized, unrealized, and marked return
+  - run comparison now uses marked/realized/unrealized return rows instead of a single ambiguous `Net return`
+  - per-symbol attribution now includes realized, unrealized, and total P&L, including symbols with only open-at-end positions
+  - P&L-like values in result summaries, execution log, return-breakdown tooltip, per-symbol attribution, R-distribution tooltip, optimization leaderboard, and run comparison now use green for positive values and red for negative values
+  - result P&L pairs now prioritize percentage first and show absolute money second wherever both are available, including summary breakdowns, execution-log cells, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips
+- Refined the Strategy Lab return-breakdown heatmap in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - cells now represent realized P&L from `exit` events only, instead of marked-to-market equity movement
+  - open-at-end unrealized marks are shown separately in the tooltip as small supporting context
+  - heatmap tooltips have a taller scrollable popover so dense periods do not hide rows below the visible area
+- Removed generic rejected-trade warnings from Strategy Lab results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - rejected attempts are already represented in the execution log with symbol/time/side/size/price/reason
+  - the backend no longer adds broad `N trades were rejected by portfolio controls` warnings
+  - the coverage panel no longer receives generic run warnings, so coverage notes stay coverage-specific
+- Tightened Strategy Lab coverage typography in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - reduced oversized summary-card, chip, note, and table text
+  - switched the widget to the same compact scale as the surrounding Strategy Lab panels
+  - tightened spacing and reduced radii so coverage preview/detail no longer reads like a visually separate feature block
+  - the instrument coverage table is now locally collapsible and starts folded so coverage warnings/summary remain visible without the scrollable list trapping page scroll
 - Clarified and expanded Strategy Lab commission semantics in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
   - the ambiguous single `Commission per trade` assumption is now an explicit commission model plus value
   - supported models are:
@@ -57,6 +84,7 @@
   - expanded risk authoring with hard trailing stop % and hard-trail activation threshold %
   - advanced optional run subset limited to explicit-universe members only
   - corrected no-comparison-by-default behavior for run comparison
+  - run history is now locally collapsible so its scroll container only appears when explicitly opened
 - Added a richer first pass of Strategy Lab stop and sizing models in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
   - percent or ATR-based stop models
   - ATR period and multiple controls
@@ -191,6 +219,29 @@
 ## Validation run
 
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_symbol_performance_bars.test.ts`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`
