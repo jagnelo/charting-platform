@@ -5,7 +5,7 @@
       <span class="optimization-panel__summary-chip">
         Best <b :class="pnlClass(sortedRows[0].net_pnl)">{{ formatSignedMoney(sortedRows[0].net_pnl) }}</b>
       </span>
-      <span class="optimization-panel__summary-chip">Avg {{ formatR(averageR) }}</span>
+      <span class="optimization-panel__summary-chip">Avg <b :class="pnlClass(averageR)">{{ formatR(averageR) }}</b></span>
     </div>
 
     <div class="optimization-panel__table-wrap">
@@ -38,7 +38,7 @@
             <td>{{ row.take_profit_rr }}R</td>
             <td>{{ row.max_bars_in_trade }}</td>
             <td>{{ row.trade_count }}</td>
-            <td>{{ formatR(row.avg_r) }}</td>
+            <td :class="pnlClass(row.avg_r)">{{ formatR(row.avg_r) }}</td>
             <td :class="pnlClass(row.net_pnl)">{{ formatSignedMoney(row.net_pnl) }}</td>
           </tr>
         </tbody>
@@ -55,7 +55,7 @@
         <span>Target {{ activeRow.take_profit_rr }}R</span>
         <span>{{ activeRow.max_bars_in_trade }} bars max</span>
         <span>{{ activeRow.trade_count }} trades</span>
-        <span>{{ formatR(activeRow.avg_r) }} average</span>
+        <span><b :class="pnlClass(activeRow.avg_r)">{{ formatR(activeRow.avg_r) }}</b> average</span>
       </div>
     </div>
   </div>

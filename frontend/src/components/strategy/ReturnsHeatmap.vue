@@ -54,64 +54,68 @@
       ref="tooltipRef"
       class="returns-heatmap__popover"
       :style="popoverStyle"
-      @mouseenter="popoverHovered = true"
+      @mouseenter="handlePopoverMouseEnter"
       @mouseleave="handlePopoverMouseLeave"
     >
       <div class="returns-heatmap__popover-head">
         <strong>{{ activePopover.period }}</strong>
-        <span>{{ activePopover.value == null ? 'No realized P&L' : `${valuePercent(activePopover.value)} realized` }}</span>
-      </div>
-
-      <div v-if="activePopover.realizedDetails.length" class="returns-heatmap__popover-list">
-        <span class="returns-heatmap__popover-section-label">Resolved in period</span>
-        <article
-          v-for="detail in activePopover.realizedDetails"
-          :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
-          class="returns-heatmap__popover-item"
-        >
-          <div class="returns-heatmap__popover-item-head">
-            <strong>{{ detail.symbol || 'Unknown' }}</strong>
-            <span>{{ humanizeEventType(detail.event_type) }}</span>
-          </div>
-          <div class="returns-heatmap__popover-item-body">
-            <span>{{ formatShortDateTime(detail.ts) }}</span>
-            <span v-if="detail.reason">{{ humanizeReason(detail.reason) }}</span>
-          </div>
-          <div class="returns-heatmap__popover-item-body">
-            <span>{{ detail.side ? humanizeSide(detail.side) : '—' }}</span>
-            <span v-if="detail.quantity != null">{{ formatQuantity(detail.quantity) }} @ {{ formatMoney(detail.price) }}</span>
-          </div>
-          <div class="returns-heatmap__popover-item-pnl">
-            <strong :class="pnlClass(detail.pnl_pct ?? detail.pnl)">
-              {{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}
-            </strong>
-            <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
-          </div>
-        </article>
-      </div>
-      <p v-else class="returns-heatmap__popover-empty">
-        No closed positions were recorded in this period.
-      </p>
-
-      <div v-if="activePopover.unrealizedDetails.length" class="returns-heatmap__popover-list returns-heatmap__popover-list--muted">
-        <span class="returns-heatmap__popover-section-label">
-          Unrealized marks
-          <small :class="pnlClass(unrealizedTotal(activePopover.unrealizedDetails))">{{ formatUnrealizedSummary(activePopover.unrealizedDetails) }}</small>
+        <span :class="pnlClass(activePopover.value)">
+          {{ activePopover.value == null ? 'No realized P&L' : `${valuePercent(activePopover.value)} realized` }}
         </span>
-        <article
-          v-for="detail in activePopover.unrealizedDetails"
-          :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
-          class="returns-heatmap__popover-item returns-heatmap__popover-item--compact"
-        >
-          <div class="returns-heatmap__popover-item-head">
-            <strong>{{ detail.symbol || 'Unknown' }}</strong>
-            <span :class="pnlClass(detail.pnl_pct ?? detail.pnl)">{{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}</span>
-          </div>
-          <div class="returns-heatmap__popover-item-body">
-            <span>{{ formatShortDateTime(detail.ts) }}</span>
-            <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
-          </div>
-        </article>
+      </div>
+
+      <div class="returns-heatmap__popover-scroll">
+        <div v-if="activePopover.realizedDetails.length" class="returns-heatmap__popover-list">
+          <span class="returns-heatmap__popover-section-label">Resolved in period</span>
+          <article
+            v-for="detail in activePopover.realizedDetails"
+            :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
+            class="returns-heatmap__popover-item"
+          >
+            <div class="returns-heatmap__popover-item-head">
+              <strong>{{ detail.symbol || 'Unknown' }}</strong>
+              <span>{{ humanizeEventType(detail.event_type) }}</span>
+            </div>
+            <div class="returns-heatmap__popover-item-body">
+              <span>{{ formatShortDateTime(detail.ts) }}</span>
+              <span v-if="detail.reason">{{ humanizeReason(detail.reason) }}</span>
+            </div>
+            <div class="returns-heatmap__popover-item-body">
+              <span>{{ detail.side ? humanizeSide(detail.side) : '—' }}</span>
+              <span v-if="detail.quantity != null">{{ formatQuantity(detail.quantity) }} @ {{ formatMoney(detail.price) }}</span>
+            </div>
+            <div class="returns-heatmap__popover-item-pnl">
+              <strong :class="pnlClass(detail.pnl_pct ?? detail.pnl)">
+                {{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}
+              </strong>
+              <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
+            </div>
+          </article>
+        </div>
+        <p v-else class="returns-heatmap__popover-empty">
+          No closed positions were recorded in this period.
+        </p>
+
+        <div v-if="activePopover.unrealizedDetails.length" class="returns-heatmap__popover-list returns-heatmap__popover-list--muted">
+          <span class="returns-heatmap__popover-section-label">
+            Unrealized marks
+            <small :class="pnlClass(unrealizedTotal(activePopover.unrealizedDetails))">{{ formatUnrealizedSummary(activePopover.unrealizedDetails) }}</small>
+          </span>
+          <article
+            v-for="detail in activePopover.unrealizedDetails"
+            :key="`${detail.position_id}-${detail.event_type}-${detail.ts}`"
+            class="returns-heatmap__popover-item returns-heatmap__popover-item--compact"
+          >
+            <div class="returns-heatmap__popover-item-head">
+              <strong>{{ detail.symbol || 'Unknown' }}</strong>
+              <span :class="pnlClass(detail.pnl_pct ?? detail.pnl)">{{ detail.pnl_pct == null ? formatSignedMoney(detail.pnl) : formatSignedPercent(detail.pnl_pct) }}</span>
+            </div>
+            <div class="returns-heatmap__popover-item-body">
+              <span>{{ formatShortDateTime(detail.ts) }}</span>
+              <span v-if="detail.pnl != null">{{ formatSignedMoney(detail.pnl) }}</span>
+            </div>
+          </article>
+        </div>
       </div>
     </div>
   </div>
@@ -159,6 +163,7 @@ interface ActivePopover {
   anchorTop: number
   anchorBottom: number
   anchorLeft: number
+  maxHeight: number
   pinned: boolean
 }
 
@@ -178,6 +183,7 @@ const rootRef = ref<HTMLElement | null>(null)
 const tooltipRef = ref<HTMLElement | null>(null)
 const activePopover = ref<ActivePopover | null>(null)
 const popoverHovered = ref(false)
+const hidePopoverTimer = ref<ReturnType<typeof window.setTimeout> | null>(null)
 
 const columns = computed(() => (
   props.mode === 'monthly'
@@ -268,17 +274,26 @@ const maxAbsReturn = computed(() => {
 })
 
 const legendMinLabel = computed(() => (
-  maxAbsReturn.value > 0 ? valuePercent(-maxAbsReturn.value) : '0.00%'
+  maxAbsReturn.value > 0 ? scalePercent(-maxAbsReturn.value) : '0.0%'
 ))
 
 const legendMaxLabel = computed(() => (
-  maxAbsReturn.value > 0 ? valuePercent(maxAbsReturn.value) : '0.00%'
+  maxAbsReturn.value > 0 ? scalePercent(maxAbsReturn.value) : '0.0%'
 ))
 
 function compactPercent(value: number) {
+  return `${value.toFixed(displayPercentDecimals(value))}%`
+}
+
+function scalePercent(value: number) {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(displayPercentDecimals(value))}%`
+}
+
+function displayPercentDecimals(value: number) {
   const absValue = Math.abs(value)
-  if (absValue >= 10) return `${value.toFixed(0)}%`
-  return `${value.toFixed(1)}%`
+  if (absValue > 0 && absValue < 0.1) return 2
+  if (absValue >= 10) return 0
+  return 1
 }
 
 const popoverStyle = computed(() => {
@@ -286,6 +301,7 @@ const popoverStyle = computed(() => {
   return {
     left: `${activePopover.value.left}px`,
     top: `${activePopover.value.top}px`,
+    maxBlockSize: `${activePopover.value.maxHeight}px`,
   }
 })
 
@@ -319,6 +335,7 @@ function cellStyle(value: number | null) {
 }
 
 function showCellPopover(cell: HeatmapCell, event: Event, pinned: boolean) {
+  cancelPopoverHide()
   const currentTarget = event.currentTarget
   const button = currentTarget instanceof HTMLElement ? currentTarget : null
   const root = rootRef.value
@@ -338,6 +355,7 @@ function showCellPopover(cell: HeatmapCell, event: Event, pinned: boolean) {
     anchorTop: rect.top,
     anchorBottom: rect.bottom,
     anchorLeft: rect.left,
+    maxHeight: Math.min(460, Math.max(220, window.innerHeight - 24)),
     pinned,
   }
   void nextTick(() => positionPopover())
@@ -353,9 +371,29 @@ function toggleCellPopover(cell: HeatmapCell, event: Event) {
 
 function hideCellPopover(force: boolean) {
   if (!activePopover.value) return
+  cancelPopoverHide()
   if (!force && activePopover.value.pinned) return
-  if (!force && popoverHovered.value) return
+  if (!force) {
+    hidePopoverTimer.value = window.setTimeout(() => {
+      if (!activePopover.value?.pinned && !popoverHovered.value) {
+        activePopover.value = null
+      }
+      hidePopoverTimer.value = null
+    }, 140)
+    return
+  }
   activePopover.value = null
+}
+
+function cancelPopoverHide() {
+  if (hidePopoverTimer.value == null) return
+  window.clearTimeout(hidePopoverTimer.value)
+  hidePopoverTimer.value = null
+}
+
+function handlePopoverMouseEnter() {
+  cancelPopoverHide()
+  popoverHovered.value = true
 }
 
 function handlePopoverMouseLeave() {
@@ -368,18 +406,24 @@ function positionPopover() {
 
   const tooltipRect = tooltipRef.value.getBoundingClientRect()
   const viewportPadding = 12
+  const gap = 10
   const maxLeft = window.innerWidth - tooltipRect.width - viewportPadding
   const minLeft = viewportPadding
   const preferredLeft = activePopover.value.anchorLeft
-  const fitsBelow = activePopover.value.anchorBottom + 10 + tooltipRect.height <= window.innerHeight - viewportPadding
-  const top = fitsBelow
-    ? activePopover.value.anchorBottom + 10
-    : Math.max(viewportPadding, activePopover.value.anchorTop - tooltipRect.height - 10)
+  const spaceBelow = window.innerHeight - activePopover.value.anchorBottom - gap - viewportPadding
+  const spaceAbove = activePopover.value.anchorTop - gap - viewportPadding
+  const placeBelow = spaceBelow >= Math.min(tooltipRect.height, 360) || spaceBelow >= spaceAbove
+  const availableHeight = Math.max(180, Math.min(520, placeBelow ? spaceBelow : spaceAbove))
+  const effectiveHeight = Math.min(tooltipRect.height, availableHeight)
+  const top = placeBelow
+    ? activePopover.value.anchorBottom + gap
+    : Math.max(viewportPadding, activePopover.value.anchorTop - effectiveHeight - gap)
 
   activePopover.value = {
     ...activePopover.value,
     left: Math.min(Math.max(preferredLeft, minLeft), Math.max(minLeft, maxLeft)),
     top,
+    maxHeight: availableHeight,
   }
 }
 
@@ -398,6 +442,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelPopoverHide()
   window.removeEventListener('pointerdown', handleDocumentPointerDown, true)
 })
 
@@ -584,11 +629,11 @@ function formatShortDateTime(value: string) {
   position: fixed;
   z-index: 220;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   inline-size: clamp(280px, 32vw, 360px);
   max-inline-size: min(360px, calc(100vw - 24px));
-  max-block-size: min(460px, calc(100vh - 24px));
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   padding: 12px;
   border-radius: 12px;
@@ -596,6 +641,15 @@ function formatShortDateTime(value: string) {
   background: rgba(10, 14, 21, 0.97);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(10px);
+}
+
+.returns-heatmap__popover-scroll {
+  display: grid;
+  gap: 10px;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
 }
 
 .returns-heatmap__popover-head {

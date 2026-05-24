@@ -3,7 +3,9 @@
     <div class="walk-forward-panel__summary">
       <span class="walk-forward-panel__summary-chip">{{ segments.length }} segments</span>
       <span class="walk-forward-panel__summary-chip">{{ trainingShareLabel }}</span>
-      <span v-if="avgOutSampleLabel !== '—'" class="walk-forward-panel__summary-chip">Avg OOS {{ avgOutSampleLabel }}</span>
+      <span v-if="avgOutSampleLabel !== '—'" class="walk-forward-panel__summary-chip">
+        Avg OOS <b :class="pnlClass(props.avgOutSampleReturnPct)">{{ avgOutSampleLabel }}</b>
+      </span>
     </div>
 
     <div class="walk-forward-panel__rows">
@@ -26,7 +28,7 @@
           </span>
         </div>
         <div class="walk-forward-panel__row-meta">
-          <span>IS {{ formatPercent(segment.inSample) }}</span>
+          <span>IS <b :class="pnlClass(segment.inSample)">{{ formatPercent(segment.inSample) }}</b></span>
           <span>{{ segment.outRange }}</span>
         </div>
         <div class="walk-forward-panel__track">
@@ -46,8 +48,8 @@
       </div>
       <div class="walk-forward-panel__detail-grid">
         <span>In-sample {{ activeRow.inRange }}</span>
-        <span>In-sample {{ formatPercent(activeRow.inSample) }}</span>
-        <span>Out-sample {{ formatPercent(activeRow.outSample) }}</span>
+        <span>In-sample <b :class="pnlClass(activeRow.inSample)">{{ formatPercent(activeRow.inSample) }}</b></span>
+        <span>Out-sample <b :class="pnlClass(activeRow.outSample)">{{ formatPercent(activeRow.outSample) }}</b></span>
       </div>
     </div>
   </div>
@@ -113,6 +115,14 @@ function togglePinned(segment: number) {
 
 function formatPercent(value: number) {
   return `${value.toFixed(2)}%`
+}
+
+function pnlClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
 }
 
 function formatRange(start?: string | null, end?: string | null) {

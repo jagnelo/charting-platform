@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import DistributionBars from '@/components/strategy/DistributionBars.vue'
 
 describe('DistributionBars', () => {
-  it('renders summary chips and bucket tooltip on hover', async () => {
+  it('renders an R outcome map with trade dots and hover detail', async () => {
     const wrapper = mount(DistributionBars, {
       attachTo: document.body,
       props: {
@@ -31,14 +31,19 @@ describe('DistributionBars', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('2 trades')
-    expect(wrapper.text()).toContain('Avg 0.03R')
-    expect(wrapper.text()).toContain('50% > 0R')
+    expect(wrapper.text()).not.toContain('2 trades')
+    expect(wrapper.text()).not.toContain('Avg 0.03R')
+    expect(wrapper.text()).not.toContain('50% > 0R')
+    expect(wrapper.text()).toContain('LOSSES')
+    expect(wrapper.text()).toContain('BREAKEVEN')
+    expect(wrapper.text()).toContain('WINS')
+    expect(wrapper.findAll('[data-testid="r-outcome-point"]')).toHaveLength(2)
 
-    const firstBucket = wrapper.find('.distribution-bars__row-button')
-    await firstBucket.trigger('mouseenter')
+    const firstPoint = wrapper.find('[data-testid="r-outcome-point"]')
+    await firstPoint.trigger('mouseenter')
 
     expect(document.body.textContent).toContain('AAPL')
+    expect(document.body.textContent).toContain('-0.75R')
     expect(document.body.textContent).toContain('Stop Loss')
   })
 })

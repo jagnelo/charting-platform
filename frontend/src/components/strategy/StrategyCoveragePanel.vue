@@ -48,7 +48,7 @@
         </div>
       </div>
 
-      <div v-if="coverage.universe.instruments.length" class="coverage-list-section">
+      <div v-if="coverageRows.length" class="coverage-list-section">
         <button
           type="button"
           class="coverage-list-toggle"
@@ -56,37 +56,55 @@
           @click="instrumentListExpanded = !instrumentListExpanded"
         >
           <span class="coverage-list-toggle__icon" :class="{ 'coverage-list-toggle__icon--expanded': instrumentListExpanded }">▸</span>
-          <span>Instrument coverage</span>
-          <small>{{ sortedInstruments.length }} symbols</small>
+          <span>Coverage issues</span>
+          <small>{{ issueCoverageRows.length }} issues</small>
         </button>
 
-        <div v-if="instrumentListExpanded" class="coverage-table-wrap">
-          <table class="coverage-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Available</th>
-                <th>Within request</th>
-                <th>Status</th>
-                <th>Bars</th>
-                <th>Why</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="instrument in sortedInstruments" :key="instrument.instrument_id">
-                <td>{{ instrument.symbol }}</td>
-                <td>{{ formatRange(instrument.available_from, instrument.available_to) }}</td>
-                <td>{{ formatRange(instrument.requested_first_bar_at, instrument.requested_last_bar_at) }}</td>
-                <td>
-                  <span class="coverage-status-pill" :class="statusClass(instrument.requested_status)">
-                    {{ humanizeStatus(instrument.requested_status) }}
-                  </span>
-                </td>
-                <td>{{ instrument.requested_bars }} / {{ instrument.total_bars }}</td>
-                <td>{{ instrument.note || (instrument.requested_status === 'full' ? 'Requested range is fully covered.' : '—') }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-if="instrumentListExpanded" class="coverage-timeline-panel">
+          <div class="coverage-timeline-axis">
+            <span>{{ formatShortDate(coverageDomain.start) }}</span>
+            <span>Requested strategy range</span>
+            <span>{{ formatShortDate(coverageDomain.end) }}</span>
+          </div>
+
+          <div class="coverage-timeline-wrap">
+            <div
+              v-for="row in issueCoverageRows"
+              :key="row.key"
+              class="coverage-timeline-row"
+              :class="{ 'coverage-timeline-row--benchmark': row.kind === 'benchmark' }"
+            >
+              <div class="coverage-timeline-row__label">
+                <strong>{{ row.symbol }}</strong>
+                <span>{{ row.kind === 'benchmark' ? 'Benchmark' : `${row.requestedBars} bars in range` }}</span>
+              </div>
+              <div class="coverage-timeline-row__track">
+                <span
+                  v-if="requestedSpanStyle"
+                  class="coverage-timeline-row__requested"
+                  :style="requestedSpanStyle"
+                />
+                <span
+                  v-for="segment in rowSegments(row)"
+                  :key="`${row.key}-${segment.start}-${segment.end}`"
+                  class="coverage-timeline-row__segment"
+                  :class="`coverage-timeline-row__segment--${statusTone(row.status)}`"
+                  :style="segment.style"
+                />
+                <span v-if="!rowSegments(row).length" class="coverage-timeline-row__empty">No local coverage</span>
+              </div>
+              <div class="coverage-timeline-row__meta">
+                <span class="coverage-status-pill" :class="statusClass(row.status)">
+                  {{ humanizeStatus(row.status) }}
+                </span>
+                <span>{{ rowRequestedCoverageLabel(row) }}</span>
+              </div>
+              <p v-if="row.note" class="coverage-timeline-row__note">{{ row.note }}</p>
+            </div>
+            <div v-if="!issueCoverageRows.length" class="coverage-timeline-empty">
+              Requested range is fully covered by every selected instrument and benchmark.
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -99,6 +117,19 @@ import { computed, ref } from 'vue'
 import type { StrategyCoverageInstrument, StrategyCoveragePreview } from '@/types'
 
 type CoverageTone = 'positive' | 'warning' | 'negative' | 'neutral'
+type CoverageRow = {
+  key: string
+  kind: 'instrument' | 'benchmark'
+  symbol: string
+  status: string
+  availableFrom?: string | null
+  availableTo?: string | null
+  requestedFirst?: string | null
+  requestedLast?: string | null
+  totalBars: number
+  requestedBars: number
+  note?: string | null
+}
 
 const props = withDefaults(defineProps<{
   coverage: StrategyCoveragePreview | null
@@ -128,6 +159,67 @@ const sortedInstruments = computed(() => {
     return left.symbol.localeCompare(right.symbol)
   })
 })
+
+const coverageRows = computed<CoverageRow[]>(() => {
+  if (!props.coverage) return []
+  const rows: CoverageRow[] = []
+  const benchmark = props.coverage.benchmark
+  if (benchmark.symbol) {
+    rows.push({
+      key: `benchmark-${benchmark.symbol}`,
+      kind: 'benchmark',
+      symbol: benchmark.symbol,
+      status: benchmark.requested_status,
+      availableFrom: benchmark.available_from,
+      availableTo: benchmark.available_to,
+      requestedFirst: benchmark.requested_first_bar_at,
+      requestedLast: benchmark.requested_last_bar_at,
+      requestedBars: benchmark.requested_bars,
+      totalBars: benchmark.total_bars,
+      note: benchmark.preview_note,
+    })
+  }
+  for (const instrument of sortedInstruments.value) {
+    rows.push({
+      key: `instrument-${instrument.instrument_id}`,
+      kind: 'instrument',
+      symbol: instrument.symbol,
+      status: instrument.requested_status,
+      availableFrom: instrument.available_from,
+      availableTo: instrument.available_to,
+      requestedFirst: instrument.requested_first_bar_at,
+      requestedLast: instrument.requested_last_bar_at,
+      requestedBars: instrument.requested_bars,
+      totalBars: instrument.total_bars,
+      note: instrument.note || (instrument.requested_status === 'full' ? 'Requested range is fully covered.' : null),
+    })
+  }
+  return rows
+})
+
+const issueCoverageRows = computed(() =>
+  coverageRows.value.filter(row => ['partial', 'none', 'missing'].includes(String(row.status))),
+)
+
+const coverageDomain = computed(() => {
+  const values = [
+    toTimestamp(props.coverage?.requested_date_from),
+    toTimestamp(props.coverage?.requested_date_to),
+  ].filter((value): value is number => Number.isFinite(value))
+  if (!values.length) return { start: null, end: null, startMs: null, endMs: null }
+  const startMs = Math.min(...values)
+  const endMs = Math.max(...values)
+  return {
+    start: new Date(startMs).toISOString(),
+    end: new Date(endMs).toISOString(),
+    startMs,
+    endMs,
+  }
+})
+
+const requestedSpanStyle = computed(() =>
+  spanStyle(props.coverage?.requested_date_from, props.coverage?.requested_date_to),
+)
 
 const sharedRangeState = computed<CoverageTone>(() => {
   if (!props.coverage) return 'neutral'
@@ -211,10 +303,41 @@ function dedupeNotes(notes: Array<{ tone: CoverageTone; text: string }>) {
   })
 }
 
+function rowSegments(row: CoverageRow) {
+  const style = spanStyle(row.requestedFirst, row.requestedLast)
+  return style ? [{ start: row.requestedFirst, end: row.requestedLast, style }] : []
+}
+
+function toTimestamp(value: string | null | undefined) {
+  if (!value) return Number.NaN
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : Number.NaN
+}
+
+function spanStyle(start: string | null | undefined, end: string | null | undefined) {
+  const domain = coverageDomain.value
+  if (domain.startMs == null || domain.endMs == null || domain.startMs === domain.endMs) return null
+  const startMs = toTimestamp(start)
+  const endMs = toTimestamp(end)
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null
+  const domainWidth = domain.endMs - domain.startMs
+  const left = Math.max(0, Math.min(100, ((startMs - domain.startMs) / domainWidth) * 100))
+  const right = Math.max(0, Math.min(100, ((endMs - domain.startMs) / domainWidth) * 100))
+  return {
+    left: `${Math.min(left, right)}%`,
+    width: `${Math.max(1.5, Math.abs(right - left))}%`,
+  }
+}
+
 function formatRange(start: string | null | undefined, end: string | null | undefined) {
   if (!start && !end) return 'No local data'
   if (start && end) return `${formatShortDate(start)} → ${formatShortDate(end)}`
   return start ? `${formatShortDate(start)} → …` : `… → ${formatShortDate(end)}`
+}
+
+function rowRequestedCoverageLabel(row: CoverageRow) {
+  if (!row.requestedFirst && !row.requestedLast) return 'No bars inside requested range'
+  return formatRange(row.requestedFirst, row.requestedLast)
 }
 
 function formatShortDate(value: string | null | undefined) {
@@ -239,6 +362,13 @@ function statusClass(status: string | null | undefined) {
   if (status === 'none') return 'coverage-status-pill--negative'
   if (status === 'missing') return 'coverage-status-pill--negative'
   return 'coverage-status-pill--neutral'
+}
+
+function statusTone(status: string | null | undefined) {
+  if (status === 'full') return 'positive'
+  if (status === 'partial') return 'warning'
+  if (['none', 'missing'].includes(String(status))) return 'negative'
+  return 'neutral'
 }
 
 function summaryStateClass(tone: CoverageTone) {
@@ -423,38 +553,155 @@ function summaryStateClass(tone: CoverageTone) {
   text-transform: uppercase;
 }
 
-.coverage-table-wrap {
-  max-height: 280px;
+.coverage-timeline-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.coverage-timeline-axis {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 1fr minmax(72px, max-content);
+  gap: 10px;
+  align-items: center;
+  color: #7e8795;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coverage-timeline-axis span:nth-child(2) {
+  text-align: center;
+  color: #6f7785;
+}
+
+.coverage-timeline-axis span:last-child {
+  text-align: right;
+}
+
+.coverage-timeline-wrap {
+  display: grid;
+  max-height: 340px;
   overflow: auto;
   border: 1px solid #1b222d;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: rgba(6, 9, 14, 0.74);
 }
 
-.coverage-table {
-  width: 100%;
-  border-collapse: collapse;
+.coverage-timeline-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.9fr) minmax(180px, 3fr) minmax(128px, 1.1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 50px;
+  padding: 9px 10px;
+  border-top: 1px solid #171d26;
+}
+
+.coverage-timeline-row:first-child {
+  border-top: 0;
+}
+
+.coverage-timeline-row--benchmark {
+  background: rgba(224, 179, 91, 0.05);
+}
+
+.coverage-timeline-row__label,
+.coverage-timeline-row__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.coverage-timeline-row__label strong {
+  overflow: hidden;
+  color: #eef3fb;
   font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.coverage-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 8px 10px;
-  background: #090f17;
-  color: #7d8591;
+.coverage-timeline-row__label span,
+.coverage-timeline-row__meta span:last-child,
+.coverage-timeline-row__note {
+  color: #8a929f;
   font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.11em;
-  text-align: left;
+  line-height: 1.25;
 }
 
-.coverage-table tbody td {
-  padding: 8px 10px;
-  border-top: 1px solid #181d25;
-  vertical-align: top;
-  color: #c8ced7;
-  line-height: 1.35;
+.coverage-timeline-row__track {
+  position: relative;
+  min-height: 18px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(24, 30, 40, 0.92), rgba(18, 23, 31, 0.92)),
+    #0a0f16;
+  box-shadow: inset 0 0 0 1px #1c2531;
+}
+
+.coverage-timeline-row__requested,
+.coverage-timeline-row__segment {
+  position: absolute;
+  top: 50%;
+  height: 8px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.coverage-timeline-row__requested {
+  background: rgba(143, 202, 242, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(143, 202, 242, 0.16);
+}
+
+.coverage-timeline-row__segment {
+  min-width: 6px;
+  box-shadow: 0 0 0 1px rgba(5, 8, 12, 0.72), 0 0 14px rgba(91, 169, 230, 0.12);
+}
+
+.coverage-timeline-row__segment--positive {
+  background: linear-gradient(90deg, #4eac70, #84e89f);
+}
+
+.coverage-timeline-row__segment--warning {
+  background: linear-gradient(90deg, #a9792b, #f0ca6d);
+}
+
+.coverage-timeline-row__segment--negative {
+  background: linear-gradient(90deg, #75343c, #ef7f88);
+}
+
+.coverage-timeline-row__segment--neutral {
+  background: linear-gradient(90deg, #3d6788, #6fb9ed);
+}
+
+.coverage-timeline-row__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #6c7481;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coverage-timeline-row__meta {
+  align-items: flex-start;
+}
+
+.coverage-timeline-row__note {
+  grid-column: 2 / -1;
+  margin: -4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.coverage-timeline-empty {
+  padding: 12px;
+  color: #7f8794;
+  font-size: 12px;
 }
 
 .coverage-status-pill {
@@ -497,6 +744,34 @@ function summaryStateClass(tone: CoverageTone) {
 @media (max-width: 720px) {
   .coverage-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .coverage-timeline-axis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .coverage-timeline-axis span:nth-child(2) {
+    display: none;
+  }
+
+  .coverage-timeline-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .coverage-timeline-row__track {
+    min-height: 20px;
+  }
+
+  .coverage-timeline-row__meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .coverage-timeline-row__note {
+    grid-column: auto;
+    margin-top: 0;
   }
 }
 </style>

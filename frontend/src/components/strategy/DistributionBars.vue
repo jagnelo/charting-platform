@@ -1,176 +1,325 @@
 <template>
-  <div v-if="rows.length" class="distribution-bars">
-    <div class="distribution-bars__summary">
-      <span class="distribution-bars__summary-chip">{{ normalizedTrades.length }} trades</span>
-      <span v-if="normalizedTrades.length" class="distribution-bars__summary-chip">Avg {{ formatR(averageR) }}</span>
-      <span v-if="normalizedTrades.length" class="distribution-bars__summary-chip">Median {{ formatR(medianR) }}</span>
-      <span v-if="normalizedTrades.length" class="distribution-bars__summary-chip">{{ positiveTradeRateLabel }}</span>
-    </div>
+  <div v-if="hasData" class="r-outcome-map">
+    <svg
+      class="r-outcome-map__svg"
+      width="100%"
+      :height="svgHeight"
+      :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label="Closed trade outcomes by R multiple"
+    >
+      <defs>
+        <linearGradient id="r-outcome-axis" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#ef7f88" stop-opacity="0.56" />
+          <stop offset="50%" stop-color="#657284" stop-opacity="0.8" />
+          <stop offset="100%" stop-color="#6ddb95" stop-opacity="0.56" />
+        </linearGradient>
+        <linearGradient id="r-outcome-loss-zone" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#ef7f88" stop-opacity="0.13" />
+          <stop offset="100%" stop-color="#ef7f88" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="r-outcome-win-zone" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#6ddb95" stop-opacity="0" />
+          <stop offset="100%" stop-color="#6ddb95" stop-opacity="0.13" />
+        </linearGradient>
+      </defs>
 
-    <div v-for="(row, index) in normalizedRows" :key="`${row.lower}-${row.upper}-${index}`" class="distribution-bars__row">
-      <button
-        type="button"
-        class="distribution-bars__row-button"
-        :class="{ 'distribution-bars__row-button--active': activeBucketKey === bucketKey(row, index) }"
-        @mouseenter="showTooltip(bucketKey(row, index), $event)"
+      <rect x="0.5" y="0.5" :width="svgWidth - 1" :height="svgHeight - 1" rx="18" fill="#090d12" stroke="#1f252c" />
+      <rect :x="plotLeft" :y="plotTop" :width="zeroX - plotLeft" :height="plotHeight" fill="url(#r-outcome-loss-zone)" />
+      <rect :x="zeroX" :y="plotTop" :width="plotRight - zeroX" :height="plotHeight" fill="url(#r-outcome-win-zone)" />
+
+      <text :x="plotLeft" y="34" fill="#ef9e9e" font-size="15" font-weight="800" letter-spacing="0.07em">LOSSES</text>
+      <text :x="zeroX" y="34" fill="#8f98a8" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="middle">BREAKEVEN</text>
+      <text :x="plotRight" y="34" fill="#90d89e" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="end">WINS</text>
+
+      <line :x1="plotLeft" :x2="plotRight" :y1="axisY" :y2="axisY" stroke="url(#r-outcome-axis)" stroke-width="2" stroke-linecap="round" />
+      <line :x1="zeroX" :x2="zeroX" :y1="plotTop" :y2="axisY + 12" stroke="#d5deeb" stroke-opacity="0.28" stroke-width="1" stroke-dasharray="4 5" />
+
+      <g v-for="tick in axisTicks" :key="tick">
+        <line
+          :x1="valueToX(tick)"
+          :x2="valueToX(tick)"
+          :y1="plotTop + 4"
+          :y2="axisY + 8"
+          stroke="#657284"
+          :stroke-opacity="tick === 0 ? 0 : 0.18"
+        />
+        <text
+          :x="valueToX(tick)"
+          :y="axisY + 30"
+          fill="#7f8795"
+          font-size="15"
+          font-weight="800"
+          text-anchor="middle"
+        >
+          {{ formatR(tick) }}
+        </text>
+      </g>
+
+      <rect
+        v-for="bucket in densityBuckets"
+        :key="bucket.key"
+        :x="bucket.x"
+        :y="bucket.y"
+        :width="bucket.width"
+        :height="bucket.height"
+        :rx="Math.min(8, bucket.width / 2)"
+        :fill="bucket.fill"
+        :opacity="bucket.opacity"
+      />
+
+      <circle
+        v-for="trade in plottedTrades"
+        :key="trade.key"
+        class="r-outcome-map__point"
+        :cx="trade.x"
+        :cy="trade.y"
+        :r="activeTradeKey === trade.key ? trade.radius + 2 : trade.radius"
+        :fill="trade.fill"
+        :stroke="activeTradeKey === trade.key ? '#eef3fb' : '#080b10'"
+        :stroke-width="activeTradeKey === trade.key ? 2.4 : 1.7"
+        tabindex="0"
+        role="button"
+        :aria-label="`${trade.label} ${formatR(trade.rMultiple)}`"
+        data-testid="r-outcome-point"
+        @mouseenter="showTooltip(trade.key, $event)"
+        @mousemove="showTooltip(trade.key, $event)"
         @mouseleave="hideTooltip"
-        @focus="showTooltip(bucketKey(row, index), $event)"
+        @focus="showTooltip(trade.key, $event)"
         @blur="hideTooltip"
+      />
+
+      <text
+        v-if="!plottedTrades.length"
+        :x="svgWidth / 2"
+        :y="svgHeight / 2"
+        fill="#8f98a8"
+        font-size="14"
+        text-anchor="middle"
       >
-        <div class="distribution-bars__meta">
-          <span>{{ shortLabel(row.lower, row.upper) }}</span>
-          <strong>{{ row.count }}</strong>
-        </div>
-        <div class="distribution-bars__submeta">
-          <span>{{ bucketTradeRate(row.count) }}</span>
-          <span v-if="row.count > 0">{{ bucketSummaryLabel(row, index) }}</span>
-        </div>
-        <div class="distribution-bars__track">
-          <div class="distribution-bars__bar" :style="{ width: `${barWidth(row.count)}%` }" />
-        </div>
-      </button>
-    </div>
+        Histogram available, but no closed trade detail rows were provided.
+      </text>
+    </svg>
 
     <Teleport to="body">
       <div
-        v-if="activeBucket"
+        v-if="activeTrade"
         ref="tooltipRef"
-        class="distribution-bars__tooltip"
-        :style="tooltipStyle"
+        class="r-outcome-map__tooltip"
+        :style="{ ...tooltipBaseStyle, ...tooltipStyle }"
       >
-        <div class="distribution-bars__tooltip-head">
-          <strong>{{ shortLabel(activeBucket.lower, activeBucket.upper) }}</strong>
-          <span>{{ activeBucket.count }} trade{{ activeBucket.count === 1 ? '' : 's' }}</span>
+        <div class="r-outcome-map__tooltip-head">
+          <strong>{{ activeTrade.label }}</strong>
+          <span :class="pnlClass(activeTrade.rMultiple)">{{ formatR(activeTrade.rMultiple) }}</span>
         </div>
-        <div v-if="activeTrades.length" class="distribution-bars__tooltip-events">
-          <div
-            v-for="trade in activeTrades"
-            :key="`${trade.instrument_symbol || trade.symbol}-${trade.exit_at}`"
-            class="distribution-bars__tooltip-event"
-          >
-            <span>{{ trade.instrument_symbol || trade.symbol || '—' }}</span>
-            <span>{{ formatR(Number(trade.r_multiple ?? 0)) }}</span>
-            <span
-              v-if="trade.pnl_pct != null || trade.pnl != null"
-              :class="pnlClass(trade.pnl_pct ?? trade.pnl)"
-            >
-              {{ trade.pnl_pct == null ? formatSignedMoney(Number(trade.pnl)) : formatSignedPercent(Number(trade.pnl_pct)) }}
-            </span>
-            <span v-if="trade.pnl_pct != null && trade.pnl != null" :class="pnlClass(trade.pnl)">{{ formatSignedMoney(Number(trade.pnl)) }}</span>
-            <span>{{ humanizeToken(trade.exit_reason || trade.reason || 'exit') }}</span>
-          </div>
-        </div>
-        <div v-else class="distribution-bars__tooltip-empty">
-          No closed trades in this R bucket.
+        <div class="r-outcome-map__tooltip-grid">
+          <span>Exit</span>
+          <strong>{{ formatShortDate(activeTrade.exit_at) }}</strong>
+          <span>Reason</span>
+          <strong>{{ humanizeToken(activeTrade.exit_reason || activeTrade.reason || 'exit') }}</strong>
+          <span>P&L</span>
+          <strong :class="pnlClass(activeTrade.pnl_pct ?? activeTrade.pnl)">
+            {{ activeTrade.pnl_pct == null ? '—' : formatSignedPercent(Number(activeTrade.pnl_pct)) }}
+            <small v-if="activeTrade.pnl != null">{{ formatSignedMoney(Number(activeTrade.pnl)) }}</small>
+          </strong>
         </div>
       </div>
     </Teleport>
   </div>
-  <div v-else class="distribution-bars__empty">
+  <div v-else class="r-outcome-map__empty">
     {{ emptyLabel }}
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { CSSProperties } from 'vue'
+
+type HistogramRow = { lower: number; upper: number; count: number }
+type TradeRow = {
+  instrument_symbol?: string | null
+  symbol?: string | null
+  pnl?: number | null
+  pnl_pct?: number | null
+  r_multiple?: number | null
+  exit_reason?: string | null
+  reason?: string | null
+  exit_at?: string | null
+}
 
 const props = withDefaults(defineProps<{
-  rows: Array<{ lower: number; upper: number; count: number }>
-  trades?: Array<{
-    instrument_symbol?: string | null
-    symbol?: string | null
-    pnl?: number | null
-    pnl_pct?: number | null
-    r_multiple?: number | null
-    exit_reason?: string | null
-    reason?: string | null
-    exit_at?: string | null
-  }>
+  rows: HistogramRow[]
+  trades?: TradeRow[]
   emptyLabel?: string
 }>(), {
-  emptyLabel: 'No distribution data yet.',
+  emptyLabel: 'No closed trade R multiples yet.',
   trades: () => [],
 })
 
+const svgWidth = 640
+const svgHeight = 242
+const plotLeft = 36
+const plotRight = 604
+const plotTop = 56
+const axisY = 184
+const plotHeight = axisY - plotTop
+const plotWidth = plotRight - plotLeft
+
 const normalizedRows = computed(() =>
-  props.rows
-    .filter(row => Number.isFinite(row.lower) && Number.isFinite(row.upper) && Number.isFinite(row.count))
-    .slice(0, 8),
+  props.rows.filter(row =>
+    Number.isFinite(row.lower)
+    && Number.isFinite(row.upper)
+    && Number.isFinite(row.count)
+    && Number(row.count) >= 0,
+  ),
 )
 
 const normalizedTrades = computed(() =>
   props.trades.filter(trade => Number.isFinite(Number(trade?.r_multiple))),
 )
 
+const hasData = computed(() => normalizedRows.value.length > 0 || normalizedTrades.value.length > 0)
+
 const maxCount = computed(() =>
   Math.max(1, ...normalizedRows.value.map(row => Number(row.count) || 0)),
 )
 
-const averageR = computed(() =>
-  normalizedTrades.value.length
-    ? normalizedTrades.value.reduce((sum, trade) => sum + Number(trade.r_multiple ?? 0), 0) / normalizedTrades.value.length
-    : 0,
+const maxAbsPnl = computed(() =>
+  Math.max(1, ...normalizedTrades.value.map(trade => Math.abs(Number(trade.pnl ?? 0)))),
 )
 
-const medianR = computed(() => {
-  if (!normalizedTrades.value.length) return 0
-  const values = normalizedTrades.value
-    .map(trade => Number(trade.r_multiple ?? 0))
-    .sort((left, right) => left - right)
-  const middle = Math.floor(values.length / 2)
-  return values.length % 2 === 0
-    ? (values[middle - 1] + values[middle]) / 2
-    : values[middle]
+const domainMagnitude = computed(() => {
+  const maxAbsR = Math.max(
+    1,
+    ...normalizedRows.value.flatMap(row => [Math.abs(Number(row.lower)), Math.abs(Number(row.upper))]),
+    ...normalizedTrades.value.map(trade => Math.abs(Number(trade.r_multiple ?? 0))),
+  )
+  return Math.max(2, Math.ceil(maxAbsR))
 })
 
-const positiveTradeRateLabel = computed(() => {
-  if (!normalizedTrades.value.length) return 'No closed trades'
-  const positiveCount = normalizedTrades.value.filter(trade => Number(trade.r_multiple ?? 0) > 0).length
-  const pct = (positiveCount / normalizedTrades.value.length) * 100
-  return `${pct.toFixed(0)}% > 0R`
+const axisTicks = computed(() => {
+  const magnitude = domainMagnitude.value
+  const step = magnitude > 6 ? Math.ceil(magnitude / 6) : 1
+  const ticks: number[] = []
+  for (let value = -magnitude; value <= magnitude; value += step) ticks.push(value)
+  if (!ticks.includes(0)) ticks.push(0)
+  return [...new Set(ticks)].sort((left, right) => left - right)
 })
 
-const hoveredBucketKey = ref<string | null>(null)
+const densityBuckets = computed(() =>
+  normalizedRows.value
+    .filter(row => Number(row.count) > 0)
+    .map((row, index) => {
+      const lower = valueToX(Number(row.lower))
+      const upper = valueToX(Number(row.upper))
+      const height = 18 + (Number(row.count) / maxCount.value) * 94
+      const midpoint = (Number(row.lower) + Number(row.upper)) / 2
+      const tone = toneForValue(midpoint)
+      return {
+        key: `${row.lower}-${row.upper}-${index}`,
+        x: Math.min(lower, upper),
+        y: axisY - height,
+        width: Math.max(4, Math.abs(upper - lower)),
+        height,
+        fill: colorForTone(tone),
+        opacity: tone === 'neutral' ? 0.3 : 0.36,
+      }
+    }),
+)
+
+const plottedTrades = computed(() =>
+  normalizedTrades.value.map((trade, index) => {
+    const rMultiple = Number(trade.r_multiple ?? 0)
+    const pnlMagnitude = Math.abs(Number(trade.pnl ?? 0))
+    const radius = 5.4 + Math.min(5.8, (pnlMagnitude / maxAbsPnl.value) * 5.8)
+    const tone = toneForValue(rMultiple)
+    return {
+      ...trade,
+      key: tradeKey(trade, index),
+      label: trade.instrument_symbol || trade.symbol || 'Trade',
+      rMultiple,
+      tone,
+      x: valueToX(rMultiple),
+      y: jitterY(index, rMultiple, normalizedTrades.value),
+      radius,
+      fill: colorForTone(tone),
+    }
+  }),
+)
+
+const activeTradeKey = ref<string | null>(null)
 const tooltipRef = ref<HTMLElement | null>(null)
-const tooltipStyle = ref<Record<string, string>>({})
-const activeBucketKey = computed(() => hoveredBucketKey.value)
-const activeBucket = computed(() =>
-  normalizedRows.value.find((row, index) => bucketKey(row, index) === activeBucketKey.value) ?? null,
+const tooltipStyle = ref<CSSProperties>({})
+const activeTrade = computed(() =>
+  plottedTrades.value.find(trade => trade.key === activeTradeKey.value) ?? null,
 )
-const activeTrades = computed(() => {
-  if (!activeBucket.value) return []
-  const activeIndex = normalizedRows.value.findIndex((row, index) => bucketKey(row, index) === activeBucketKey.value)
-  return matchingTrades(activeBucket.value, activeIndex).slice(0, 6)
-})
+const zeroX = computed(() => valueToX(0))
+const tooltipBaseStyle = {
+  position: 'fixed',
+  zIndex: '1100',
+  display: 'grid',
+  gap: '8px',
+  width: 'max-content',
+  maxWidth: 'min(340px, calc(100vw - 24px))',
+  padding: '10px',
+  border: '1px solid #263142',
+  borderRadius: '8px',
+  background: '#0c1119',
+  boxShadow: '0 18px 36px rgba(0, 0, 0, 0.42)',
+  pointerEvents: 'none',
+} satisfies CSSProperties
 
-function shortLabel(lower: number, upper: number) {
-  return `${trim(lower)} → ${trim(upper)}`
+function valueToPercent(value: number) {
+  const magnitude = domainMagnitude.value
+  const clamped = Math.max(-magnitude, Math.min(magnitude, Number(value)))
+  return ((clamped + magnitude) / (magnitude * 2)) * 100
 }
 
-function trim(value: number) {
-  if (Math.abs(value) >= 10) return value.toFixed(1)
-  if (Math.abs(value) >= 1) return value.toFixed(2)
-  return value.toFixed(3)
+function valueToX(value: number) {
+  return plotLeft + (valueToPercent(value) / 100) * plotWidth
 }
 
-function barWidth(count: number) {
-  return Math.max(10, Math.min(100, (count / maxCount.value) * 100))
+function jitterY(index: number, value: number, trades: TradeRow[]) {
+  const rValue = Number(value)
+  const clusterTolerance = Math.max(0.12, domainMagnitude.value * 0.035)
+  const clusteredIndexes = trades
+    .map((trade, tradeIndex) => ({
+      index: tradeIndex,
+      distance: Math.abs(Number(trade.r_multiple ?? 0) - rValue),
+    }))
+    .filter(item => Number.isFinite(item.distance) && item.distance <= clusterTolerance)
+    .sort((left, right) => left.index - right.index)
+    .map(item => item.index)
+  const clusterPosition = Math.max(0, clusteredIndexes.indexOf(index))
+  const clusterSize = Math.max(1, clusteredIndexes.length)
+  const spread = Math.min(plotHeight - 34, 26 + Math.max(0, clusterSize - 1) * 18)
+  const offset = clusterSize === 1
+    ? 0
+    : -spread / 2 + (spread * clusterPosition) / (clusterSize - 1)
+  const wave = clusterSize === 1 ? ((index % 3) - 1) * 14 : 0
+  const y = plotTop + plotHeight / 2 + offset + wave
+  return Math.max(plotTop + 22, Math.min(axisY - 26, y))
 }
 
-function bucketTradeRate(count: number) {
-  if (!normalizedTrades.value.length) return 'No closed trades'
-  return `${((count / normalizedTrades.value.length) * 100).toFixed(0)}% of trades`
+function toneForValue(value: number) {
+  if (value > 0.05) return 'positive'
+  if (value < -0.05) return 'negative'
+  return 'neutral'
 }
 
-function bucketSummaryLabel(row: { lower: number; upper: number; count: number }, index: number) {
-  const trades = matchingTrades(row, index)
-  if (!trades.length) return 'No matching trades'
-  const average = trades.reduce((sum, trade) => sum + Number(trade.r_multiple ?? 0), 0) / trades.length
-  return `Avg ${formatR(average)}`
+function colorForTone(tone: string) {
+  if (tone === 'positive') return '#6ddb95'
+  if (tone === 'negative') return '#ef7f88'
+  return '#8fcaf2'
+}
+
+function tradeKey(trade: TradeRow, index: number) {
+  return `${trade.instrument_symbol || trade.symbol || 'trade'}-${trade.exit_at || index}-${trade.r_multiple ?? 0}-${index}`
 }
 
 function formatR(value: number) {
-  return `${value.toFixed(2)}R`
+  return `${value > 0 ? '+' : ''}${value.toFixed(value % 1 === 0 ? 0 : 2)}R`
 }
 
 function formatSignedPercent(value: number) {
@@ -197,6 +346,17 @@ function formatSignedMoney(value: number) {
   return formatted
 }
 
+function formatShortDate(value?: string | null) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
 function pnlClass(value: unknown) {
   const numeric = Number(value)
   return {
@@ -211,31 +371,17 @@ function humanizeToken(value?: string | null) {
     .replace(/\b\w/g, char => char.toUpperCase())
 }
 
-function bucketKey(row: { lower: number; upper: number }, index: number) {
-  return `${row.lower}-${row.upper}-${index}`
-}
-
-function matchingTrades(row: { lower: number; upper: number }, index: number) {
-  const isLastBucket = index === normalizedRows.value.length - 1
-  return normalizedTrades.value.filter(trade => {
-    const value = Number(trade.r_multiple ?? 0)
-    if (!Number.isFinite(value)) return false
-    if (row.lower === row.upper) return Math.abs(value - row.lower) < 0.0001
-    return isLastBucket ? value >= row.lower && value <= row.upper : value >= row.lower && value < row.upper
-  })
-}
-
 function hideTooltip() {
-  hoveredBucketKey.value = null
+  activeTradeKey.value = null
 }
 
 async function showTooltip(key: string, event: FocusEvent | MouseEvent) {
-  hoveredBucketKey.value = key
+  activeTradeKey.value = key
   await nextTick()
-  positionTooltip(event.currentTarget as HTMLElement | null)
+  positionTooltip(event.currentTarget as Element | null)
 }
 
-function positionTooltip(anchor: HTMLElement | null) {
+function positionTooltip(anchor: Element | null) {
   if (!anchor || !tooltipRef.value) return
   const anchorRect = anchor.getBoundingClientRect()
   const tooltipRect = tooltipRef.value.getBoundingClientRect()
@@ -271,121 +417,80 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.distribution-bars {
+.r-outcome-map {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
-.distribution-bars__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.distribution-bars__row {
+.r-outcome-map__svg {
   display: block;
-}
-
-.distribution-bars__summary-chip {
-  border: 1px solid #1f252c;
-  border-radius: 999px;
-  padding: 3px 8px;
-  color: #97a1b2;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.distribution-bars__row-button {
   width: 100%;
-  display: grid;
-  gap: 6px;
-  text-align: left;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  padding: 6px;
-  cursor: pointer;
+  height: auto;
+  min-height: 242px;
+  max-height: 310px;
 }
 
-.distribution-bars__row-button:hover,
-.distribution-bars__row-button:focus-visible,
-.distribution-bars__row-button--active {
-  border-color: #1f252c;
-  background: #10141a;
+.r-outcome-map__point {
+  cursor: pointer;
+  transition: r 0.16s ease, stroke 0.16s ease, stroke-width 0.16s ease;
+}
+
+.r-outcome-map__point:hover,
+.r-outcome-map__point:focus-visible {
   outline: none;
 }
 
-.distribution-bars__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #d7d7d7;
-  font-size: 11px;
-}
-
-.distribution-bars__submeta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px;
-  color: #8a92a0;
-  font-size: 10px;
-}
-
-.distribution-bars__track {
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: #111317;
-  border: 1px solid #1f252c;
-  overflow: hidden;
-}
-
-.distribution-bars__bar {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #3d5f80 0%, #64b5f6 100%);
-}
-
-.distribution-bars__empty {
+.r-outcome-map__empty {
   color: #7d8490;
   font-size: 12px;
 }
 
-.distribution-bars__tooltip {
+.r-outcome-map__tooltip {
   position: fixed;
   z-index: 1100;
   display: grid;
   gap: 8px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
   padding: 10px;
-  border: 1px solid #1f252c;
-  border-radius: 6px;
-  background: #0f1319;
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
-  max-width: min(360px, calc(100vw - 24px));
+  border: 1px solid #263142;
+  border-radius: 8px;
+  background: #0c1119;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.42);
   pointer-events: none;
 }
 
-.distribution-bars__tooltip-head,
-.distribution-bars__tooltip-event {
+.r-outcome-map__tooltip-head {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 18px;
 }
 
-.distribution-bars__tooltip-head strong {
+.r-outcome-map__tooltip-head strong {
   color: #f3f3f3;
   font-size: 12px;
 }
 
-.distribution-bars__tooltip-events,
-.distribution-bars__tooltip-empty,
-.distribution-bars__tooltip-event {
+.r-outcome-map__tooltip-grid {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 5px 14px;
   color: #97a1b2;
   font-size: 10px;
+}
+
+.r-outcome-map__tooltip-grid strong {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  color: #dce3ee;
+  font-weight: 700;
+}
+
+.r-outcome-map__tooltip-grid small {
+  color: #8e98a8;
+  font: inherit;
 }
 
 .positive {
