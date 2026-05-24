@@ -38,6 +38,80 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-05-22T17:32:31Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Fix the broken `Closed trade R multiples` visualization that was degrading into raw labels and native button squares.
+
+### Completed
+
+- Reworked [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1) so the R-multiple map renders as an SVG chart instead of relying on absolutely positioned HTML and button styling.
+- The visualization now draws the loss/breakeven/win regions, 0R axis, R ticks, density bars, and one hover/focus circle per closed trade directly in SVG.
+- Removed the fragile footer/legend HTML that could collapse into raw text when styles failed, and kept the detailed hover tooltip for trade context.
+- Updated [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1) to assert the SVG outcome map and trade-dot tooltip behavior.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The prior R map depended on scoped CSS for absolute positioning and native button reset. When that styling did not apply correctly in the rendered page, the plot collapsed into normal text flow and default square buttons.
+
+### Assumptions
+
+- The R outcome map should favor robust chart primitives over richer but fragile HTML layout, because this widget must never degrade into raw text/default controls.
+
+### Next step
+
+- Run final repo hygiene checks after any additional requested UI fixes, then commit pending Strategy Lab frontend work in isolated changesets when requested.
+
+### Timestamp
+
+- 2026-05-22T17:23:52Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Complete a Strategy Lab result-metric coloring pass so P&L, win-rate, drawdown, R, and related performance values consistently use positive/negative semantics.
+
+### Completed
+
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so win rate, expectancy, drawdown, profit factor, benchmark drawdown, and excess benchmark return use semantic red/green classes instead of plain text.
+- Updated [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1) so symbol win rate and average R are independently colored instead of being hidden in neutral summary text.
+- Updated [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1) and [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1) so in/out-sample returns and Avg R values show green/red semantics.
+- Updated [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1) so return-breakdown popover totals inherit the same positive/negative coloring.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_walk_forward_segments.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk jq empty ops/state.json`
+- `rtk git diff --check`
+
+### Problems found
+
+- Several secondary result widgets were still rendering performance metrics in neutral text even though the main summary and execution-log P&L values were already colored.
+
+### Assumptions
+
+- Zero or unavailable values should remain neutral; drawdown is a cost/risk metric, so any nonzero magnitude is visually negative.
+
+### Next step
+
+- Continue closing the remaining Strategy Lab UX and roadmap gaps from the active task, then commit pending frontend work in context-isolated changesets when requested.
+
+### Timestamp
+
 - 2026-05-20T15:35:00Z
 
 ### Worker
@@ -1476,6 +1550,217 @@ Append a short entry after each worker session.
 ### Next step
 
 - If the user wants the current uncommitted frontend Strategy Lab refinements recorded now, commit them together in a frontend-focused changeset.
+
+---
+
+### Timestamp
+
+- 2026-05-21T16:29:20Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Replace the Strategy Lab instrument coverage detail list with a graphical, filterable timeline view.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - replaced the instrument coverage table with a compact horizontal timeline
+  - added one benchmark row plus one row per universe instrument
+  - added a requested-run-window band and local-coverage segments
+  - added full / partial / none / missing filters with counts
+  - kept the row list vertically scrollable for larger universes
+  - kept the implementation segment-oriented so future non-contiguous coverage intervals can be rendered without changing the UI pattern
+- Updated [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1) to assert the new timeline coverage UI.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The first validation run caught a syntax typo in the new coverage-domain calculation; fixed and reran the focused test plus type-check successfully.
+
+### Assumptions
+
+- Current coverage payloads expose first/last available bars rather than true discontinuous coverage intervals, so the timeline renders the current available span honestly while leaving the row model ready for multiple segments later.
+
+### Next step
+
+- If the backend later exposes gap-aware coverage intervals, map those intervals into multiple row segments in the existing timeline instead of returning to a table/list.
+
+---
+
+### Timestamp
+
+- 2026-05-22T16:33:21Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Remove the top summary bubbles from the Strategy Lab `Per symbol` and `R distribution` widgets, and clarify what those panels are meant to convey.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
+  - removed the symbol-count / best / worst summary bubble strip
+  - kept the row-level realized/unrealized/marked P&L details and hover tooltip
+- Updated [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - removed the trade-count / average / median / positive-rate summary bubble strip
+  - kept the bucket-level rows and hover tooltip
+- Updated [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - renamed `Per symbol` to `P&L by symbol`
+  - renamed `R distribution` to `Closed trade R multiples`
+- Updated the matching component tests.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- The former `Per symbol` panel is best described as symbol-level P&L attribution, while the former `R distribution` panel is specifically a distribution of closed trade outcomes measured in units of initial risk.
+
+### Next step
+
+- If the R-multiple concept still feels too opaque in the UI, add a compact info hover beside `Closed trade R multiples` rather than restoring summary bubbles.
+
+---
+
+### Timestamp
+
+- 2026-05-22T16:51:56Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Refocus the Strategy Lab coverage timeline on requested-range coverage issues instead of whole-history availability.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - the timeline X-axis now starts/ends at the requested strategy run range
+  - row segments now show bars inside the requested range, not total local historical availability
+  - full-coverage rows are excluded from the issue timeline
+  - filters now focus on `Issues`, `Partial`, `None`, and `Missing`
+  - empty messages now distinguish fully clean requested coverage from a filter that simply has no matching issue rows
+- Added [frontend/tests/unit/components/test_strategy_coverage_panel.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_strategy_coverage_panel.test.ts:1) to cover requested-range domain behavior, hidden full rows, and empty issue states.
+- Updated the Strategy Lab view test to match the renamed coverage issue view.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- The first test pass revealed the component-level assertion was accidentally seeing the broader summary card's oldest-history range; the assertion now scopes to the timeline axis, which is the behavior being protected.
+
+### Assumptions
+
+- The coverage timeline should act as an issue-finder for the requested strategy run window, while broader oldest/newest local history can remain in the summary cards if needed.
+
+### Next step
+
+- If the user wants the coverage issue view even quieter, hide the timeline disclosure entirely when there are zero issues and replace it with a single compact clean-coverage note.
+
+---
+
+### Timestamp
+
+- 2026-05-22T17:10:43Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Implement the suggested richer `Closed trade R multiples` visualization so users can understand R outcomes collectively instead of reading individual bucket bars.
+
+### Completed
+
+- Rebuilt [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1) as an R outcome map:
+  - horizontal R axis centered on `0R` breakeven
+  - negative and positive guide ticks around the center
+  - one plotted dot per closed trade
+  - dot color indicates losing / breakeven-ish / winning R outcome
+  - dot size lightly reflects absolute P&L magnitude
+  - histogram buckets render as a density backdrop so clusters are visible at a glance
+  - hover/focus tooltip shows symbol, R multiple, exit date, reason, percent P&L, and absolute P&L
+- Updated [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1) for the new map behavior.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- The histogram remains useful, but as a density layer rather than the main visual. The primary story should be individual closed trades positioned around `0R` so users immediately see whether outcomes cluster as small losses, full-risk losses, or larger winners.
+
+### Next step
+
+- If dense runs make dot overlap too high, add a mode toggle between dot map and binned density/violin view, or add local zoom to the R-axis.
+
+---
+
+### Timestamp
+
+- 2026-05-22T17:13:53Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Remove filters from the Strategy Lab coverage collapsible widget so it only shows requested-range coverage issues.
+
+### Completed
+
+- Updated [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - removed the issue/partial/none/missing filter buttons
+  - removed the related filter state and filter-count logic
+  - the timeline now directly renders the issue set: partial coverage, no coverage, or missing coverage
+  - the empty state now simply communicates that the requested range is fully covered
+- Updated [frontend/tests/unit/components/test_strategy_coverage_panel.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_strategy_coverage_panel.test.ts:1) to lock in the simplified issue-only behavior.
+
+### Validation
+
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+
+### Problems found
+
+- None.
+
+### Assumptions
+
+- This widget should now be an issue-only diagnostic surface; users who need broader full-coverage counts can still get the high-level picture from the existing summary cards/chips.
+
+### Next step
+
+- If desired, hide the collapsible entirely when issue count is zero and show a compact non-scrollable clean-coverage note instead.
 
 ---
 

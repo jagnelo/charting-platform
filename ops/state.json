@@ -3,7 +3,7 @@
   "active_worker": "Codex",
   "worker_session_started_at": "2026-05-12T17:42:34Z",
   "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-05-21T12:09:11Z",
+  "last_handoff_at": "2026-05-22T17:32:31Z",
   "last_commit": "4a752d0",
   "git_ready_to_commit": true,
   "validation": {
@@ -57,6 +57,13 @@
     "Strategy Lab coverage detail no longer receives generic run warnings, so the coverage subsection stays scoped to coverage and benchmark-history notes.",
     "Strategy Lab result surfaces now prioritize realized P&L/return visually, keep unrealized P&L/return as secondary context, and color positive/negative P&L consistently across summaries, execution log, return breakdown, per-symbol attribution, R distribution, optimization, and run comparison.",
     "Strategy Lab nested vertical scroll lists now start behind local disclosures for coverage instrument details and run history, keeping their surrounding summaries visible while avoiding accidental page-scroll capture.",
-    "Strategy Lab P&L displays now prioritize percentage return before absolute money wherever both values are available, including result summary breakdowns, execution log rows, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips."
+    "Strategy Lab P&L displays now prioritize percentage return before absolute money wherever both values are available, including result summary breakdowns, execution log rows, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips.",
+    "Strategy Lab coverage detail now renders as a compact graphical timeline with benchmark and instrument rows, requested-window shading, local-coverage segments, vertical scrolling, and status filters for full/partial/none/missing coverage.",
+    "Strategy Lab result mini-panels now remove the summary bubble strips from symbol attribution and R-bucket distribution, renaming them to P&L by symbol and Closed trade R multiples for clearer intent.",
+    "Strategy Lab coverage timeline now scopes its X-axis to the requested run range, hides fully covered rows, and only lists partial/none/missing requested-range coverage issues with informative empty filter states.",
+    "Strategy Lab Closed trade R multiples is now an R outcome map with a 0R-centered axis, density backdrop, and one hoverable dot per closed trade.",
+    "Strategy Lab coverage issue timeline no longer has filters; it directly shows partial/none/missing requested-range coverage issues or a clean-coverage empty state.",
+    "Strategy Lab secondary result metrics now consistently apply red/green semantics for win rate, expectancy, Avg R, in/out-sample returns, benchmark excess return, benchmark drawdown, and return-breakdown popover totals, while neutral zero/unavailable values remain muted.",
+    "Strategy Lab Closed trade R multiples now renders as an SVG-based outcome map instead of fragile absolutely positioned HTML/buttons, preventing the widget from collapsing into raw text and default controls."
   ]
 }

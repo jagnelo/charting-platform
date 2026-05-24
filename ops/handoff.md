@@ -166,6 +166,40 @@
   - no more split builder columns
   - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
   - this avoids mid-page gutter misalignment and gives each builder section more natural scrolling space
+- Replaced the Strategy Lab instrument coverage table in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1) with a compact graphical coverage timeline:
+  - one row is shown for the benchmark and one row for each selected universe instrument
+  - the shaded band shows the requested run window while each horizontal segment shows locally available coverage
+  - the timeline is vertically scrollable for larger universes
+  - filter chips allow users to isolate full, partial, none, and missing coverage rows
+  - current backend payloads expose first/last available coverage, so the component is segment-shaped for future non-contiguous coverage support while rendering today’s available span honestly
+- Simplified two Strategy Lab result mini-panels in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - removed the top summary bubbles from the symbol attribution and R-bucket widgets
+  - renamed `Per symbol` to `P&L by symbol`
+  - renamed `R distribution` to `Closed trade R multiples`
+  - kept the row-level hover tooltips as the place for detailed context
+- Refocused the Strategy Lab coverage timeline in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - the timeline now uses the requested run range as its X-axis domain instead of stretching back to each instrument's oldest local history
+  - rows now represent only requested-range coverage issues: partial, none, or missing
+  - full-coverage instruments and benchmark rows are hidden from the issue timeline
+  - the filter controls were removed so the widget only shows the issue set directly
+  - the empty state now indicates clean requested-range coverage
+  - added focused component coverage in [frontend/tests/unit/components/test_strategy_coverage_panel.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_strategy_coverage_panel.test.ts:1)
+- Reworked the `Closed trade R multiples` visualization in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - replaced per-bucket horizontal rows with a centered R outcome map
+  - the axis is centered on `0R` breakeven with negative/positive guide ticks
+  - each closed trade is plotted as a color-coded dot by R multiple
+  - dot size scales lightly with absolute P&L
+  - the histogram still appears as a density backdrop so clusters are visible
+  - hovering/focusing a dot shows symbol, R multiple, exit date, exit reason, percent P&L, and absolute P&L
+- Applied a focused Strategy Lab result-metric coloring pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1), [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1), and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - win rate, expectancy, Avg R, in/out-sample returns, benchmark excess return, benchmark drawdown, and return-breakdown popover totals now use positive/negative classes
+  - drawdown is treated as a risk-cost metric, so any nonzero magnitude is red while zero remains neutral
+  - zero or unavailable values stay neutral instead of being forced into green/red
+- Fixed the `Closed trade R multiples` widget in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - replaced the fragile absolutely positioned HTML/button plot with an SVG-based R outcome map
+  - the loss/breakeven/win labels, 0R axis, R ticks, density bars, and trade dots now render as chart primitives
+  - removed footer/legend HTML that could degrade into raw text, while preserving hover/focus trade tooltips
+  - updated [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1)
 
 ## Pending
 
@@ -318,6 +352,16 @@
 - `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 
 ## Errors / warnings / logs
