@@ -70,6 +70,11 @@ class StrategyDefinition(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by=lambda: StrategyRun.created_at.desc(),
     )
+    run_batches: Mapped[list["StrategyRunBatch"]] = relationship(
+        back_populates="strategy",
+        cascade="all, delete-orphan",
+        order_by=lambda: StrategyRunBatch.created_at.desc(),
+    )
 
 
 class StrategyVersion(Base, TimestampMixin):
@@ -104,6 +109,45 @@ class StrategyVersion(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by=lambda: StrategyRun.created_at.desc(),
     )
+    run_batches: Mapped[list["StrategyRunBatch"]] = relationship(
+        back_populates="strategy_version",
+        cascade="all, delete-orphan",
+        order_by=lambda: StrategyRunBatch.created_at.desc(),
+    )
+
+
+class StrategyRunBatch(Base, TimestampMixin):
+    __tablename__ = "strategy_run_batch"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("strategy_definition.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    strategy_version_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("strategy_version.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    requested_by_user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    label: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    test_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=StrategyRunStatus.QUEUED.value
+    )
+    parameter_dimensions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    parameter_grid: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    summary: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    strategy: Mapped["StrategyDefinition"] = relationship(back_populates="run_batches")
+    strategy_version: Mapped["StrategyVersion"] = relationship(back_populates="run_batches")
+    requested_by: Mapped["User"] = relationship()
+    runs: Mapped[list["StrategyRun"]] = relationship(
+        back_populates="run_batch",
+        order_by=lambda: StrategyRun.created_at.desc(),
+    )
 
 
 class StrategyRun(Base, TimestampMixin):
@@ -122,6 +166,9 @@ class StrategyRun(Base, TimestampMixin):
     requested_by_user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    run_batch_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("strategy_run_batch.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     engine_type: Mapped[str] = mapped_column(String(32), nullable=False)
     test_mode: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(
@@ -133,6 +180,7 @@ class StrategyRun(Base, TimestampMixin):
     date_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     date_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     parameter_values: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    parameter_diff: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     universe_config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     benchmark_config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     execution_assumptions: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -144,4 +192,5 @@ class StrategyRun(Base, TimestampMixin):
 
     strategy: Mapped["StrategyDefinition"] = relationship(back_populates="runs")
     strategy_version: Mapped["StrategyVersion"] = relationship(back_populates="runs")
+    run_batch: Mapped[StrategyRunBatch | None] = relationship(back_populates="runs")
     requested_by: Mapped["User"] = relationship()

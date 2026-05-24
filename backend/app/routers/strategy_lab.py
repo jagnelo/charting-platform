@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.strategy import StrategyDefinition, StrategyRun, StrategyVersion
+from app.models.strategy import StrategyDefinition, StrategyRun, StrategyRunBatch, StrategyVersion
 from app.models.user import User
 from app.schemas.strategy import (
     StrategyCoveragePreviewOut,
@@ -32,6 +32,7 @@ def _definition_query_for_user(user_id: int):
         .where(StrategyDefinition.user_id == user_id)
         .options(
             selectinload(StrategyDefinition.versions),
+            selectinload(StrategyDefinition.run_batches),
             selectinload(StrategyDefinition.runs),
         )
         .order_by(StrategyDefinition.updated_at.desc(), StrategyDefinition.name)
@@ -277,6 +278,119 @@ async def get_coverage_preview(
     )
 
 
+def _expand_parameter_grid(raw_grid: dict | None) -> tuple[list[dict], list[dict]]:
+    if not isinstance(raw_grid, dict):
+        return [], []
+
+    dimensions: list[dict] = []
+    for raw_dimension in raw_grid.get("parameters") or raw_grid.get("dimensions") or []:
+        if not isinstance(raw_dimension, dict):
+            continue
+        key = str(raw_dimension.get("key") or "").strip()
+        if not key:
+            continue
+        values = raw_dimension.get("values")
+        if not isinstance(values, list):
+            values = []
+        normalized_values = [
+            value for value in values
+            if value is not None and value != "" and isinstance(value, int | float | str | bool)
+        ]
+        if not normalized_values:
+            continue
+        dimensions.append({
+            "key": key,
+            "label": str(raw_dimension.get("label") or key),
+            "values": normalized_values[:50],
+        })
+
+    if not dimensions:
+        return [], []
+
+    combinations: list[dict] = [{}]
+    for dimension in dimensions:
+        combinations = [
+            {**existing, str(dimension["key"]): value}
+            for existing in combinations
+            for value in dimension["values"]
+        ]
+        if len(combinations) > 250:
+            raise HTTPException(
+                status_code=422,
+                detail="Parameter grid is too large. Narrow the ranges to 250 combinations or fewer.",
+            )
+
+    return dimensions, combinations
+
+
+def _parameter_batch_label(dimensions: list[dict]) -> str:
+    labels = [str(dimension.get("label") or dimension.get("key")) for dimension in dimensions]
+    if not labels:
+        return "Single run"
+    if len(labels) <= 3:
+        return " × ".join(labels)
+    return f"{' × '.join(labels[:3])} + {len(labels) - 3} more"
+
+
+def _batch_status_for_runs(runs: list[StrategyRun]) -> str:
+    if any(run.status == "failed" for run in runs):
+        return "failed"
+    if all(run.status == "completed" for run in runs):
+        return "completed"
+    if any(run.status == "running" for run in runs):
+        return "running"
+    return "queued"
+
+
+def _run_metric(run: StrategyRun, key: str) -> float | None:
+    value = (run.result_summary or {}).get("performance", {}).get(key)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _run_summary_ref(run: StrategyRun, metric: str) -> dict | None:
+    value = _run_metric(run, metric)
+    if value is None:
+        return None
+    return {
+        "run_id": run.id,
+        "value": value,
+        "parameter_diff": run.parameter_diff or run.parameter_values or {},
+    }
+
+
+def _best_run_by_metric(runs: list[StrategyRun], metric: str, *, reverse: bool = True) -> dict | None:
+    ranked = [run for run in runs if _run_metric(run, metric) is not None]
+    if not ranked:
+        return None
+    selected = sorted(ranked, key=lambda run: _run_metric(run, metric) or 0, reverse=reverse)[0]
+    return _run_summary_ref(selected, metric)
+
+
+def _summarize_run_batch(
+    runs: list[StrategyRun],
+    *,
+    parameter_dimensions: list[dict],
+) -> dict:
+    completed = [run for run in runs if run.status == "completed"]
+    failed = [run for run in runs if run.status == "failed"]
+    return {
+        "run_count": len(runs),
+        "completed_count": len(completed),
+        "failed_count": len(failed),
+        "parameter_count": len(parameter_dimensions),
+        "best_marked_return": _best_run_by_metric(completed, "net_return_pct", reverse=True),
+        "best_realized_return": _best_run_by_metric(completed, "realized_net_return_pct", reverse=True),
+        "worst_marked_return": _best_run_by_metric(completed, "net_return_pct", reverse=False),
+        "least_drawdown": _best_run_by_metric(completed, "max_drawdown_pct", reverse=False),
+        "best_profit_factor": _best_run_by_metric(completed, "profit_factor", reverse=True),
+    }
+
+
 @router.post("/versions/{version_id}/runs", response_model=StrategyRunSubmitOut, status_code=201)
 async def submit_run(
     version_id: int,
@@ -294,6 +408,55 @@ async def submit_run(
     if version is None:
         raise HTTPException(status_code=404, detail="Strategy version not found")
 
+    parameter_dimensions, parameter_combinations = _expand_parameter_grid(body.parameter_grid)
+    if len(parameter_combinations) > 1:
+        batch = StrategyRunBatch(
+            strategy_id=version.strategy_id,
+            strategy_version_id=version.id,
+            requested_by_user_id=current_user.id,
+            label=_parameter_batch_label(parameter_dimensions),
+            test_mode=body.test_mode.value,
+            status="running",
+            parameter_dimensions=parameter_dimensions,
+            parameter_grid=parameter_combinations,
+            summary={},
+        )
+        db.add(batch)
+        await db.flush()
+
+        runs: list[StrategyRun] = []
+        for combination in parameter_combinations:
+            run = StrategyRun(
+                strategy_id=version.strategy_id,
+                strategy_version_id=version.id,
+                requested_by_user_id=current_user.id,
+                run_batch_id=batch.id,
+                engine_type=version.engine_type,
+                test_mode=body.test_mode.value,
+                status="queued",
+                timeframe=body.timeframe,
+                date_from=body.date_from,
+                date_to=body.date_to,
+                parameter_values={**body.parameter_values, **combination},
+                parameter_diff=combination,
+                universe_config=body.universe_config or {},
+                benchmark_config=body.benchmark_config or {},
+                execution_assumptions=body.execution_assumptions,
+                result_summary={},
+                artifact_manifest={},
+                warning_log=[],
+            )
+            db.add(run)
+            await db.flush()
+            await execute_strategy_run(db, strategy=version.strategy, version=version, run=run)
+            runs.append(run)
+
+        batch.status = _batch_status_for_runs(runs)
+        batch.summary = _summarize_run_batch(runs, parameter_dimensions=parameter_dimensions)
+        await db.commit()
+        await db.refresh(runs[0])
+        return StrategyRunSubmitOut.model_validate(runs[0])
+
     run = StrategyRun(
         strategy_id=version.strategy_id,
         strategy_version_id=version.id,
@@ -305,6 +468,7 @@ async def submit_run(
         date_from=body.date_from,
         date_to=body.date_to,
         parameter_values=body.parameter_values,
+        parameter_diff=body.parameter_values,
         universe_config=body.universe_config or {},
         benchmark_config=body.benchmark_config or {},
         execution_assumptions=body.execution_assumptions,

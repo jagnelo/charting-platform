@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -159,6 +160,44 @@ def _coerce_commission_settings(execution_assumptions: dict[str, Any]) -> tuple[
         or 0
     )
     return commission_model, max(commission_value, 0.0)
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    if value in (None, ""):
+        return default
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _apply_parameter_values(definition: dict[str, Any], parameter_values: dict[str, Any]) -> dict[str, Any]:
+    if not parameter_values:
+        return definition
+    updated = copy.deepcopy(definition)
+    for raw_key, value in parameter_values.items():
+        key = str(raw_key or "").strip()
+        if not key:
+            continue
+        target = updated
+        parts = key.split(".")
+        for part in parts[:-1]:
+            existing = target.get(part)
+            if not isinstance(existing, dict):
+                existing = {}
+                target[part] = existing
+            target = existing
+        target[parts[-1]] = value
+    return updated
 
 
 def _requested_range_fits(
@@ -761,20 +800,35 @@ def _extract_risk_and_exit_config(definition: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(exits, dict):
         exits = {}
 
+    take_profit_rr = (
+        exits["take_profit_rr"]
+        if "take_profit_rr" in exits
+        else risk["take_profit_rr"]
+        if "take_profit_rr" in risk
+        else 2
+    )
+    max_bars_in_trade = (
+        exits["max_bars_in_trade"]
+        if "max_bars_in_trade" in exits
+        else risk["max_bars_in_trade"]
+        if "max_bars_in_trade" in risk
+        else 20
+    )
+
     return {
         "stop_model": str(risk.get("stop_model") or "percent").lower(),
-        "stop_loss_pct": float(risk.get("stop_loss_pct", 3)),
-        "stop_atr_period": int(risk.get("stop_atr_period", 14)),
-        "stop_atr_multiple": float(risk.get("stop_atr_multiple", 2)),
-        "hard_trailing_stop_pct": float(risk.get("hard_trailing_stop_pct", 0)),
-        "hard_trailing_activation_pct": float(risk.get("hard_trailing_activation_pct", 0)),
-        "break_even_rr": float(risk.get("break_even_rr", 0)),
-        "trailing_stop_rr": float(risk.get("trailing_stop_rr", 0)),
+        "stop_loss_pct": _coerce_float(risk.get("stop_loss_pct"), 3),
+        "stop_atr_period": _coerce_int(risk.get("stop_atr_period"), 14),
+        "stop_atr_multiple": _coerce_float(risk.get("stop_atr_multiple"), 2),
+        "hard_trailing_stop_pct": _coerce_float(risk.get("hard_trailing_stop_pct"), 0),
+        "hard_trailing_activation_pct": _coerce_float(risk.get("hard_trailing_activation_pct"), 0),
+        "break_even_rr": _coerce_float(risk.get("break_even_rr"), 0),
+        "trailing_stop_rr": _coerce_float(risk.get("trailing_stop_rr"), 0),
         "position_sizing_mode": str(risk.get("position_sizing_mode") or "percent_risk").lower(),
-        "position_sizing_value": float(risk.get("position_sizing_value", 1)),
-        "pyramiding_max_entries": int(risk.get("pyramiding_max_entries", 1)),
-        "take_profit_rr": float(exits.get("take_profit_rr", risk.get("take_profit_rr", 2))),
-        "max_bars_in_trade": int(exits.get("max_bars_in_trade", risk.get("max_bars_in_trade", 20))),
+        "position_sizing_value": _coerce_float(risk.get("position_sizing_value"), 1),
+        "pyramiding_max_entries": _coerce_int(risk.get("pyramiding_max_entries"), 1),
+        "take_profit_rr": _coerce_float(take_profit_rr, 0),
+        "max_bars_in_trade": _coerce_int(max_bars_in_trade, 0),
         "exit_logic": str(exits.get("logic") or exits.get("exit_logic") or "all").lower(),
         "exit_conditions": list(exits.get("conditions", [])) if isinstance(exits.get("conditions"), list) else [],
         "exit_condition_tree": exits.get("condition_tree") if isinstance(exits.get("condition_tree"), dict) else None,
@@ -1595,7 +1649,7 @@ async def _run_rules_backtest(
     if run.test_mode == "paper_forward":
         return await _run_rules_paper_forward(db, strategy=strategy, version=version, run=run)
 
-    definition = dict(version.definition_snapshot or {})
+    definition = _apply_parameter_values(dict(version.definition_snapshot or {}), run.parameter_values or {})
     effective_universe = dict(version.universe_config or {})
     effective_universe.update(run.universe_config or {})
     warnings: list[str] = []
@@ -1619,8 +1673,11 @@ async def _run_rules_backtest(
     )
 
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
-    risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
-    slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
+    risk_per_trade_pct = _coerce_float(run.execution_assumptions.get("risk_per_trade_pct"), 1.0)
+    slippage_bps = _coerce_float(
+        run.execution_assumptions.get("slippage_bps"),
+        0.0 if "slippage_bps" in run.execution_assumptions else 5.0,
+    )
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
     close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
     max_concurrent_positions = int(
@@ -2142,7 +2199,7 @@ async def _run_radar_signal_research(
     version: StrategyVersion,
     run: StrategyRun,
 ) -> dict:
-    definition = dict(version.definition_snapshot or {})
+    definition = _apply_parameter_values(dict(version.definition_snapshot or {}), run.parameter_values or {})
     effective_universe = dict(version.universe_config or {})
     effective_universe.update(run.universe_config or {})
     warnings: list[str] = []
@@ -2213,8 +2270,11 @@ async def _run_radar_signal_research(
         instrument_rows = list(loaded_instruments)
 
     initial_capital = float(run.execution_assumptions.get("initial_capital", 100000))
-    risk_per_trade_pct = float(run.execution_assumptions.get("risk_per_trade_pct", 1.0))
-    slippage_bps = float(run.execution_assumptions.get("slippage_bps", 5))
+    risk_per_trade_pct = _coerce_float(run.execution_assumptions.get("risk_per_trade_pct"), 1.0)
+    slippage_bps = _coerce_float(
+        run.execution_assumptions.get("slippage_bps"),
+        0.0 if "slippage_bps" in run.execution_assumptions else 5.0,
+    )
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
     close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
     risk_and_exits = _extract_risk_and_exit_config(definition)

@@ -8,6 +8,7 @@ from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
     _build_dense_portfolio_history,
+    _extract_risk_and_exit_config,
     _symbol_performance_snapshot,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
@@ -78,6 +79,30 @@ def _open_position(
         r_multiple=0.5,
         bars_held=3,
     )
+
+
+def test_extract_risk_and_exit_config_treats_null_optional_controls_as_disabled():
+    config = _extract_risk_and_exit_config(
+        {
+            "risk": {
+                "stop_loss_pct": 2.0,
+                "hard_trailing_stop_pct": None,
+                "break_even_rr": None,
+                "trailing_stop_rr": None,
+            },
+            "exits": {
+                "take_profit_rr": None,
+                "max_bars_in_trade": None,
+            },
+        }
+    )
+
+    assert config["stop_loss_pct"] == 2.0
+    assert config["hard_trailing_stop_pct"] == 0
+    assert config["break_even_rr"] == 0
+    assert config["trailing_stop_rr"] == 0
+    assert config["take_profit_rr"] == 0
+    assert config["max_bars_in_trade"] == 0
 
 
 def test_apply_portfolio_constraints_rejects_overlapping_trades_when_concurrency_is_limited():

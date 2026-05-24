@@ -54,6 +54,7 @@ class StrategyRunCreate(BaseModel):
     date_from: datetime | None = None
     date_to: datetime | None = None
     parameter_values: dict = Field(default_factory=dict)
+    parameter_grid: dict | None = None
     universe_config: dict | None = None
     benchmark_config: dict | None = None
     execution_assumptions: dict = Field(default_factory=dict)
@@ -93,6 +94,7 @@ class StrategyRunOut(BaseModel):
     strategy_id: int
     strategy_version_id: int
     requested_by_user_id: int
+    run_batch_id: int | None = None
     test_mode: str
     status: str
     timeframe: str | None
@@ -101,6 +103,7 @@ class StrategyRunOut(BaseModel):
     date_from: datetime | None
     date_to: datetime | None
     parameter_values: dict
+    parameter_diff: dict = Field(default_factory=dict)
     universe_config: dict
     benchmark_config: dict
     execution_assumptions: dict
@@ -109,6 +112,23 @@ class StrategyRunOut(BaseModel):
     artifact_manifest: dict
     warning_log: list
     error_log: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyRunBatchOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    strategy_id: int
+    strategy_version_id: int
+    requested_by_user_id: int
+    label: str | None
+    test_mode: str
+    status: str
+    parameter_dimensions: list
+    parameter_grid: list
+    summary: dict
     created_at: datetime
     updated_at: datetime
 
@@ -126,6 +146,7 @@ class StrategyDefinitionSummaryOut(BaseModel):
     tags: list
     metadata: dict = Field(validation_alias="metadata_json")
     versions: list[StrategyVersionOut] = Field(default_factory=list)
+    run_batches: list[StrategyRunBatchOut] = Field(default_factory=list)
     runs: list[StrategyRunOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
