@@ -904,6 +904,7 @@ export interface StrategyRun {
   strategy_id: number
   strategy_version_id: number
   requested_by_user_id: number
+  run_batch_id?: number | null
   test_mode: StrategyTestMode | string
   status: StrategyRunStatus | string
   timeframe?: string | null
@@ -912,6 +913,7 @@ export interface StrategyRun {
   date_from?: string | null
   date_to?: string | null
   parameter_values: Record<string, any>
+  parameter_diff?: Record<string, any>
   universe_config: Record<string, any>
   benchmark_config: Record<string, any>
   execution_assumptions: Record<string, any>
@@ -920,6 +922,21 @@ export interface StrategyRun {
   artifact_manifest: Record<string, any>
   warning_log: any[]
   error_log?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyRunBatch {
+  id: number
+  strategy_id: number
+  strategy_version_id: number
+  requested_by_user_id: number
+  label?: string | null
+  test_mode: StrategyTestMode | string
+  status: StrategyRunStatus | string
+  parameter_dimensions: any[]
+  parameter_grid: Array<Record<string, any>>
+  summary: Record<string, any>
   created_at: string
   updated_at: string
 }
@@ -935,6 +952,7 @@ export interface StrategyDefinition {
   tags: string[]
   metadata: Record<string, any>
   versions: StrategyVersion[]
+  run_batches?: StrategyRunBatch[]
   runs: StrategyRun[]
   created_at: string
   updated_at: string

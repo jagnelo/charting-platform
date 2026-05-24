@@ -502,7 +502,7 @@
                   {{ logicDraft.stop_model === 'atr' ? 'ATR multiple' : 'Hard trail %' }}
                   <HoverTooltip :text="logicDraft.stop_model === 'atr'
                     ? 'Distance from entry to the initial stop, expressed as a multiple of ATR.'
-                    : 'A percent-based trailing stop measured from the best price reached after entry. Set to 0 to disable this hard trailing stop.'">
+                    : 'A percent-based trailing stop measured from the best price reached after entry. Leave empty to disable this hard trailing stop.'">
                     <button type="button" class="help-dot" :aria-label="logicDraft.stop_model === 'atr' ? 'ATR multiple info' : 'Hard trailing stop info'">i</button>
                   </HoverTooltip>
                 </span>
@@ -510,7 +510,7 @@
                   <input v-model.number="logicDraft.stop_atr_multiple" type="number" min="0.1" step="0.1" class="form-input" />
                 </template>
                 <template v-else>
-                  <input v-model.number="logicDraft.hard_trailing_stop_pct" type="number" min="0" step="0.1" class="form-input" />
+                  <input v-model.number="logicDraft.hard_trailing_stop_pct" type="number" min="0" step="0.1" class="form-input" placeholder="Disabled" />
                 </template>
               </label>
               <label class="field">
@@ -554,20 +554,20 @@
               <label class="field">
                 <span class="field-label">
                   Break-even after R
-                  <HoverTooltip text="Move the stop to the entry price once the trade reaches this many R units in open profit. 1R equals the initial stop distance.">
+                  <HoverTooltip text="Move the stop to the entry price once the trade reaches this many R units in open profit. Leave empty to disable break-even handling. 1R equals the initial stop distance.">
                     <button type="button" class="help-dot" aria-label="Break-even info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" />
+                <input v-model.number="logicDraft.break_even_rr" type="number" min="0" step="0.25" class="form-input" placeholder="Disabled" />
               </label>
               <label class="field">
                 <span class="field-label">
                   Trail distance (R)
-                  <HoverTooltip text="Trailing stop distance expressed in R units, not percent. 1R equals the initial stop distance. Example: 1.5R trails the stop 1.5 initial-risk units behind the best price reached.">
+                  <HoverTooltip text="Trailing stop distance expressed in R units, not percent. Leave empty to disable the R-based trailing stop. 1R equals the initial stop distance. Example: 1.5R trails the stop 1.5 initial-risk units behind the best price reached.">
                     <button type="button" class="help-dot" aria-label="Trailing stop info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" />
+                <input v-model.number="logicDraft.trailing_stop_rr" type="number" min="0" step="0.25" class="form-input" placeholder="Disabled" />
               </label>
               <label class="field">
                 <span class="field-label">
@@ -603,20 +603,20 @@
               <label class="field">
                 <span class="field-label">
                   Target (R)
-                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Set to 0 to disable fixed profit targets and rely on condition-based or time-based exits instead.">
+                  <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Leave empty to disable fixed profit targets and rely on condition-based or time-based exits instead.">
                     <button type="button" class="help-dot" aria-label="Target info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" />
+                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" placeholder="Disabled" />
               </label>
               <label class="field">
                 <span class="field-label">
                   Max bars in trade
-                  <HoverTooltip text="If greater than 0, close the trade after this many bars if no other exit fired first. Set to 0 to disable time-based exits.">
+                  <HoverTooltip text="Close the trade after this many bars if no other exit fired first. Leave empty to disable time-based exits.">
                     <button type="button" class="help-dot" aria-label="Max bars info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" />
+                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" placeholder="Disabled" />
               </label>
             </div>
 
@@ -696,7 +696,7 @@
             </label>
             <label class="field">
               <span class="field-label">Slippage (bps)</span>
-              <input v-model.number="runDraft.slippage_bps" type="number" min="0" step="1" class="form-input" />
+              <input v-model.number="runDraft.slippage_bps" type="number" min="0" step="1" class="form-input" placeholder="None" />
             </label>
             <label class="field">
               <span class="field-label">
@@ -724,6 +724,7 @@
                 :min="commissionValueMin"
                 :step="commissionValueStep"
                 class="form-input"
+                placeholder="None"
               />
             </label>
             <label class="field">
@@ -787,15 +788,15 @@
           <div class="subsection">
             <div class="subsection-head">
               <div class="subsection-title">
-                <h4>Parameter sweep</h4>
-                <HoverTooltip text="Turn this on to evaluate a small grid of stop, target, and holding-period combinations alongside the main run.">
-                  <button type="button" class="help-dot" aria-label="Parameter sweep info">i</button>
+                <h4>Parameter combinations</h4>
+                <HoverTooltip text="Give any strategy parameter multiple values to generate a run batch. Each combination becomes its own inspectable run and the batch summary highlights the best and worst candidates.">
+                  <button type="button" class="help-dot" aria-label="Parameter combinations info">i</button>
                 </HoverTooltip>
               </div>
             </div>
             <label class="field field--checkbox">
               <input v-model="runDraft.optimization_enabled" type="checkbox" />
-              <span>Evaluate parameter sweep leaderboard</span>
+              <span>Create a run batch from parameter combinations</span>
             </label>
             <div v-if="runDraft.optimization_enabled" class="form-grid three-up">
               <label class="field">
@@ -879,33 +880,60 @@
             >
               <span class="scroll-list-toggle__icon" :class="{ 'scroll-list-toggle__icon--expanded': runHistoryExpanded }">▸</span>
               <span>Run history</span>
-              <small>{{ selectedRuns.length }} {{ selectedRuns.length === 1 ? 'run' : 'runs' }}</small>
+              <small>{{ selectedRunBatches.length }} {{ selectedRunBatches.length === 1 ? 'batch' : 'batches' }}</small>
             </button>
 
           <div v-if="runHistoryExpanded" class="run-list">
-            <button
-              v-for="run in selectedRuns"
-              :key="run.id"
-              type="button"
-              class="run-item"
-              :class="{ active: strategyLab.selectedRunId === run.id }"
-              @click="strategyLab.selectedRunId = run.id"
+            <article
+              v-for="batch in selectedRunBatches"
+              :key="batch.id"
+              class="run-batch"
+              :class="{ 'run-batch--active': batch.runs.some(run => strategyLab.selectedRunId === run.id) }"
             >
-              <div class="run-item__header">
-                <strong>{{ formatDateTime(run.created_at) }}</strong>
-                <span class="status-chip" :class="`status-chip--${run.status}`">{{ humanizeToken(run.status) }}</span>
+              <button
+                type="button"
+                class="run-batch__head"
+                @click="strategyLab.selectedRunId = batch.primaryRun?.id ?? null"
+              >
+                <span>
+                  <strong>{{ batch.label }}</strong>
+                  <small>{{ formatDateTime(batch.created_at) }}</small>
+                </span>
+                <span class="status-chip" :class="`status-chip--${batch.status}`">{{ humanizeToken(batch.status) }}</span>
+              </button>
+              <div class="run-batch__summary">
+                <span>{{ batch.runs.length }} {{ batch.runs.length === 1 ? 'run' : 'runs' }}</span>
+                <span v-if="batch.bestMarked" :class="pnlClass(batch.bestMarked.value)">Best {{ formatSignedPercent(batch.bestMarked.value) }}</span>
+                <span v-if="batch.worstMarked" :class="pnlClass(batch.worstMarked.value)">Worst {{ formatSignedPercent(batch.worstMarked.value) }}</span>
+                <span v-if="batch.leastDrawdown" :class="riskCostClass(batch.leastDrawdown.value)">Least DD {{ formatPercent(batch.leastDrawdown.value) }}</span>
               </div>
-              <div class="run-item__meta">
-                <span>{{ run.timeframe || currentVersion?.definition_snapshot?.timeframe || 'D1' }}</span>
-                <span>·</span>
-                <span>{{ run.result_summary?.performance?.closed_trade_count ?? run.result_summary?.performance?.trade_count ?? 0 }} closed</span>
-                <span>·</span>
-                <span>{{ run.result_summary?.performance?.open_position_count ?? 0 }} open</span>
-                <span v-if="run.result_summary?.performance?.realized_net_return_pct != null" class="run-item__metric run-item__metric--primary" :class="pnlClass(run.result_summary.performance.realized_net_return_pct)">R {{ formatSignedPercent(run.result_summary.performance.realized_net_return_pct) }}</span>
-                <span v-if="run.result_summary?.performance?.unrealized_return_pct != null" class="run-item__metric run-item__metric--secondary" :class="pnlClass(run.result_summary.performance.unrealized_return_pct)">U {{ formatSignedPercent(run.result_summary.performance.unrealized_return_pct) }}</span>
-                <span v-if="run.result_summary?.performance?.net_return_pct != null" class="run-item__metric run-item__metric--muted" :class="pnlClass(run.result_summary.performance.net_return_pct)">M {{ formatSignedPercent(run.result_summary.performance.net_return_pct) }}</span>
+              <div v-if="batch.changedParameters.length" class="run-batch__parameters">
+                <span v-for="parameter in batch.changedParameters" :key="parameter">{{ parameter }}</span>
               </div>
-            </button>
+              <div class="run-batch__runs">
+                <button
+                  v-for="run in batch.runs"
+                  :key="run.id"
+                  type="button"
+                  class="run-item"
+                  :class="{ active: strategyLab.selectedRunId === run.id }"
+                  @click="strategyLab.selectedRunId = run.id"
+                >
+                  <div class="run-item__header">
+                    <strong>{{ runParameterDiffLabel(run) }}</strong>
+                    <span>{{ run.timeframe || currentVersion?.definition_snapshot?.timeframe || 'D1' }}</span>
+                  </div>
+                  <div class="run-item__meta">
+                    <span>{{ run.result_summary?.performance?.closed_trade_count ?? run.result_summary?.performance?.trade_count ?? 0 }} closed</span>
+                    <span>·</span>
+                    <span>{{ run.result_summary?.performance?.open_position_count ?? 0 }} open</span>
+                    <span v-if="run.result_summary?.performance?.realized_net_return_pct != null" class="run-item__metric run-item__metric--primary" :class="pnlClass(run.result_summary.performance.realized_net_return_pct)">R {{ formatSignedPercent(run.result_summary.performance.realized_net_return_pct) }}</span>
+                    <span v-if="run.result_summary?.performance?.unrealized_return_pct != null" class="run-item__metric run-item__metric--secondary" :class="pnlClass(run.result_summary.performance.unrealized_return_pct)">U {{ formatSignedPercent(run.result_summary.performance.unrealized_return_pct) }}</span>
+                    <span v-if="run.result_summary?.performance?.net_return_pct != null" class="run-item__metric run-item__metric--muted" :class="pnlClass(run.result_summary.performance.net_return_pct)">M {{ formatSignedPercent(run.result_summary.performance.net_return_pct) }}</span>
+                  </div>
+                </button>
+              </div>
+            </article>
             <div v-if="!selectedRuns.length" class="empty-state empty-state--small">No backtests yet.</div>
           </div>
           </div>
@@ -1010,13 +1038,23 @@
             </div>
             <div class="summary-card">
               <span class="summary-label">Win rate</span>
-              <strong>{{ formatPercent(performance.win_rate) }}</strong>
-              <small>{{ performance.expectancy_r != null ? `${performance.expectancy_r.toFixed(2)}R expectancy` : 'No expectancy yet' }}</small>
+              <strong :class="positiveMetricClass(performance.win_rate)">{{ formatPercent(performance.win_rate) }}</strong>
+              <small>
+                <span v-if="performance.expectancy_r != null" :class="pnlClass(performance.expectancy_r)">
+                  {{ performance.expectancy_r.toFixed(2) }}R expectancy
+                </span>
+                <template v-else>No expectancy yet</template>
+              </small>
             </div>
             <div class="summary-card">
               <span class="summary-label">Drawdown</span>
-              <strong>{{ formatPercent(performance.max_drawdown_pct) }}</strong>
-              <small>{{ performance.profit_factor != null ? `${performance.profit_factor.toFixed(2)} profit factor` : 'Profit factor unavailable' }}</small>
+              <strong :class="riskCostClass(performance.max_drawdown_pct)">{{ formatPercent(performance.max_drawdown_pct) }}</strong>
+              <small>
+                <span v-if="performance.profit_factor != null" :class="profitFactorClass(performance.profit_factor)">
+                  {{ performance.profit_factor.toFixed(2) }} profit factor
+                </span>
+                <template v-else>Profit factor unavailable</template>
+              </small>
             </div>
             <div class="summary-card">
               <span class="summary-label">Coverage</span>
@@ -1062,20 +1100,10 @@
                   :percent="true"
                   empty-label="No performance curve for this run yet."
                 />
-                <div v-if="benchmarkCoverageNote" class="equity-panel__footnote">
-                  {{ benchmarkCoverageNote }}
-                </div>
-                <div v-if="selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct != null" class="equity-panel__footnote">
-                  {{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess versus benchmark
-                </div>
-              </div>
-
-              <div class="equity-panel">
-                <div class="equity-panel__head">
-                  <strong>Benchmark</strong>
-                  <span>{{ selectedRunDetail.result_summary.benchmark?.symbol || 'No benchmark' }}</span>
-                </div>
-                <div class="detail-list detail-list--benchmark-meta">
+                <div
+                  v-if="selectedRunDetail.result_summary.benchmark?.symbol || benchmarkReturnLabel !== '—' || benchmarkMaxDrawdownLabel !== '—'"
+                  class="detail-list detail-list--benchmark-meta detail-list--performance-meta"
+                >
                   <div>
                     <span>Benchmark return</span>
                     <strong :class="pnlClass(benchmarkReturnValue)">{{ benchmarkReturnLabel }}</strong>
@@ -1094,26 +1122,25 @@
                   </div>
                   <div v-if="benchmarkMaxDrawdownLabel !== '—'">
                     <span>Benchmark drawdown</span>
-                    <strong>{{ benchmarkMaxDrawdownLabel }}</strong>
+                    <strong :class="riskCostClass(selectedRunDetail.result_summary.benchmark?.performance?.max_drawdown_pct)">
+                      {{ benchmarkMaxDrawdownLabel }}
+                    </strong>
                   </div>
                   <div v-if="benchmarkHoldSpanLabel !== '—'">
                     <span>Hold span</span>
                     <strong>{{ benchmarkHoldSpanLabel }}</strong>
                   </div>
                 </div>
-                <div v-if="!benchmarkCurve.length" class="empty-inline">No benchmark curve for this run yet.</div>
-                <div v-else-if="benchmarkCoverageNote" class="equity-panel__footnote">
+                <div v-if="benchmarkCoverageNote" class="equity-panel__footnote">
                   {{ benchmarkCoverageNote }}
                 </div>
-                <StrategyResultChart
-                  v-if="benchmarkPositionSeries.length"
-                  :series="benchmarkPositionSeries"
-                  label="Benchmark buy-and-hold position"
-                  :percent="true"
-                  :show-legend="false"
-                  :height="120"
-                  empty-label="No benchmark position path for this run yet."
-                />
+                <div
+                  v-if="selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct != null"
+                  class="equity-panel__footnote"
+                  :class="pnlClass(selectedRunDetail.result_summary.benchmark_comparison.excess_return_pct)"
+                >
+                  {{ formatPercent(selectedRunDetail.result_summary.benchmark_comparison?.excess_return_pct) }} excess versus benchmark
+                </div>
               </div>
 
               <div class="equity-panel">
@@ -1242,7 +1269,7 @@
                 </div>
 
                 <div class="mini-panel">
-                  <div class="subsection-head"><h4>Per symbol</h4></div>
+                  <div class="subsection-head"><h4>Return by symbol</h4></div>
                   <SymbolPerformanceBars
                     :rows="symbolPerformance"
                     :events="executionLog"
@@ -1298,11 +1325,11 @@
                 </div>
 
                 <div class="mini-panel" v-if="tradeDistributions.r_histogram?.length">
-                  <div class="subsection-head"><h4>R distribution</h4></div>
+                  <div class="subsection-head"><h4>Closed trade R multiples</h4></div>
                   <DistributionBars
                     :rows="tradeDistributions.r_histogram"
                     :trades="visibleTrades"
-                    empty-label="No R distribution yet."
+                    empty-label="No closed trade R multiples yet."
                   />
                 </div>
               </div>
@@ -1315,18 +1342,70 @@
                 <table class="trade-table">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Event</th>
-                      <th>Symbol</th>
-                      <th>Side</th>
-                      <th>Price</th>
-                      <th>Size</th>
-                      <th>P&amp;L</th>
-                      <th>Reason</th>
+                      <th v-for="column in executionLogColumns" :key="column.key">
+                        <div class="trade-table__head-cell">
+                          <button
+                            type="button"
+                            class="trade-table__sort"
+                            :aria-label="`Sort execution log by ${column.label}`"
+                            @click="toggleExecutionLogSort(column.key)"
+                          >
+                            <span>{{ column.label }}</span>
+                            <span
+                              class="trade-table__sort-icon"
+                              :class="{ 'trade-table__sort-icon--active': executionLogSort.key === column.key }"
+                              aria-hidden="true"
+                            >
+                              {{ executionLogSort.key === column.key ? (executionLogSort.direction === 'asc' ? '▲' : '▼') : '↕' }}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            class="trade-table__filter-button"
+                            :class="{ 'trade-table__filter-button--active': isExecutionLogFilterActive(column.key) }"
+                            :aria-label="`${isExecutionLogFilterActive(column.key) ? 'Edit active' : 'Filter'} execution log by ${column.label}`"
+                            @click.stop="toggleExecutionLogFilter(column.key)"
+                          >
+                            <span aria-hidden="true">⌕</span>
+                          </button>
+                          <div
+                            v-if="openExecutionLogFilter === column.key"
+                            class="trade-table__filter-popover"
+                            @click.stop
+                          >
+                            <div class="trade-table__filter-popover-head">
+                              <span>Filter {{ column.label }}</span>
+                              <button
+                                type="button"
+                                aria-label="Close execution log filter"
+                                @click="openExecutionLogFilter = null"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <input
+                              v-model="executionLogFilters[column.key]"
+                              class="trade-table__filter"
+                              type="search"
+                              :placeholder="`Type ${column.label.toLowerCase()}…`"
+                              :aria-label="`Filter execution log by ${column.label}`"
+                              @keydown.esc="openExecutionLogFilter = null"
+                            >
+                            <button
+                              v-if="isExecutionLogFilterActive(column.key)"
+                              type="button"
+                              class="trade-table__filter-clear"
+                              @click="executionLogFilters[column.key] = ''"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="event in executionLog" :key="`${event.position_id}-${event.event_type}-${event.ts}`">
+                    <tr v-for="event in filteredExecutionLog" :key="`${event.position_id}-${event.event_type}-${event.ts}`">
                       <td>{{ formatShortDateTime(event.ts) }}</td>
                       <td>{{ humanizeToken(event.event_type) }}</td>
                       <td>{{ event.symbol || '—' }}</td>
@@ -1342,8 +1421,10 @@
                       </td>
                       <td>{{ humanizeToken(event.reason || event.event_type) }}</td>
                     </tr>
-                    <tr v-if="!executionLog.length">
-                      <td colspan="8" class="trade-table__empty">No execution events were recorded for this run.</td>
+                    <tr v-if="!filteredExecutionLog.length">
+                      <td colspan="8" class="trade-table__empty">
+                        {{ executionLog.length ? 'No execution events match the current filters.' : 'No execution events were recorded for this run.' }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -1404,6 +1485,7 @@ import type {
   StrategyCoverageUniverse,
   StrategyDefinition,
   StrategyRun,
+  StrategyRunBatch,
   StrategyVersion,
   Watchlist,
 } from '@/types'
@@ -1412,6 +1494,22 @@ type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener'
 type StrategyLabSectionKey = 'profile' | 'entry' | 'risk' | 'exits' | 'runs' | 'results'
 type StrategyLabSectionState = Record<StrategyLabSectionKey, boolean>
 type StrategyLabStoredSectionStates = Record<string, Partial<StrategyLabSectionState>>
+type ExecutionLogColumnKey = 'time' | 'event' | 'symbol' | 'side' | 'price' | 'size' | 'pnl' | 'reason'
+type SortDirection = 'asc' | 'desc'
+type BatchMetricRef = { run: StrategyRun; value: number } | null
+
+interface RunBatchView {
+  id: string
+  label: string
+  status: string
+  created_at: string
+  runs: StrategyRun[]
+  primaryRun: StrategyRun | null
+  changedParameters: string[]
+  bestMarked: BatchMetricRef
+  worstMarked: BatchMetricRef
+  leastDrawdown: BatchMetricRef
+}
 
 interface BuilderConditionNode {
   id: string
@@ -1481,6 +1579,16 @@ const radarStateOptions = [
   { value: 'invalidated', label: 'Invalidated' },
   { value: 'stale', label: 'Stale' },
 ]
+const executionLogColumns: Array<{ key: ExecutionLogColumnKey; label: string }> = [
+  { key: 'time', label: 'Time' },
+  { key: 'event', label: 'Event' },
+  { key: 'symbol', label: 'Symbol' },
+  { key: 'side', label: 'Side' },
+  { key: 'price', label: 'Price' },
+  { key: 'size', label: 'Size' },
+  { key: 'pnl', label: 'P&L' },
+  { key: 'reason', label: 'Reason' },
+]
 const isNew = ref(false)
 const versionNotes = ref('')
 const symbolInput = ref('')
@@ -1504,7 +1612,24 @@ const sectionExpanded = ref<StrategyLabSectionState>(defaultSectionState(false))
 const coveragePreview = ref<StrategyCoveragePreview | null>(null)
 const coveragePreviewLoading = ref(false)
 const coveragePreviewError = ref<string | null>(null)
+const executionLogSort = reactive<{ key: ExecutionLogColumnKey; direction: SortDirection }>({
+  key: 'time',
+  direction: 'asc',
+})
+const executionLogFilters = reactive<Record<ExecutionLogColumnKey, string>>({
+  time: '',
+  event: '',
+  symbol: '',
+  side: '',
+  price: '',
+  size: '',
+  pnl: '',
+  reason: '',
+})
+const openExecutionLogFilter = ref<ExecutionLogColumnKey | null>(null)
 let coveragePreviewSequence = 0
+
+type OptionalNumberInput = number | '' | null
 
 const draft = reactive({
   name: '',
@@ -1520,12 +1645,12 @@ const logicDraft = reactive({
   stop_loss_pct: 2,
   stop_atr_period: 14,
   stop_atr_multiple: 2,
-  hard_trailing_stop_pct: 0,
+  hard_trailing_stop_pct: '' as OptionalNumberInput,
   hard_trailing_activation_pct: 0,
-  take_profit_rr: 2,
-  max_bars_in_trade: 20,
-  break_even_rr: 0,
-  trailing_stop_rr: 0,
+  take_profit_rr: 2 as OptionalNumberInput,
+  max_bars_in_trade: 20 as OptionalNumberInput,
+  break_even_rr: '' as OptionalNumberInput,
+  trailing_stop_rr: '' as OptionalNumberInput,
   position_sizing_mode: 'percent_risk' as 'percent_risk' | 'fixed_cash' | 'percent_capital' | 'fixed_quantity',
   position_sizing_value: 1,
   pyramiding_max_entries: 1,
@@ -1548,9 +1673,9 @@ const runDraft = reactive({
   date_to: '',
   initial_capital: 100000,
   risk_per_trade_pct: 1,
-  slippage_bps: 5,
+  slippage_bps: 5 as OptionalNumberInput,
   commission_model: 'fixed_round_trip' as 'fixed_round_trip' | 'fixed_per_order' | 'percent_of_notional',
-  commission_value: 0,
+  commission_value: '' as OptionalNumberInput,
   walk_forward_segments: 3,
   walk_forward_training_share: 0.6,
   paper_forward_bars: 20,
@@ -1622,6 +1747,10 @@ const coveragePreviewPayload = computed(() => ({
 const coveragePreviewSignature = computed(() => JSON.stringify(coveragePreviewPayload.value))
 
 const selectedRuns = computed<StrategyRun[]>(() => strategyLab.selectedDefinition?.runs ?? [])
+const selectedRunBatches = computed<RunBatchView[]>(() => buildRunBatchViews(
+  strategyLab.selectedDefinition?.run_batches ?? [],
+  selectedRuns.value,
+))
 const selectedRunDetail = computed<StrategyRun | null>(() =>
   selectedRuns.value.find(run => run.id === strategyLab.selectedRunId) ?? selectedRuns.value[0] ?? null
 )
@@ -1633,6 +1762,131 @@ const compareCandidates = computed<StrategyRun[]>(() =>
 const compareRun = computed<StrategyRun | null>(() =>
   selectedRuns.value.find(run => run.id === compareRunId.value) ?? null
 )
+
+function buildRunBatchViews(batches: StrategyRunBatch[], runs: StrategyRun[]): RunBatchView[] {
+  const runsByBatch = new Map<number, StrategyRun[]>()
+  const unbatchedRuns: StrategyRun[] = []
+  for (const run of runs) {
+    if (run.run_batch_id != null) {
+      const bucket = runsByBatch.get(run.run_batch_id) ?? []
+      bucket.push(run)
+      runsByBatch.set(run.run_batch_id, bucket)
+    } else {
+      unbatchedRuns.push(run)
+    }
+  }
+
+  const views = batches.map(batch => {
+    const batchRuns = (runsByBatch.get(batch.id) ?? []).sort(sortRunsDescending)
+    return buildRunBatchView({
+      id: `batch-${batch.id}`,
+      label: batch.label || parameterDimensionLabel(batch.parameter_dimensions) || 'Parameter batch',
+      status: batch.status,
+      created_at: batch.created_at,
+      runs: batchRuns,
+      dimensions: batch.parameter_dimensions,
+    })
+  })
+
+  for (const run of unbatchedRuns) {
+    views.push(buildRunBatchView({
+      id: `run-${run.id}`,
+      label: humanizeToken(run.test_mode),
+      status: String(run.status),
+      created_at: run.created_at,
+      runs: [run],
+      dimensions: [],
+    }))
+  }
+
+  return views
+    .filter(batch => batch.runs.length)
+    .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))
+}
+
+function buildRunBatchView(input: {
+  id: string
+  label: string
+  status: string
+  created_at: string
+  runs: StrategyRun[]
+  dimensions: any[]
+}): RunBatchView {
+  const runs = [...input.runs].sort(sortRunsDescending)
+  return {
+    id: input.id,
+    label: input.label,
+    status: input.status,
+    created_at: input.created_at,
+    runs,
+    primaryRun: bestRunByMetric(runs, 'net_return_pct')?.run ?? runs[0] ?? null,
+    changedParameters: changedParameterLabels(input.dimensions, runs),
+    bestMarked: bestRunByMetric(runs, 'net_return_pct'),
+    worstMarked: bestRunByMetric(runs, 'net_return_pct', false),
+    leastDrawdown: bestRunByMetric(runs, 'max_drawdown_pct', false),
+  }
+}
+
+function sortRunsDescending(left: StrategyRun, right: StrategyRun) {
+  return String(right.created_at).localeCompare(String(left.created_at)) || right.id - left.id
+}
+
+function runMetric(run: StrategyRun, key: string) {
+  const value = Number(run.result_summary?.performance?.[key])
+  return Number.isFinite(value) ? value : null
+}
+
+function bestRunByMetric(runs: StrategyRun[], key: string, higherIsBetter = true): BatchMetricRef {
+  const ranked = runs
+    .map(run => ({ run, value: runMetric(run, key) }))
+    .filter((entry): entry is { run: StrategyRun; value: number } => entry.value != null)
+    .sort((left, right) => higherIsBetter ? right.value - left.value : left.value - right.value)
+  return ranked[0] ?? null
+}
+
+function parameterDimensionLabel(dimensions: any[]) {
+  const labels = dimensions.map(dimension => String(dimension?.label || dimension?.key || '').trim()).filter(Boolean)
+  if (!labels.length) return ''
+  if (labels.length <= 3) return labels.join(' × ')
+  return `${labels.slice(0, 3).join(' × ')} + ${labels.length - 3} more`
+}
+
+function changedParameterLabels(dimensions: any[], runs: StrategyRun[]) {
+  const labels = new Map<string, string>()
+  for (const dimension of dimensions) {
+    const key = String(dimension?.key || '').trim()
+    if (key) labels.set(key, String(dimension?.label || key))
+  }
+  const keys = new Set<string>()
+  for (const run of runs) {
+    for (const key of Object.keys(run.parameter_diff || run.parameter_values || {})) keys.add(key)
+  }
+  return [...keys].map(key => labels.get(key) || parameterKeyLabel(key)).slice(0, 4)
+}
+
+function runParameterDiffLabel(run: StrategyRun) {
+  const entries = Object.entries(run.parameter_diff || run.parameter_values || {})
+  if (!entries.length) return formatDateTime(run.created_at)
+  return entries
+    .slice(0, 3)
+    .map(([key, value]) => `${parameterKeyLabel(key)} ${formatParameterValue(value)}`)
+    .join(' · ')
+}
+
+function parameterKeyLabel(key: string) {
+  const labels: Record<string, string> = {
+    'risk.stop_loss_pct': 'Stop',
+    'exits.take_profit_rr': 'Target',
+    'exits.max_bars_in_trade': 'Bars',
+  }
+  const parts = key.split('.')
+  return labels[key] || parts[parts.length - 1]?.replace(/_/g, ' ') || key
+}
+
+function formatParameterValue(value: unknown) {
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  return String(value)
+}
 const conditionCount = computed(() => countConditionLeaves(logicDraft.ruleTree))
 const rootGroupMode = computed(() => logicDraft.ruleTree.type)
 const exitConditionCount = computed(() => countConditionLeaves(logicDraft.exitRuleTree))
@@ -1735,6 +1989,138 @@ function eventSortOrder(eventType: string | null | undefined) {
   return 4
 }
 
+function toggleExecutionLogSort(key: ExecutionLogColumnKey) {
+  if (executionLogSort.key === key) {
+    executionLogSort.direction = executionLogSort.direction === 'asc' ? 'desc' : 'asc'
+    return
+  }
+  executionLogSort.key = key
+  executionLogSort.direction = 'asc'
+}
+
+function toggleExecutionLogFilter(key: ExecutionLogColumnKey) {
+  openExecutionLogFilter.value = openExecutionLogFilter.value === key ? null : key
+}
+
+function isExecutionLogFilterActive(key: ExecutionLogColumnKey) {
+  return Boolean(executionLogFilters[key].trim())
+}
+
+function executionLogFilterMatches(event: any, key: ExecutionLogColumnKey) {
+  const filter = executionLogFilters[key].trim().toLowerCase()
+  if (!filter) return true
+  const searchValue = executionLogSearchValue(event, key)
+  return searchValue.includes(filter) || looseExecutionLogSearchValue(searchValue).includes(looseExecutionLogSearchValue(filter))
+}
+
+function executionLogSearchValue(event: any, key: ExecutionLogColumnKey) {
+  const values = executionLogColumnSearchValues(event, key)
+  return values
+    .filter(value => value != null && value !== '')
+    .map(value => String(value).toLowerCase())
+    .join(' ')
+}
+
+function executionLogColumnSearchValues(event: any, key: ExecutionLogColumnKey) {
+  switch (key) {
+    case 'time':
+      return executionLogTimeSearchValues(event.ts)
+    case 'event':
+      return [event.event_type, humanizeToken(event.event_type)]
+    case 'symbol':
+      return [event.symbol]
+    case 'side':
+      return [event.side, humanizeToken(event.side)]
+    case 'price':
+      return [event.price, event.price != null ? formatMoney(event.price) : null]
+    case 'size':
+      return [event.quantity, event.quantity != null ? Number(event.quantity).toFixed(2) : null]
+    case 'pnl':
+      return [
+        event.pnl,
+        event.pnl_pct,
+        event.pnl != null ? formatSignedMoney(event.pnl) : null,
+        event.pnl_pct != null ? formatSignedPercent(event.pnl_pct) : null,
+      ]
+    case 'reason':
+      return [event.reason, humanizeToken(event.reason || event.event_type)]
+    default:
+      return []
+  }
+}
+
+function executionLogTimeSearchValues(value: string | null | undefined) {
+  if (!value) return []
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return [value]
+  const localShort = formatShortDateTime(value)
+  const localLong = formatDateTime(value)
+  const utcDay = String(date.getUTCDate()).padStart(2, '0')
+  const utcMonth = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const utcYear = String(date.getUTCFullYear())
+  const utcHours = String(date.getUTCHours()).padStart(2, '0')
+  const utcMinutes = String(date.getUTCMinutes()).padStart(2, '0')
+  return [
+    value,
+    localShort,
+    localLong,
+    `${utcDay}/${utcMonth}`,
+    `${utcDay}/${utcMonth}/${utcYear}`,
+    `${utcHours}:${utcMinutes}`,
+    `${utcDay}/${utcMonth}, ${utcHours}:${utcMinutes}`,
+    `${utcDay}/${utcMonth}/${utcYear}, ${utcHours}:${utcMinutes}`,
+  ]
+}
+
+function looseExecutionLogSearchValue(value: string) {
+  return value.replace(/[^a-z0-9]/gi, '')
+}
+
+function executionLogSortValue(event: any, key: ExecutionLogColumnKey) {
+  switch (key) {
+    case 'time': {
+      const timestamp = new Date(String(event.ts ?? '')).getTime()
+      return Number.isNaN(timestamp) ? 0 : timestamp
+    }
+    case 'event':
+      return eventSortOrder(event.event_type)
+    case 'symbol':
+      return String(event.symbol ?? '')
+    case 'side':
+      return String(event.side ?? '')
+    case 'price':
+      return Number(event.price ?? Number.NEGATIVE_INFINITY)
+    case 'size':
+      return Number(event.quantity ?? Number.NEGATIVE_INFINITY)
+    case 'pnl':
+      return Number(event.pnl_pct ?? event.pnl ?? Number.NEGATIVE_INFINITY)
+    case 'reason':
+      return humanizeToken(event.reason || event.event_type)
+    default:
+      return ''
+  }
+}
+
+function compareExecutionLogRows(left: any, right: any) {
+  const leftValue = executionLogSortValue(left, executionLogSort.key)
+  const rightValue = executionLogSortValue(right, executionLogSort.key)
+  let compare = 0
+  if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+    compare = leftValue - rightValue
+  } else {
+    compare = String(leftValue).localeCompare(String(rightValue), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    })
+  }
+  if (compare === 0) {
+    const tsCompare = String(left.ts ?? '').localeCompare(String(right.ts ?? ''))
+    if (tsCompare !== 0) compare = tsCompare
+    else compare = String(left.symbol ?? '').localeCompare(String(right.symbol ?? ''))
+  }
+  return executionLogSort.direction === 'asc' ? compare : -compare
+}
+
 const executionLog = computed<any[]>(() => {
   const rows = Array.isArray(selectedRunDetail.value?.result_summary?.execution_log)
     ? selectedRunDetail.value?.result_summary?.execution_log
@@ -1799,6 +2185,13 @@ const executionLog = computed<any[]>(() => {
     if (typeCompare !== 0) return typeCompare
     return String(left.symbol ?? '').localeCompare(String(right.symbol ?? ''))
   })
+})
+
+const filteredExecutionLog = computed<any[]>(() => {
+  const filteredRows = executionLog.value.filter(event =>
+    executionLogColumns.every(column => executionLogFilterMatches(event, column.key)),
+  )
+  return filteredRows.sort((left, right) => compareExecutionLogRows(left, right))
 })
 
 const benchmarkCurve = computed<any[]>(() =>
@@ -2108,33 +2501,6 @@ const positionEvolutionSeries = computed(() =>
       : [],
   })).filter(series => series.points.length >= 2)
 )
-const benchmarkPositionSeries = computed(() => {
-  const timeline = selectedRunDetail.value?.result_summary?.benchmark?.position_timeline
-  const denominator = positionEvolutionDenominator(timeline)
-  if (!timeline || !Array.isArray(timeline.points) || !Number.isFinite(denominator) || denominator <= 0) {
-    return []
-  }
-  const points = timeline.points
-    .map((point: any) => {
-      const rawValue = Number(point?.value)
-      if (!String(point?.ts ?? '') || !Number.isFinite(rawValue)) return null
-      return {
-        ts: String(point.ts),
-        value: (rawValue / denominator) * 100,
-        detail: point.detail ? String(point.detail) : null,
-        marker: point.marker ? String(point.marker) : null,
-      }
-    })
-    .filter((point: any): point is { ts: string; value: number; detail: string | null; marker: string | null } => point != null)
-  if (points.length < 2) return []
-  return [
-    {
-      label: `${selectedRunDetail.value?.result_summary?.benchmark?.symbol || 'Benchmark'} buy & hold`,
-      color: '#e0b35b',
-      points,
-    },
-  ]
-})
 const portfolioCapitalSeries = computed(() => {
   const deployed = buildRawChartSeries(
     portfolioTimeline.value,
@@ -2209,6 +2575,29 @@ const positionSizingValueMin = computed(() =>
   logicDraft.position_sizing_mode === 'fixed_quantity' ? 1 : 0,
 )
 
+function optionalNumberValue(value: unknown): number | null {
+  if (value === '' || value == null) return null
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function optionalNumberOrZero(value: unknown): number {
+  return optionalNumberValue(value) ?? 0
+}
+
+function optionalIntegerOrZero(value: unknown): number {
+  return Math.max(0, Math.round(optionalNumberOrZero(value)))
+}
+
+function optionalDisabledInput(value: unknown): OptionalNumberInput {
+  const numeric = optionalNumberValue(value)
+  return numeric == null || numeric === 0 ? '' : numeric
+}
+
+function optionalDisabledInputWithDefault(value: unknown, fallback: number): OptionalNumberInput {
+  return value === undefined ? fallback : optionalDisabledInput(value)
+}
+
 const strategyNarrative = computed(() => {
   if (sourceType.value === 'radar') {
     const setupText = radarDraft.setup_types.length
@@ -2231,12 +2620,19 @@ const strategyNarrative = computed(() => {
       : logicDraft.position_sizing_mode === 'percent_capital'
         ? `${logicDraft.position_sizing_value}% capital sizing`
         : `${logicDraft.position_sizing_value.toFixed(0)} fixed quantity sizing`
-  const fixedTargetText = logicDraft.take_profit_rr > 0 ? `${logicDraft.take_profit_rr}R fixed target` : 'no fixed profit target'
-  const timeExitText = logicDraft.max_bars_in_trade > 0 ? `${logicDraft.max_bars_in_trade}-bar time exit` : 'no time exit'
-  const hardTrailText = logicDraft.hard_trailing_stop_pct > 0
-    ? `, a hard ${logicDraft.hard_trailing_stop_pct}% trail${logicDraft.hard_trailing_activation_pct > 0 ? ` after a ${logicDraft.hard_trailing_activation_pct}% gain` : ''}`
+  const takeProfitR = optionalNumberOrZero(logicDraft.take_profit_rr)
+  const maxBarsInTrade = optionalIntegerOrZero(logicDraft.max_bars_in_trade)
+  const hardTrailingStopPct = optionalNumberOrZero(logicDraft.hard_trailing_stop_pct)
+  const breakEvenR = optionalNumberOrZero(logicDraft.break_even_rr)
+  const trailingStopR = optionalNumberOrZero(logicDraft.trailing_stop_rr)
+  const fixedTargetText = takeProfitR > 0 ? `${takeProfitR}R fixed target` : 'no fixed profit target'
+  const timeExitText = maxBarsInTrade > 0 ? `${maxBarsInTrade}-bar time exit` : 'no time exit'
+  const hardTrailText = hardTrailingStopPct > 0
+    ? `, a hard ${hardTrailingStopPct}% trail${logicDraft.hard_trailing_activation_pct > 0 ? ` after a ${logicDraft.hard_trailing_activation_pct}% gain` : ''}`
     : ''
-  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using ${stopText} and ${sizingText}, with break-even after ${logicDraft.break_even_rr}R, a trailing stop distance of ${logicDraft.trailing_stop_rr}R${hardTrailText}, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
+  const breakEvenText = breakEvenR > 0 ? `break-even after ${breakEvenR}R` : 'no break-even move'
+  const trailingText = trailingStopR > 0 ? `a ${trailingStopR}R trailing stop` : 'no R-based trailing stop'
+  return `Go ${logicDraft.direction} on ${logicDraft.timeframe} when ${conditionText || 'conditions are satisfied'}, using ${stopText} and ${sizingText}, with ${breakEvenText}, ${trailingText}${hardTrailText}, then exit via ${fixedTargetText}, ${timeExitText}${exitText ? `, or when ${exitText}` : ''}.`
 })
 
 const hasUniverseSelection = computed(() =>
@@ -2285,6 +2681,7 @@ function handleDocumentPointerDown(event: Event) {
   if (!(target instanceof Node)) return
   if (exportMenuRef.value?.contains(target)) return
   exportMenuOpen.value = false
+  openExecutionLogFilter.value = null
 }
 
 onMounted(() => {
@@ -2425,12 +2822,12 @@ function startNew() {
   logicDraft.stop_loss_pct = 2
   logicDraft.stop_atr_period = 14
   logicDraft.stop_atr_multiple = 2
-  logicDraft.hard_trailing_stop_pct = 0
+  logicDraft.hard_trailing_stop_pct = ''
   logicDraft.hard_trailing_activation_pct = 0
   logicDraft.take_profit_rr = 2
   logicDraft.max_bars_in_trade = 20
-  logicDraft.break_even_rr = 0
-  logicDraft.trailing_stop_rr = 0
+  logicDraft.break_even_rr = ''
+  logicDraft.trailing_stop_rr = ''
   logicDraft.position_sizing_mode = 'percent_risk'
   logicDraft.position_sizing_value = 1
   logicDraft.pyramiding_max_entries = 1
@@ -2449,7 +2846,7 @@ function startNew() {
   runDraft.risk_per_trade_pct = 1
   runDraft.slippage_bps = 5
   runDraft.commission_model = 'fixed_round_trip'
-  runDraft.commission_value = 0
+  runDraft.commission_value = ''
   runDraft.walk_forward_segments = 3
   runDraft.walk_forward_training_share = 0.6
   runDraft.paper_forward_bars = 20
@@ -2506,12 +2903,22 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
   logicDraft.stop_atr_period = Math.max(1, Math.round(toPositiveNumber(risk.stop_atr_period, 14)))
   logicDraft.stop_atr_multiple = Math.max(0.1, Number(risk.stop_atr_multiple ?? 2) || 2)
-  logicDraft.hard_trailing_stop_pct = Math.max(0, Number(risk.hard_trailing_stop_pct ?? 0) || 0)
+  logicDraft.hard_trailing_stop_pct = optionalDisabledInput(risk.hard_trailing_stop_pct)
   logicDraft.hard_trailing_activation_pct = Math.max(0, Number(risk.hard_trailing_activation_pct ?? 0) || 0)
-  logicDraft.take_profit_rr = Math.max(0, Number(exits.take_profit_rr ?? risk.take_profit_rr ?? 2) || 0)
-  logicDraft.max_bars_in_trade = Math.max(0, Math.round(Number(exits.max_bars_in_trade ?? risk.max_bars_in_trade ?? 20) || 0))
-  logicDraft.break_even_rr = Math.max(0, Number(risk.break_even_rr ?? 0))
-  logicDraft.trailing_stop_rr = Math.max(0, Number(risk.trailing_stop_rr ?? 0))
+  const takeProfitSource = Object.prototype.hasOwnProperty.call(exits, 'take_profit_rr')
+    ? exits.take_profit_rr
+    : Object.prototype.hasOwnProperty.call(risk, 'take_profit_rr')
+      ? risk.take_profit_rr
+      : undefined
+  const maxBarsSource = Object.prototype.hasOwnProperty.call(exits, 'max_bars_in_trade')
+    ? exits.max_bars_in_trade
+    : Object.prototype.hasOwnProperty.call(risk, 'max_bars_in_trade')
+      ? risk.max_bars_in_trade
+      : undefined
+  logicDraft.take_profit_rr = optionalDisabledInputWithDefault(takeProfitSource, 2)
+  logicDraft.max_bars_in_trade = optionalDisabledInputWithDefault(maxBarsSource, 20)
+  logicDraft.break_even_rr = optionalDisabledInput(risk.break_even_rr)
+  logicDraft.trailing_stop_rr = optionalDisabledInput(risk.trailing_stop_rr)
   const sizingMode = String(risk.position_sizing_mode ?? 'percent_risk')
   logicDraft.position_sizing_mode = ['percent_risk', 'fixed_cash', 'percent_capital', 'fixed_quantity'].includes(sizingMode)
     ? (sizingMode as typeof logicDraft.position_sizing_mode)
@@ -2563,14 +2970,14 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   runDraft.date_to = toDateInputValue(runDefaults.date_to)
   runDraft.initial_capital = Math.max(1000, Number(runDefaults.initial_capital ?? 100000) || 100000)
   runDraft.risk_per_trade_pct = Math.max(0.1, Number(runDefaults.risk_per_trade_pct ?? 1) || 1)
-  runDraft.slippage_bps = Math.max(0, Number(runDefaults.slippage_bps ?? 5) || 0)
+  runDraft.slippage_bps = optionalDisabledInputWithDefault(runDefaults.slippage_bps, 5)
   runDraft.commission_model = ['fixed_round_trip', 'fixed_per_order', 'percent_of_notional'].includes(String(runDefaults.commission_model))
     ? runDefaults.commission_model
     : 'fixed_round_trip'
-  runDraft.commission_value = Math.max(
-    0,
-    Number(runDefaults.commission_value ?? runDefaults.commission_per_trade ?? 0) || 0,
-  )
+  const commissionSource = Object.prototype.hasOwnProperty.call(runDefaults, 'commission_value')
+    ? runDefaults.commission_value
+    : runDefaults.commission_per_trade
+  runDraft.commission_value = optionalDisabledInput(commissionSource)
   runDraft.walk_forward_segments = Math.max(2, Math.round(Number(runDefaults.walk_forward_segments ?? 3) || 3))
   runDraft.walk_forward_training_share = Math.min(
     0.9,
@@ -3014,22 +3421,29 @@ function summarizeRadarOptions(
 function buildVersionPayload() {
   const flatConditions = flattenConditionNodes(logicDraft.ruleTree)
   const flatExitConditions = flattenConditionNodes(logicDraft.exitRuleTree)
+  const hardTrailingStopPct = optionalNumberValue(logicDraft.hard_trailing_stop_pct)
+  const breakEvenR = optionalNumberValue(logicDraft.break_even_rr)
+  const trailingStopR = optionalNumberValue(logicDraft.trailing_stop_rr)
+  const takeProfitR = optionalNumberValue(logicDraft.take_profit_rr)
+  const maxBarsInTrade = optionalNumberValue(logicDraft.max_bars_in_trade)
+  const slippageBps = optionalNumberValue(runDraft.slippage_bps)
+  const commissionValue = optionalNumberValue(runDraft.commission_value)
   const riskConfig = {
     stop_model: logicDraft.stop_model,
     stop_loss_pct: logicDraft.stop_loss_pct,
     stop_atr_period: logicDraft.stop_atr_period,
     stop_atr_multiple: logicDraft.stop_atr_multiple,
-    hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
+    hard_trailing_stop_pct: hardTrailingStopPct,
     hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
-    break_even_rr: logicDraft.break_even_rr,
-    trailing_stop_rr: logicDraft.trailing_stop_rr,
+    break_even_rr: breakEvenR,
+    trailing_stop_rr: trailingStopR,
     position_sizing_mode: logicDraft.position_sizing_mode,
     position_sizing_value: logicDraft.position_sizing_value,
     pyramiding_max_entries: logicDraft.pyramiding_max_entries,
   }
   const exitsConfig = {
-    take_profit_rr: logicDraft.take_profit_rr,
-    max_bars_in_trade: logicDraft.max_bars_in_trade,
+    take_profit_rr: takeProfitR,
+    max_bars_in_trade: maxBarsInTrade == null ? null : Math.round(maxBarsInTrade),
     logic: logicDraft.exitRuleTree.type,
     condition_tree: compileRuleNode(logicDraft.exitRuleTree),
     conditions: flatExitConditions.map(compileCondition),
@@ -3063,12 +3477,12 @@ function buildVersionPayload() {
       stop_loss_pct: { type: 'number', min: 0.1 },
       stop_atr_period: { type: 'integer', min: 1 },
       stop_atr_multiple: { type: 'number', min: 0.1 },
-      hard_trailing_stop_pct: { type: 'number', min: 0 },
+      hard_trailing_stop_pct: { type: ['number', 'null'], min: 0 },
       hard_trailing_activation_pct: { type: 'number', min: 0 },
-      take_profit_rr: { type: 'number', min: 0 },
-      max_bars_in_trade: { type: 'integer', min: 0 },
-      break_even_rr: { type: 'number', min: 0 },
-      trailing_stop_rr: { type: 'number', min: 0 },
+      take_profit_rr: { type: ['number', 'null'], min: 0 },
+      max_bars_in_trade: { type: ['integer', 'null'], min: 0 },
+      break_even_rr: { type: ['number', 'null'], min: 0 },
+      trailing_stop_rr: { type: ['number', 'null'], min: 0 },
       position_sizing_mode: { type: 'string', enum: ['percent_risk', 'fixed_cash', 'percent_capital', 'fixed_quantity'] },
       position_sizing_value: { type: 'number', min: 0 },
       pyramiding_max_entries: { type: 'integer', min: 1 },
@@ -3078,12 +3492,12 @@ function buildVersionPayload() {
       stop_loss_pct: logicDraft.stop_loss_pct,
       stop_atr_period: logicDraft.stop_atr_period,
       stop_atr_multiple: logicDraft.stop_atr_multiple,
-      hard_trailing_stop_pct: logicDraft.hard_trailing_stop_pct,
+      hard_trailing_stop_pct: hardTrailingStopPct,
       hard_trailing_activation_pct: logicDraft.hard_trailing_activation_pct,
-      take_profit_rr: logicDraft.take_profit_rr,
-      max_bars_in_trade: logicDraft.max_bars_in_trade,
-      break_even_rr: logicDraft.break_even_rr,
-      trailing_stop_rr: logicDraft.trailing_stop_rr,
+      take_profit_rr: takeProfitR,
+      max_bars_in_trade: maxBarsInTrade == null ? null : Math.round(maxBarsInTrade),
+      break_even_rr: breakEvenR,
+      trailing_stop_rr: trailingStopR,
       position_sizing_mode: logicDraft.position_sizing_mode,
       position_sizing_value: logicDraft.position_sizing_value,
       pyramiding_max_entries: logicDraft.pyramiding_max_entries,
@@ -3104,11 +3518,11 @@ function buildVersionPayload() {
       entry: 'next_bar_open',
       exits: [
         'stop_loss',
-        ...(logicDraft.take_profit_rr > 0 ? ['take_profit'] : []),
-        ...(logicDraft.max_bars_in_trade > 0 ? ['time_exit'] : []),
-        ...(logicDraft.break_even_rr > 0 ? ['break_even'] : []),
-        ...(logicDraft.trailing_stop_rr > 0 ? ['trailing_stop'] : []),
-        ...(logicDraft.hard_trailing_stop_pct > 0 ? ['hard_trailing_stop'] : []),
+        ...(optionalNumberOrZero(takeProfitR) > 0 ? ['take_profit'] : []),
+        ...(optionalNumberOrZero(maxBarsInTrade) > 0 ? ['time_exit'] : []),
+        ...(optionalNumberOrZero(breakEvenR) > 0 ? ['break_even'] : []),
+        ...(optionalNumberOrZero(trailingStopR) > 0 ? ['trailing_stop'] : []),
+        ...(optionalNumberOrZero(hardTrailingStopPct) > 0 ? ['hard_trailing_stop'] : []),
         ...(exitConditionCount.value > 0 ? ['condition_exit'] : []),
       ],
       sizing: logicDraft.position_sizing_mode,
@@ -3123,10 +3537,10 @@ function buildVersionPayload() {
         date_to: runDraft.date_to || null,
         initial_capital: runDraft.initial_capital,
         risk_per_trade_pct: runDraft.risk_per_trade_pct,
-        slippage_bps: runDraft.slippage_bps,
+        slippage_bps: slippageBps,
         commission_model: runDraft.commission_model,
-        commission_value: runDraft.commission_value,
-        commission_per_trade: runDraft.commission_value,
+        commission_value: commissionValue,
+        commission_per_trade: commissionValue,
         close_open_positions_at_end: runDraft.close_open_positions_at_end,
         walk_forward_segments: runDraft.walk_forward_segments,
         walk_forward_training_share: runDraft.walk_forward_training_share,
@@ -3193,22 +3607,25 @@ async function publishStrategy() {
 
 async function runCurrentVersion() {
   if (!currentVersion.value) return
+  const slippageBps = optionalNumberValue(runDraft.slippage_bps)
+  const commissionValue = optionalNumberValue(runDraft.commission_value)
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
     test_mode: runDraft.test_mode,
     timeframe: runDraft.timeframe || null,
     date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
     date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
     parameter_values: {},
+    parameter_grid: parameterGridPayload(),
     universe_config: runDraft.use_subset && runDraft.overrideSymbols.length
       ? { symbols: runDraft.overrideSymbols }
       : {},
     execution_assumptions: {
       initial_capital: runDraft.initial_capital,
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
-      slippage_bps: runDraft.slippage_bps,
+      slippage_bps: slippageBps,
       commission_model: runDraft.commission_model,
-      commission_value: runDraft.commission_value,
-      commission_per_trade: runDraft.commission_value,
+      commission_value: commissionValue,
+      commission_per_trade: commissionValue,
       close_open_positions_at_end: runDraft.close_open_positions_at_end,
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
@@ -3216,12 +3633,7 @@ async function runCurrentVersion() {
       walk_forward_segments: runDraft.walk_forward_segments,
       walk_forward_training_share: runDraft.walk_forward_training_share,
       paper_forward_bars: runDraft.paper_forward_bars,
-      optimization: {
-        enabled: runDraft.optimization_enabled,
-        stop_loss_pct_values: parseNumberList(runDraft.stop_loss_pct_values),
-        take_profit_rr_values: parseNumberList(runDraft.take_profit_rr_values),
-        max_bars_in_trade_values: parseIntegerList(runDraft.max_bars_in_trade_values),
-      },
+      optimization: { enabled: false },
     },
   })
   strategyLab.selectedRunId = submitted.id
@@ -3322,6 +3734,28 @@ function parseIntegerList(raw: string) {
     .split(',')
     .map(value => Math.round(Number(value.trim())))
     .filter(value => Number.isFinite(value) && value > 0)
+}
+
+function parameterGridPayload() {
+  if (!runDraft.optimization_enabled) return null
+  const parameters = [
+    {
+      key: 'risk.stop_loss_pct',
+      label: 'Stop %',
+      values: parseNumberList(runDraft.stop_loss_pct_values),
+    },
+    {
+      key: 'exits.take_profit_rr',
+      label: 'Target R',
+      values: parseNumberList(runDraft.take_profit_rr_values),
+    },
+    {
+      key: 'exits.max_bars_in_trade',
+      label: 'Max bars',
+      values: parseIntegerList(runDraft.max_bars_in_trade_values),
+    },
+  ].filter(parameter => parameter.values.length > 1)
+  return parameters.length ? { parameters } : null
 }
 
 function toDateInputValue(value: unknown) {
@@ -3641,6 +4075,29 @@ function pnlClass(value: unknown) {
   return {
     positive: Number.isFinite(numeric) && numeric > 0,
     negative: Number.isFinite(numeric) && numeric < 0,
+  }
+}
+
+function positiveMetricClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 0,
+    negative: Number.isFinite(numeric) && numeric < 0,
+  }
+}
+
+function riskCostClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    negative: Number.isFinite(numeric) && Math.abs(numeric) > 0,
+  }
+}
+
+function profitFactorClass(value: unknown) {
+  const numeric = Number(value)
+  return {
+    positive: Number.isFinite(numeric) && numeric > 1,
+    negative: Number.isFinite(numeric) && numeric < 1,
   }
 }
 
@@ -4540,6 +4997,78 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   padding-right: 2px;
 }
 
+.run-batch {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #222831;
+  border-radius: 8px;
+  background: #0f1114;
+  padding: 10px;
+}
+
+.run-batch--active {
+  border-color: #1f6ca8;
+  background: #0d1720;
+}
+
+.run-batch__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e3e7ee;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.run-batch__head:hover,
+.run-batch__head:focus-visible {
+  color: #ffffff;
+  outline: none;
+}
+
+.run-batch__head > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.run-batch__head small {
+  color: #8b93a1;
+  font-size: 10px;
+}
+
+.run-batch__summary,
+.run-batch__parameters,
+.run-batch__runs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.run-batch__summary span,
+.run-batch__parameters span {
+  border: 1px solid #252c35;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: #101720;
+  color: #a9b2c0;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.run-batch__parameters span {
+  color: #90caff;
+}
+
+.run-batch__runs {
+  display: grid;
+  gap: 6px;
+}
+
 .condition-card {
   padding: 14px;
   display: grid;
@@ -4760,6 +5289,12 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   gap: 10px;
 }
 
+.detail-list--performance-meta {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #1f252c;
+}
+
 .detail-list--benchmark-meta > div {
   display: flex;
   justify-content: space-between;
@@ -4816,6 +5351,137 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   background: #0f0f0f;
   position: sticky;
   top: 0;
+  z-index: 2;
+}
+
+.trade-table__head-cell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.trade-table__sort {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trade-table__filter-button {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #59616e;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.trade-table__filter-button:hover,
+.trade-table__filter-button:focus-visible,
+.trade-table__filter-button--active {
+  border-color: #254761;
+  background: #0d1a25;
+  color: #7ec2ff;
+  outline: none;
+}
+
+.trade-table__filter-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: min(220px, calc(100vw - 32px));
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #263142;
+  border-radius: 8px;
+  background: #0c1119;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.42);
+}
+
+.trade-table__filter-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9aa6b8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.trade-table__filter-popover-head button {
+  border: 0;
+  background: transparent;
+  color: #ff9aa7;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.trade-table__filter-clear {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #7ec2ff;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.trade-table__sort:hover,
+.trade-table__sort:focus-visible {
+  color: #d5deeb;
+  outline: none;
+}
+
+.trade-table__sort-icon {
+  color: #575f6c;
+  font-size: 9px;
+}
+
+.trade-table__sort-icon--active {
+  color: #7ec2ff;
+}
+
+.trade-table__filter {
+  width: 100%;
+  border: 1px solid #242b34;
+  border-radius: 6px;
+  background: #0b0d10;
+  color: #d7dce5;
+  font: inherit;
+  font-size: 10px;
+  padding: 6px 7px;
+}
+
+.trade-table__filter::placeholder {
+  color: #5f6672;
+}
+
+.trade-table__filter:focus {
+  border-color: #2b6ea9;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(126, 194, 255, 0.26);
 }
 
 .trade-table__empty {

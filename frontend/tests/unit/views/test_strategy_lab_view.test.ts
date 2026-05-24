@@ -593,6 +593,47 @@ describe('StrategyLabView', () => {
     expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
   })
 
+  it('filters and sorts the execution log by individual columns', async () => {
+    const wrapper = mountView()
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Momentum Pilot')
+    })
+    await ensurePanelExpanded(wrapper, 'Research runs')
+
+    const table = wrapper.get('.trade-table-wrap')
+    expect(table.find('input[aria-label="Filter execution log by Symbol"]').exists()).toBe(false)
+    await table.get('button[aria-label="Filter execution log by Symbol"]').trigger('click')
+    await flushPromises()
+    const symbolFilter = table.get('input[aria-label="Filter execution log by Symbol"]')
+    await symbolFilter.setValue('MSFT')
+    await flushPromises()
+
+    expect(table.text()).toContain('MSFT')
+    expect(table.text()).toContain('Rejected')
+    expect(table.text()).toContain('Max Concurrent Positions')
+    expect(table.text()).not.toContain('AAPL')
+    expect(table.get('button[aria-label="Edit active execution log by Symbol"]').classes()).toContain('trade-table__filter-button--active')
+
+    await symbolFilter.setValue('')
+    await table.get('button[aria-label="Filter execution log by Time"]').trigger('click')
+    await flushPromises()
+    const timeFilter = table.get('input[aria-label="Filter execution log by Time"]')
+    await timeFilter.setValue('08/02 00')
+    await flushPromises()
+
+    expect(table.text()).toContain('Take Profit')
+    expect(table.text()).not.toContain('Max Concurrent Positions')
+
+    await timeFilter.setValue('')
+    await table.get('button[aria-label="Sort execution log by Time"]').trigger('click')
+    await flushPromises()
+
+    const firstRow = table.findAll('tbody tr')[0]
+    expect(firstRow.text()).toContain('Open At End')
+    expect(firstRow.text()).toContain('Run End Mark')
+  })
+
   it('shows coverage preview during run prep and detailed coverage in results', async () => {
     const wrapper = mountView()
 
@@ -606,18 +647,17 @@ describe('StrategyLabView', () => {
     }))
     expect(wrapper.text()).toContain('Coverage preview')
     expect(wrapper.text()).toContain('Shared universe')
-    expect(wrapper.text()).toContain('Instrument coverage')
+    expect(wrapper.text()).toContain('Coverage issues')
 
     const instrumentCoverageToggle = wrapper
       .findAll('button')
-      .find(button => button.text().includes('Instrument coverage'))
+      .find(button => button.text().includes('Coverage issues'))
     expect(instrumentCoverageToggle).toBeTruthy()
     await instrumentCoverageToggle!.trigger('click')
     await nextTick()
 
-    expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('MSFT')
-    expect(wrapper.text()).toContain('Coverage detail')
+    expect(wrapper.text()).toContain('Requested strategy range')
     expect(wrapper.text()).toContain('earlier local history may be missing')
   })
 
@@ -1048,7 +1088,7 @@ describe('StrategyLabView', () => {
         initial_capital: 100000,
         risk_per_trade_pct: 1,
         commission_model: 'fixed_round_trip',
-        commission_value: 0,
+        commission_value: null,
         close_open_positions_at_end: false,
       }),
     }))
@@ -1117,8 +1157,48 @@ describe('StrategyLabView', () => {
           date_to: '2026-04-30',
           initial_capital: 250000,
           commission_model: 'fixed_round_trip',
-          commission_value: 0,
+          commission_value: null,
           close_open_positions_at_end: true,
+        }),
+      }),
+    }))
+  })
+
+  it('serializes blank optional strategy controls as disabled null values', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Risk')
+    await ensurePanelExpanded(wrapper, 'Exits')
+    await ensurePanelExpanded(wrapper, 'Research runs')
+
+    await findFieldByLabel(wrapper, 'Break-even after R')!.get('input').setValue('')
+    await findFieldByLabel(wrapper, 'Trail distance (R)')!.get('input').setValue('')
+    await findFieldByLabel(wrapper, 'Target (R)')!.get('input').setValue('')
+    await findFieldByLabel(wrapper, 'Max bars in trade')!.get('input').setValue('')
+    await findFieldByLabel(wrapper, 'Slippage (bps)')!.get('input').setValue('')
+    await findFieldByLabel(wrapper, 'Commission per round-trip')!.get('input').setValue('')
+
+    const saveButton = wrapper.get('button[aria-label="Save profile"]')
+    await saveButton.trigger('click')
+    await flushPromises()
+
+    expect(api.patch).toHaveBeenCalledWith('/strategy-lab/versions/8', expect.objectContaining({
+      definition_snapshot: expect.objectContaining({
+        risk: expect.objectContaining({
+          break_even_rr: null,
+          trailing_stop_rr: null,
+        }),
+        exits: expect.objectContaining({
+          take_profit_rr: null,
+          max_bars_in_trade: null,
+        }),
+      }),
+      execution_model: expect.objectContaining({
+        run_defaults: expect.objectContaining({
+          slippage_bps: null,
+          commission_value: null,
+          commission_per_trade: null,
         }),
       }),
     }))
@@ -1158,7 +1238,7 @@ describe('StrategyLabView', () => {
     const optimizationCheckbox = wrapper.findAll('input[type="checkbox"]').find(node =>
       node.element instanceof HTMLInputElement
       && node.element.type === 'checkbox'
-      && node.element.closest('.subsection')?.textContent?.includes('Parameter sweep')
+      && node.element.closest('.subsection')?.textContent?.includes('Parameter combinations')
     )
     expect(optimizationCheckbox).toBeTruthy()
     await optimizationCheckbox!.setValue(true)
@@ -1172,9 +1252,17 @@ describe('StrategyLabView', () => {
 
     expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
       test_mode: 'walk_forward',
+      parameter_grid: expect.objectContaining({
+        parameters: expect.arrayContaining([
+          expect.objectContaining({
+            key: 'risk.stop_loss_pct',
+            values: [1.5, 2],
+          }),
+        ]),
+      }),
       execution_assumptions: expect.objectContaining({
         optimization: expect.objectContaining({
-          enabled: true,
+          enabled: false,
         }),
       }),
     }))
