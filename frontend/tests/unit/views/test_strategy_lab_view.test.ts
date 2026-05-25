@@ -606,6 +606,10 @@ describe('StrategyLabView', () => {
     await table.get('button[aria-label="Filter execution log by Symbol"]').trigger('click')
     await flushPromises()
     const symbolFilter = table.get('input[aria-label="Filter execution log by Symbol"]')
+    await symbolFilter.trigger('pointerdown')
+    await flushPromises()
+    expect(table.find('input[aria-label="Filter execution log by Symbol"]').exists()).toBe(true)
+
     await symbolFilter.setValue('MSFT')
     await flushPromises()
 
@@ -616,6 +620,10 @@ describe('StrategyLabView', () => {
     expect(table.get('button[aria-label="Edit active execution log by Symbol"]').classes()).toContain('trade-table__filter-button--active')
 
     await symbolFilter.setValue('')
+    document.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await flushPromises()
+    expect(table.find('input[aria-label="Filter execution log by Symbol"]').exists()).toBe(false)
+
     await table.get('button[aria-label="Filter execution log by Time"]').trigger('click')
     await flushPromises()
     const timeFilter = table.get('input[aria-label="Filter execution log by Time"]')
@@ -1164,6 +1172,82 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('persists and hydrates sweep-capable input modes for saved versions', async () => {
+    const persistedDefinition = clone(definition)
+    persistedDefinition.versions[0].execution_model = {
+      entry: 'next_bar_open',
+      run_defaults: {
+        parameter_sweeps: {
+          stop_loss_pct: {
+            mode: 'list',
+            single: 2,
+            list: [1.5, 2],
+            range: { start: 1.5, end: 2, step: 0.5 },
+          },
+          take_profit_rr: {
+            mode: 'range',
+            single: 2.5,
+            list: [],
+            range: { start: 1, end: 3, step: 0.5 },
+          },
+          max_bars_in_trade: {
+            mode: 'single',
+            single: 18,
+            list: [],
+            range: { start: 18, end: 18, step: 1 },
+          },
+        },
+      },
+    }
+
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([persistedDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(persistedDefinition)
+      if (path === '/watchlists') return Promise.resolve([])
+      if (path === '/screeners') return Promise.resolve([])
+      if (path === '/instruments/search') {
+        const q = String(params?.q ?? '').trim().toUpperCase()
+        return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
+      }
+      if (path.startsWith('/instruments/') && path !== '/instruments/search') {
+        return Promise.resolve({ symbol: decodeURIComponent(path.split('/').pop() ?? '').toUpperCase() })
+      }
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Risk')
+    await ensurePanelExpanded(wrapper, 'Exits')
+
+    expect(wrapper.find('.sweep-indicator--list').exists()).toBe(true)
+    expect(findFieldByLabel(wrapper, 'Stop loss %')!.text()).toContain('1.5')
+    expect(findFieldByLabel(wrapper, 'Stop loss %')!.text()).toContain('2')
+    const targetField = findFieldByLabel(wrapper, 'Target (R)')!
+    expect(targetField.find('.sweep-value-input__range').exists()).toBe(true)
+    expect(targetField.findAll('input').map(input => (input.element as HTMLInputElement).value)).toEqual(['1', '3', '0.5'])
+
+    await wrapper.get('button[aria-label="Save profile"]').trigger('click')
+    await flushPromises()
+
+    expect(api.patch).toHaveBeenCalledWith('/strategy-lab/versions/8', expect.objectContaining({
+      execution_model: expect.objectContaining({
+        run_defaults: expect.objectContaining({
+          parameter_sweeps: expect.objectContaining({
+            stop_loss_pct: expect.objectContaining({
+              mode: 'list',
+              list: [1.5, 2],
+            }),
+            take_profit_rr: expect.objectContaining({
+              mode: 'range',
+              range: { start: 1, end: 3, step: 0.5 },
+            }),
+          }),
+        }),
+      }),
+    }))
+  })
+
   it('serializes blank optional strategy controls as disabled null values', async () => {
     const wrapper = mountView()
 
@@ -1220,11 +1304,13 @@ describe('StrategyLabView', () => {
     expect(wrapper.text()).toContain('Condition 1')
   })
 
-  it('supports walk-forward mode, watchlist universes, and optimization inputs', async () => {
+  it('supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs', async () => {
     const wrapper = mountView()
 
     await flushPromises()
     await ensurePanelExpanded(wrapper, 'Strategy profile')
+    await ensurePanelExpanded(wrapper, 'Risk')
+    await ensurePanelExpanded(wrapper, 'Exits')
     await ensurePanelExpanded(wrapper, 'Research runs')
 
     await wrapper.get('select').setValue('custom')
@@ -1235,15 +1321,25 @@ describe('StrategyLabView', () => {
     expect(watchlistSelect).toBeTruthy()
     await watchlistSelect!.setValue('3')
     await wrapper.findAll('.mode-pill')[1].trigger('click')
-    const optimizationCheckbox = wrapper.findAll('input[type="checkbox"]').find(node =>
-      node.element instanceof HTMLInputElement
-      && node.element.type === 'checkbox'
-      && node.element.closest('.subsection')?.textContent?.includes('Parameter combinations')
-    )
-    expect(optimizationCheckbox).toBeTruthy()
-    await optimizationCheckbox!.setValue(true)
     await flushPromises()
-    await wrapper.get('input[placeholder="1.5, 2, 2.5, 3"]').setValue('1.5, 2')
+    expect(wrapper.text()).not.toContain('Parameter combinations')
+    expect(wrapper.text()).not.toContain('Sweep-capable')
+    expect(wrapper.findAll('.sweep-indicator')).toHaveLength(3)
+    expect(wrapper.text()).not.toContain('Single value, comma list, or range')
+    expect(wrapper.text()).toContain('Max bars in trade')
+    const stopSweep = wrapper.findAll('.sweep-value-input')[0]
+    expect(stopSweep).toBeTruthy()
+    await wrapper.findAll('.sweep-indicator')[0].trigger('click')
+    expect(stopSweep.find('input[aria-label="Add value to list"]').exists()).toBe(true)
+    await stopSweep.trigger('click')
+    await flushPromises()
+    expect(stopSweep.find('input[aria-label="Add value to list"]').exists()).toBe(true)
+    await stopSweep.get('button[aria-label="Remove 2"]').trigger('click')
+    const listInput = stopSweep.get('input[aria-label="Add value to list"]')
+    await listInput.setValue('1.5')
+    await stopSweep.get('button[aria-label="Add list value"]').trigger('click')
+    await listInput.setValue('2')
+    await stopSweep.get('button[aria-label="Add list value"]').trigger('click')
 
     const runButton = wrapper.findAll('button').find(button => button.text() === 'Run walk-forward')
     expect(runButton).toBeTruthy()

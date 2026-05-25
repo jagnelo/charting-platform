@@ -3,9 +3,9 @@
     ref="triggerRef"
     class="hover-tooltip-anchor"
     @mouseenter="show"
-    @focusin="show"
+    @focusin="showFromFocus"
     @mouseleave="hide"
-    @focusout="hide"
+    @focusout="hideFromFocus"
   >
     <slot />
   </span>
@@ -35,9 +35,11 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 const props = withDefaults(defineProps<{
   text?: string | null
   preferredWidth?: number
+  showOnFocus?: boolean
 }>(), {
   text: '',
   preferredWidth: 240,
+  showOnFocus: true,
 })
 
 interface TooltipState {
@@ -99,6 +101,16 @@ async function show() {
 function hide() {
   seq += 1
   tooltip.value = null
+}
+
+function showFromFocus() {
+  if (!props.showOnFocus) return
+  void show()
+}
+
+function hideFromFocus() {
+  if (!props.showOnFocus) return
+  hide()
 }
 
 onMounted(() => {

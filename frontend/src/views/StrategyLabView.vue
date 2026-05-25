@@ -481,9 +481,24 @@
                   <option value="atr">ATR multiple</option>
                 </select>
               </label>
-              <label class="field">
+              <div class="field field--sweep">
                 <span class="field-label">
                   {{ logicDraft.stop_model === 'atr' ? 'ATR period' : 'Stop loss %' }}
+                  <HoverTooltip
+                    v-if="logicDraft.stop_model !== 'atr'"
+                    :text="sweepModeTooltip(sweepDraft.stop_loss_pct)"
+                    :show-on-focus="false"
+                  >
+                    <button
+                      type="button"
+                      class="sweep-indicator"
+                      :class="`sweep-indicator--${sweepDraft.stop_loss_pct.mode}`"
+                      :aria-label="sweepModeAriaLabel(sweepDraft.stop_loss_pct)"
+                      @click.prevent.stop="cycleSweepMode(sweepDraft.stop_loss_pct, { min: 0.1, step: 0.1 })"
+                    >
+                      <span></span><span></span><span></span><span></span>
+                    </button>
+                  </HoverTooltip>
                   <HoverTooltip :text="logicDraft.stop_model === 'atr'
                     ? 'ATR lookback used for the volatility-based stop model. The stop sits this many ATR multiples away from the entry price.'
                     : 'Percent distance from the entry price to the stop. Position size is derived from this and your run-time risk budget when percent-risk sizing is active.'">
@@ -494,9 +509,14 @@
                   <input v-model.number="logicDraft.stop_atr_period" type="number" min="1" step="1" class="form-input" />
                 </template>
                 <template v-else>
-                  <input v-model.number="logicDraft.stop_loss_pct" type="number" min="0.1" step="0.1" class="form-input" />
+                  <SweepValueInput
+                    v-model="sweepDraft.stop_loss_pct"
+                    :min="0.1"
+                    :step="0.1"
+                    placeholder="Stop %"
+                  />
                 </template>
-              </label>
+              </div>
               <label class="field">
                 <span class="field-label">
                   {{ logicDraft.stop_model === 'atr' ? 'ATR multiple' : 'Hard trail %' }}
@@ -600,24 +620,63 @@
 
             <div v-if="sectionExpanded.exits" class="panel-body">
             <div class="form-grid two-up">
-              <label class="field">
+              <div class="field field--sweep">
                 <span class="field-label">
                   Target (R)
+                  <HoverTooltip
+                    :text="sweepModeTooltip(sweepDraft.take_profit_rr)"
+                    :show-on-focus="false"
+                  >
+                    <button
+                      type="button"
+                      class="sweep-indicator"
+                      :class="`sweep-indicator--${sweepDraft.take_profit_rr.mode}`"
+                      :aria-label="sweepModeAriaLabel(sweepDraft.take_profit_rr)"
+                      @click.prevent.stop="cycleSweepMode(sweepDraft.take_profit_rr, { min: 0, step: 0.25 })"
+                    >
+                      <span></span><span></span><span></span><span></span>
+                    </button>
+                  </HoverTooltip>
                   <HoverTooltip text="Take profit expressed as a multiple of the initial risk distance. Leave empty to disable fixed profit targets and rely on condition-based or time-based exits instead.">
                     <button type="button" class="help-dot" aria-label="Target info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.take_profit_rr" type="number" min="0" step="0.25" class="form-input" placeholder="Disabled" />
-              </label>
-              <label class="field">
+                <SweepValueInput
+                  v-model="sweepDraft.take_profit_rr"
+                  :min="0"
+                  :step="0.25"
+                  placeholder="Disabled"
+                />
+              </div>
+              <div class="field field--sweep">
                 <span class="field-label">
                   Max bars in trade
+                  <HoverTooltip
+                    :text="sweepModeTooltip(sweepDraft.max_bars_in_trade)"
+                    :show-on-focus="false"
+                  >
+                    <button
+                      type="button"
+                      class="sweep-indicator"
+                      :class="`sweep-indicator--${sweepDraft.max_bars_in_trade.mode}`"
+                      :aria-label="sweepModeAriaLabel(sweepDraft.max_bars_in_trade)"
+                      @click.prevent.stop="cycleSweepMode(sweepDraft.max_bars_in_trade, { min: 1, step: 1, integer: true })"
+                    >
+                      <span></span><span></span><span></span><span></span>
+                    </button>
+                  </HoverTooltip>
                   <HoverTooltip text="Close the trade after this many bars if no other exit fired first. Leave empty to disable time-based exits.">
                     <button type="button" class="help-dot" aria-label="Max bars info">i</button>
                   </HoverTooltip>
                 </span>
-                <input v-model.number="logicDraft.max_bars_in_trade" type="number" min="0" step="1" class="form-input" placeholder="Disabled" />
-              </label>
+                <SweepValueInput
+                  v-model="sweepDraft.max_bars_in_trade"
+                  :min="1"
+                  :step="1"
+                  integer
+                  placeholder="Disabled"
+                />
+              </div>
             </div>
 
             <div class="cb-header cb-header--strategy">
@@ -783,35 +842,6 @@
               :error="coveragePreviewError"
               empty-label="Choose a universe and run window to preview local coverage."
             />
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-head">
-              <div class="subsection-title">
-                <h4>Parameter combinations</h4>
-                <HoverTooltip text="Give any strategy parameter multiple values to generate a run batch. Each combination becomes its own inspectable run and the batch summary highlights the best and worst candidates.">
-                  <button type="button" class="help-dot" aria-label="Parameter combinations info">i</button>
-                </HoverTooltip>
-              </div>
-            </div>
-            <label class="field field--checkbox">
-              <input v-model="runDraft.optimization_enabled" type="checkbox" />
-              <span>Create a run batch from parameter combinations</span>
-            </label>
-            <div v-if="runDraft.optimization_enabled" class="form-grid three-up">
-              <label class="field">
-                <span class="field-label">Stop % values</span>
-                <input v-model="runDraft.stop_loss_pct_values" class="form-input" placeholder="1.5, 2, 2.5, 3" />
-              </label>
-              <label class="field">
-                <span class="field-label">Target R values</span>
-                <input v-model="runDraft.take_profit_rr_values" class="form-input" placeholder="1.5, 2, 2.5, 3" />
-              </label>
-              <label class="field">
-                <span class="field-label">Max bars values</span>
-                <input v-model="runDraft.max_bars_in_trade_values" class="form-input" placeholder="10, 15, 20, 30" />
-              </label>
-            </div>
           </div>
 
           <div class="subsection">
@@ -1371,6 +1401,7 @@
                           <div
                             v-if="openExecutionLogFilter === column.key"
                             class="trade-table__filter-popover"
+                            @pointerdown.stop
                             @click.stop
                           >
                             <div class="trade-table__filter-popover-head">
@@ -1464,6 +1495,7 @@ import PaperForwardMonitorPanel from '@/components/strategy/PaperForwardMonitorP
 import ReturnsHeatmap from '@/components/strategy/ReturnsHeatmap.vue'
 import RunComparisonTable from '@/components/strategy/RunComparisonTable.vue'
 import SignalReplayBreakdown from '@/components/strategy/SignalReplayBreakdown.vue'
+import SweepValueInput from '@/components/strategy/SweepValueInput.vue'
 import SymbolPerformanceBars from '@/components/strategy/SymbolPerformanceBars.vue'
 import StrategyCoveragePanel from '@/components/strategy/StrategyCoveragePanel.vue'
 import StrategyResultChart from '@/components/strategy/StrategyResultChart.vue'
@@ -1629,7 +1661,32 @@ const executionLogFilters = reactive<Record<ExecutionLogColumnKey, string>>({
 const openExecutionLogFilter = ref<ExecutionLogColumnKey | null>(null)
 let coveragePreviewSequence = 0
 
-type OptionalNumberInput = number | '' | null
+type OptionalNumberInput = number | string | '' | null
+type SweepMode = 'single' | 'list' | 'range'
+
+interface SweepValueDraft {
+  mode: SweepMode
+  single: OptionalNumberInput
+  list: number[]
+  range: {
+    start: OptionalNumberInput
+    end: OptionalNumberInput
+    step: OptionalNumberInput
+  }
+}
+
+function createSweepDraft(single: OptionalNumberInput, step: number): SweepValueDraft {
+  return {
+    mode: 'single',
+    single,
+    list: [],
+    range: {
+      start: single,
+      end: single,
+      step,
+    },
+  }
+}
 
 const draft = reactive({
   name: '',
@@ -1642,13 +1699,10 @@ const logicDraft = reactive({
   timeframe: 'D1',
   direction: 'long',
   stop_model: 'percent' as 'percent' | 'atr',
-  stop_loss_pct: 2,
   stop_atr_period: 14,
   stop_atr_multiple: 2,
   hard_trailing_stop_pct: '' as OptionalNumberInput,
   hard_trailing_activation_pct: 0,
-  take_profit_rr: 2 as OptionalNumberInput,
-  max_bars_in_trade: 20 as OptionalNumberInput,
   break_even_rr: '' as OptionalNumberInput,
   trailing_stop_rr: '' as OptionalNumberInput,
   position_sizing_mode: 'percent_risk' as 'percent_risk' | 'fixed_cash' | 'percent_capital' | 'fixed_quantity',
@@ -1658,6 +1712,12 @@ const logicDraft = reactive({
   symbols: [] as string[],
   ruleTree: createGroupNode('all', []) as BuilderGroupNode,
   exitRuleTree: createGroupNode('all', []) as BuilderGroupNode,
+})
+
+const sweepDraft = reactive({
+  stop_loss_pct: createSweepDraft(2, 0.1),
+  take_profit_rr: createSweepDraft(2, 0.25),
+  max_bars_in_trade: createSweepDraft(20, 1),
 })
 
 const radarDraft = reactive<RadarReplayDraft>({
@@ -1683,10 +1743,6 @@ const runDraft = reactive({
   max_portfolio_risk_pct: 4,
   max_symbol_allocation_pct: 35,
   close_open_positions_at_end: false,
-  optimization_enabled: false,
-  stop_loss_pct_values: '1.5, 2, 2.5, 3',
-  take_profit_rr_values: '1.5, 2, 2.5, 3',
-  max_bars_in_trade_values: '10, 15, 20, 30',
   use_subset: false,
   overrideSymbols: [] as string[],
 })
@@ -2575,9 +2631,43 @@ const positionSizingValueMin = computed(() =>
   logicDraft.position_sizing_mode === 'fixed_quantity' ? 1 : 0,
 )
 
+function splitSweepTokens(value: unknown) {
+  if (value === '' || value == null) return []
+  return String(value)
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+}
+
+function expandNumberToken(token: string) {
+  const rangeMatch = token.match(/^(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)(?::\s*(-?\d+(?:\.\d+)?))?$/)
+  if (!rangeMatch) {
+    const numeric = Number(token)
+    return Number.isFinite(numeric) ? [numeric] : []
+  }
+
+  const start = Number(rangeMatch[1])
+  const end = Number(rangeMatch[2])
+  const requestedStep = rangeMatch[3] == null ? 1 : Math.abs(Number(rangeMatch[3]))
+  if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(requestedStep) || requestedStep === 0) return []
+
+  const direction = start <= end ? 1 : -1
+  const step = requestedStep * direction
+  const values: number[] = []
+  for (let current = start; direction > 0 ? current <= end + 1e-9 : current >= end - 1e-9; current += step) {
+    values.push(Number(current.toFixed(8)))
+    if (values.length > 500) break
+  }
+  return values
+}
+
+function parseNumberList(raw: unknown) {
+  const values = splitSweepTokens(raw).flatMap(expandNumberToken)
+  return Array.from(new Set(values.filter(value => Number.isFinite(value))))
+}
+
 function optionalNumberValue(value: unknown): number | null {
-  if (value === '' || value == null) return null
-  const numeric = Number(value)
+  const [numeric] = parseNumberList(value)
   return Number.isFinite(numeric) ? numeric : null
 }
 
@@ -2598,6 +2688,178 @@ function optionalDisabledInputWithDefault(value: unknown, fallback: number): Opt
   return value === undefined ? fallback : optionalDisabledInput(value)
 }
 
+function setSweepSingle(target: SweepValueDraft, value: OptionalNumberInput, step: number) {
+  target.mode = 'single'
+  target.single = value
+  target.list = []
+  target.range = {
+    start: value,
+    end: value,
+    step,
+  }
+}
+
+function normalizedSweepNumber(value: unknown, options: { integer?: boolean; min?: number } = {}) {
+  const numeric = optionalNumberValue(value)
+  if (numeric == null) return null
+  const normalized = options.integer === true ? Math.round(numeric) : numeric
+  if (options.min != null && normalized < options.min) return null
+  return Number(normalized.toFixed(8))
+}
+
+function serializeSweepValue(target: SweepValueDraft, options: { integer?: boolean; min?: number } = {}) {
+  return {
+    mode: target.mode,
+    single: normalizedSweepNumber(target.single, options),
+    list: target.list
+      .map(value => normalizedSweepNumber(value, options))
+      .filter((value): value is number => value != null),
+    range: {
+      start: normalizedSweepNumber(target.range.start, options),
+      end: normalizedSweepNumber(target.range.end, options),
+      step: normalizedSweepNumber(target.range.step, { integer: options.integer, min: 0 }),
+    },
+  }
+}
+
+function serializeParameterSweeps() {
+  return {
+    stop_loss_pct: serializeSweepValue(sweepDraft.stop_loss_pct, { min: 0.1 }),
+    take_profit_rr: serializeSweepValue(sweepDraft.take_profit_rr, { min: 0 }),
+    max_bars_in_trade: serializeSweepValue(sweepDraft.max_bars_in_trade, { integer: true, min: 1 }),
+  }
+}
+
+function normalizeSweepMode(value: unknown): SweepMode {
+  return value === 'list' || value === 'range' ? value : 'single'
+}
+
+function applySweepSnapshot(
+  target: SweepValueDraft,
+  raw: unknown,
+  fallback: OptionalNumberInput,
+  step: number,
+  options: { integer?: boolean; min?: number } = {},
+) {
+  setSweepSingle(target, fallback, step)
+  if (!raw || typeof raw !== 'object') return
+
+  const snapshot = raw as Partial<SweepValueDraft>
+  const mode = normalizeSweepMode(snapshot.mode)
+  target.mode = mode
+  target.single = normalizedSweepNumber(snapshot.single, options) ?? fallback
+  target.list = Array.isArray(snapshot.list)
+    ? snapshot.list
+        .map(value => normalizedSweepNumber(value, options))
+        .filter((value): value is number => value != null)
+    : []
+  target.range = {
+    start: normalizedSweepNumber(snapshot.range?.start, options) ?? target.single,
+    end: normalizedSweepNumber(snapshot.range?.end, options) ?? target.single,
+    step: normalizedSweepNumber(snapshot.range?.step, { integer: options.integer, min: 0 }) ?? step,
+  }
+}
+
+function hydrateParameterSweeps(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return
+  const sweeps = raw as Record<string, unknown>
+  applySweepSnapshot(sweepDraft.stop_loss_pct, sweeps.stop_loss_pct, sweepDraft.stop_loss_pct.single, 0.1, { min: 0.1 })
+  applySweepSnapshot(sweepDraft.take_profit_rr, sweeps.take_profit_rr, sweepDraft.take_profit_rr.single, 0.25, { min: 0 })
+  applySweepSnapshot(sweepDraft.max_bars_in_trade, sweeps.max_bars_in_trade, sweepDraft.max_bars_in_trade.single, 1, { integer: true, min: 1 })
+}
+
+function nextSweepMode(mode: SweepMode): SweepMode {
+  if (mode === 'single') return 'list'
+  if (mode === 'list') return 'range'
+  return 'single'
+}
+
+function sweepModeLabel(mode: SweepMode) {
+  if (mode === 'single') return 'Single value'
+  if (mode === 'list') return 'Fixed list'
+  return 'Value range'
+}
+
+function sweepModeAriaLabel(target: SweepValueDraft) {
+  return `${sweepModeLabel(target.mode)} parameter mode. Click to switch to ${sweepModeLabel(nextSweepMode(target.mode))}.`
+}
+
+function sweepModeTooltip(target: SweepValueDraft) {
+  return `${sweepModeLabel(target.mode)} mode. Click to switch to ${sweepModeLabel(nextSweepMode(target.mode))}. Multiple values generate a run batch automatically.`
+}
+
+function cycleSweepMode(
+  target: SweepValueDraft,
+  options: { integer?: boolean; min?: number; step?: number } = {},
+) {
+  const mode = nextSweepMode(target.mode)
+  const single = optionalNumberValue(target.single)
+  const min = options.min ?? Number.NEGATIVE_INFINITY
+  const step = options.step ?? 1
+  target.mode = mode
+  if (mode === 'list' && !target.list.length && single != null && single >= min) {
+    target.list = [options.integer === true ? Math.round(single) : single]
+  }
+  if (mode === 'range') {
+    const fallback = single != null && single >= min ? single : (Number.isFinite(min) ? min : '')
+    target.range = {
+      start: optionalNumberValue(target.range.start) ?? fallback,
+      end: optionalNumberValue(target.range.end) ?? fallback,
+      step: optionalNumberValue(target.range.step) ?? step,
+    }
+  }
+}
+
+function rangeValuesFromSweep(
+  target: SweepValueDraft,
+  options: { integer?: boolean; min?: number; step?: number } = {},
+) {
+  const integer = options.integer === true
+  const min = options.min ?? Number.NEGATIVE_INFINITY
+  const step = options.step ?? 1
+  const start = optionalNumberValue(target.range.start)
+  const end = optionalNumberValue(target.range.end)
+  const requestedStep = Math.abs(optionalNumberValue(target.range.step) ?? step)
+  if (start == null || end == null || requestedStep <= 0) return []
+
+  const direction = start <= end ? 1 : -1
+  const normalizedStep = requestedStep * direction
+  const values: number[] = []
+  for (
+    let current = start;
+    direction > 0 ? current <= end + 1e-9 : current >= end - 1e-9;
+    current += normalizedStep
+  ) {
+    const value = integer ? Math.round(current) : Number(current.toFixed(8))
+    if (value >= min) values.push(value)
+    if (values.length > 500) break
+  }
+  return Array.from(new Set(values))
+}
+
+function valuesFromSweep(target: SweepValueDraft, options: { integer?: boolean; min?: number; step?: number } = {}) {
+  const integer = options.integer === true
+  const min = options.min ?? Number.NEGATIVE_INFINITY
+  const step = options.step ?? 1
+  if (target.mode === 'list') {
+    return Array.from(new Set(
+      target.list
+        .map(value => (integer ? Math.round(value) : value))
+        .filter(value => Number.isFinite(value) && value >= min),
+    ))
+  }
+  if (target.mode === 'range') {
+    return rangeValuesFromSweep(target, { integer, min, step })
+  }
+  const value = optionalNumberValue(target.single)
+  if (value == null || value < min) return []
+  return [integer ? Math.round(value) : value]
+}
+
+function primarySweepValue(target: SweepValueDraft, options: { integer?: boolean; min?: number; step?: number } = {}) {
+  return valuesFromSweep(target, options)[0] ?? null
+}
+
 const strategyNarrative = computed(() => {
   if (sourceType.value === 'radar') {
     const setupText = radarDraft.setup_types.length
@@ -2612,7 +2874,7 @@ const strategyNarrative = computed(() => {
   const exitText = describeRuleNode(logicDraft.exitRuleTree)
   const stopText = logicDraft.stop_model === 'atr'
     ? `${logicDraft.stop_atr_multiple} ATR stop (${logicDraft.stop_atr_period})`
-    : `${logicDraft.stop_loss_pct}% stop`
+    : `${primarySweepValue(sweepDraft.stop_loss_pct, { min: 0.1, step: 0.1 }) ?? 2}% stop`
   const sizingText = logicDraft.position_sizing_mode === 'percent_risk'
     ? `${runDraft.risk_per_trade_pct}% risk-per-trade sizing`
     : logicDraft.position_sizing_mode === 'fixed_cash'
@@ -2620,8 +2882,8 @@ const strategyNarrative = computed(() => {
       : logicDraft.position_sizing_mode === 'percent_capital'
         ? `${logicDraft.position_sizing_value}% capital sizing`
         : `${logicDraft.position_sizing_value.toFixed(0)} fixed quantity sizing`
-  const takeProfitR = optionalNumberOrZero(logicDraft.take_profit_rr)
-  const maxBarsInTrade = optionalIntegerOrZero(logicDraft.max_bars_in_trade)
+  const takeProfitR = primarySweepValue(sweepDraft.take_profit_rr, { min: 0, step: 0.25 }) ?? 0
+  const maxBarsInTrade = primarySweepValue(sweepDraft.max_bars_in_trade, { integer: true, min: 1, step: 1 }) ?? 0
   const hardTrailingStopPct = optionalNumberOrZero(logicDraft.hard_trailing_stop_pct)
   const breakEvenR = optionalNumberOrZero(logicDraft.break_even_rr)
   const trailingStopR = optionalNumberOrZero(logicDraft.trailing_stop_rr)
@@ -2819,13 +3081,13 @@ function startNew() {
   logicDraft.timeframe = 'D1'
   logicDraft.direction = 'long'
   logicDraft.stop_model = 'percent'
-  logicDraft.stop_loss_pct = 2
+  setSweepSingle(sweepDraft.stop_loss_pct, 2, 0.1)
   logicDraft.stop_atr_period = 14
   logicDraft.stop_atr_multiple = 2
   logicDraft.hard_trailing_stop_pct = ''
   logicDraft.hard_trailing_activation_pct = 0
-  logicDraft.take_profit_rr = 2
-  logicDraft.max_bars_in_trade = 20
+  setSweepSingle(sweepDraft.take_profit_rr, 2, 0.25)
+  setSweepSingle(sweepDraft.max_bars_in_trade, 20, 1)
   logicDraft.break_even_rr = ''
   logicDraft.trailing_stop_rr = ''
   logicDraft.position_sizing_mode = 'percent_risk'
@@ -2854,10 +3116,6 @@ function startNew() {
   runDraft.max_portfolio_risk_pct = 4
   runDraft.max_symbol_allocation_pct = 35
   runDraft.close_open_positions_at_end = false
-  runDraft.optimization_enabled = false
-  runDraft.stop_loss_pct_values = '1.5, 2, 2.5, 3'
-  runDraft.take_profit_rr_values = '1.5, 2, 2.5, 3'
-  runDraft.max_bars_in_trade_values = '10, 15, 20, 30'
   runDraft.use_subset = false
   runDraft.overrideSymbols = []
   showAdvancedRunOptions.value = false
@@ -2900,7 +3158,7 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
   logicDraft.timeframe = String(snapshot.timeframe ?? 'D1')
   logicDraft.direction = String(snapshot.direction ?? 'long')
   logicDraft.stop_model = String(risk.stop_model ?? 'percent') === 'atr' ? 'atr' : 'percent'
-  logicDraft.stop_loss_pct = toPositiveNumber(risk.stop_loss_pct, 2)
+  setSweepSingle(sweepDraft.stop_loss_pct, toPositiveNumber(risk.stop_loss_pct, 2), 0.1)
   logicDraft.stop_atr_period = Math.max(1, Math.round(toPositiveNumber(risk.stop_atr_period, 14)))
   logicDraft.stop_atr_multiple = Math.max(0.1, Number(risk.stop_atr_multiple ?? 2) || 2)
   logicDraft.hard_trailing_stop_pct = optionalDisabledInput(risk.hard_trailing_stop_pct)
@@ -2915,8 +3173,8 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     : Object.prototype.hasOwnProperty.call(risk, 'max_bars_in_trade')
       ? risk.max_bars_in_trade
       : undefined
-  logicDraft.take_profit_rr = optionalDisabledInputWithDefault(takeProfitSource, 2)
-  logicDraft.max_bars_in_trade = optionalDisabledInputWithDefault(maxBarsSource, 20)
+  setSweepSingle(sweepDraft.take_profit_rr, optionalDisabledInputWithDefault(takeProfitSource, 2), 0.25)
+  setSweepSingle(sweepDraft.max_bars_in_trade, optionalDisabledInputWithDefault(maxBarsSource, 20), 1)
   logicDraft.break_even_rr = optionalDisabledInput(risk.break_even_rr)
   logicDraft.trailing_stop_rr = optionalDisabledInput(risk.trailing_stop_rr)
   const sizingMode = String(risk.position_sizing_mode ?? 'percent_risk')
@@ -2984,10 +3242,7 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     Math.max(0.3, Number(runDefaults.walk_forward_training_share ?? 0.6) || 0.6),
   )
   runDraft.paper_forward_bars = Math.max(5, Math.round(Number(runDefaults.paper_forward_bars ?? 20) || 20))
-  runDraft.optimization_enabled = runDefaults.optimization_enabled === true
-  runDraft.stop_loss_pct_values = String(runDefaults.stop_loss_pct_values ?? '1.5, 2, 2.5, 3')
-  runDraft.take_profit_rr_values = String(runDefaults.take_profit_rr_values ?? '1.5, 2, 2.5, 3')
-  runDraft.max_bars_in_trade_values = String(runDefaults.max_bars_in_trade_values ?? '10, 15, 20, 30')
+  hydrateParameterSweeps(runDefaults.parameter_sweeps)
   runDraft.overrideSymbols = normalizeSymbols(Array.isArray(runDefaults.override_symbols) ? runDefaults.override_symbols : [])
   runDraft.use_subset = runDraft.overrideSymbols.length > 0
   showAdvancedRunOptions.value = false
@@ -3424,13 +3679,14 @@ function buildVersionPayload() {
   const hardTrailingStopPct = optionalNumberValue(logicDraft.hard_trailing_stop_pct)
   const breakEvenR = optionalNumberValue(logicDraft.break_even_rr)
   const trailingStopR = optionalNumberValue(logicDraft.trailing_stop_rr)
-  const takeProfitR = optionalNumberValue(logicDraft.take_profit_rr)
-  const maxBarsInTrade = optionalNumberValue(logicDraft.max_bars_in_trade)
+  const takeProfitR = primarySweepValue(sweepDraft.take_profit_rr, { min: 0, step: 0.25 })
+  const maxBarsInTrade = primarySweepValue(sweepDraft.max_bars_in_trade, { integer: true, min: 1, step: 1 })
+  const stopLossPct = primarySweepValue(sweepDraft.stop_loss_pct, { min: 0.1, step: 0.1 }) ?? 2
   const slippageBps = optionalNumberValue(runDraft.slippage_bps)
   const commissionValue = optionalNumberValue(runDraft.commission_value)
   const riskConfig = {
     stop_model: logicDraft.stop_model,
-    stop_loss_pct: logicDraft.stop_loss_pct,
+    stop_loss_pct: stopLossPct,
     stop_atr_period: logicDraft.stop_atr_period,
     stop_atr_multiple: logicDraft.stop_atr_multiple,
     hard_trailing_stop_pct: hardTrailingStopPct,
@@ -3489,7 +3745,7 @@ function buildVersionPayload() {
     },
     default_parameters: {
       stop_model: logicDraft.stop_model,
-      stop_loss_pct: logicDraft.stop_loss_pct,
+      stop_loss_pct: stopLossPct,
       stop_atr_period: logicDraft.stop_atr_period,
       stop_atr_multiple: logicDraft.stop_atr_multiple,
       hard_trailing_stop_pct: hardTrailingStopPct,
@@ -3545,10 +3801,7 @@ function buildVersionPayload() {
         walk_forward_segments: runDraft.walk_forward_segments,
         walk_forward_training_share: runDraft.walk_forward_training_share,
         paper_forward_bars: runDraft.paper_forward_bars,
-        optimization_enabled: runDraft.optimization_enabled,
-        stop_loss_pct_values: runDraft.stop_loss_pct_values,
-        take_profit_rr_values: runDraft.take_profit_rr_values,
-        max_bars_in_trade_values: runDraft.max_bars_in_trade_values,
+        parameter_sweeps: serializeParameterSweeps(),
         override_symbols: runDraft.use_subset ? runDraft.overrideSymbols : [],
       },
     },
@@ -3722,37 +3975,24 @@ function describeCondition(condition: BuilderConditionNode) {
   return describeTechnicalCondition(condition.condition)
 }
 
-function parseNumberList(raw: string) {
-  return raw
-    .split(',')
-    .map(value => Number(value.trim()))
-    .filter(value => Number.isFinite(value))
-}
-
-function parseIntegerList(raw: string) {
-  return raw
-    .split(',')
-    .map(value => Math.round(Number(value.trim())))
-    .filter(value => Number.isFinite(value) && value > 0)
-}
-
 function parameterGridPayload() {
-  if (!runDraft.optimization_enabled) return null
   const parameters = [
     {
       key: 'risk.stop_loss_pct',
       label: 'Stop %',
-      values: parseNumberList(runDraft.stop_loss_pct_values),
+      values: logicDraft.stop_model === 'percent'
+        ? valuesFromSweep(sweepDraft.stop_loss_pct, { min: 0.1, step: 0.1 })
+        : [],
     },
     {
       key: 'exits.take_profit_rr',
       label: 'Target R',
-      values: parseNumberList(runDraft.take_profit_rr_values),
+      values: valuesFromSweep(sweepDraft.take_profit_rr, { min: 0.0000001, step: 0.25 }),
     },
     {
       key: 'exits.max_bars_in_trade',
       label: 'Max bars',
-      values: parseIntegerList(runDraft.max_bars_in_trade_values),
+      values: valuesFromSweep(sweepDraft.max_bars_in_trade, { integer: true, min: 1, step: 1 }),
     },
   ].filter(parameter => parameter.values.length > 1)
   return parameters.length ? { parameters } : null
@@ -4032,6 +4272,7 @@ function formatFullCoverageDateTime(value: string | null | undefined) {
 function formatShortDateTime(value: string | null | undefined) {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-GB', {
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -4708,12 +4949,78 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   font-size: 12px;
 }
 
+.field--sweep {
+  align-content: start;
+}
+
 .field-label {
   color: #8d8d8d;
   font-size: 11px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.sweep-indicator {
+  padding: 0;
+  display: inline-grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-template-rows: repeat(2, 4px);
+  gap: 3px;
+  width: 18px;
+  height: 18px;
+  place-content: center;
+  border: 1px solid rgba(126, 194, 255, 0.32);
+  border-radius: 6px;
+  background: rgba(34, 96, 154, 0.12);
+  box-shadow: inset 0 0 10px rgba(126, 194, 255, 0.04);
+  cursor: pointer;
+}
+
+.sweep-indicator span {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #9ed0ff;
+  opacity: 0.82;
+}
+
+.sweep-indicator--single {
+  place-content: center;
+}
+
+.sweep-indicator--single span {
+  display: none;
+}
+
+.sweep-indicator--single span:first-child {
+  display: block;
+}
+
+.sweep-indicator--range {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.sweep-indicator--range span {
+  display: none;
+}
+
+.sweep-indicator--range span:first-child,
+.sweep-indicator--range span:nth-child(3) {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.sweep-indicator--range span:nth-child(2) {
+  display: block;
+  width: 7px;
+  height: 2px;
+  border-radius: 999px;
 }
 
 .advanced-toggle {
