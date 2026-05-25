@@ -30,8 +30,8 @@
       <rect :x="zeroX" :y="plotTop" :width="plotRight - zeroX" :height="plotHeight" fill="url(#symbol-map-gain-zone)" />
 
       <text :x="plotLeft" y="34" fill="#ef9e9e" font-size="15" font-weight="800" letter-spacing="0.07em">LOSSES</text>
-      <text :x="zeroX" y="34" fill="#8f98a8" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="middle">FLAT</text>
-      <text :x="plotRight" y="34" fill="#90d89e" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="end">GAINS</text>
+      <text :x="zeroX" y="34" fill="#8f98a8" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="middle">BREAKEVEN</text>
+      <text :x="plotRight" y="34" fill="#90d89e" font-size="15" font-weight="800" letter-spacing="0.07em" text-anchor="end">WINS</text>
 
       <line :x1="plotLeft" :x2="plotRight" :y1="axisY" :y2="axisY" stroke="url(#symbol-map-axis)" stroke-width="2" stroke-linecap="round" />
       <line :x1="zeroX" :x2="zeroX" :y1="plotTop" :y2="axisY + 10" stroke="#d5deeb" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="4 5" />
@@ -77,7 +77,9 @@
         :cy="row.y"
         :r="activeSymbol === row.symbol ? row.radius + 2 : row.radius"
         :fill="row.fill"
+        :fill-opacity="row.pointOpacity"
         :stroke="activeSymbol === row.symbol ? '#eef3fb' : '#080b10'"
+        :stroke-opacity="row.strokeOpacity"
         :stroke-width="activeSymbol === row.symbol ? 2.4 : 1.7"
         tabindex="0"
         role="button"
@@ -242,8 +244,11 @@ const plottedRows = computed(() =>
     const realizedPct = realizedPnlPercent(row)
     const unrealizedPct = unrealizedPnlPercent(row)
     const markedPct = realizedPct + unrealizedPct
+    const closedCount = Number(row.closed_trade_count ?? row.trade_count ?? 0)
+    const openCount = Number(row.open_position_count ?? 0)
+    const isUnrealizedOnly = closedCount <= 0 && openCount > 0
     const tone = toneForValue(markedPct)
-    const radius = 5.2 + Math.min(5.8, (Math.abs(markedPct) / maxAbsPercent.value) * 5.8)
+    const baseRadius = 5.2 + Math.min(5.8, (Math.abs(markedPct) / maxAbsPercent.value) * 5.8)
     return {
       ...row,
       markedPnl,
@@ -254,8 +259,11 @@ const plottedRows = computed(() =>
       unrealizedPct,
       x: valueToX(markedPct),
       y: jitterY(index, markedPct, sortedRows.value),
-      radius,
+      radius: baseRadius,
       fill: colorForTone(tone),
+      isUnrealizedOnly,
+      pointOpacity: isUnrealizedOnly ? 0.46 : 0.96,
+      strokeOpacity: isUnrealizedOnly ? 0.72 : 1,
     }
   }),
 )
@@ -521,7 +529,7 @@ onBeforeUnmount(() => {
 
 .symbol-map__point {
   cursor: pointer;
-  transition: r 0.16s ease, stroke 0.16s ease, stroke-width 0.16s ease;
+  transition: r 0.16s ease, stroke 0.16s ease, stroke-width 0.16s ease, fill-opacity 0.16s ease, stroke-opacity 0.16s ease;
 }
 
 .symbol-map__point:hover,

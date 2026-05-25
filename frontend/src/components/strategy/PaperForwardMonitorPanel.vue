@@ -128,6 +128,7 @@ function formatMoney(value: number | null | undefined) {
 function formatShortDateTime(value?: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-GB', {
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',

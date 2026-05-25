@@ -33,6 +33,16 @@ describe('SymbolPerformanceBars', () => {
             win_rate: 0,
             avg_r: -0.82,
           },
+          {
+            symbol: 'ARM',
+            net_pnl: 250,
+            total_pnl: 250,
+            realized_pnl: 0,
+            unrealized_pnl: 250,
+            trade_count: 0,
+            closed_trade_count: 0,
+            open_position_count: 1,
+          },
         ],
         events: [
           {
@@ -53,6 +63,15 @@ describe('SymbolPerformanceBars', () => {
             pnl_pct: 2.5,
             reason: 'run_end_mark',
           },
+          {
+            ts: '2026-02-09T00:00:00Z',
+            position_id: 'ARM-1',
+            event_type: 'open_at_end',
+            symbol: 'ARM',
+            pnl: 250,
+            pnl_pct: 2.5,
+            reason: 'run_end_mark',
+          },
         ],
       },
     })
@@ -61,9 +80,14 @@ describe('SymbolPerformanceBars', () => {
     expect(wrapper.text()).not.toContain('Best realized AAPL')
     expect(wrapper.text()).not.toContain('Worst realized MSFT')
     expect(wrapper.text()).toContain('LOSSES')
-    expect(wrapper.text()).toContain('FLAT')
-    expect(wrapper.text()).toContain('GAINS')
-    expect(wrapper.findAll('[data-testid="symbol-pnl-point"]')).toHaveLength(2)
+    expect(wrapper.text()).toContain('BREAKEVEN')
+    expect(wrapper.text()).toContain('WINS')
+    expect(wrapper.findAll('[data-testid="symbol-pnl-point"]')).toHaveLength(3)
+    const unrealizedPoint = wrapper
+      .findAll('[data-testid="symbol-pnl-point"]')
+      .find(point => point.attributes('aria-label')?.startsWith('ARM '))
+    expect(unrealizedPoint?.attributes('fill-opacity')).toBe('0.46')
+    expect(unrealizedPoint?.attributes('stroke-dasharray')).toBeUndefined()
 
     const firstPoint = wrapper.find('[data-testid="symbol-pnl-point"]')
     await firstPoint.trigger('mouseenter')
