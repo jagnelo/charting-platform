@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
@@ -23,5 +23,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('/vue') || id.includes('/pinia') || id.includes('/vue-router')) {
+            return 'vendor-vue'
+          }
+          if (id.includes('/uplot')) return 'vendor-charting'
+          if (id.includes('/axios')) return 'vendor-network'
+          return 'vendor'
+        },
+      },
+    },
   },
 })
