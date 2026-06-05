@@ -128,6 +128,16 @@ def _series_to_cacheable(result: dict[str, np.ndarray]) -> dict[str, list]:
     return out
 
 
+def _pick_indicator_output(
+    result: dict[str, np.ndarray],
+    preferred: str | None,
+) -> tuple[str, np.ndarray]:
+    if preferred and preferred in result:
+        return preferred, result[preferred]
+    key = next(iter(result.keys()))
+    return key, result[key]
+
+
 async def _compute_indicator_cached(
     db: AsyncSession,
     instrument_id: int,
@@ -329,14 +339,14 @@ async def _evaluate_condition(
     if ctype == "indicator_threshold":
         ind_type = condition["indicator"]
         ind_params = condition.get("params", {})
+        output = str(condition.get("output") or "")
         op = condition["op"]
         threshold = float(condition["value"])
 
         result = await _compute_indicator_cached(
             db, instrument.id, timeframe, ind_type, ind_params, data
         )
-        key = list(result.keys())[0]
-        series = result[key]
+        key, series = _pick_indicator_output(result, output)
         val = None
         for v in reversed(series):
             if not np.isnan(v):
@@ -359,10 +369,8 @@ async def _evaluate_condition(
         res_b = await _compute_indicator_cached(
             db, instrument.id, timeframe, b["type"], b.get("params", {}), data
         )
-        key_a = list(res_a.keys())[0]
-        key_b = list(res_b.keys())[0]
-        arr_a = res_a[key_a]
-        arr_b = res_b[key_b]
+        key_a, arr_a = _pick_indicator_output(res_a, str(a.get("output") or ""))
+        key_b, arr_b = _pick_indicator_output(res_b, str(b.get("output") or ""))
 
         n = min(len(arr_a), len(arr_b))
         if n < 2:
@@ -384,6 +392,49 @@ async def _evaluate_condition(
             return cur_a > cur_b, computed
         if op == "lt":
             return cur_a < cur_b, computed
+
+    if ctype == "price_indicator":
+        field = condition.get("field", "close")
+        ind_type = condition["indicator"]
+        ind_params = condition.get("params", {})
+        output = str(condition.get("output") or "")
+        op = condition["op"]
+
+        field_map = {
+            "open": data.opens,
+            "high": data.highs,
+            "low": data.lows,
+            "close": data.closes,
+            "volume": data.volumes,
+        }
+        price_series = field_map.get(field, data.closes)
+        if len(price_series) < 2:
+            return False, computed
+
+        result = await _compute_indicator_cached(
+            db, instrument.id, timeframe, ind_type, ind_params, data
+        )
+        key, indicator_series = _pick_indicator_output(result, output)
+        n = min(len(price_series), len(indicator_series))
+        if n < 2:
+            return False, computed
+
+        cur_price = float(price_series[n - 1])
+        prev_price = float(price_series[n - 2])
+        cur_indicator = indicator_series[n - 1]
+        prev_indicator = indicator_series[n - 2]
+        computed[field] = cur_price
+        computed[f"{ind_type}_{key}"] = float(cur_indicator) if not np.isnan(cur_indicator) else None
+
+        if np.isnan(cur_indicator):
+            return False, computed
+        if op in {"crosses_above", "crosses_below"} and np.isnan(prev_indicator):
+            return False, computed
+        if op == "crosses_above":
+            return (prev_price <= prev_indicator) and (cur_price > cur_indicator), computed
+        if op == "crosses_below":
+            return (prev_price >= prev_indicator) and (cur_price < cur_indicator), computed
+        return _compare(cur_price, op, float(cur_indicator)), computed
 
     # ── Price threshold ──────────────────────────────────────────────────────
     if ctype == "price_threshold":

@@ -816,13 +816,156 @@ export interface Dashboard {
   updated_at: string
 }
 
+// ── Strategy Lab ──────────────────────────────────────────────────────────────
+
+export type StrategySourceType = 'custom' | 'radar'
+export type StrategyDefinitionType = 'rules' | 'dsl' | 'python' | 'signal_source'
+export type StrategyTestMode = 'backtest' | 'walk_forward' | 'paper_forward'
+export type StrategyRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled'
+
+export interface StrategyCoverageInstrument {
+  instrument_id: number
+  symbol: string
+  available_from?: string | null
+  available_to?: string | null
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  total_bars: number
+  requested_bars: number
+  requested_status: string
+  note?: string | null
+  ipo_date?: string | null
+}
+
+export interface StrategyCoverageUniverse {
+  preview_mode: string
+  preview_note?: string | null
+  instrument_count: number
+  instruments_with_data: number
+  instruments_with_requested_data: number
+  instruments_with_full_requested_coverage: number
+  instruments_with_partial_requested_coverage: number
+  instruments_without_requested_coverage: number
+  total_bars: number
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  any_coverage_from?: string | null
+  any_coverage_to?: string | null
+  collective_coverage_from?: string | null
+  collective_coverage_to?: string | null
+  requested_fits_collective_range?: boolean | null
+  resolved_symbols: string[]
+  limiting_instruments: StrategyCoverageInstrument[]
+  instruments: StrategyCoverageInstrument[]
+  simulatable_instrument_count?: number
+  simulatable_symbols?: string[]
+}
+
+export interface StrategyCoverageBenchmark {
+  symbol?: string | null
+  preview_note?: string | null
+  requested_status: string
+  available_from?: string | null
+  available_to?: string | null
+  requested_first_bar_at?: string | null
+  requested_last_bar_at?: string | null
+  total_bars: number
+  requested_bars: number
+  requested_fits_range?: boolean | null
+}
+
+export interface StrategyCoveragePreview {
+  timeframe: string
+  requested_date_from?: string | null
+  requested_date_to?: string | null
+  universe: StrategyCoverageUniverse
+  benchmark: StrategyCoverageBenchmark
+  warnings: string[]
+}
+
+export interface StrategyVersion {
+  id: number
+  strategy_id: number
+  version_number: number
+  definition_snapshot: Record<string, any>
+  parameter_schema: Record<string, any>
+  default_parameters: Record<string, any>
+  universe_config: Record<string, any>
+  benchmark_config: Record<string, any>
+  execution_model: Record<string, any>
+  notes?: string | null
+  is_current: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyRun {
+  id: number
+  strategy_id: number
+  strategy_version_id: number
+  requested_by_user_id: number
+  run_batch_id?: number | null
+  test_mode: StrategyTestMode | string
+  status: StrategyRunStatus | string
+  timeframe?: string | null
+  started_at?: string | null
+  completed_at?: string | null
+  date_from?: string | null
+  date_to?: string | null
+  parameter_values: Record<string, any>
+  parameter_diff?: Record<string, any>
+  universe_config: Record<string, any>
+  benchmark_config: Record<string, any>
+  execution_assumptions: Record<string, any>
+  engine_run_ref?: string | null
+  result_summary: Record<string, any>
+  artifact_manifest: Record<string, any>
+  warning_log: any[]
+  error_log?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyRunBatch {
+  id: number
+  strategy_id: number
+  strategy_version_id: number
+  requested_by_user_id: number
+  label?: string | null
+  test_mode: StrategyTestMode | string
+  status: StrategyRunStatus | string
+  parameter_dimensions: any[]
+  parameter_grid: Array<Record<string, any>>
+  summary: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategyDefinition {
+  id: number
+  user_id: number
+  name: string
+  description?: string | null
+  source_type: StrategySourceType | string
+  definition_type: StrategyDefinitionType | string
+  is_active: boolean
+  tags: string[]
+  metadata: Record<string, any>
+  versions: StrategyVersion[]
+  run_batches?: StrategyRunBatch[]
+  runs: StrategyRun[]
+  created_at: string
+  updated_at: string
+}
+
 // ── Screener ──────────────────────────────────────────────────────────────────
 
-export type PriceChangePeriod = '1D' | '1W' | '1M' | 'MTD' | 'YTD' | '1Y'
+export type PriceChangePeriod = '1D' | '1W' | '1M' | '3M' | '6M' | 'MTD' | 'QTD' | 'YTD' | '1Y'
 
 export type ScreenerConditionType =
   | 'indicator_threshold'
   | 'indicator_cross'
+  | 'price_indicator'
   | 'price_threshold'
   | 'price_change'
   | 'price_change_period'

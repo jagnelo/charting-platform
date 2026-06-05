@@ -1,0 +1,218 @@
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.strategy import (
+    StrategyDefinitionType,
+    StrategySourceType,
+    StrategyTestMode,
+)
+
+
+class StrategyVersionSeed(BaseModel):
+    definition_snapshot: dict = Field(default_factory=dict)
+    parameter_schema: dict = Field(default_factory=dict)
+    default_parameters: dict = Field(default_factory=dict)
+    universe_config: dict = Field(default_factory=dict)
+    benchmark_config: dict = Field(default_factory=dict)
+    execution_model: dict = Field(default_factory=dict)
+    notes: str | None = None
+
+
+class StrategyDefinitionCreate(BaseModel):
+    name: str
+    description: str | None = None
+    source_type: StrategySourceType = StrategySourceType.CUSTOM
+    definition_type: StrategyDefinitionType = StrategyDefinitionType.RULES
+    is_active: bool = True
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
+    initial_version: StrategyVersionSeed = Field(default_factory=StrategyVersionSeed)
+
+
+class StrategyDefinitionUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    source_type: StrategySourceType | None = None
+    definition_type: StrategyDefinitionType | None = None
+    is_active: bool | None = None
+    tags: list[str] | None = None
+    metadata: dict | None = None
+
+
+class StrategyVersionCreate(StrategyVersionSeed):
+    pass
+
+
+class StrategyVersionUpdate(StrategyVersionSeed):
+    pass
+
+
+class StrategyRunCreate(BaseModel):
+    test_mode: StrategyTestMode = StrategyTestMode.BACKTEST
+    timeframe: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    parameter_values: dict = Field(default_factory=dict)
+    parameter_grid: dict | None = None
+    universe_config: dict | None = None
+    benchmark_config: dict | None = None
+    execution_assumptions: dict = Field(default_factory=dict)
+
+
+class StrategyCoveragePreviewRequest(BaseModel):
+    source_type: StrategySourceType = StrategySourceType.CUSTOM
+    timeframe: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    universe_config: dict = Field(default_factory=dict)
+    benchmark_config: dict = Field(default_factory=dict)
+
+
+class StrategyVersionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    strategy_id: int
+    version_number: int
+    definition_snapshot: dict
+    parameter_schema: dict
+    default_parameters: dict
+    universe_config: dict
+    benchmark_config: dict
+    execution_model: dict
+    notes: str | None
+    is_current: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    strategy_id: int
+    strategy_version_id: int
+    requested_by_user_id: int
+    run_batch_id: int | None = None
+    test_mode: str
+    status: str
+    timeframe: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    date_from: datetime | None
+    date_to: datetime | None
+    parameter_values: dict
+    parameter_diff: dict = Field(default_factory=dict)
+    universe_config: dict
+    benchmark_config: dict
+    execution_assumptions: dict
+    engine_run_ref: str | None
+    result_summary: dict
+    artifact_manifest: dict
+    warning_log: list
+    error_log: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyRunBatchOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    strategy_id: int
+    strategy_version_id: int
+    requested_by_user_id: int
+    label: str | None
+    test_mode: str
+    status: str
+    parameter_dimensions: list
+    parameter_grid: list
+    summary: dict
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyDefinitionSummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    name: str
+    description: str | None
+    source_type: str
+    definition_type: str
+    is_active: bool
+    tags: list
+    metadata: dict = Field(validation_alias="metadata_json")
+    versions: list[StrategyVersionOut] = Field(default_factory=list)
+    run_batches: list[StrategyRunBatchOut] = Field(default_factory=list)
+    runs: list[StrategyRunOut] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class StrategyDefinitionDetailOut(StrategyDefinitionSummaryOut):
+    pass
+
+
+class StrategyRunSubmitOut(StrategyRunOut):
+    pass
+
+
+class StrategyCoverageInstrumentOut(BaseModel):
+    instrument_id: int
+    symbol: str
+    available_from: datetime | None
+    available_to: datetime | None
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    total_bars: int
+    requested_bars: int
+    requested_status: str
+    note: str | None = None
+    ipo_date: str | None = None
+
+
+class StrategyCoverageUniverseOut(BaseModel):
+    preview_mode: str
+    preview_note: str | None = None
+    instrument_count: int
+    instruments_with_data: int
+    instruments_with_requested_data: int
+    instruments_with_full_requested_coverage: int
+    instruments_with_partial_requested_coverage: int
+    instruments_without_requested_coverage: int
+    total_bars: int
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    any_coverage_from: datetime | None
+    any_coverage_to: datetime | None
+    collective_coverage_from: datetime | None
+    collective_coverage_to: datetime | None
+    requested_fits_collective_range: bool | None
+    resolved_symbols: list[str] = Field(default_factory=list)
+    limiting_instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
+    instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
+
+
+class StrategyCoverageBenchmarkOut(BaseModel):
+    symbol: str | None
+    preview_note: str | None = None
+    requested_status: str
+    available_from: datetime | None
+    available_to: datetime | None
+    requested_first_bar_at: datetime | None
+    requested_last_bar_at: datetime | None
+    total_bars: int
+    requested_bars: int
+    requested_fits_range: bool | None
+
+
+class StrategyCoveragePreviewOut(BaseModel):
+    timeframe: str
+    requested_date_from: datetime | None
+    requested_date_to: datetime | None
+    universe: StrategyCoverageUniverseOut
+    benchmark: StrategyCoverageBenchmarkOut
+    warnings: list[str] = Field(default_factory=list)

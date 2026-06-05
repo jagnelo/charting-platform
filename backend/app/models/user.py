@@ -45,6 +45,9 @@ class User(Base, TimestampMixin):
     dashboards: Mapped[list["Dashboard"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    strategy_definitions: Mapped[list["StrategyDefinition"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
     instrument_indicator_configs: Mapped[list["InstrumentIndicatorConfig"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

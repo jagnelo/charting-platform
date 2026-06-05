@@ -53,15 +53,16 @@
           >
             Compare
           </button>
-          <form v-if="showCompareInput" class="compare-form" @submit.prevent="addComparison">
-            <input
+          <div v-if="showCompareInput" class="compare-form">
+            <SearchBar
               v-model="compareDraft"
-              class="compare-input"
               placeholder="Symbol or =expression"
-              @keydown.escape="showCompareInput = false"
+              mode="picker"
+              fluid
+              :show-screener-link="false"
+              @select="addComparisonSymbol"
             />
-            <button type="submit">Add</button>
-          </form>
+          </div>
           <div v-if="comparisonLegend.length" class="compare-chips">
             <button
               v-for="target in comparisonLegend"
@@ -205,7 +206,6 @@ import { usePanelLinksStore } from '@/stores/panelLinks'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { formatMoney } from '@/lib/format'
-import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore }   from '@/stores/alerts'
 import { usePresetsStore }  from '@/stores/presets'
@@ -371,21 +371,7 @@ function resizeOptionsPanel(next: number) {
   collapsedOptionsPanel.value = false
 }
 
-async function resolveComparisonTarget(raw: string): Promise<string> {
-  const trimmed = raw.trim()
-  if (!trimmed) throw new Error('Empty symbol')
-  return ensureKnownInstrumentSymbol(trimmed)
-}
-
-async function addComparison() {
-  const raw = compareDraft.value.trim()
-  if (!raw) return
-  let symbol = ''
-  try {
-    symbol = await resolveComparisonTarget(raw)
-  } catch {
-    return
-  }
+async function addComparisonSymbol(symbol: string) {
   if (symbol === chartStore.symbol || comparisonTargets.value.some(target => target.symbol === symbol)) {
     compareDraft.value = ''
     return
@@ -651,7 +637,6 @@ onUnmounted(() => {
   min-width: 0;
 }
 .compare-btn,
-.compare-form button,
 .compare-chip {
   border: 1px solid #333;
   background: #151515;
@@ -672,20 +657,14 @@ onUnmounted(() => {
 .compare-form {
   display: flex;
   align-items: center;
-  gap: 5px;
+  width: 190px;
 }
-.compare-input {
-  width: 150px;
+.compare-form :deep(.search-input-wrap) {
+  min-height: 28px;
   background: #080808;
-  color: #ccc;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 4px 7px;
-  font-family: inherit;
-  font-size: 11px;
 }
-.compare-form button {
-  padding: 4px 7px;
+.compare-form :deep(.search-input) {
+  font-size: 11px;
 }
 .compare-chips {
   display: flex;

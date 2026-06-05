@@ -39,17 +39,6 @@
             <span>{{ result.name }}</span>
             <small>{{ result.type || result.exchange }}</small>
           </button>
-          <button
-            v-if="trimmedQuery"
-            type="button"
-            :class="['dash-search-item', 'expr', { highlighted: highlightIdx === results.length }]"
-            @click="selectRawSymbol"
-            @mouseenter="highlightIdx = results.length"
-          >
-            <b>{{ trimmedQuery.toUpperCase() }}</b>
-            <span>Try this symbol</span>
-            <small>Yahoo</small>
-          </button>
         </template>
         <div
           v-if="expressionHint || error"
@@ -179,10 +168,6 @@ async function selectResult(result: SearchResult) {
   await selectSymbol(result.symbol)
 }
 
-async function selectRawSymbol() {
-  await selectSymbol(trimmedQuery.value.toUpperCase())
-}
-
 async function selectSymbol(symbol: string) {
   loading.value = true
   try {
@@ -225,11 +210,10 @@ function selectFirst() {
     void selectResult(results.value[highlightIdx.value])
     return
   }
-  if (trimmedQuery.value) void selectRawSymbol()
 }
 
 function moveDown() {
-  const max = isExpression.value ? 0 : results.value.length
+  const max = isExpression.value ? 0 : Math.max(0, results.value.length - 1)
   highlightIdx.value = Math.min(highlightIdx.value + 1, max)
 }
 

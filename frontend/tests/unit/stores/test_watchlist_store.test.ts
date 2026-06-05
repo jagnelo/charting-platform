@@ -74,7 +74,8 @@ describe('useWatchlistStore', () => {
     store.watchlists = [{ ...makeWatchlist(), items: [] }] as any
 
     ;(api.get as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ id: 33 })
+      .mockResolvedValueOnce({ id: 33, symbol: 'MSFT' })
+      .mockResolvedValueOnce({ id: 33, symbol: 'MSFT' })
       .mockResolvedValueOnce([
         { open: 100, high: 104, low: 98, close: 103, volume: 250 },
         { open: 103, high: 108, low: 101, close: 107, volume: 300 },

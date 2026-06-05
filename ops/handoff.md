@@ -2,153 +2,379 @@
 
 ## Current task
 
-- ID: technical-radar-v2
-- Title: Extend Technical Radar with richer structures, lifecycle, timeframe-aware workflows, outcome tracking, and matching docs/tests
+- ID: strategy-lab
+- Title: Expand Strategy Lab toward the remaining roadmap gaps: richer condition coverage, deeper execution/persistence, broader results tooling, and stronger frontend UX consistency.
 
 ## Current worker
 
 - Name: Codex
-- Session started: 2026-05-07T17:55:00Z
+- Session started: 2026-05-12T17:42:34Z
 - Soft stop deadline: n/a
 
 ## Completed in this session
 
-- Increased the `/radar` detail preview chart height in `frontend/src/components/radar/RadarDetailPreviewChart.vue` from `214px` to `280px` for easier chart reading.
-- Reworked the dashboard radar widget setup filter so it no longer relies on free-text guessing:
-  - `frontend/src/views/DashboardView.vue` now exposes a dropdown-style checkbox picker of supported setup types
-  - `frontend/src/components/dashboard/DashboardRadarWidget.vue` now accepts zero/one/many setup filters, fans out multi-setup API requests, merges/dedupes results, and summarizes the active selection in widget metadata
-- Replaced dashboard radar row click navigation with a widget-local detail overlay:
-  - clicking a radar row now opens an in-widget detail card
-  - `Open chart` is now an explicit action instead of the default row click behavior
-- Tightened the `/radar` responsive layout in `frontend/src/views/RadarView.vue` so the two-pane split survives moderate horizontal compression:
-  - the collapse breakpoint moved down substantially
-  - the detections pane now switches to a compact card-list presentation before the table becomes unreadable
-  - the results panel keeps its own visible footprint instead of disappearing beneath an oversized detail pane
-- Toned down radar-owned overlay emphasis and slimmed shared line defaults:
-  - reduced default indicator/drawing line widths in `frontend/src/lib/indicators/catalog.ts`, `frontend/src/components/chart/IndicatorPanel.vue`, and `frontend/src/components/chart/UPlotChart.vue`
-  - reduced radar drawing glow in `frontend/src/lib/drawings/renderer.ts`
-  - reduced radar indicator highlight width/blur in `frontend/src/components/chart/UPlotChart.vue`
-  - reduced backend-emitted radar visual line widths in `backend/app/services/radar_engine.py`
-- Expanded the dashboard radar widget test coverage in `frontend/tests/unit/components/test_dashboard_radar_widget.test.ts` to cover multi-setup filtering.
-- Expanded frontend radar/dashboard coverage toward the previously thin responsive and interaction areas:
-  - `frontend/tests/unit/views/test_radar_view.test.ts` now covers the compact detections-list mode
-  - `frontend/tests/unit/components/test_dashboard_radar_widget.test.ts` now covers widget-local detail opening instead of row-click redirect
-- Created `feat/technical-radar-v2` from `master` and updated `docs/project-todos.md` to fix numbering and reflect the current radar baseline more accurately.
-- Extended the radar backend model and migration with:
-  - `RadarState`
-  - retest, fakeout/failure, and compression setup families
-  - persisted `state`, `state_reason`, `entry_price`, `invalidation_price`, and `target_price` on detections
-  - persisted `current_state` and `state_changed_at` on setup threads
-  - migration `a1b2c3d4e5f6_add_radar_v2_state_and_retests.py`
-- Expanded the radar engine with:
-  - diagonal trendline, gap, and simple pattern-structure context
-  - richer AVWAP anchor provenance plus all-time / YTD / rolling-window context
-  - retest, fakeout/failure, and compression classification
-  - richer score factors for multi-timeframe alignment, trend/pattern quality, gap context, and AVWAP anchor quality
-  - action-level generation and overlays
-  - automatic invalidated / expired thread transitions on later scans
-  - duplicate-thread-event dedupe across reruns
-- Extended the radar API and schemas with:
-  - timeframe-aware run/filter support on `GET /api/v1/radar/runs`, `POST /api/v1/radar/run`, `GET /api/v1/radar/detections`, and `GET /api/v1/radar/instruments/{instrument_id}/overlays`
-  - instrument history and outcome summary endpoints
-  - radar-to-watchlist and radar-to-price-alert workflow actions
-  - richer state/action/thread/outcome fields in summaries, details, and thread-history rows
-- Extended the radar outcome model with:
-  - `outcome_status`
-  - `bars_since_signal`
-  - `max_favorable_excursion_pct`
-  - `max_adverse_excursion_pct`
-  - `target_hit_at`
-  - `invalidated_at`
-- Extended the frontend radar surfaces:
-  - `/radar` timeframe/state filtering, saved views, richer detail metrics, history browser, outcome research, and action-plan presentation
-  - dashboard radar widget support in `DashboardView` with timeframe config
-  - chart-side radar focus/detail block plus focus-aware overlay dimming
-  - direct `/chart/:symbol` loads still start with detections disabled while `/radar -> /chart` preselects the chosen detection
-- Expanded radar-specific tests across:
-  - backend unit tests for fakeouts, richer structures, AVWAP anchors, scoring factors, and lifecycle helpers
-  - backend radar API integration tests for filtering, action/evidence payloads, duplicate reruns, and invalidated transitions
-  - frontend store/view/component tests for saved views, radar handoff, radar widget rendering, and richer radar UI behavior
-- Reconciled radar-related docs so the written spec matches the implemented v2 baseline:
-  - `docs/technical-radar.md`
-  - `docs/api.md`
-  - `docs/architecture.md`
-  - `docs/testing.md`
-  - `docs/project-todos.md`
+- Added explicit Strategy Lab run-end position handling in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - new `close_open_positions_at_end` run-prep toggle
+  - the setting is persisted in version run defaults and included in submitted execution assumptions
+  - when disabled, run-end positions remain `open_at_end` and contribute to unrealized P&L
+  - when enabled, run-end positions are force-closed as realized `run_end_close` trades
+- Made Strategy Lab result P&L semantics explicit and consistent in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
+  - portfolio summary now makes realized return/P&L the primary result signal
+  - unrealized P&L/return and marked total remain visible as secondary context
+  - run-history cards show realized, unrealized, and marked return splits, with realized visually prioritized
+  - benchmark metadata now distinguishes strategy realized, unrealized, and marked return
+  - run comparison now uses marked/realized/unrealized return rows instead of a single ambiguous `Net return`
+  - per-symbol attribution now includes realized, unrealized, and total P&L, including symbols with only open-at-end positions
+  - P&L-like values in result summaries, execution log, return-breakdown tooltip, per-symbol attribution, R-distribution tooltip, optimization leaderboard, and run comparison now use green for positive values and red for negative values
+  - result P&L pairs now prioritize percentage first and show absolute money second wherever both are available, including summary breakdowns, execution-log cells, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips
+- Refined the Strategy Lab return-breakdown heatmap in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - cells now represent realized P&L from `exit` events only, instead of marked-to-market equity movement
+  - open-at-end unrealized marks are shown separately in the tooltip as small supporting context
+  - heatmap tooltips have a taller scrollable popover so dense periods do not hide rows below the visible area
+- Removed generic rejected-trade warnings from Strategy Lab results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - rejected attempts are already represented in the execution log with symbol/time/side/size/price/reason
+  - the backend no longer adds broad `N trades were rejected by portfolio controls` warnings
+  - the coverage panel no longer receives generic run warnings, so coverage notes stay coverage-specific
+- Tightened Strategy Lab coverage typography in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - reduced oversized summary-card, chip, note, and table text
+  - switched the widget to the same compact scale as the surrounding Strategy Lab panels
+  - tightened spacing and reduced radii so coverage preview/detail no longer reads like a visually separate feature block
+  - the instrument coverage table is now locally collapsible and starts folded so coverage warnings/summary remain visible without the scrollable list trapping page scroll
+- Clarified and expanded Strategy Lab commission semantics in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - the ambiguous single `Commission per trade` assumption is now an explicit commission model plus value
+  - supported models are:
+    - fixed round-trip commission
+    - fixed per-order commission
+    - percent of notional
+  - run defaults, execution assumptions, and result summaries now persist `commission_model` and `commission_value`, while still carrying `commission_per_trade` as a compatibility alias
+  - simulated closed trades, run-end open positions, and unrealized mark-to-market P&L now all subtract fees according to the selected commission model
+- Tightened the Strategy Lab result summary and execution log in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the `Net return` summary now shows unrealized P&L as both money and signed percent
+  - if a run payload still omits open-position execution rows, the UI synthesizes the missing `entry` and `open_at_end` rows from `open_positions` so those positions are not silently absent from the log
+- Extended the Strategy Lab execution-model roadmap in [docs/project-todos.md](/Users/jagnelo/Documents/Projects/charting-platform/docs/project-todos.md:1):
+  - documented that current support now covers basic fixed-fee and percent-of-notional commission models
+  - added future work for multi-currency portfolios and FX conversion commissions when account currency differs from instrument currency
+- Added Strategy Lab coverage visibility across preparation and results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - new `POST /api/v1/strategy-lab/coverage-preview` endpoint for prep-time coverage preview
+  - richer universe coverage summaries with requested window, shared local window, any-symbol window, limiting instruments, and per-instrument notes
+  - richer benchmark coverage summaries with requested status, available first/last bar, and missing-history warnings
+  - prep-time `Coverage preview` section in `Research runs`
+  - full `Coverage detail` panel in `Results`
+  - clearer user-facing distinction between naturally short history and likely-missing local history
+  - explicit benchmark coverage timestamps with year included
+- Tightened the Strategy Lab `Net return` summary card in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so open-position runs now show unrealized P&L as both:
+  - absolute money
+  - signed percent of starting capital
+- Hardened the Strategy Lab execution-log view in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so if older or inconsistent run payloads include `open_positions` but omit their matching execution events, the UI synthesizes the missing `entry` and `open_at_end` rows instead of silently hiding those positions from the log.
+- Deepened backend Strategy Lab execution and persistence in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), and [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1):
+  - version-draft persistence via version patching
+  - eager-loaded instrument context fix for async ORM run execution
+  - dense portfolio/equity history reconstruction over the full run horizon
+  - accepted open-position accounting and `open_at_end` execution-log events
+  - portfolio constraint application aligned across closed and open positions
+  - richer result-summary splits for realized vs unrealized state
+- Broadened shared condition support across Screener and Strategy Lab in [backend/app/services/screener_engine.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/screener_engine.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [frontend/src/lib/technicalConditions.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/lib/technicalConditions.ts:1), and [frontend/src/components/common/TechnicalConditionEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/common/TechnicalConditionEditor.vue:1):
+  - full Screener condition surface in Strategy Lab
+  - shared platform indicator catalog instead of the old RSI/SMA/EMA subset
+  - structured grouped rule-tree authoring retained on top of the shared condition editor
+- Reworked Strategy Lab risk/exits and version authoring UX in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/StrategyRuleTreeEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyRuleTreeEditor.vue:1), [frontend/src/stores/strategyLab.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/stores/strategyLab.ts:1), and [frontend/src/types/index.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/types/index.ts:1):
+  - true persisted draft/profile state instead of resetting to defaults
+  - split `Risk` from `Exits`
+  - condition-based exit trees using the same shared rule system as entries
+  - expanded risk authoring with hard trailing stop % and hard-trail activation threshold %
+  - advanced optional run subset limited to explicit-universe members only
+  - corrected no-comparison-by-default behavior for run comparison
+  - run history is now locally collapsible so its scroll container only appears when explicitly opened
+- Added a richer first pass of Strategy Lab stop and sizing models in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - percent or ATR-based stop models
+  - ATR period and multiple controls
+  - position sizing modes for percent risk, fixed cash, percent capital, and fixed quantity
+  - persisted sizing/stop assumptions carried through saved strategy versions and run assumptions
+- Expanded executable trailing-risk support in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
+  - hard trailing stop % carried through saved strategy snapshots, run assumptions, parameter schema, and result summaries
+  - optional hard-trail activation threshold before the percent trail arms
+  - stop-based exits now distinguish plain stop loss vs break-even vs trailing-stop outcomes
+  - initial risk is preserved for `R` calculations even after stop ratcheting
+- Reworked the Strategy Lab results workspace in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
+  - [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1)
+  - [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1)
+  - [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1)
+  - [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1)
+  - performance vs benchmark overlay chart
+  - interactive drawdown / portfolio / position charts
+  - integer-only Y-axis support on shared result charts for count-based series like `Open positions`
+  - time-range presets with window shifting for long-horizon charts
+  - in-chart hover panels, corrected hover alignment, dynamic Y-axis gutter sizing, and live-width chart scaling
+  - tooltip width now adapts more tightly to content instead of starting from an oversized minimum width
+  - when hovering, the active chart now lifts above surrounding panels so the tooltip sits over neighboring controls instead of being visually under them
+  - result mini-panels now top-align inside the grid so shorter panels like `R distribution` do not inherit large dead space from taller neighbors
+  - the shared `Per symbol` bars now pack to the top of their panel instead of distributing vertically across the full stretched height
+  - the drawdown chart now shows true downside (negative drawdown) instead of upward positive magnitudes
+  - the drawdown chart now overlays benchmark buy-and-hold drawdown when benchmark data exists, with legend support for strategy-vs-benchmark downside comparison
+  - visual monthly/quarterly heatmaps and structured per-symbol / R-distribution visuals
+  - `Per symbol` now includes best/worst summary chips plus hover/click drilldowns showing symbol-level outcome context from execution events
+  - `R distribution` now includes closed-trade summary chips plus hover/click drilldowns showing which trades landed in each `R` bucket
+  - execution log expanded beyond closed trades and aligned with position evolution
+  - compacted but unclipped run-history rows
+- Applied a follow-up readability pass to [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the old split monthly/quarterly panels were collapsed into a single full-width `Return breakdown` widget
+  - the widget now supports monthly, quarterly, and derived yearly views via a selector
+  - the heatmap preserves readable cell widths instead of squeezing into the generic grid
+  - the heatmap can scroll horizontally when needed rather than compressing values into unreadable cells
+  - in-cell percent labels are shorter and fit more cleanly
+  - the left year-label gutter is now much narrower, so more width is preserved for the actual return cells
+- Applied a follow-up hover readability pass to [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1):
+  - dense multi-series tooltips can now grow beyond the chart box instead of being confined inside it
+  - dense tooltips switch to a wider multi-column layout
+  - overlay sizing is no longer artificially tied to the chart drawing area
+  - preset range controls are now exposed consistently across shared Strategy Lab charts, including `Position evolution`
+- Applied the next `results workspace direction` pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
+  - [frontend/src/components/strategy/SignalReplayBreakdown.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SignalReplayBreakdown.vue:1)
+  - [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1)
+  - [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1)
+  - [frontend/src/components/strategy/PaperForwardMonitorPanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/PaperForwardMonitorPanel.vue:1)
+  - [frontend/src/components/strategy/RunComparisonTable.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/RunComparisonTable.vue:1)
+  - `Signal replay` now shows replay rate, dominant setup, and a setup-type bar breakdown
+  - `Optimization` is now a ranked leaderboard with sortable-style row emphasis and parameter drilldowns
+  - `Walk-forward` is now a segment-oriented panel with in-sample/out-of-sample summaries and segment detail
+  - `Paper-forward monitor` is now a small monitoring workspace with equity timeline and recent snapshots
+  - `Run comparison` is now a proper metric table with deltas and ahead/behind counts instead of a raw text list
+- Made every major Strategy Lab section collapsible in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, `Research runs`, and `Results` now collapse independently
+  - section state now defaults by strategy state: strategies with runs load collapsed except `Results`, while new/never-run strategies load expanded except `Results`
+  - section collapse state is persisted per strategy/draft key instead of one global toggle bucket
+  - clicking the title toggles the section, not just the chevron
+  - the existing section actions remain in the header while the body folds away cleanly
+  - focused regression coverage was added in [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
+- Expanded the benchmark analysis lens in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - benchmark buy-and-hold drawdown is now overlaid on the drawdown chart
+  - benchmark summaries now include hold-span, max drawdown, synthetic benchmark execution events, synthetic benchmark position evolution, and a benchmark portfolio timeline
+  - the benchmark is now surfaced more like an alternate strategy view than just a return line
+- Applied a follow-up results-layout cleanup in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
+  - the results mini-panels now use a wrapping flex layout instead of equal-height grid rows
+  - shorter panels such as `Per symbol` now shrink to their own content height instead of stretching beside taller neighbors like `R distribution`
+  - the benchmark partial-coverage note now uses the full date/time formatter, so the year is always visible
+- Reworked the result-bar detail interaction in [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1) and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - `Per symbol` and `R distribution` no longer push detail blocks to the bottom of the panel stack
+  - both now use anchored hover/focus popovers beside the hovered row instead of click-to-pin bottom detail areas
+  - the panels now keep a stable height while still surfacing the same outcome/bucket detail near the hovered bar
+- Refined the `Return breakdown` tooltip behavior in [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - removed the native browser `title` tooltip from return cells so only the custom drilldown popover remains
+  - normalized the popover width so empty-state periods no longer render as awkward single-line strips
+  - preserved edge-aware positioning while keeping a more consistent card-like tooltip shape
+- Reworked the Strategy Lab authoring area in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) into a single full-width top-to-bottom builder flow:
+  - no more split builder columns
+  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
+  - this avoids mid-page gutter misalignment and gives each builder section more natural scrolling space
+- Replaced the Strategy Lab instrument coverage table in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1) with a compact graphical coverage timeline:
+  - one row is shown for the benchmark and one row for each selected universe instrument
+  - the shaded band shows the requested run window while each horizontal segment shows locally available coverage
+  - the timeline is vertically scrollable for larger universes
+  - filter chips allow users to isolate full, partial, none, and missing coverage rows
+  - current backend payloads expose first/last available coverage, so the component is segment-shaped for future non-contiguous coverage support while rendering today’s available span honestly
+- Simplified two Strategy Lab result mini-panels in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - removed the top summary bubbles from the symbol attribution and R-bucket widgets
+  - renamed `Per symbol` to `P&L by symbol`
+  - renamed `R distribution` to `Closed trade R multiples`
+  - kept the row-level hover tooltips as the place for detailed context
+- Refocused the Strategy Lab coverage timeline in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
+  - the timeline now uses the requested run range as its X-axis domain instead of stretching back to each instrument's oldest local history
+  - rows now represent only requested-range coverage issues: partial, none, or missing
+  - full-coverage instruments and benchmark rows are hidden from the issue timeline
+  - the filter controls were removed so the widget only shows the issue set directly
+  - the empty state now indicates clean requested-range coverage
+  - added focused component coverage in [frontend/tests/unit/components/test_strategy_coverage_panel.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_strategy_coverage_panel.test.ts:1)
+- Reworked the `Closed trade R multiples` visualization in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - replaced per-bucket horizontal rows with a centered R outcome map
+  - the axis is centered on `0R` breakeven with negative/positive guide ticks
+  - each closed trade is plotted as a color-coded dot by R multiple
+  - dot size scales lightly with absolute P&L
+  - the histogram still appears as a density backdrop so clusters are visible
+  - hovering/focusing a dot shows symbol, R multiple, exit date, exit reason, percent P&L, and absolute P&L
+- Applied a focused Strategy Lab result-metric coloring pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1), [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1), and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
+  - win rate, expectancy, Avg R, in/out-sample returns, benchmark excess return, benchmark drawdown, and return-breakdown popover totals now use positive/negative classes
+  - drawdown is treated as a risk-cost metric, so any nonzero magnitude is red while zero remains neutral
+  - zero or unavailable values stay neutral instead of being forced into green/red
+- Fixed the `Closed trade R multiples` widget in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
+  - replaced the fragile absolutely positioned HTML/button plot with an SVG-based R outcome map
+  - the loss/breakeven/win labels, 0R axis, R ticks, density bars, and trade dots now render as chart primitives
+  - removed footer/legend HTML that could degrade into raw text, while preserving hover/focus trade tooltips
+  - updated [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1)
 
 ## Pending
 
-- Commit the current Radar v2 work in isolated commits.
-- Decide the dashboard radar widget row-click behavior:
-  - the widget now uses a local detail overlay by default
-  - the broader future question is whether multi-instrument widgets should eventually be able to publish clicked instruments into dashboard link groups
-- Run browser/E2E validation for `/radar`, the dashboard radar widget, and `/chart/:symbol` if we want a visual signoff beyond unit/integration coverage.
+- The Strategy Lab roadmap is still not exhausted.
+- Largest remaining gaps after this pass:
+  - multi-timeframe strategy logic and/or timeframe batch testing
+  - richer risk models beyond the expanded baseline: ATR/structure/indicator stops, broader sizing models, deeper portfolio caps
+  - chart zoom/pan beyond the new preset-window controls
+  - dynamic screener universes instead of the current snapshot universe mode
+  - broader asset-model realism beyond the current equity-style OHLCV focus
+  - remaining text-first result panels: signal replay, optimization, walk-forward, paper-forward monitor, run comparison
+  - data-coverage preflight / acquisition before Strategy Lab runs so multi-year requests are guaranteed or clearly blocked rather than only explained by the new coverage preview/detail panels
 
 ## Exact next step
 
-- Review the current branch diff, group the newest radar UX/layout/native-visual changes into contextual commits, then decide the dashboard widget click model before broader dashboard-linking work.
+- Continue on `feat/strategy-lab` by tackling the next high-value unfinished area:
+  1. multi-timeframe strategy support
+  2. deeper risk/sizing models beyond the new ATR/size-model baseline
+  3. data-coverage preflight and acquisition before run execution
+  4. broader portfolio-risk realism and execution semantics
 
 ## Files touched
 
-- `backend/app/models/__init__.py`
-- `backend/app/models/radar.py`
-- `backend/app/routers/radar.py`
-- `backend/app/schemas/radar.py`
-- `backend/app/services/radar_engine.py`
-- `backend/alembic/versions/a1b2c3d4e5f6_add_radar_v2_state_and_retests.py`
-- `backend/tests/integration/api/test_radar.py`
-- `backend/tests/unit/services/test_radar_engine.py`
-- `frontend/src/components/chart/IndicatorPanel.vue`
-- `frontend/src/components/chart/UPlotChart.vue`
-- `frontend/src/components/dashboard/DashboardRadarWidget.vue`
-- `frontend/src/components/radar/RadarDetailPreviewChart.vue`
-- `frontend/src/stores/radar.ts`
+- `backend/app/routers/strategy_lab.py`
+- `backend/app/schemas/strategy.py`
+- `backend/app/services/screener_engine.py`
+- `backend/app/services/strategy_lab.py`
+- `backend/app/services/strategy_lab_nautilus.py`
+- `backend/tests/integration/api/test_strategy_lab.py`
+- `backend/tests/unit/services/test_screener_engine.py`
+- `backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `backend/tests/unit/services/test_strategy_lab_service.py`
+- `docs/project-todos.md`
+- `frontend/src/components/common/TechnicalConditionEditor.vue`
+- `frontend/src/components/strategy/StrategyCoveragePanel.vue`
+- `frontend/src/components/strategy/DistributionBars.vue`
+- `frontend/src/components/strategy/ReturnsHeatmap.vue`
+- `frontend/src/components/strategy/StrategyResultChart.vue`
+- `frontend/src/components/strategy/SymbolPerformanceBars.vue`
+- `frontend/src/components/strategy/StrategyRuleTreeEditor.vue`
+- `frontend/src/lib/technicalConditions.ts`
+- `frontend/src/stores/strategyLab.ts`
 - `frontend/src/types/index.ts`
-- `frontend/src/views/DashboardView.vue`
-- `frontend/src/views/RadarView.vue`
-- `frontend/src/views/ChartView.vue`
-- `frontend/tests/unit/components/test_dashboard_radar_widget.test.ts`
-- `frontend/tests/unit/stores/test_radar_store.test.ts`
-- `frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts`
-- `frontend/tests/unit/views/test_radar_view.test.ts`
-- `docs/project-todos.md`
-- `docs/api.md`
-- `docs/architecture.md`
-- `docs/project-todos.md`
-- `docs/technical-radar.md`
-- `docs/testing.md`
+- `frontend/src/views/StrategyLabView.vue`
+- `frontend/tests/unit/components/test_strategy_result_chart.test.ts`
+- `frontend/tests/unit/components/test_strategy_rule_tree_editor.test.ts`
+- `frontend/tests/unit/components/test_technical_condition_editor.test.ts`
+- `frontend/tests/unit/lib/test_technical_conditions.test.ts`
+- `frontend/tests/unit/views/test_strategy_lab_view.test.ts`
 
 ## Validation run
 
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_dashboard_radar_widget.test.ts tests/unit/views/test_radar_view.test.ts tests/unit/views/test_chart_view_radar_handoff.test.ts tests/unit/stores/test_radar_store.test.ts tests/unit/lib/test_radar_visuals.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_symbol_performance_bars.test.ts`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`
-- `rtk backend/.venv/bin/python -m py_compile backend/app/models/radar.py backend/app/models/__init__.py backend/app/routers/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/tests/unit/services/test_radar_engine.py backend/tests/integration/api/test_radar.py`
-- `rtk backend/.venv/bin/python -m ruff check backend/app/models/__init__.py backend/app/models/radar.py backend/app/routers/radar.py backend/app/schemas/radar.py backend/app/services/radar_engine.py backend/tests/unit/services/test_radar_engine.py backend/tests/integration/api/test_radar.py`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_radar_engine.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_radar.py --no-cov -q`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_dashboard_radar_widget.test.ts tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts tests/unit/views/test_chart_view_radar_handoff.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
 - `rtk npm --prefix frontend run type-check`
 - `rtk make test-fe`
-- `rtk make test-unit`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_signal_replay_breakdown.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/components/test_walk_forward_segments.test.ts tests/unit/components/test_paper_forward_monitor_panel.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk make test-fe`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk make test-fe`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk python3 -m py_compile backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
+- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
 
 ## Errors / warnings / logs
 
-- Running backend unit and integration tests together in one combined pytest invocation can still fall back into the repo’s Docker/testcontainers fixture path in this environment and fail on Docker socket permissions. Running the radar integration file directly succeeded, and `make test-unit` also passed because it is unit-only.
-- Frontend test output still includes the existing Vite CJS deprecation notice, but the suite passed.
-- Backend tests still emit existing repo-level Pydantic/JOSE deprecation warnings outside this radar change-set.
+- Docker-backed integration still requires escalated access in this shell for the local Docker socket.
 
 ## Assumptions made
 
-- Moderate desktop-width reduction should preserve the split `/radar` layout; only genuinely narrow screens should collapse into a stacked layout.
-- Multi-setup dashboard filtering is better implemented as explicit API fan-out and merge/dedupe than as another free-text filter box or a lossy client-side post-filter over one API response.
-- Radar-owned overlays should stay visually subordinate to price/owned chart context even when they are highlighted through reused native primitives.
-- Radar v2 should expand to multiple platform timeframes through the existing timeframe enum rather than introducing arbitrary user-defined intervals.
-- The current pattern layer should stay explainable and lightweight rather than trying to infer complex discretionary chart patterns with opaque rules.
-- Focus-aware overlay dimming is an acceptable first overlap-management step before fuller grouping/stacking semantics exist.
+- Position evolution should offer both currency and percent modes, while execution-log P&L should show both absolute and percent context.
+- Strategy Lab chart range controls should start with preset windows and window shifting, not a full freeform brush/zoom system.
+- Open positions at run end should contribute unrealized state and execution events without being folded into realized P&L.
+- A percent-based hard trailing stop should be treated as a real strategy risk primitive, not just a cosmetic field, and should allow a standard activation threshold before arming.
 
 ## Ready to commit?
 
 - yes
-- if no, why: n/a

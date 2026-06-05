@@ -64,6 +64,8 @@ class IndicatorAlertCreate(BaseModel):
 
 
 class IndicatorAlertOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     instrument_id: int
     instrument_currency: str | None = None
@@ -84,9 +86,6 @@ class IndicatorAlertOut(BaseModel):
     last_value_b: Decimal | None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class IndicatorAlertUpdate(BaseModel):

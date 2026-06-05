@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Watchlist, WatchlistItem } from '@/types'
 import { api } from '@/lib/api'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 export interface WatchlistQuote {
   close: number
@@ -93,10 +94,11 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   /** Add an instrument to a watchlist by symbol — auto-resolves instrument_id via API. */
   async function addBySymbol(watchlistId: number, symbol: string): Promise<WatchlistItem | null> {
     try {
-      const instr = await api.get<{ id: number }>(`/instruments/${symbol.toUpperCase()}`)
+      const resolvedSymbol = await ensureKnownInstrumentSymbol(symbol, 'Watchlist instrument')
+      const instr = await api.get<{ id: number }>(`/instruments/${encodeURIComponent(resolvedSymbol)}`)
       const item = await addItem(watchlistId, instr.id)
       // Eagerly fetch price so it shows immediately if the watchlist is already expanded
-      if (item) fetchPrices([symbol])
+      if (item) fetchPrices([resolvedSymbol])
       return item
     } catch (e) {
       console.error('Failed to resolve instrument for watchlist add', e)

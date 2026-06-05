@@ -1,13 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import LoginView     from '@/views/LoginView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import ChartView     from '@/views/ChartView.vue'
-import AlertsView    from '@/views/AlertsView.vue'
-import SettingsView  from '@/views/SettingsView.vue'
-import ScreenerView  from '@/views/ScreenerView.vue'
-import WatchlistView from '@/views/WatchlistView.vue'
-import RadarView     from '@/views/RadarView.vue'
+
+const LoginView = () => import('@/views/LoginView.vue')
+const DashboardView = () => import('@/views/DashboardView.vue')
+const ChartView = () => import('@/views/ChartView.vue')
+const AlertsView = () => import('@/views/AlertsView.vue')
+const SettingsView = () => import('@/views/SettingsView.vue')
+const ScreenerView = () => import('@/views/ScreenerView.vue')
+const WatchlistView = () => import('@/views/WatchlistView.vue')
+const RadarView = () => import('@/views/RadarView.vue')
+const StrategyLabView = () => import('@/views/StrategyLabView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +21,7 @@ export const router = createRouter({
     { path: '/chart/:symbol(.*)', component: ChartView },
     { path: '/alerts',        component: AlertsView },
     { path: '/radar',         component: RadarView },
+    { path: '/strategy-lab',  component: StrategyLabView },
     { path: '/screener',      component: ScreenerView },
     { path: '/watchlist',     component: WatchlistView },
     { path: '/settings',      component: SettingsView },

@@ -307,6 +307,35 @@ class TestEvaluateConditionIndicatorAndPeriodBranches:
         assert computed["ema_latest"] == pytest.approx(15.0)
         assert computed["sma_latest"] == pytest.approx(13.0)
 
+    def test_indicator_threshold_can_target_named_output_series(self, monkeypatch):
+        async def fake_compute(*_args, **_kwargs):
+            return {
+                "bb_upper": np.array([np.nan, 120.0, 121.5]),
+                "bb_mid": np.array([np.nan, 100.0, 101.0]),
+                "bb_lower": np.array([np.nan, 80.0, 81.5]),
+            }
+
+        monkeypatch.setattr(
+            "app.services.screener_engine._compute_indicator_cached",
+            fake_compute,
+        )
+
+        matched, computed = self._eval(
+            {
+                "type": "indicator_threshold",
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2},
+                "output": "bb_lower",
+                "op": "gt",
+                "value": 81,
+            },
+            self._make_ohlcv([100, 101, 102]),
+            monkeypatch,
+        )
+
+        assert matched is True
+        assert computed["bb_bb_lower"] == pytest.approx(81.5)
+
     def test_price_change_period_uses_calendar_window(self, monkeypatch):
         data = self._make_ohlcv([100.0, 110.0, 120.0], step_days=2)
 

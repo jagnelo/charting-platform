@@ -54,6 +54,16 @@ from app.models.radar import (
 )
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
+from app.models.strategy import (
+    StrategyDefinition,
+    StrategyDefinitionType,
+    StrategyEngineType,
+    StrategyRun,
+    StrategyRunStatus,
+    StrategySourceType,
+    StrategyTestMode,
+    StrategyVersion,
+)
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
@@ -121,5 +131,13 @@ __all__ = [
     "ScreenerDefinition",
     "ScreenerResult",
     "ScreenerAlert",
+    "StrategyDefinition",
+    "StrategyVersion",
+    "StrategyRun",
+    "StrategySourceType",
+    "StrategyDefinitionType",
+    "StrategyEngineType",
+    "StrategyTestMode",
+    "StrategyRunStatus",
     "SyntheticConstituent",
 ]
