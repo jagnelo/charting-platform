@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     APP_PORT: int = 8000
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
+    E2E_SEED_INSTRUMENTS: bool = False
 
     # Security
     SECRET_KEY: str = "dev-secret-change-me-at-least-32-chars-long"

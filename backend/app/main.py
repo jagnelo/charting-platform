@@ -29,6 +29,7 @@ from app.routers import (
     watchlists,
 )
 from app.services.alert_engine import run_alert_check
+from app.services.e2e_seed import seed_e2e_instruments
 from app.services.provider_runtime import seed_provider_runtime
 
 logging.basicConfig(
@@ -47,6 +48,8 @@ async def lifespan(app: FastAPI):
 
     async with AsyncSessionLocal() as db:
         await seed_provider_runtime(db)
+        if settings.E2E_SEED_INSTRUMENTS:
+            await seed_e2e_instruments(db)
         await db.commit()
 
     logger.info(f"Starting alert scheduler (every {settings.ALERT_POLL_INTERVAL}s)")

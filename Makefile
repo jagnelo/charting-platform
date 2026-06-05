@@ -143,7 +143,7 @@ test-stack-up:
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
 	@$(DEV_STACK_HELPER) stop-others docker-compose.yml stack
-	COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
+	E2E_SEED_INSTRUMENTS=true COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
 	@echo "▶  Applying migrations to the running stack..."
 	$(MAKE) migrate
 

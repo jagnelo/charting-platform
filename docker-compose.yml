@@ -68,6 +68,7 @@ services:
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       REDIS_URL:         redis://redis:6379/0
       APP_ENV:           production
+      E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
       APP_HOST:          "0.0.0.0"
       APP_PORT:          "8000"
       # Secrets / deployment-specific — set these in a root-level .env file
