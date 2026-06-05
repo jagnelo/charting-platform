@@ -824,6 +824,338 @@ What remains:
     - or a time-evolving screener universe
   - this choice should be visible in run configuration and stored in run artifacts/results for reproducibility
 
+- Add a first-class **portfolio rotation / scheduled rebalance strategy mode** to support strategies that are not merely "evaluate entry/exit rules independently for each symbol", using the Starter System PDF discussion as a concrete forcing case:
+  - The Starter System should be treated as an example of a strategy that Strategy Lab should eventually be able to express **exactly**, not approximately:
+    - use a point-in-time broad equity universe such as the Russell 3000
+    - evaluate filters on a monthly schedule
+    - rank all passing candidates cross-sectionally
+    - select the five lowest RSI(2) names
+    - allocate 20% of capital to each selected name
+    - rebalance on the next monthly open
+    - exit all positions at the next rebalance unless selected again
+    - force exits when a market-regime condition turns off
+    - produce a monthly action list the user can follow manually
+  - This exposes a major missing capability in the current Strategy Lab baseline:
+    - the current engine is strongest at per-instrument rule evaluation
+    - portfolio controls are layered on top of independently-generated opportunities
+    - this is not enough for strategies where the primary decision is "rank the whole universe, choose the best N, and build the portfolio from those choices"
+  - Add an explicit strategy archetype / execution mode for:
+    - single-instrument rule strategies
+    - multi-instrument independent-signal strategies
+    - portfolio rotation strategies
+    - later, pair/spread strategies and multi-leg strategies
+  - A portfolio rotation strategy needs a different internal lifecycle:
+    - build candidate universe for a decision point
+    - evaluate all filters point-in-time
+    - rank the filtered candidates
+    - select top-N / bottom-N / percentile buckets
+    - compare selected target portfolio versus currently-held portfolio
+    - generate exits, holds, entries, and weight adjustments
+    - apply execution assumptions at the configured execution point
+    - persist the rebalance artifact before moving to the next decision point
+
+- Add point-in-time index/constituency universe support because serious portfolio-rotation systems cannot be tested faithfully against only today's survivors:
+  - support universes such as:
+    - Russell 3000 constituents as-of each historical date
+    - S&P 500 constituents as-of each historical date
+    - ETF holdings as-of each historical date where available
+    - user-defined universes with membership-effective date ranges
+  - Treat ETF holdings as a useful lower-cost proxy universe when official index-constituent history is unavailable or too expensive, but never silently equate the two:
+    - official index constituents are the authoritative, usually licensed dataset
+    - ETF holdings are the fund issuer's disclosed portfolio and may differ due to sampling, cash, derivatives, timing, corporate actions, or tracking methodology
+    - runs should record whether they used official point-in-time index membership, ETF-holdings proxy membership, a latest holdings snapshot, or a manual/static universe
+  - persist universe membership as a time-varying dataset:
+    - universe identifier
+    - instrument identifier
+    - membership start date
+    - membership end date
+    - membership source/provider
+    - confidence/provenance
+    - optional weight/classification metadata where the source provides it
+  - make survivorship-bias status visible in run configuration and results:
+    - `point_in_time_universe`
+    - `latest_membership_snapshot`
+    - `manual_static_universe`
+  - warn clearly when a strategy that claims to test an index universe is actually using a latest-only or manually frozen universe.
+  - Allow the data-prep layer to request missing member instruments and their historical bars as part of run preflight instead of discovering missing coverage only after a run has produced misleading results.
+
+- Add scheduled decision/rebalance calendars as first-class strategy inputs:
+  - support cadences such as:
+    - every bar
+    - daily
+    - weekly
+    - monthly
+    - quarterly
+    - custom cron/calendar schedules
+    - exchange-aware "last trading day of month"
+    - exchange-aware "first trading day of month"
+  - separate the **decision timestamp** from the **execution timestamp**:
+    - screen on month-end close
+    - execute at next monthly open
+    - screen on today's close
+    - execute on next bar open
+    - screen intraday and execute immediately where data/execution assumptions allow
+  - persist schedule semantics in run configuration:
+    - calendar used
+    - timezone
+    - exchange/market holiday handling
+    - decision price source
+    - execution price source
+    - handling of missing bars on the scheduled decision or execution day
+  - expose scheduled events in run artifacts:
+    - decision points
+    - rebalance points
+    - symbols evaluated at each point
+    - selected basket at each point
+    - target weights
+    - executed portfolio changes
+
+- Add cross-sectional ranking and candidate-selection primitives:
+  - allow strategies to rank candidates by:
+    - indicator values such as RSI(2)
+    - price returns over configurable windows
+    - volatility
+    - liquidity
+    - fundamental metrics
+    - platform-computed statistics
+    - custom expressions/factors later
+  - support ranking directions:
+    - lowest first
+    - highest first
+    - absolute distance from target value
+    - percentile buckets
+    - z-score / normalized ranking later
+  - support selection policies:
+    - top N
+    - bottom N
+    - top/bottom percentile
+    - rank threshold
+    - weighted by rank score
+    - tie-breakers
+  - persist the rank table for every decision point so the user can inspect:
+    - symbols that passed filters
+    - symbols that failed filters
+    - the filter that rejected each failed symbol
+    - each candidate's rank metric value
+    - final rank position
+    - selected/not-selected reason
+  - This should unlock not only the Starter System, but also:
+    - momentum rotation
+    - mean-reversion baskets
+    - low-volatility selection
+    - high-quality/fundamental factor screens
+    - sector rotation
+    - ETF rotation
+    - breadth-driven basket strategies
+
+- Add portfolio construction and target-allocation rules instead of relying only on per-trade position sizing:
+  - support target portfolio policies such as:
+    - equal weight across selected symbols
+    - fixed percent per selected symbol
+    - volatility-scaled weights
+    - rank-score-weighted allocation
+    - inverse-volatility weighting
+    - max position weight
+    - min position weight
+    - cash reserve target
+  - support rebalance behavior:
+    - full liquidation and rebuild
+    - only trade differences from current holdings
+    - hold selected names that remain selected
+    - rebalance back to target weights
+    - drift bands before rebalancing
+    - minimum trade-size thresholds
+  - explicitly model what happens when fewer than the target number of names pass:
+    - leave unused capital in cash
+    - redistribute among available names
+    - skip the rebalance entirely
+    - keep existing holdings until enough replacements exist
+  - persist target-vs-actual portfolio state:
+    - target symbols
+    - target weights
+    - actual filled weights
+    - cash after rebalance
+    - turnover
+    - symbols bought/sold/held/skipped
+    - rejected trades and rejection reasons
+
+- Add cross-instrument and portfolio-level condition inputs:
+  - allow a condition on one instrument/index to control trading in another universe:
+    - "only open Russell 3000 positions when S&P 500 RSI(4) > 50"
+    - "force exit all open positions when S&P 500 RSI(4) < 50"
+    - "only run this strategy when VIX is below/above a threshold"
+    - "only buy sector constituents when the sector ETF is above its moving average"
+  - distinguish:
+    - instrument-local conditions
+    - benchmark/regime conditions
+    - universe-level aggregate conditions
+    - portfolio-state conditions
+  - support regime conditions as:
+    - entry gates
+    - exit triggers
+    - allocation scalers
+    - cash/defensive-state switches
+  - Persist regime state through time and show it in results:
+    - when regime was on/off
+    - which entries were blocked by regime
+    - which positions were closed because regime turned off
+    - whether the strategy was fully invested or sitting in cash
+
+- Expand condition/stat/factor support required by portfolio-rotation strategies:
+  - add rolling liquidity metrics:
+    - 20-day average volume
+    - 30-day average volume
+    - 60-day / 3-month average volume
+    - average dollar volume
+    - median dollar volume
+    - minimum liquidity over a lookback window
+  - add price and tradability filters:
+    - price greater/less than a threshold
+    - adjusted versus unadjusted price basis
+    - minimum trading history length
+    - minimum bars available in lookback window
+    - exclusion of suspended/untradable instruments where known
+  - support indicator calculations on:
+    - the candidate instrument
+    - a benchmark/regime instrument
+    - a sector/index/ETF proxy
+    - later, a synthetic basket or expression instrument
+  - ensure all filters are evaluated point-in-time using only data available at the decision timestamp.
+
+- Add explicit forward **published strategy runtime** support so Strategy Lab strategies can produce passive, recurring action signals without turning Screener or Radar into strategy owners:
+  - Strategy Lab should own:
+    - strategy definition
+    - versioning
+    - backtests
+    - validation
+    - publish workflow
+  - A published strategy runtime should own:
+    - scheduled forward execution of published versions
+    - persisted strategy state
+    - current open simulated/manual-following portfolio state
+    - recurring decision runs
+    - signal/action generation
+  - The runtime should generate actionable outputs such as:
+    - buy these symbols
+    - sell these symbols
+    - hold these symbols
+    - rebalance these weights
+    - no action because regime is off
+    - data coverage is insufficient
+    - candidate excluded because it failed a filter
+  - These outputs should be stored as strategy action sets, not as plain screener results:
+    - action set id
+    - strategy version id
+    - decision timestamp
+    - execution timestamp
+    - target basket
+    - current basket
+    - diff/actions
+    - quantities/weights if configured
+    - rank/filter evidence
+    - user acknowledgement status later
+  - This runtime should be able to support "manual execution" workflows first:
+    - the platform tells the user what the strategy says to do
+    - the user decides whether/how to place trades outside the platform
+    - the platform can later let the user mark actions as followed, skipped, or adjusted
+  - Later, this can integrate with broker execution if/when the platform grows beyond research/manual-action workflows.
+
+- Keep Screener and Radar as reusable inputs, not owners of stateful strategy execution:
+  - Screener should remain useful for:
+    - authoring/reusing filter condition sets
+    - present-looking "what passes now?" discovery
+    - scheduled screen results where the output is simply a matching instrument set
+    - serving as one possible upstream candidate-filter component for Strategy Lab
+  - Radar should remain useful for:
+    - autonomous technical opportunity discovery
+    - platform-owned signal families
+    - candidate feeds into Strategy Lab/research
+  - Neither Screener nor Radar should own:
+    - target weights
+    - open strategy positions
+    - rebalance state
+    - ranking-driven portfolio construction
+    - portfolio-level exits
+    - strategy action-set history
+  - If a user wants a saved screener to feed a strategy:
+    - Strategy Lab/runtime should reference the screener definition or condition set
+    - the runtime should still own selection, allocation, state, and actions
+  - If a user wants Radar to feed a strategy:
+    - Radar should provide candidate events/detections
+    - Strategy Lab/runtime should still own execution policy and portfolio state
+
+- Add a reusable **condition-set / filter-set borrowing** mechanism between Screener and Strategy Lab without collapsing the products together:
+  - allow a Strategy Lab strategy to:
+    - import a Screener condition tree as a starting point
+    - reference a saved Screener condition set by version
+    - fork a Screener condition set into strategy-owned logic
+    - expose strategy condition sets to Screener where the semantics are compatible
+  - define compatibility boundaries:
+    - pure point-in-time instrument filters can be shared
+    - portfolio-level ranking/allocation rules cannot be represented as ordinary screeners
+    - entry/exit semantics are strategy-owned, not screener-owned
+    - rebalance cadence is strategy-owned, not screener-owned
+  - Persist provenance:
+    - imported from screener X version Y
+    - still linked to screener version
+    - forked and no longer linked
+  - This gives users the practical benefit of reusing work from Screener while keeping Strategy Lab as the correct owner for serious strategy behavior.
+
+- Add a strategy action / signal feed surface for published strategies:
+  - This can be a new surface, or part of a broader Signals/Alerts area, but it should not live only inside the Strategy Lab edit page.
+  - It should answer:
+    - "Which published strategies have actions due now?"
+    - "Which actions were generated by the latest scheduled run?"
+    - "What changed versus last month/last run?"
+    - "Which symbols entered or left the target basket?"
+    - "Which actions are blocked by data quality, regime, or portfolio constraints?"
+  - For a monthly rotation strategy, the user-facing output should be closer to:
+    - next rebalance date
+    - target basket
+    - sell list
+    - buy list
+    - unchanged holds
+    - target weights
+    - ranking evidence
+    - filter evidence
+    - data warnings
+  - It should later support notifications:
+    - in-app alerts
+    - email/push/webhook where appropriate
+    - "rebalance due" reminders
+    - "strategy regime turned off" alerts
+    - "data coverage insufficient to generate reliable action" alerts
+
+- Add strategy-state and manual-following tracking as a bridge between research and real user behavior:
+  - Store the strategy runtime's expected/paper state separately from the user's actual brokerage state.
+  - Allow the user to mark generated actions as:
+    - followed
+    - skipped
+    - partially followed
+    - modified
+  - Later, connect this to a portfolio/journal feature so the platform can compare:
+    - model strategy performance
+    - paper/runtime performance
+    - user's actually-followed performance
+  - This is important for passive strategies where the platform produces actions but the user executes manually.
+
+- Add run/result artifacts specifically for portfolio-rotation strategies:
+  - candidate universe snapshot per decision point
+  - filter pass/fail table per decision point
+  - rank table per decision point
+  - selected basket per decision point
+  - target weights per decision point
+  - rebalance trades per decision point
+  - regime state timeline
+  - cash allocation timeline
+  - turnover timeline
+  - constituents entering/leaving the eligible universe
+  - selected symbols entering/leaving the target portfolio
+  - reasons a symbol was not selected despite passing filters
+  - reasons a current holding was sold
+  - reasons no new positions were opened
+  - These artifacts are essential because users need to trust not just the final return, but the month-by-month decision logic.
+
 - Add a platform-owned signal-source abstraction for research/test runs so the same testing layer can evaluate:
   - user-authored strategies that generate entries/exits from rules
   - Radar detections replayed historically as a built-in black-box signal engine
@@ -1451,19 +1783,167 @@ Context:
 - Once ETF holdings data exists in the platform, an ETF can be treated as a system-managed basket automatically: the platform creates or refreshes a basket representing the ETF's current composition and weights.
 - This enables: "click SPY, see all 503 holdings and their weights". Or: "click QQQ, open all Nasdaq 100 constituents as a basket and then chart any one of them".
 - The holdings-navigation flow is especially valuable for users who want to do their own constituent-level research: e.g., scan through all S&P 500 members to find technically interesting setups, or look at which Nasdaq 100 members are near 52-week highs.
+- ETF holdings are also an important low-cost proxy for index-constituent universes:
+  - exact historical index membership, such as Russell 3000 constituents, is often licensed and expensive
+  - ETF issuers frequently disclose current holdings, and regulatory filings can provide historical holdings snapshots
+  - this gives the platform a practical starter path for "close enough" index-universe workflows without requiring expensive index-data contracts on day one
+  - the product must clearly label these as ETF-holdings proxy universes, not official index-constituent universes
 
 What remains:
 
 Data / provider side:
-- Identify and integrate a provider for ETF holdings data. Candidates include Financial Modeling Prep (FMP), ETF.com, or a dedicated ETF holdings API. The provider should supply: constituent symbol, weight, and ideally shares held and market value per member.
+- Implement ETF holdings ingestion as a **free-source-first** capability, not as a dependency on a paid holdings aggregator:
+  - the platform should be able to build a useful ETF holdings database using public issuer disclosures and SEC filings before any paid holdings API is considered
+  - paid API aggregators such as FMP, EODHD, Alpha Vantage, Finnhub, or ETF.com-style datasets can remain optional future accelerators/fallbacks, but should not be required for the baseline feature
+  - premium official index constituent providers should be reserved only for workflows that explicitly require exact point-in-time index membership rather than ETF-holdings proxy membership
+  - this roadmap item should therefore be treated as a real ingestion product, not merely a wrapper around one commercial data provider
+- Split the ETF holdings problem into two complementary free-source tracks:
+  - **historical backfill from SEC/EDGAR-hosted filings**
+    - use SEC N-PORT / N-PORT-P structured data as the primary free structured historical source from the N-PORT era
+    - use legacy SEC filings such as N-Q and N-CSR where practical to reconstruct older lower-frequency holdings history before N-PORT
+    - preserve the fact that SEC-derived history is filing/reported holdings data, not official index membership
+    - preserve both the holdings `as_of_date` and the date the filing became publicly available / known to the platform so Strategy Lab can avoid look-ahead bias
+    - expect SEC backfills to be lower-frequency and delayed relative to issuer daily/weekly holdings files
+    - treat SEC backfill parsing as a separate pipeline from issuer-current ingestion because the schemas, file formats, timing, and quality controls are different
+  - **forward daily/weekly snapshots from ETF issuer/provider disclosures**
+    - build individual adapters for major US ETF issuers and fund families that publish holdings files or holdings pages
+    - target iShares/BlackRock, State Street/SPDR, Vanguard, Invesco, Schwab, First Trust, Global X, VanEck, ARK, WisdomTree, ProShares, Direxion, JPMorgan, Dimensional, PIMCO, Franklin, Fidelity, and other large US-listed ETF sponsors over time
+    - let each adapter understand that issuer's own URL structure, downloadable file formats, date fields, disclaimers, cash rows, derivative rows, currency fields, and naming conventions
+    - store raw downloaded files/pages/artifacts before normalization so parser changes can be audited and historical ingestions can be replayed
+    - schedule refreshes daily where the issuer appears to publish daily holdings, and weekly where daily refresh is unnecessary or not reliably available
+    - keep the adapter framework tolerant of issuer website changes, because free public issuer files are valuable but brittle
+- Add a provider-specific holdings adapter framework:
+  - each adapter should expose a common interface:
+    - discover supported ETFs
+    - resolve issuer product id / slug / URL for a known ETF
+    - fetch latest holdings
+    - fetch holdings for a specific date when the issuer supports it
+    - parse raw holdings into canonical rows
+    - report source metadata and parser confidence
+    - probe whether an ETF belongs to that issuer/provider path
+  - adapter output should normalize:
+    - constituent symbol
+    - constituent name
+    - CUSIP / ISIN / SEDOL where available
+    - weight
+    - shares held
+    - market value
+    - asset class / holding type
+    - currency
+    - country / exchange where available
+    - cash, futures, swaps, options, collateral, and other non-equity rows
+    - source row id / source row hash
+  - adapter output should also preserve source-specific fields that do not fit the canonical schema yet so we do not throw away useful data too early
+- Add an ETF identity and adapter-routing layer so the platform knows which free issuer/provider path to use for each ETF:
+  - never infer issuer solely from ticker
+  - master each ETF using the existing instrument identity model plus ETF-specific identifiers:
+    - symbol
+    - exchange / MIC
+    - fund name
+    - issuer / sponsor / adviser / fund family when known
+    - CUSIP
+    - ISIN
+    - FIGI / composite FIGI / share-class FIGI where available
+    - SEC CIK
+    - SEC series id
+    - SEC class id
+    - provider aliases and issuer product ids
+  - use market-data-provider metadata as a candidate signal when it includes issuer/fund-family/sponsor fields
+  - use SEC Investment Company Series/Class data as a canonical US fallback for ticker-to-CIK/series/class mapping
+  - use identifier resolvers such as OpenFIGI where available to reconcile CUSIP/ISIN/FIGI/ticker/exchange aliases
+  - maintain an issuer adapter registry with confidence-scored matchers:
+    - exact issuer id / fund-family match
+    - SEC registrant/fund family match
+    - issuer product id match
+    - domain/URL match
+    - name-pattern match as a last resort only
+  - after selecting an adapter, run a lightweight probe to confirm the issuer endpoint returns the expected ETF name/ticker/CUSIP/ISIN before ingesting holdings
+  - if an ETF cannot be routed confidently, mark it as `holdings_adapter_unresolved` rather than silently trying a guessed provider path
+- Store adapter/source health and coverage:
+  - last successful refresh by ETF and adapter
+  - last failed refresh and failure reason
+  - source URL / SEC accession / raw artifact id
+  - parser version
+  - row count
+  - resolved constituent count
+  - unresolved constituent count
+  - apparent composition date
+  - observed publication date / ingestion date
+  - whether the file appears complete, partial, delayed, empty, or malformed
+  - whether the issuer blocks or rate-limits automated access
+- Add clear source/provenance semantics for free ETF holdings data:
+  - `issuer_current_holdings`: latest free issuer-disclosed holdings file/page
+  - `issuer_self_snapshotted_holdings`: point-in-time history accumulated by our scheduled issuer adapters from today onward
+  - `sec_nport_reconstructed_holdings`: historical holdings reconstructed from SEC N-PORT / N-PORT-P
+  - `sec_legacy_reconstructed_holdings`: older lower-frequency holdings reconstructed from N-Q / N-CSR where practical
+  - `paid_api_historical_holdings`: optional commercial source, not required by the free baseline
+  - `official_index_constituents`: authoritative licensed index membership, separate from ETF holdings
+- Add legal/usage metadata to every source and adapter:
+  - public availability does not automatically mean unrestricted redistribution
+  - store issuer terms/disclaimer review notes where known
+  - distinguish internal research use, user-facing derived analytics, raw holdings redistribution, and commercial resale
+  - avoid presenting this feature as "we own/redistribute issuer data" unless licensing has been checked
+  - design the platform so we can initially show derived/normalized holdings for product functionality while preserving a path to stricter licensing controls later
 - Introduce a scheduled refresh task that updates ETF holdings on a configurable cadence (daily or weekly is likely sufficient for non-leveraged index funds).
 - Model ETF holdings as a special case of basket: a system-managed basket with a reference to the source ETF instrument, a composition_date field, and a flag distinguishing user-owned baskets from ETF-derived baskets.
+- Persist ETF holdings snapshots over time instead of overwriting only the latest composition:
+  - ETF instrument id
+  - constituent instrument id
+  - reported constituent symbol/name at source
+  - weight
+  - shares held where available
+  - market value where available
+  - cash/derivative/other holding classification where available
+  - composition date
+  - source/provider
+  - ingestion timestamp
+  - source file/report identifier where available
+  - confidence/provenance flags
+- Support multiple holdings-history quality levels and make them visible downstream:
+  - `current_issuer_holdings`: latest issuer-published holdings snapshot
+  - `self_snapshotted_holdings`: snapshots the platform has collected going forward
+  - `filing_reconstructed_holdings`: lower-frequency historical holdings reconstructed from regulatory filings
+  - `api_historical_holdings`: provider-supplied historical holdings snapshots
+  - `official_index_constituents`: authoritative licensed index membership, when available
+- Add explicit caveats and metadata so Strategy Lab, Screener, Radar, baskets, and breadth analysis know whether a holdings-derived universe is:
+  - exact enough for navigation and current analysis
+  - a reasonable proxy for historical research
+  - too sparse/stale for a specific requested backtest date range
+  - unsuitable for claims about official index membership
+- Model timing carefully:
+  - issuer files may be current or previous-close holdings
+  - regulatory filings are delayed and should not be treated as known before their filing/public availability date in point-in-time simulations
+  - reconstructed historical ETF holdings should preserve both `as_of_date` and `known_at` / `published_at` where available
+  - Strategy Lab must avoid look-ahead bias when using historical holdings snapshots as dynamic universes.
+- Add provider adapters that can ingest both API responses and downloadable issuer files:
+  - normalize source symbols into canonical instruments through the platform's instrument resolver
+  - instantiate lightweight instruments for holdings not yet known locally
+  - preserve source-specific labels/symbols for auditability
+  - record unmatched constituents so users can see which holdings could not be resolved
+- For ETF/index proxy workflows, support mapping common index ETFs to their intended benchmark/index:
+  - `SPY` / `VOO` / `IVV` as S&P 500 proxies
+  - `QQQ` as a Nasdaq 100 proxy
+  - `IWV` / `VTHR` or similar as Russell 3000 proxies
+  - `IWM` / `VTWO` as Russell 2000 proxies
+  - keep this mapping explicit and user-visible, because an ETF proxy is not the same as the official index.
 
 Backend:
 - ETF-derived baskets should be read-only from the user's perspective (no user-editable weights).
 - Provide an endpoint to list/search ETFs that have holdings data available.
 - Provide an endpoint to retrieve the holdings basket for a given ETF instrument.
 - Provide an endpoint for the holdings navigation flow: given an ETF instrument id, return the full member list with weights, instrument details, and optional mini-stats per member.
+- Provide endpoints to inspect holdings history and coverage:
+  - latest holdings snapshot for an ETF
+  - available composition dates for an ETF
+  - holdings snapshot nearest to a requested date
+  - historical membership timeline for a constituent within an ETF
+  - unresolved/unmatched holdings for a provider/source
+  - coverage summary showing whether a requested Strategy Lab date range has usable holdings snapshots
+- Allow ETF holdings baskets to be used as first-class universes in:
+  - Screener
+  - Radar slicing/filtering where appropriate
+  - Strategy Lab snapshot universes
+  - later, Strategy Lab dynamic point-in-time universes
 
 Frontend:
 - On the chart page, when viewing an ETF, surface a "Holdings" tab or panel showing the basket composition.
@@ -1471,6 +1951,19 @@ Frontend:
 - A "Browse all constituents" mode: a paginated/scrollable table of all members with mini-stats (price, change, distance to 52w high, etc.) with click-through to each instrument's chart.
 - The holdings panel should make it easy to open multiple instruments in sequence (e.g., step through constituents one by one) for manual scanning.
 - Later, a "chart all" or "compare all" shortcut that opens a screener-results-like view filtered to the ETF's holdings.
+- Show holdings-source and freshness metadata directly in the ETF holdings UI:
+  - source/provider
+  - composition date
+  - ingestion time
+  - number of resolved holdings
+  - number of unresolved holdings
+  - whether the holdings are issuer-current, self-snapshotted, filing-reconstructed, API-historical, or official index constituents
+- In Strategy Lab universe selection, allow the user to choose ETF-derived universes with clear semantics:
+  - latest ETF holdings snapshot
+  - platform-snapshotted point-in-time ETF holdings where available
+  - filing-reconstructed holdings where available
+  - official index constituents only if a premium source is configured
+  - warn when the selected mode is a proxy or when historical coverage is incomplete.
 
 ---
 
