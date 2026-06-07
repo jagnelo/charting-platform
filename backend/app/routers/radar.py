@@ -45,6 +45,8 @@ router = APIRouter(prefix="/radar", tags=["radar"])
 
 class RadarRunCreate(BaseModel):
     timeframe: Timeframe = Timeframe.D1
+    universe_type: str = "all"
+    universe_filter: dict | None = None
 
 
 class RadarWatchlistActionCreate(BaseModel):
@@ -260,7 +262,13 @@ async def trigger_radar_run(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    run = await run_radar_scan(db, timeframe=(body.timeframe if body else Timeframe.D1))
+    run = await run_radar_scan(
+        db,
+        timeframe=(body.timeframe if body else Timeframe.D1),
+        universe_type=(body.universe_type if body else "all"),
+        universe_filter=(body.universe_filter if body else None),
+        user_id=current_user.id,
+    )
     return run
 
 

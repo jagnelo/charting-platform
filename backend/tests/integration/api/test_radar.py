@@ -77,6 +77,37 @@ class TestRadarAPI:
         assert "outcome_status" in detections[0]
         assert "bars_since_signal" in detections[0]
 
+    def test_run_can_use_basket_universe(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
+        _seed_radar_bars(
+            db,
+            instrument_b,
+            [100, 104, 108, 111, 108, 104] * 18 + [108, 110.5, 107.5, 106.5, 105.5],
+        )
+        basket = client.post(
+            "/api/v1/baskets",
+            headers=auth_headers,
+            json={"name": "Radar basket", "members": [{"instrument_id": instrument.id}]},
+        )
+        assert basket.status_code == 200
+
+        run_res = client.post(
+            "/api/v1/radar/run",
+            headers=auth_headers,
+            json={
+                "timeframe": "D1",
+                "universe_type": "basket",
+                "universe_filter": {"basket_id": basket.json()["id"]},
+            },
+        )
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["universe_type"] == "basket"
+        assert run_data["universe_filter"]["basket_id"] == basket.json()["id"]
+        assert run_data["evaluated_count"] == 1
+
     def test_run_and_filter_by_custom_timeframe(self, client, auth_headers, db, instrument):
         from app.models.ohlcv import Timeframe
 

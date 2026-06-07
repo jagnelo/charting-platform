@@ -246,8 +246,30 @@ describe('useRadarStore', () => {
     store.clearChartDetections()
 
     expect(run.id).toBe(5)
+    expect(api.post).toHaveBeenCalledWith('/radar/run', {
+      timeframe: 'D1',
+      universe_type: 'all',
+      universe_filter: null,
+    })
     expect(store.activeChartDetectionIds).toEqual([])
     expect(store.chartDetections).toEqual([])
+  })
+
+  it('runs a scan against a basket universe', async () => {
+    ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 6, status: 'completed' })
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+
+    const store = useRadarStore()
+    await store.runScan('D1', {
+      universe_type: 'basket',
+      universe_filter: { basket_id: 44 },
+    })
+
+    expect(api.post).toHaveBeenCalledWith('/radar/run', {
+      timeframe: 'D1',
+      universe_type: 'basket',
+      universe_filter: { basket_id: 44 },
+    })
   })
 
   it('loads instrument history and outcome summary', async () => {

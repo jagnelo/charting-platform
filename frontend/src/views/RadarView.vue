@@ -9,7 +9,12 @@
       </div>
       <div class="radar-actions">
         <button class="action-btn" :disabled="runningScan" @click="refresh">Refresh</button>
-        <button class="action-btn primary" :disabled="runningScan" @click="runScan">
+        <button
+          class="action-btn primary"
+          :disabled="runningScan || !canRunScan"
+          :title="canRunScan ? 'Run radar scan' : 'Select a basket before running this scan'"
+          @click="runScan"
+        >
           {{ runningScan ? 'Running…' : 'Run scan' }}
         </button>
       </div>
@@ -28,6 +33,21 @@
         </div>
         <select v-model="filters.timeframe" class="filter-select" :disabled="runningScan" @change="refresh">
           <option v-for="timeframe in timeframeOptions" :key="timeframe" :value="timeframe">{{ timeframe }}</option>
+        </select>
+        <select v-model="scanUniverse.type" class="filter-select" :disabled="runningScan">
+          <option value="all">All instruments</option>
+          <option value="basket">Basket / ETF holdings</option>
+        </select>
+        <select
+          v-if="scanUniverse.type === 'basket'"
+          v-model="scanUniverse.basketId"
+          class="filter-select scan-basket-select"
+          :disabled="runningScan"
+        >
+          <option :value="null">Select basket</option>
+          <option v-for="basket in baskets" :key="basket.id" :value="basket.id">
+            {{ basketLabel(basket) }}
+          </option>
         </select>
         <select v-model="filters.setupType" class="filter-select" :disabled="runningScan" @change="refresh">
           <option value="">All setups</option>
@@ -404,9 +424,11 @@ import { useRouter } from 'vue-router'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import RadarDetailPreviewChart from '@/components/radar/RadarDetailPreviewChart.vue'
+import { api } from '@/lib/api'
 import { useRadarStore } from '@/stores/radar'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type {
+  Basket,
   RadarDetection,
   RadarOutcomeSummary,
   RadarSetupType,
@@ -425,6 +447,11 @@ const selectedWatchlistId = ref('')
 const workflowPendingAction = ref<'alert' | 'watchlist' | null>(null)
 const workflowMessage = ref('')
 const detailWidth = ref(380)
+const baskets = ref<Basket[]>([])
+const scanUniverse = reactive({
+  type: 'all',
+  basketId: null as number | null,
+})
 const RADAR_DETAIL_WIDTH_KEY = 'charting-platform.radar.detail-width'
 const DETAIL_WIDTH_MIN = 340
 const DETAIL_WIDTH_MAX = 680
@@ -467,6 +494,9 @@ const radarStates: Array<{ value: RadarState; label: string }> = [
 ]
 
 const latestRun = computed(() => radarStore.runs[0] ?? null)
+const canRunScan = computed(() =>
+  scanUniverse.type !== 'basket' || scanUniverse.basketId != null
+)
 const selectedThread = computed(() => radarStore.selectedDetection?.thread ?? null)
 const selectedThreadHistory = computed(() => radarStore.selectedDetection?.thread_history ?? [])
 const instrumentHistory = computed(() => radarStore.selectedInstrumentHistory)
@@ -1047,14 +1077,25 @@ async function selectDetection(id: number) {
 }
 
 async function runScan() {
-  if (runningScan.value) return
+  if (runningScan.value || !canRunScan.value) return
   scanPending.value = true
   try {
-    await radarStore.runScan(filters.timeframe)
+    await radarStore.runScan(filters.timeframe, {
+      universe_type: scanUniverse.type,
+      universe_filter: scanUniverse.type === 'basket'
+        ? { basket_id: scanUniverse.basketId }
+        : null,
+    })
     await refresh()
   } finally {
     scanPending.value = false
   }
+}
+
+function basketLabel(basket: Basket) {
+  const source = basket.source_type === 'etf_holdings' ? 'ETF holdings' : basket.source_type.replace(/_/g, ' ')
+  const memberCount = basket.members?.length ?? 0
+  return `${basket.name} · ${source}${memberCount ? ` · ${memberCount}` : ''}`
 }
 
 function openInChart(detection: RadarDetection) {
@@ -1140,8 +1181,12 @@ onMounted(async () => {
   }
   window.addEventListener('resize', syncViewportWidth)
   radarStore.loadSavedViews()
-  await watchlistStore.loadWatchlists()
-  await refresh()
+  const [loadedBaskets] = await Promise.all([
+    api.get<Basket[]>('/baskets').catch(() => []),
+    watchlistStore.loadWatchlists(),
+    refresh(),
+  ])
+  baskets.value = loadedBaskets
 })
 
 onBeforeUnmount(() => {

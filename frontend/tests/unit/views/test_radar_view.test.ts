@@ -216,6 +216,46 @@ describe('RadarView', () => {
           },
         ])
       }
+      if (path === '/baskets') {
+        return Promise.resolve([
+          {
+            id: 44,
+            user_id: 1,
+            name: 'SPY holdings',
+            description: null,
+            source_type: 'etf_holdings',
+            weighting_scheme: 'market_cap',
+            rebalance_frequency: null,
+            classification_mode: 'custom',
+            sector: null,
+            industry: null,
+            source_etf_profile_id: null,
+            source_snapshot_id: null,
+            composition_date: '2026-05-01',
+            is_system_managed: true,
+            is_read_only: true,
+            metadata: {},
+            members: [
+              {
+                id: 1,
+                instrument_id: 7,
+                symbol: 'AAPL',
+                name: 'Apple',
+                source_holding_id: null,
+                position: 1,
+                weight: null,
+                label: null,
+                notes: null,
+                metadata: {},
+                created_at: '2026-05-01T00:00:00Z',
+                updated_at: '2026-05-01T00:00:00Z',
+              },
+            ],
+            created_at: '2026-05-01T00:00:00Z',
+            updated_at: '2026-05-01T00:00:00Z',
+          },
+        ])
+      }
       if (path === '/radar/detections') return Promise.resolve([summaryDetection])
       if (path === '/radar/detections/42') return Promise.resolve(detailDetection)
       if (path === '/radar/instruments/7/history') {
@@ -437,7 +477,7 @@ describe('RadarView', () => {
       active_only: true,
     })
 
-    await selects[2].setValue('breakout')
+    await selects[3].setValue('breakout')
     await flushPromises()
 
     expect(api.get).toHaveBeenCalledWith('/radar/detections', {
@@ -449,7 +489,7 @@ describe('RadarView', () => {
       active_only: true,
     })
 
-    await selects[3].setValue('confirmed')
+    await selects[4].setValue('confirmed')
     await flushPromises()
 
     expect(api.get).toHaveBeenCalledWith('/radar/detections', {
@@ -516,5 +556,45 @@ describe('RadarView', () => {
     expect(api.post).toHaveBeenCalledWith('/radar/detections/42/actions/create-price-alert', {})
     expect(api.post).toHaveBeenCalledWith('/radar/detections/42/actions/add-to-watchlist', {})
     expect(wrapper.text()).toContain('Added to Priority.')
+  })
+
+  it('runs scans against a selected ETF holdings basket', async () => {
+    const wrapper = mount(RadarView, {
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          RadarDetailPreviewChart: radarDetailPreviewChartStub,
+        },
+      },
+    })
+
+    await flushPromises()
+    await flushPromises()
+
+    const runButton = wrapper.find('.radar-actions .action-btn.primary')
+    const selects = wrapper.findAll('select.filter-select')
+    await selects[2].setValue('basket')
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('SPY holdings')
+    })
+
+    expect(runButton.attributes('disabled')).toBeDefined()
+
+    const withBasketSelect = wrapper.findAll('select.filter-select')
+    await withBasketSelect[3].setValue('44')
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(runButton.attributes('disabled')).toBeUndefined()
+    })
+
+    await runButton.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/radar/run', {
+      timeframe: 'D1',
+      universe_type: 'basket',
+      universe_filter: { basket_id: 44 },
+    })
   })
 })

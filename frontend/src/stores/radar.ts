@@ -18,6 +18,11 @@ interface PendingChartDetection {
   timeframe: Timeframe
 }
 
+interface RadarScanOptions {
+  universe_type?: string
+  universe_filter?: Record<string, unknown> | null
+}
+
 interface RadarSavedView {
   name: string
   filters: {
@@ -174,8 +179,12 @@ export const useRadarStore = defineStore('radar', () => {
     return selectedDetection.value
   }
 
-  async function runScan(timeframe: Timeframe) {
-    const run = await api.post<RadarRun>('/radar/run', { timeframe })
+  async function runScan(timeframe: Timeframe, options: RadarScanOptions = {}) {
+    const run = await api.post<RadarRun>('/radar/run', {
+      timeframe,
+      universe_type: options.universe_type ?? 'all',
+      universe_filter: options.universe_filter ?? null,
+    })
     await loadRuns(5, timeframe)
     return run
   }

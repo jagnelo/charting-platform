@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.basket import Basket, BasketMember
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
@@ -2295,6 +2296,7 @@ async def run_radar_scan(
     timeframe: Timeframe = Timeframe.D1,
     universe_type: str = "all",
     universe_filter: dict | None = None,
+    user_id: int | None = None,
 ) -> RadarRun:
     run = RadarRun(
         timeframe=timeframe,
@@ -2307,18 +2309,31 @@ async def run_radar_scan(
     await db.flush()
 
     try:
-        instruments = (
-            (
-                await db.execute(
-                    select(Instrument)
-                    .where(Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False))
-                    .options(selectinload(Instrument.instrument_type))
-                    .order_by(Instrument.symbol)
-                )
-            )
-            .scalars()
-            .all()
+        instrument_stmt = (
+            select(Instrument)
+            .where(Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False))
+            .options(selectinload(Instrument.instrument_type))
+            .order_by(Instrument.symbol)
         )
+        if universe_type == "custom":
+            instrument_ids = list((universe_filter or {}).get("instrument_ids") or [])
+            instrument_stmt = instrument_stmt.where(Instrument.id.in_(instrument_ids or [-1]))
+        elif universe_type == "basket":
+            basket_id = (universe_filter or {}).get("basket_id")
+            basket_member_ids = (
+                select(BasketMember.instrument_id)
+                .join(Basket, Basket.id == BasketMember.basket_id)
+                .where(Basket.id == basket_id)
+            )
+            if user_id is not None:
+                basket_member_ids = basket_member_ids.where(
+                    (Basket.user_id == user_id) | (Basket.is_system_managed.is_(True))
+                )
+            else:
+                basket_member_ids = basket_member_ids.where(Basket.is_system_managed.is_(True))
+            instrument_stmt = instrument_stmt.where(Instrument.id.in_(basket_member_ids))
+
+        instruments = list((await db.execute(instrument_stmt)).scalars().all())
 
         detections: list[RadarDetection] = []
         evaluated = 0
