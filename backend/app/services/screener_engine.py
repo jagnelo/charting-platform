@@ -23,6 +23,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.basket import Basket, BasketMember
 from app.models.indicator_cache import IndicatorCache
 from app.models.instrument import EquityDetail, Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -198,6 +199,21 @@ async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[
                 )
             )
             return list(items_result.scalars().all())
+
+    if screener.universe_type == "basket" and screener.universe_basket_id:
+        items_result = await db.execute(
+            select(BasketMember.instrument_id)
+            .join(Basket, Basket.id == BasketMember.basket_id)
+            .join(Instrument, Instrument.id == BasketMember.instrument_id)
+            .where(
+                Basket.id == screener.universe_basket_id,
+                (Basket.user_id == screener.user_id) | (Basket.is_system_managed.is_(True)),
+                Instrument.is_active.is_(True),
+                Instrument.is_synthetic.is_(False),
+            )
+            .order_by(BasketMember.position.asc())
+        )
+        return list(items_result.scalars().all())
 
     if screener.universe_type == "asset_class" and screener.universe_asset_class_id:
         from app.models.asset_class import InstrumentType

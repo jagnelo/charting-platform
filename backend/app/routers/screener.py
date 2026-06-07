@@ -22,6 +22,7 @@ class ScreenerCreate(BaseModel):
     universe_type: str = "all"
     universe_watchlist_id: int | None = None
     universe_asset_class_id: int | None = None
+    universe_basket_id: int | None = None
     universe_instrument_ids: list[int] | None = None
     timeframe: Timeframe = Timeframe.D1
     conditions: dict
@@ -36,6 +37,10 @@ class ScreenerOut(BaseModel):
     name: str
     description: str | None
     universe_type: str
+    universe_watchlist_id: int | None = None
+    universe_asset_class_id: int | None = None
+    universe_basket_id: int | None = None
+    universe_instrument_ids: list[int] | None = None
     timeframe: str
     conditions: dict
     schedule: str | None

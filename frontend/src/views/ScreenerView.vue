@@ -25,7 +25,7 @@
             <span class="si-drag-handle" @click.stop title="Drag to reorder">⠿</span>
             <div class="si-content">
               <div class="si-name">{{ s.name }}</div>
-              <div class="si-meta">{{ s.timeframe }} · {{ s.universe_type }}</div>
+              <div class="si-meta">{{ s.timeframe }} · {{ screenerUniverseLabel(s) }}</div>
             </div>
           </div>
         </VueDraggable>
@@ -144,6 +144,16 @@
             <select v-model="draft.universe_type" class="form-select">
               <option value="all">All instruments</option>
               <option value="asset_class">Asset class</option>
+              <option value="basket">Basket / ETF holdings</option>
+            </select>
+          </div>
+          <div v-if="draft.universe_type === 'basket'" class="field">
+            <label>Basket</label>
+            <select v-model="draft.universe_basket_id" class="form-select">
+              <option :value="null">Select basket</option>
+              <option v-for="basket in baskets" :key="basket.id" :value="basket.id">
+                {{ basketLabel(basket) }}
+              </option>
             </select>
           </div>
         </div>
@@ -222,7 +232,7 @@
 
         <div class="builder-actions">
           <button class="btn-cancel" @click="showBuilder = false">Cancel</button>
-          <button class="btn-save" :disabled="!draft.name" @click="saveScreener">Save Screener</button>
+          <button class="btn-save" :disabled="!canSaveDraft" @click="saveScreener">Save Screener</button>
         </div>
       </div>
 
@@ -231,7 +241,7 @@
         <div class="results-header">
           <div class="rh-left">
             <h3>{{ selectedScreener.name }}</h3>
-            <span class="rh-meta">{{ selectedScreener.timeframe }} · {{ selectedScreener.universe_type }}</span>
+            <span class="rh-meta">{{ selectedScreener.timeframe }} · {{ screenerUniverseLabel(selectedScreener) }}</span>
           </div>
           <div class="rh-right">
             <!-- Alert bell -->
@@ -415,6 +425,7 @@ import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
 import TechnicalConditionEditor from '@/components/common/TechnicalConditionEditor.vue'
 import TextPromptModal from '@/components/common/TextPromptModal.vue'
 import { createDefaultTechnicalCondition, normalizeTechnicalCondition } from '@/lib/technicalConditions'
+import type { Basket } from '@/types'
 import { VueDraggable } from 'vue-draggable-plus'
 
 const route = useRoute()
@@ -424,6 +435,10 @@ interface Screener {
   name: string
   timeframe: string
   universe_type: string
+  universe_watchlist_id?: number | null
+  universe_asset_class_id?: number | null
+  universe_basket_id?: number | null
+  universe_instrument_ids?: number[] | null
   conditions: any
 }
 
@@ -522,6 +537,7 @@ watch([browseSector, browseIndustry, browseCountry, browseExchange, browseCurren
 const browsePages = computed(() => Math.ceil(browseTotal.value / BROWSE_PAGE_SIZE))
 
 const screeners   = ref<Screener[]>([])
+const baskets     = ref<Basket[]>([])
 
 const draggableScreeners = computed({
   get: () => screeners.value,
@@ -625,7 +641,12 @@ const displayResult    = computed(() =>
 const TIMEFRAMES = ['M1','M5','M15','M30','H1','H2','H4','H12','D1','W1','MN']
 // ── Draft state ───────────────────────────────────────────────────────────────
 
-const draft = reactive({ name: '', timeframe: 'D1', universe_type: 'all' })
+const draft = reactive({
+  name: '',
+  timeframe: 'D1',
+  universe_type: 'all',
+  universe_basket_id: null as number | null,
+})
 const draftRootOp = ref('AND')
 const draftConditions = ref<any[]>([])
 const fundamentals = reactive({
@@ -641,6 +662,7 @@ function resetDraft() {
   draft.name = ''
   draft.timeframe = 'D1'
   draft.universe_type = 'all'
+  draft.universe_basket_id = null
   draftRootOp.value = 'AND'
   draftConditions.value = []
   Object.assign(fundamentals, { sector: '', industry: '', country: '', exchange: '', market_cap_tier: '', currency: '' })
@@ -657,6 +679,7 @@ function editScreener(s: Screener) {
   draft.name = s.name
   draft.timeframe = s.timeframe
   draft.universe_type = s.universe_type
+  draft.universe_basket_id = s.universe_basket_id ?? null
   editingId.value = s.id
 
   // Reconstruct draft conditions from saved conditions
@@ -702,14 +725,22 @@ function buildConditions(): any {
 }
 
 async function saveScreener() {
+  if (!canSaveDraft.value) return
   const conditions = buildConditions()
+  const payload = {
+    name: draft.name,
+    timeframe: draft.timeframe,
+    universe_type: draft.universe_type,
+    universe_basket_id: draft.universe_type === 'basket' ? draft.universe_basket_id : null,
+    conditions,
+  }
   if (editingId.value) {
-    const updated = await api.patch<Screener>(`/screeners/${editingId.value}`, { ...draft, conditions })
+    const updated = await api.patch<Screener>(`/screeners/${editingId.value}`, payload)
     const idx = screeners.value.findIndex(s => s.id === editingId.value)
     if (idx !== -1) screeners.value[idx] = updated
     selectedId.value = updated.id
   } else {
-    const s = await api.post<Screener>('/screeners', { ...draft, conditions })
+    const s = await api.post<Screener>('/screeners', payload)
     screeners.value.push(s)
     selectedId.value = s.id
   }
@@ -867,10 +898,42 @@ const fmtDate   = (d: string) => new Date(d).toLocaleString()
 const fmtVal    = (v: any)    => v == null ? '—' : typeof v === 'number' ? v.toFixed(2) : String(v)
 const fmtPct    = (v: any)    => v == null ? '—' : `${(v * 100).toFixed(2)}%`
 const changeClass = (v: any)  => v == null ? '' : v >= 0 ? 'up' : 'down'
+const canSaveDraft = computed(() =>
+  draft.name.trim().length > 0
+  && (draft.universe_type !== 'basket' || draft.universe_basket_id != null)
+)
+
+function basketLabel(basket: Basket) {
+  const source = basket.source_type === 'etf_holdings' ? 'ETF holdings' : basket.source_type.replace(/_/g, ' ')
+  const memberCount = basket.members?.length ?? 0
+  return `${basket.name} · ${source}${memberCount ? ` · ${memberCount}` : ''}`
+}
+
+function basketName(id?: number | null) {
+  if (id == null) return 'Basket'
+  return baskets.value.find(basket => basket.id === id)?.name ?? `Basket ${id}`
+}
+
+function screenerUniverseLabel(screener: Pick<Screener, 'universe_type' | 'universe_basket_id'>) {
+  if (screener.universe_type === 'basket') return basketName(screener.universe_basket_id)
+  if (screener.universe_type === 'asset_class') return 'Asset class'
+  if (screener.universe_type === 'watchlist') return 'Watchlist'
+  if (screener.universe_type === 'custom') return 'Custom universe'
+  return 'All instruments'
+}
+
+watch(() => draft.universe_type, (type) => {
+  if (type !== 'basket') draft.universe_basket_id = null
+})
 
 onMounted(async () => {
   document.addEventListener('click', onDocClick, true)
-  screeners.value = await api.get('/screeners')
+  const [loadedScreeners, loadedBaskets] = await Promise.all([
+    api.get<Screener[]>('/screeners'),
+    api.get<Basket[]>('/baskets').catch(() => []),
+  ])
+  screeners.value = loadedScreeners
+  baskets.value = loadedBaskets
   await Promise.all([
     watchlistStore.loadWatchlists(),
     screenerAlertsStore.loadAlerts(),

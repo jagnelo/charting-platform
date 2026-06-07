@@ -128,6 +128,45 @@ class TestScreenerRun:
         assert run_res.status_code == 200
         assert instrument.id in run_res.json()["matched_ids"]
 
+    def test_run_screener_can_use_basket_universe(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        basket = client.post(
+            "/api/v1/baskets",
+            headers=auth_headers,
+            json={
+                "name": "Screener basket",
+                "members": [{"instrument_id": instrument.id}],
+            },
+        )
+        assert basket.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/screeners",
+            headers=auth_headers,
+            json={
+                "name": "Basket Price",
+                "conditions": {
+                    "operator": "AND",
+                    "conditions": [
+                        {"type": "price_threshold", "field": "close", "op": "gt", "value": 0}
+                    ],
+                },
+                "universe_type": "basket",
+                "universe_basket_id": basket.json()["id"],
+                "timeframe": "D1",
+            },
+        )
+        assert create_res.status_code == 201
+        assert create_res.json()["universe_basket_id"] == basket.json()["id"]
+
+        run_res = client.post(
+            f"/api/v1/screeners/{create_res.json()['id']}/run",
+            headers=auth_headers,
+        )
+        assert run_res.status_code == 200
+        assert run_res.json()["matched_ids"] == [instrument.id]
+
     def test_run_screener_impossible_condition_no_matches(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

@@ -19,6 +19,7 @@ class ScreenerDefinition(Base, TimestampMixin):
       'watchlist'     — instruments in a specific watchlist
       'asset_class'   — all instruments of a given asset class
       'custom'        — explicit list in universe_instrument_ids
+      'basket'        — instruments in a user-owned or system-managed basket
 
     conditions (JSON condition tree):
     {
@@ -81,6 +82,9 @@ class ScreenerDefinition(Base, TimestampMixin):
     )
     universe_asset_class_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("asset_class.id"), nullable=True
+    )
+    universe_basket_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("basket.id", ondelete="SET NULL"), nullable=True
     )
     universe_instrument_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
