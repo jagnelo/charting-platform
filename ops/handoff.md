@@ -2,379 +2,275 @@
 
 ## Current task
 
-- ID: strategy-lab
-- Title: Expand Strategy Lab toward the remaining roadmap gaps: richer condition coverage, deeper execution/persistence, broader results tooling, and stronger frontend UX consistency.
+- ID: etf-holdings-constituents
+- Title: Implement free-source-first ETF holdings / constituents subsystem.
 
 ## Current worker
 
 - Name: Codex
-- Session started: 2026-05-12T17:42:34Z
+- Session started: 2026-06-05T18:38:49Z
 - Soft stop deadline: n/a
 
 ## Completed in this session
 
-- Added explicit Strategy Lab run-end position handling in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
-  - new `close_open_positions_at_end` run-prep toggle
-  - the setting is persisted in version run defaults and included in submitted execution assumptions
-  - when disabled, run-end positions remain `open_at_end` and contribute to unrealized P&L
-  - when enabled, run-end positions are force-closed as realized `run_end_close` trades
-- Made Strategy Lab result P&L semantics explicit and consistent in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1):
-  - portfolio summary now makes realized return/P&L the primary result signal
-  - unrealized P&L/return and marked total remain visible as secondary context
-  - run-history cards show realized, unrealized, and marked return splits, with realized visually prioritized
-  - benchmark metadata now distinguishes strategy realized, unrealized, and marked return
-  - run comparison now uses marked/realized/unrealized return rows instead of a single ambiguous `Net return`
-  - per-symbol attribution now includes realized, unrealized, and total P&L, including symbols with only open-at-end positions
-  - P&L-like values in result summaries, execution log, return-breakdown tooltip, per-symbol attribution, R-distribution tooltip, optimization leaderboard, and run comparison now use green for positive values and red for negative values
-  - result P&L pairs now prioritize percentage first and show absolute money second wherever both are available, including summary breakdowns, execution-log cells, return-breakdown tooltips, per-symbol event tooltips, and R-distribution tooltips
-- Refined the Strategy Lab return-breakdown heatmap in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
-  - cells now represent realized P&L from `exit` events only, instead of marked-to-market equity movement
-  - open-at-end unrealized marks are shown separately in the tooltip as small supporting context
-  - heatmap tooltips have a taller scrollable popover so dense periods do not hide rows below the visible area
-- Removed generic rejected-trade warnings from Strategy Lab results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - rejected attempts are already represented in the execution log with symbol/time/side/size/price/reason
-  - the backend no longer adds broad `N trades were rejected by portfolio controls` warnings
-  - the coverage panel no longer receives generic run warnings, so coverage notes stay coverage-specific
-- Tightened Strategy Lab coverage typography in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
-  - reduced oversized summary-card, chip, note, and table text
-  - switched the widget to the same compact scale as the surrounding Strategy Lab panels
-  - tightened spacing and reduced radii so coverage preview/detail no longer reads like a visually separate feature block
-  - the instrument coverage table is now locally collapsible and starts folded so coverage warnings/summary remain visible without the scrollable list trapping page scroll
-- Clarified and expanded Strategy Lab commission semantics in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
-  - the ambiguous single `Commission per trade` assumption is now an explicit commission model plus value
-  - supported models are:
-    - fixed round-trip commission
-    - fixed per-order commission
-    - percent of notional
-  - run defaults, execution assumptions, and result summaries now persist `commission_model` and `commission_value`, while still carrying `commission_per_trade` as a compatibility alias
-  - simulated closed trades, run-end open positions, and unrealized mark-to-market P&L now all subtract fees according to the selected commission model
-- Tightened the Strategy Lab result summary and execution log in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - the `Net return` summary now shows unrealized P&L as both money and signed percent
-  - if a run payload still omits open-position execution rows, the UI synthesizes the missing `entry` and `open_at_end` rows from `open_positions` so those positions are not silently absent from the log
-- Extended the Strategy Lab execution-model roadmap in [docs/project-todos.md](/Users/jagnelo/Documents/Projects/charting-platform/docs/project-todos.md:1):
-  - documented that current support now covers basic fixed-fee and percent-of-notional commission models
-  - added future work for multi-currency portfolios and FX conversion commissions when account currency differs from instrument currency
-- Added Strategy Lab coverage visibility across preparation and results in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1), [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), and [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
-  - new `POST /api/v1/strategy-lab/coverage-preview` endpoint for prep-time coverage preview
-  - richer universe coverage summaries with requested window, shared local window, any-symbol window, limiting instruments, and per-instrument notes
-  - richer benchmark coverage summaries with requested status, available first/last bar, and missing-history warnings
-  - prep-time `Coverage preview` section in `Research runs`
-  - full `Coverage detail` panel in `Results`
-  - clearer user-facing distinction between naturally short history and likely-missing local history
-  - explicit benchmark coverage timestamps with year included
-- Tightened the Strategy Lab `Net return` summary card in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so open-position runs now show unrealized P&L as both:
-  - absolute money
-  - signed percent of starting capital
-- Hardened the Strategy Lab execution-log view in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) so if older or inconsistent run payloads include `open_positions` but omit their matching execution events, the UI synthesizes the missing `entry` and `open_at_end` rows instead of silently hiding those positions from the log.
-- Deepened backend Strategy Lab execution and persistence in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [backend/app/routers/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/routers/strategy_lab.py:1), and [backend/app/schemas/strategy.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/schemas/strategy.py:1):
-  - version-draft persistence via version patching
-  - eager-loaded instrument context fix for async ORM run execution
-  - dense portfolio/equity history reconstruction over the full run horizon
-  - accepted open-position accounting and `open_at_end` execution-log events
-  - portfolio constraint application aligned across closed and open positions
-  - richer result-summary splits for realized vs unrealized state
-- Broadened shared condition support across Screener and Strategy Lab in [backend/app/services/screener_engine.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/screener_engine.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), [frontend/src/lib/technicalConditions.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/lib/technicalConditions.ts:1), and [frontend/src/components/common/TechnicalConditionEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/common/TechnicalConditionEditor.vue:1):
-  - full Screener condition surface in Strategy Lab
-  - shared platform indicator catalog instead of the old RSI/SMA/EMA subset
-  - structured grouped rule-tree authoring retained on top of the shared condition editor
-- Reworked Strategy Lab risk/exits and version authoring UX in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/StrategyRuleTreeEditor.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyRuleTreeEditor.vue:1), [frontend/src/stores/strategyLab.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/stores/strategyLab.ts:1), and [frontend/src/types/index.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/types/index.ts:1):
-  - true persisted draft/profile state instead of resetting to defaults
-  - split `Risk` from `Exits`
-  - condition-based exit trees using the same shared rule system as entries
-  - expanded risk authoring with hard trailing stop % and hard-trail activation threshold %
-  - advanced optional run subset limited to explicit-universe members only
-  - corrected no-comparison-by-default behavior for run comparison
-  - run history is now locally collapsible so its scroll container only appears when explicitly opened
-- Added a richer first pass of Strategy Lab stop and sizing models in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1), [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1), and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - percent or ATR-based stop models
-  - ATR period and multiple controls
-  - position sizing modes for percent risk, fixed cash, percent capital, and fixed quantity
-  - persisted sizing/stop assumptions carried through saved strategy versions and run assumptions
-- Expanded executable trailing-risk support in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [backend/app/services/strategy_lab_nautilus.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab_nautilus.py:1):
-  - hard trailing stop % carried through saved strategy snapshots, run assumptions, parameter schema, and result summaries
-  - optional hard-trail activation threshold before the percent trail arms
-  - stop-based exits now distinguish plain stop loss vs break-even vs trailing-stop outcomes
-  - initial risk is preserved for `R` calculations even after stop ratcheting
-- Reworked the Strategy Lab results workspace in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
-  - [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1)
-  - [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1)
-  - [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1)
-  - [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1)
-  - performance vs benchmark overlay chart
-  - interactive drawdown / portfolio / position charts
-  - integer-only Y-axis support on shared result charts for count-based series like `Open positions`
-  - time-range presets with window shifting for long-horizon charts
-  - in-chart hover panels, corrected hover alignment, dynamic Y-axis gutter sizing, and live-width chart scaling
-  - tooltip width now adapts more tightly to content instead of starting from an oversized minimum width
-  - when hovering, the active chart now lifts above surrounding panels so the tooltip sits over neighboring controls instead of being visually under them
-  - result mini-panels now top-align inside the grid so shorter panels like `R distribution` do not inherit large dead space from taller neighbors
-  - the shared `Per symbol` bars now pack to the top of their panel instead of distributing vertically across the full stretched height
-  - the drawdown chart now shows true downside (negative drawdown) instead of upward positive magnitudes
-  - the drawdown chart now overlays benchmark buy-and-hold drawdown when benchmark data exists, with legend support for strategy-vs-benchmark downside comparison
-  - visual monthly/quarterly heatmaps and structured per-symbol / R-distribution visuals
-  - `Per symbol` now includes best/worst summary chips plus hover/click drilldowns showing symbol-level outcome context from execution events
-  - `R distribution` now includes closed-trade summary chips plus hover/click drilldowns showing which trades landed in each `R` bucket
-  - execution log expanded beyond closed trades and aligned with position evolution
-  - compacted but unclipped run-history rows
-- Applied a follow-up readability pass to [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - the old split monthly/quarterly panels were collapsed into a single full-width `Return breakdown` widget
-  - the widget now supports monthly, quarterly, and derived yearly views via a selector
-  - the heatmap preserves readable cell widths instead of squeezing into the generic grid
-  - the heatmap can scroll horizontally when needed rather than compressing values into unreadable cells
-  - in-cell percent labels are shorter and fit more cleanly
-  - the left year-label gutter is now much narrower, so more width is preserved for the actual return cells
-- Applied a follow-up hover readability pass to [frontend/src/components/strategy/StrategyResultChart.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyResultChart.vue:1):
-  - dense multi-series tooltips can now grow beyond the chart box instead of being confined inside it
-  - dense tooltips switch to a wider multi-column layout
-  - overlay sizing is no longer artificially tied to the chart drawing area
-  - preset range controls are now exposed consistently across shared Strategy Lab charts, including `Position evolution`
-- Applied the next `results workspace direction` pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) with new shared components:
-  - [frontend/src/components/strategy/SignalReplayBreakdown.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SignalReplayBreakdown.vue:1)
-  - [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1)
-  - [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1)
-  - [frontend/src/components/strategy/PaperForwardMonitorPanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/PaperForwardMonitorPanel.vue:1)
-  - [frontend/src/components/strategy/RunComparisonTable.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/RunComparisonTable.vue:1)
-  - `Signal replay` now shows replay rate, dominant setup, and a setup-type bar breakdown
-  - `Optimization` is now a ranked leaderboard with sortable-style row emphasis and parameter drilldowns
-  - `Walk-forward` is now a segment-oriented panel with in-sample/out-of-sample summaries and segment detail
-  - `Paper-forward monitor` is now a small monitoring workspace with equity timeline and recent snapshots
-  - `Run comparison` is now a proper metric table with deltas and ahead/behind counts instead of a raw text list
-- Made every major Strategy Lab section collapsible in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, `Research runs`, and `Results` now collapse independently
-  - section state now defaults by strategy state: strategies with runs load collapsed except `Results`, while new/never-run strategies load expanded except `Results`
-  - section collapse state is persisted per strategy/draft key instead of one global toggle bucket
-  - clicking the title toggles the section, not just the chevron
-  - the existing section actions remain in the header while the body folds away cleanly
-  - focused regression coverage was added in [frontend/tests/unit/views/test_strategy_lab_view.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/views/test_strategy_lab_view.test.ts:1)
-- Expanded the benchmark analysis lens in [backend/app/services/strategy_lab.py](/Users/jagnelo/Documents/Projects/charting-platform/backend/app/services/strategy_lab.py:1) and [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - benchmark buy-and-hold drawdown is now overlaid on the drawdown chart
-  - benchmark summaries now include hold-span, max drawdown, synthetic benchmark execution events, synthetic benchmark position evolution, and a benchmark portfolio timeline
-  - the benchmark is now surfaced more like an alternate strategy view than just a return line
-- Applied a follow-up results-layout cleanup in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1):
-  - the results mini-panels now use a wrapping flex layout instead of equal-height grid rows
-  - shorter panels such as `Per symbol` now shrink to their own content height instead of stretching beside taller neighbors like `R distribution`
-  - the benchmark partial-coverage note now uses the full date/time formatter, so the year is always visible
-- Reworked the result-bar detail interaction in [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1) and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
-  - `Per symbol` and `R distribution` no longer push detail blocks to the bottom of the panel stack
-  - both now use anchored hover/focus popovers beside the hovered row instead of click-to-pin bottom detail areas
-  - the panels now keep a stable height while still surfacing the same outcome/bucket detail near the hovered bar
-- Refined the `Return breakdown` tooltip behavior in [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
-  - removed the native browser `title` tooltip from return cells so only the custom drilldown popover remains
-  - normalized the popover width so empty-state periods no longer render as awkward single-line strips
-  - preserved edge-aware positioning while keeping a more consistent card-like tooltip shape
-- Reworked the Strategy Lab authoring area in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1) into a single full-width top-to-bottom builder flow:
-  - no more split builder columns
-  - `Strategy profile`, `Entry logic` / `Signal source`, `Risk`, `Exits`, and `Research runs` now each occupy the full available width
-  - this avoids mid-page gutter misalignment and gives each builder section more natural scrolling space
-- Replaced the Strategy Lab instrument coverage table in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1) with a compact graphical coverage timeline:
-  - one row is shown for the benchmark and one row for each selected universe instrument
-  - the shaded band shows the requested run window while each horizontal segment shows locally available coverage
-  - the timeline is vertically scrollable for larger universes
-  - filter chips allow users to isolate full, partial, none, and missing coverage rows
-  - current backend payloads expose first/last available coverage, so the component is segment-shaped for future non-contiguous coverage support while rendering today’s available span honestly
-- Simplified two Strategy Lab result mini-panels in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), and [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
-  - removed the top summary bubbles from the symbol attribution and R-bucket widgets
-  - renamed `Per symbol` to `P&L by symbol`
-  - renamed `R distribution` to `Closed trade R multiples`
-  - kept the row-level hover tooltips as the place for detailed context
-- Refocused the Strategy Lab coverage timeline in [frontend/src/components/strategy/StrategyCoveragePanel.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/StrategyCoveragePanel.vue:1):
-  - the timeline now uses the requested run range as its X-axis domain instead of stretching back to each instrument's oldest local history
-  - rows now represent only requested-range coverage issues: partial, none, or missing
-  - full-coverage instruments and benchmark rows are hidden from the issue timeline
-  - the filter controls were removed so the widget only shows the issue set directly
-  - the empty state now indicates clean requested-range coverage
-  - added focused component coverage in [frontend/tests/unit/components/test_strategy_coverage_panel.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_strategy_coverage_panel.test.ts:1)
-- Reworked the `Closed trade R multiples` visualization in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
-  - replaced per-bucket horizontal rows with a centered R outcome map
-  - the axis is centered on `0R` breakeven with negative/positive guide ticks
-  - each closed trade is plotted as a color-coded dot by R multiple
-  - dot size scales lightly with absolute P&L
-  - the histogram still appears as a density backdrop so clusters are visible
-  - hovering/focusing a dot shows symbol, R multiple, exit date, exit reason, percent P&L, and absolute P&L
-- Applied a focused Strategy Lab result-metric coloring pass in [frontend/src/views/StrategyLabView.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/views/StrategyLabView.vue:1), [frontend/src/components/strategy/SymbolPerformanceBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/SymbolPerformanceBars.vue:1), [frontend/src/components/strategy/WalkForwardSegments.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/WalkForwardSegments.vue:1), [frontend/src/components/strategy/OptimizationLeaderboard.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/OptimizationLeaderboard.vue:1), and [frontend/src/components/strategy/ReturnsHeatmap.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/ReturnsHeatmap.vue:1):
-  - win rate, expectancy, Avg R, in/out-sample returns, benchmark excess return, benchmark drawdown, and return-breakdown popover totals now use positive/negative classes
-  - drawdown is treated as a risk-cost metric, so any nonzero magnitude is red while zero remains neutral
-  - zero or unavailable values stay neutral instead of being forced into green/red
-- Fixed the `Closed trade R multiples` widget in [frontend/src/components/strategy/DistributionBars.vue](/Users/jagnelo/Documents/Projects/charting-platform/frontend/src/components/strategy/DistributionBars.vue:1):
-  - replaced the fragile absolutely positioned HTML/button plot with an SVG-based R outcome map
-  - the loss/breakeven/win labels, 0R axis, R ticks, density bars, and trade dots now render as chart primitives
-  - removed footer/legend HTML that could degrade into raw text, while preserving hover/focus trade tooltips
-  - updated [frontend/tests/unit/components/test_distribution_bars.test.ts](/Users/jagnelo/Documents/Projects/charting-platform/frontend/tests/unit/components/test_distribution_bars.test.ts:1)
+- Added ETF holdings persistence with Alembic migration and ORM models:
+  - `etf_profile`
+  - `etf_holdings_raw_artifact`
+  - `etf_holdings_snapshot`
+  - `etf_holding`
+  - `etf_holdings_adapter_state`
+  - `etf_index_proxy_mapping`
+- Added ETF holdings backend schemas, service layer, and authenticated API endpoints:
+  - list/search ETFs with holdings
+  - latest holdings snapshot
+  - available composition dates
+  - point-in-time nearest snapshot
+  - constituent membership timeline
+  - unresolved holdings
+  - requested-range coverage summary
+  - admin manual row ingestion
+  - admin CSV ingestion
+  - admin ETF profile/routing update
+  - admin refresh trigger
+- Added canonical holdings parsing for common issuer CSV formats and simple XLSX/OpenXML workbooks, including ticker/name/weight/shares/market value/currency/identifier fields.
+- Added lightweight instrument materialization for ETF profiles and constituent rows without fetching price history.
+- Added source/provenance semantics that separate arbitrary issuer/source names from the registered internal data-source provider.
+- Registered `etf_holdings_internal` as a provider descriptor for provenance and instrument-mastering compatibility.
+- Added a configurable public CSV/XLSX refresh path:
+  - ETF profiles can define `provider_aliases.holdings_url`, `issuer_holdings_url`, `holdings_csv_url`, or `latest_holdings_url`
+  - refresh fetches the configured URL, parses holdings, stores raw artifacts, and creates a dated snapshot
+  - failures are stored in `etf_holdings_adapter_state`
+- Added a scheduled ETF holdings refresh task behind `ETF_HOLDINGS_REFRESH_ENABLED`.
+- Added a Chart page ETF holdings panel:
+  - hidden unless the viewed symbol has holdings
+  - compact/collapsible presentation matching the platform dark style
+  - source/freshness/resolution metadata
+  - filter/sort holdings
+  - click a resolved constituent to open its chart
+- Added Strategy Lab ETF holdings snapshot universes:
+  - universe type selector can use an ETF holdings snapshot
+  - saved strategy versions persist `universe_config.etf_holdings`
+  - coverage preview and backtest execution resolve ETF snapshot constituents through the shared universe resolver
+  - supports latest available snapshots, snapshots on/before a selected date, and dynamic point-in-time membership from the visual builder
+  - rules backtests can opt into dynamic point-in-time ETF holdings membership with `universe_config.etf_holdings.snapshot_mode = "dynamic"`; bars are filtered by the latest ETF holdings snapshot known on each bar date
+  - dynamic ETF runs expose a constituent-removal policy that can leave positions marked open or realize them as `constituent_removed` exits
+  - dynamic ETF result summaries include the snapshot set used by the run, and execution-log rows identify snapshot id/composition date/known-at plus membership status for entries and removal exits
+  - Strategy Lab execution log now surfaces dynamic ETF snapshot context in the reason cell and includes it in reason filtering
+  - run-subset controls are limited to resolved ETF constituent symbols from coverage preview
+- Added a minimal basket foundation for ETF-derived baskets:
+  - `basket` and `basket_member` persistence with source/provenance fields
+  - read-only system-managed baskets can be materialized from an ETF holdings snapshot
+  - `GET /api/v1/etf-holdings/{symbol}/basket` creates/returns the snapshot basket
+  - `GET /api/v1/baskets` and `GET /api/v1/baskets/{id}` expose readable basket summaries
+- Expanded baskets into a user-owned backend feature:
+  - authenticated users can create, update, list, read, and delete manual baskets
+  - manual basket members must reference existing resolved instruments
+  - duplicate members are rejected
+  - custom weights must sum to 1.0
+  - equal-weight baskets leave member weights null for 1/N interpretation
+  - read-only/system-managed ETF-derived baskets are protected from manual edits/deletes
+  - auto-classification sets sector/industry when all members share the same metadata
+- Added Strategy Lab basket universes:
+  - `universe_config.basket_id` resolves basket members through coverage preview and run execution
+  - the visual builder can select a basket as the strategy universe and save/load it
+  - advanced run subsets are limited to selected basket members
+  - ETF-derived system baskets can opt into dynamic source ETF holdings history through `basket_snapshot_mode = "dynamic"` in Strategy Lab
+  - manual baskets now persist composition snapshots on create/update, expose snapshot history through `/baskets/{id}/snapshots`, and can opt into dynamic point-in-time replay through `basket_snapshot_mode = "dynamic"`
+- Added a dedicated basket builder/editor workspace:
+  - `/baskets` is accessible from the sidebar
+  - users can create, edit, and delete manual baskets
+  - instruments are added through the existing provider-backed search picker
+  - equal and custom weighting are supported
+  - custom weights show real-time allocation status and require full allocation before saving
+  - ETF-derived baskets are shown as read-only system-managed baskets
+- Added a dedicated ETF holdings browse/research workspace:
+  - `/etf-holdings` lists ETFs with stored holdings and loads holdings rows through a server-side paginated/searchable/sortable API
+  - users can page through holdings, inspect selected holding details, and open constituent charts directly
+  - users can compare the selected snapshot against another stored snapshot through a diff view that highlights added, removed, and reweighted holdings
+  - the diff workspace also surfaces first-pass research summaries such as gross churn, total added/removed weight, total upweights/downweights, and the largest additions/removals/reweights
+  - users can inspect a first weight-evolution panel that ranks top constituent weight movers across stored snapshots and visualizes each mover's observed weight path
+  - users can inspect a turnover timeline that batch-navigates adjacent historical snapshots and summarizes churn, additions, removals, reweights, and top movers per transition
+  - constituent timeline API points now include each point's weight delta from the previous observed snapshot
+  - cross-ETF overlap analytics can compare selected ETF snapshots for shared/unique constituents, Jaccard overlap, shared weights, minimum-overlap weight, and top shared holdings
+  - the ETF holdings workspace now has a compact overlap panel so users can select peer ETFs from the loaded profile list and inspect pairwise overlap cards
+  - overlap matrix analytics can now expand the ETF comparison set from ETF profile metadata such as issuer, fund family, and search query, not only explicit symbol lists
+  - the overlap panel now exposes a first issuer/family/search comparison control that uses the server-side matrix expansion path
+- Added backend basket synthetic OHLCV:
+  - `GET /api/v1/baskets/{basket_id}/ohlcv/{timeframe}` returns a rebased-to-100 weighted cumulative-return series
+  - equal weights are interpreted as 1/N
+  - explicit source/custom weights are normalized before series calculation
+- Added initial Chart integration for basket synthetic series:
+  - the basket builder can open `/chart/BASKET:{id}`
+  - Chart loads basket OHLCV through the basket endpoint
+  - basket chart tokens are not added to recent instruments or watchlists and do not show the ETF holdings panel
+- Refactored ETF holdings refresh behind an adapter registry:
+  - configured public CSV/XLSX/ZIP URL refresh now goes through the common adapter interface
+  - major issuer adapter keys now use issuer-aware CSV route adapters that can resolve source URLs from profile URLs, URL templates, issuer product ids, and file-name hints
+  - ARK-style public holdings file-name route construction is implemented as the first concrete issuer-specific route
+  - iShares/BlackRock product-id based CSV route construction is implemented as a second concrete issuer-specific route
+  - State Street/SPDR symbol-based public daily holdings XLSX route construction is implemented as another concrete issuer-specific route
+  - inferred issuer product-page templates now cover common symbol-addressable Vanguard, Invesco, Schwab, Global X, and VanEck pages; the adapter discovers linked CSV/XLSX/ZIP holdings files from those pages before ingestion
+  - issuer adapters probe route readiness before refresh and mark profiles without enough metadata as needing issuer route configuration
+  - admin `POST /api/v1/etf-holdings/{symbol}/probe-adapter` exposes and persists route-readiness status, confidence, resolved URL, and missing route identifiers
+  - admin `GET /api/v1/etf-holdings/adapters` exposes registered adapter keys, route identifiers, required identifiers, supported artifact formats, parser confidence, dated-fetch support, and explicit configured discovery-feed support
+  - fetched issuer artifacts now support explicit ETF identity validation before ingestion:
+    - profiles can provide expected fund/ETF symbol, name, CUSIP, or ISIN in `provider_aliases`
+    - downloaded artifacts must contain at least one configured expected identifier before a snapshot is stored
+    - conservative generic CSV/XLSX table metadata extraction can infer ETF identity from two-column preambles and explicit fund/ETF identity columns without confusing generic constituent ticker columns for ETF identity
+    - matched/unverified validation status is retained in legal metadata
+    - mismatched artifacts fail refresh rather than creating a wrong holdings snapshot
+  - adapter-state success/failure health is persisted
+  - admin `GET /api/v1/etf-holdings/{symbol}/adapter-state` exposes persisted adapter health, including source/count/completeness metadata and HTTP rate-limit/blocking classifications such as 429/403
+  - adapter inference now uses configured ETF profile/product/holdings URL domains as confidence-scored issuer signals while preserving the no ticker-only guessing rule
+  - issuer adapters now support explicit dated holdings URL templates plus admin `POST /api/v1/etf-holdings/{symbol}/refresh-date` for fetching one requested composition date when an issuer archive pattern is known
+  - issuer adapters now support explicit configured fund-list discovery feeds through admin `POST /api/v1/etf-holdings/discover`; CSV/XLSX/ZIP discovery feeds can materialize lightweight ETF instruments and upsert profiles with issuer product ids, holdings URLs/templates, dated URL templates, CUSIP/ISIN identifiers, SEC CIK/series/class ids, FIGI/composite/share-class FIGI aliases, discovery source metadata, and raw discovery-row audit data
+  - simple XLSX/OpenXML issuer holdings workbooks and ZIP archives containing CSV/XLSX holdings files preserve raw table data, source-format metadata, parser-version source format, and artifact identity validation through the same ingestion path
+  - holdings row API outputs now expose the persisted per-snapshot `source_row_hash` for audit/replay tooling, not just the optional source row id
+- Extended issuer-aware adapter routing with product/fund page discovery:
+  - ETF profiles can provide issuer product-page URLs such as `product_url`, `issuer_product_url`, `fund_url`, `profile_url`, or `etf_url`
+  - the adapter discovers linked CSV/XLSX/ZIP holdings files from those pages using conservative holdings/portfolio/constituent link hints
+  - discovery scans anchor hrefs, conservative URL-bearing data attributes, and quoted page configuration strings while still requiring supported holdings-like file URLs
+  - discovered files still pass through the existing fetched-artifact identity validation before ingestion
+- Added SEC N-PORT/N-PORT-P-style XML reconstruction ingestion:
+  - admin endpoint parses raw SEC filing XML into canonical holdings rows
+  - report date, CUSIP/ISIN/SEDOL, shares, market value, currency, asset category, and percent-of-value weights are normalized where present
+  - snapshots are stored as `sec_nport_reconstructed_holdings` with raw XML and known/published/source metadata
+- Added baseline legacy SEC N-Q/N-CSR-style XML/HTML table reconstruction ingestion:
+  - admin endpoint parses simple table-like legacy filing XML and simple EDGAR HTML schedule-of-investments tables into canonical holdings rows
+  - split-row SEC HTML schedule tables are supported when security identity/CUSIP appears separately from the following numeric position row
+  - report date, CUSIP/ISIN/SEDOL, shares, market value, currency, asset/security type, and percent-of-net-assets weights are normalized where present
+  - snapshots are stored as `sec_legacy_reconstructed_holdings` with raw XML and known/published/source metadata
+- Added an admin EDGAR N-PORT backfill primitive:
+  - ETF profiles with `sec_cik` can query SEC submissions metadata for recent N-PORT filings and older SEC submissions `files` archive pages
+  - discovered primary XML documents are downloaded from SEC Archives and ingested through the SEC reconstruction parser
+- Added SEC fund ticker/series/class discovery:
+  - admin `POST /api/v1/etf-holdings/discover-sec-funds` ingests SEC `company_tickers_mf`-style mappings
+  - the endpoint materializes lightweight ETF instruments and upserts ETF profiles with SEC CIK, series id, and class id for EDGAR backfill routing
+  - the endpoint supports an explicit `source_url` override for mirrors/fixtures and parses both keyed-object and `fields`/`data` SEC payload shapes
+- Added an admin EDGAR legacy SEC backfill primitive:
+  - ETF profiles with `sec_cik` can query SEC submissions metadata for N-Q/N-CSR-style filings
+  - discovered primary XML/table documents are downloaded from SEC Archives and ingested through the legacy SEC reconstruction parser
+  - single-ETF and bulk endpoints mirror the N-PORT backfill workflow
+- Added persistent SEC backfill orchestration state:
+  - `etf_holdings_backfill_job` stores run-level status, request bounds, counts, summary, and requester
+  - `etf_holdings_backfill_filing` stores accession-level state, snapshot links, filing metadata, duplicate-safe status, and failure reasons
+  - `GET /api/v1/etf-holdings/{symbol}/backfills` and `GET /api/v1/etf-holdings/backfill-jobs/{job_id}` expose the audit trail
+  - repeated backfills skip already-ingested accessions instead of silently duplicating work
+- Added SEC N-PORT bulk/scheduled orchestration:
+  - admin `POST /api/v1/etf-holdings/backfill-sec-nport` processes all or selected ETF profiles with SEC CIKs under bounded limits
+  - `ETF_HOLDINGS_SEC_BACKFILL_ENABLED` controls the scheduled worker hook
+- Added basket universe support beyond Strategy Lab:
+  - Screeners can persist `universe_basket_id` and run against manual or system-managed baskets
+  - Radar run requests can pass `universe_type="basket"` with `universe_filter.basket_id`
+- Added frontend Screener/Radar basket universe controls:
+  - Screener builder can select and persist a manual or ETF-derived basket universe
+  - Screener sidebar/result metadata names the selected basket rather than showing only the raw universe type
+  - Radar can run scans against either all instruments or a selected manual/ETF-derived basket
+  - Radar disables basket scans until a concrete basket is selected
+- Added focused backend and frontend coverage:
+  - provider registry unit test
+  - ETF holdings API integration tests for manual ingest, CSV ingest, configured URL refresh, coverage summaries, point-in-time nearest snapshots, and ETF-derived basket materialization
+  - basket API integration tests for manual CRUD, validation, and auto-classification
+  - basket synthetic OHLCV integration test
+  - SEC N-PORT-style XML ingestion integration test
+  - SEC EDGAR N-PORT discovery/download backfill integration test with mocked recent and archived SEC responses, persisted job/filing state, duplicate skipping, and bulk endpoint coverage
+  - Strategy Lab integration test proving an ETF holdings snapshot universe can preview and run
+  - Strategy Lab integration test proving a basket universe can preview and run
+  - Strategy Lab integration test proving a manual basket with stored composition snapshots can run dynamically through time
+  - Screener integration test proving a basket universe can run
+  - Radar integration test proving basket universe filtering limits evaluation
+  - ETF holdings panel unit tests
+  - Strategy Lab view unit tests proving ETF holdings, static basket, and dynamic ETF-derived basket universe configs are saved from the visual builder
+  - chart-store and basket-view unit tests proving synthetic basket chart loading and basket-to-chart navigation
+
+## Validation
+
+- `rtk uv run ruff check backend/app/models/etf_holdings.py backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_refresh.py backend/app/routers/etf_holdings.py backend/app/tasks/etf_holdings_tasks.py backend/app/main.py backend/app/workers/arq_worker.py backend/app/providers/etf_holdings_internal.py backend/app/providers/registry.py backend/tests/integration/api/test_etf_holdings.py backend/tests/unit/services/test_provider_registry.py backend/alembic/versions/b8c9d0e1f2a3_add_etf_holdings.py`
+- `rtk uv run ruff check backend/app/models/basket.py backend/app/schemas/basket.py backend/app/services/baskets.py backend/app/routers/baskets.py backend/app/routers/etf_holdings.py backend/app/main.py backend/app/models/__init__.py backend/tests/integration/api/test_etf_holdings.py backend/alembic/versions/c9d0e1f2a3b4_add_baskets.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_provider_registry.py backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py backend/tests/integration/api/test_strategy_lab.py::TestStrategyLabAPI::test_strategy_run_can_use_etf_holdings_snapshot_universe --no-cov -q`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_etf_holdings_panel.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_etf_holdings_panel.test.ts`
+- `rtk make dev-infra`
+- `git diff --check`
+- `rtk uv run ruff check backend/app/schemas/basket.py backend/app/services/baskets.py backend/app/routers/baskets.py backend/app/services/strategy_lab.py backend/tests/integration/api/test_baskets.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_baskets.py backend/tests/integration/api/test_strategy_lab.py::TestStrategyLabAPI::test_strategy_lab_can_preview_and_run_basket_universe --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_baskets_view.test.ts`
+- `rtk uv run ruff check backend/app/services/baskets.py backend/app/routers/baskets.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_refresh.py backend/tests/integration/api/test_baskets.py backend/tests/integration/api/test_etf_holdings.py backend/tests/integration/api/test_strategy_lab.py`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_baskets_view.test.ts tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_etf_holdings_panel.test.ts`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_baskets.py backend/tests/integration/api/test_etf_holdings.py backend/tests/integration/api/test_strategy_lab.py::TestStrategyLabAPI::test_strategy_lab_can_preview_and_run_basket_universe --no-cov -q`
+- `rtk uv run ruff check backend/app/services/etf_holdings_sec.py backend/app/routers/etf_holdings.py backend/app/schemas/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/stores/test_stores.test.ts tests/unit/views/test_baskets_view.test.ts`
+- `rtk uv run ruff check backend/app/services/etf_holdings_edgar.py backend/app/routers/etf_holdings.py backend/app/schemas/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/etf_holdings_adapters.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk uv run ruff check backend/app/config.py backend/app/services/etf_holdings_edgar.py backend/app/routers/etf_holdings.py backend/app/schemas/etf_holdings.py backend/app/tasks/etf_holdings_tasks.py backend/app/workers/arq_worker.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk uv run ruff check backend/app/models/screener.py backend/app/services/screener_engine.py backend/app/routers/screener.py backend/tests/integration/api/test_screener.py backend/alembic/versions/e0f1a2b3c4d5_add_screener_basket_universe.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_screener.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/radar_engine.py backend/app/routers/radar.py backend/tests/integration/api/test_radar.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_radar.py --no-cov -q`
+- `cd backend && ENV_FILE=.env.dev uv run alembic heads`
+- `rtk npm --prefix frontend run type-check`
+- `rtk npm --prefix frontend run test -- --run tests/unit/stores/test_radar_store.test.ts tests/unit/views/test_radar_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_etf_holdings_panel.test.ts`
+- `rtk uv run ruff check backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/routers/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_holdings_page_supports_server_side_paging_sorting_and_search --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_holdings_diff_reports_added_removed_and_changed_rows --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_weight_evolution_reports_top_historical_weight_movers --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_etf_holdings_panel.test.ts`
+- `rtk uv run ruff check backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/routers/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_transition_timeline_reports_adjacent_snapshot_churn --no-cov -q`
+- `rtk uv run ruff check backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/routers/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_overlap_summary_compares_constituents_across_etfs --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk uv run ruff check backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/routers/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_overlap_matrix_summarizes_many_etf_relationships --no-cov -q`
+- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk uv run ruff check backend/app/services/etf_holdings_sec.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_sec_legacy_ingestion_reconstructs_split_identity_html_rows --no-cov -q`
+- `rtk uv run ruff check backend/app/services/etf_holdings_adapters.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute --no-cov -q`
+- `rtk uv run ruff check backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/routers/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_overlap_matrix_can_expand_etf_family_from_profile_metadata --no-cov -q`
+
+## Assumptions
+
+- Free-source ETF holdings are stored as ETF holdings/proxy membership, not official index constituents.
+- `known_at`/`published_at` are persisted so Strategy Lab can later avoid look-ahead bias.
+- Generic configured public CSV/XLSX URLs are the usable baseline path today; hardcoded issuer-specific adapters can be layered behind the same service contract.
+- Lightweight instrument materialization creates metadata-only instruments. Price history is still fetched later by the existing market-data/provider resolver when another feature needs prices.
 
 ## Pending
 
-- The Strategy Lab roadmap is still not exhausted.
-- Largest remaining gaps after this pass:
-  - multi-timeframe strategy logic and/or timeframe batch testing
-  - richer risk models beyond the expanded baseline: ATR/structure/indicator stops, broader sizing models, deeper portfolio caps
-  - chart zoom/pan beyond the new preset-window controls
-  - dynamic screener universes instead of the current snapshot universe mode
-  - broader asset-model realism beyond the current equity-style OHLCV focus
-  - remaining text-first result panels: signal replay, optimization, walk-forward, paper-forward monitor, run comparison
-  - data-coverage preflight / acquisition before Strategy Lab runs so multi-year requests are guaranteed or clearly blocked rather than only explained by the new coverage preview/detail panels
+- Broad issuer route coverage now exists through configured public URLs, profile URL templates, explicit product URLs, configured issuer fund-list feeds, concrete ARK/iShares/SPDR constructors, and inferred product-page templates for common Vanguard/Invesco/Schwab/Global X/VanEck symbol-addressable pages.
+- Source-hardening baseline now exists: malformed/empty issuer files fail refresh and persist adapter failure state; provider blocking/rate-limit failures are classified separately; common issuer schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, and disclaimer-row skipping are handled; and SEC legacy parsing covers XML/table filings, simple HTML, split identity/value rows, month-name dates, and value-in-thousands schedules. Remaining source work is long-tail maintenance rather than a core gap: unusual issuer schemas, non-tabular/PDF-like disclosures, automatic discovery beyond explicit configured feeds, extra direct constructors where discovery is insufficient, and deeper historical archive discovery.
+- Live issuer smoke tests now exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. The current escalated live run passes against backend-reachable public issuer routes for SPDR, iShares, Global X, and VanEck. ARK, Vanguard, and Schwab remain explicit provider-support gaps until we add current backend-reachable routes/APIs for their blocked/non-static public pages.
+- SEC N-PORT/N-PORT-P XML parsing/admin ingestion, recent and archived EDGAR discovery/download, persistent accession/job state, duplicate-safe reruns, and bulk/scheduled hooks exist; baseline N-Q/N-CSR-style legacy XML/table, simple HTML schedule-table parsing, split-row HTML schedule reconstruction, month-name report dates, value-in-thousands schedules, manual/admin ingestion, EDGAR discovery/download/backfill, duplicate-safe reruns, and bulk processing also exist. Deeply nested/footnoted HTML filings and PDF-like filing handling remain long-tail maintenance.
+- Basket builder/editor UI, backend basket OHLCV, and initial Chart synthetic basket loading exist; richer basket metadata/watchlist/compare semantics are not implemented yet.
+- Strategy Lab consumes ETF holdings snapshots and baskets as static universes, and rules backtests now expose opt-in dynamic point-in-time ETF holdings mode plus ETF-derived and manual basket dynamic modes in the visual builder with an explicit constituent-removal exit policy and baseline execution-log snapshot attribution surfaced in the UI. Richer basket rebalance policies, historical basket snapshot editing/import UX, and deeper attribution drilldowns remain open.
+- Screener/Radar backend and frontend basket universe consumption exists for static manual/ETF-derived baskets.
+- Holdings navigation now has a compact Chart panel with selected-holding mini-stats, previous/next navigation, source/resolution metadata, and explicit constituent open actions.
+- A dedicated `/etf-holdings` workspace now lists ETFs with stored holdings and loads holdings rows through a server-side paginated/searchable/sortable API.
+- The `/etf-holdings` workspace now includes a first cross-snapshot diff view so users can compare two stored snapshots for additions, removals, and weight changes.
+- The `/etf-holdings` workspace now includes a first top-mover weight-evolution view across stored snapshots.
+- Historical adjacent-snapshot batch navigation now exists through the ETF holdings turnover timeline; cross-ETF overlap summaries and many-ETF overlap matrix analytics now have a compact ETF holdings workspace UI, and matrix requests can expand participants by issuer/fund-family/search metadata. Constituent timelines expose per-point weight deltas but still lack a richer dedicated exploration UI.
 
 ## Exact next step
 
-- Continue on `feat/strategy-lab` by tackling the next high-value unfinished area:
-  1. multi-timeframe strategy support
-  2. deeper risk/sizing models beyond the new ATR/size-model baseline
-  3. data-coverage preflight and acquisition before run execution
-  4. broader portfolio-risk realism and execution semantics
-
-## Files touched
-
-- `backend/app/routers/strategy_lab.py`
-- `backend/app/schemas/strategy.py`
-- `backend/app/services/screener_engine.py`
-- `backend/app/services/strategy_lab.py`
-- `backend/app/services/strategy_lab_nautilus.py`
-- `backend/tests/integration/api/test_strategy_lab.py`
-- `backend/tests/unit/services/test_screener_engine.py`
-- `backend/tests/unit/services/test_strategy_lab_nautilus.py`
-- `backend/tests/unit/services/test_strategy_lab_service.py`
-- `docs/project-todos.md`
-- `frontend/src/components/common/TechnicalConditionEditor.vue`
-- `frontend/src/components/strategy/StrategyCoveragePanel.vue`
-- `frontend/src/components/strategy/DistributionBars.vue`
-- `frontend/src/components/strategy/ReturnsHeatmap.vue`
-- `frontend/src/components/strategy/StrategyResultChart.vue`
-- `frontend/src/components/strategy/SymbolPerformanceBars.vue`
-- `frontend/src/components/strategy/StrategyRuleTreeEditor.vue`
-- `frontend/src/lib/technicalConditions.ts`
-- `frontend/src/stores/strategyLab.ts`
-- `frontend/src/types/index.ts`
-- `frontend/src/views/StrategyLabView.vue`
-- `frontend/tests/unit/components/test_strategy_result_chart.test.ts`
-- `frontend/tests/unit/components/test_strategy_rule_tree_editor.test.ts`
-- `frontend/tests/unit/components/test_technical_condition_editor.test.ts`
-- `frontend/tests/unit/lib/test_technical_conditions.test.ts`
-- `frontend/tests/unit/views/test_strategy_lab_view.test.ts`
-
-## Validation run
-
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts tests/unit/components/test_symbol_performance_bars.test.ts`
-- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk npm --prefix frontend run type-check`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_signal_replay_breakdown.test.ts tests/unit/components/test_optimization_leaderboard.test.ts tests/unit/components/test_walk_forward_segments.test.ts tests/unit/components/test_paper_forward_monitor_panel.test.ts tests/unit/components/test_run_comparison_table.test.ts tests/unit/components/test_strategy_result_chart.test.ts tests/unit/components/test_returns_heatmap.test.ts tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_returns_heatmap.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk make test-fe`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk make test-fe`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk uv run ruff check backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
-- `rtk python3 -m py_compile backend/app/services/screener_engine.py backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/app/routers/strategy_lab.py backend/app/schemas/strategy.py backend/tests/unit/services/test_screener_engine.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py backend/tests/integration/api/test_strategy_lab.py`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py --no-cov -q`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_service.py`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_strategy_lab.py --no-cov -q` with Docker access
-- `rtk uv run ruff check backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py backend/tests/unit/services/test_strategy_lab_nautilus.py`
-- `rtk python3 -m py_compile backend/app/services/strategy_lab.py backend/app/services/strategy_lab_nautilus.py`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_result_chart.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_symbol_performance_bars.test.ts tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_distribution_bars.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-- `rtk npm --prefix frontend run test -- --run tests/unit/components/test_strategy_coverage_panel.test.ts tests/unit/views/test_strategy_lab_view.test.ts`
-- `rtk npm --prefix frontend run type-check`
-
-## Errors / warnings / logs
-
-- Docker-backed integration still requires escalated access in this shell for the local Docker socket.
-
-## Assumptions made
-
-- Position evolution should offer both currency and percent modes, while execution-log P&L should show both absolute and percent context.
-- Strategy Lab chart range controls should start with preset windows and window shifting, not a full freeform brush/zoom system.
-- Open positions at run end should contribute unrealized state and execution events without being folded into realized P&L.
-- A percent-based hard trailing stop should be treated as a real strategy risk primitive, not just a cosmetic field, and should allow a standard activation threshold before arming.
-
-## Ready to commit?
-
-- yes
+- Decide whether the next ETF holdings slice should be:
+  1. broad issuer-specific current-holdings adapters and automatic discovery routes for the largest US ETF sponsors,
+  2. richer basket chart/watchlist/comparison semantics, richer basket-history editing/import/rebalance policy UX, or larger-scale saved ETF-family comparison and clustering UX on top of the overlap matrix API, or
+  3. broader legacy SEC filing parser coverage for additional table/document shapes, including HTML/PDF-like filings.
