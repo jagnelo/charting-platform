@@ -415,6 +415,74 @@ describe('StrategyLabView', () => {
           { id: 7, name: 'Momentum Universe' },
         ])
       }
+      if (path === '/baskets') {
+        return Promise.resolve([
+          {
+            id: 13,
+            name: 'ETF proxy basket',
+            source_type: 'manual',
+            weighting_scheme: 'equal',
+            is_system_managed: false,
+            is_read_only: false,
+            members: [
+              { id: 1, instrument_id: 1, symbol: 'AAPL', position: 0 },
+              { id: 2, instrument_id: 2, symbol: 'MSFT', position: 1 },
+            ],
+            created_at: '2026-05-01T00:00:00Z',
+            updated_at: '2026-05-01T00:00:00Z',
+          },
+          {
+            id: 14,
+            name: 'SPY holdings 2026-05-31',
+            source_type: 'etf_holdings',
+            weighting_scheme: 'source_weight',
+            source_etf_profile_id: 11,
+            source_snapshot_id: 44,
+            composition_date: '2026-05-31',
+            is_system_managed: true,
+            is_read_only: true,
+            members: [
+              { id: 3, instrument_id: 1, symbol: 'AAPL', position: 0 },
+              { id: 4, instrument_id: 2, symbol: 'MSFT', position: 1 },
+            ],
+            created_at: '2026-05-01T00:00:00Z',
+            updated_at: '2026-05-01T00:00:00Z',
+          },
+          {
+            id: 15,
+            name: 'Rotating manual basket',
+            source_type: 'manual',
+            weighting_scheme: 'equal',
+            source_etf_profile_id: null,
+            source_snapshot_id: null,
+            snapshot_count: 2,
+            latest_snapshot_date: '2026-05-31',
+            is_system_managed: false,
+            is_read_only: false,
+            members: [
+              { id: 5, instrument_id: 1, symbol: 'AAPL', position: 0 },
+              { id: 6, instrument_id: 2, symbol: 'MSFT', position: 1 },
+            ],
+            created_at: '2026-05-01T00:00:00Z',
+            updated_at: '2026-05-01T00:00:00Z',
+          },
+        ])
+      }
+      if (path === '/etf-holdings') {
+        return Promise.resolve([
+          {
+            id: 11,
+            instrument_id: 101,
+            symbol: 'SPY',
+            name: 'SPDR S&P 500 ETF Trust',
+            issuer: 'State Street',
+            adapter_status: 'ready',
+            latest_composition_date: '2026-05-31',
+            latest_snapshot_id: 44,
+            resolved_count: 500,
+          },
+        ])
+      }
       if (path === '/instruments/search') {
         const q = String(params?.q ?? '').trim().toUpperCase()
         return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
@@ -721,6 +789,7 @@ describe('StrategyLabView', () => {
           { id: 7, name: 'Momentum Universe' },
         ])
       }
+      if (path === '/etf-holdings') return Promise.resolve([])
       if (path === '/instruments/search') {
         const q = String(params?.q ?? '').trim().toUpperCase()
         return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
@@ -810,6 +879,7 @@ describe('StrategyLabView', () => {
         ])
       }
       if (path === '/screeners') return Promise.resolve([{ id: 7, name: 'Momentum Universe' }])
+      if (path === '/etf-holdings') return Promise.resolve([])
       if (path === '/instruments/search') {
         const q = String(params?.q ?? '').trim().toUpperCase()
         return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
@@ -868,6 +938,252 @@ describe('StrategyLabView', () => {
           timeframe: 'D1',
         }),
         universe_config: { symbols: ['NVDA', 'AMD'] },
+      }),
+    }))
+  })
+
+  it('can save an ETF holdings snapshot as the strategy universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('ETF Rotation')
+
+    const universeField = findFieldByLabel(wrapper, 'Universe type')
+    expect(universeField).toBeTruthy()
+    await universeField!.get('select').setValue('etf_holdings')
+    await flushPromises()
+
+    const etfField = findFieldByLabel(wrapper, 'ETF')
+    expect(etfField).toBeTruthy()
+    await etfField!.get('select').setValue('SPY')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeUndefined()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      name: 'ETF Rotation',
+      initial_version: expect.objectContaining({
+        universe_config: {
+          etf_holdings: {
+            symbol: 'SPY',
+            snapshot_mode: 'latest',
+          },
+        },
+      }),
+    }))
+  })
+
+  it('can save and hydrate a dynamic ETF holdings universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('ETF Rotation')
+
+    const universeField = findFieldByLabel(wrapper, 'Universe type')
+    expect(universeField).toBeTruthy()
+    await universeField!.get('select').setValue('etf_holdings')
+    await flushPromises()
+
+    const etfField = findFieldByLabel(wrapper, 'ETF')
+    expect(etfField).toBeTruthy()
+    await etfField!.get('select').setValue('SPY')
+    await flushPromises()
+
+    const snapshotField = findFieldByLabel(wrapper, 'Snapshot')
+    expect(snapshotField).toBeTruthy()
+    await snapshotField!.get('select').setValue('dynamic')
+    await flushPromises()
+
+    const removalField = findFieldByLabel(wrapper, 'Constituent removal')
+    expect(removalField).toBeTruthy()
+    await removalField!.get('select').setValue('close_on_removal')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      initial_version: expect.objectContaining({
+        universe_config: {
+          etf_holdings: {
+            symbol: 'SPY',
+            snapshot_mode: 'dynamic',
+          },
+        },
+        execution_model: expect.objectContaining({
+          run_defaults: expect.objectContaining({
+            dynamic_universe_exit_policy: 'close_on_removal',
+          }),
+        }),
+      }),
+    }))
+
+    const persistedDefinition = clone(definition)
+    persistedDefinition.versions[0].universe_config = {
+      etf_holdings: {
+        symbol: 'SPY',
+        snapshot_mode: 'dynamic',
+      },
+    }
+    setActivePinia(createPinia())
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([persistedDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(persistedDefinition)
+      if (path === '/etf-holdings') {
+        return Promise.resolve([
+          {
+            id: 11,
+            instrument_id: 101,
+            symbol: 'SPY',
+            name: 'SPDR S&P 500 ETF Trust',
+            issuer: 'State Street',
+            adapter_status: 'ready',
+            latest_composition_date: '2026-05-31',
+            latest_snapshot_id: 44,
+            resolved_count: 500,
+          },
+        ])
+      }
+      if (path === '/instruments/search') {
+        const q = String(params?.q ?? '').trim().toUpperCase()
+        return Promise.resolve(q ? [{ symbol: q, name: `${q} Inc.`, exchange: 'NASDAQ', type: 'Equity' }] : [])
+      }
+      return Promise.resolve([])
+    })
+
+    const hydrated = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(hydrated, 'Strategy profile')
+
+    const hydratedUniverseField = findFieldByLabel(hydrated, 'Universe type')
+    expect((hydratedUniverseField!.get('select').element as HTMLSelectElement).value).toBe('etf_holdings')
+    const hydratedSnapshotField = findFieldByLabel(hydrated, 'Snapshot')
+    expect((hydratedSnapshotField!.get('select').element as HTMLSelectElement).value).toBe('dynamic')
+  })
+
+  it('can save a basket as the strategy universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Basket Strategy')
+
+    const universeField = findFieldByLabel(wrapper, 'Universe type')
+    expect(universeField).toBeTruthy()
+    await universeField!.get('select').setValue('basket')
+    await flushPromises()
+
+    const basketField = findFieldByLabel(wrapper, 'Basket')
+    expect(basketField).toBeTruthy()
+    await basketField!.get('select').setValue('13')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeUndefined()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      name: 'Basket Strategy',
+      initial_version: expect.objectContaining({
+        universe_config: { basket_id: 13 },
+      }),
+    }))
+  })
+
+  it('can save an ETF-derived basket as a dynamic strategy universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Dynamic Basket Strategy')
+
+    const universeField = findFieldByLabel(wrapper, 'Universe type')
+    expect(universeField).toBeTruthy()
+    await universeField!.get('select').setValue('basket')
+    await flushPromises()
+
+    const basketField = findFieldByLabel(wrapper, 'Basket')
+    expect(basketField).toBeTruthy()
+    await basketField!.get('select').setValue('14')
+    await flushPromises()
+
+    const basketHistoryField = findFieldByLabel(wrapper, 'Basket history')
+    expect(basketHistoryField).toBeTruthy()
+    await basketHistoryField!.get('select').setValue('dynamic')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeUndefined()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      name: 'Dynamic Basket Strategy',
+      initial_version: expect.objectContaining({
+        universe_config: {
+          basket_id: 14,
+          basket_snapshot_mode: 'dynamic',
+        },
+      }),
+    }))
+  })
+
+  it('can save a manual basket with snapshots as a dynamic strategy universe', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Dynamic Manual Basket Strategy')
+
+    const universeField = findFieldByLabel(wrapper, 'Universe type')
+    expect(universeField).toBeTruthy()
+    await universeField!.get('select').setValue('basket')
+    await flushPromises()
+
+    const basketField = findFieldByLabel(wrapper, 'Basket')
+    expect(basketField).toBeTruthy()
+    await basketField!.get('select').setValue('15')
+    await flushPromises()
+
+    const basketHistoryField = findFieldByLabel(wrapper, 'Basket history')
+    expect(basketHistoryField).toBeTruthy()
+    await basketHistoryField!.get('select').setValue('dynamic')
+    await flushPromises()
+
+    const createButton = wrapper.findAll('button').find(button => button.text() === 'Create strategy')
+    expect(createButton).toBeTruthy()
+    expect(createButton!.attributes('disabled')).toBeUndefined()
+
+    await createButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/definitions', expect.objectContaining({
+      name: 'Dynamic Manual Basket Strategy',
+      initial_version: expect.objectContaining({
+        universe_config: {
+          basket_id: 15,
+          basket_snapshot_mode: 'dynamic',
+        },
       }),
     }))
   })

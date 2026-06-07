@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 import numpy as np
@@ -11,6 +11,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.basket import Basket, BasketMember, BasketSnapshot
+from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
@@ -55,6 +57,24 @@ SHORT_BIASED_RADAR_SETUPS = {
 class StrategyExecutionEngine:
     public_name: str
     capability_flags: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class DynamicUniverseSnapshot:
+    id: int
+    composition_date: date
+    known_at: datetime | None
+    member_ids: frozenset[int]
+    source_type: str
+
+
+@dataclass(frozen=True)
+class DynamicETFUniverse:
+    profile_id: int | None
+    basket_id: int | None
+    kind: str
+    instrument_ids: tuple[int, ...]
+    snapshots: tuple[DynamicUniverseSnapshot, ...]
 
 
 ENGINE_REGISTRY: dict[str, StrategyExecutionEngine] = {
@@ -136,7 +156,30 @@ async def execute_strategy_run(
 
 def _has_explicit_universe(universe_config: dict[str, Any] | None) -> bool:
     config = universe_config or {}
-    return any(config.get(key) not in (None, [], "") for key in ("instrument_ids", "symbols", "watchlist_id", "screener_id"))
+    return any(
+        config.get(key) not in (None, [], "")
+        for key in (
+            "instrument_ids",
+            "symbols",
+            "basket_id",
+            "watchlist_id",
+            "screener_id",
+            "etf_holdings",
+        )
+    )
+
+
+def _parse_etf_snapshot_date(value: Any) -> date | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
 
 
 def _coerce_timeframe(timeframe_value: str | None, warnings: list[str]) -> Timeframe:
@@ -553,7 +596,15 @@ async def preview_strategy_coverage(
             "Radar outputs are signal-derived, so universe coverage cannot be previewed before a run unless you narrow it to explicit symbols, a watchlist, or a screener snapshot."
         )
     elif explicit_universe:
-        instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
+        if _is_dynamic_etf_holdings_universe(effective_universe):
+            instrument_rows, _dynamic_universe = await _resolve_dynamic_etf_universe(
+                db,
+                effective_universe,
+                date_to=date_to,
+                warnings=warnings,
+            )
+        else:
+            instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
         if not instrument_rows:
             preview_mode = "empty"
             preview_note = warnings[0] if warnings else "No instruments resolved from the current universe."
@@ -598,7 +649,16 @@ async def _run_platform_foundation(
     effective_universe.update(run.universe_config or {})
 
     warnings: list[str] = []
-    instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
+    dynamic_universe: DynamicETFUniverse | None = None
+    if _is_dynamic_etf_holdings_universe(effective_universe):
+        instrument_rows, dynamic_universe = await _resolve_dynamic_etf_universe(
+            db,
+            effective_universe,
+            date_to=run.date_to,
+            warnings=warnings,
+        )
+    else:
+        instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
     instrument_ids = [row.id for row in instrument_rows]
     symbols = [row.symbol for row in instrument_rows]
 
@@ -682,8 +742,112 @@ async def _resolve_universe_instruments(
         str(value).upper() for value in universe_config.get("symbols", []) if str(value).strip()
     ]
 
+    etf_holdings_config = universe_config.get("etf_holdings")
+    basket_id = universe_config.get("basket_id")
     watchlist_id = universe_config.get("watchlist_id")
     screener_id = universe_config.get("screener_id")
+    if basket_id is not None:
+        basket = await db.get(Basket, int(basket_id))
+        if basket is None:
+            warnings.append(f"Basket {basket_id} could not be found.")
+            return []
+        stmt = (
+            instrument_stmt()
+            .join(BasketMember, BasketMember.instrument_id == Instrument.id)
+            .where(BasketMember.basket_id == basket.id)
+            .order_by(BasketMember.position.asc(), Instrument.symbol.asc())
+        )
+        rows = list((await db.execute(stmt)).scalars().all())
+        if not rows:
+            warnings.append(f"Basket '{basket.name}' has no instruments.")
+        return rows
+
+    if isinstance(etf_holdings_config, dict):
+        etf_symbol = str(etf_holdings_config.get("symbol") or "").strip().upper()
+        etf_profile_id = etf_holdings_config.get("profile_id")
+        etf_instrument_id = etf_holdings_config.get("instrument_id")
+        profile_stmt = select(ETFProfile).join(
+            Instrument,
+            ETFProfile.instrument_id == Instrument.id,
+        )
+        if etf_profile_id is not None:
+            profile_stmt = profile_stmt.where(ETFProfile.id == int(etf_profile_id))
+        elif etf_instrument_id is not None:
+            profile_stmt = profile_stmt.where(ETFProfile.instrument_id == int(etf_instrument_id))
+        elif etf_symbol:
+            profile_stmt = profile_stmt.where(func.upper(Instrument.symbol) == etf_symbol)
+        else:
+            warnings.append("ETF holdings universe is missing an ETF symbol.")
+            return []
+        profile = (await db.execute(profile_stmt.limit(1))).scalar_one_or_none()
+        if profile is None:
+            target = etf_symbol or etf_profile_id or etf_instrument_id
+            warnings.append(f"ETF holdings profile {target} could not be found.")
+            return []
+
+        snapshot_date = _parse_etf_snapshot_date(
+            etf_holdings_config.get("snapshot_date")
+            or etf_holdings_config.get("composition_date")
+            or etf_holdings_config.get("as_of_date")
+        )
+        snapshot_stmt = (
+            select(ETFHoldingsSnapshot)
+            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+        )
+        if snapshot_date is not None:
+            snapshot_stmt = snapshot_stmt.where(
+                ETFHoldingsSnapshot.composition_date <= snapshot_date
+            )
+        snapshot = (
+            await db.execute(
+                snapshot_stmt.order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is None:
+            if snapshot_date is None:
+                warnings.append("ETF holdings universe has no snapshots yet.")
+            else:
+                warnings.append(
+                    f"ETF holdings universe has no snapshot available on or before {snapshot_date.isoformat()}."
+                )
+            return []
+
+        holding_ids: list[int] = []
+        seen_holding_ids: set[int] = set()
+        unresolved_count = 0
+        non_security_count = 0
+        for row in snapshot.rows:
+            if row.row_type != "security":
+                non_security_count += 1
+                continue
+            if row.constituent_instrument_id is None:
+                unresolved_count += 1
+                continue
+            if row.constituent_instrument_id in seen_holding_ids:
+                continue
+            seen_holding_ids.add(row.constituent_instrument_id)
+            holding_ids.append(row.constituent_instrument_id)
+        if unresolved_count:
+            warnings.append(
+                f"ETF holdings snapshot has {unresolved_count} unresolved security rows that cannot be tested yet."
+            )
+        if non_security_count:
+            warnings.append(
+                f"ETF holdings snapshot excludes {non_security_count} non-security rows from the strategy universe."
+            )
+        if not holding_ids:
+            warnings.append("ETF holdings snapshot did not resolve to any testable instruments.")
+            return []
+
+        stmt = instrument_stmt().where(Instrument.id.in_(holding_ids))
+        instrument_rows = list((await db.execute(stmt)).scalars().all())
+        instrument_by_id = {row.id: row for row in instrument_rows}
+        return [instrument_by_id[instrument_id] for instrument_id in holding_ids if instrument_id in instrument_by_id]
+
     if watchlist_id is not None:
         watchlist = await db.get(Watchlist, int(watchlist_id))
         if watchlist is None:
@@ -745,6 +909,210 @@ async def _resolve_universe_instruments(
         return rows
 
     return []
+
+
+async def _resolve_dynamic_etf_universe(
+    db: AsyncSession,
+    universe_config: dict[str, Any],
+    *,
+    date_to: datetime | None,
+    warnings: list[str],
+) -> tuple[list[Instrument], DynamicETFUniverse | None]:
+    if not _is_dynamic_etf_holdings_universe(universe_config):
+        return [], None
+    etf_holdings_config = universe_config.get("etf_holdings")
+    if not isinstance(etf_holdings_config, dict):
+        basket_id = universe_config.get("basket_id")
+        if basket_id is None:
+            return [], None
+        basket = await db.get(Basket, int(basket_id))
+        if basket is None:
+            warnings.append(f"Dynamic basket universe {basket_id} could not be found.")
+            return [], None
+        if basket.source_etf_profile_id is None:
+            return await _resolve_dynamic_basket_snapshot_universe(
+                db,
+                basket,
+                date_to=date_to,
+                warnings=warnings,
+            )
+        profile_stmt = select(ETFProfile).where(ETFProfile.id == basket.source_etf_profile_id)
+        basket_profile_id = basket.source_etf_profile_id
+        basket_universe_id = basket.id
+    else:
+        etf_symbol = str(etf_holdings_config.get("symbol") or "").strip().upper()
+        etf_profile_id = etf_holdings_config.get("profile_id")
+        etf_instrument_id = etf_holdings_config.get("instrument_id")
+        profile_stmt = select(ETFProfile).join(Instrument, ETFProfile.instrument_id == Instrument.id)
+        basket_profile_id = None
+        basket_universe_id = None
+        if etf_profile_id is not None:
+            profile_stmt = profile_stmt.where(ETFProfile.id == int(etf_profile_id))
+        elif etf_instrument_id is not None:
+            profile_stmt = profile_stmt.where(ETFProfile.instrument_id == int(etf_instrument_id))
+        elif etf_symbol:
+            profile_stmt = profile_stmt.where(func.upper(Instrument.symbol) == etf_symbol)
+        else:
+            warnings.append("Dynamic ETF holdings universe is missing an ETF symbol.")
+            return [], None
+
+    profile = (await db.execute(profile_stmt.limit(1))).scalar_one_or_none()
+    if profile is None:
+        target = (
+            basket_profile_id
+            if basket_profile_id is not None
+            else etf_symbol or etf_profile_id or etf_instrument_id
+        )
+        warnings.append(f"Dynamic ETF holdings profile {target} could not be found.")
+        return [], None
+
+    snapshot_stmt = (
+        select(ETFHoldingsSnapshot)
+        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        .options(selectinload(ETFHoldingsSnapshot.rows))
+        .order_by(
+            ETFHoldingsSnapshot.composition_date.asc(),
+            ETFHoldingsSnapshot.known_at.asc().nullsfirst(),
+            ETFHoldingsSnapshot.id.asc(),
+        )
+    )
+    if date_to is not None:
+        snapshot_stmt = snapshot_stmt.where(
+            ETFHoldingsSnapshot.composition_date <= date_to.astimezone(UTC).date()
+        )
+    etf_snapshots = tuple((await db.execute(snapshot_stmt)).scalars().all())
+    if not etf_snapshots:
+        warnings.append("Dynamic ETF holdings universe has no snapshots available for the run window.")
+        return [], None
+
+    instrument_ids: list[int] = []
+    seen: set[int] = set()
+    unresolved_count = 0
+    non_security_count = 0
+    snapshots: list[DynamicUniverseSnapshot] = []
+    for snapshot in etf_snapshots:
+        snapshot_member_ids: set[int] = set()
+        for row in snapshot.rows:
+            if row.row_type != "security":
+                non_security_count += 1
+                continue
+            if row.constituent_instrument_id is None:
+                unresolved_count += 1
+                continue
+            snapshot_member_ids.add(row.constituent_instrument_id)
+            if row.constituent_instrument_id in seen:
+                continue
+            seen.add(row.constituent_instrument_id)
+            instrument_ids.append(row.constituent_instrument_id)
+        snapshots.append(
+            DynamicUniverseSnapshot(
+                id=snapshot.id,
+                composition_date=snapshot.composition_date,
+                known_at=snapshot.known_at,
+                member_ids=frozenset(snapshot_member_ids),
+                source_type="etf_holdings",
+            )
+        )
+
+    if unresolved_count:
+        warnings.append(
+            "Dynamic ETF holdings universe has unresolved security rows that cannot be tested yet."
+        )
+    if non_security_count:
+        warnings.append("Dynamic ETF holdings universe excludes non-security rows.")
+    if not instrument_ids:
+        warnings.append("Dynamic ETF holdings universe did not resolve to any testable instruments.")
+        return [], None
+
+    stmt = (
+        select(Instrument)
+        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+        .where(Instrument.id.in_(instrument_ids))
+    )
+    rows = list((await db.execute(stmt)).scalars().all())
+    instrument_by_id = {row.id: row for row in rows}
+    instruments = [
+        instrument_by_id[instrument_id]
+        for instrument_id in instrument_ids
+        if instrument_id in instrument_by_id
+    ]
+    return instruments, DynamicETFUniverse(
+        profile_id=basket_profile_id or profile.id,
+        basket_id=basket_universe_id,
+        kind="etf_holdings",
+        instrument_ids=tuple(instrument.id for instrument in instruments),
+        snapshots=tuple(snapshots),
+    )
+
+
+async def _resolve_dynamic_basket_snapshot_universe(
+    db: AsyncSession,
+    basket: Basket,
+    *,
+    date_to: datetime | None,
+    warnings: list[str],
+) -> tuple[list[Instrument], DynamicETFUniverse | None]:
+    snapshot_stmt = (
+        select(BasketSnapshot)
+        .where(BasketSnapshot.basket_id == basket.id)
+        .options(selectinload(BasketSnapshot.members))
+        .order_by(
+            BasketSnapshot.composition_date.asc(),
+            BasketSnapshot.known_at.asc().nullsfirst(),
+            BasketSnapshot.id.asc(),
+        )
+    )
+    if date_to is not None:
+        snapshot_stmt = snapshot_stmt.where(
+            BasketSnapshot.composition_date <= date_to.astimezone(UTC).date()
+        )
+    basket_snapshots = tuple((await db.execute(snapshot_stmt)).scalars().all())
+    if not basket_snapshots:
+        warnings.append(f"Basket '{basket.name}' has no composition snapshots for dynamic simulation.")
+        return [], None
+
+    instrument_ids: list[int] = []
+    seen: set[int] = set()
+    snapshots: list[DynamicUniverseSnapshot] = []
+    for snapshot in basket_snapshots:
+        member_ids = {member.instrument_id for member in snapshot.members}
+        for instrument_id in sorted(member_ids):
+            if instrument_id in seen:
+                continue
+            seen.add(instrument_id)
+            instrument_ids.append(instrument_id)
+        snapshots.append(
+            DynamicUniverseSnapshot(
+                id=snapshot.id,
+                composition_date=snapshot.composition_date,
+                known_at=snapshot.known_at,
+                member_ids=frozenset(member_ids),
+                source_type=snapshot.source_type,
+            )
+        )
+    if not instrument_ids:
+        warnings.append(f"Basket '{basket.name}' snapshots did not resolve to any testable instruments.")
+        return [], None
+
+    stmt = (
+        select(Instrument)
+        .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+        .where(Instrument.id.in_(instrument_ids))
+    )
+    rows = list((await db.execute(stmt)).scalars().all())
+    instrument_by_id = {row.id: row for row in rows}
+    instruments = [
+        instrument_by_id[instrument_id]
+        for instrument_id in instrument_ids
+        if instrument_id in instrument_by_id
+    ]
+    return instruments, DynamicETFUniverse(
+        profile_id=None,
+        basket_id=basket.id,
+        kind="basket",
+        instrument_ids=tuple(instrument.id for instrument in instruments),
+        snapshots=tuple(snapshots),
+    )
 
 
 async def _load_bars_for_strategy(
@@ -864,6 +1232,202 @@ def _build_instrument_context(instrument: Instrument) -> dict[str, Any]:
             }
         )
     return {"fundamentals": fundamentals, "stats": stats}
+
+
+def _etf_holdings_snapshot_mode(universe_config: dict[str, Any] | None) -> str:
+    config = (universe_config or {}).get("etf_holdings")
+    if not isinstance(config, dict):
+        return str((universe_config or {}).get("basket_snapshot_mode") or "static").strip().lower()
+    return str(config.get("snapshot_mode") or config.get("mode") or "static").strip().lower()
+
+
+def _is_dynamic_etf_holdings_universe(universe_config: dict[str, Any] | None) -> bool:
+    return _etf_holdings_snapshot_mode(universe_config) in {
+        "dynamic",
+        "point_in_time",
+        "point-in-time",
+        "historical",
+    }
+
+
+def _snapshot_known_on_or_before(snapshot: DynamicUniverseSnapshot, requested_date: date) -> bool:
+    if snapshot.known_at is None:
+        return True
+    known_at = snapshot.known_at
+    if known_at.tzinfo is None:
+        known_at = known_at.replace(tzinfo=UTC)
+    return known_at.astimezone(UTC) <= datetime.combine(requested_date, datetime.min.time(), tzinfo=UTC)
+
+
+def _snapshot_member_ids(snapshot: DynamicUniverseSnapshot) -> set[int]:
+    return set(snapshot.member_ids)
+
+
+def _dynamic_member_ids_for_date(dynamic_universe: DynamicETFUniverse, requested_date: date) -> set[int]:
+    usable_snapshots = [
+        snapshot
+        for snapshot in dynamic_universe.snapshots
+        if snapshot.composition_date <= requested_date
+        and _snapshot_known_on_or_before(snapshot, requested_date)
+    ]
+    if not usable_snapshots:
+        return set()
+    return _snapshot_member_ids(usable_snapshots[-1])
+
+
+def _dynamic_snapshot_for_date(
+    dynamic_universe: DynamicETFUniverse,
+    requested_date: date,
+) -> ETFHoldingsSnapshot | None:
+    usable_snapshots = [
+        snapshot
+        for snapshot in dynamic_universe.snapshots
+        if snapshot.composition_date <= requested_date
+        and _snapshot_known_on_or_before(snapshot, requested_date)
+    ]
+    return usable_snapshots[-1] if usable_snapshots else None
+
+
+def _filter_bars_for_dynamic_etf_universe(
+    bars: list[OHLCVBar],
+    *,
+    instrument_id: int,
+    dynamic_universe: DynamicETFUniverse | None,
+) -> list[OHLCVBar]:
+    if dynamic_universe is None:
+        return bars
+    return [
+        bar
+        for bar in bars
+        if instrument_id
+        in _dynamic_member_ids_for_date(dynamic_universe, bar.ts.astimezone(UTC).date())
+    ]
+
+
+def _dynamic_universe_exit_policy(
+    *,
+    run: StrategyRun,
+    version: StrategyVersion,
+) -> str:
+    raw_policy = (
+        run.execution_assumptions.get("dynamic_universe_exit_policy")
+        or (version.execution_model or {}).get("dynamic_universe_exit_policy")
+        or "leave_open"
+    )
+    policy = str(raw_policy).strip().lower()
+    if policy in {"close_on_removal", "close_removed", "liquidate_on_removal"}:
+        return "close_on_removal"
+    return "leave_open"
+
+
+def _dynamic_membership_removed_by_end(
+    position: NautilusOpenPosition,
+    *,
+    dynamic_universe: DynamicETFUniverse | None,
+    date_to: datetime | None,
+) -> bool:
+    if dynamic_universe is None or date_to is None:
+        return False
+    current_at = _parse_iso_datetime(position.current_at)
+    current_date = current_at.astimezone(UTC).date()
+    end_date = date_to.astimezone(UTC).date()
+    if current_date >= end_date:
+        return False
+    current_members = _dynamic_member_ids_for_date(dynamic_universe, current_date)
+    end_members = _dynamic_member_ids_for_date(dynamic_universe, end_date)
+    return position.instrument_id in current_members and position.instrument_id not in end_members
+
+
+def _close_positions_removed_from_dynamic_universe(
+    open_positions: list[NautilusOpenPosition],
+    *,
+    dynamic_universe: DynamicETFUniverse | None,
+    date_to: datetime | None,
+    policy: str,
+) -> tuple[list[NautilusTrade], list[NautilusOpenPosition]]:
+    if policy != "close_on_removal" or dynamic_universe is None:
+        return [], open_positions
+    removal_trades: list[NautilusTrade] = []
+    remaining_open_positions: list[NautilusOpenPosition] = []
+    for position in open_positions:
+        if not _dynamic_membership_removed_by_end(
+            position,
+            dynamic_universe=dynamic_universe,
+            date_to=date_to,
+        ):
+            remaining_open_positions.append(position)
+            continue
+        removal_trades.append(
+            NautilusTrade(
+                instrument_id=position.instrument_id,
+                instrument_symbol=position.instrument_symbol,
+                side=position.side,
+                entry_at=position.entry_at,
+                exit_at=position.current_at,
+                entry_price=position.entry_price,
+                exit_price=position.current_price,
+                stop_price=position.stop_price,
+                target_price=position.target_price,
+                quantity=position.quantity,
+                pnl=position.unrealized_pnl,
+                pnl_pct=position.unrealized_pnl_pct,
+                r_multiple=position.r_multiple,
+                bars_held=position.bars_held,
+                exit_reason="constituent_removed",
+            )
+        )
+    return removal_trades, remaining_open_positions
+
+
+def _dynamic_snapshot_fields(snapshot: DynamicUniverseSnapshot | None) -> dict[str, Any]:
+    if snapshot is None:
+        return {}
+    return {
+        "universe_snapshot_id": snapshot.id,
+        "universe_snapshot_composition_date": snapshot.composition_date.isoformat(),
+        "universe_snapshot_known_at": snapshot.known_at.isoformat()
+        if snapshot.known_at is not None
+        else None,
+        "universe_snapshot_source_type": snapshot.source_type,
+    }
+
+
+def _annotate_dynamic_universe_execution_log(
+    execution_log: list[dict[str, Any]],
+    *,
+    dynamic_universe: DynamicETFUniverse | None,
+    instrument_rows: list[Instrument],
+    run_end: datetime | None,
+) -> list[dict[str, Any]]:
+    if dynamic_universe is None:
+        return execution_log
+    instrument_id_by_symbol = {instrument.symbol.upper(): instrument.id for instrument in instrument_rows}
+    run_end_date = run_end.astimezone(UTC).date() if run_end is not None else None
+    annotated: list[dict[str, Any]] = []
+    for event in execution_log:
+        row = dict(event)
+        symbol = str(row.get("symbol") or "").upper()
+        instrument_id = instrument_id_by_symbol.get(symbol)
+        if instrument_id is None:
+            annotated.append(row)
+            continue
+        event_dt = _parse_iso_datetime(str(row.get("ts") or ""))
+        event_date = event_dt.astimezone(UTC).date()
+        if row.get("reason") == "constituent_removed" and run_end_date is not None:
+            snapshot = _dynamic_snapshot_for_date(dynamic_universe, run_end_date)
+            row["universe_membership_status"] = "removed"
+        else:
+            snapshot = _dynamic_snapshot_for_date(dynamic_universe, event_date)
+            row["universe_membership_status"] = (
+                "member"
+                if snapshot is not None and instrument_id in _snapshot_member_ids(snapshot)
+                else "not_member"
+            )
+        row.update(_dynamic_snapshot_fields(snapshot))
+        row["universe_profile_id"] = dynamic_universe.profile_id
+        row["universe_basket_id"] = dynamic_universe.basket_id
+        annotated.append(row)
+    return annotated
 
 
 def _max_drawdown_pct(equity_curve: list[dict[str, float | str]]) -> float:
@@ -1657,7 +2221,16 @@ async def _run_rules_backtest(
     timeframe_value = run.timeframe or definition.get("timeframe") or Timeframe.D1.value
     timeframe = _coerce_timeframe(str(timeframe_value), warnings)
 
-    instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
+    dynamic_universe: DynamicETFUniverse | None = None
+    if _is_dynamic_etf_holdings_universe(effective_universe):
+        instrument_rows, dynamic_universe = await _resolve_dynamic_etf_universe(
+            db,
+            effective_universe,
+            date_to=run.date_to,
+            warnings=warnings,
+        )
+    else:
+        instrument_rows = await _resolve_universe_instruments(db, effective_universe, warnings)
     trades: list[NautilusTrade] = []
     open_positions: list[NautilusOpenPosition] = []
     covered_symbols: list[str] = []
@@ -1680,6 +2253,7 @@ async def _run_rules_backtest(
     )
     commission_model, commission_value = _coerce_commission_settings(run.execution_assumptions)
     close_open_positions_at_end = run.execution_assumptions.get("close_open_positions_at_end") is True
+    dynamic_universe_policy = _dynamic_universe_exit_policy(run=run, version=version)
     max_concurrent_positions = int(
         run.execution_assumptions.get("max_concurrent_positions")
         or (version.execution_model or {}).get("max_concurrent_positions")
@@ -1736,6 +2310,11 @@ async def _run_rules_backtest(
             date_from=run.date_from,
             date_to=run.date_to,
         )
+        bars = _filter_bars_for_dynamic_etf_universe(
+            bars,
+            instrument_id=instrument.id,
+            dynamic_universe=dynamic_universe,
+        )
         if len(bars) < 3:
             warnings.append(f"{instrument.symbol} does not have enough bars for simulation.")
             continue
@@ -1751,6 +2330,11 @@ async def _run_rules_backtest(
             if requires_daily_aux
             else []
         )
+        daily_bars = _filter_bars_for_dynamic_etf_universe(
+            daily_bars,
+            instrument_id=instrument.id,
+            dynamic_universe=dynamic_universe,
+        )
         weekly_bars = (
             await _load_bars_for_strategy(
                 db,
@@ -1761,6 +2345,11 @@ async def _run_rules_backtest(
             )
             if requires_weekly_aux
             else []
+        )
+        weekly_bars = _filter_bars_for_dynamic_etf_universe(
+            weekly_bars,
+            instrument_id=instrument.id,
+            dynamic_universe=dynamic_universe,
         )
         covered_symbols.append(instrument.symbol)
         instrument_result = run_single_instrument_nautilus_backtest(
@@ -1803,6 +2392,14 @@ async def _run_rules_backtest(
         open_positions.extend(instrument_result.open_positions)
         warnings.extend(instrument_result.warnings)
 
+    removal_trades, open_positions = _close_positions_removed_from_dynamic_universe(
+        open_positions,
+        dynamic_universe=dynamic_universe,
+        date_to=run.date_to,
+        policy=dynamic_universe_policy,
+    )
+    trades.extend(removal_trades)
+
     portfolio_view = _apply_portfolio_constraints(
         trades,
         open_positions=open_positions,
@@ -1815,6 +2412,12 @@ async def _run_rules_backtest(
     trades = list(portfolio_view["accepted_trades"])
     open_positions = list(portfolio_view["accepted_open_positions"])
     rejected_trades = list(portfolio_view["rejected_trades"])
+    execution_log = _annotate_dynamic_universe_execution_log(
+        list(portfolio_view["execution_log"]),
+        dynamic_universe=dynamic_universe,
+        instrument_rows=instrument_rows,
+        run_end=run.date_to,
+    )
     dense_history = _build_dense_portfolio_history(
         trades,
         open_positions=open_positions,
@@ -1939,6 +2542,7 @@ async def _run_rules_backtest(
             "commission_value": commission_value,
             "commission_per_trade": commission_value,
             "close_open_positions_at_end": close_open_positions_at_end,
+            "dynamic_universe_exit_policy": dynamic_universe_policy,
             "stop_loss_pct": stop_loss_pct,
             "stop_atr_period": stop_atr_period,
             "stop_atr_multiple": stop_atr_multiple,
@@ -1956,10 +2560,30 @@ async def _run_rules_backtest(
             "max_symbol_allocation_pct": max_symbol_allocation_pct,
             "custom_exit_condition_count": len(_iter_condition_nodes(exit_condition_tree)) + len(exit_conditions),
         },
+        "dynamic_universe": {
+            "kind": dynamic_universe.kind,
+            "profile_id": dynamic_universe.profile_id,
+            "basket_id": dynamic_universe.basket_id,
+            "snapshot_count": len(dynamic_universe.snapshots),
+            "exit_policy": dynamic_universe_policy,
+            "snapshots": [
+                {
+                    "id": snapshot.id,
+                    "composition_date": snapshot.composition_date.isoformat(),
+                    "known_at": snapshot.known_at.isoformat()
+                    if snapshot.known_at is not None
+                    else None,
+                    "source_type": snapshot.source_type,
+                }
+                for snapshot in dynamic_universe.snapshots
+            ],
+        }
+        if dynamic_universe is not None
+        else None,
         "equity_curve": equity_curve,
         "analytics": analytics,
         "portfolio": portfolio_view["summary"],
-        "execution_log": portfolio_view["execution_log"],
+        "execution_log": execution_log,
         "portfolio_timeline": portfolio_timeline,
         "position_timelines": position_timelines,
         "open_positions": [

@@ -131,6 +131,99 @@ class TestStrategyLabAPI:
         assert runs_res.status_code == 200
         assert any(item["id"] == run_payload["id"] for item in runs_res.json())
 
+    def test_strategy_lab_can_preview_and_run_basket_universe(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        basket_res = client.post(
+            "/api/v1/baskets",
+            headers=auth_headers,
+            json={
+                "name": "Strategy basket",
+                "members": [{"instrument_id": instrument.id}],
+            },
+        )
+        assert basket_res.status_code == 200
+        basket_id = basket_res.json()["id"]
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "universe_config": {"basket_id": basket_id},
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+            },
+        )
+        assert preview_res.status_code == 200
+        preview = preview_res.json()
+        assert preview["universe"]["preview_mode"] == "resolved"
+        assert preview["universe"]["resolved_symbols"] == ["AAPL"]
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Basket Universe Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "is_active": True,
+                "tags": ["basket"],
+                "metadata": {},
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 5,
+                        },
+                    },
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                    "universe_config": {"basket_id": basket_id},
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                    "notes": "Basket universe",
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        definition = create_res.json()
+        assert definition["versions"][0]["universe_config"] == {"basket_id": basket_id}
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{definition['versions'][0]['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                    "commission_per_trade": 1.0,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        payload = run_res.json()
+        assert payload["status"] == "completed"
+        assert payload["result_summary"]["coverage"]["resolved_symbols"] == ["AAPL"]
+
     def test_preview_strategy_coverage_summarizes_universe_and_benchmark(
         self,
         client,
@@ -220,6 +313,714 @@ class TestStrategyLabAPI:
         assert payload["benchmark"]["symbol"] == "SPY"
         assert payload["benchmark"]["requested_status"] == "partial"
         assert payload["benchmark"]["requested_first_bar_at"].startswith("2024-03-01")
+
+    def test_strategy_run_can_use_etf_holdings_snapshot_universe(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        instrument,
+        ohlcv_bars,
+    ):
+        ingest_res = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2026-05-31",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_current_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "0.05",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert ingest_res.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "ETF Snapshot Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 5,
+                        },
+                    },
+                    "universe_config": {
+                        "etf_holdings": {
+                            "symbol": "SPY",
+                            "snapshot_mode": "latest",
+                        }
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "universe_config": version["universe_config"],
+                "benchmark_config": {},
+            },
+        )
+        assert preview_res.status_code == 200
+        preview = preview_res.json()
+        assert preview["universe"]["instrument_count"] == 1
+        assert preview["universe"]["resolved_symbols"] == [instrument.symbol]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 5,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        run = run_res.json()
+        assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
+        assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
+
+    def test_strategy_run_can_use_dynamic_etf_holdings_universe(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+    ):
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        for index, source_bar in enumerate(ohlcv_bars):
+            close = Decimal(str(round(320 + index * 0.2, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=source_bar.ts,
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("5000000"),
+                    is_adjusted=True,
+                )
+            )
+        db.commit()
+
+        first_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert first_snapshot.status_code == 200
+        second_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-03-01",
+                "known_at": "2024-03-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument_b.symbol,
+                        "name": instrument_b.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert second_snapshot.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Dynamic ETF Universe Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 10.0,
+                            "take_profit_rr": 0,
+                            "max_bars_in_trade": 1,
+                        },
+                    },
+                    "universe_config": {
+                        "etf_holdings": {
+                            "symbol": "SPY",
+                            "snapshot_mode": "dynamic",
+                        }
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "universe_config": version["universe_config"],
+                "benchmark_config": {},
+            },
+        )
+        assert preview_res.status_code == 200
+        assert set(preview_res.json()["universe"]["resolved_symbols"]) == {
+            instrument.symbol,
+            instrument_b.symbol,
+        }
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 0,
+                    "close_open_positions_at_end": True,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        summary = run_res.json()["result_summary"]
+        assert set(summary["universe"]["resolved_symbols"]) == {instrument.symbol, instrument_b.symbol}
+        entries = [
+            event
+            for event in summary["execution_log"]
+            if event["event_type"] == "entry"
+        ]
+        assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
+        assert {
+            event["universe_snapshot_composition_date"]
+            for event in entries
+            if event["symbol"] == instrument.symbol
+        } == {"2024-01-01"}
+        assert {
+            event["universe_snapshot_composition_date"]
+            for event in entries
+            if event["symbol"] == instrument_b.symbol
+        } == {"2024-03-01"}
+        assert all(
+            event["ts"] < "2024-03-01T00:00:00+00:00"
+            for event in entries
+            if event["symbol"] == instrument.symbol
+        )
+        assert all(
+            event["ts"] >= "2024-03-01T00:00:00+00:00"
+            for event in entries
+            if event["symbol"] == instrument_b.symbol
+        )
+
+    def test_dynamic_etf_universe_can_close_positions_on_constituent_removal(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+    ):
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        for index, source_bar in enumerate(ohlcv_bars):
+            close = Decimal(str(round(320 + index * 0.2, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=source_bar.ts,
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("5000000"),
+                    is_adjusted=True,
+                )
+            )
+        db.commit()
+
+        first_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert first_snapshot.status_code == 200
+        second_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-03-01",
+                "known_at": "2024-03-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument_b.symbol,
+                        "name": instrument_b.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert second_snapshot.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Dynamic ETF Removal Exit Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 50.0,
+                            "take_profit_rr": 0,
+                            "max_bars_in_trade": 0,
+                        },
+                    },
+                    "universe_config": {
+                        "etf_holdings": {
+                            "symbol": "SPY",
+                            "snapshot_mode": "dynamic",
+                        }
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 0,
+                    "close_open_positions_at_end": False,
+                    "dynamic_universe_exit_policy": "close_on_removal",
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        summary = run_res.json()["result_summary"]
+        removal_exits = [
+            event
+            for event in summary["execution_log"]
+            if event["event_type"] == "exit" and event["reason"] == "constituent_removed"
+        ]
+        assert [event["symbol"] for event in removal_exits] == [instrument.symbol]
+        assert removal_exits[0]["universe_membership_status"] == "removed"
+        assert removal_exits[0]["universe_snapshot_composition_date"] == "2024-03-01"
+        assert all(
+            position["instrument_symbol"] != instrument.symbol
+            for position in summary["open_positions"]
+        )
+        assert summary["execution_assumptions"]["dynamic_universe_exit_policy"] == "close_on_removal"
+        assert summary["dynamic_universe"]["snapshot_count"] == 2
+
+    def test_strategy_run_can_use_dynamic_etf_derived_basket_universe(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+    ):
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        for index, source_bar in enumerate(ohlcv_bars):
+            close = Decimal(str(round(320 + index * 0.2, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=source_bar.ts,
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("5000000"),
+                    is_adjusted=True,
+                )
+            )
+        db.commit()
+
+        first_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert first_snapshot.status_code == 200
+        basket_res = client.get("/api/v1/etf-holdings/SPY/basket", headers=auth_headers)
+        assert basket_res.status_code == 200
+        basket_id = basket_res.json()["id"]
+
+        second_snapshot = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-03-01",
+                "known_at": "2024-03-01T00:00:00Z",
+                "source_provider": "issuer-test",
+                "provenance": "issuer_self_snapshotted_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument_b.symbol,
+                        "name": instrument_b.name,
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert second_snapshot.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Dynamic ETF Basket Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 10.0,
+                            "take_profit_rr": 0,
+                            "max_bars_in_trade": 1,
+                        },
+                    },
+                    "universe_config": {
+                        "basket_id": basket_id,
+                        "basket_snapshot_mode": "dynamic",
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 0,
+                    "close_open_positions_at_end": True,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        summary = run_res.json()["result_summary"]
+        entries = [
+            event
+            for event in summary["execution_log"]
+            if event["event_type"] == "entry"
+        ]
+        assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
+        assert {
+            event["universe_snapshot_composition_date"]
+            for event in entries
+            if event["symbol"] == instrument_b.symbol
+        } == {"2024-03-01"}
+        assert summary["dynamic_universe"]["snapshot_count"] == 2
+
+    def test_strategy_run_can_use_dynamic_manual_basket_history(
+        self,
+        client,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+    ):
+        from datetime import UTC, datetime
+        from decimal import Decimal
+
+        from sqlalchemy import select
+
+        from app.models.basket import BasketSnapshot
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        for index, source_bar in enumerate(ohlcv_bars):
+            close = Decimal(str(round(320 + index * 0.2, 4)))
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=source_bar.ts,
+                    open=close,
+                    high=close + Decimal("1.0"),
+                    low=close - Decimal("1.0"),
+                    close=close,
+                    volume=Decimal("5000000"),
+                    is_adjusted=True,
+                )
+            )
+        db.commit()
+
+        created = client.post(
+            "/api/v1/baskets",
+            headers=auth_headers,
+            json={
+                "name": "Manual dynamic basket",
+                "members": [{"instrument_id": instrument.id}],
+            },
+        )
+        assert created.status_code == 200
+        basket_id = created.json()["id"]
+
+        updated = client.patch(
+            f"/api/v1/baskets/{basket_id}",
+            headers=auth_headers,
+            json={"members": [{"instrument_id": instrument_b.id}]},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["snapshot_count"] == 2
+
+        snapshots = list(
+            db.execute(
+                select(BasketSnapshot)
+                .where(BasketSnapshot.basket_id == basket_id)
+                .order_by(BasketSnapshot.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+        snapshots[0].composition_date = ohlcv_bars[0].ts.date()
+        snapshots[0].known_at = datetime.combine(snapshots[0].composition_date, datetime.min.time(), tzinfo=UTC)
+        snapshots[1].composition_date = ohlcv_bars[len(ohlcv_bars) // 2].ts.date()
+        snapshots[1].known_at = datetime.combine(snapshots[1].composition_date, datetime.min.time(), tzinfo=UTC)
+        db.commit()
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Dynamic Manual Basket Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 10.0,
+                            "take_profit_rr": 0,
+                            "max_bars_in_trade": 1,
+                        },
+                    },
+                    "universe_config": {
+                        "basket_id": basket_id,
+                        "basket_snapshot_mode": "dynamic",
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        run_res = client.post(
+            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
+            headers=auth_headers,
+            json={
+                "test_mode": "backtest",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "parameter_values": {},
+                "execution_assumptions": {
+                    "initial_capital": 100000,
+                    "risk_per_trade_pct": 1.0,
+                    "slippage_bps": 0,
+                    "close_open_positions_at_end": True,
+                },
+            },
+        )
+        assert run_res.status_code == 201
+        summary = run_res.json()["result_summary"]
+        entries = [
+            event
+            for event in summary["execution_log"]
+            if event["event_type"] == "entry"
+        ]
+        assert {event["symbol"] for event in entries} == {instrument.symbol, instrument_b.symbol}
+        assert summary["dynamic_universe"]["kind"] == "basket"
+        assert summary["dynamic_universe"]["basket_id"] == basket_id
+        assert summary["dynamic_universe"]["snapshot_count"] == 2
+        assert {
+            event["universe_snapshot_source_type"]
+            for event in entries
+        } == {"manual"}
 
     def test_delete_definition_removes_strategy(self, client, auth_headers):
         create_res = client.post(

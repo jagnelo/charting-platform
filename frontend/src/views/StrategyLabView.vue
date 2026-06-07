@@ -227,6 +227,8 @@
                     <option value="symbols">Manual symbols</option>
                     <option value="watchlist">Watchlist</option>
                     <option value="screener">Latest screener result</option>
+                    <option value="basket">Basket</option>
+                    <option value="etf_holdings">ETF holdings snapshot</option>
                   </select>
                 </label>
                 <label v-if="universeMode === 'watchlist'" class="field">
@@ -245,6 +247,48 @@
                     <option v-for="screener in availableScreeners" :key="screener.id" :value="screener.id">
                       {{ screener.name }}
                     </option>
+                  </select>
+                </label>
+                <label v-else-if="universeMode === 'basket'" class="field">
+                  <span class="field-label">Basket</span>
+                  <select v-model="selectedBasketId" class="form-select">
+                    <option :value="null">Select basket</option>
+                    <option v-for="basket in availableBaskets" :key="basket.id" :value="basket.id">
+                      {{ basket.name }} · {{ basket.members.length }} symbols
+                    </option>
+                  </select>
+                </label>
+                <label v-else-if="universeMode === 'etf_holdings'" class="field">
+                  <span class="field-label">ETF</span>
+                  <select v-model="selectedEtfHoldingSymbol" class="form-select">
+                    <option value="">Select ETF</option>
+                    <option v-for="etf in availableEtfHoldings" :key="etf.id" :value="etf.symbol">
+                      {{ etf.symbol }}{{ etf.latest_composition_date ? ` · ${etf.latest_composition_date}` : '' }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <div v-if="universeMode === 'etf_holdings'" class="form-grid two-up">
+                <label class="field">
+                  <span class="field-label">Snapshot</span>
+                  <select v-model="selectedEtfHoldingSnapshotMode" class="form-select">
+                    <option value="latest">Latest available</option>
+                    <option value="date">On or before date</option>
+                    <option value="dynamic">Dynamic through time</option>
+                  </select>
+                </label>
+                <label v-if="selectedEtfHoldingSnapshotMode === 'date'" class="field">
+                  <span class="field-label">Snapshot date</span>
+                  <input v-model="selectedEtfHoldingSnapshotDate" type="date" class="form-input" />
+                </label>
+              </div>
+              <div v-if="universeMode === 'basket' && basketSupportsDynamicHistory" class="form-grid two-up">
+                <label class="field">
+                  <span class="field-label">Basket history</span>
+                  <select v-model="selectedBasketSnapshotMode" class="form-select">
+                    <option value="static">Static basket members</option>
+                    <option value="dynamic">Dynamic history</option>
                   </select>
                 </label>
               </div>
@@ -288,6 +332,22 @@
                     {{ selectedScreener.name }}
                   </span>
                   <span v-if="universeMode === 'screener' && !selectedScreener" class="empty-inline">Select a screener to use its latest results as the research universe.</span>
+                  <span
+                    v-if="universeMode === 'basket'"
+                    v-for="member in selectedBasket?.members.slice(0, 10) ?? []"
+                    :key="member.id"
+                    class="symbol-chip symbol-chip--alt"
+                  >
+                    {{ member.symbol || member.name || member.instrument_id }}
+                  </span>
+                  <span v-if="universeMode === 'basket' && selectedBasket && selectedBasket.members.length > 10" class="empty-inline">
+                    +{{ selectedBasket.members.length - 10 }} more
+                  </span>
+                  <span v-if="universeMode === 'basket' && !selectedBasket" class="empty-inline">Select a basket to define the universe.</span>
+                  <span v-if="universeMode === 'etf_holdings' && selectedEtfHolding" class="symbol-chip symbol-chip--alt">
+                    {{ selectedEtfHolding.symbol }}
+                  </span>
+                  <span v-if="universeMode === 'etf_holdings' && !selectedEtfHolding" class="empty-inline">Select an ETF with holdings snapshots.</span>
                 </div>
               </template>
             </div>
@@ -806,6 +866,18 @@
                   <button type="button" class="help-dot" aria-label="Run-end position handling info">i</button>
                 </HoverTooltip>
               </span>
+            </label>
+            <label v-if="usesDynamicEtfUniverse" class="field">
+              <span class="field-label">
+                Constituent removal
+                <HoverTooltip text="Controls positions already open when a dynamic ETF universe no longer contains that constituent. Leave open keeps them marked at the last eligible bar; close on removal realizes them at that last eligible mark.">
+                  <button type="button" class="help-dot" aria-label="Constituent removal policy info">i</button>
+                </HoverTooltip>
+              </span>
+              <select v-model="runDraft.dynamic_universe_exit_policy" class="form-select">
+                <option value="leave_open">Leave open</option>
+                <option value="close_on_removal">Close on removal</option>
+              </select>
             </label>
           </div>
 
@@ -1450,7 +1522,12 @@
                         </div>
                         <template v-else>—</template>
                       </td>
-                      <td>{{ humanizeToken(event.reason || event.event_type) }}</td>
+                      <td>
+                        <div class="execution-reason-cell">
+                          <strong>{{ humanizeToken(event.reason || event.event_type) }}</strong>
+                          <small v-if="executionUniverseContext(event)">{{ executionUniverseContext(event) }}</small>
+                        </div>
+                      </td>
                     </tr>
                     <tr v-if="!filteredExecutionLog.length">
                       <td colspan="8" class="trade-table__empty">
@@ -1511,6 +1588,8 @@ import {
 } from '@/lib/technicalConditions'
 import { useStrategyLabStore } from '@/stores/strategyLab'
 import type {
+  Basket,
+  ETFProfile,
   StrategyCoverageInstrument,
   StrategyCoverageBenchmark,
   StrategyCoveragePreview,
@@ -1522,7 +1601,9 @@ import type {
   Watchlist,
 } from '@/types'
 
-type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener'
+type StrategyUniverseMode = 'radar' | 'symbols' | 'watchlist' | 'screener' | 'basket' | 'etf_holdings'
+type EtfHoldingSnapshotMode = 'latest' | 'date' | 'dynamic'
+type BasketSnapshotMode = 'static' | 'dynamic'
 type StrategyLabSectionKey = 'profile' | 'entry' | 'risk' | 'exits' | 'runs' | 'results'
 type StrategyLabSectionState = Record<StrategyLabSectionKey, boolean>
 type StrategyLabStoredSectionStates = Record<string, Partial<StrategyLabSectionState>>
@@ -1587,6 +1668,8 @@ const initialSectionStates = loadStrategySectionStates()
 const strategyLab = useStrategyLabStore()
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
+const availableBaskets = ref<Basket[]>([])
+const availableEtfHoldings = ref<ETFProfile[]>([])
 const timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
 const radarSetupOptions = [
   { value: 'approaching_support', label: 'Approaching support' },
@@ -1628,6 +1711,11 @@ const sourceType = ref<'custom' | 'radar'>('custom')
 const universeMode = ref<StrategyUniverseMode>('symbols')
 const selectedWatchlistId = ref<number | null>(null)
 const selectedScreenerId = ref<number | null>(null)
+const selectedBasketId = ref<number | null>(null)
+const selectedBasketSnapshotMode = ref<BasketSnapshotMode>('static')
+const selectedEtfHoldingSymbol = ref('')
+const selectedEtfHoldingSnapshotMode = ref<EtfHoldingSnapshotMode>('latest')
+const selectedEtfHoldingSnapshotDate = ref('')
 const compareRunId = ref<number | null>(null)
 const showDeleteModal = ref(false)
 const radarSetupMenuOpen = ref(false)
@@ -1688,6 +1776,13 @@ function createSweepDraft(single: OptionalNumberInput, step: number): SweepValue
   }
 }
 
+function normalizeEtfHoldingSnapshotMode(config: Record<string, any>): EtfHoldingSnapshotMode {
+  const rawMode = String(config.snapshot_mode ?? config.mode ?? '').trim().toLowerCase()
+  if (['dynamic', 'point_in_time', 'point-in-time', 'historical'].includes(rawMode)) return 'dynamic'
+  if (['date', 'as_of_date', 'specific_date'].includes(rawMode) || config.snapshot_date) return 'date'
+  return 'latest'
+}
+
 const draft = reactive({
   name: '',
   description: '',
@@ -1743,6 +1838,7 @@ const runDraft = reactive({
   max_portfolio_risk_pct: 4,
   max_symbol_allocation_pct: 35,
   close_open_positions_at_end: false,
+  dynamic_universe_exit_policy: 'leave_open' as 'leave_open' | 'close_on_removal',
   use_subset: false,
   overrideSymbols: [] as string[],
 })
@@ -1758,10 +1854,30 @@ const selectedWatchlist = computed(() =>
 const selectedScreener = computed(() =>
   availableScreeners.value.find(item => item.id === selectedScreenerId.value) ?? null
 )
+const selectedBasket = computed(() =>
+  availableBaskets.value.find(item => item.id === selectedBasketId.value) ?? null
+)
+const basketSupportsDynamicHistory = computed(() => {
+  const basket = selectedBasket.value
+  return Boolean(basket?.source_etf_profile_id) || Number(basket?.snapshot_count ?? 0) > 0
+})
+const selectedEtfHolding = computed(() =>
+  availableEtfHoldings.value.find(item => item.symbol === selectedEtfHoldingSymbol.value) ?? null
+)
+const usesDynamicEtfUniverse = computed(() =>
+  (universeMode.value === 'etf_holdings' && selectedEtfHoldingSnapshotMode.value === 'dynamic')
+  || (universeMode.value === 'basket' && basketSupportsDynamicHistory.value && selectedBasketSnapshotMode.value === 'dynamic')
+)
 const availableRunSubsetSymbols = computed(() => {
   if (universeMode.value === 'symbols') return [...logicDraft.symbols]
   if (universeMode.value === 'watchlist') {
     return normalizeSymbols((selectedWatchlist.value?.items ?? []).map(item => item.symbol || item.name || ''))
+  }
+  if (universeMode.value === 'basket') {
+    return normalizeSymbols((selectedBasket.value?.members ?? []).map(item => item.symbol || item.name || ''))
+  }
+  if (universeMode.value === 'etf_holdings') {
+    return normalizeSymbols(coveragePreview.value?.universe.resolved_symbols ?? [])
   }
   return []
 })
@@ -1775,6 +1891,25 @@ const effectiveRunUniverseConfig = computed<Record<string, any>>(() => {
   }
   if (universeMode.value === 'screener' && selectedScreenerId.value != null) {
     return { screener_id: selectedScreenerId.value }
+  }
+  if (universeMode.value === 'basket' && selectedBasketId.value != null) {
+    return {
+      basket_id: selectedBasketId.value,
+      ...(selectedBasketSnapshotMode.value === 'dynamic'
+        ? { basket_snapshot_mode: selectedBasketSnapshotMode.value }
+        : {}),
+    }
+  }
+  if (universeMode.value === 'etf_holdings' && selectedEtfHoldingSymbol.value) {
+    return {
+      etf_holdings: {
+        symbol: selectedEtfHoldingSymbol.value,
+        snapshot_mode: selectedEtfHoldingSnapshotMode.value,
+        ...(selectedEtfHoldingSnapshotMode.value === 'date' && selectedEtfHoldingSnapshotDate.value
+          ? { snapshot_date: selectedEtfHoldingSnapshotDate.value }
+          : {}),
+      },
+    }
   }
   return { symbols: [...logicDraft.symbols] }
 })
@@ -2077,6 +2212,18 @@ function executionLogSearchValue(event: any, key: ExecutionLogColumnKey) {
     .join(' ')
 }
 
+function executionUniverseContext(event: any) {
+  const compositionDate = event?.universe_snapshot_composition_date
+  if (!compositionDate) return ''
+  const status = event?.universe_membership_status
+    ? humanizeToken(event.universe_membership_status)
+    : 'Universe'
+  const knownAt = event?.universe_snapshot_known_at
+    ? ` · known ${formatShortDateTime(event.universe_snapshot_known_at)}`
+    : ''
+  return `${status} · ETF snapshot ${compositionDate}${knownAt}`
+}
+
 function executionLogColumnSearchValues(event: any, key: ExecutionLogColumnKey) {
   switch (key) {
     case 'time':
@@ -2099,7 +2246,15 @@ function executionLogColumnSearchValues(event: any, key: ExecutionLogColumnKey) 
         event.pnl_pct != null ? formatSignedPercent(event.pnl_pct) : null,
       ]
     case 'reason':
-      return [event.reason, humanizeToken(event.reason || event.event_type)]
+      return [
+        event.reason,
+        humanizeToken(event.reason || event.event_type),
+        executionUniverseContext(event),
+        event.universe_membership_status,
+        event.universe_snapshot_composition_date,
+        event.universe_snapshot_known_at,
+        event.universe_profile_id,
+      ]
     default:
       return []
   }
@@ -2899,9 +3054,11 @@ const strategyNarrative = computed(() => {
 
 const hasUniverseSelection = computed(() =>
   (sourceType.value === 'radar' && universeMode.value === 'radar')
-  || logicDraft.symbols.length > 0
-  || selectedWatchlistId.value != null
-  || selectedScreenerId.value != null,
+  || (universeMode.value === 'symbols' && logicDraft.symbols.length > 0)
+  || (universeMode.value === 'watchlist' && selectedWatchlistId.value != null)
+  || (universeMode.value === 'screener' && selectedScreenerId.value != null)
+  || (universeMode.value === 'basket' && selectedBasketId.value != null)
+  || (universeMode.value === 'etf_holdings' && Boolean(selectedEtfHoldingSymbol.value)),
 )
 
 const hasEntryLogic = computed(() =>
@@ -2916,9 +3073,7 @@ const canPublish = computed(() =>
 const showNameValidation = computed(() => !draft.name.trim())
 const showUniverseValidation = computed(() =>
   !(sourceType.value === 'radar' && universeMode.value === 'radar')
-  && logicDraft.symbols.length === 0
-  && selectedWatchlistId.value == null
-  && selectedScreenerId.value == null,
+  && !hasUniverseSelection.value,
 )
 
 onMounted(async () => {
@@ -2933,6 +3088,16 @@ onMounted(async () => {
       availableScreeners.value = rows.map(row => ({ id: row.id, name: row.name }))
     }).catch(() => {
       availableScreeners.value = []
+    }),
+    api.get<Basket[]>('/baskets').then(rows => {
+      availableBaskets.value = rows
+    }).catch(() => {
+      availableBaskets.value = []
+    }),
+    api.get<ETFProfile[]>('/etf-holdings').then(rows => {
+      availableEtfHoldings.value = rows
+    }).catch(() => {
+      availableEtfHoldings.value = []
     }),
   ])
   hydrateFromSelection(strategyLab.selectedDefinition)
@@ -3000,7 +3165,20 @@ async function fetchCoveragePreview() {
 watch(universeMode, mode => {
   if (mode !== 'watchlist') selectedWatchlistId.value = null
   if (mode !== 'screener') selectedScreenerId.value = null
+  if (mode !== 'basket') {
+    selectedBasketId.value = null
+    selectedBasketSnapshotMode.value = 'static'
+  }
+  if (mode !== 'etf_holdings') {
+    selectedEtfHoldingSymbol.value = ''
+    selectedEtfHoldingSnapshotMode.value = 'latest'
+    selectedEtfHoldingSnapshotDate.value = ''
+  }
   if (mode !== 'symbols') logicDraft.symbols = []
+})
+
+watch(basketSupportsDynamicHistory, supportsDynamicHistory => {
+  if (!supportsDynamicHistory) selectedBasketSnapshotMode.value = 'static'
 })
 
 watch(availableRunSubsetSymbols, symbols => {
@@ -3009,7 +3187,7 @@ watch(availableRunSubsetSymbols, symbols => {
     runDraft.overrideSymbols = runDraft.overrideSymbols.filter(symbol => allowed.has(symbol))
     return
   }
-  if (!['symbols', 'watchlist'].includes(universeMode.value)) {
+  if (!['symbols', 'watchlist', 'basket', 'etf_holdings'].includes(universeMode.value)) {
     runDraft.use_subset = false
     runSubsetMenuOpen.value = false
   }
@@ -3022,6 +3200,7 @@ watch(() => sourceType.value, value => {
       && !logicDraft.symbols.length
       && selectedWatchlistId.value == null
       && selectedScreenerId.value == null
+      && selectedBasketId.value == null
     ) {
       universeMode.value = 'radar'
     }
@@ -3074,6 +3253,11 @@ function startNew() {
   universeMode.value = 'symbols'
   selectedWatchlistId.value = null
   selectedScreenerId.value = null
+  selectedBasketId.value = null
+  selectedBasketSnapshotMode.value = 'static'
+  selectedEtfHoldingSymbol.value = ''
+  selectedEtfHoldingSnapshotMode.value = 'latest'
+  selectedEtfHoldingSnapshotDate.value = ''
   compareRunId.value = null
   draft.tags = []
   versionNotes.value = ''
@@ -3116,6 +3300,7 @@ function startNew() {
   runDraft.max_portfolio_risk_pct = 4
   runDraft.max_symbol_allocation_pct = 35
   runDraft.close_open_positions_at_end = false
+  runDraft.dynamic_universe_exit_policy = 'leave_open'
   runDraft.use_subset = false
   runDraft.overrideSymbols = []
   showAdvancedRunOptions.value = false
@@ -3188,16 +3373,45 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     universeMode.value = 'watchlist'
     selectedWatchlistId.value = Number(version.universe_config.watchlist_id)
     selectedScreenerId.value = null
+    selectedBasketId.value = null
+    selectedEtfHoldingSymbol.value = ''
     logicDraft.symbols = []
   } else if (version.universe_config?.screener_id != null) {
     universeMode.value = 'screener'
     selectedScreenerId.value = Number(version.universe_config.screener_id)
     selectedWatchlistId.value = null
+    selectedBasketId.value = null
+    selectedEtfHoldingSymbol.value = ''
+    logicDraft.symbols = []
+  } else if (version.universe_config?.basket_id != null) {
+    universeMode.value = 'basket'
+    selectedBasketId.value = Number(version.universe_config.basket_id)
+    selectedBasketSnapshotMode.value = version.universe_config.basket_snapshot_mode === 'dynamic'
+      ? 'dynamic'
+      : 'static'
+    selectedWatchlistId.value = null
+    selectedScreenerId.value = null
+    selectedEtfHoldingSymbol.value = ''
+    logicDraft.symbols = []
+  } else if (version.universe_config?.etf_holdings != null) {
+    const etfHoldingsConfig = version.universe_config.etf_holdings ?? {}
+    universeMode.value = 'etf_holdings'
+    selectedEtfHoldingSymbol.value = String(etfHoldingsConfig.symbol ?? '').toUpperCase()
+    selectedEtfHoldingSnapshotMode.value = normalizeEtfHoldingSnapshotMode(etfHoldingsConfig)
+    selectedEtfHoldingSnapshotDate.value = String(etfHoldingsConfig.snapshot_date ?? '')
+    selectedWatchlistId.value = null
+    selectedScreenerId.value = null
+    selectedBasketId.value = null
+    selectedBasketSnapshotMode.value = 'static'
     logicDraft.symbols = []
   } else {
     universeMode.value = sourceType.value === 'radar' ? 'radar' : 'symbols'
     selectedWatchlistId.value = null
     selectedScreenerId.value = null
+    selectedBasketId.value = null
+    selectedEtfHoldingSymbol.value = ''
+    selectedEtfHoldingSnapshotMode.value = 'latest'
+    selectedEtfHoldingSnapshotDate.value = ''
     logicDraft.symbols = normalizeSymbols(version.universe_config?.symbols ?? [])
   }
   radarDraft.setup_types = Array.isArray(radarFilters.setup_types)
@@ -3220,6 +3434,9 @@ function hydrateFromVersion(version: StrategyVersion | null | undefined) {
     Number(executionModel.max_symbol_allocation_pct ?? 35) || 35,
   )
   runDraft.close_open_positions_at_end = runDefaults.close_open_positions_at_end === true
+  runDraft.dynamic_universe_exit_policy = runDefaults.dynamic_universe_exit_policy === 'close_on_removal'
+    ? 'close_on_removal'
+    : 'leave_open'
   runDraft.test_mode = ['backtest', 'walk_forward', 'paper_forward'].includes(String(runDefaults.test_mode))
     ? runDefaults.test_mode
     : 'backtest'
@@ -3765,7 +3982,24 @@ function buildVersionPayload() {
         ? { watchlist_id: selectedWatchlistId.value }
         : universeMode.value === 'screener' && selectedScreenerId.value != null
           ? { screener_id: selectedScreenerId.value }
-          : { symbols: logicDraft.symbols }),
+          : universeMode.value === 'basket' && selectedBasketId.value != null
+            ? {
+                basket_id: selectedBasketId.value,
+                ...(selectedBasketSnapshotMode.value === 'dynamic'
+                  ? { basket_snapshot_mode: selectedBasketSnapshotMode.value }
+                  : {}),
+              }
+            : universeMode.value === 'etf_holdings' && selectedEtfHoldingSymbol.value
+              ? {
+                  etf_holdings: {
+                    symbol: selectedEtfHoldingSymbol.value,
+                    snapshot_mode: selectedEtfHoldingSnapshotMode.value,
+                    ...(selectedEtfHoldingSnapshotMode.value === 'date' && selectedEtfHoldingSnapshotDate.value
+                      ? { snapshot_date: selectedEtfHoldingSnapshotDate.value }
+                      : {}),
+                  },
+                }
+              : { symbols: logicDraft.symbols }),
     },
     benchmark_config: logicDraft.benchmark_symbol.trim()
       ? { symbol: logicDraft.benchmark_symbol.trim().toUpperCase() }
@@ -3798,6 +4032,9 @@ function buildVersionPayload() {
         commission_value: commissionValue,
         commission_per_trade: commissionValue,
         close_open_positions_at_end: runDraft.close_open_positions_at_end,
+        dynamic_universe_exit_policy: usesDynamicEtfUniverse.value
+          ? runDraft.dynamic_universe_exit_policy
+          : 'leave_open',
         walk_forward_segments: runDraft.walk_forward_segments,
         walk_forward_training_share: runDraft.walk_forward_training_share,
         paper_forward_bars: runDraft.paper_forward_bars,
@@ -3880,6 +4117,9 @@ async function runCurrentVersion() {
       commission_value: commissionValue,
       commission_per_trade: commissionValue,
       close_open_positions_at_end: runDraft.close_open_positions_at_end,
+      dynamic_universe_exit_policy: usesDynamicEtfUniverse.value
+        ? runDraft.dynamic_universe_exit_policy
+        : 'leave_open',
       max_concurrent_positions: runDraft.max_concurrent_positions,
       max_portfolio_risk_pct: runDraft.max_portfolio_risk_pct,
       max_symbol_allocation_pct: runDraft.max_symbol_allocation_pct,
@@ -5809,6 +6049,21 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   color: #7d7d7d;
   font-size: 10px;
   line-height: 1.2;
+}
+
+.execution-reason-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.execution-reason-cell strong {
+  font-weight: 700;
+}
+
+.execution-reason-cell small {
+  color: #7d8796;
+  font-size: 10px;
+  line-height: 1.25;
 }
 
 .positive {
