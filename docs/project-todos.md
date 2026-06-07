@@ -1743,17 +1743,43 @@ What this should become:
 What remains:
 
 Backend:
-- Introduce a `basket` domain model, storing: id, user_id, name, description, created_at, updated_at, rebalance_frequency (if the platform ever supports periodic rebalancing semantics), weighting_scheme (equal / custom / market_cap_weighted), and optionally a `classification_mode` (auto / manual).
-- Introduce a `basket_member` model, storing: basket_id, instrument_id, weight (decimal, nullable when scheme=equal), and an optional notes/label field per member.
-- Introduce basket CRUD endpoints: create, rename, update description, add/remove/reweight members, delete.
-- Add a basket-as-instrument synthetic OHLCV path: given a basket with weights and member OHLCV histories, compute the basket's price series on demand so it can be charted like any other instrument. Start with a rebased-to-100 cumulative return series as the simplest viable option.
+- Baseline basket persistence and user-owned CRUD now exists:
+  - `basket` and `basket_member` models support user-owned manual baskets and read-only system-managed ETF-derived baskets
+  - manual baskets can be created, updated, listed, read, and deleted through authenticated APIs
+  - member edits replace the full member set and require existing resolved instruments; arbitrary/unresolved typed symbols are rejected at the API boundary
+  - equal-weight baskets store null member weights and can be interpreted as 1/N downstream
+  - custom-weight baskets require every member to provide a weight and the weights must sum to 1.0
+  - duplicate instruments are rejected
+  - read-only/system-managed baskets cannot be edited or deleted through the manual basket API
+  - auto-classification currently sets sector/industry when all members share the same metadata values
+- Strategy Lab can now use a basket as a static universe through `universe_config.basket_id`, including coverage preview, saved strategy versions, run execution, and run-subset restriction to basket members.
+- Still expand the basket API beyond the baseline where needed:
+  - partial member operations if the UI benefits from add/remove/reweight endpoints rather than full member replacement
+  - market-cap-weighted basket semantics once reliable constituent market-cap data is available
+  - richer classification labels/tags for mixed-sector/thematic baskets
+- Basket synthetic OHLCV now exists on the backend:
+  - `GET /api/v1/baskets/{basket_id}/ohlcv/{timeframe}` returns a rebased-to-100 weighted cumulative-return series using aligned member OHLCV bars
+  - equal-weight baskets are interpreted as 1/N
+  - custom/source-weight baskets normalize explicit weights before computing the series
+  - the first viable aligned bar is 100, making basket behavior easy to compare against constituent or benchmark returns
+  - still wire this endpoint into the main Chart view so users can open a basket as a normal chart surface
 
 Frontend:
-- A basket builder UI: create/name, add instruments (via the existing search flow), assign weights or leave equal, confirm.
-- Weight editor: show all members, allow dragging or typing weights, show a real-time "remaining" allocation indicator, validate sum=1.
+- Strategy Lab now exposes Basket as a universe type and persists/loads `basket_id` from the visual builder.
+- A dedicated basket builder UI now exists at `/baskets` and is accessible from the sidebar:
+  - list manual and ETF-derived baskets
+  - create new user-owned baskets
+  - add instruments through the platform search picker
+  - choose equal or custom weighting
+  - edit custom weights with a real-time allocation indicator and sum validation
+  - delete manual baskets through a platform modal
+  - display ETF-derived baskets as read-only system-managed baskets
+- Weight editor still needs richer interaction if useful:
+  - drag/reorder members
+  - bulk equalize/rebalance helper
+  - optional add/remove/reweight actions that do not require replacing the entire member set
 - Basket detail view: list all members, their weight, and a sparkline or mini-stat row per member.
 - Ability to open a basket in the chart view as a synthetic price series.
-- Basket list view accessible from the sidebar.
 
 ---
 
@@ -1791,6 +1817,105 @@ Context:
 
 What remains:
 
+Implementation status:
+- Baseline ETF holdings infrastructure now exists:
+  - persistent ETF profile, raw artifact, holdings snapshot, holding row, adapter-state, and ETF/index-proxy mapping tables
+  - authenticated APIs for listing/searching ETFs with holdings, latest snapshots, available dates, nearest point-in-time snapshots, constituent timelines, unresolved rows, requested-range coverage summaries, manual ingestion, CSV ingestion, ETF profile routing updates, and manual refresh triggering
+  - canonical parser support for common issuer CSV exports and simple XLSX/OpenXML holdings workbooks
+  - metadata-only lightweight materialization of ETFs and holdings constituents through the existing instrument mastering model
+  - explicit source/provenance fields, `as_of_date`, `known_at`, `published_at`, source quality, completeness, raw artifact retention, and adapter health tracking
+  - scheduled refresh hook behind `ETF_HOLDINGS_REFRESH_ENABLED`
+  - a usable free-source baseline where ETF profiles can point at configured public holdings CSV/XLSX URLs through `provider_aliases.holdings_url` / `issuer_holdings_url` / `holdings_csv_url`
+  - Chart page holdings panel with source/freshness/resolution metadata, filter/sort, selected holding details, previous/next navigation, and explicit constituent open actions
+  - Strategy Lab can use ETF holdings as a strategy universe through the visual builder:
+    - latest available snapshot mode
+    - latest snapshot on/before a chosen date
+    - dynamic point-in-time mode for rules backtests, where membership is filtered by the latest holdings snapshot known at each bar date
+    - an explicit dynamic-universe constituent-removal policy for leaving positions open at the last eligible mark or realizing them as `constituent_removed` exits
+    - dynamic-run result attribution with `dynamic_universe` snapshot metadata plus execution-log fields that identify the ETF snapshot, composition date, known-at timestamp, and membership status behind entries/removal exits
+    - baseline frontend surfacing of dynamic membership attribution in the Strategy Lab execution log reason cell and reason filter search values
+  - ETF holdings snapshots can be materialized into read-only, system-managed baskets through the backend basket model and API
+  - user-owned manual basket CRUD exists on the backend, and Strategy Lab can consume baskets as static universes through the visual builder
+  - ETF-derived system baskets can opt into dynamic ETF history in Strategy Lab through `universe_config.basket_snapshot_mode = "dynamic"`; this delegates point-in-time membership to the basket's source ETF holdings profile instead of treating the materialized basket as only a frozen member list
+  - user-owned/manual baskets now persist composition snapshots on create/update and expose basket snapshot history through the backend API
+  - Strategy Lab can opt manual baskets with stored composition snapshots into dynamic point-in-time replay through `basket_snapshot_mode = "dynamic"`
+  - a basket builder/editor workspace now exists for user-owned baskets, and ETF-derived baskets are visible as read-only entries
+  - a first backend basket synthetic OHLCV endpoint exists for rebased-to-100 basket return series
+  - Chart can open basket synthetic series through `/chart/BASKET:{id}` from the basket builder, using the backend weighted basket OHLCV endpoint without treating the basket token as a normal watchlist/recent instrument
+  - an adapter registry seam exists; configured public CSV URLs are fetched through the registered adapter interface and adapter-state health is persisted
+  - issuer-aware CSV adapter routes now exist for major issuer keys:
+    - ETF profiles can resolve holdings downloads from explicit issuer URLs, URL templates, issuer product ids, and issuer-specific file names instead of requiring every route to be stored as a raw `holdings_url`
+    - ETF profiles can also provide issuer product/fund page URLs; the adapter can discover linked CSV/XLSX holdings files from those pages and then ingest the resolved file
+    - ARK-style holdings file-name route construction is implemented as a concrete adapter example
+    - iShares/BlackRock product-id, State Street/SPDR symbol-based daily workbook, and inferred issuer product-page routes are implemented for the broad starter path
+    - inferred product-page templates now cover common symbol-addressable pages for Vanguard, Invesco, Schwab, Global X, and VanEck; other issuers can still use explicit product URLs, issuer discovery feeds, or profile-level URL templates without new code
+    - issuer adapters probe whether enough route metadata exists before refresh, and profiles without enough metadata are marked as needing issuer route configuration instead of silently pretending refresh support exists
+    - admin `POST /api/v1/etf-holdings/{symbol}/probe-adapter` exposes route-readiness status, resolved source URL, confidence, and missing identifier requirements before a refresh is attempted
+    - fetched issuer artifacts now run through explicit identity validation before ingestion:
+      - ETF profiles can provide expected artifact identifiers such as expected ETF/fund symbol, name, CUSIP, or ISIN through `provider_aliases`
+      - if expected identifiers are configured, the raw downloaded artifact must contain at least one of them before a snapshot is stored
+      - generic downloaded table metadata extraction can infer ETF identity from conservative source fields such as two-column preamble metadata or explicit `Fund Ticker` / `ETF Name` style columns, while ignoring generic constituent `Ticker` columns
+      - matched/unverified validation status is stored in snapshot/raw-artifact legal metadata for auditability
+      - mismatched artifacts fail refresh rather than silently creating a holdings snapshot for the wrong ETF
+    - successful issuer-adapter refreshes persist source URL, parser version, row counts, composition date, and adapter-state health
+    - failed issuer-adapter refreshes classify common provider blocking/transient states such as HTTP 429, 403, and server/time-out failures into persisted adapter health, and successful retries clear stale rate-limit/blocking state
+    - admin `GET /api/v1/etf-holdings/{symbol}/adapter-state` exposes persisted adapter health, including last success/failure, source URL, parser/count metadata, completeness, and rate-limit/blocking state
+  - admin SEC N-PORT/N-PORT-P-style XML ingestion now exists as a reconstruction primitive:
+    - raw SEC filing XML can be parsed into canonical holdings rows
+    - report dates are inferred from the filing where possible
+    - CUSIP/ISIN/SEDOL, shares, market value, currency, asset category, and percent-of-value weights are normalized where present
+    - snapshots are stored as `sec_nport_reconstructed_holdings` with filing source identifiers, source URL, raw XML, and known/published timestamps preserved
+  - admin legacy SEC N-Q/N-CSR-style XML/table ingestion now exists as an older-history reconstruction primitive:
+    - simple table-like legacy filing XML can be parsed into canonical holdings rows
+    - period/report dates, CUSIP/ISIN/SEDOL, shares, market value, currency, asset/security type, and percent-of-net-assets weights are normalized where present
+    - snapshots are stored as `sec_legacy_reconstructed_holdings` with filing source identifiers, source URL, raw XML, and known/published timestamps preserved
+  - an admin EDGAR N-PORT backfill primitive now exists:
+    - ETF profiles with `sec_cik` can query SEC submissions metadata for recent N-PORT filings and older SEC submissions `files` archive pages
+    - discovered N-PORT primary XML documents are downloaded, parsed, and ingested through the same filing-reconstructed holdings path
+    - discovered legacy N-Q/N-CSR-style primary XML/table documents are downloaded, parsed, and ingested through the legacy filing-reconstructed holdings path
+    - backfill jobs and accession-level filing state are persisted, making repeated backfills duplicate-safe and auditable
+    - per-run summaries report discovered, ingested, skipped, and failed filings, with admin endpoints to inspect recent jobs and per-filing state
+    - a bulk/admin SEC backfill endpoint and scheduled worker hook exist for processing ETF profiles with configured SEC CIKs under bounded limits
+  - Screener and Radar can consume manual or ETF-derived baskets as universe inputs, alongside Strategy Lab basket/ETF snapshot universe support
+  - Screener and Radar now expose frontend controls for selecting manual or ETF-derived baskets as run universes:
+    - Screeners can save/load basket universes from the visual builder through `universe_basket_id`
+    - Radar can run scans against either all instruments or a selected basket through the existing run action
+  - the Chart ETF holdings panel now provides a compact browse workspace rather than only a flat table:
+    - users can select a holding and inspect mini-stats such as weight, market value, shares, venue, identifiers, row type, resolution state, and resolution notes
+    - users can move through the currently filtered/sorted holdings with previous/next controls
+    - opening a constituent chart is now an explicit action from the selected holding details
+  - a dedicated `/etf-holdings` browse workspace now exists for larger holdings lists:
+    - ETF profiles with stored holdings can be searched and selected from a dedicated holdings surface
+    - holdings rows are loaded through a server-side paginated/searchable/sortable API instead of requiring the frontend to load the whole snapshot
+    - users can page through holdings, search by symbol/name/CUSIP/ISIN/SEDOL, sort by position/weight/value/shares/symbol/name/resolution, inspect selected holding details, and open a constituent chart
+    - users can compare the selected snapshot against another stored snapshot to inspect holdings additions, removals, and weight changes through a dedicated diff view
+    - the diff workspace now includes a first cross-snapshot research-summary layer with gross churn, total added/removed weight, total upweights/downweights, and largest additions/removals/reweights
+    - the workspace now includes a first weight-evolution panel that ranks top constituent weight movers across stored snapshots and shows each mover's weight path over the available snapshot range
+    - constituent timeline API responses now include per-point weight delta from the previous observed snapshot, making individual constituent reweighting paths inspectable without client-side recomputation
+    - the workspace now includes a first turnover timeline that batch-navigates adjacent historical snapshots and summarizes each transition's churn, additions, removals, reweights, and top movers without requiring users to manually compare every pair
+    - cross-ETF overlap analytics now exist through `POST /api/v1/etf-holdings/overlap-summary`, comparing selected ETF snapshots for shared/unique constituents, Jaccard overlap, shared weight, minimum-overlap weight, and top shared holdings
+    - many-ETF overlap matrix analytics now exist through `POST /api/v1/etf-holdings/overlap-matrix`, returning row/column ETF symbols, per-cell overlap metrics, closest/most-distinct peers, and highest/lowest overlap pair callouts for heatmap-style research
+    - overlap matrix requests can now expand their ETF set from profile metadata such as issuer, fund family, and search query instead of requiring every ETF symbol to be listed manually
+    - the ETF holdings workspace now exposes a first compact overlap panel where users can select peer ETFs from the loaded profile list and inspect pairwise overlap cards plus a heatmap-style overlap matrix
+    - the overlap panel also exposes a first issuer/family/search expansion flow for server-side overlap matrix comparisons without manually selecting every ETF
+  - Remaining work is now primarily about downstream consumption and long-tail source maintenance:
+    - source hardening baseline is now in place:
+      - issuer adapters reject malformed/empty holdings artifacts instead of silently creating useless snapshots
+      - adapter failure state distinguishes provider blocking/rate limits from parse/malformed failures
+      - common issuer schema variants are normalized beyond the initial ticker/name/weight shape, including security identifier/CUSIP-like columns, issuer/title fields, fund weight aliases, shares/principal aliases, market-value aliases, local currency, country, exchange, cash rows, accounting negatives, and disclaimer-row skipping
+      - legacy SEC parsing handles simple XML/table filings, simple HTML tables, split identity/value rows, month-name report dates, accounting negatives, and value-in-thousands schedules
+      - ZIP/XLSX/CSV issuer artifacts, product-page discovery, fetched-artifact identity validation, route probes, adapter catalog inspection, and persisted adapter health form the current robustness baseline
+    - remaining source work is long-tail maintenance rather than a core gap: unusual issuer-specific schemas, non-tabular/PDF-like disclosures, automatic website discovery beyond explicit configured feeds, and extra direct-download constructors where product-page discovery or configured feeds prove insufficient
+  - richer Chart basket UX beyond the initial synthetic series route, such as synthetic basket metadata and better comparison/watchlist semantics
+  - dynamic point-in-time Strategy Lab ETF/basket universes that rebalance through historical holdings snapshots during simulation, rather than using only a static snapshot
+    - implemented ETF holdings baseline: Strategy Lab rules backtests can opt into `universe_config.etf_holdings.snapshot_mode = "dynamic"` from the visual builder to resolve the latest point-in-time ETF holdings snapshot for each bar date, avoiding look-ahead by honoring snapshot `known_at`
+    - implemented ETF-derived basket baseline: Strategy Lab can save/load an ETF-derived basket with `basket_snapshot_mode = "dynamic"` and replay the source ETF profile's point-in-time holdings snapshots during rules backtests
+    - implemented manual basket-history baseline: manual basket create/update operations persist composition snapshots, and Strategy Lab can replay those basket snapshots point-in-time when `basket_snapshot_mode = "dynamic"`
+    - implemented ETF constituent-removal policy: dynamic ETF runs can either leave positions open at the last eligible mark or realize them as `constituent_removed` exits when the ETF no longer carries that instrument by run end
+    - implemented baseline dynamic attribution: result summaries include the dynamic ETF snapshot set, execution-log rows include snapshot/membership fields showing which point-in-time ETF holdings snapshot drove entries and removal exits, and the Strategy Lab execution log surfaces this context compactly
+    - still needed: richer basket rebalance policy controls, historical basket snapshot editing/import UX, and deeper attribution drilldowns/specialized filtering beyond the baseline execution-log context
+  - richer cross-snapshot/cross-ETF holdings research beyond the current diff/summary, turnover timeline, top-mover weight-evolution views, constituent timeline deltas, overlap matrix API with issuer/family/search expansion, and compact overlap/matrix/family panel, especially saved comparison sets and deeper exposure clustering
+
 Data / provider side:
 - Implement ETF holdings ingestion as a **free-source-first** capability, not as a dependency on a paid holdings aggregator:
   - the platform should be able to build a useful ETF holdings database using public issuer disclosures and SEC filings before any paid holdings API is considered
@@ -1805,6 +1930,12 @@ Data / provider side:
     - preserve both the holdings `as_of_date` and the date the filing became publicly available / known to the platform so Strategy Lab can avoid look-ahead bias
     - expect SEC backfills to be lower-frequency and delayed relative to issuer daily/weekly holdings files
     - treat SEC backfill parsing as a separate pipeline from issuer-current ingestion because the schemas, file formats, timing, and quality controls are different
+    - baseline N-PORT/N-PORT-P XML parsing, manual/admin ingestion, recent and archived SEC submissions discovery/download ingestion, scheduled/bulk backfill hooks, and persistent accession/job dedupe now exist
+    - baseline N-Q/N-CSR-style legacy XML/table parsing and manual/admin ingestion now exists for older pre-N-PORT history
+    - baseline legacy SEC HTML schedule-of-investments table parsing now exists for simple EDGAR HTML filings with recognizable issuer/ticker/CUSIP/shares/value/percent columns
+    - legacy SEC HTML parsing now also handles a common split-row schedule shape where security identity/CUSIP appears in one row and shares/value/percent appear in the following numeric row
+    - automated EDGAR discovery/download/backfill orchestration for legacy N-Q/N-CSR-style filings now exists, including duplicate-safe accession state and bulk processing
+    - still broaden legacy parser coverage for additional filing/table shapes, deeply nested/footnoted HTML filings, and PDF-like documents beyond the simple HTML table path
   - **forward daily/weekly snapshots from ETF issuer/provider disclosures**
     - build individual adapters for major US ETF issuers and fund families that publish holdings files or holdings pages
     - target iShares/BlackRock, State Street/SPDR, Vanguard, Invesco, Schwab, First Trust, Global X, VanEck, ARK, WisdomTree, ProShares, Direxion, JPMorgan, Dimensional, PIMCO, Franklin, Fidelity, and other large US-listed ETF sponsors over time
@@ -1812,12 +1943,49 @@ Data / provider side:
     - store raw downloaded files/pages/artifacts before normalization so parser changes can be audited and historical ingestions can be replayed
     - schedule refreshes daily where the issuer appears to publish daily holdings, and weekly where daily refresh is unnecessary or not reliably available
     - keep the adapter framework tolerant of issuer website changes, because free public issuer files are valuable but brittle
-- Add a provider-specific holdings adapter framework:
+- Provider-specific holdings adapter framework status:
+  - a registry and common adapter interface now exists
+  - configured public holdings CSV/XLSX/ZIP URLs are handled through a `configured_csv_url` adapter
+  - major issuer adapter keys now use issuer-aware CSV route adapters that can resolve from profile-level URLs, URL templates, issuer product ids, and file-name hints
+    - issuer-aware adapters can now discover linked holdings CSV/XLSX/ZIP files from configured issuer product/fund page URLs before ingesting
+    - product-page holdings discovery now scans conservative URL-bearing attributes and quoted page configuration strings, not only literal anchor `href` links, while still requiring holdings/portfolio/constituent file hints
+  - concrete issuer-specific URL constructors now exist for:
+    - ARK file-name based public CSV holdings files
+    - iShares/BlackRock product-id based public CSV holdings files
+    - State Street/SPDR symbol-based public daily holdings XLSX files
+  - inferred issuer product-page templates now exist for:
+    - Vanguard symbol-addressable ETF profile pages
+    - Invesco symbol-addressable ETF holdings pages
+    - Schwab symbol-addressable product pages
+    - Global X symbol-addressable fund pages
+    - VanEck symbol-addressable holdings pages
+  - admin route-readiness probing exists and persists adapter-state health for ready and under-configured profiles
+  - admin adapter-state inspection now exposes persisted adapter health, including HTTP rate-limit/blocking classification from failed refreshes and clearing on successful retry
+  - admin adapter-catalog inspection now exposes registered adapter keys, route identifiers, required identifiers, supported artifact formats, parser confidence, and explicit dated-fetch/ETF-discovery capability flags
+  - issuer adapters now support explicit dated holdings URL templates, allowing admin-triggered fetch/ingest for a requested composition date when an issuer archive URL pattern is known
+  - issuer adapters now support explicit issuer fund-list discovery feeds:
+    - admin `POST /api/v1/etf-holdings/discover` can fetch a configured issuer CSV/XLSX/ZIP fund-list feed, parse ETF identity/route columns, materialize lightweight ETF instruments, and upsert ETF profiles
+    - discovered profiles preserve issuer product ids, product URLs, holdings URLs, dated holdings URL templates, CUSIP/ISIN identifiers, discovery source URLs, and the raw discovery row in profile metadata
+    - discovered profiles now also preserve SEC CIK/series/class ids and FIGI/composite/share-class FIGI aliases where the fund-list feed provides them, keeping issuer discovery connected to EDGAR backfills and instrument mastering
+    - this is a deliberate explicit-feed ingestion path, not automatic broad website crawling or guessed ETF discovery
+  - explicit fetched-artifact identity validation exists for profiles that provide expected fund identifiers
+  - conservative generic fetched-artifact identity extraction exists for preamble metadata and explicit fund/ETF identity columns in downloaded table files
+  - simple XLSX/OpenXML holdings workbooks and ZIP archives containing CSV/XLSX holdings files now ingest through the same common parser/identity-validation path without adding a spreadsheet dependency
+  - source-hardening baseline is now in place:
+    - malformed/empty issuer artifacts fail refresh and persist adapter failure state instead of producing empty snapshots
+    - common issuer schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, and non-holding disclaimer rows are handled by the common parser
+    - SEC legacy reconstruction handles simple XML/table filings, simple HTML tables, split identity/value rows, month-name dates, and value-in-thousands schedules
+    - live issuer smoke tests now exist behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`, intentionally separated from deterministic CI so provider drift can be checked against real issuer websites/files without making the normal suite network-dependent
+    - current live suite passes against backend-reachable public issuer routes for SPDR, iShares, Global X, and VanEck; iShares has an inline top-holdings fallback for the current HTML-shell response and VanEck uses its deterministic holdings workbook download route
+  - still ongoing as maintenance: unusual issuer-specific schemas beyond the common parser, richer issuer-specific identity extraction for non-tabular pages/PDFs/unusual issuer metadata formats, direct-download/API constructors for issuers where product-page discovery is insufficient, automatic issuer-specific historical-date discovery beyond explicitly configured dated URL templates, automatic per-issuer ETF discovery beyond explicit configured fund-list feeds, and backend-reachable live routes for currently blocked/non-static issuers such as ARK, Vanguard, and Schwab
+- Continue expanding the provider-specific holdings adapter framework:
   - each adapter should expose a common interface:
     - discover supported ETFs
+      - implemented baseline: adapters can ingest explicitly configured issuer fund-list discovery feeds through the admin discovery endpoint, parse common ETF identity/route columns, and upsert ETF profiles without relying on ticker-only guessing
     - resolve issuer product id / slug / URL for a known ETF
     - fetch latest holdings
     - fetch holdings for a specific date when the issuer supports it
+      - implemented baseline: issuer adapters can fetch a specific date from an explicit profile-level dated URL template using placeholders such as `{date}`, `{date_yyyymmdd}`, `{year}`, `{month}`, and `{day}`
     - parse raw holdings into canonical rows
     - report source metadata and parser confidence
     - probe whether an ETF belongs to that issuer/provider path
@@ -1833,7 +2001,9 @@ Data / provider side:
     - country / exchange where available
     - cash, futures, swaps, options, collateral, and other non-equity rows
     - source row id / source row hash
+      - implemented: holdings rows persist a per-snapshot `source_row_hash` and expose it through API outputs for audit/replay tooling
   - adapter output should also preserve source-specific fields that do not fit the canonical schema yet so we do not throw away useful data too early
+  - implemented for observability: admin adapter-catalog endpoint reports source metadata, parser confidence, supported formats, route identifiers, and which interface capabilities are still unavailable per adapter
 - Add an ETF identity and adapter-routing layer so the platform knows which free issuer/provider path to use for each ETF:
   - never infer issuer solely from ticker
   - master each ETF using the existing instrument identity model plus ETF-specific identifiers:
@@ -1848,16 +2018,24 @@ Data / provider side:
     - SEC series id
     - SEC class id
     - provider aliases and issuer product ids
+    - implemented baseline: explicit issuer discovery feeds can now populate SEC CIK/series/class ids plus FIGI/composite/share-class FIGI aliases when those columns are present
   - use market-data-provider metadata as a candidate signal when it includes issuer/fund-family/sponsor fields
   - use SEC Investment Company Series/Class data as a canonical US fallback for ticker-to-CIK/series/class mapping
+    - implemented baseline: admin `POST /api/v1/etf-holdings/discover-sec-funds` ingests SEC `company_tickers_mf`-style ticker mappings, materializes lightweight ETF instruments, and upserts ETF profiles with SEC CIK/series/class ids for EDGAR backfill routing
+    - the SEC discovery endpoint supports the default SEC public file plus an explicit `source_url` override for mirrors/fixtures, and accepts both keyed-object and `fields`/`data` payload shapes
   - use identifier resolvers such as OpenFIGI where available to reconcile CUSIP/ISIN/FIGI/ticker/exchange aliases
   - maintain an issuer adapter registry with confidence-scored matchers:
     - exact issuer id / fund-family match
     - SEC registrant/fund family match
     - issuer product id match
     - domain/URL match
+      - implemented: configured ETF profile/product/holdings URLs now contribute confidence-scored domain matching for known issuer adapters without falling back to ticker-only guessing
     - name-pattern match as a last resort only
-  - after selecting an adapter, run a lightweight probe to confirm the issuer endpoint returns the expected ETF name/ticker/CUSIP/ISIN before ingesting holdings
+  - after selecting an adapter, run a lightweight probe before ingesting holdings:
+    - implemented: route-readiness probe that reports adapter status, confidence, resolved source URL, and missing route identifiers
+    - implemented: fetched-artifact validation for explicitly configured expected ETF/fund name, symbol, CUSIP, or ISIN
+    - implemented: conservative generic identity extraction from two-column preamble metadata and explicit fund/ETF identity columns in downloaded CSV/XLSX tables
+    - still needed: richer issuer-specific automatic identity extraction/probing for non-tabular pages/PDFs and unusual issuer formats
   - if an ETF cannot be routed confidently, mark it as `holdings_adapter_unresolved` rather than silently trying a guessed provider path
 - Store adapter/source health and coverage:
   - last successful refresh by ETF and adapter
@@ -1931,7 +2109,7 @@ Backend:
 - ETF-derived baskets should be read-only from the user's perspective (no user-editable weights).
 - Provide an endpoint to list/search ETFs that have holdings data available.
 - Provide an endpoint to retrieve the holdings basket for a given ETF instrument.
-- Provide an endpoint for the holdings navigation flow: given an ETF instrument id, return the full member list with weights, instrument details, and optional mini-stats per member.
+- Provide an endpoint for the holdings navigation flow: given an ETF instrument id, return a paginated/searchable/sortable member list with weights, instrument details, and optional mini-stats per member.
 - Provide endpoints to inspect holdings history and coverage:
   - latest holdings snapshot for an ETF
   - available composition dates for an ETF
@@ -1940,16 +2118,24 @@ Backend:
   - unresolved/unmatched holdings for a provider/source
   - coverage summary showing whether a requested Strategy Lab date range has usable holdings snapshots
 - Allow ETF holdings baskets to be used as first-class universes in:
-  - Screener
-  - Radar slicing/filtering where appropriate
-  - Strategy Lab snapshot universes
-  - later, Strategy Lab dynamic point-in-time universes
+  - Screener (backend/API/engine implemented for basket universes; frontend builder selector implemented)
+  - Radar slicing/filtering where appropriate (backend/API/engine implemented for basket universes; frontend scan selector implemented)
+  - Strategy Lab snapshot universes (implemented for static ETF holdings snapshots and baskets)
+  - Strategy Lab dynamic point-in-time ETF holdings universes for rules backtests (implemented as an opt-in backend baseline using `snapshot_mode = "dynamic"`)
+  - Strategy Lab dynamic point-in-time ETF-derived basket universes for rules backtests (implemented by delegating system-managed ETF baskets to their source ETF holdings history)
+  - Strategy Lab dynamic point-in-time manual basket universes for rules backtests (implemented through persisted basket composition snapshots)
+  - later, richer constituent-exit/rebalance policies and historical basket snapshot editing/import UX
 
 Frontend:
 - On the chart page, when viewing an ETF, surface a "Holdings" tab or panel showing the basket composition.
-- From the holdings panel, each member instrument should be clickable to open that instrument's chart.
-- A "Browse all constituents" mode: a paginated/scrollable table of all members with mini-stats (price, change, distance to 52w high, etc.) with click-through to each instrument's chart.
+  - implemented: compact Chart panel with source/freshness/resolution metadata, filter/sort, selected holding details, previous/next navigation, and explicit constituent open actions.
+- Provide a dedicated holdings browse workspace for larger ETFs:
+  - implemented: `/etf-holdings` lists ETFs with stored holdings and loads holdings rows through the server-side paginated/searchable/sortable API.
+  - implemented: selected holding details show weight, market value, shares, venue, identifiers, and resolution context.
+  - implemented: first-pass holdings churn/addition/removal/reweight summaries and top constituent weight-evolution movers across stored snapshots.
+  - still needed: richer market mini-stats such as price, change, distance to 52-week high, volatility, liquidity, and deeper cross-sectional historical analytics.
 - The holdings panel should make it easy to open multiple instruments in sequence (e.g., step through constituents one by one) for manual scanning.
+  - implemented in the compact Chart panel through previous/next selection controls and explicit constituent chart open actions.
 - Later, a "chart all" or "compare all" shortcut that opens a screener-results-like view filtered to the ETF's holdings.
 - Show holdings-source and freshness metadata directly in the ETF holdings UI:
   - source/provider
@@ -1964,6 +2150,10 @@ Frontend:
   - filing-reconstructed holdings where available
   - official index constituents only if a premium source is configured
   - warn when the selected mode is a proxy or when historical coverage is incomplete.
+  - implemented backend baseline: `snapshot_mode = "dynamic"` can use historical ETF holdings snapshots during rules backtests.
+  - implemented ETF-derived basket baseline: `basket_snapshot_mode = "dynamic"` can use the source ETF holdings profile behind a system-managed ETF basket during rules backtests.
+  - implemented manual basket baseline: `basket_snapshot_mode = "dynamic"` can use stored basket composition snapshots for user-authored basket history during rules backtests.
+  - still needed: richer UI around historical basket snapshot inspection/import/editing and more detailed dynamic-membership drilldowns in results.
 
 ---
 
