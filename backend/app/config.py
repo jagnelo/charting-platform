@@ -42,6 +42,15 @@ class Settings(BaseSettings):
 
     # Provider-backed universe maintenance
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
+    ETF_HOLDINGS_REFRESH_ENABLED: bool = False
+    ETF_HOLDINGS_SEC_BACKFILL_ENABLED: bool = False
+    ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS: float = 20.0
+    ETF_HOLDINGS_HTTP_USER_AGENT: str = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+    )
+    ETF_HOLDINGS_SEC_BACKFILL_MAX_PROFILES: int = 50
+    ETF_HOLDINGS_SEC_BACKFILL_MAX_FILINGS_PER_ETF: int = 20
     DEFAULT_MARKET_DATA_PROVIDER: str = "yfinance"
     DEFAULT_METADATA_PROVIDER: str = "yfinance"
     DEFAULT_EVENT_PROVIDER: str = "yfinance"

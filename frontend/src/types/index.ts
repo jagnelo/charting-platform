@@ -109,6 +109,275 @@ export interface Instrument {
   synthetic_constituents?: SyntheticConstituent[]
 }
 
+export interface ETFHolding {
+  id: number
+  snapshot_id: number
+  constituent_instrument_id?: number | null
+  constituent_symbol?: string | null
+  constituent_name?: string | null
+  position: number
+  reported_symbol?: string | null
+  reported_name?: string | null
+  cusip?: string | null
+  isin?: string | null
+  sedol?: string | null
+  weight?: number | string | null
+  shares?: number | string | null
+  market_value?: number | string | null
+  currency?: string | null
+  country?: string | null
+  exchange?: string | null
+  holding_type: string
+  row_type: string
+  source_row_id?: string | null
+  is_resolved: boolean
+  resolution_confidence?: number | string | null
+  resolution_note?: string | null
+  extra_data?: Record<string, unknown> | null
+}
+
+export interface ETFHoldingsSnapshot {
+  id: number
+  etf_profile_id: number
+  etf_instrument_id: number
+  etf_symbol: string
+  etf_name: string
+  composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  published_at?: string | null
+  provenance: string
+  source_provider: string
+  source_url?: string | null
+  source_identifier?: string | null
+  source_quality: string
+  completeness_status: string
+  row_count: number
+  resolved_count: number
+  unresolved_count: number
+  total_weight?: number | string | null
+  parser_version: string
+  notes?: string | null
+  extra_data?: Record<string, unknown> | null
+  holdings: ETFHolding[]
+}
+
+export interface ETFHoldingsPage {
+  snapshot: ETFHoldingsSnapshot
+  holdings: ETFHolding[]
+  total: number
+  limit: number
+  offset: number
+  has_next: boolean
+}
+
+export interface ETFHoldingsDiffRow {
+  key: string
+  symbol: string
+  name: string
+  status: 'added' | 'removed' | 'changed' | 'unchanged'
+  weight_before?: number | string | null
+  weight_after?: number | string | null
+  weight_delta?: number | string | null
+  market_value_before?: number | string | null
+  market_value_after?: number | string | null
+  shares_before?: number | string | null
+  shares_after?: number | string | null
+  holding_type_before?: string | null
+  holding_type_after?: string | null
+  row_type_before?: string | null
+  row_type_after?: string | null
+  resolved_before?: boolean | null
+  resolved_after?: boolean | null
+}
+
+export interface ETFHoldingsDiffSummary {
+  gross_weight_churn?: number | string | null
+  total_added_weight?: number | string | null
+  total_removed_weight?: number | string | null
+  total_increased_weight?: number | string | null
+  total_decreased_weight?: number | string | null
+  largest_additions: ETFHoldingsDiffRow[]
+  largest_removals: ETFHoldingsDiffRow[]
+  largest_reweights: ETFHoldingsDiffRow[]
+}
+
+export interface ETFHoldingsDiff {
+  left_snapshot: ETFHoldingsSnapshot
+  right_snapshot: ETFHoldingsSnapshot
+  total_rows: number
+  added: number
+  removed: number
+  changed: number
+  unchanged: number
+  summary: ETFHoldingsDiffSummary
+  rows: ETFHoldingsDiffRow[]
+}
+
+export interface ETFHoldingsTransition {
+  left_snapshot: ETFHoldingsSnapshot
+  right_snapshot: ETFHoldingsSnapshot
+  added: number
+  removed: number
+  changed: number
+  unchanged: number
+  gross_weight_churn?: number | string | null
+  total_added_weight?: number | string | null
+  total_removed_weight?: number | string | null
+  total_increased_weight?: number | string | null
+  total_decreased_weight?: number | string | null
+  largest_additions: ETFHoldingsDiffRow[]
+  largest_removals: ETFHoldingsDiffRow[]
+  largest_reweights: ETFHoldingsDiffRow[]
+}
+
+export interface ETFHoldingsTransitionTimeline {
+  etf_symbol: string
+  etf_name: string
+  snapshot_count: number
+  transition_count: number
+  from_date?: string | null
+  to_date?: string | null
+  transitions: ETFHoldingsTransition[]
+}
+
+export interface ETFHoldingsOverlapConstituent {
+  key: string
+  symbol: string
+  name: string
+  weight_left?: number | string | null
+  weight_right?: number | string | null
+  min_weight?: number | string | null
+}
+
+export interface ETFHoldingsOverlapPair {
+  left_symbol: string
+  right_symbol: string
+  left_snapshot: ETFHoldingsSnapshot
+  right_snapshot: ETFHoldingsSnapshot
+  left_count: number
+  right_count: number
+  shared_count: number
+  left_unique_count: number
+  right_unique_count: number
+  jaccard_overlap: number | string
+  shared_weight_left?: number | string | null
+  shared_weight_right?: number | string | null
+  overlap_weight_min?: number | string | null
+  top_shared: ETFHoldingsOverlapConstituent[]
+}
+
+export interface ETFHoldingsOverlapSummary {
+  requested_symbols: string[]
+  snapshot_date?: string | null
+  point_in_time: boolean
+  etf_count: number
+  pair_count: number
+  pairs: ETFHoldingsOverlapPair[]
+  missing: string[]
+}
+
+export interface ETFHoldingsOverlapMatrixCell {
+  row_symbol: string
+  column_symbol: string
+  value: number | string
+  shared_count: number
+  jaccard_overlap: number | string
+  overlap_weight_min?: number | string | null
+}
+
+export interface ETFHoldingsOverlapMatrixRow {
+  symbol: string
+  name: string
+  snapshot: ETFHoldingsSnapshot
+  average_overlap: number | string
+  max_overlap: number | string
+  min_overlap: number | string
+  closest_peer?: string | null
+  most_distinct_peer?: string | null
+  cells: ETFHoldingsOverlapMatrixCell[]
+}
+
+export interface ETFHoldingsOverlapMatrix {
+  requested_symbols: string[]
+  snapshot_date?: string | null
+  point_in_time: boolean
+  metric: 'jaccard' | 'shared_count' | 'overlap_weight_min'
+  etf_count: number
+  symbols: string[]
+  rows: ETFHoldingsOverlapMatrixRow[]
+  highest_overlap_pairs: ETFHoldingsOverlapPair[]
+  lowest_overlap_pairs: ETFHoldingsOverlapPair[]
+  missing: string[]
+}
+
+export interface ETFHoldingsDate {
+  snapshot_id: number
+  composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  provenance: string
+  source_provider: string
+  row_count: number
+  resolved_count: number
+  unresolved_count: number
+  source_quality: string
+}
+
+export interface ETFHoldingsWeightEvolutionPoint {
+  snapshot_id: number
+  composition_date: string
+  weight?: number | string | null
+  shares?: number | string | null
+  market_value?: number | string | null
+}
+
+export interface ETFHoldingsWeightEvolutionSeries {
+  key: string
+  symbol: string
+  name: string
+  first_weight?: number | string | null
+  last_weight?: number | string | null
+  weight_delta?: number | string | null
+  min_weight?: number | string | null
+  max_weight?: number | string | null
+  observation_count: number
+  points: ETFHoldingsWeightEvolutionPoint[]
+}
+
+export interface ETFHoldingsWeightEvolution {
+  etf_symbol: string
+  etf_name: string
+  snapshot_count: number
+  from_date?: string | null
+  to_date?: string | null
+  series: ETFHoldingsWeightEvolutionSeries[]
+}
+
+export interface ETFProfile {
+  id: number
+  instrument_id: number
+  symbol: string
+  name: string
+  issuer?: string | null
+  sponsor?: string | null
+  fund_family?: string | null
+  index_name?: string | null
+  product_url?: string | null
+  sec_cik?: string | null
+  sec_series_id?: string | null
+  sec_class_id?: string | null
+  adapter_key?: string | null
+  adapter_confidence?: number | string | null
+  adapter_status: string
+  provider_aliases?: Record<string, unknown> | null
+  legal_metadata?: Record<string, unknown> | null
+  latest_composition_date?: string | null
+  latest_snapshot_id?: number | null
+  resolved_count: number
+  unresolved_count: number
+}
+
 export interface EquityDetail {
   sector?: string
   industry?: string
@@ -211,6 +480,45 @@ export interface RadarRun {
   evaluated_count: number
   detection_count: number
   error_summary?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BasketMember {
+  id: number
+  instrument_id: number
+  symbol?: string | null
+  name?: string | null
+  source_holding_id?: number | null
+  position: number
+  weight?: string | number | null
+  label?: string | null
+  notes?: string | null
+  metadata?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Basket {
+  id: number
+  user_id?: number | null
+  name: string
+  description?: string | null
+  source_type: string
+  weighting_scheme: string
+  rebalance_frequency?: string | null
+  classification_mode?: string | null
+  sector?: string | null
+  industry?: string | null
+  source_etf_profile_id?: number | null
+  source_snapshot_id?: number | null
+  composition_date?: string | null
+  snapshot_count?: number
+  latest_snapshot_date?: string | null
+  is_system_managed: boolean
+  is_read_only: boolean
+  metadata?: Record<string, unknown> | null
+  members: BasketMember[]
   created_at: string
   updated_at: string
 }

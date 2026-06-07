@@ -15,6 +15,8 @@
         </router-link>
         <router-link to="/radar" class="nav-link" title="Radar">◎</router-link>
         <router-link to="/strategy-lab" class="nav-link" title="Strategy Lab">⚗</router-link>
+        <router-link to="/baskets" class="nav-link" title="Baskets">◫</router-link>
+        <router-link to="/etf-holdings" class="nav-link" title="ETF Holdings">▤</router-link>
         <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
         <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
         <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>

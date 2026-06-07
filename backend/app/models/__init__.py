@@ -1,8 +1,19 @@
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.base import TimestampMixin
+from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
 from app.models.chart_drawing import ChartDrawing
 from app.models.dashboard import Dashboard, DashboardTab, DashboardWidget
 from app.models.data_source import DataSource
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsBackfillFiling,
+    ETFHoldingsBackfillJob,
+    ETFHoldingsRawArtifact,
+    ETFHoldingsSnapshot,
+    ETFIndexProxyMapping,
+    ETFProfile,
+)
 from app.models.exchange import Exchange
 from app.models.indicator_alert import IndicatorAlert, IndicatorAlertCondition
 from app.models.indicator_cache import IndicatorCache
@@ -74,6 +85,10 @@ __all__ = [
     "Exchange",
     "AssetClass",
     "InstrumentType",
+    "Basket",
+    "BasketMember",
+    "BasketSnapshot",
+    "BasketSnapshotMember",
     "Instrument",
     "InstrumentIdentifier",
     "InstrumentIdentifierType",
@@ -106,6 +121,14 @@ __all__ = [
     "ForexDetail",
     "InstrumentListing",
     "DataSource",
+    "ETFProfile",
+    "ETFHoldingsRawArtifact",
+    "ETFHoldingsSnapshot",
+    "ETFHolding",
+    "ETFHoldingsAdapterState",
+    "ETFHoldingsBackfillJob",
+    "ETFHoldingsBackfillFiling",
+    "ETFIndexProxyMapping",
     "OHLCVBar",
     "Timeframe",
     "TIMEFRAME_SECONDS",

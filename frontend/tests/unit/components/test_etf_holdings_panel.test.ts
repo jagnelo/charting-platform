@@ -1,0 +1,116 @@
+import { mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import ETFHoldingsPanel from '@/components/etf/ETFHoldingsPanel.vue'
+import { api } from '@/lib/api'
+
+vi.mock('@/lib/api', () => ({
+  api: {
+    get: vi.fn(),
+  },
+}))
+
+const snapshot = {
+  id: 1,
+  etf_profile_id: 1,
+  etf_instrument_id: 10,
+  etf_symbol: 'SPY',
+  etf_name: 'SPDR S&P 500 ETF Trust',
+  composition_date: '2026-05-31',
+  known_at: '2026-06-01T04:00:00Z',
+  provenance: 'issuer_current_holdings',
+  source_provider: 'issuer-test',
+  source_quality: 'issuer_current',
+  completeness_status: 'complete',
+  row_count: 2,
+  resolved_count: 1,
+  unresolved_count: 1,
+  total_weight: '0.10000000',
+  parser_version: 'test-v1',
+  holdings: [
+    {
+      id: 1,
+      snapshot_id: 1,
+      constituent_instrument_id: 100,
+      constituent_symbol: 'AAPL',
+      constituent_name: 'Apple Inc.',
+      position: 1,
+      reported_symbol: 'AAPL',
+      reported_name: 'Apple Inc.',
+      weight: '0.07000000',
+      shares: '100',
+      market_value: '19000',
+      currency: 'USD',
+      country: 'US',
+      exchange: 'NASDAQ',
+      cusip: '037833100',
+      isin: 'US0378331005',
+      resolution_confidence: '0.97000000',
+      holding_type: 'equity',
+      row_type: 'security',
+      is_resolved: true,
+    },
+    {
+      id: 2,
+      snapshot_id: 1,
+      constituent_instrument_id: null,
+      constituent_symbol: null,
+      constituent_name: null,
+      position: 2,
+      reported_symbol: null,
+      reported_name: 'US Dollar',
+      weight: '0.03000000',
+      holding_type: 'cash',
+      row_type: 'cash',
+      is_resolved: false,
+      resolution_note: 'Non-security row was preserved without instrument materialization.',
+    },
+  ],
+}
+
+describe('ETFHoldingsPanel', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+  })
+
+  it('renders latest holdings and emits selected constituent symbols', async () => {
+    vi.mocked(api.get).mockResolvedValue(snapshot)
+    const wrapper = mount(ETFHoldingsPanel, {
+      props: { symbol: 'SPY' },
+    })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Holdings')
+      expect(wrapper.text()).toContain('AAPL')
+    })
+
+    expect(wrapper.text()).toContain('issuer-test')
+    expect(wrapper.text()).toContain('1/2 resolved')
+    expect(wrapper.text()).toContain('10.00%')
+    expect(wrapper.text()).toContain('Selected holding')
+    expect(wrapper.text()).toContain('USD 19,000')
+    expect(wrapper.text()).toContain('NASDAQ · US')
+    expect(wrapper.text()).toContain('resolved · 97%')
+
+    await wrapper.find('.open-holding-button').trigger('click')
+    expect(wrapper.emitted('openSymbol')?.[0]).toEqual(['AAPL'])
+
+    await wrapper.find('.nav-button:nth-child(2)').trigger('click')
+    expect(wrapper.text()).toContain('US Dollar')
+    expect(wrapper.text()).toContain('Non-security row was preserved')
+    expect(wrapper.emitted('availability')?.at(-1)).toEqual([true])
+  })
+
+  it('stays hidden when holdings are unavailable', async () => {
+    vi.mocked(api.get).mockRejectedValue(new Error('404'))
+    const wrapper = mount(ETFHoldingsPanel, {
+      props: { symbol: 'ABC' },
+    })
+
+    await vi.waitFor(() => {
+      expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
+    })
+
+    expect(wrapper.html()).toBe('<!--v-if-->')
+  })
+})

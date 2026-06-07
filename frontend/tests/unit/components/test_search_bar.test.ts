@@ -96,6 +96,37 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')).toBeUndefined()
   })
 
+  it('can scope provider-backed results to specific instrument types', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', type: 'Equity' },
+      { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'NYSEARCA', type: 'ETF' },
+    ])
+
+    const wrapper = mount(SearchBar, {
+      props: {
+        resultTypes: ['ETF', 'Fund'],
+        allowExpressions: false,
+      },
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    await wrapper.find('input').setValue('SP')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await nextTick()
+
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', {
+      q: 'SP',
+      types: 'ETF,Fund',
+    })
+    expect(wrapper.text()).toContain('SPDR S&P 500 ETF Trust')
+    expect(wrapper.text()).not.toContain('Apple Inc.')
+  })
+
   it('resolves expression queries and emits the resulting symbol on enter', async () => {
     ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ symbol: '=SPY-QQQ' })
 

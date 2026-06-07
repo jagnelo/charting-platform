@@ -91,15 +91,30 @@ def _search_result_priority(
     )
 
 
+def _parse_search_type_filter(types: str | None) -> set[str]:
+    if not types:
+        return set()
+    return {item.strip().upper() for item in types.split(",") if item.strip()}
+
+
+def _matches_search_type_filter(type_name: str, allowed_types: set[str]) -> bool:
+    if not allowed_types:
+        return True
+    normalized = type_name.strip().upper()
+    return any(allowed in normalized for allowed in allowed_types)
+
+
 @router.get("/search", response_model=list[InstrumentSearchResult])
 async def search_instruments(
     q: str = Query(..., min_length=1),
+    types: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if is_expression(q):
         return []
 
+    allowed_types = _parse_search_type_filter(types)
     result = await db.execute(
         select(Instrument)
         .options(
@@ -123,11 +138,15 @@ async def search_instruments(
         )
         for i in local
     ]:
+        if not _matches_search_type_filter(item.type, allowed_types):
+            continue
         merged[item.symbol] = item
     provider_results = await search_provider_instruments_async(db, q)
     for r in provider_results:
         symbol = r.get("symbol", "")
         if not symbol or symbol in merged:
+            continue
+        if not _matches_search_type_filter(r.get("type", ""), allowed_types):
             continue
         merged[symbol] = InstrumentSearchResult(
             symbol=symbol,

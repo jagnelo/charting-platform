@@ -214,7 +214,11 @@ def app(db, monkeypatch):
 
 @pytest.fixture()
 def client(app) -> TestClient:
-    return TestClient(app, raise_server_exceptions=True)
+    test_client = TestClient(app, raise_server_exceptions=True)
+    try:
+        yield test_client
+    finally:
+        test_client.close()
 
 
 @pytest.fixture()

@@ -11,9 +11,11 @@ from app.routers import (
     alert_history,
     alerts,
     auth,
+    baskets,
     calendar,
     dashboards,
     drawings,
+    etf_holdings,
     indicators,
     instrument_indicators,
     instruments,
@@ -87,6 +89,8 @@ PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(options.router, prefix=PREFIX)
 app.include_router(options_exposure.router, prefix=PREFIX)
+app.include_router(baskets.router, prefix=PREFIX)
+app.include_router(etf_holdings.router, prefix=PREFIX)
 app.include_router(instruments.router, prefix=PREFIX)
 app.include_router(providers.router, prefix=PREFIX)
 app.include_router(ohlcv.router, prefix=PREFIX)

@@ -24,7 +24,7 @@
         </template>
         <!-- Add to watchlist — available in any layout when a symbol is loaded -->
         <div
-          v-if="activeSymbol"
+          v-if="activeSymbol && !isBasketSymbol(activeSymbol)"
           ref="wlStarRef"
           class="wl-star-wrap"
         >
@@ -181,6 +181,11 @@
             </div>
           </div>
         </template>
+        <ETFHoldingsPanel
+          v-if="chartStore.symbol && !isBasketSymbol(chartStore.symbol) && chartStore.instrument && !chartStore.instrument.is_synthetic"
+          :symbol="chartStore.symbol"
+          @open-symbol="onSymbolSelect"
+        />
       </div>
       <div v-else class="chart-workspace">
         <MultiChartLayout />
@@ -223,6 +228,7 @@ import MultiChartLayout     from '@/components/chart/MultiChartLayout.vue'
 import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
+import ETFHoldingsPanel     from '@/components/etf/ETFHoldingsPanel.vue'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
 import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
@@ -247,6 +253,10 @@ const activePanelStore = computed(() =>
 const activeSymbol = computed(() =>
   layoutStore.layout === '1' ? chartStore.symbol : activePanelStore.value.symbol
 )
+
+function isBasketSymbol(symbol: string | null | undefined) {
+  return Boolean(symbol?.trim().match(/^BASKET:\d+$/i))
+}
 
 // Watchlists that can receive a "add" — exclude locked and managed ones
 const addableWatchlists = computed(() =>
@@ -423,7 +433,9 @@ async function onSymbolSelect(symbol: string) {
   if (chartStore.symbol !== symbol) {
     radarStore.clearChartDetections()
   }
-  recentStore.add(symbol)
+  if (!isBasketSymbol(symbol)) {
+    recentStore.add(symbol)
+  }
   if (route.params.symbol !== symbol) {
     router.replace(`/chart/${encodeURIComponent(symbol)}`)
   }
@@ -543,7 +555,7 @@ watch(
 
 async function addToWatchlist(watchlistId: number) {
   const sym = activeSymbol.value
-  if (!sym) return
+  if (!sym || isBasketSymbol(sym)) return
   await watchlistStore.addBySymbol(watchlistId, sym)
   showWlMenu.value = false
 }

@@ -97,6 +97,8 @@ const props = withDefaults(defineProps<{
   fluid?: boolean
   showRecent?: boolean
   showScreenerLink?: boolean
+  resultTypes?: string[]
+  allowExpressions?: boolean
 }>(), {
   placeholder: 'Symbol…',
   modelValue: '',
@@ -104,6 +106,8 @@ const props = withDefaults(defineProps<{
   fluid: false,
   showRecent: true,
   showScreenerLink: undefined,
+  resultTypes: () => [],
+  allowExpressions: true,
 })
 const emit = defineEmits<{
   select: [symbol: string]
@@ -129,9 +133,11 @@ const showScreenerShortcut = computed(() =>
 const expressionActionLabel = computed(() =>
   props.mode === 'chart' ? 'Create expression chart' : 'Use expression instrument'
 )
-const isExpression = computed(() => !expressionSelected.value && isExpressionInput(query.value.trim()))
+const isExpression = computed(() =>
+  props.allowExpressions && !expressionSelected.value && isExpressionInput(query.value.trim())
+)
 const canResolveExpression = computed(() =>
-  !expressionSelected.value && isResolvableExpressionInput(query.value.trim())
+  props.allowExpressions && !expressionSelected.value && isResolvableExpressionInput(query.value.trim())
 )
 const expressionHint = computed(() =>
   expressionSelected.value ? '' : getInstrumentInputHint(query.value.trim())
@@ -160,12 +166,22 @@ async function onInput() {
   debounceTimer = setTimeout(async () => {
     loading.value = true
     try {
-      results.value = await api.get('/instruments/search', { q: query.value })
+      const loaded = await api.get<SearchResult[]>('/instruments/search', {
+        q: query.value,
+        ...(props.resultTypes.length ? { types: props.resultTypes.join(',') } : {}),
+      })
+      results.value = loaded.filter(matchesResultTypeScope)
       highlightIdx.value = 0
     } finally {
       loading.value = false
     }
   }, 250)
+}
+
+function matchesResultTypeScope(result: SearchResult) {
+  if (!props.resultTypes.length) return true
+  const normalizedType = result.type.trim().toUpperCase()
+  return props.resultTypes.some(type => normalizedType.includes(type.trim().toUpperCase()))
 }
 
 function onFocus() {

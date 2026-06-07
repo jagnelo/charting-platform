@@ -116,6 +116,18 @@ async def scheduled_daily_id_bootstrap(ctx: dict):
     return await bootstrap_ids_task(ctx)
 
 
+async def scheduled_etf_holdings_refresh(ctx: dict):
+    from app.tasks.etf_holdings_tasks import refresh_etf_holdings_task
+
+    return await refresh_etf_holdings_task(ctx)
+
+
+async def scheduled_etf_holdings_sec_backfill(ctx: dict):
+    from app.tasks.etf_holdings_tasks import backfill_sec_nport_holdings_task
+
+    return await backfill_sec_nport_holdings_task(ctx)
+
+
 # ── Worker settings ───────────────────────────────────────────────────────────
 
 
@@ -128,14 +140,22 @@ class WorkerSettings:
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
+        scheduled_etf_holdings_refresh,
+        scheduled_etf_holdings_sec_backfill,
     ]
     cron_jobs = (
         [
             cron(scheduled_weekly_seed, weekday=6, hour=2, minute=0),
             cron(scheduled_daily_metadata_sync, hour=3, minute=0),
             cron(scheduled_daily_id_bootstrap, hour=4, minute=0),
+            cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
+            cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
         ]
-        if settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
+        if (
+            settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
+            or settings.ETF_HOLDINGS_REFRESH_ENABLED
+            or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
+        )
         else []
     )
     max_jobs = 4

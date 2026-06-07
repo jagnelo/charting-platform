@@ -14,6 +14,11 @@ const SERVER_TRANSFORMED_TYPES = new Set<ChartBarType>([
   'point_figure',
 ])
 
+function basketIdFromSymbol(sym: string): number | null {
+  const match = sym.trim().match(/^BASKET:(\d+)$/i)
+  return match ? Number(match[1]) : null
+}
+
 function createChartStore(storeId: string) {
   return defineStore(storeId, () => {
     const symbol     = ref<string>('')
@@ -91,6 +96,14 @@ function createChartStore(storeId: string) {
       if (opts.limit) params.limit = opts.limit
 
       const encoded = encodeURIComponent(sym)
+      const basketId = basketIdFromSymbol(sym)
+      if (basketId != null) {
+        const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
+          ...params,
+          limit: opts.limit ?? PAGE_SIZE,
+        })
+        return _mapBars(raw)
+      }
       const raw = SERVER_TRANSFORMED_TYPES.has(type)
         ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, { ...params, bar_type: type })
         : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, params)
@@ -111,6 +124,19 @@ function createChartStore(storeId: string) {
       isLoadingMore.value = false
       _stopCoveragePoller()
       isFetchingHistory.value = false
+
+      const basketId = basketIdFromSymbol(sym)
+      if (basketId != null) {
+        try {
+          bars.value = await fetchBarsPage(sym, tf, { type: nextBarType })
+          hasReachedStart.value = true
+        } catch (e: any) {
+          error.value = e.message ?? 'Failed to load basket chart data'
+        } finally {
+          isLoading.value = false
+        }
+        return
+      }
 
       const loadedInstrument = await loadInstrument(sym)
 
@@ -146,6 +172,10 @@ function createChartStore(storeId: string) {
     async function loadMoreBars() {
       if (isLoadingMore.value || hasReachedStart.value || !symbol.value || !timeframe.value) return
       if (!bars.value.length) return
+      if (basketIdFromSymbol(symbol.value) != null) {
+        hasReachedStart.value = true
+        return
+      }
 
       isLoadingMore.value = true
       const oldestTs = bars.value[0].ts

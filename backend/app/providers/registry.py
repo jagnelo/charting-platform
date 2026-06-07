@@ -25,6 +25,7 @@ from app.providers.base import (
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider
+from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.fred import FREDProvider
 from app.providers.openfigi import OpenFigiProvider
 from app.providers.yfinance import YFinanceProvider
@@ -38,6 +39,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "binance": BinanceProvider(),  # Crypto OHLCV and universe
     "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
     "edgar": EdgarProvider(),  # US company profile and earnings history
+    "etf_holdings_internal": ETFHoldingsInternalProvider(),
     # Fallback / supplementary
     "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)

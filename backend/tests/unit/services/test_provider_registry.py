@@ -3,6 +3,7 @@ from app.providers.registry import (
     get_identifier_provider,
     get_option_chain_provider,
     get_price_history_provider,
+    get_provider,
     list_provider_capabilities,
 )
 
@@ -33,3 +34,8 @@ class TestProviderRegistry:
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")
         assert provider.name == "yfinance"
+
+    def test_etf_holdings_internal_provider_is_registered_without_market_capabilities(self):
+        provider = get_provider("etf_holdings_internal")
+        assert provider.name == "etf_holdings_internal"
+        assert list_provider_capabilities("etf_holdings_internal") == []

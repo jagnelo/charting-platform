@@ -139,6 +139,28 @@ describe('useChartStore', () => {
     )
   })
 
+  it('loadBars can load synthetic basket OHLCV tokens', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      {
+        ts: '2026-01-01T00:00:00Z',
+        open: '100',
+        high: '101',
+        low: '99',
+        close: '100.5',
+        volume: '3000',
+        is_adjusted: true,
+      },
+    ])
+    const store = useChartStore()
+
+    await store.loadBars('BASKET:42', 'D1')
+
+    expect(api.get).toHaveBeenCalledWith('/baskets/42/ohlcv/D1', { limit: 500 })
+    expect(store.instrument).toBeNull()
+    expect(store.bars[0].close).toBe(100.5)
+    expect(store.hasReachedStart).toBe(true)
+  })
+
   it('addIndicator appends to indicators list', () => {
     const store = useChartStore()
     store.addIndicator({ type: 'sma', params: { period: 20 }, style: { color: '#fff' }, pane: 'main' })

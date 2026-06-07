@@ -10,6 +10,8 @@ const ScreenerView = () => import('@/views/ScreenerView.vue')
 const WatchlistView = () => import('@/views/WatchlistView.vue')
 const RadarView = () => import('@/views/RadarView.vue')
 const StrategyLabView = () => import('@/views/StrategyLabView.vue')
+const BasketsView = () => import('@/views/BasketsView.vue')
+const ETFHoldingsView = () => import('@/views/ETFHoldingsView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -22,6 +24,8 @@ export const router = createRouter({
     { path: '/alerts',        component: AlertsView },
     { path: '/radar',         component: RadarView },
     { path: '/strategy-lab',  component: StrategyLabView },
+    { path: '/baskets',       component: BasketsView },
+    { path: '/etf-holdings',  component: ETFHoldingsView },
     { path: '/screener',      component: ScreenerView },
     { path: '/watchlist',     component: WatchlistView },
     { path: '/settings',      component: SettingsView },
