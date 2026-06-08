@@ -1,5 +1,6 @@
 import zipfile
 from datetime import date
+from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
 
@@ -36,14 +37,14 @@ def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     return output.getvalue()
 
 
-def test_admin_can_configure_and_refresh_public_csv_holdings_url(
+def test_admin_can_refresh_ark_provider_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
     raw_csv = "\n".join(
         [
-            "Ticker,Name,Weight (%),Shares,Market Value,Currency",
-            "AAPL,Apple Inc.,6.1%,10,2000,USD",
-            "MSFT,Microsoft Corp,5.4%,8,3200,USD",
+            "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
+            "ARKK,ARK Innovation ETF,AAPL,Apple Inc.,6.1%,10,2000,USD",
+            "ARKK,ARK Innovation ETF,MSFT,Microsoft Corp,5.4%,8,3200,USD",
         ]
     )
 
@@ -65,39 +66,197 @@ def test_admin_can_configure_and_refresh_public_csv_holdings_url(
             return None
 
         async def get(self, url, **kwargs):
-            assert url == "https://issuer.example/spy-holdings.csv"
+            assert url == (
+                "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
+                "ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv"
+            )
             assert kwargs["follow_redirects"] is True
             return FakeResponse()
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
 
     profile = client.patch(
-        "/api/v1/etf-holdings/SPY/profile",
+        "/api/v1/etf-holdings/ARKK/profile",
         json={
-            "issuer": "Example issuer",
+            "issuer": "ARK Invest",
             "provider_aliases": {
-                "holdings_url": "https://issuer.example/spy-holdings.csv",
-                "holdings_source_provider": "example-issuer",
+                "expected_fund_symbol": "ARKK",
                 "holdings_composition_date": "2026-06-03",
             },
         },
         headers=admin_headers,
     )
     assert profile.status_code == 200
-    assert profile.json()["provider_aliases"]["holdings_url"].endswith("spy-holdings.csv")
+    assert profile.json()["adapter_key"] == "ark"
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
     assert refresh.json()["refreshed"] == 1
     assert refresh.json()["failed"] == 0
 
-    latest = client.get("/api/v1/etf-holdings/SPY/latest", headers=auth_headers)
+    latest = client.get("/api/v1/etf-holdings/ARKK/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
     assert body["composition_date"] == "2026-06-03"
     assert body["provenance"] == "issuer_self_snapshotted_holdings"
-    assert body["source_provider"] == "example-issuer"
+    assert body["source_provider"] == "ark"
     assert body["row_count"] == 2
+
+
+def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
+    client, auth_headers, monkeypatch
+):
+    async def fake_refresh_adapter_route(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+        return await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="XOM",
+                    name="Exxon Mobil Corp",
+                    weight=Decimal("0.08000000"),
+                    shares=Decimal("10"),
+                    market_value=Decimal("1000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+                CanonicalHoldingRow(
+                    symbol="CVX",
+                    name="Chevron Corp",
+                    weight=Decimal("0.07000000"),
+                    shares=Decimal("8"),
+                    market_value=Decimal("900"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 6, 8),
+            as_of_date=date(2026, 6, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="spdr",
+            source_url="https://www.ssga.com/example/xle.xlsx",
+            source_identifier="XLE",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="spdr-xlsx-v1",
+            notes="Test bootstrap snapshot.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/XLE/bootstrap",
+        headers=auth_headers,
+        json={"name": "SPDR Select Sector Fund - Energy Select Sector"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "XLE"
+    assert body["profile"]["adapter_key"] == "spdr"
+    assert body["refresh_attempted"] is True
+    assert body["refresh_succeeded"] is True
+    assert body["latest_snapshot"] is not None
+    assert body["latest_snapshot"]["row_count"] == 2
+    assert body["latest_snapshot"]["resolved_count"] == 2
+
+    latest = client.get("/api/v1/etf-holdings/XLE/latest", headers=auth_headers)
+    assert latest.status_code == 200
+    assert latest.json()["row_count"] == 2
+
+
+def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
+    client, auth_headers, monkeypatch
+):
+    async def fake_refresh_adapter_route(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+        assert profile.adapter_key == "ishares"
+        assert profile.provider_aliases["issuer_product_id"] == "239710"
+
+        return await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="AAPL",
+                    name="Apple Inc.",
+                    weight=Decimal("0.01000000"),
+                    shares=Decimal("10"),
+                    market_value=Decimal("2000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 6, 8),
+            as_of_date=date(2026, 6, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="ishares",
+            source_url=(
+                "https://www.ishares.com/us/products/239710/"
+                "?fileType=csv&fileName=IWM_holdings&dataType=fund"
+            ),
+            source_identifier="IWM",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="ishares-csv-v1",
+            notes="Test bootstrap snapshot.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/IWM/bootstrap",
+        headers=auth_headers,
+        json={"name": "iShares Russell 2000 ETF"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "IWM"
+    assert body["profile"]["issuer"] == "iShares"
+    assert body["profile"]["adapter_key"] == "ishares"
+    assert body["profile"]["provider_aliases"]["issuer_product_id"] == "239710"
+    assert body["probe"]["status"] == "ready"
+    assert body["refresh_attempted"] is True
+    assert body["refresh_succeeded"] is True
+    assert body["latest_snapshot"]["row_count"] == 1
+
+
+def test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved(
+    client, auth_headers
+):
+    response = client.post(
+        "/api/v1/etf-holdings/MYST/bootstrap",
+        headers=auth_headers,
+        json={"name": "Mystery ETF"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "MYST"
+    assert body["profile"]["latest_snapshot_id"] is None
+    assert body["refresh_attempted"] is False
+    assert body["refresh_succeeded"] is False
+    assert body["probe"]["status"] == "holdings_adapter_unresolved"
+    assert "No configured free issuer adapter matched this ETF identity" in body["message"]
+
+    search = client.get("/api/v1/etf-holdings?q=MYST", headers=auth_headers)
+    assert search.status_code == 200
+    assert search.json()[0]["symbol"] == "MYST"
 
 
 def test_holdings_page_supports_server_side_paging_sorting_and_search(
@@ -626,7 +785,7 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
     assert body["highest_overlap_pairs"][0]["right_symbol"] == "FAMY"
 
 
-def test_admin_can_configure_and_refresh_public_xlsx_holdings_url(
+def test_admin_can_refresh_spdr_provider_xlsx_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
     raw_workbook = _xlsx_workbook(
@@ -664,7 +823,10 @@ def test_admin_can_configure_and_refresh_public_xlsx_holdings_url(
             return None
 
         async def get(self, url, **kwargs):
-            assert url == "https://issuer.example/xly-holdings.xlsx"
+            assert url == (
+                "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+                "products/fund-data/etfs/us/holdings-daily-us-en-xly.xlsx"
+            )
             assert kwargs["follow_redirects"] is True
             return FakeResponse()
 
@@ -675,8 +837,6 @@ def test_admin_can_configure_and_refresh_public_xlsx_holdings_url(
         json={
             "issuer": "State Street",
             "provider_aliases": {
-                "holdings_url": "https://issuer.example/xly-holdings.xlsx",
-                "holdings_source_provider": "example-xlsx-issuer",
                 "holdings_composition_date": "2026-06-06",
             },
         },
@@ -693,7 +853,7 @@ def test_admin_can_configure_and_refresh_public_xlsx_holdings_url(
     assert latest.status_code == 200
     body = latest.json()
     assert body["composition_date"] == "2026-06-06"
-    assert body["source_provider"] == "example-xlsx-issuer"
+    assert body["source_provider"] == "spdr"
     assert body["parser_version"] == "spdr-xlsx-v1"
     assert body["row_count"] == 2
     assert body["holdings"][0]["reported_symbol"] == "AMZN"
@@ -704,9 +864,12 @@ def test_admin_can_configure_and_refresh_public_xlsx_holdings_url(
     assert validation["matched"][0]["value"] == "XLY"
 
 
-def test_admin_can_configure_and_refresh_public_zip_holdings_url(
+def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    product_url = "https://issuer.example/funds/spy"
+    holdings_url = "https://issuer.example/spdr-daily-holdings.zip"
+    product_html = f'<a href="{holdings_url}">Download holdings</a>'
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -721,9 +884,10 @@ def test_admin_can_configure_and_refresh_public_zip_holdings_url(
     requested_urls = []
 
     class FakeResponse:
-        text = ""
-        content = raw_archive.getvalue()
-        headers = {"content-type": "application/zip"}
+        def __init__(self, *, text="", content=b"", content_type="text/html"):
+            self.text = text
+            self.content = content or text.encode()
+            self.headers = {"content-type": content_type}
 
         def raise_for_status(self):
             return None
@@ -742,7 +906,14 @@ def test_admin_can_configure_and_refresh_public_zip_holdings_url(
         async def get(self, url, **kwargs):
             requested_urls.append(url)
             assert kwargs["follow_redirects"] is True
-            return FakeResponse()
+            if url == product_url:
+                return FakeResponse(text=product_html)
+            if url == holdings_url:
+                return FakeResponse(
+                    content=raw_archive.getvalue(),
+                    content_type="application/zip",
+                )
+            raise AssertionError(f"Unexpected URL {url}")
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
 
@@ -751,8 +922,7 @@ def test_admin_can_configure_and_refresh_public_zip_holdings_url(
         json={
             "issuer": "State Street",
             "provider_aliases": {
-                "holdings_url": "https://issuer.example/spdr-daily-holdings.zip",
-                "holdings_source_provider": "spdr",
+                "product_url": product_url,
                 "holdings_composition_date": "2026-06-06",
             },
         },
@@ -764,7 +934,7 @@ def test_admin_can_configure_and_refresh_public_zip_holdings_url(
     assert refresh.status_code == 200
     assert refresh.json()["refreshed"] == 1
     assert refresh.json()["failed"] == 0
-    assert requested_urls == ["https://issuer.example/spdr-daily-holdings.zip"]
+    assert requested_urls == [product_url, holdings_url]
 
     latest = client.get("/api/v1/etf-holdings/SPY/latest", headers=auth_headers)
     assert latest.status_code == 200
@@ -823,7 +993,10 @@ def test_refresh_failure_records_rate_limit_adapter_state(
             return None
 
         async def get(self, url, **kwargs):
-            assert url == "https://issuer.example/rate-holdings.csv"
+            assert url == (
+                "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
+                "ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv"
+            )
             assert kwargs["follow_redirects"] is True
             calls["count"] += 1
             if calls["count"] == 1:
@@ -833,12 +1006,9 @@ def test_refresh_failure_records_rate_limit_adapter_state(
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
 
     profile = client.patch(
-        "/api/v1/etf-holdings/RATE/profile",
+        "/api/v1/etf-holdings/ARKK/profile",
         json={
-            "issuer": "State Street",
-            "provider_aliases": {
-                "holdings_url": "https://issuer.example/rate-holdings.csv",
-            },
+            "issuer": "ARK Invest",
         },
         headers=admin_headers,
     )
@@ -849,11 +1019,11 @@ def test_refresh_failure_records_rate_limit_adapter_state(
     assert refresh.json()["refreshed"] == 0
     assert refresh.json()["failed"] == 1
 
-    state = client.get("/api/v1/etf-holdings/RATE/adapter-state", headers=admin_headers)
+    state = client.get("/api/v1/etf-holdings/ARKK/adapter-state", headers=admin_headers)
     assert state.status_code == 200
     body = state.json()
     assert len(body) == 1
-    assert body[0]["adapter_key"] == "spdr"
+    assert body[0]["adapter_key"] == "ark"
     assert body[0]["status"] == "failure"
     assert body[0]["rate_limit_state"] == "http_429"
     assert "Too Many Requests" in body[0]["failure_reason"]
@@ -865,7 +1035,7 @@ def test_refresh_failure_records_rate_limit_adapter_state(
     assert retry.json()["failed"] == 0
 
     recovered_state = client.get(
-        "/api/v1/etf-holdings/RATE/adapter-state",
+        "/api/v1/etf-holdings/ARKK/adapter-state",
         headers=admin_headers,
     )
     assert recovered_state.status_code == 200
@@ -906,19 +1076,20 @@ def test_refresh_failure_records_malformed_holdings_adapter_state(
             return None
 
         async def get(self, url, **kwargs):
-            assert url == "https://issuer.example/bad-holdings.csv"
+            assert url == (
+                "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
+                "ARK_SPACE_EXPLORATION_&_INNOVATION_ETF_ARKX_HOLDINGS.csv"
+            )
             assert kwargs["follow_redirects"] is True
             return FakeResponse()
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeClient)
 
     profile = client.patch(
-        "/api/v1/etf-holdings/BADCSV/profile",
+        "/api/v1/etf-holdings/ARKX/profile",
         json={
-            "issuer": "Example issuer",
+            "issuer": "ARK Invest",
             "provider_aliases": {
-                "holdings_url": "https://issuer.example/bad-holdings.csv",
-                "holdings_source_provider": "example-issuer",
             },
         },
         headers=admin_headers,
@@ -930,10 +1101,10 @@ def test_refresh_failure_records_malformed_holdings_adapter_state(
     assert refresh.json()["refreshed"] == 0
     assert refresh.json()["failed"] == 1
 
-    latest = client.get("/api/v1/etf-holdings/BADCSV/latest", headers=auth_headers)
+    latest = client.get("/api/v1/etf-holdings/ARKX/latest", headers=auth_headers)
     assert latest.status_code == 404
 
-    state = client.get("/api/v1/etf-holdings/BADCSV/adapter-state", headers=admin_headers)
+    state = client.get("/api/v1/etf-holdings/ARKX/adapter-state", headers=admin_headers)
     assert state.status_code == 200
     body = state.json()
     assert body[0]["status"] == "failure"
@@ -1018,9 +1189,7 @@ def test_admin_can_probe_ready_issuer_adapter_route(client, admin_headers):
         "/api/v1/etf-holdings/ARKQ/profile",
         json={
             "issuer": "ARK Invest",
-            "provider_aliases": {
-                "holdings_file_name": "ARK_AUTONOMOUS_TECH_ARKQ_HOLDINGS",
-            },
+            "provider_aliases": {},
         },
         headers=admin_headers,
     )
@@ -1034,8 +1203,8 @@ def test_admin_can_probe_ready_issuer_adapter_route(client, admin_headers):
     assert body["source_provider"] == "ark"
     assert body["status"] == "ready"
     assert body["source_url"] == (
-        "https://ark-funds.com/wp-content/fundsiteliterature/holdings/"
-        "ARK_AUTONOMOUS_TECH_ARKQ_HOLDINGS.csv"
+        "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
+        "ARK_AUTONOMOUS_TECHNOLOGY_&_ROBOTICS_ETF_ARKQ_HOLDINGS.csv"
     )
     assert body["required_identifiers"] == []
 
@@ -1046,34 +1215,29 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
     body = response.json()
     adapters = {row["adapter_key"]: row for row in body}
 
-    assert "configured_csv_url" in adapters
-    assert adapters["configured_csv_url"]["supported_formats"] == ["csv", "xlsx", "zip"]
-    assert adapters["configured_csv_url"]["supports_product_page_discovery"] is False
+    assert "configured_csv_url" not in adapters
 
     assert "ishares" in adapters
     ishares = adapters["ishares"]
     assert ishares["source_provider"] == "ishares"
     assert ishares["required_identifiers"] == ["issuer_product_id"]
     assert ishares["supported_formats"] == ["csv", "xlsx", "zip"]
-    assert ishares["supports_product_page_discovery"] is True
+    assert ishares["supports_product_page_discovery"] is False
+    assert ishares["live_tested_default_route"] is True
     assert ishares["supports_issuer_product_id"] is True
     assert ishares["supports_dated_fetch"] is True
     assert ishares["supports_etf_discovery"] is True
     assert ishares["parser"] == "generic_holdings_table"
     assert ishares["parser_confidence"] == "medium"
-    assert ishares["url_templates"] == [
-        "https://www.ishares.com/us/products/{issuer_product_id}/"
-        "?fileType=csv&fileName={symbol}_holdings&dataType=fund"
-    ]
-    assert "dated_holdings_url_template" in ishares["route_identifiers"]
-    assert "discovery_feed_url" in ishares["route_identifiers"]
+    assert ishares["url_templates"] == []
+    assert "ishares_dated_holdings_url_template" in ishares["route_identifiers"]
+    assert "ishares_discovery_feed_url" in ishares["route_identifiers"]
 
     schwab = adapters["schwab"]
     assert schwab["required_identifiers"] == []
-    assert schwab["product_page_templates"] == [
-        "https://www.schwabassetmanagement.com/products/{symbol_lower}"
-    ]
-    assert schwab["supports_product_page_discovery"] is True
+    assert schwab["product_page_templates"] == []
+    assert schwab["live_tested_default_route"] is False
+    assert schwab["supports_product_page_discovery"] is False
 
 
 def test_admin_can_discover_etf_profiles_from_issuer_feed(
@@ -2009,7 +2173,7 @@ def test_profile_ticker_alone_does_not_guess_issuer_adapter(client, admin_header
     assert body["adapter_status"] == "holdings_adapter_unresolved"
 
 
-def test_admin_probe_can_use_inferred_vanguard_product_page_template(client, admin_headers):
+def test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/VOOG/profile",
         json={"issuer": "Vanguard"},
@@ -2022,11 +2186,9 @@ def test_admin_probe_can_use_inferred_vanguard_product_page_template(client, adm
     body = probe.json()
     assert body["symbol"] == "VOOG"
     assert body["adapter_key"] == "vanguard"
-    assert body["status"] == "ready"
+    assert body["status"] == "needs_provider_implementation"
     assert body["required_identifiers"] == []
-    assert body["source_url"] == (
-        "https://investor.vanguard.com/investment-products/etfs/profile/voog"
-    )
+    assert body["source_url"] is None
 
 
 def test_admin_can_ingest_and_user_can_read_etf_holdings(client, admin_headers, auth_headers):

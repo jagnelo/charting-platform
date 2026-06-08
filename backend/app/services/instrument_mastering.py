@@ -507,14 +507,22 @@ async def ensure_internal_identifier(
     instrument: Instrument,
 ) -> None:
     internal_value = f"instrument:{instrument.id}"
-    existing = (
+    existing_rows = (
         await db.execute(
             select(InstrumentIdentifier).where(
                 InstrumentIdentifier.instrument_id == instrument.id,
                 InstrumentIdentifier.identifier_type == InstrumentIdentifierType.INTERNAL,
             )
         )
-    ).scalar_one_or_none()
+    ).scalars().all()
+    existing = next(
+        (
+            row
+            for row in existing_rows
+            if row.identifier_value == internal_value
+        ),
+        existing_rows[0] if existing_rows else None,
+    )
     if existing is None:
         existing = InstrumentIdentifier(
             instrument_id=instrument.id,
@@ -525,6 +533,20 @@ async def ensure_internal_identifier(
             is_active=True,
         )
         db.add(existing)
+    else:
+        existing.identifier_value = internal_value
+        existing.is_active = True
+        if instrument.primary_identifier_value is None:
+            existing.is_primary = True
+
+        for duplicate in existing_rows:
+            if duplicate.id == existing.id:
+                continue
+            duplicate.is_active = False
+            duplicate.is_primary = False
+            if duplicate.identifier_value == internal_value:
+                continue
+            duplicate.identifier_value = f"{duplicate.identifier_value}__superseded__{duplicate.id}"
 
     if instrument.primary_identifier_value is None:
         instrument.primary_identifier_type = InstrumentIdentifierType.INTERNAL.value

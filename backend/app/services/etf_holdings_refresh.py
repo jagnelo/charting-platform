@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import zipfile
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from io import BytesIO, StringIO
@@ -20,11 +21,14 @@ from app.services.etf_holdings import (
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
     get_etf_profile_for_instrument,
+    get_latest_snapshot,
     ingest_holdings_snapshot,
 )
 from app.services.etf_holdings_adapters import (
     HoldingsAdapterProbe,
     get_holdings_adapter,
+    infer_adapter_key,
+    known_etf_route_metadata,
     parse_etf_discovery_csv,
     parse_etf_discovery_table,
     parse_xlsx_table,
@@ -34,6 +38,15 @@ from app.services.instrument_mastering import register_identifier
 
 class ETFHoldingsRouteNotReadyError(ValueError):
     """Raised when an ETF matched an adapter but lacks route metadata."""
+
+
+@dataclass(slots=True)
+class ETFHoldingsBootstrapResult:
+    profile: ETFProfile
+    probe: HoldingsAdapterProbe
+    refresh_attempted: bool
+    refresh_succeeded: bool
+    message: str | None = None
 
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
@@ -392,24 +405,6 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     refreshed = 0
     failed = 0
     for profile in profiles:
-        aliases = _aliases(profile)
-        holdings_url = _first_alias(
-            aliases,
-            "holdings_url",
-            "issuer_holdings_url",
-            "holdings_csv_url",
-            "latest_holdings_url",
-        )
-        if holdings_url:
-            try:
-                await _refresh_configured_csv_url(db, profile, holdings_url=holdings_url)
-            except Exception as exc:  # noqa: BLE001 - persisted adapter health should capture any failure.
-                failed += 1
-                await _record_failure(db, profile, exc)
-            else:
-                refreshed += 1
-                await _record_success(db, profile)
-            continue
         if not profile.adapter_key or profile.adapter_key == "unresolved":
             unresolved += 1
             await _record_skip(db, profile, "holdings_adapter_unresolved")
@@ -470,6 +465,95 @@ async def probe_etf_holdings_adapter_route(
     profile.adapter_confidence = probe.confidence
     await _record_probe(db, profile, probe)
     return probe
+
+
+async def bootstrap_etf_holdings_profile(
+    db: AsyncSession,
+    *,
+    symbol: str,
+    name: str | None = None,
+) -> ETFHoldingsBootstrapResult:
+    instrument = await ensure_lightweight_etf_instrument(
+        db,
+        symbol=symbol,
+        name=name or symbol,
+    )
+    preferred_name = (name or "").strip()
+    if preferred_name and (
+        not instrument.name
+        or instrument.name.strip().upper() == instrument.symbol.strip().upper()
+    ):
+        instrument.name = preferred_name
+
+    profile = await ensure_etf_profile(db, instrument)
+    route_metadata = known_etf_route_metadata(instrument.symbol)
+    if route_metadata:
+        issuer = route_metadata.get("issuer")
+        if issuer and not profile.issuer:
+            profile.issuer = issuer
+        seeded_aliases = route_metadata.get("provider_aliases")
+        if isinstance(seeded_aliases, dict):
+            profile.provider_aliases = {
+                **seeded_aliases,
+                **_aliases(profile),
+            }
+        probe = infer_adapter_key(
+            issuer=profile.issuer,
+            fund_family=profile.fund_family,
+            name=profile.instrument.name,
+            product_url=profile.product_url,
+            provider_aliases=profile.provider_aliases,
+        )
+        if probe.status != "holdings_adapter_unresolved":
+            profile.adapter_key = probe.adapter_key
+            profile.adapter_status = probe.status
+            profile.adapter_confidence = probe.confidence
+
+    latest_snapshot = await get_latest_snapshot(db, instrument.id, include_holdings=False)
+    if latest_snapshot is not None:
+        probe = await probe_etf_holdings_adapter_route(db, profile)
+        if probe.status == "ready":
+            profile.adapter_status = "success"
+        await db.flush()
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=False,
+            refresh_succeeded=True,
+            message="Loaded the latest stored ETF holdings snapshot.",
+        )
+
+    probe = await probe_etf_holdings_adapter_route(db, profile)
+    if probe.status != "ready":
+        await db.flush()
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            message=probe.reason or "No free holdings route is configured for this ETF yet.",
+        )
+
+    try:
+        snapshot = await _refresh_adapter_route(db, profile)
+        await _record_success(db, profile, snapshot=snapshot)
+        await db.flush()
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=True,
+            refresh_succeeded=True,
+            message="Fetched the latest ETF holdings snapshot.",
+        )
+    except Exception as exc:
+        await db.flush()
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=True,
+            refresh_succeeded=False,
+            message=str(exc) or "ETF holdings refresh failed.",
+        )
 
 
 async def refresh_etf_holdings_for_date(
@@ -582,7 +666,10 @@ def _string_aliases(profile: ETFProfile) -> dict[str, str]:
 
 
 def _alias_date(aliases: dict[str, Any], key: str) -> date | None:
-    value = aliases.get(key)
+    return _date_from_value(aliases.get(key))
+
+
+def _date_from_value(value: Any) -> date | None:
     if isinstance(value, date):
         return value
     if isinstance(value, str) and value.strip():
@@ -857,66 +944,6 @@ def _ensure_artifact_identity_is_safe(validation: dict[str, Any]) -> None:
         )
 
 
-async def _refresh_configured_csv_url(
-    db: AsyncSession,
-    profile: ETFProfile,
-    *,
-    holdings_url: str,
-) -> None:
-    aliases = _aliases(profile)
-    source_provider = (
-        _first_alias(aliases, "holdings_source_provider", "source_provider")
-        or profile.adapter_key
-        or profile.issuer
-        or "issuer_csv"
-    )
-    composition_date = _alias_date(aliases, "holdings_composition_date") or datetime.now(
-        UTC
-    ).date()
-    as_of_date = _alias_date(aliases, "holdings_as_of_date")
-
-    adapter = get_holdings_adapter(profile.adapter_key) or get_holdings_adapter("configured_csv_url")
-    if adapter is None:
-        raise ValueError("No ETF holdings adapter is registered for configured public CSV URLs.")
-    fetch_result = await adapter.fetch_latest(
-        symbol=profile.instrument.symbol if profile.instrument else "",
-        issuer_product_id=_first_alias(aliases, "issuer_product_id", "fund_id", "sec_series_id"),
-        source_url=holdings_url,
-    )
-    if not fetch_result.rows:
-        raise ValueError("Configured holdings CSV returned no parseable rows.")
-    if profile.instrument is None:
-        raise ValueError("ETF profile is missing its linked instrument.")
-    artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
-    _ensure_artifact_identity_is_safe(artifact_identity_validation)
-    result_metadata = fetch_result.legal_metadata or {}
-    source_format = str(result_metadata.get("source_format") or "csv")
-
-    await ingest_holdings_snapshot(
-        db,
-        etf_instrument=profile.instrument,
-        rows=fetch_result.rows,
-        composition_date=composition_date,
-        as_of_date=as_of_date,
-        known_at=datetime.now(UTC),
-        provenance="issuer_self_snapshotted_holdings",
-        source_provider=str(source_provider),
-        source_url=fetch_result.source_url or holdings_url,
-        source_identifier=fetch_result.source_identifier,
-        source_quality="self_snapshotted_holdings",
-        completeness_status=str(aliases.get("holdings_completeness_status") or "unknown"),
-        parser_version=f"{adapter.adapter_key}-{source_format}-v1",
-        raw_payload_text=fetch_result.raw_text,
-        raw_payload_json=fetch_result.raw_json,
-        legal_metadata={
-            **result_metadata,
-            "terms_note": aliases.get("terms_note"),
-            "artifact_identity_validation": artifact_identity_validation,
-        },
-        notes="Fetched from the ETF profile's configured public holdings URL.",
-    )
-
-
 async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     aliases = _aliases(profile)
     if profile.instrument is None:
@@ -937,7 +964,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     )
     probe = adapter.probe(symbol=symbol, name=profile.instrument.name, identifiers=identifiers)
     if probe.status != "ready":
-        required = ", ".join(probe.required_identifiers) or "holdings_url"
+        required = ", ".join(probe.required_identifiers) or "provider-specific route"
         raise ETFHoldingsRouteNotReadyError(
             f"{probe.reason or probe.status} Required route metadata: {required}."
         )
@@ -959,12 +986,16 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         or result_metadata.get("source_provider")
         or adapter.source_provider
     )
-    composition_date = _alias_date(aliases, "holdings_composition_date") or datetime.now(
-        UTC
-    ).date()
-    as_of_date = _alias_date(aliases, "holdings_as_of_date")
+    composition_date = (
+        _alias_date(aliases, "holdings_composition_date")
+        or _date_from_value(result_metadata.get("composition_date"))
+        or datetime.now(UTC).date()
+    )
+    as_of_date = _alias_date(aliases, "holdings_as_of_date") or _date_from_value(
+        result_metadata.get("as_of_date")
+    )
 
-    return await ingest_holdings_snapshot(
+    snapshot = await ingest_holdings_snapshot(
         db,
         etf_instrument=profile.instrument,
         rows=fetch_result.rows,
@@ -989,6 +1020,9 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         },
         notes="Fetched through the ETF profile's issuer holdings adapter route.",
     )
+    profile.adapter_status = "success"
+    profile.adapter_confidence = probe.confidence
+    return snapshot
 
 
 async def _record_skip(
@@ -1046,7 +1080,7 @@ async def _record_probe(
 
 
 async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) -> None:
-    adapter_key = profile.adapter_key or "configured_csv_url"
+    adapter_key = profile.adapter_key or "unresolved"
     state = (
         await db.execute(
             select(ETFHoldingsAdapterState).where(
@@ -1059,6 +1093,7 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
         state = ETFHoldingsAdapterState(etf_profile_id=profile.id, adapter_key=adapter_key)
         db.add(state)
     now = datetime.now(UTC)
+    profile.adapter_status = "success"
     state.status = "success"
     state.failure_reason = None
     state.rate_limit_state = None
@@ -1089,7 +1124,7 @@ def _rate_limit_state_for_failure(exc: Exception | str) -> str | None:
 
 
 async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Exception | str) -> None:
-    adapter_key = profile.adapter_key or "configured_csv_url"
+    adapter_key = profile.adapter_key or "unresolved"
     state = (
         await db.execute(
             select(ETFHoldingsAdapterState).where(

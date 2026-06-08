@@ -9,6 +9,7 @@ from xml.sax.saxutils import escape
 import pytest
 
 from app.services.etf_holdings_adapters import (
+    ISSUER_ADAPTER_CONFIGS,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
     PublicCsvHoldingsAdapter,
@@ -17,6 +18,7 @@ from app.services.etf_holdings_adapters import (
     _format_template,
     _parse_ishares_inline_top_holdings,
     _row_dict,
+    get_holdings_adapter,
     holdings_adapter_catalog,
     infer_adapter_key,
     parse_etf_discovery_csv,
@@ -25,6 +27,7 @@ from app.services.etf_holdings_adapters import (
     parse_holdings_xlsx,
     parse_holdings_zip,
     parse_xlsx_table,
+    registered_adapter_keys,
 )
 
 
@@ -66,6 +69,11 @@ class FakeResponse:
 
     def raise_for_status(self):
         return None
+
+    def json(self):
+        import json
+
+        return json.loads(self.text)
 
 
 class FakeAsyncClient:
@@ -119,6 +127,22 @@ def test_parse_holdings_table_handles_aliases_cash_rows_and_cusip_fallback():
     assert rows[0].weight == Decimal("0.061")
     assert rows[1].row_type == "cash"
     assert rows[1].holding_type == "cash"
+
+
+def test_parse_holdings_table_handles_ark_company_name_alias():
+    rows = parse_holdings_csv(
+        "\n".join(
+            [
+                "date,fund,company,ticker,cusip,shares,market value ($),weight (%)",
+                "06/07/2026,ARKK,Tesla Inc,TSLA,88160R101,100,12000,8.5",
+            ]
+        )
+    )
+    assert len(rows) == 1
+    assert rows[0].symbol == "TSLA"
+    assert rows[0].name == "Tesla Inc"
+    assert rows[0].cusip == "88160R101"
+    assert rows[0].weight == Decimal("0.085")
 
 
 def test_parse_holdings_csv_and_xlsx_roundtrip():
@@ -242,7 +266,7 @@ async def test_public_csv_holdings_adapter_parses_csv_xlsx_zip_and_ishares_html(
     FakeAsyncClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
-    adapter = PublicCsvHoldingsAdapter("configured_csv_url", "issuer_csv")
+    adapter = PublicCsvHoldingsAdapter("parser_helper", "issuer_csv")
 
     FakeAsyncClient.queue = [FakeResponse(text=csv_text)]
     result = await adapter.fetch_latest(symbol="SPY", source_url="https://issuer.example/spy.csv")
@@ -274,13 +298,16 @@ async def test_public_csv_holdings_adapter_parses_csv_xlsx_zip_and_ishares_html(
 
 @pytest.mark.asyncio
 async def test_issuer_csv_holdings_adapter_resolves_templates_discovers_product_pages_and_dated_urls(monkeypatch):
+    class ExampleHoldingsAdapter(IssuerCsvHoldingsAdapter):
+        dated_url_template_aliases = ("example_dated_holdings_url_template",)
+
     config = IssuerCsvAdapterConfig(
         adapter_key="example",
         source_provider="example",
         url_templates=("https://issuer.example/{issuer_product_id}/{symbol}.csv",),
         product_page_templates=("https://issuer.example/funds/{symbol_lower}",),
     )
-    adapter = IssuerCsvHoldingsAdapter(config)
+    adapter = ExampleHoldingsAdapter(config)
     csv_text = "\n".join(
         [
             "Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -311,7 +338,11 @@ async def test_issuer_csv_holdings_adapter_resolves_templates_discovers_product_
         adapter.resolve_dated_source_url(
             symbol="SPY",
             requested_date=date(2026, 6, 7),
-            identifiers={"dated_holdings_url_template": "https://issuer.example/{date_yyyymmdd}.csv"},
+            identifiers={
+                "example_dated_holdings_url_template": (
+                    "https://issuer.example/{date_yyyymmdd}.csv"
+                )
+            },
         )
         == "https://issuer.example/20260607.csv"
     )
@@ -327,18 +358,92 @@ async def test_issuer_csv_holdings_adapter_resolves_templates_discovers_product_
     dated = await adapter.fetch_for_date(
         symbol="SPY",
         requested_date=date(2026, 6, 7),
-        identifiers={"dated_holdings_url_template": "https://issuer.example/{date_yyyymmdd}.csv"},
+        identifiers={
+            "example_dated_holdings_url_template": (
+                "https://issuer.example/{date_yyyymmdd}.csv"
+            )
+        },
     )
     assert dated.rows[0].symbol == "AAPL"
     assert dated.legal_metadata["requested_holdings_date"] == "2026-06-07"
 
 
+@pytest.mark.asyncio
+async def test_ark_adapter_resolves_known_public_assets_file(monkeypatch):
+    adapter = get_holdings_adapter("ark")
+    assert adapter is not None
+
+    expected_url = (
+        "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
+        "ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv"
+    )
+    assert adapter.resolve_source_url(symbol="ARKK", identifiers={}) == expected_url
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "date,fund,company,ticker,cusip,shares,market value ($),weight (%)",
+                    "06/07/2026,ARKK,Tesla Inc,TSLA,88160R101,100,12000,8.5",
+                ]
+            )
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ARKK", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == expected_url
+    assert result.rows[0].symbol == "TSLA"
+    assert result.rows[0].name == "Tesla Inc"
+    assert result.rows[0].weight == Decimal("0.085")
+    assert result.legal_metadata["route_resolution"] == "issuer_profile_metadata"
+
+
+@pytest.mark.asyncio
+async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '{"effectiveDate":"2026-06-06","effectiveBusinessDate":"2026-06-05",'
+                '"totalNumberOfHoldings":105,'
+                '"holdings":[{"ticker":"NVDA","issuerName":"NVIDIA Corp",'
+                '"units":190601606,"percentageOfTotalNetAssets":8.305722,'
+                '"securityTypeName":"Common Stock","cusip":"67066G104","currency":"USD"}]}'
+            ),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="QQQ",
+        source_url=(
+            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+            "QQQ/holdings/fund?idType=ticker&interval=monthly&productType=ETF"
+            "&loadType=initial"
+        ),
+        identifiers={},
+    )
+
+    assert "shareclasses/QQQ/holdings/fund" in FakeAsyncClient.requested[0][0]
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].name == "NVIDIA Corp"
+    assert result.rows[0].weight == Decimal("0.08305722")
+    assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_json_api"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
-    configured = next(item for item in catalog if item["adapter_key"] == "configured_csv_url")
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
 
-    assert configured["supported_formats"] == ["csv", "xlsx", "zip"]
+    assert "configured_csv_url" not in {item["adapter_key"] for item in catalog}
     assert vaneck["supports_product_page_discovery"] is True
     assert any("product_url" in item["route_identifiers"] for item in catalog if item["adapter_key"] == "global_x")
 
@@ -364,6 +469,78 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         name="Mystery ETF",
     )
     assert unresolved.adapter_key == "unresolved"
+
+
+def test_registered_holdings_adapters_are_provider_specific():
+    assert "configured_csv_url" not in registered_adapter_keys()
+    for adapter_key in ISSUER_ADAPTER_CONFIGS:
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter) is not IssuerCsvHoldingsAdapter
+        assert type(adapter) is not PublicCsvHoldingsAdapter
+
+
+def test_ishares_adapter_resolves_known_product_id_from_symbol():
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    source_url = adapter.resolve_source_url(symbol="IWM", identifiers={})
+
+    assert source_url is not None
+    assert source_url.startswith(
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data?"
+    )
+    assert "component=holdings.all" in source_url
+    assert "portfolioId=239710" in source_url
+    probe = adapter.probe(symbol="IWM", name="iShares Russell 2000 ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.issuer_product_id == "239710"
+
+
+@pytest.mark.asyncio
+async def test_ishares_adapter_fetches_blackrock_product_data_json(monkeypatch):
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '{"componentsByNameMap":{"holdings":{"containersByNameMap":{"all":'
+                '{"dataPointsByNameMap":{'
+                '"asOfDate":{"value":20260605},'
+                '"ticker":{"value":["BE"]},'
+                '"issueName":{"value":["BLOOM ENERGY CLASS A CORP"]},'
+                '"holdingPercent":{"value":[1.73984]},'
+                '"unitsHeld":{"value":[10]},'
+                '"marketValue":{"value":[1000.25]},'
+                '"currencyCode":{"value":["USD"]},'
+                '"countryOfRisk":{"value":["United States"]},'
+                '"exchange":{"value":["NYSE"]},'
+                '"assetClass":{"value":["Equity"]},'
+                '"cusip":{"value":["093712107"]},'
+                '"isin":{"value":["US0937121079"]},'
+                '"sedol":{"value":["BDD1BB8"]},'
+                '"sectorName":{"value":["Industrials"]}'
+                "}}}}}}"
+            ),
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="IWM", identifiers={})
+
+    assert "portfolioId=239710" in FakeAsyncClient.requested[0][0]
+    assert result.rows[0].symbol == "BE"
+    assert result.rows[0].name == "BLOOM ENERGY CLASS A CORP"
+    assert result.rows[0].weight == Decimal("0.0173984")
+    assert result.rows[0].shares == Decimal("10")
+    assert result.rows[0].market_value == Decimal("1000.25")
+    assert result.legal_metadata["route_resolution"] == "issuer_public_json_api"
+    assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["composition_date"] == "2026-06-05"
 
 
 def test_format_template_returns_none_when_missing_fields():

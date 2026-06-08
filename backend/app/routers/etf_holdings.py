@@ -38,6 +38,8 @@ from app.schemas.etf_holdings import (
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
     ETFHoldingsWeightEvolutionOut,
+    ETFProfileBootstrapOut,
+    ETFProfileBootstrapRequest,
     ETFProfileOut,
     ETFProfileUpdateRequest,
     ETFUnresolvedHoldingOut,
@@ -78,6 +80,7 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
 )
 from app.services.etf_holdings_refresh import (
+    bootstrap_etf_holdings_profile,
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
     probe_etf_holdings_adapter_route,
@@ -96,6 +99,49 @@ async def search_etfs_with_holdings(
     current_user: User = Depends(get_current_user),
 ):
     return await list_etfs_with_holdings(db, q=q)
+
+
+@router.post("/{symbol}/bootstrap", response_model=ETFProfileBootstrapOut)
+async def bootstrap_holdings_profile(
+    symbol: str,
+    body: ETFProfileBootstrapRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await bootstrap_etf_holdings_profile(
+        db,
+        symbol=symbol,
+        name=body.name,
+    )
+    await db.commit()
+    profile = await profile_to_out(db, result.profile)
+    latest_snapshot = None
+    if profile.latest_snapshot_id is not None:
+        latest_snapshot = await get_latest_snapshot(
+            db,
+            result.profile.instrument_id,
+            include_holdings=False,
+        )
+    adapter = get_holdings_adapter(result.probe.adapter_key)
+    return ETFProfileBootstrapOut(
+        profile=profile,
+        latest_snapshot=latest_snapshot,
+        probe=ETFHoldingsAdapterProbeOut(
+            symbol=profile.symbol,
+            name=profile.name,
+            adapter_key=result.probe.adapter_key,
+            source_provider=adapter.source_provider if adapter else None,
+            confidence=result.probe.confidence,
+            status=result.probe.status,
+            reason=result.probe.reason,
+            source_url=result.probe.source_url,
+            issuer_product_id=result.probe.issuer_product_id,
+            required_identifiers=result.probe.required_identifiers,
+        ),
+        refresh_attempted=result.refresh_attempted,
+        refresh_succeeded=result.refresh_succeeded,
+        message=result.message,
+    )
 
 
 @router.get("/adapters", response_model=list[ETFHoldingsAdapterCatalogOut])

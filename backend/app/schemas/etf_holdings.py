@@ -43,6 +43,19 @@ class ETFProfileUpdateRequest(BaseModel):
     legal_metadata: dict | None = None
 
 
+class ETFProfileBootstrapRequest(BaseModel):
+    name: str | None = None
+
+
+class ETFProfileBootstrapOut(BaseModel):
+    profile: ETFProfileOut
+    latest_snapshot: "ETFHoldingsSnapshotOut | None" = None
+    probe: "ETFHoldingsAdapterProbeOut"
+    refresh_attempted: bool = False
+    refresh_succeeded: bool = False
+    message: str | None = None
+
+
 class ETFHoldingsAdapterProbeOut(BaseModel):
     symbol: str
     name: str
@@ -65,6 +78,7 @@ class ETFHoldingsAdapterCatalogOut(BaseModel):
     url_templates: list[str] = Field(default_factory=list)
     product_page_templates: list[str] = Field(default_factory=list)
     supported_formats: list[str] = Field(default_factory=list)
+    live_tested_default_route: bool = False
     supports_product_page_discovery: bool = False
     supports_issuer_product_id: bool = False
     supports_dated_fetch: bool = False

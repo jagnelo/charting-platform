@@ -183,14 +183,7 @@ async def ensure_lightweight_etf_instrument(
         name=name or symbol,
         currency=currency,
         quote_type="ETF",
-        identifiers=[
-            IdentifierRecord(
-                identifier_type="internal",
-                identifier_value=f"etf:{symbol}",
-                is_primary=True,
-                source=ETF_HOLDINGS_INTERNAL_PROVIDER,
-            )
-        ],
+        identifiers=[],
         listings=[
             ListingRecord(
                 provider_symbol=symbol,
