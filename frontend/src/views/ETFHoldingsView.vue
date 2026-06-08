@@ -4,7 +4,7 @@
       <div class="sidebar-head">
         <div>
           <h1>ETF Holdings</h1>
-          <p>Browse stored ETF compositions.</p>
+          <p>Search an ETF to bootstrap or inspect its holdings snapshots.</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
             <p v-if="page">
               {{ page.snapshot.etf_name }} · {{ page.snapshot.composition_date }}
             </p>
-            <p v-else>Use the list to inspect a stored holdings snapshot.</p>
+            <p v-else>Choose an ETF to prepare its holdings workspace and inspect available snapshots.</p>
           </div>
           <div v-if="page" class="panel-meta">
             <span>{{ page.snapshot.source_provider }}</span>
@@ -529,7 +529,7 @@
         </section>
 
         <div v-if="!selectedProfile && !loadError" class="empty-state">
-          Select an ETF with stored holdings to browse its constituents.
+          Select an ETF to load or bootstrap its holdings research workspace.
         </div>
         <div v-else-if="page && !page.holdings.length" class="empty-state">
           No holdings match the current filters.
@@ -546,6 +546,7 @@ import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
 import type {
   ETFHolding,
+  ETFHoldingsSnapshot,
   ETFHoldingsDate,
   ETFHoldingsDiff,
   ETFHoldingsDiffRow,
@@ -559,6 +560,31 @@ import type {
   ETFHoldingsWeightEvolutionSeries,
   ETFProfile,
 } from '@/types'
+
+interface ETFSearchResult {
+  symbol: string
+  name: string
+  exchange: string
+  type: string
+}
+
+interface ETFProfileBootstrapResponse {
+  profile: ETFProfile
+  latest_snapshot: ETFHoldingsSnapshot | null
+  probe: {
+    adapter_key: string
+    source_provider?: string | null
+    confidence: string | number
+    status: string
+    reason?: string | null
+    source_url?: string | null
+    issuer_product_id?: string | null
+    required_identifiers: string[]
+  }
+  refresh_attempted: boolean
+  refresh_succeeded: boolean
+  message?: string | null
+}
 
 const router = useRouter()
 
@@ -605,7 +631,7 @@ const compareOptions = computed(() =>
 )
 
 const overlapCandidates = computed(() =>
-  profiles.value.filter(profile => profile.symbol !== selectedProfile.value?.symbol)
+  (profiles.value ?? []).filter(profile => profile.symbol !== selectedProfile.value?.symbol)
 )
 const canCompareOverlapFamily = computed(() =>
   Boolean(
@@ -623,32 +649,24 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
     const loaded = await api.get<ETFProfile[]>('/etf-holdings', {
       q: search || undefined,
     })
+    const normalized = Array.isArray(loaded) ? loaded : []
     if (seq !== profileLoadSeq) return
-    profiles.value = loaded
-    if (autoSelectFirst && !selectedProfile.value && loaded.length) {
-      await selectProfile(loaded[0])
+    profiles.value = normalized
+    if (autoSelectFirst && !selectedProfile.value && normalized.length) {
+      await selectProfile(normalized[0])
     }
-    return loaded
+    return normalized
   } catch (error) {
     if (seq !== profileLoadSeq) return
     loadError.value = error instanceof Error ? error.message : 'Could not load ETF profiles.'
+    profiles.value = []
     return []
   } finally {
     if (seq === profileLoadSeq) loadingProfiles.value = false
   }
 }
 
-async function selectProfileFromSearch(symbol: string) {
-  const normalized = symbol.trim().toUpperCase()
-  if (!normalized) return
-  profileSearch.value = normalized
-  const loaded = await loadProfiles(normalized, false)
-  const matchedProfile = loaded?.find(profile => profile.symbol.toUpperCase() === normalized) ?? loaded?.[0] ?? null
-  if (matchedProfile) {
-    await selectProfile(matchedProfile)
-    return
-  }
-
+function resetWorkspaceSelection() {
   selectedProfile.value = null
   page.value = null
   diff.value = null
@@ -658,13 +676,90 @@ async function selectProfileFromSearch(symbol: string) {
   overlapMatrix.value = null
   snapshotOptions.value = []
   selectedHolding.value = null
-  loadError.value = `No stored ETF holdings found for ${normalized}.`
+  selectedSnapshotId.value = ''
+  compareSnapshotId.value = ''
+}
+
+async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult) {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) return
+  profileSearch.value = normalized
+  loadError.value = ''
+
+  try {
+    const bootstrap = await api.post<ETFProfileBootstrapResponse>(
+      `/etf-holdings/${encodeURIComponent(normalized)}/bootstrap`,
+      {
+        name: result?.name || undefined,
+      },
+    )
+
+    await loadProfiles(normalized, false)
+    const matchedProfile = profiles.value.find(
+      profile => profile.id === bootstrap.profile.id || profile.symbol.toUpperCase() === normalized,
+    ) ?? bootstrap.profile
+
+    if (bootstrap.latest_snapshot || matchedProfile.latest_snapshot_id != null) {
+      await selectProfile(matchedProfile)
+      if (bootstrap.message && !bootstrap.refresh_succeeded) {
+        loadError.value = bootstrap.message
+      }
+      return
+    }
+
+    resetWorkspaceSelection()
+    selectedProfile.value = matchedProfile
+    overlapIssuer.value = matchedProfile.issuer || ''
+    overlapFundFamily.value = matchedProfile.fund_family || ''
+    loadError.value = bootstrap.message
+      || `No ETF holdings snapshot is stored yet for ${normalized}.`
+  } catch (error) {
+    resetWorkspaceSelection()
+    loadError.value = error instanceof Error ? error.message : `Could not prepare ETF holdings for ${normalized}.`
+  }
 }
 
 async function selectProfile(profile: ETFProfile) {
+  if (profile.latest_snapshot_id == null) {
+    try {
+      const bootstrap = await api.post<ETFProfileBootstrapResponse>(
+        `/etf-holdings/${encodeURIComponent(profile.symbol)}/bootstrap`,
+        {
+          name: profile.name || undefined,
+        },
+      )
+      const bootstrappedProfile = bootstrap.profile
+      const index = profiles.value.findIndex(item => item.id === bootstrappedProfile.id)
+      if (index >= 0) {
+        profiles.value.splice(index, 1, bootstrappedProfile)
+      } else {
+        profiles.value = [bootstrappedProfile, ...profiles.value]
+      }
+      if (bootstrap.message && !bootstrap.refresh_succeeded) {
+        loadError.value = bootstrap.message
+      }
+      profile = bootstrappedProfile
+      if (profile.latest_snapshot_id == null) {
+        resetWorkspaceSelection()
+        selectedProfile.value = profile
+        overlapIssuer.value = profile.issuer || ''
+        overlapFundFamily.value = profile.fund_family || ''
+        loadError.value = bootstrap.message
+          || `No ETF holdings snapshot is stored yet for ${profile.symbol}.`
+        return
+      }
+    } catch (error) {
+      loadError.value = error instanceof Error
+        ? error.message
+        : `Could not prepare ETF holdings for ${profile.symbol}.`
+      return
+    }
+  }
   selectedProfile.value = profile
   holdingsSearch.value = ''
   offset.value = 0
+  selectedSnapshotId.value = ''
+  compareSnapshotId.value = ''
   overlapSummary.value = null
   overlapMatrix.value = null
   selectedOverlapSymbols.value = overlapCandidates.value.slice(0, 3).map(candidate => candidate.symbol)
@@ -697,6 +792,11 @@ async function loadSnapshotOptions() {
   if (!profile) return
   const loaded = await api.get<ETFHoldingsDate[]>(`/etf-holdings/${encodeURIComponent(profile.symbol)}/dates`)
   snapshotOptions.value = loaded
+  if (!loaded.length) {
+    selectedSnapshotId.value = ''
+    compareSnapshotId.value = ''
+    return
+  }
   if (!selectedSnapshotId.value && loaded[0]) {
     selectedSnapshotId.value = String(loaded[0].snapshot_id)
   }
@@ -708,6 +808,11 @@ async function loadSnapshotOptions() {
 async function loadHoldings() {
   const profile = selectedProfile.value
   if (!profile) return
+  if (!selectedSnapshotId.value) {
+    page.value = null
+    selectedHolding.value = null
+    return
+  }
   const seq = ++holdingsLoadSeq
   loadError.value = ''
   try {

@@ -540,6 +540,99 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('No holdings match the current filters.')
   })
 
+  it('resets the selected snapshot when switching ETF profiles', async () => {
+    const copxProfile = {
+      ...profile,
+      id: 2,
+      instrument_id: 20,
+      symbol: 'COPX',
+      name: 'Global X Copper Miners ETF',
+      latest_snapshot_id: 2,
+      latest_composition_date: '2026-06-07',
+      resolved_count: 45,
+      unresolved_count: 1,
+    }
+    const iwmProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 30,
+      symbol: 'IWM',
+      name: 'iShares Russell 2000 ETF',
+      issuer: 'iShares',
+      latest_snapshot_id: 3,
+      latest_composition_date: '2026-06-05',
+      resolved_count: 1910,
+      unresolved_count: 3,
+    }
+    const copxDates = [{ ...dates[0], snapshot_id: 2, composition_date: '2026-06-07' }]
+    const iwmDates = [{ ...dates[0], snapshot_id: 3, composition_date: '2026-06-05' }]
+
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([copxProfile, iwmProfile])
+      .mockResolvedValueOnce(copxDates)
+      .mockResolvedValueOnce(holdingsPage({
+        snapshot: {
+          ...holdingsPage().snapshot,
+          id: 2,
+          etf_profile_id: 2,
+          etf_instrument_id: 20,
+          etf_symbol: 'COPX',
+          etf_name: 'Global X Copper Miners ETF',
+          composition_date: '2026-06-07',
+        },
+      }))
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+      .mockResolvedValueOnce(iwmDates)
+      .mockResolvedValueOnce(holdingsPage({
+        snapshot: {
+          ...holdingsPage().snapshot,
+          id: 3,
+          etf_profile_id: 3,
+          etf_instrument_id: 30,
+          etf_symbol: 'IWM',
+          etf_name: 'iShares Russell 2000 ETF',
+          composition_date: '2026-06-05',
+          row_count: 1913,
+          resolved_count: 1910,
+          unresolved_count: 3,
+        },
+        total: 1913,
+      }))
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/COPX/holdings', {
+        snapshot_id: '2',
+        q: undefined,
+        sort: 'weight',
+        direction: 'desc',
+        limit: 100,
+        offset: 0,
+      })
+    })
+
+    const iwmCard = wrapper.findAll('button.profile-card').find(button => button.text().includes('IWM'))
+    expect(iwmCard).toBeTruthy()
+    await iwmCard!.trigger('click')
+
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/IWM/holdings', {
+        snapshot_id: '3',
+        q: undefined,
+        sort: 'weight',
+        direction: 'desc',
+        limit: 100,
+        offset: 0,
+      })
+    })
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/IWM/holdings', expect.objectContaining({
+      snapshot_id: '2',
+    }))
+  })
+
   it('uses the shared instrument picker to select a stored ETF profile', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce([profile, overlapProfile])
@@ -562,6 +655,30 @@ describe('ETFHoldingsView', () => {
       .mockResolvedValueOnce(diffPayload())
       .mockResolvedValueOnce(weightEvolutionPayload())
       .mockResolvedValueOnce(transitionTimelinePayload())
+    vi.mocked(api.post).mockResolvedValueOnce({
+      profile: overlapProfile,
+      latest_snapshot: {
+        ...holdingsPage().snapshot,
+        id: 77,
+        etf_profile_id: 2,
+        etf_instrument_id: 11,
+        etf_symbol: 'QQQ',
+        etf_name: 'Invesco QQQ Trust',
+      },
+      probe: {
+        adapter_key: 'invesco',
+        source_provider: 'invesco',
+        confidence: '0.75',
+        status: 'ready',
+        reason: null,
+        source_url: 'https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=Investor&ticker=QQQ',
+        issuer_product_id: null,
+        required_identifiers: [],
+      },
+      refresh_attempted: true,
+      refresh_succeeded: true,
+      message: 'Fetched the latest ETF holdings snapshot.',
+    })
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => {
@@ -575,11 +692,184 @@ describe('ETFHoldingsView', () => {
     expect(picker.props('allowExpressions')).toBe(false)
 
     await picker.vm.$emit('update:modelValue', 'QQQ')
-    await picker.vm.$emit('select', 'QQQ')
+    await picker.vm.$emit('select', 'QQQ', {
+      symbol: 'QQQ',
+      name: 'Invesco QQQ Trust',
+      exchange: 'NASDAQ',
+      type: 'ETF',
+    })
     await flushPromises()
 
-    expect(api.get).toHaveBeenNthCalledWith(7, '/etf-holdings', { q: 'QQQ' })
-    expect(api.get).toHaveBeenNthCalledWith(8, '/etf-holdings/QQQ/dates')
+    expect(api.post).toHaveBeenCalledWith('/etf-holdings/QQQ/bootstrap', {
+      name: 'Invesco QQQ Trust',
+    })
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'QQQ' })
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/QQQ/dates')
+    })
     expect(wrapper.text()).toContain('QQQ')
+  })
+
+  it('bootstraps a stored ETF profile with no snapshot before loading holdings', async () => {
+    const staleIwmProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'IWM',
+      name: 'iShares Russell 2000 ETF',
+      issuer: 'iShares',
+      fund_family: null,
+      adapter_status: 'needs_issuer_route',
+      latest_composition_date: null,
+      latest_snapshot_id: null,
+      resolved_count: 0,
+      unresolved_count: 0,
+    }
+    const bootstrappedIwmProfile = {
+      ...staleIwmProfile,
+      adapter_status: 'success',
+      latest_composition_date: '2026-06-05',
+      latest_snapshot_id: 88,
+      resolved_count: 1913,
+      unresolved_count: 0,
+    }
+    const iwmDates = [
+      {
+        ...dates[0],
+        snapshot_id: 88,
+        composition_date: '2026-06-05',
+        row_count: 1913,
+        resolved_count: 1913,
+        unresolved_count: 0,
+      },
+    ]
+
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([staleIwmProfile])
+      .mockResolvedValueOnce(iwmDates)
+      .mockResolvedValueOnce(holdingsPage({
+        snapshot: {
+          ...holdingsPage().snapshot,
+          id: 88,
+          etf_profile_id: 3,
+          etf_instrument_id: 12,
+          etf_symbol: 'IWM',
+          etf_name: 'iShares Russell 2000 ETF',
+          composition_date: '2026-06-05',
+          row_count: 1913,
+          resolved_count: 1913,
+          unresolved_count: 0,
+        },
+        total: 1913,
+      }))
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+    vi.mocked(api.post).mockResolvedValueOnce({
+      profile: bootstrappedIwmProfile,
+      latest_snapshot: {
+        ...holdingsPage().snapshot,
+        id: 88,
+        etf_profile_id: 3,
+        etf_instrument_id: 12,
+        etf_symbol: 'IWM',
+        etf_name: 'iShares Russell 2000 ETF',
+        composition_date: '2026-06-05',
+      },
+      probe: {
+        adapter_key: 'ishares',
+        source_provider: 'ishares',
+        confidence: '0.75',
+        status: 'ready',
+        reason: null,
+        source_url: 'https://www.blackrock.com/varnish-api/blk-one01-product-data/product-data/api/v2/get-product-data',
+        issuer_product_id: '239710',
+        required_identifiers: [],
+      },
+      refresh_attempted: true,
+      refresh_succeeded: true,
+      message: 'Fetched the latest ETF holdings snapshot.',
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+
+    await vi.waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/etf-holdings/IWM/bootstrap', {
+        name: 'iShares Russell 2000 ETF',
+      })
+    })
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/IWM/holdings', {
+        snapshot_id: '88',
+        q: undefined,
+        sort: 'weight',
+        direction: 'desc',
+        limit: 100,
+        offset: 0,
+      })
+    })
+    expect(wrapper.text()).toContain('IWM')
+    expect(wrapper.text()).toContain('1913 rows')
+  })
+
+  it('surfaces a bootstrap message when an ETF profile exists but no snapshot can be fetched yet', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile, overlapProfile])
+      .mockResolvedValueOnce([
+        {
+          ...overlapProfile,
+          symbol: 'XLE',
+          name: 'SPDR Select Sector Fund - Energy Select Sector',
+          latest_snapshot_id: null,
+          latest_composition_date: null,
+          resolved_count: 0,
+          unresolved_count: 0,
+        },
+      ])
+    vi.mocked(api.post).mockResolvedValueOnce({
+      profile: {
+        ...overlapProfile,
+        symbol: 'XLE',
+        name: 'SPDR Select Sector Fund - Energy Select Sector',
+        latest_snapshot_id: null,
+        latest_composition_date: null,
+        resolved_count: 0,
+        unresolved_count: 0,
+      },
+      latest_snapshot: null,
+      probe: {
+        adapter_key: 'spdr',
+        source_provider: 'spdr',
+        confidence: '0.80',
+        status: 'needs_issuer_route',
+        reason: 'ETF matched this issuer, but no source URL, URL template, or required issuer route identifiers are configured yet.',
+        source_url: null,
+        issuer_product_id: null,
+        required_identifiers: [],
+      },
+      refresh_attempted: false,
+      refresh_succeeded: false,
+      message: 'ETF matched this issuer, but no source URL, URL template, or required issuer route identifiers are configured yet.',
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await flushPromises()
+
+    const picker = wrapper.findComponent({ name: 'SearchBar' })
+    await picker.vm.$emit('update:modelValue', 'XLE')
+    await picker.vm.$emit('select', 'XLE', {
+      symbol: 'XLE',
+      name: 'SPDR Select Sector Fund - Energy Select Sector',
+      exchange: 'NYSEARCA',
+      type: 'ETF',
+    })
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/etf-holdings/XLE/bootstrap', {
+      name: 'SPDR Select Sector Fund - Energy Select Sector',
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('XLE')
+    })
+    expect(wrapper.text()).toContain('no source URL, URL template')
   })
 })

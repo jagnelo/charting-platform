@@ -110,7 +110,7 @@ const props = withDefaults(defineProps<{
   allowExpressions: true,
 })
 const emit = defineEmits<{
-  select: [symbol: string]
+  select: [symbol: string, result?: SearchResult]
   'update:modelValue': [value: string]
 }>()
 const recentStore = useRecentInstrumentsStore()
@@ -190,7 +190,7 @@ function onFocus() {
 }
 
 function select(r: SearchResult) {
-  commitSelection(r.symbol, r.name)
+  commitSelection(r.symbol, r.name, r)
 }
 
 function selectRecent(symbol: string) {
@@ -211,9 +211,9 @@ async function selectExpression() {
   }
 }
 
-function commitSelection(symbol: string, label?: string) {
+function commitSelection(symbol: string, label?: string, result?: SearchResult) {
   emit('update:modelValue', symbol)
-  emit('select', symbol)
+  emit('select', symbol, result)
   recentStore.add(symbol, label)
   query.value = symbol
   results.value = []
