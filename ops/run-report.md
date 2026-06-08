@@ -38,6 +38,89 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-06-08T15:26:36Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Fix iShares/IWM ETF holdings bootstrap and clarify provider-specific adapter architecture.
+
+### Completed
+
+- Added iShares-specific built-in route metadata for IVV and IWM product ids.
+- Changed the iShares default route to BlackRock's current product-data JSON holdings API instead of the stale `?fileType=csv` query that returned the product HTML/top-holdings fallback for IWM.
+- Added a BlackRock product-data JSON holdings parser for ticker, name, CUSIP/ISIN/SEDOL, weights, units, market value, currency, country, exchange, asset class, and source row ids.
+- Seeded known provider route metadata during ETF holdings bootstrap, so selecting IWM on a fresh DB can resolve the iShares adapter and fetch a first full holdings snapshot.
+- Added unit, integration, and live-provider coverage for the IWM route.
+- Updated TODO/handoff/state notes to state the intended provider-specific architecture explicitly: one implementation per ETF issuer/provider, with explicit URLs/templates as fallback seams rather than a substitute for support.
+
+### Validation
+
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py::test_ishares_adapter_resolves_known_product_id_from_symbol --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_bootstrap_endpoint_seeds_known_ishares_route_metadata --no-cov -q`
+- `RUN_LIVE_ETF_HOLDINGS_TESTS=1 rtk backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+
+### Problems found
+
+- The previous iShares CSV-style URL still returned HTTP 200, but it returned the product HTML page for IWM, causing the parser to fall back to only five inline top holdings. The route is now replaced with the live-tested BlackRock product-data JSON route.
+
+### Assumptions
+
+- Seeded iShares product ids should be added deliberately and covered by live tests; we should not claim automatic iShares-wide coverage until a tested discovery route or full product-id catalogue exists.
+
+### Next step
+
+- Continue adding provider-specific issuer implementations across US ETF sponsors, promoting each one to supported only when live tests prove full-holdings fetches.
+
+### Timestamp
+
+- 2026-06-08T23:35:00Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Fix the ETF holdings fresh-branch bootstrap flow so selecting a valid ETF from the workspace no longer crashes or dead-ends when no holdings snapshots are preloaded.
+
+### Completed
+
+- Added a non-admin ETF bootstrap flow that persists/selects the ETF profile, uses picker metadata to improve adapter inference, and attempts an immediate first current-snapshot refresh when a route is ready.
+- Updated the ETF holdings workspace to use that bootstrap flow instead of only browsing pre-existing stored snapshots.
+- Hardened the workspace against empty/non-array profile reloads during bootstrap transitions.
+- Fixed the backend crash behind `POST /api/v1/etf-holdings/XLE/bootstrap`: lightweight ETF bootstrap was incorrectly creating a fake `internal` identifier (`etf:{symbol}`), which collided with the mastering layer’s real `instrument:{id}` internal identifier logic.
+- Removed the fake ETF bootstrap internal identifier and made `ensure_internal_identifier` self-heal duplicate internal-identifier rows by preserving one canonical `instrument:{id}` row and deactivating/superseding the rest.
+- Added focused unit regression coverage for the internal-identifier repair path and targeted integration coverage for the ETF bootstrap endpoint behavior.
+
+### Validation
+
+- `backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py --no-cov -q`
+- `backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot backend/tests/integration/api/test_etf_holdings.py::test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved --no-cov -q`
+- `backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk uv run ruff check backend/app/services/etf_holdings.py backend/app/services/instrument_mastering.py backend/tests/unit/services/test_etf_holdings_bootstrap.py`
+- `rtk uv run ruff check backend/app/routers/etf_holdings.py backend/app/services/etf_holdings_refresh.py backend/app/schemas/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+
+### Problems found
+
+- The original XLE failure was not an adapter/network problem; it was a canonical-instrument mastering bug caused by creating two `INTERNAL` identifiers on one instrument.
+- A frontend test path also revealed that the ETF holdings workspace still assumed profile fetches always returned an array; this was hardened while fixing the bootstrap flow.
+
+### Assumptions
+
+- Selecting an ETF from the ETF holdings workspace should bootstrap and attempt to fetch holdings immediately, rather than forcing a separate hidden admin/preload step first.
+
+### Next step
+
+- Productize historical ETF holdings backfill from the workspace itself: expose current snapshot bootstrap, dated issuer fetch, SEC N-PORT/legacy backfill, and backfill job visibility as explicit user-facing actions/status rather than backend/admin-only primitives.
+
+### Timestamp
+
 - 2026-06-06T12:05:00Z
 
 ### Worker
@@ -4441,6 +4524,89 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-06-08T11:49:30Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Correct ETF issuer support over-claiming and add live-backed ARK support.
+
+### Completed
+
+- Fixed ARK route resolution so known ARK ETF symbols map to the current public `assets.ark-funds.com` holdings CSV files without injecting an empty `holdings_file_name`.
+- Added ARK CSV parser coverage for the issuer's `company` column shape.
+- Fixed generic percent-column normalization so values in columns such as `weight (%)` are divided by 100 only when the cell value itself does not already include `%`.
+- Added focused unit coverage for ARK route resolution/fetch parsing and Invesco explicit JSON source parsing.
+- Added ARK to the live provider smoke suite.
+- Removed Invesco from auto-ready/live-backed route claims:
+  - its embedded public `dng-api` holdings route is visible on the public QQQ page
+  - live backend requests currently return HTTP 406
+  - the adapter now only parses Invesco JSON when an explicit source URL is configured
+- Updated TODO/handoff/state docs so provider support distinguishes adapter infrastructure from live-backed backend-reachable issuer routes.
+
+### Validation
+
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+- `RUN_LIVE_ETF_HOLDINGS_TESTS=1 rtk backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py`
+
+### Problems found
+
+- Previous notes incorrectly implied broad issuer route breadth was solved by candidate product-page templates. That was wrong: route readiness must be proven by backend-reachable live tests.
+- Invesco's public page embeds a holdings API URL, but that endpoint currently rejects backend HTTP requests with HTTP 406 even with browser-like headers and referer context.
+
+### Next step
+
+- Continue provider-by-provider route work for Vanguard, Schwab, Invesco, First Trust, WisdomTree, ProShares, Direxion, JPMorgan, Dimensional, PIMCO, Franklin, Fidelity, and other long-tail issuers, adding each issuer to live tests only once a backend-reachable full-holdings route is proven.
+
+---
+
+### Timestamp
+
+- 2026-06-08T14:47:50Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Enforce that ETF issuer support and live-provider tests cannot drift apart.
+
+### Completed
+
+- Added `live_tested_default_route` to issuer adapter configuration and adapter-catalog output.
+- Marked only SPDR, iShares/BlackRock, ARK, VanEck, and Global X as live-backed default routes.
+- Removed Vanguard and Schwab inferred product-page templates from the ready route path; without an explicit configured source URL they now remain candidate-route gaps instead of probing as ready.
+- Expanded the live provider test file so every registered issuer adapter is covered:
+  - five adapters must fetch real holdings successfully from live issuer routes
+  - nine adapters must remain explicit candidate-route gaps and must not claim default support
+- Updated focused integration tests for the adapter catalog, ARK route probing, and Vanguard candidate-route behavior.
+- Updated TODO/handoff/state docs so "supported provider" means live-backed, not merely registered as a candidate adapter.
+
+### Validation
+
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_admin_can_probe_ready_issuer_adapter_route backend/tests/integration/api/test_etf_holdings.py::test_admin_can_list_holdings_adapter_catalog backend/tests/integration/api/test_etf_holdings.py::test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured --no-cov -q`
+- `RUN_LIVE_ETF_HOLDINGS_TESTS=1 rtk backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py --no-cov -q`
+- `rtk uv run ruff check backend/app/services/etf_holdings_adapters.py backend/app/schemas/etf_holdings.py backend/tests/live/test_etf_holdings_live_providers.py backend/tests/integration/api/test_etf_holdings.py`
+- `git diff --check`
+
+### Problems found
+
+- Vanguard and Schwab were previously able to probe as ready from inferred product-page templates despite lacking live-backed holdings extraction. That created the exact "registered support without live tests" imbalance and is now corrected.
+
+### Next step
+
+- Implement real backend-reachable routes for the nine candidate-gap issuers one by one, promoting each issuer to `live_tested_default_route=True` only after a live test proves a full holdings fetch.
+
+---
+
+### Timestamp
+
 - 2026-06-07T14:18:58Z
 
 ### Worker
@@ -4534,6 +4700,51 @@ Append a short entry after each worker session.
 
 ### Timestamp
 
+- 2026-06-08T16:05:34Z
+
+### Worker
+
+- Codex
+
+### Task
+
+- Retire the generic ETF holdings URL adapter path and enforce provider-specific adapter registration.
+
+### Completed
+
+- Removed the remaining runtime fallback to `configured_csv_url`; adapter success/failure state now records unresolved profiles as `unresolved` instead of inventing a generic adapter key.
+- Changed the shared public CSV/XLSX/ZIP fetcher documentation/probe behavior so it is explicitly a parser helper for concrete issuer adapters, not a standalone provider implementation.
+- Tightened issuer probe failures so providers without a live-backed route now report `needs_provider_implementation`, while provider adapters with known route metadata still report `needs_issuer_route`.
+- Converted integration tests that previously configured arbitrary public holdings URLs into provider-specific ARK/SPDR route tests, including provider-route success, product-page-discovered ZIP refresh, rate-limit state, malformed artifact state, catalog output, and unsupported-provider probe behavior.
+- Added unit-level registry invariants proving `configured_csv_url` is not registered and every registered issuer adapter is a concrete provider-specific adapter class.
+- Updated TODO/state/handoff wording so the current architecture is provider-specific issuer adapters, with the old arbitrary download URL fallback explicitly retired.
+
+### Validation
+
+- `rtk uv run ruff check backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_refresh.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/integration/api/test_etf_holdings.py backend/tests/live/test_etf_holdings_live_providers.py`
+- `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+- `rtk backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_admin_can_refresh_ark_provider_route backend/tests/integration/api/test_etf_holdings.py::test_admin_can_refresh_spdr_provider_xlsx_route backend/tests/integration/api/test_etf_holdings.py::test_admin_can_refresh_spdr_product_page_discovered_zip_route backend/tests/integration/api/test_etf_holdings.py::test_refresh_failure_records_rate_limit_adapter_state backend/tests/integration/api/test_etf_holdings.py::test_refresh_failure_records_malformed_holdings_adapter_state backend/tests/integration/api/test_etf_holdings.py::test_admin_can_list_holdings_adapter_catalog backend/tests/integration/api/test_etf_holdings.py::test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured --no-cov -q`
+- `RUN_LIVE_ETF_HOLDINGS_TESTS=1 rtk backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py --no-cov -q`
+- `python -m json.tool ops/state.json >/tmp/state.json.check`
+- `git diff --check`
+
+### Problems found
+
+- The first converted ARK integration test initially failed because the fake CSV asserted an expected ETF symbol without including fund-level identity metadata; fixed by adding `Fund Ticker`.
+- The converted rate-limit test still expected `spdr` after moving the fixture to ARK's CSV route; fixed to assert `ark`.
+
+### Assumptions
+
+- Discovery feed fields such as `holdings_url` can still be stored as raw issuer metadata for audit/routing context, but they are no longer executable refresh support unless a concrete provider adapter resolves and fetches them through that provider's implementation.
+
+### Next step
+
+- Continue adding one concrete provider implementation per US ETF issuer/provider and only promote providers to supported when backend-reachable live tests pass.
+
+---
+
+### Timestamp
+
 - 2026-06-06T19:07:24Z
 
 ### Worker
@@ -4552,7 +4763,7 @@ Append a short entry after each worker session.
 - Extended the adapter catalog API/schema to expose `product_page_templates` so operators can inspect this route class.
 - Added focused integration coverage proving Schwab can refresh holdings from an inferred product page and that Vanguard probes as ready through its inferred product page template.
 - Updated an underconfigured-route test to use WisdomTree, which still represents issuers requiring explicit route metadata.
-- Updated `docs/project-todos.md`, `ops/handoff.md`, and `ops/state.json` so issuer breadth is no longer listed as the gap; remaining issuer work is hardening.
+- Updated `docs/project-todos.md`, `ops/handoff.md`, and `ops/state.json` so issuer breadth was no longer listed as the gap; superseded by the 2026-06-08 live-route audit, which restored explicit provider-support gaps for issuers without backend-reachable live-tested routes.
 
 ### Validation
 

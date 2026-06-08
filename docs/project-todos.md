@@ -1825,7 +1825,7 @@ Implementation status:
   - metadata-only lightweight materialization of ETFs and holdings constituents through the existing instrument mastering model
   - explicit source/provenance fields, `as_of_date`, `known_at`, `published_at`, source quality, completeness, raw artifact retention, and adapter health tracking
   - scheduled refresh hook behind `ETF_HOLDINGS_REFRESH_ENABLED`
-  - a usable free-source baseline where ETF profiles can point at configured public holdings CSV/XLSX URLs through `provider_aliases.holdings_url` / `issuer_holdings_url` / `holdings_csv_url`
+  - a usable free-source baseline where ETF profiles refresh through provider-specific holdings adapters instead of arbitrary profile-level download URLs
   - Chart page holdings panel with source/freshness/resolution metadata, filter/sort, selected holding details, previous/next navigation, and explicit constituent open actions
   - Strategy Lab can use ETF holdings as a strategy universe through the visual builder:
     - latest available snapshot mode
@@ -1842,13 +1842,20 @@ Implementation status:
   - a basket builder/editor workspace now exists for user-owned baskets, and ETF-derived baskets are visible as read-only entries
   - a first backend basket synthetic OHLCV endpoint exists for rebased-to-100 basket return series
   - Chart can open basket synthetic series through `/chart/BASKET:{id}` from the basket builder, using the backend weighted basket OHLCV endpoint without treating the basket token as a normal watchlist/recent instrument
-  - an adapter registry seam exists; configured public CSV URLs are fetched through the registered adapter interface and adapter-state health is persisted
+  - an adapter registry seam exists; only concrete provider-specific ETF issuer adapters are registered, and adapter-state health is persisted per profile/provider
   - issuer-aware CSV adapter routes now exist for major issuer keys:
     - ETF profiles can resolve holdings downloads from explicit issuer URLs, URL templates, issuer product ids, and issuer-specific file names instead of requiring every route to be stored as a raw `holdings_url`
     - ETF profiles can also provide issuer product/fund page URLs; the adapter can discover linked CSV/XLSX holdings files from those pages and then ingest the resolved file
-    - ARK-style holdings file-name route construction is implemented as a concrete adapter example
-    - iShares/BlackRock product-id, State Street/SPDR symbol-based daily workbook, and inferred issuer product-page routes are implemented for the broad starter path
-    - inferred product-page templates now cover common symbol-addressable pages for Vanguard, Invesco, Schwab, Global X, and VanEck; other issuers can still use explicit product URLs, issuer discovery feeds, or profile-level URL templates without new code
+    - ARK-style holdings file-name route construction is implemented against ARK's current public `assets.ark-funds.com` CSV files for known ARK ETF symbols
+    - iShares/BlackRock product-id and State Street/SPDR symbol-based daily workbook routes are implemented as backend-reachable public constructors
+    - issuer product-page discovery is implemented for explicit product URLs and for candidate symbol-addressable page templates; only backend-reachable routes should be treated as ready after live/provider probing
+    - current backend-reachable live-tested issuer routes cover SPDR, iShares/BlackRock, ARK, VanEck, and Global X; these are the only issuer adapters currently treated as supported default routes
+    - iShares/BlackRock now uses the current BlackRock product-data JSON holdings API for live-backed default routes; tested seeded product ids include IVV and IWM, so selecting IWM can bootstrap a full holdings snapshot on an empty branch instead of falling back to top-holdings page data
+    - the live provider test matrix covers every registered issuer adapter, either as a successful backend-reachable route or as an explicit candidate-route gap, so unsupported providers cannot silently masquerade as supported
+    - Invesco has an explicit JSON parser for configured source URLs, but its currently embedded public `dng-api` holdings endpoint returns HTTP 406 to backend requests and must not be auto-advertised as ready
+    - Vanguard and Schwab candidate product pages remain useful routing hints, but backend-reachable full-holdings extraction is not yet live-proven and should remain a provider-support gap until current public routes can be fetched and parsed reliably
+    - the intended architecture is one provider-specific implementation per ETF issuer/provider, just like market-data providers; explicit product URLs, issuer discovery feeds, and profile-level URL templates remain useful provider-configuration seams while that provider-specific catalogue is built, but they are not a substitute for claiming provider support
+    - each provider implementation should be promoted to supported only when backend-reachable live tests prove that the provider-specific route fetches full holdings reliably
     - issuer adapters probe whether enough route metadata exists before refresh, and profiles without enough metadata are marked as needing issuer route configuration instead of silently pretending refresh support exists
     - admin `POST /api/v1/etf-holdings/{symbol}/probe-adapter` exposes route-readiness status, resolved source URL, confidence, and missing identifier requirements before a refresh is attempted
     - fetched issuer artifacts now run through explicit identity validation before ingestion:
@@ -1945,8 +1952,8 @@ Data / provider side:
     - keep the adapter framework tolerant of issuer website changes, because free public issuer files are valuable but brittle
 - Provider-specific holdings adapter framework status:
   - a registry and common adapter interface now exists
-  - configured public holdings CSV/XLSX/ZIP URLs are handled through a `configured_csv_url` adapter
-  - major issuer adapter keys now use issuer-aware CSV route adapters that can resolve from profile-level URLs, URL templates, issuer product ids, and file-name hints
+  - the previous `configured_csv_url` fallback has been retired; arbitrary profile-level download URLs are not treated as provider support
+  - major issuer adapter keys now use isolated provider-specific route adapters that resolve from that provider's own known route shape, product ids, issuer-specific file-name hints, or product-page discovery
     - issuer-aware adapters can now discover linked holdings CSV/XLSX/ZIP files from configured issuer product/fund page URLs before ingesting
     - product-page holdings discovery now scans conservative URL-bearing attributes and quoted page configuration strings, not only literal anchor `href` links, while still requiring holdings/portfolio/constituent file hints
   - concrete issuer-specific URL constructors now exist for:
@@ -1954,11 +1961,11 @@ Data / provider side:
     - iShares/BlackRock product-id based public CSV holdings files
     - State Street/SPDR symbol-based public daily holdings XLSX files
   - inferred issuer product-page templates now exist for:
-    - Vanguard symbol-addressable ETF profile pages
-    - Invesco symbol-addressable ETF holdings pages
-    - Schwab symbol-addressable product pages
-    - Global X symbol-addressable fund pages
-    - VanEck symbol-addressable holdings pages
+    - Global X symbol-addressable fund pages, currently live-tested through product-page discovery
+    - VanEck symbol-addressable holdings/download routes, currently live-tested through deterministic holdings workbook download
+    - Vanguard symbol-addressable ETF profile pages as candidate route hints only, pending backend-reachable holdings extraction
+    - Schwab symbol-addressable product pages as candidate route hints only, pending backend-reachable holdings extraction
+    - Invesco explicit holdings source URLs through the JSON parser only; automatic backend route support is not currently live-backed because the embedded public API returns HTTP 406 to backend requests
   - admin route-readiness probing exists and persists adapter-state health for ready and under-configured profiles
   - admin adapter-state inspection now exposes persisted adapter health, including HTTP rate-limit/blocking classification from failed refreshes and clearing on successful retry
   - admin adapter-catalog inspection now exposes registered adapter keys, route identifiers, required identifiers, supported artifact formats, parser confidence, and explicit dated-fetch/ETF-discovery capability flags
@@ -1976,8 +1983,8 @@ Data / provider side:
     - common issuer schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, and non-holding disclaimer rows are handled by the common parser
     - SEC legacy reconstruction handles simple XML/table filings, simple HTML tables, split identity/value rows, month-name dates, and value-in-thousands schedules
     - live issuer smoke tests now exist behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`, intentionally separated from deterministic CI so provider drift can be checked against real issuer websites/files without making the normal suite network-dependent
-    - current live suite passes against backend-reachable public issuer routes for SPDR, iShares, Global X, and VanEck; iShares has an inline top-holdings fallback for the current HTML-shell response and VanEck uses its deterministic holdings workbook download route
-  - still ongoing as maintenance: unusual issuer-specific schemas beyond the common parser, richer issuer-specific identity extraction for non-tabular pages/PDFs/unusual issuer metadata formats, direct-download/API constructors for issuers where product-page discovery is insufficient, automatic issuer-specific historical-date discovery beyond explicitly configured dated URL templates, automatic per-issuer ETF discovery beyond explicit configured fund-list feeds, and backend-reachable live routes for currently blocked/non-static issuers such as ARK, Vanguard, and Schwab
+    - current live suite passes against backend-reachable public issuer routes for SPDR, iShares, ARK, Global X, and VanEck; iShares has an inline top-holdings parser for the current HTML-shell response, ARK uses its public assets CSV files, and VanEck uses its deterministic holdings workbook download route
+  - still ongoing as source-coverage work, not merely incidental maintenance: unusual issuer-specific schemas beyond the common parser, richer issuer-specific identity extraction for non-tabular pages/PDFs/unusual issuer metadata formats, direct-download/API constructors for issuers where product-page discovery is insufficient, automatic issuer-specific historical-date discovery beyond explicitly configured dated URL templates, automatic per-issuer ETF discovery beyond explicit configured fund-list feeds, and backend-reachable live routes for currently blocked/non-static issuers such as Vanguard, Schwab, Invesco, First Trust, WisdomTree, ProShares, Direxion, JPMorgan, Dimensional, PIMCO, Franklin, and Fidelity
 - Continue expanding the provider-specific holdings adapter framework:
   - each adapter should expose a common interface:
     - discover supported ETFs

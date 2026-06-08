@@ -13,6 +13,24 @@
 
 ## Completed in this session
 
+- Fixed ETF holdings bootstrap so selecting a valid ETF from the `/etf-holdings` picker no longer dead-ends on a fresh branch with an empty holdings database.
+- Added a non-admin ETF bootstrap endpoint that:
+  - persists/selects the ETF profile for the chosen symbol
+  - uses the picker-provided ETF name to improve adapter inference
+  - attempts an immediate first holdings snapshot refresh when a route is ready
+  - returns a structured readiness/message payload when no current snapshot can yet be fetched
+- Updated the ETF holdings frontend workspace to bootstrap on picker selection instead of only browsing pre-existing stored snapshots.
+- Hardened the ETF holdings frontend workspace against empty/non-array profile reloads during bootstrap transitions.
+- Fixed a backend mastering bug uncovered by XLE bootstrap:
+  - lightweight ETF bootstrap was incorrectly creating a fake `internal` identifier (`etf:{symbol}`)
+  - the mastering layer then tried to add the real `instrument:{id}` internal identifier
+  - this produced multiple internal identifiers on one instrument and crashed with `MultipleResultsFound`
+- Removed the bogus ETF bootstrap `internal` identifier and made `ensure_internal_identifier` self-heal duplicate internal-identifier rows by keeping one canonical `instrument:{id}` row active and deactivating/superseding the rest.
+- Added focused regression coverage for:
+  - lightweight ETF bootstrap creating only one canonical internal identifier
+  - duplicate internal-identifier cleanup in instrument mastering
+  - the ETF holdings bootstrap endpoint materializing a first snapshot or persisting a route-not-ready profile cleanly
+
 - Added ETF holdings persistence with Alembic migration and ORM models:
   - `etf_profile`
   - `etf_holdings_raw_artifact`
@@ -36,9 +54,9 @@
 - Added lightweight instrument materialization for ETF profiles and constituent rows without fetching price history.
 - Added source/provenance semantics that separate arbitrary issuer/source names from the registered internal data-source provider.
 - Registered `etf_holdings_internal` as a provider descriptor for provenance and instrument-mastering compatibility.
-- Added a configurable public CSV/XLSX refresh path:
-  - ETF profiles can define `provider_aliases.holdings_url`, `issuer_holdings_url`, `holdings_csv_url`, or `latest_holdings_url`
-  - refresh fetches the configured URL, parses holdings, stores raw artifacts, and creates a dated snapshot
+- Added ETF holdings refresh through provider-specific issuer adapters:
+  - arbitrary profile-level holdings URLs are no longer registered as a supported fallback adapter
+  - concrete issuer adapters resolve that provider's own route shape, parse holdings, store raw artifacts, and create dated snapshots
   - failures are stored in `etf_holdings_adapter_state`
 - Added a scheduled ETF holdings refresh task behind `ETF_HOLDINGS_REFRESH_ENABLED`.
 - Added a Chart page ETF holdings panel:
@@ -104,7 +122,7 @@
   - Chart loads basket OHLCV through the basket endpoint
   - basket chart tokens are not added to recent instruments or watchlists and do not show the ETF holdings panel
 - Refactored ETF holdings refresh behind an adapter registry:
-  - configured public CSV/XLSX/ZIP URL refresh now goes through the common adapter interface
+  - only concrete provider-specific issuer adapters are registered; the old generic configured-URL adapter path has been retired
   - major issuer adapter keys now use issuer-aware CSV route adapters that can resolve source URLs from profile URLs, URL templates, issuer product ids, and file-name hints
   - ARK-style public holdings file-name route construction is implemented as the first concrete issuer-specific route
   - iShares/BlackRock product-id based CSV route construction is implemented as a second concrete issuer-specific route
@@ -185,6 +203,14 @@
 
 ## Validation
 
+- `backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py --no-cov -q`
+- `backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py::test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot backend/tests/integration/api/test_etf_holdings.py::test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved --no-cov -q`
+- `backend/.venv/bin/pytest backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
+- `rtk npm --prefix frontend run test -- tests/unit/views/test_etf_holdings_view.test.ts`
+- `rtk npm --prefix frontend run type-check`
+- `rtk uv run ruff check backend/app/services/etf_holdings.py backend/app/services/instrument_mastering.py backend/tests/unit/services/test_etf_holdings_bootstrap.py`
+- `rtk uv run ruff check backend/app/routers/etf_holdings.py backend/app/services/etf_holdings_refresh.py backend/app/schemas/etf_holdings.py backend/tests/integration/api/test_etf_holdings.py`
+
 - `rtk uv run ruff check backend/app/models/etf_holdings.py backend/app/schemas/etf_holdings.py backend/app/services/etf_holdings.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_refresh.py backend/app/routers/etf_holdings.py backend/app/tasks/etf_holdings_tasks.py backend/app/main.py backend/app/workers/arq_worker.py backend/app/providers/etf_holdings_internal.py backend/app/providers/registry.py backend/tests/integration/api/test_etf_holdings.py backend/tests/unit/services/test_provider_registry.py backend/alembic/versions/b8c9d0e1f2a3_add_etf_holdings.py`
 - `rtk uv run ruff check backend/app/models/basket.py backend/app/schemas/basket.py backend/app/services/baskets.py backend/app/routers/baskets.py backend/app/routers/etf_holdings.py backend/app/main.py backend/app/models/__init__.py backend/tests/integration/api/test_etf_holdings.py backend/alembic/versions/c9d0e1f2a3b4_add_baskets.py`
 - `rtk backend/.venv/bin/pytest backend/tests/unit/services/test_provider_registry.py backend/tests/integration/api/test_etf_holdings.py --no-cov -q`
@@ -250,14 +276,19 @@
 
 - Free-source ETF holdings are stored as ETF holdings/proxy membership, not official index constituents.
 - `known_at`/`published_at` are persisted so Strategy Lab can later avoid look-ahead bias.
-- Generic configured public CSV/XLSX URLs are the usable baseline path today; hardcoded issuer-specific adapters can be layered behind the same service contract.
+- Provider-specific ETF issuer adapters are the target and current architecture: one implementation per issuer/provider, promoted to supported only after backend-reachable live tests prove full-holdings fetches.
 - Lightweight instrument materialization creates metadata-only instruments. Price history is still fetched later by the existing market-data/provider resolver when another feature needs prices.
 
 ## Pending
 
-- Broad issuer route coverage now exists through configured public URLs, profile URL templates, explicit product URLs, configured issuer fund-list feeds, concrete ARK/iShares/SPDR constructors, and inferred product-page templates for common Vanguard/Invesco/Schwab/Global X/VanEck symbol-addressable pages.
+- Broad issuer routing infrastructure exists through provider-specific route constructors, explicit product URLs, configured issuer fund-list feeds, concrete ARK/iShares/SPDR constructors, and product-page discovery, but issuer coverage must be treated as live-route proven only after backend-reachable tests pass.
+- Current backend-reachable live-tested issuer routes cover SPDR, iShares/BlackRock, ARK, VanEck, and Global X.
+- iShares/BlackRock default support now uses the current BlackRock product-data JSON holdings API; seeded, live-tested product ids include IVV and IWM, so IWM can bootstrap a full current holdings snapshot from a fresh DB.
+- The live provider test matrix now covers every registered issuer adapter: five adapters must fetch real holdings successfully, and nine adapters are asserted as explicit candidate-route gaps rather than supported default routes.
+- Invesco has an explicit JSON parser for configured source URLs, but its embedded public `dng-api` holdings route currently returns HTTP 406 to backend requests and is not auto-advertised as ready.
+- Vanguard and Schwab still need current backend-reachable full-holdings routes; candidate product-page templates alone are not sufficient to claim provider support.
 - Source-hardening baseline now exists: malformed/empty issuer files fail refresh and persist adapter failure state; provider blocking/rate-limit failures are classified separately; common issuer schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, and disclaimer-row skipping are handled; and SEC legacy parsing covers XML/table filings, simple HTML, split identity/value rows, month-name dates, and value-in-thousands schedules. Remaining source work is long-tail maintenance rather than a core gap: unusual issuer schemas, non-tabular/PDF-like disclosures, automatic discovery beyond explicit configured feeds, extra direct constructors where discovery is insufficient, and deeper historical archive discovery.
-- Live issuer smoke tests now exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. The current escalated live run passes against backend-reachable public issuer routes for SPDR, iShares, Global X, and VanEck. ARK, Vanguard, and Schwab remain explicit provider-support gaps until we add current backend-reachable routes/APIs for their blocked/non-static public pages.
+- Live issuer smoke tests now exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. The current escalated live run passes against backend-reachable public issuer routes for SPDR, iShares, ARK, Global X, and VanEck. Vanguard, Schwab, Invesco, and other long-tail issuers remain explicit provider-support gaps until current backend-reachable routes/APIs are implemented and live-tested.
 - SEC N-PORT/N-PORT-P XML parsing/admin ingestion, recent and archived EDGAR discovery/download, persistent accession/job state, duplicate-safe reruns, and bulk/scheduled hooks exist; baseline N-Q/N-CSR-style legacy XML/table, simple HTML schedule-table parsing, split-row HTML schedule reconstruction, month-name report dates, value-in-thousands schedules, manual/admin ingestion, EDGAR discovery/download/backfill, duplicate-safe reruns, and bulk processing also exist. Deeply nested/footnoted HTML filings and PDF-like filing handling remain long-tail maintenance.
 - Basket builder/editor UI, backend basket OHLCV, and initial Chart synthetic basket loading exist; richer basket metadata/watchlist/compare semantics are not implemented yet.
 - Strategy Lab consumes ETF holdings snapshots and baskets as static universes, and rules backtests now expose opt-in dynamic point-in-time ETF holdings mode plus ETF-derived and manual basket dynamic modes in the visual builder with an explicit constituent-removal exit policy and baseline execution-log snapshot attribution surfaced in the UI. Richer basket rebalance policies, historical basket snapshot editing/import UX, and deeper attribution drilldowns remain open.
