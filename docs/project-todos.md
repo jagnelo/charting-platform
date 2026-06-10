@@ -1697,6 +1697,251 @@ Why this was deferred:
 - The free provider stack covers the high-volume refresh use case well.
 - Options and forward estimates require a budget commitment; the user will decide when to activate.
 
+### 9A. Add a free-source-first forward IPO and market-events calendar
+Status: `Planned`
+
+Context:
+- The platform already has pieces that are adjacent to this problem, but not the actual subsystem we need:
+  - persisted per-instrument event storage
+  - a `/calendar` router
+  - dashboard economic-calendar widget surfaces
+  - historical and semi-forward instrument-level events from current providers such as yfinance/EDGAR
+- What is still missing is a **market-wide, forward-looking event layer** that lets the platform look ahead, not just look back.
+- We explicitly want this for two strategic reasons:
+  - discover new tickers before or as they enter the instrument universe
+  - give users forward visibility into market events so they can adjust portfolio exposure ahead of them
+- The initial focus should be **US markets**, because free structured sources are far more realistic there than for EU or APAC right now.
+
+Free-source provider direction confirmed from primary sources:
+- **Massive** should be the first-class free IPO provider:
+  - the Stocks docs expose `GET /vX/reference/ipos`
+  - the endpoint is marked as included in **Stocks Basic Free**
+  - docs describe both **upcoming and historical** IPO events starting from **2008**
+  - docs expose statuses such as:
+    - `rumor`
+    - `pending`
+    - `new`
+    - `history`
+    - `postponed`
+    - `withdrawn`
+    - `direct_listing_process`
+  - docs also expose pagination and sort/order controls, so this can support both:
+    - daily forward polling
+    - backfill of historical IPOs for research/audit
+- **Alpha Vantage** is a sensible free complementary provider:
+  - docs expose `function=IPO_CALENDAR`
+  - docs state it returns IPOs expected in the **next 3 months**
+  - this is CSV-based and easy to ingest cheaply
+  - Alpha Vantage also exposes `EARNINGS_CALENDAR` with `3month`, `6month`, and `12month` horizons, which is useful for broadening the same market-events subsystem beyond IPOs
+  - Alpha Vantage `LISTING_STATUS` is also useful as a **post-listing reconciliation feed**, not a forward calendar:
+    - use it to confirm when a previously future/pending IPO instrument has actually entered the listed universe
+    - use it to enrich exchange / active-status / listing-date metadata after first trade support appears
+    - do not confuse it with a future event source; it is for instrument-master follow-through after the event
+- **SEC EDGAR** should be treated as a free **pipeline/enrichment source**, not the canonical IPO calendar:
+  - SEC search/filings tools and APIs give us free access to registration/prospectus workflows
+  - this is useful for tracking forms such as:
+    - `S-1`
+    - `S-1/A`
+    - `F-1`
+    - `F-1/A`
+    - `424B*`
+  - this will help us detect issuers moving through the IPO funnel earlier than a structured calendar sometimes will
+  - but EDGAR should not be presented as an exact listing-date authority because it is filing-driven, not listing-calendar-driven
+- **Massive market-holiday data** is also worth folding into the same subsystem:
+  - `GET /v1/marketstatus/upcoming` is forward-looking and included in Stocks Basic Free
+  - this is not an IPO feed, but it is a good example of a free market-calendar input that belongs in the same page/widget layer
+- **Finnhub** can be kept as an evaluation candidate, not a committed provider yet:
+  - official docs expose `/calendar/ipo?from=...&to=...`
+  - Finnhub also offers a free API key
+  - but we should not commit to building against it until we explicitly verify that the free tier truly allows this endpoint in practice and with acceptable quotas/terms
+
+Product goals:
+- Build a **forward market-events calendar** that is broader than today’s instrument-specific event history.
+- Make IPOs a first-class event family with both:
+  - calendar-facing UX
+  - instrument-universe bootstrap implications
+- Ensure this subsystem explicitly answers two different user questions:
+  - **what is coming up?**
+  - **what newly tradable instruments should now exist in our universe?**
+- Support both:
+  - a full page
+  - a compact widget
+- Treat this subsystem as part of both:
+  - market research / monitoring
+  - instrument-master / discovery
+
+What remains:
+
+- Add a new provider capability for **forward market events**, distinct from the current instrument-event history model:
+  - examples:
+    - `market_event_calendar`
+    - or a clearly named equivalent
+  - do not overload the current per-instrument event fetch path with market-wide future events
+  - allow multiple providers to contribute to the same normalized market-event feed
+
+- Add provider implementations for the free sources that actually make sense:
+  - `massive`
+    - ingest `reference/ipos`
+    - support status filtering and pagination
+    - store the provider payload and provider-specific status semantics
+    - use this as the primary free IPO backbone
+  - `alphavantage`
+    - ingest `IPO_CALENDAR`
+    - later also ingest `EARNINGS_CALENDAR` into the same broader market-events system
+    - ingest `LISTING_STATUS` into the instrument-master follow-through side so future IPO placeholders can be promoted once the listing is real
+    - normalize CSV payloads into the same event schema
+  - `edgar`
+    - add a supplementary IPO-pipeline detector for filings such as `S-1`, `S-1/A`, `F-1`, `F-1/A`, `424B*`
+    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates
+  - optionally `finnhub`
+    - only after free-tier access is explicitly validated in practice
+    - if validated, use it as another corroborating structured IPO source, not as the sole source of truth
+
+- Introduce a normalized **market event** model that is not equity-price-history-centric:
+  - event family:
+    - `ipo`
+    - `direct_listing`
+    - `market_holiday`
+    - later:
+      - `earnings_calendar`
+      - `fed/cpi/macro`
+      - `lockup_expiry`
+      - `index_rebalance`
+      - `etf_rebalance`
+  - event dates/timestamps:
+    - announced date
+    - expected listing date
+    - actual listing date
+    - last updated timestamp
+  - lifecycle/status:
+    - rumor
+    - pending
+    - priced
+    - new/live
+    - history/completed
+    - postponed
+    - withdrawn
+    - direct listing
+  - identifiers:
+    - provisional ticker
+    - issuer name
+    - exchange / MIC
+    - ISIN / CUSIP / other identifiers where available
+    - SEC CIK / filing references where available
+  - economics:
+    - expected price range
+    - final issue price
+    - shares offered
+    - offer size
+    - currency
+  - provenance:
+    - source provider
+    - source URL
+    - raw payload snapshot
+    - confidence / reconciliation state
+
+- Build a reconciliation strategy across providers so we do not create duplicate IPO events or duplicate future instruments:
+  - match first by:
+    - ISIN
+    - CUSIP
+    - CIK
+    - exchange + ticker + listing date
+  - then by conservative issuer-name similarity only as a weaker fallback
+  - keep provider-specific aliases and raw source ids for auditability
+  - preserve conflicting provider claims instead of silently overwriting them
+
+- Materialize **pre-listing instruments** as a first-class concept:
+  - upcoming IPOs should be able to create instrument records before bars exist
+  - these should be clearly marked as:
+    - pre-listing / pending
+    - not chartable yet if no price history exists
+    - event-driven / future-facing rather than provider-price-history-backed
+  - when the instrument actually lists and our normal instrument providers begin supporting it:
+    - reconcile the pre-listing placeholder with the real listed instrument
+    - preserve the IPO event history and source provenance
+  - this should directly improve the instrument universe by letting us know about new tickers before first trade data arrives
+  - the reconciliation flow should intentionally combine:
+    - future event sources (Massive / Alpha IPO calendar / EDGAR pipeline)
+    - post-listing confirmation sources (Alpha `LISTING_STATUS`, normal instrument search/materialization, regular metadata providers)
+  - this lets us support the whole lifecycle:
+    - rumor / pending
+    - expected listing
+    - listed but still thinly-covered
+    - fully normal instrument in the broader platform
+
+- Extend the calendar UX from instrument-specific history into a **market-wide forward planner**:
+  - page:
+    - list/calendar timeline of upcoming IPOs and other future market events
+    - filters by event type, date range, exchange, status, and provider
+    - sort by expected date, provider update recency, or event importance
+    - search by issuer name, ticker, or identifier
+  - widget:
+    - compact “upcoming IPOs / market events” surface for dashboard use
+    - configurable horizon such as:
+      - 1 week
+      - 1 month
+      - 3 months
+    - should be able to exist both:
+      - as a general market-events widget
+      - as a narrower “upcoming IPOs” widget for users specifically tracking future listings
+  - interaction:
+    - clicking a future IPO instrument should open its instrument details page if no chart exists yet, and the chart only once price history exists
+    - hovering/clicking a market event should expose provenance and confidence:
+      - which provider(s) reported it
+      - whether the date is tentative or confirmed
+      - whether the instrument is already listed in our master
+
+- Make the subsystem useful for portfolio/risk workflows:
+  - let users inspect upcoming IPOs and future event clusters by date
+  - later allow strategies/radar/alerts to pause or adapt around forward event windows
+  - surface event density such as:
+    - many IPOs this week
+    - major holiday-shortened week
+    - large concentration of future earnings in selected watchlists
+  - allow simple “watch ahead” workflows such as:
+    - all upcoming IPOs in the next 14/30/90 days
+    - all pending listings that do not yet exist as normal instruments
+    - all events affecting a chosen exchange or watchlist
+    - all events whose dates or statuses changed since last refresh
+
+- Add explicit coverage semantics so users know how far ahead each provider can see:
+  - Massive IPO coverage:
+    - structured historical + upcoming, with status lifecycle
+  - Alpha Vantage IPO coverage:
+    - next 3 months only
+  - Alpha Vantage earnings coverage:
+    - 3/6/12 month forward windows
+  - Alpha Vantage listing-status coverage:
+    - post-listing universe confirmation, not a future-calendar source
+  - EDGAR pipeline coverage:
+    - filing-driven, not guaranteed listing-date accuracy
+  - the UI should not pretend that all providers offer the same horizon or confidence
+  - the UI should also clearly distinguish:
+    - **future calendar confidence**
+    - **instrument-master readiness**
+    - **price-history readiness**
+
+- Keep geography segmented in the design:
+  - implement US first
+  - keep provider/region fields in the schema so we can later add:
+    - EU IPO/event sources
+    - APAC IPO/event sources
+  - do not hard-code the model to US-only assumptions even though the first provider stack will be US-heavy
+  - for now, explicitly document that:
+    - reliable free structured forward IPO coverage is strongest for the US
+    - EU / APAC support should remain adapter-ready in the schema but not be promised until solid free sources are identified
+
+Why this was deferred:
+- The platform already has the beginnings of a calendar/event story, but not the forward-looking market-wide event model this needs.
+- The best free implementation is broader than “just add one endpoint”; it touches:
+  - providers
+  - storage
+  - instrument discovery/materialization
+  - dashboards
+  - calendar UX
+  - later strategy/risk workflows
+- It deserves a focused implementation pass instead of being quietly bolted onto the existing per-instrument event tables.
+
 ### 10. Expand provider chain seeding and scheduling for bulk universe refresh
 Status: `Planned`
 
@@ -2239,7 +2484,213 @@ Why this matters:
 
 ---
 
-#### Shared design principles across 10a–10e
+#### 10f. Relative Rotation Graph (RRG-style) relative-strength rotation analysis
+
+Context:
+- We discussed adding a **Relative Rotation Graph-style** view so users can track relative leadership and rotation across a peer set, with the first practical use case being **S&P sector ETFs** against a common benchmark such as the S&P 500.
+- The same capability should then generalize to **any arbitrary basket of instruments**:
+  - sector ETFs
+  - country ETFs
+  - factor ETFs
+  - watchlists
+  - ETF holdings subsets
+  - user baskets
+  - later even Strategy Lab result series or platform-owned signal baskets where useful
+- Based on the source material we reviewed, the core idea is:
+  - compute a **relative-strength series** of each instrument versus a selected benchmark
+  - derive a normalized **trend-of-relative-strength** axis (`RS-Ratio`)
+  - derive a normalized **momentum-of-relative-strength** axis (`RS-Momentum`)
+  - plot each instrument on a two-dimensional plane whose axes cross at a neutral center and whose four quadrants describe the instrument's current relative phase
+  - retain a **tail/history** so users can see the recent rotation path, not just the latest point
+- The classic quadrant semantics are:
+  - `Leading`: strong relative trend and strong relative momentum
+  - `Weakening`: strong relative trend but fading relative momentum
+  - `Lagging`: weak relative trend and weak relative momentum
+  - `Improving`: weak relative trend but improving relative momentum
+- The user's intended workflow is tactical sector allocation:
+  - compare sector ETFs to a benchmark
+  - see which sectors are emerging, rolling over, improving, or deteriorating
+  - adjust portfolio positioning based on relative leadership and its evolution through time
+- This should be treated as a **market-analysis / cross-instrument analytics** feature first, not only a Strategy Lab concern.
+
+Important implementation note:
+- The exact proprietary JdK normalization used in branded/commercial RRG implementations should not be assumed to be freely reproducible unless we intentionally license or explicitly clone it from an allowed/public method.
+- Our implementation should therefore be framed as:
+  - either a licensed/faithful RRG implementation if we later choose that path
+  - or a clearly labeled **RRG-style relative rotation view** built from transparent relative-strength and momentum transforms
+- Product naming, disclosure, and UX copy should respect the trademarked nature of `Relative Rotation Graphs` / `RRG` where relevant.
+
+What remains:
+
+Analytics / computation engine:
+- Build a reusable **relative-rotation analytics service** that accepts:
+  - a benchmark instrument
+  - a peer universe of instruments
+  - timeframe / bar granularity
+  - lookback window
+  - tail length
+  - sampling frequency for the plotted tail points
+- Compute a canonical **relative-strength series** for every instrument versus the benchmark:
+  - typically ratio- or return-based relative performance
+  - with explicit handling of missing bars, partial overlap, and benchmark/instrument calendar mismatches
+  - with consistent point-in-time alignment rules so cross-instrument comparisons are not distorted by stale or shifted bars
+- Derive two normalized dimensions per instrument:
+  - a **relative-trend dimension** equivalent in spirit to `RS-Ratio`
+  - a **relative-momentum dimension** equivalent in spirit to `RS-Momentum`
+- Be explicit about the platform math:
+  - if we cannot or should not reproduce the exact commercial JdK formula, document the transparent internal alternative
+  - keep the transforms deterministic and auditable
+  - expose enough metadata that advanced users can understand what the chart is based on
+- Persist or cache computed rotation snapshots where useful so the platform can support:
+  - historical replay
+  - animation
+  - dashboard widgets
+  - cross-date comparison
+  - export without recomputing large universes every time
+
+Quadrant / state model:
+- Classify each instrument into a current relative state:
+  - leading
+  - weakening
+  - lagging
+  - improving
+- Also compute richer state descriptors beyond the raw quadrant:
+  - distance from center
+  - heading / angle of travel
+  - rate of change of heading
+  - recent quadrant transitions
+  - time spent in current quadrant
+  - acceleration / deceleration of rotation
+- This richer state is important because users do not only care where an instrument is now, but:
+  - whether it is moving deeper into leadership
+  - whether it is curling over
+  - whether it is improving with conviction
+  - whether it is merely bouncing around near the origin without real signal
+
+Primary product surface:
+- Add a dedicated **Relative Rotation** workspace or analysis panel where users can:
+  - choose a benchmark
+  - choose a peer set
+  - switch timeframes
+  - adjust lookback and tail length
+  - animate or scrub through history
+  - inspect both the latest state and recent path
+- The first-class preset should be **S&P sector ETFs**:
+  - benchmark default: `SPY`, `IVV`, or the S&P 500 index if available
+  - peer set default: the major US sector ETFs
+  - one-click load should exist because this is the main intended use case
+- But the selector model must remain generic so the same workspace can be reused for:
+  - arbitrary instruments
+  - watchlists
+  - baskets
+  - ETF-derived baskets
+  - later, strategy or signal peer sets where that makes product sense
+
+Visualization / UX:
+- Plot instruments on a scatter-plot style canvas with:
+  - horizontal axis for relative-trend
+  - vertical axis for relative-momentum
+  - clear neutral/origin crosshair
+  - color-coded quadrants
+  - labeled latest points
+  - tails showing recent motion
+- Support interaction suitable for dense universes:
+  - hover tooltip with symbol, name, latest relative metrics, quadrant, heading, and recent change
+  - click to pin one or more instruments
+  - isolate/highlight selected symbols
+  - hide or fade non-selected symbols
+  - search within the plotted set
+- Support both:
+  - a **latest snapshot** view
+  - a **time-evolution** view where the tail / animation is the star
+- Handle clutter carefully:
+  - adaptive label density
+  - optional point-only mode
+  - optional tail-only-on-selection mode
+  - shorter tails automatically suggested when the plotted universe is large
+- Make the visual feel native to the platform:
+  - consistent typography, sizing, control layout, color tokens, hover behavior, and popups
+  - no oversized or visually disconnected custom control block
+
+Companion views:
+- Add a sortable **rotation table** next to or below the graph showing:
+  - symbol
+  - current quadrant
+  - relative-trend metric
+  - relative-momentum metric
+  - heading / angle
+  - distance from center
+  - recent quadrant transition
+  - rank within selected peer set
+- Add a **history strip / event log** for selected instruments:
+  - when they moved between quadrants
+  - when they crossed the neutral thresholds
+  - how long they remained in leadership vs lagging states
+- Add a **pair/trio comparison mode** where a few selected instruments can be seen with more detail and less clutter.
+
+Data and coverage considerations:
+- This depends on robust aligned OHLCV coverage for:
+  - the benchmark
+  - every instrument in the peer set
+- The view should surface coverage limitations clearly:
+  - partial overlap
+  - benchmark starts later than the selected range
+  - peer instruments with too little history to compute stable signals
+- If coverage is insufficient, the platform should:
+  - either exclude the instrument with a clear reason
+  - or visually mark it as coverage-limited
+  - but never silently compute a misleading path
+
+Downstream integrations:
+- Watchlists / baskets / ETF holdings:
+  - allow any of these to be launched directly into the rotation workspace
+- Correlation / breadth / relative-performance tooling:
+  - share universe selectors and time-range controls with those analytics surfaces where possible
+- Radar:
+  - later, allow radar candidate sets to be inspected through a relative-rotation lens
+  - this can help answer whether a technical setup is also occurring in a strengthening or weakening relative context
+- Strategy Lab:
+  - later, consider whether relative-rotation state should become:
+    - an input condition family
+    - a universe-ranking aid
+    - or a comparative analysis surface for strategy output baskets
+  - but do not force the initial implementation to depend on Strategy Lab
+
+Validation and testing:
+- Add unit coverage for:
+  - relative-strength series construction
+  - normalization/transformation math
+  - quadrant classification
+  - heading / angle / distance calculations
+  - missing-data alignment rules
+- Add integration coverage for:
+  - benchmark-relative calculations across realistic ETF peer sets
+  - coverage-warning semantics
+  - server/API response shape if the computation is backend-driven
+- Add frontend coverage for:
+  - graph rendering
+  - selection/highlight behavior
+  - dense-universe decluttering behavior
+  - tooltip correctness
+  - table/graph cross-linking
+
+Why this matters:
+- This becomes a high-signal visual way to inspect **relative leadership rotation**, which is especially useful for:
+  - sector rotation
+  - macro/factor allocation
+  - ETF peer comparisons
+  - basket triage
+- It also complements, rather than duplicates:
+  - breadth analysis
+  - correlation analysis
+  - strategy research
+- Breadth tells us how broad participation is.
+- Correlation tells us how related instruments are.
+- Relative rotation tells us **who is leading, who is improving, and how that leadership is evolving over time versus a benchmark**.
+
+---
+
+#### Shared design principles across 10a–10f
 
 - **Baskets are first-class objects.** They are not just lists; they carry weights, metadata, classification, and a potential synthetic price series. The domain model should reflect this from the start.
 - **ETF-derived baskets are a special case of the same model.** User baskets and ETF holdings baskets share the same backend schema and frontend surfaces; the distinction is managed vs unmanaged ownership and refresh semantics.
@@ -2247,6 +2698,7 @@ Why this matters:
 - **Breadth analysis should be additive, not a re-architecture.** The breadth engine reads member OHLCV histories that already exist in the platform. It does not require new data infrastructure, only a computation layer on top of existing data.
 - **Sector/industry classification for mixed baskets remains an open design question.** The taxonomy used for classification should be revisited once downstream use cases (breadth grouping, radar slicing) clarify what granularity is actually needed.
 - **Cross-instrument correlation analysis should reuse the same universe-selection building blocks.** Watchlists, baskets, ETF holdings, and later Strategy Lab result sets should be usable as correlation-analysis inputs without needing a separate parallel selector model.
+- **Relative-rotation analysis should reuse the same universe-selection and coverage primitives.** Benchmarks, watchlists, baskets, ETF-derived baskets, and later strategy/signal peer sets should all plug into the same selectors and OHLCV readiness rules rather than introducing another bespoke instrument-set model.
 
 Phasing expectations:
 - Phase 1: Custom basket creation/editing with equal and custom weights, basket charted as a synthetic price series, basic basket list/detail UI.
@@ -2254,6 +2706,7 @@ Phasing expectations:
 - Phase 3: Breadth analysis engine, breadth snapshot views, breadth time-series charting.
 - Phase 4: Basket breadth dashboard widgets, cross-basket comparison views, integration with radar and screener universe selectors.
 - Phase 5: Cross-instrument correlation analysis surfaces, rolling correlation views, and integration of those relationship tools into watchlists/baskets/Strategy Lab workflows.
+- Phase 6: Relative-rotation analysis over arbitrary instrument sets, with S&P sector ETF presets, benchmark-relative tails, and richer downstream integration into watchlists/baskets/Radar/Strategy Lab where useful.
 
 Why this was deferred:
 - Baskets are a foundational building block but depend on having a stable instrument model (already done) and clear downstream consumers.
