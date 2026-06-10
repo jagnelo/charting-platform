@@ -39,7 +39,7 @@
               <small>{{ profile.latest_composition_date || 'No date' }}</small>
             </span>
             <span>{{ profile.name }}</span>
-            <em>{{ profile.resolved_count }} resolved · {{ profile.unresolved_count }} unresolved</em>
+            <em>{{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review</em>
           </button>
         </template>
       </div>
@@ -83,7 +83,7 @@
               <option value="shares">Shares</option>
               <option value="symbol">Symbol</option>
               <option value="name">Name</option>
-              <option value="resolved">Resolved</option>
+              <option value="resolved">Availability</option>
             </select>
           </label>
           <label>
@@ -133,8 +133,8 @@
               <span>{{ formatWeight(holding.weight) }}</span>
               <span>{{ formatMoney(holding.market_value, holding.currency) }}</span>
               <span>{{ formatQuantity(holding.shares) }}</span>
-              <span :class="holding.is_resolved ? 'status-ok' : 'status-warn'">
-                {{ holding.is_resolved ? 'resolved' : 'unresolved' }}
+              <span :class="statusClass(holding)">
+                {{ statusLabel(holding) }}
               </span>
             </button>
           </div>
@@ -146,7 +146,9 @@
                 <h3>{{ holdingSymbol(selectedHolding) }}</h3>
                 <p>{{ holdingName(selectedHolding) }}</p>
               </div>
-              <button type="button" @click="openChart(selectedHolding)">Open chart</button>
+              <button type="button" :disabled="!openableSymbol(selectedHolding)" @click="openChart(selectedHolding)">
+                Open chart
+              </button>
             </div>
             <dl>
               <div>
@@ -170,8 +172,8 @@
                 <dd>{{ selectedHolding.isin || '—' }}</dd>
               </div>
               <div>
-                <dt>Resolution</dt>
-                <dd>{{ selectedHolding.resolution_note || (selectedHolding.is_resolved ? 'Resolved' : 'Unresolved') }}</dd>
+                <dt>Availability</dt>
+                <dd :class="statusClass(selectedHolding)">{{ statusLabel(selectedHolding) }}</dd>
               </div>
             </dl>
           </aside>
@@ -694,7 +696,7 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
       },
     )
 
-    await loadProfiles(normalized, false)
+    await loadProfiles('', false)
     const matchedProfile = profiles.value.find(
       profile => profile.id === bootstrap.profile.id || profile.symbol.toUpperCase() === normalized,
     ) ?? bootstrap.profile
@@ -797,8 +799,13 @@ async function loadSnapshotOptions() {
     compareSnapshotId.value = ''
     return
   }
-  if (!selectedSnapshotId.value && loaded[0]) {
+  const selectedStillExists = loaded.some(option => String(option.snapshot_id) === selectedSnapshotId.value)
+  if ((!selectedSnapshotId.value || !selectedStillExists) && loaded[0]) {
     selectedSnapshotId.value = String(loaded[0].snapshot_id)
+  }
+  const compareStillExists = loaded.some(option => String(option.snapshot_id) === compareSnapshotId.value)
+  if (!compareStillExists) {
+    compareSnapshotId.value = ''
   }
   if (!compareSnapshotId.value && loaded[1]) {
     compareSnapshotId.value = String(loaded[1].snapshot_id)
@@ -1011,12 +1018,45 @@ function formatMoney(value: number | string | null | undefined, currency?: strin
   return currency ? `${currency} ${amount}` : amount
 }
 
+function isSyntheticHoldingSymbol(value: string | null | undefined) {
+  return String(value || '').toUpperCase().startsWith('HOLDING-')
+}
+
 function holdingSymbol(row: ETFHolding) {
-  return row.constituent_symbol || row.reported_symbol || '—'
+  const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
+  return constituent || row.reported_symbol || '—'
 }
 
 function holdingName(row: ETFHolding) {
   return row.constituent_name || row.reported_name || '—'
+}
+
+function isReferenceHolding(row: ETFHolding) {
+  return row.row_type !== 'security' || ['cash', 'currency', 'collateral'].includes(row.holding_type)
+}
+
+function isTradableHolding(row: ETFHolding) {
+  return row.is_resolved && !isReferenceHolding(row)
+}
+
+function statusLabel(row: ETFHolding) {
+  if (isTradableHolding(row)) return 'ready'
+  if (isReferenceHolding(row)) return 'reference'
+  return 'needs match'
+}
+
+function statusClass(row: ETFHolding) {
+  return {
+    'status-ok': isTradableHolding(row),
+    'status-warn': !isTradableHolding(row) && !isReferenceHolding(row),
+    'status-muted': isReferenceHolding(row),
+  }
+}
+
+function openableSymbol(row: ETFHolding) {
+  if (!isTradableHolding(row)) return ''
+  const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
+  return constituent || row.reported_symbol || ''
 }
 
 function venueLabel(row: ETFHolding) {
@@ -1081,7 +1121,7 @@ function evolutionDotClass(series: ETFHoldingsWeightEvolutionSeries, value: numb
 }
 
 function openChart(row: ETFHolding) {
-  const symbol = row.constituent_symbol || row.reported_symbol
+  const symbol = openableSymbol(row)
   if (symbol) router.push(`/chart/${encodeURIComponent(symbol)}`)
 }
 

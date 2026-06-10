@@ -641,7 +641,7 @@ describe('ETFHoldingsView', () => {
       .mockResolvedValueOnce(diffPayload())
       .mockResolvedValueOnce(weightEvolutionPayload())
       .mockResolvedValueOnce(transitionTimelinePayload())
-      .mockResolvedValueOnce([overlapProfile])
+      .mockResolvedValueOnce([profile, overlapProfile])
       .mockResolvedValueOnce(dates)
       .mockResolvedValueOnce(holdingsPage({
         snapshot: {
@@ -703,11 +703,13 @@ describe('ETFHoldingsView', () => {
     expect(api.post).toHaveBeenCalledWith('/etf-holdings/QQQ/bootstrap', {
       name: 'Invesco QQQ Trust',
     })
-    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: 'QQQ' })
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings', { q: undefined })
     await vi.waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/etf-holdings/QQQ/dates')
     })
     expect(wrapper.text()).toContain('QQQ')
+    expect(wrapper.text()).toContain('SPY')
+    expect(wrapper.findAll('button.profile-card')).toHaveLength(2)
   })
 
   it('bootstraps a stored ETF profile with no snapshot before loading holdings', async () => {

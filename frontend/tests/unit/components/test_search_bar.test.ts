@@ -69,7 +69,10 @@ describe('SearchBar', () => {
     expect(wrapper.text()).toContain('Apple Inc.')
 
     await wrapper.findAll('.result-item')[0].trigger('click')
-    expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
+    expect(wrapper.emitted('select')?.[0]).toEqual([
+      'AAPL',
+      { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', type: 'Equity' },
+    ])
   })
 
   it('does not offer or emit a raw direct symbol when search returns no provider matches', async () => {
@@ -146,7 +149,7 @@ describe('SearchBar', () => {
     expect(api.post).toHaveBeenCalledWith('/instruments/resolve-expression', {
       expression: '=SPY-QQQ',
     })
-    expect(wrapper.emitted('select')?.[0]).toEqual(['=SPY-QQQ'])
+    expect(wrapper.emitted('select')?.[0]).toEqual(['=SPY-QQQ', undefined])
   })
 
   it('shows a hint and skips API calls for incomplete expressions', async () => {

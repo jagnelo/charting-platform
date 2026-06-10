@@ -15,7 +15,7 @@
       <div class="header-meta">
         <span>{{ snapshot?.source_provider }}</span>
         <span>{{ snapshot?.source_quality }}</span>
-        <span>{{ snapshot?.resolved_count ?? 0 }}/{{ snapshot?.row_count ?? 0 }} resolved</span>
+        <span>{{ snapshot?.resolved_count ?? 0 }}/{{ snapshot?.row_count ?? 0 }} ready</span>
       </div>
     </header>
 
@@ -30,7 +30,7 @@
           <b>{{ formatDateTime(snapshot?.known_at) }}</b>
         </div>
         <div>
-          <span>Unresolved</span>
+          <span>Needs review</span>
           <b :class="{ warn: (snapshot?.unresolved_count ?? 0) > 0 }">{{ snapshot?.unresolved_count ?? 0 }}</b>
         </div>
         <div>
@@ -45,7 +45,7 @@
           <option value="weight">Weight</option>
           <option value="symbol">Symbol</option>
           <option value="name">Name</option>
-          <option value="unresolved">Unresolved first</option>
+          <option value="unresolved">Needs review first</option>
         </select>
         <span class="visible-count">{{ visibleHoldings.length }}/{{ snapshot?.row_count ?? 0 }} visible</span>
       </div>
@@ -147,8 +147,8 @@
               <b>{{ selectedHolding.row_type }}</b>
             </div>
             <div>
-              <span>Resolution</span>
-              <b :class="statusClass(selectedHolding)">{{ resolutionLabel(selectedHolding) }}</b>
+              <span>Availability</span>
+              <b :class="statusClass(selectedHolding)">{{ statusLabel(selectedHolding) }}</b>
             </div>
           </div>
 
@@ -166,10 +166,6 @@
               <dd>{{ selectedHolding.sedol || '—' }}</dd>
             </div>
           </dl>
-
-          <p v-if="selectedHolding.resolution_note" class="resolution-note">
-            {{ selectedHolding.resolution_note }}
-          </p>
         </aside>
 
         <div v-else class="empty-state">
@@ -248,7 +244,7 @@ const hasNextHolding = computed(() =>
 )
 
 function labelFor(row: ETFHolding, mode: 'symbol' | 'name') {
-  if (mode === 'symbol') return row.constituent_symbol || row.reported_symbol || ''
+  if (mode === 'symbol') return preferredHoldingSymbol(row)
   return row.constituent_name || row.reported_name || ''
 }
 
@@ -279,8 +275,17 @@ function formatMoney(value: number | string | null | undefined, currency?: strin
   return currency ? `${currency} ${amount}` : amount
 }
 
+function isSyntheticHoldingSymbol(value: string | null | undefined) {
+  return String(value || '').toUpperCase().startsWith('HOLDING-')
+}
+
+function preferredHoldingSymbol(row: ETFHolding) {
+  const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
+  return constituent || row.reported_symbol || ''
+}
+
 function holdingSymbol(row: ETFHolding) {
-  return row.constituent_symbol || row.reported_symbol || '—'
+  return preferredHoldingSymbol(row) || '—'
 }
 
 function holdingName(row: ETFHolding) {
@@ -288,7 +293,16 @@ function holdingName(row: ETFHolding) {
 }
 
 function openableSymbol(row: ETFHolding) {
-  return row.constituent_symbol || row.reported_symbol || ''
+  if (!isTradableHolding(row)) return ''
+  return preferredHoldingSymbol(row)
+}
+
+function isReferenceHolding(row: ETFHolding) {
+  return row.row_type !== 'security' || ['cash', 'currency', 'collateral'].includes(row.holding_type)
+}
+
+function isTradableHolding(row: ETFHolding) {
+  return row.is_resolved && !isReferenceHolding(row)
 }
 
 function weightWidth(value: number | string | null | undefined) {
@@ -297,23 +311,17 @@ function weightWidth(value: number | string | null | undefined) {
 }
 
 function statusLabel(row: ETFHolding) {
-  if (row.is_resolved) return 'resolved'
-  if (row.row_type === 'cash') return 'cash'
-  return 'unresolved'
+  if (isTradableHolding(row)) return 'ready'
+  if (isReferenceHolding(row)) return 'reference'
+  return 'needs match'
 }
 
 function statusClass(row: ETFHolding) {
   return {
-    'status-ok': row.is_resolved,
-    'status-warn': !row.is_resolved && row.row_type !== 'cash',
-    'status-muted': !row.is_resolved && row.row_type === 'cash',
+    'status-ok': isTradableHolding(row),
+    'status-warn': !isTradableHolding(row) && !isReferenceHolding(row),
+    'status-muted': isReferenceHolding(row),
   }
-}
-
-function resolutionLabel(row: ETFHolding) {
-  if (!row.is_resolved) return row.resolution_note ? 'unresolved · note' : 'unresolved'
-  if (row.resolution_confidence == null || row.resolution_confidence === '') return 'resolved'
-  return `resolved · ${(numeric(row.resolution_confidence) * 100).toFixed(0)}%`
 }
 
 function venueLabel(row: ETFHolding) {
