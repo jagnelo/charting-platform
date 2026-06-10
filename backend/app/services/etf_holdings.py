@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
@@ -20,7 +21,11 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.providers import ensure_data_source
+from app.providers import (
+    ensure_data_source,
+    get_default_metadata_provider,
+    get_identifier_providers,
+)
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.schemas.etf_holdings import (
     ETFConstituentTimelinePoint,
@@ -70,6 +75,10 @@ def _date_start(value: date) -> datetime:
     return datetime.combine(value, time.min, tzinfo=UTC)
 
 
+def _date_end(value: date) -> datetime:
+    return datetime.combine(value, time.max, tzinfo=UTC)
+
+
 def _normalize_symbol(symbol: str | None) -> str | None:
     if not symbol:
         return None
@@ -77,11 +86,297 @@ def _normalize_symbol(symbol: str | None) -> str | None:
     return normalized or None
 
 
+def _normalize_currency_code(value: str | None) -> str | None:
+    text = str(value or "").strip().upper()
+    return text if len(text) == 3 and text.isalpha() else None
+
+
+def _normalize_holding_identifier_value(value: str | None) -> str | None:
+    text = str(value or "").strip().upper()
+    if not text:
+        return None
+    if text in {"N/A", "NA", "NONE", "NULL", "UNKNOWN", "-", "—", "--"}:
+        return None
+    return text
+
+
+def _normalize_holding_currency(value: str | None) -> str | None:
+    code = _normalize_currency_code(value)
+    if code:
+        return code
+    text = str(value or "").strip().lower()
+    if not text:
+        return None
+    aliases = {
+        "united states dollar": "USD",
+        "us dollar": "USD",
+        "canada dollar": "CAD",
+        "canadian dollar": "CAD",
+        "euro": "EUR",
+        "british pound": "GBP",
+        "japanese yen": "JPY",
+        "swiss franc": "CHF",
+        "australian dollar": "AUD",
+        "hong kong dollar": "HKD",
+    }
+    return aliases.get(text)
+
+
+def _is_placeholder_symbol(symbol: str | None) -> bool:
+    normalized = _normalize_symbol(symbol)
+    return bool(normalized and normalized.startswith("HOLDING-"))
+
+
 def _identifier_type(name: str) -> InstrumentIdentifierType | None:
     try:
         return InstrumentIdentifierType[name.upper()]
     except KeyError:
         return None
+
+
+def _normalized_name_tokens(value: str | None) -> set[str]:
+    if not value:
+        return set()
+    noise = {
+        "inc",
+        "incorporated",
+        "corp",
+        "corporation",
+        "co",
+        "company",
+        "ltd",
+        "limited",
+        "plc",
+        "sa",
+        "ag",
+        "nv",
+        "spa",
+        "se",
+        "holdings",
+        "holding",
+        "group",
+        "class",
+        "common",
+        "stock",
+        "ordinary",
+        "ord",
+        "sponsored",
+        "adr",
+        "the",
+        "pt",
+        "tbk",
+        "persero",
+        "berhad",
+        "spolka",
+        "akcyjna",
+    }
+    cleaned = "".join(ch.lower() if ch.isalnum() else " " for ch in value)
+    return {token for token in cleaned.split() if token and token not in noise}
+
+
+def _names_look_compatible(reported_name: str | None, provider_name: str | None) -> bool:
+    if not reported_name or not provider_name:
+        return True
+    left = _normalized_name_tokens(reported_name)
+    right = _normalized_name_tokens(provider_name)
+    if not left or not right:
+        return True
+    overlap = left & right
+    if overlap:
+        left_ratio = len(overlap) / len(left)
+        right_ratio = len(overlap) / len(right)
+        if len(overlap) >= 2 and (left_ratio >= 0.5 or right_ratio >= 0.5):
+            return True
+        if len(overlap) == 1 and (left_ratio >= 0.75 or right_ratio >= 0.75):
+            return True
+    left_text = "".join(sorted(left))
+    right_text = "".join(sorted(right))
+    return left_text in right_text or right_text in left_text
+
+
+async def _find_instrument_for_identifier_records(
+    db: AsyncSession,
+    identifiers: list[IdentifierRecord],
+) -> Instrument | None:
+    priority = {
+        "COMPOSITE_FIGI": 0,
+        "FIGI": 1,
+        "ISIN": 2,
+        "CUSIP": 3,
+        "SEDOL": 4,
+    }
+    ordered = sorted(
+        identifiers,
+        key=lambda record: priority.get(record.identifier_type.strip().upper(), 99),
+    )
+    for record in ordered:
+        found = await _find_instrument_by_identifier(
+            db,
+            record.identifier_type,
+            record.identifier_value,
+        )
+        if found is not None:
+            return found
+    return None
+
+
+def _merged_identifier_records(
+    base: list[IdentifierRecord],
+    extra: list[IdentifierRecord],
+) -> list[IdentifierRecord]:
+    merged: list[IdentifierRecord] = []
+    seen: set[tuple[str, str]] = set()
+    for record in [*base, *extra]:
+        key = (
+            record.identifier_type.strip().upper(),
+            record.identifier_value.strip().upper(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(record)
+    return merged
+
+
+def _constituent_quote_type_allowed(profile: InstrumentProfile | None) -> bool:
+    if profile is None:
+        return False
+    return (profile.quote_type or "EQUITY").upper() in {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
+
+
+async def _provider_enriched_constituent_instrument(
+    db: AsyncSession,
+    row: CanonicalHoldingRow,
+    *,
+    source_provider: str,
+    existing_instrument: Instrument | None = None,
+) -> tuple[Instrument | None, Decimal | None, str | None]:
+    if settings.APP_ENV == "test":
+        return None, None, None
+
+    for provider in get_identifier_providers():
+        resolve_profile = getattr(provider, "resolve_instrument_profile", None)
+        if not callable(resolve_profile):
+            continue
+        try:
+            profile = resolve_profile(
+                isin=row.isin,
+                cusip=row.cusip,
+                sedol=row.sedol,
+            )
+        except Exception:
+            continue
+        if profile is None:
+            continue
+        if not _constituent_quote_type_allowed(profile):
+            continue
+        if not _names_look_compatible(row.name, profile.name):
+            continue
+
+        instrument = existing_instrument
+        if instrument is None:
+            instrument = await _find_instrument_for_identifier_records(db, profile.identifiers)
+        if instrument is None and profile.canonical_symbol:
+            instrument = await _load_instrument_by_symbol_or_id(db, profile.canonical_symbol)
+
+        if (
+            existing_instrument is not None
+            and profile.canonical_symbol
+            and not _is_placeholder_symbol(existing_instrument.symbol)
+            and _normalize_symbol(existing_instrument.symbol) != _normalize_symbol(profile.canonical_symbol)
+        ):
+            instrument = existing_instrument
+
+        instrument = await ingest_provider_profile(db, profile, instrument=instrument)
+        for identifier_type, value in [
+            ("isin", row.isin),
+            ("cusip", row.cusip),
+            ("sedol", row.sedol),
+        ]:
+            normalized_value = _normalize_holding_identifier_value(value)
+            if normalized_value:
+                await register_identifier(
+                    db,
+                    instrument,
+                    ETF_HOLDINGS_INTERNAL_PROVIDER,
+                    IdentifierRecord(
+                        identifier_type=identifier_type,
+                        identifier_value=normalized_value,
+                        is_primary=identifier_type == "isin",
+                        source=source_provider,
+                    ),
+                )
+        return instrument, Decimal("0.9400"), "Matched through stable identifier profile enrichment."
+
+    symbol = _normalize_symbol(row.symbol)
+    if not symbol:
+        return None, None, None
+
+    extra_identifiers: list[IdentifierRecord] = []
+    for provider in get_identifier_providers():
+        try:
+            extra_identifiers.extend(provider.fetch_stable_identifiers(symbol) or [])
+        except Exception:
+            continue
+
+    matched_existing = await _find_instrument_for_identifier_records(db, extra_identifiers)
+    if matched_existing is not None:
+        for record in extra_identifiers:
+            await register_identifier(db, matched_existing, record.source or source_provider, record)
+        for identifier_type, value in [
+            ("isin", row.isin),
+            ("cusip", row.cusip),
+            ("sedol", row.sedol),
+        ]:
+            normalized_value = _normalize_holding_identifier_value(value)
+            if normalized_value:
+                await register_identifier(
+                    db,
+                    matched_existing,
+                    ETF_HOLDINGS_INTERNAL_PROVIDER,
+                    IdentifierRecord(
+                        identifier_type=identifier_type,
+                        identifier_value=normalized_value,
+                        is_primary=identifier_type == "isin",
+                        source=source_provider,
+                    ),
+                )
+        return matched_existing, Decimal("0.9200"), "Matched by stable identifier enrichment."
+
+    try:
+        profile = get_default_metadata_provider().get_instrument_profile(symbol)
+    except Exception:
+        profile = None
+    if not _constituent_quote_type_allowed(profile):
+        return None, None, None
+    if profile is None or not _names_look_compatible(row.name, profile.name):
+        return None, None, None
+
+    profile.identifiers = _merged_identifier_records(profile.identifiers, extra_identifiers)
+    existing = await _find_instrument_for_identifier_records(db, profile.identifiers)
+    if existing is None and profile.canonical_symbol:
+        existing = await _load_instrument_by_symbol_or_id(db, profile.canonical_symbol)
+
+    instrument = await ingest_provider_profile(db, profile, instrument=existing)
+    for identifier_type, value in [
+        ("isin", row.isin),
+        ("cusip", row.cusip),
+        ("sedol", row.sedol),
+    ]:
+        normalized_value = _normalize_holding_identifier_value(value)
+        if normalized_value:
+            await register_identifier(
+                db,
+                instrument,
+                ETF_HOLDINGS_INTERNAL_PROVIDER,
+                IdentifierRecord(
+                    identifier_type=identifier_type,
+                    identifier_value=normalized_value,
+                    is_primary=identifier_type == "isin",
+                    source=source_provider,
+                ),
+            )
+    return instrument, Decimal("0.9000"), "Matched through provider-backed enrichment."
 
 
 async def _load_instrument_by_symbol_or_id(
@@ -181,14 +476,14 @@ async def ensure_lightweight_etf_instrument(
         symbol=symbol,
         canonical_symbol=symbol,
         name=name or symbol,
-        currency=currency,
+        currency=_normalize_currency_code(currency),
         quote_type="ETF",
         identifiers=[],
         listings=[
             ListingRecord(
                 provider_symbol=symbol,
                 provider_instrument_type="ETF",
-                currency=currency,
+                currency=_normalize_currency_code(currency),
                 is_primary=True,
             )
         ],
@@ -202,7 +497,8 @@ async def ensure_lightweight_etf_instrument(
 async def _find_instrument_by_identifier(
     db: AsyncSession, identifier_type: str, identifier_value: str | None
 ) -> Instrument | None:
-    if not identifier_value:
+    normalized_value = _normalize_holding_identifier_value(identifier_value)
+    if not normalized_value:
         return None
     enum_type = _identifier_type(identifier_type)
     if enum_type is None:
@@ -213,12 +509,51 @@ async def _find_instrument_by_identifier(
             .join(InstrumentIdentifier, InstrumentIdentifier.instrument_id == Instrument.id)
             .where(
                 InstrumentIdentifier.identifier_type == enum_type,
-                InstrumentIdentifier.identifier_value == identifier_value.strip().upper(),
+                InstrumentIdentifier.identifier_value == normalized_value,
+                InstrumentIdentifier.is_active.is_(True),
             )
             .limit(1)
         )
     ).scalar_one_or_none()
     return row
+
+
+async def _deactivate_incompatible_internal_identifier(
+    db: AsyncSession,
+    *,
+    identifier_type: str,
+    identifier_value: str | None,
+    reported_name: str | None,
+) -> bool:
+    normalized_value = _normalize_holding_identifier_value(identifier_value)
+    enum_type = _identifier_type(identifier_type)
+    if not normalized_value or enum_type is None or not reported_name:
+        return False
+
+    internal_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
+    matches = (
+        await db.execute(
+            select(InstrumentIdentifier, Instrument)
+            .join(Instrument, InstrumentIdentifier.instrument_id == Instrument.id)
+            .where(
+                InstrumentIdentifier.identifier_type == enum_type,
+                InstrumentIdentifier.identifier_value == normalized_value,
+                InstrumentIdentifier.is_active.is_(True),
+                InstrumentIdentifier.data_source_id == internal_source.id,
+            )
+        )
+    ).all()
+
+    changed = False
+    for identifier_row, instrument in matches:
+        if _names_look_compatible(reported_name, instrument.name):
+            continue
+        identifier_row.is_active = False
+        changed = True
+
+    if changed:
+        await db.flush()
+    return changed
 
 
 async def _resolve_or_create_constituent(
@@ -228,7 +563,7 @@ async def _resolve_or_create_constituent(
     source_provider: str,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
     if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
-        return None, None, "Non-security row was preserved without instrument materialization."
+        return None, None, None
 
     for identifier_type, value in [
         ("isin", row.isin),
@@ -236,7 +571,33 @@ async def _resolve_or_create_constituent(
         ("sedol", row.sedol),
     ]:
         found = await _find_instrument_by_identifier(db, identifier_type, value)
+        if found is not None and not _names_look_compatible(row.name, found.name):
+            changed = await _deactivate_incompatible_internal_identifier(
+                db,
+                identifier_type=identifier_type,
+                identifier_value=value,
+                reported_name=row.name,
+            )
+            if changed:
+                found = await _find_instrument_by_identifier(db, identifier_type, value)
+        if found is not None and not _names_look_compatible(row.name, found.name):
+            found = None
         if found is not None:
+            if _is_placeholder_symbol(found.symbol):
+                promoted, promoted_confidence, promoted_note = (
+                    await _provider_enriched_constituent_instrument(
+                        db,
+                        row,
+                        source_provider=source_provider,
+                        existing_instrument=found,
+                    )
+                )
+                if promoted is not None:
+                    return (
+                        promoted,
+                        promoted_confidence or Decimal("0.9500"),
+                        promoted_note or f"Matched by {identifier_type.upper()}.",
+                    )
             return found, Decimal("0.9500"), f"Matched by {identifier_type.upper()}."
 
     symbol = _normalize_symbol(row.symbol)
@@ -247,7 +608,32 @@ async def _resolve_or_create_constituent(
             )
         ).scalar_one_or_none()
         if found is not None:
+            if _is_placeholder_symbol(found.symbol):
+                promoted, promoted_confidence, promoted_note = (
+                    await _provider_enriched_constituent_instrument(
+                        db,
+                        row,
+                        source_provider=source_provider,
+                        existing_instrument=found,
+                    )
+                )
+                if promoted is not None:
+                    return (
+                        promoted,
+                        promoted_confidence or Decimal("0.8000"),
+                        promoted_note or "Matched by canonical symbol.",
+                    )
             return found, Decimal("0.8000"), "Matched by canonical symbol."
+
+    enriched_instrument, enriched_confidence, enriched_note = (
+        await _provider_enriched_constituent_instrument(
+            db,
+            row,
+            source_provider=source_provider,
+        )
+    )
+    if enriched_instrument is not None:
+        return enriched_instrument, enriched_confidence, enriched_note
 
     if not symbol and not row.name:
         return None, None, "No symbol/name/identifier was available to resolve this holding."
@@ -264,7 +650,7 @@ async def _resolve_or_create_constituent(
             instrument_type_id=instrument_type_id,
             symbol=symbol,
             name=row.name or symbol,
-            currency=row.currency,
+            currency=_normalize_currency_code(row.currency),
             is_active=True,
             field_provenance={
                 "name": {
@@ -282,20 +668,82 @@ async def _resolve_or_create_constituent(
         ("cusip", row.cusip),
         ("sedol", row.sedol),
     ]:
-        if value:
+        normalized_value = _normalize_holding_identifier_value(value)
+        if normalized_value:
             await register_identifier(
                 db,
                 instrument,
                 ETF_HOLDINGS_INTERNAL_PROVIDER,
                 IdentifierRecord(
                     identifier_type=identifier_type,
-                    identifier_value=value.strip().upper(),
+                    identifier_value=normalized_value,
                     is_primary=identifier_type == "isin",
                     source=source_provider,
                 ),
             )
 
-    return instrument, Decimal("0.5000"), "Lightweight instrument materialized from holdings row."
+    if symbol:
+        for provider in get_identifier_providers():
+            try:
+                for record in provider.fetch_stable_identifiers(symbol) or []:
+                    await register_identifier(
+                        db,
+                        instrument,
+                        record.source or source_provider,
+                        record,
+                    )
+            except Exception:
+                continue
+
+    return instrument, Decimal("0.5000"), None
+
+
+async def _reconcile_existing_snapshot_rows(
+    db: AsyncSession,
+    *,
+    snapshot: ETFHoldingsSnapshot,
+    canonical_rows: list[CanonicalHoldingRow],
+    source_provider: str,
+) -> ETFHoldingsSnapshot:
+    existing_rows = {row.source_row_hash: row for row in snapshot.rows}
+    resolved = 0
+    unresolved = 0
+
+    for position, canonical_row in enumerate(canonical_rows, start=1):
+        source_row_hash = _row_hash(canonical_row, position)
+        existing = existing_rows.get(source_row_hash)
+        if existing is None:
+            continue
+
+        existing.cusip = _normalize_holding_identifier_value(canonical_row.cusip)
+        existing.isin = _normalize_holding_identifier_value(canonical_row.isin)
+        existing.sedol = _normalize_holding_identifier_value(canonical_row.sedol)
+
+        needs_reconcile = (
+            not existing.is_resolved
+            or existing.constituent_instrument is None
+            or _is_placeholder_symbol(existing.constituent_instrument.symbol)
+        )
+        if needs_reconcile:
+            instrument, confidence, note = await _resolve_or_create_constituent(
+                db,
+                canonical_row,
+                source_provider=source_provider,
+            )
+            existing.constituent_instrument_id = instrument.id if instrument is not None else None
+            existing.is_resolved = instrument is not None
+            existing.resolution_confidence = confidence
+            existing.resolution_note = note
+
+        if existing.is_resolved:
+            resolved += 1
+        else:
+            unresolved += 1
+
+    snapshot.resolved_count = resolved
+    snapshot.unresolved_count = unresolved
+    await db.flush()
+    return snapshot
 
 
 def _row_hash(row: CanonicalHoldingRow, position: int) -> str:
@@ -350,13 +798,13 @@ async def ingest_holdings_snapshot(
         else CanonicalHoldingRow(
             symbol=row.symbol,
             name=row.name,
-            cusip=row.cusip,
-            isin=row.isin,
-            sedol=row.sedol,
+            cusip=_normalize_holding_identifier_value(row.cusip),
+            isin=_normalize_holding_identifier_value(row.isin),
+            sedol=_normalize_holding_identifier_value(row.sedol),
             weight=row.weight,
             shares=row.shares,
             market_value=row.market_value,
-            currency=row.currency,
+            currency=_normalize_holding_currency(row.currency),
             country=row.country,
             exchange=row.exchange,
             holding_type=row.holding_type,
@@ -367,7 +815,7 @@ async def ingest_holdings_snapshot(
         for row in rows
     ]
     now = _now()
-    known_at = known_at or published_at or now
+    known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
 
@@ -408,7 +856,7 @@ async def ingest_holdings_snapshot(
     existing = (
         await db.execute(
             select(ETFHoldingsSnapshot)
-            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .options(selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument))
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
                 ETFHoldingsSnapshot.composition_date == composition_date,
@@ -419,7 +867,12 @@ async def ingest_holdings_snapshot(
         )
     ).scalar_one_or_none()
     if existing is not None:
-        return existing
+        return await _reconcile_existing_snapshot_rows(
+            db,
+            snapshot=existing,
+            canonical_rows=canonical_rows,
+            source_provider=source_provider,
+        )
 
     snapshot = ETFHoldingsSnapshot(
         etf_profile_id=profile.id,
@@ -465,13 +918,13 @@ async def ingest_holdings_snapshot(
                 position=idx,
                 reported_symbol=_normalize_symbol(row.symbol),
                 reported_name=row.name,
-                cusip=row.cusip,
-                isin=row.isin,
-                sedol=row.sedol,
+                cusip=_normalize_holding_identifier_value(row.cusip),
+                isin=_normalize_holding_identifier_value(row.isin),
+                sedol=_normalize_holding_identifier_value(row.sedol),
                 weight=row.weight,
                 shares=row.shares,
                 market_value=row.market_value,
-                currency=row.currency,
+                currency=_normalize_holding_currency(row.currency),
                 country=row.country,
                 exchange=row.exchange,
                 holding_type=row.holding_type,
@@ -502,6 +955,81 @@ async def ingest_holdings_snapshot(
         published_at=published_at,
         completeness_status=completeness_status,
     )
+    await db.flush()
+    await db.refresh(snapshot)
+    return snapshot
+
+
+def _holding_needs_reconcile(row: ETFHolding) -> bool:
+    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+        return False
+    if not row.is_resolved or row.constituent_instrument is None:
+        return True
+    if _is_placeholder_symbol(row.constituent_instrument.symbol):
+        return True
+    if not _names_look_compatible(row.reported_name, row.constituent_instrument.name):
+        return True
+    if (
+        not _normalize_holding_identifier_value(row.cusip)
+        and not _normalize_holding_identifier_value(row.isin)
+        and not _normalize_holding_identifier_value(row.sedol)
+        and not _normalize_symbol(row.reported_symbol)
+        and not _names_look_compatible(row.reported_name, row.constituent_instrument.name)
+    ):
+        return True
+    return False
+
+
+def _holding_to_canonical_row(row: ETFHolding) -> CanonicalHoldingRow:
+    return CanonicalHoldingRow(
+        symbol=row.reported_symbol,
+        name=row.reported_name,
+        cusip=_normalize_holding_identifier_value(row.cusip),
+        isin=_normalize_holding_identifier_value(row.isin),
+        sedol=_normalize_holding_identifier_value(row.sedol),
+        weight=row.weight,
+        shares=row.shares,
+        market_value=row.market_value,
+        currency=_normalize_holding_currency(row.currency),
+        country=row.country,
+        exchange=row.exchange,
+        holding_type=row.holding_type,
+        row_type=row.row_type,
+        source_row_id=row.source_row_id,
+        extra_data=row.extra_data or {},
+    )
+
+
+async def reconcile_snapshot_constituents(
+    db: AsyncSession,
+    snapshot: ETFHoldingsSnapshot,
+) -> ETFHoldingsSnapshot:
+    resolved = 0
+    unresolved = 0
+    source_provider = snapshot.source_provider or ETF_HOLDINGS_INTERNAL_PROVIDER
+
+    for row in snapshot.rows:
+        row.cusip = _normalize_holding_identifier_value(row.cusip)
+        row.isin = _normalize_holding_identifier_value(row.isin)
+        row.sedol = _normalize_holding_identifier_value(row.sedol)
+        if _holding_needs_reconcile(row):
+            instrument, confidence, note = await _resolve_or_create_constituent(
+                db,
+                _holding_to_canonical_row(row),
+                source_provider=source_provider,
+            )
+            row.constituent_instrument_id = instrument.id if instrument is not None else None
+            row.is_resolved = instrument is not None
+            row.resolution_confidence = confidence
+            row.resolution_note = note
+
+        if row.is_resolved:
+            resolved += 1
+        else:
+            unresolved += 1
+
+    snapshot.resolved_count = resolved
+    snapshot.unresolved_count = unresolved
     await db.flush()
     await db.refresh(snapshot)
     return snapshot
@@ -650,7 +1178,7 @@ def snapshot_to_out(
                 weight=row.weight,
                 shares=row.shares,
                 market_value=row.market_value,
-                currency=row.currency,
+                currency=_normalize_holding_currency(row.currency),
                 country=row.country,
                 exchange=row.exchange,
                 holding_type=row.holding_type,
@@ -773,7 +1301,7 @@ async def _resolve_snapshot_entity(
             stmt = stmt.where(
                 or_(
                     ETFHoldingsSnapshot.known_at.is_(None),
-                    ETFHoldingsSnapshot.known_at <= _date_start(snapshot_date),
+                    ETFHoldingsSnapshot.known_at <= _date_end(snapshot_date),
                 ),
                 ETFHoldingsSnapshot.composition_date <= snapshot_date,
             ).order_by(
@@ -830,7 +1358,7 @@ async def get_holdings_page(
             snapshot_stmt = snapshot_stmt.where(
                 or_(
                     ETFHoldingsSnapshot.known_at.is_(None),
-                    ETFHoldingsSnapshot.known_at <= _date_start(snapshot_date),
+                    ETFHoldingsSnapshot.known_at <= _date_end(snapshot_date),
                 ),
                 ETFHoldingsSnapshot.composition_date <= snapshot_date,
             ).order_by(
@@ -1591,7 +2119,7 @@ async def get_nearest_snapshot(
         stmt = stmt.where(
             or_(
                 ETFHoldingsSnapshot.known_at.is_(None),
-                ETFHoldingsSnapshot.known_at <= _date_start(requested_date),
+                ETFHoldingsSnapshot.known_at <= _date_end(requested_date),
             ),
             ETFHoldingsSnapshot.composition_date <= requested_date,
         ).order_by(ETFHoldingsSnapshot.composition_date.desc())

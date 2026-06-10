@@ -1,3 +1,4 @@
+import json
 import zipfile
 from datetime import date
 from decimal import Decimal
@@ -235,6 +236,235 @@ def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
     assert body["refresh_attempted"] is True
     assert body["refresh_succeeded"] is True
     assert body["latest_snapshot"]["row_count"] == 1
+
+
+def test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata(
+    client, auth_headers, monkeypatch
+):
+    async def fake_refresh_adapter_route(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+        assert profile.adapter_key == "ishares"
+        assert profile.provider_aliases["issuer_product_id"] == "239637"
+
+        return await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="TSM",
+                    name="Taiwan Semiconductor Manufacturing Co Ltd",
+                    weight=Decimal("0.09000000"),
+                    shares=Decimal("12"),
+                    market_value=Decimal("3000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 6, 8),
+            as_of_date=date(2026, 6, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="ishares",
+            source_url=(
+                "https://www.ishares.com/us/products/239637/"
+                "?fileType=csv&fileName=EEM_holdings&dataType=fund"
+            ),
+            source_identifier="EEM",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="ishares-csv-v1",
+            notes="Test bootstrap snapshot.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/EEM/bootstrap",
+        headers=auth_headers,
+        json={"name": "iShares MSCI Emerging Markets ETF"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "EEM"
+    assert body["profile"]["issuer"] == "iShares"
+    assert body["profile"]["adapter_key"] == "ishares"
+    assert body["profile"]["provider_aliases"]["issuer_product_id"] == "239637"
+    assert body["profile"]["sec_cik"] == "0000930667"
+    assert body["profile"]["sec_series_id"] == "S000004266"
+    assert body["profile"]["sec_class_id"] == "C000011970"
+    assert body["probe"]["status"] == "ready"
+    assert body["refresh_attempted"] is True
+    assert body["refresh_succeeded"] is True
+    assert body["latest_snapshot"]["row_count"] == 1
+
+
+def test_bootstrap_endpoint_falls_back_to_sec_when_invesco_refresh_route_fails(
+    client, auth_headers, monkeypatch
+):
+    async def fake_sec_fallback(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+        from app.services.etf_holdings_refresh import (
+            ETFHoldingsBootstrapResult,
+            probe_etf_holdings_adapter_route,
+        )
+
+        assert profile.adapter_key == "invesco"
+        profile.sec_cik = "0001067839"
+
+        snapshot = await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="NVDA",
+                    name="NVIDIA Corp",
+                    weight=Decimal("0.08305722"),
+                    shares=Decimal("190601606"),
+                    market_value=Decimal("25000000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 6, 8),
+            as_of_date=date(2026, 6, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="invesco",
+            source_url="https://www.sec.gov/Archives/test/qqq-latest.xml",
+            source_identifier="0001067839-test-accession",
+            source_quality="filing_reconstructed_holdings",
+            completeness_status="filing_reconstructed",
+            parser_version="sec-nport-v1",
+            notes="Test SEC bootstrap snapshot.",
+        )
+        probe = await probe_etf_holdings_adapter_route(db, profile)
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=True,
+            refresh_succeeded=True,
+            message="Fetched ETF holdings from the latest available SEC N-PORT filing.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_sec_fallback,
+    )
+    async def fake_refresh_adapter_route(*args, **kwargs):
+        raise ValueError("Issuer route intentionally failed in test.")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+    async def fake_enrich(*args, **kwargs):
+        return False
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.enrich_etf_profile_from_sec_fund_tickers",
+        fake_enrich,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/QQQ/bootstrap",
+        headers=auth_headers,
+        json={"name": "Invesco QQQ Trust"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["symbol"] == "QQQ"
+    assert body["profile"]["issuer"] == "Invesco"
+    assert body["profile"]["adapter_key"] == "invesco"
+    assert body["profile"]["sec_cik"] == "0001067839"
+    assert body["profile"]["sec_series_id"] == "S000101292"
+    assert body["profile"]["sec_class_id"] == "C000271435"
+    assert body["probe"]["status"] == "ready"
+    assert body["refresh_attempted"] is True
+    assert body["refresh_succeeded"] is True
+    assert "SEC N-PORT" in body["message"]
+    assert body["latest_snapshot"]["row_count"] == 1
+
+
+def test_bootstrap_endpoint_overrides_stale_known_standard_etf_metadata(
+    client, admin_headers, auth_headers, monkeypatch
+):
+    profile = client.patch(
+        "/api/v1/etf-holdings/EEM/profile",
+        headers=admin_headers,
+        json={
+            "issuer": "Wrong Issuer",
+            "provider_aliases": {
+                "issuer_product_id": "stale-product-id",
+                "sec_cik": "0000000001",
+            },
+        },
+    )
+    assert profile.status_code == 200
+
+    async def fake_refresh_adapter_route(db, profile):
+        from app.services.etf_holdings import ingest_holdings_snapshot
+        from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+        assert profile.issuer == "iShares"
+        assert profile.adapter_key == "ishares"
+        assert profile.provider_aliases["issuer_product_id"] == "239637"
+        assert profile.sec_cik == "0000930667"
+        assert profile.sec_series_id == "S000004266"
+        assert profile.sec_class_id == "C000011970"
+
+        return await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="TSM",
+                    name="Taiwan Semiconductor Manufacturing Co Ltd",
+                    weight=Decimal("0.09000000"),
+                    shares=Decimal("12"),
+                    market_value=Decimal("3000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                ),
+            ],
+            composition_date=date(2026, 6, 8),
+            as_of_date=date(2026, 6, 8),
+            known_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="ishares",
+            source_url="https://example.com/eem.json",
+            source_identifier="EEM",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="ishares-json-v1",
+            notes="Test bootstrap snapshot.",
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+
+    response = client.post(
+        "/api/v1/etf-holdings/EEM/bootstrap",
+        headers=auth_headers,
+        json={"name": "iShares MSCI Emerging Markets ETF"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["profile"]["issuer"] == "iShares"
+    assert body["profile"]["provider_aliases"]["issuer_product_id"] == "239637"
+    assert body["profile"]["sec_cik"] == "0000930667"
 
 
 def test_bootstrap_endpoint_persists_profile_when_no_route_can_be_resolved(
@@ -1169,7 +1399,7 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     assert refresh.json()["refreshed"] == 1
     assert refresh.json()["skipped"] == 0
     assert requested_urls == [
-        "https://ark-funds.com/wp-content/fundsiteliterature/holdings/"
+        "https://assets.ark-funds.com/fund-documents/funds-etf-csv/"
         "ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv"
     ]
 
@@ -1235,9 +1465,15 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
 
     schwab = adapters["schwab"]
     assert schwab["required_identifiers"] == []
-    assert schwab["product_page_templates"] == []
+    assert schwab["product_page_templates"] == [
+        "https://www.schwabassetmanagement.com/products/{symbol_lower}"
+    ]
     assert schwab["live_tested_default_route"] is False
-    assert schwab["supports_product_page_discovery"] is False
+    assert schwab["supports_product_page_discovery"] is True
+
+    invesco = adapters["invesco"]
+    assert invesco["live_tested_default_route"] is True
+    assert any("shareclasses/{symbol_upper}/holdings/fund" in template for template in invesco["url_templates"])
 
 
 def test_admin_can_discover_etf_profiles_from_issuer_feed(
@@ -1497,8 +1733,10 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
     assert body["source_provider"] == "ishares"
     assert body["status"] == "ready"
     assert body["source_url"] == (
-        "https://www.ishares.com/us/products/239726/"
-        "?fileType=csv&fileName=IVV_holdings&dataType=fund"
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&"
+        "component=holdings.all&locale=en_US&portfolioId=239726&targetSite=us-ishares&"
+        "userType=individual&excludeContent=true&includeConfig=true"
     )
     assert body["required_identifiers"] == []
 
@@ -1506,25 +1744,53 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
 def test_admin_can_refresh_ishares_product_id_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
-    raw_csv = "\n".join(
-        [
-            "Fund Ticker,Fund Name,Ticker,Name,Sector,Asset Class,Market Value,"
-            "Weight (%),Notional Value,Quantity,CUSIP,ISIN,SEDOL,Price,Location,"
-            "Exchange,Currency,FX Rate,Accrual Date",
-            "IVV,iShares Core S&P 500 ETF,AAPL,Apple Inc.,Information Technology,"
-            "Equity,1000000,7.4%,1000000,100,037833100,US0378331005,2046251,"
-            "200,United States,NASDAQ,USD,1,",
-            "IVV,iShares Core S&P 500 ETF,MSFT,Microsoft Corp.,Information Technology,"
-            "Equity,900000,6.8%,900000,90,594918104,US5949181045,2588173,"
-            "300,United States,NASDAQ,USD,1,",
-        ]
-    )
+    payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "ticker": {"value": ["AAPL", "MSFT"]},
+                            "issueName": {"value": ["Apple Inc.", "Microsoft Corp."]},
+                            "cusip": {"value": ["037833100", "594918104"]},
+                            "isin": {"value": ["US0378331005", "US5949181045"]},
+                            "sedol": {"value": ["2046251", "2588173"]},
+                            "holdingPercent": {"value": ["7.4", "6.8"]},
+                            "unitsHeld": {"value": ["100", "90"]},
+                            "marketValue": {"value": ["1000000", "900000"]},
+                            "currencyCode": {"value": ["USD", "USD"]},
+                            "countryOfRisk": {"value": ["United States", "United States"]},
+                            "exchange": {"value": ["NASDAQ", "NASDAQ"]},
+                            "assetClass": {"value": ["Equity", "Equity"]},
+                            "sectorName": {
+                                "value": [
+                                    "Information Technology",
+                                    "Information Technology",
+                                ]
+                            },
+                            "asOfDate": {"value": "20260606"},
+                            "fundTicker": {"value": ["IVV", "IVV"]},
+                            "fundName": {
+                                "value": [
+                                    "iShares Core S&P 500 ETF",
+                                    "iShares Core S&P 500 ETF",
+                                ]
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    }
     requested_urls = []
 
     class FakeResponse:
-        text = raw_csv
-        content = raw_csv.encode()
-        headers = {"content-type": "text/csv"}
+        text = json.dumps(payload)
+        content = text.encode()
+        headers = {"content-type": "application/json"}
+
+        def json(self):
+            return payload
 
         def raise_for_status(self):
             return None
@@ -1554,6 +1820,7 @@ def test_admin_can_refresh_ishares_product_id_route(
             "provider_aliases": {
                 "issuer_product_id": "239726",
                 "holdings_composition_date": "2026-06-06",
+                "expected_fund_symbol": "IVV",
             },
         },
         headers=admin_headers,
@@ -1564,8 +1831,10 @@ def test_admin_can_refresh_ishares_product_id_route(
     assert refresh.status_code == 200
     assert refresh.json()["refreshed"] == 1
     assert requested_urls == [
-        "https://www.ishares.com/us/products/239726/"
-        "?fileType=csv&fileName=IVV_holdings&dataType=fund"
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&"
+        "component=holdings.all&locale=en_US&portfolioId=239726&targetSite=us-ishares&"
+        "userType=individual&excludeContent=true&includeConfig=true"
     ]
 
     latest = client.get("/api/v1/etf-holdings/IVV/latest", headers=auth_headers)
@@ -1574,13 +1843,13 @@ def test_admin_can_refresh_ishares_product_id_route(
     assert body["composition_date"] == "2026-06-06"
     assert body["source_provider"] == "ishares"
     assert body["source_url"] == requested_urls[0]
-    assert body["parser_version"] == "ishares-csv-v1"
+    assert body["parser_version"] == "ishares-json-v1"
     assert body["row_count"] == 2
     assert body["holdings"][0]["reported_symbol"] == "AAPL"
     assert body["holdings"][0]["country"] == "United States"
     assert body["holdings"][0]["weight"] == "0.07400000"
     validation = body["extra_data"]["legal_metadata"]["artifact_identity_validation"]
-    assert validation["status"] == "matched_inferred"
+    assert validation["status"] == "matched"
     assert validation["matched"][0]["value"] == "IVV"
 
 
@@ -2189,6 +2458,26 @@ def test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured(clien
     assert body["status"] == "needs_provider_implementation"
     assert body["required_identifiers"] == []
     assert body["source_url"] is None
+
+
+def test_admin_can_probe_invesco_as_ready_symbol_route(client, admin_headers):
+    profile = client.patch(
+        "/api/v1/etf-holdings/QQQ/profile",
+        json={"issuer": "Invesco"},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+    assert profile.json()["adapter_key"] == "invesco"
+
+    probe = client.post("/api/v1/etf-holdings/QQQ/probe-adapter", headers=admin_headers)
+    assert probe.status_code == 200
+    body = probe.json()
+    assert body["symbol"] == "QQQ"
+    assert body["adapter_key"] == "invesco"
+    assert body["source_provider"] == "invesco"
+    assert body["status"] == "ready"
+    assert "shareclasses/QQQ/holdings/fund" in body["source_url"]
+    assert body["required_identifiers"] == []
 
 
 def test_admin_can_ingest_and_user_can_read_etf_holdings(client, admin_headers, auth_headers):

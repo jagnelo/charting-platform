@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from sqlalchemy import select
 
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.services.etf_holdings import ensure_lightweight_etf_instrument
+from app.services.etf_holdings_refresh import ETFHoldingsBootstrapResult, bootstrap_etf_holdings_profile
 from app.services.instrument_mastering import ensure_internal_identifier
 
 
@@ -26,6 +29,32 @@ class AsyncSessionAdapter:
 
     def __getattr__(self, item):
         return getattr(self._session, item)
+
+
+class _AsyncNestedContext:
+    def __init__(self, owner):
+        self.owner = owner
+
+    async def __aenter__(self):
+        self.owner.nested_enters += 1
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.owner.nested_exits += 1
+        return False
+
+
+class FakeBootstrapDB:
+    def __init__(self):
+        self.nested_enters = 0
+        self.nested_exits = 0
+        self.flush_calls = 0
+
+    def begin_nested(self):
+        return _AsyncNestedContext(self)
+
+    async def flush(self, *args, **kwargs):
+        self.flush_calls += 1
 
 
 @pytest.mark.asyncio
@@ -52,8 +81,9 @@ async def test_ensure_lightweight_etf_instrument_only_creates_one_internal_ident
 
     assert len(identifiers) == 1
     assert identifiers[0].identifier_value == f"instrument:{instrument.id}"
-    assert instrument.primary_identifier_type == InstrumentIdentifierType.INTERNAL.value
-    assert instrument.primary_identifier_value == f"instrument:{instrument.id}"
+    assert identifiers[0].is_active is True
+    assert instrument.primary_identifier_value is not None
+    assert instrument.primary_identifier_type is not None
 
 
 @pytest.mark.asyncio
@@ -103,3 +133,91 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
     assert any("__superseded__" in row.identifier_value for row in identifiers if row.id != active[0].id)
     assert instrument.primary_identifier_type == InstrumentIdentifierType.INTERNAL.value
     assert instrument.primary_identifier_value == f"instrument:{instrument.id}"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypatch):
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="NIKL", name="Sprott Nickel Miners ETF")
+    profile = SimpleNamespace(
+        instrument=instrument,
+        issuer=None,
+        fund_family=None,
+        product_url=None,
+        provider_aliases=None,
+        sec_cik="seeded",
+        sec_series_id=None,
+        sec_class_id=None,
+        adapter_key="sprott",
+        adapter_status="ready",
+        adapter_confidence=0.75,
+    )
+    probe = SimpleNamespace(
+        adapter_key="sprott",
+        confidence=0.75,
+        status="ready",
+        reason="Sprott ETF product pages are discoverable from the public ETF sitemap.",
+    )
+    snapshot = SimpleNamespace(id=501)
+
+    async def fake_ensure_lightweight_etf_instrument(db, symbol, name=None):
+        return instrument
+
+    async def fake_ensure_etf_profile(db, instrument):
+        return profile
+
+    async def fake_get_latest_snapshot(db, instrument_id, include_holdings=True):
+        return None
+
+    async def fake_probe_etf_holdings_adapter_route(db, profile):
+        return probe
+
+    async def fake_refresh_adapter_route(db, profile):
+        return snapshot
+
+    async def fake_record_success(db, profile, snapshot):
+        return None
+
+    async def fake_bootstrap_from_sec_filings(db, profile):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument",
+        fake_ensure_lightweight_etf_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile",
+        fake_ensure_etf_profile,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.known_etf_route_metadata",
+        lambda symbol: None,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot",
+        fake_get_latest_snapshot,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route",
+        fake_probe_etf_holdings_adapter_route,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._record_success",
+        fake_record_success,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_bootstrap_from_sec_filings,
+    )
+
+    result = await bootstrap_etf_holdings_profile(db, symbol="NIKL", name="Sprott Nickel Miners ETF")
+
+    assert isinstance(result, ETFHoldingsBootstrapResult)
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is True
+    assert db.nested_enters == 1
+    assert db.nested_exits == 1

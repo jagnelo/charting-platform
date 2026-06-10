@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import csv
 import html
 import json
@@ -12,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
 from string import Formatter
 from typing import Any, Protocol
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import unquote_to_bytes, urlencode, urljoin, urlparse
 
 import httpx
 
@@ -380,18 +381,20 @@ def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRo
             ],
         )
         weight_value_text = _clean(weight_value)
-        weight_parser = (
-            _decimal_percent_points
-            if weight_key
-            and weight_value_text
-            and not weight_value_text.endswith("%")
-            and (
+        should_treat_weight_as_percent_points = False
+        if weight_key and weight_value_text and not weight_value_text.endswith("%"):
+            lowered_weight_key = weight_key.lower()
+            if (
                 "%" in weight_key
-                or "percent" in weight_key.lower()
-                or "percentage" in weight_key.lower()
-            )
-            else _decimal
-        )
+                or "percent" in lowered_weight_key
+                or "percentage" in lowered_weight_key
+            ):
+                should_treat_weight_as_percent_points = True
+            else:
+                raw_weight = _decimal(weight_value)
+                if raw_weight is not None and abs(raw_weight) > 1 and abs(raw_weight) <= 100:
+                    should_treat_weight_as_percent_points = True
+        weight_parser = _decimal_percent_points if should_treat_weight_as_percent_points else _decimal
         weight = weight_parser(weight_value)
         shares = _decimal(
             _first(
@@ -679,6 +682,10 @@ _URL_ATTRIBUTE_RE = re.compile(
     r"""(?:href|data-[\w-]*url|download-url)=["'](?P<url>[^"']+)["']""",
     re.IGNORECASE,
 )
+_DOWNLOAD_ANCHOR_RE = re.compile(
+    r"""<a[^>]+(?:download=["'](?P<filename_a>[^"']+)["'][^>]+href=["'](?P<url_a>[^"']+)["']|href=["'](?P<url_b>[^"']+)["'][^>]+download=["'](?P<filename_b>[^"']+)["'])""",
+    re.IGNORECASE,
+)
 _QUOTED_FILE_URL_RE = re.compile(
     r"""["'](?P<url>[^"']+\.(?:csv|xlsx|xlsm|zip)(?:[?#][^"']*)?)["']""",
     re.IGNORECASE,
@@ -704,29 +711,64 @@ def _holdings_request_headers(*, accept: str | None = None) -> dict[str, str]:
     }
 
 
+def _invesco_holdings_request_headers() -> dict[str, str]:
+    return {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "HeadlessChrome/145.0.7632.6 Safari/537.36"
+        ),
+        "Referer": "https://www.invesco.com/",
+        "sec-ch-ua": '"Not:A-Brand";v="99", "HeadlessChrome";v="145", "Chromium";v="145"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+    }
+
+
 def _discover_holdings_download_url(product_page_url: str, html: str) -> str | None:
     """Find the most likely linked holdings table from an issuer product page."""
 
     candidates: list[tuple[int, str]] = []
     discovered = [
-        match.group("url").strip()
+        (match.group("url").strip(), match.group("url").strip())
         for match in _URL_ATTRIBUTE_RE.finditer(html)
     ]
     discovered.extend(
-        match.group("url").strip()
+        (candidate, candidate)
         for match in _QUOTED_FILE_URL_RE.finditer(html)
+        for candidate in [match.group("url").strip()]
+        if candidate.startswith(("http://", "https://", "/", "data:"))
     )
-    for href in discovered:
+    discovered.extend(
+        (
+            (match.group("url_a") or match.group("url_b") or "").strip(),
+            " ".join(
+                part
+                for part in [
+                    (match.group("filename_a") or match.group("filename_b") or "").strip(),
+                    (match.group("url_a") or match.group("url_b") or "").strip(),
+                ]
+                if part
+            ),
+        )
+        for match in _DOWNLOAD_ANCHOR_RE.finditer(html)
+    )
+    for href, hint_text in discovered:
         if not href:
             continue
+        lowered_hint = hint_text.lower()
         if not (
             _SUPPORTED_HOLDINGS_FILE_RE.search(href)
+            or href.lower().startswith("data:")
             or _HOLDINGS_DOWNLOAD_HINT_RE.search(href)
+            or _HOLDINGS_DOWNLOAD_HINT_RE.search(lowered_hint)
         ):
             continue
         if not (
             _HOLDINGS_LINK_HINT_RE.search(href)
             or _HOLDINGS_DOWNLOAD_HINT_RE.search(href)
+            or _HOLDINGS_LINK_HINT_RE.search(lowered_hint)
+            or _HOLDINGS_DOWNLOAD_HINT_RE.search(lowered_hint)
         ):
             continue
         url = urljoin(product_page_url, href)
@@ -746,11 +788,33 @@ def _discover_holdings_download_url(product_page_url: str, html: str) -> str | N
             score += 8
         if "xls" in lowered:
             score += 6
+        if "holding" in lowered_hint:
+            score += 25
+        if "portfolio" in lowered_hint:
+            score += 20
+        if lowered.startswith("data:"):
+            score += 15
         candidates.append((score, url))
     if not candidates:
         return None
     candidates.sort(key=lambda item: (-item[0], item[1]))
     return candidates[0][1]
+
+
+def _parse_data_url(source_url: str) -> tuple[str, bytes, str]:
+    metadata, _, payload = source_url.partition(",")
+    if not payload or not metadata.lower().startswith("data:"):
+        raise ValueError("Unsupported data URL.")
+    header = metadata[5:]
+    is_base64 = header.lower().endswith(";base64")
+    mime_type = header[:-7] if is_base64 else header
+    mime_type = mime_type or "text/plain;charset=utf-8"
+    raw_content = (
+        base64.b64decode(payload)
+        if is_base64
+        else unquote_to_bytes(payload)
+    )
+    return mime_type.lower(), raw_content, raw_content.decode("utf-8", "ignore")
 
 
 def _parse_ishares_inline_top_holdings(html_text: str) -> list[CanonicalHoldingRow]:
@@ -815,6 +879,7 @@ ISSUER_NAME_HINTS: dict[str, list[str]] = {
     "jpmorgan": ["jpmorgan", "jp morgan"],
     "fidelity": ["fidelity"],
     "franklin": ["franklin"],
+    "sprott": ["sprott"],
 }
 
 ISSUER_DOMAIN_HINTS: dict[str, list[str]] = {
@@ -832,6 +897,7 @@ ISSUER_DOMAIN_HINTS: dict[str, list[str]] = {
     "jpmorgan": ["jpmorgan.com", "am.jpmorgan.com"],
     "fidelity": ["fidelity.com"],
     "franklin": ["franklintempleton.com"],
+    "sprott": ["sprottetfs.com"],
 }
 
 ROUTING_URL_ALIAS_KEYS = (
@@ -895,18 +961,22 @@ class PublicCsvHoldingsAdapter:
     ) -> HoldingsFetchResult:
         if not source_url:
             raise ValueError(f"{self.adapter_key} needs a configured source_url for {symbol}.")
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                source_url,
-                headers=_holdings_request_headers(),
-                follow_redirects=True,
-            )
-        response.raise_for_status()
-        raw_content = getattr(response, "content", None)
-        content_type = ""
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            content_type = str(headers.get("content-type", "")).lower()
+        if source_url.lower().startswith("data:"):
+            content_type, raw_content, response_text = _parse_data_url(source_url)
+        else:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(
+                    source_url,
+                    headers=_holdings_request_headers(),
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            raw_content = getattr(response, "content", None)
+            response_text = response.text
+            content_type = ""
+            headers = getattr(response, "headers", None)
+            if headers is not None:
+                content_type = str(headers.get("content-type", "")).lower()
         source_format = "zip" if (
             source_url.lower().endswith(".zip")
             or "zip" in content_type
@@ -919,20 +989,20 @@ class PublicCsvHoldingsAdapter:
         raw_json = None
         if source_format == "zip":
             if not isinstance(raw_content, bytes):
-                raw_content = response.text.encode()
+                raw_content = response_text.encode()
             rows, raw_text, raw_json = parse_holdings_zip(raw_content)
         elif source_format == "xlsx":
             if not isinstance(raw_content, bytes):
-                raw_content = response.text.encode()
+                raw_content = response_text.encode()
             workbook_rows = parse_xlsx_table(raw_content)
             rows = parse_holdings_table(workbook_rows)
             raw_text = _table_to_text(workbook_rows)
             raw_json = {"source_format": "xlsx", "workbook_rows": workbook_rows}
         else:
-            rows = parse_holdings_csv(response.text)
-            raw_text = response.text
+            rows = parse_holdings_csv(response_text)
+            raw_text = response_text
             if not rows and self.adapter_key == "ishares":
-                rows = _parse_ishares_inline_top_holdings(response.text)
+                rows = _parse_ishares_inline_top_holdings(response_text)
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_text,
@@ -1007,9 +1077,24 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
     built-in route catalogues where those routes are stable enough to test live.
     """
 
-    source_url_aliases: tuple[str, ...] = ()
-    url_template_aliases: tuple[str, ...] = ()
-    dated_url_template_aliases: tuple[str, ...] = ()
+    source_url_aliases: tuple[str, ...] = (
+        "holdings_url",
+        "source_url",
+        "issuer_holdings_url",
+        "holdings_file_url",
+    )
+    url_template_aliases: tuple[str, ...] = (
+        "holdings_url_template",
+        "source_url_template",
+    )
+    dated_url_template_aliases: tuple[str, ...] = (
+        "dated_holdings_url_template",
+        "dated_source_url_template",
+    )
+    generic_dated_url_template_aliases: tuple[str, ...] = (
+        "dated_holdings_url_template",
+        "dated_source_url_template",
+    )
     product_page_aliases = (
         "product_url",
         "issuer_product_url",
@@ -1067,11 +1152,16 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         missing = [
             key for key in self.config.required_identifiers if key not in normalized
         ]
+        provider_specific_dated_aliases = tuple(
+            alias
+            for alias in self.dated_url_template_aliases
+            if alias not in self.generic_dated_url_template_aliases
+        )
         has_known_route_shape = bool(
             self.config.url_templates
             or self.config.product_page_templates
             or self.config.required_identifiers
-            or self.dated_url_template_aliases
+            or provider_specific_dated_aliases
         )
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
@@ -1322,8 +1412,60 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
 
 
 ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
+    "EEM": "239637",
     "IVV": "239726",
     "IWM": "239710",
+}
+
+KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
+    "QQQ": {
+        "issuer": "Invesco",
+        "provider_aliases": {
+            "sec_cik": "0001067839",
+            "sec_series_id": "S000101292",
+            "sec_class_id": "C000271435",
+            "sec_fund_tickers_symbol": "QQQ",
+        },
+    },
+    "EEM": {
+        "issuer": "iShares",
+        "provider_aliases": {
+            "issuer_product_id": "239637",
+            "sec_cik": "0000930667",
+            "sec_series_id": "S000004266",
+            "sec_class_id": "C000011970",
+            "sec_fund_tickers_symbol": "EEM",
+        },
+    },
+    "IVV": {
+        "issuer": "iShares",
+        "provider_aliases": {
+            "issuer_product_id": "239726",
+            "sec_cik": "0001100663",
+            "sec_series_id": "S000004310",
+            "sec_class_id": "C000012040",
+            "sec_fund_tickers_symbol": "IVV",
+        },
+    },
+    "IWM": {
+        "issuer": "iShares",
+        "provider_aliases": {
+            "issuer_product_id": "239710",
+            "sec_cik": "0001100663",
+            "sec_series_id": "S000004344",
+            "sec_class_id": "C000012074",
+            "sec_fund_tickers_symbol": "IWM",
+        },
+    },
+    "XLE": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "sec_cik": "0001064641",
+            "sec_series_id": "S000006410",
+            "sec_class_id": "C000017596",
+            "sec_fund_tickers_symbol": "XLE",
+        },
+    },
 }
 
 
@@ -1331,6 +1473,12 @@ def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
     """Return provider-specific route metadata we can safely seed by ticker."""
 
     normalized_symbol = symbol.strip().upper()
+    known_metadata = KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.get(normalized_symbol)
+    if known_metadata:
+        return {
+            "issuer": known_metadata.get("issuer"),
+            "provider_aliases": dict(known_metadata.get("provider_aliases") or {}),
+        }
     ishares_product_id = ISHARES_PRODUCT_IDS_BY_SYMBOL.get(normalized_symbol)
     if ishares_product_id:
         return {
@@ -1350,6 +1498,8 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         "product-data/api/v2/get-product-data?"
     )
     dated_url_template_aliases = (
+        "dated_holdings_url_template",
+        "dated_source_url_template",
         "ishares_dated_holdings_url_template",
     )
 
@@ -1561,6 +1711,8 @@ ARK_HOLDINGS_FILE_STEMS: dict[str, str] = {
 
 class ArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
     dated_url_template_aliases = (
+        "dated_holdings_url_template",
+        "dated_source_url_template",
         "ark_dated_holdings_url_template",
     )
 
@@ -1607,7 +1759,16 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if explicit:
             return explicit
-        return None
+        identifiers = identifiers or {}
+        if _identifier(identifiers, *self.product_page_aliases):
+            return None
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return (
+            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+            f"{normalized_symbol}/holdings/fund?idType=ticker&interval=monthly&productType=ETF"
+        )
 
     async def fetch_latest(
         self,
@@ -1624,11 +1785,16 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             identifiers=identifiers,
         )
         if not resolved_source_url:
-            raise ValueError(f"invesco needs issuer route metadata for {symbol}.")
+            return await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 resolved_source_url,
-                headers=_holdings_request_headers(accept="*/*"),
+                headers=_invesco_holdings_request_headers(),
                 follow_redirects=True,
             )
         response.raise_for_status()
@@ -1717,6 +1883,85 @@ class FranklinHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class SprottHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    sitemap_url = "https://sprottetfs.com/xml-sitemap/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        explicit = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=None,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.8500"),
+                status="ready",
+                reason="ETF profile has a Sprott issuer product page for holdings-link discovery.",
+                source_url=explicit,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.7500"),
+            status="ready",
+            reason="Sprott ETF product pages are discoverable from the public ETF sitemap.",
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        identifiers = identifiers or {}
+        product_page_url = (
+            self.resolve_product_page_url(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
+            or await self._discover_product_page_from_sitemap(symbol)
+        )
+        merged_identifiers = (
+            {**identifiers, "product_url": product_page_url}
+            if product_page_url
+            else identifiers
+        )
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=merged_identifiers,
+        )
+
+    async def _discover_product_page_from_sitemap(self, symbol: str) -> str | None:
+        normalized = symbol.strip().lower()
+        if not normalized:
+            return None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.sitemap_url,
+                headers=_holdings_request_headers(accept="application/xml,text/xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        try:
+            root = ET.fromstring(response.text)
+        except ET.ParseError:
+            return None
+        namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        for node in root.findall("sm:url/sm:loc", namespace):
+            url = (node.text or "").strip()
+            if not url:
+                continue
+            path = urlparse(url).path.strip("/").lower()
+            if path.startswith(f"{normalized}-sprott-") and path.endswith("-etf"):
+                return url
+        return None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -1743,11 +1988,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "invesco": IssuerCsvAdapterConfig(
         adapter_key="invesco",
         source_provider="invesco",
+        url_templates=(
+            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+            "{symbol_upper}/holdings/fund?idType=ticker&interval=monthly&productType=ETF",
+        ),
+        live_tested_default_route=True,
         terms_note="Invesco public product pages and holdings files may be subject to issuer terms.",
     ),
     "schwab": IssuerCsvAdapterConfig(
         adapter_key="schwab",
         source_provider="schwab",
+        product_page_templates=(
+            "https://www.schwabassetmanagement.com/products/{symbol_lower}",
+        ),
         terms_note="Schwab public product pages and holdings files may be subject to issuer terms.",
     ),
     "ark": IssuerCsvAdapterConfig(
@@ -1807,6 +2060,12 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="franklin",
         source_provider="franklin",
     ),
+    "sprott": IssuerCsvAdapterConfig(
+        adapter_key="sprott",
+        source_provider="sprott",
+        live_tested_default_route=True,
+        terms_note="Sprott public product pages and holdings files may be subject to issuer terms.",
+    ),
 }
 
 
@@ -1823,6 +2082,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "proshares": ProSharesHoldingsAdapter,
         "schwab": SchwabHoldingsAdapter,
         "spdr": SpdrHoldingsAdapter,
+        "sprott": SprottHoldingsAdapter,
         "vaneck": VanEckHoldingsAdapter,
         "vanguard": VanguardHoldingsAdapter,
         "wisdomtree": WisdomTreeHoldingsAdapter,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -89,6 +90,29 @@ def _mark_field_provenance(
         note=note,
     )
     setattr(target, "field_provenance", provenance)
+
+
+_EXCHANGE_CODE_RE = re.compile(r"^[A-Z0-9.\-]{2,10}$")
+_CURRENCY_CODE_RE = re.compile(r"^[A-Z]{3}$")
+
+
+def _normalize_exchange_code(value: str | None) -> str | None:
+    text = str(value or "").strip().upper()
+    if not text:
+        return None
+    if _EXCHANGE_CODE_RE.fullmatch(text):
+        return text
+    lead = re.split(r"[\s(/]", text, maxsplit=1)[0].strip().upper()
+    if _EXCHANGE_CODE_RE.fullmatch(lead):
+        return lead
+    return None
+
+
+def _normalize_currency_code(value: str | None) -> str | None:
+    text = str(value or "").strip().upper()
+    if _CURRENCY_CODE_RE.fullmatch(text):
+        return text
+    return None
 
 
 def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]:
@@ -455,7 +479,18 @@ async def register_identifier(
     ).scalar_one_or_none()
 
     if existing is not None and existing.instrument_id != instrument.id:
-        return
+        if provider_name != "etf_holdings_internal" or existing.data_source_id != data_source.id:
+            return
+        previous_instrument = (
+            await db.execute(select(Instrument).where(Instrument.id == existing.instrument_id))
+        ).scalar_one_or_none()
+        existing.instrument_id = instrument.id
+        if (
+            previous_instrument is not None
+            and existing.identifier_type == InstrumentIdentifierType.ISIN
+            and previous_instrument.isin == existing.identifier_value
+        ):
+            previous_instrument.isin = None
 
     if existing is None:
         existing = InstrumentIdentifier(
@@ -669,13 +704,14 @@ async def apply_profile_to_instrument(
     asset_class_name, type_name = TYPE_MAP.get(quote_type, ("Equity", "Stock"))
     instrument_type_id = await ensure_instrument_type(db, asset_class_name, type_name)
     fetched_at = _now_utc()
+    normalized_currency = _normalize_currency_code(profile.currency)
 
     if instrument is None:
         instrument = Instrument(
             symbol=profile.canonical_symbol,
             name=profile.name,
             description=profile.description,
-            currency=profile.currency,
+            currency=normalized_currency,
             instrument_type_id=instrument_type_id,
             is_active=True,
         )
@@ -685,7 +721,7 @@ async def apply_profile_to_instrument(
         instrument.symbol = profile.canonical_symbol
         instrument.name = profile.name or instrument.name
         instrument.description = profile.description or instrument.description
-        instrument.currency = profile.currency or instrument.currency
+        instrument.currency = normalized_currency or instrument.currency
         instrument.instrument_type_id = instrument_type_id
         instrument.is_active = True
 
@@ -713,7 +749,7 @@ async def apply_profile_to_instrument(
             fetched_at=fetched_at,
             provider_symbol=profile.symbol,
         )
-    if profile.currency:
+    if normalized_currency:
         _mark_field_provenance(
             instrument,
             "currency",
@@ -730,7 +766,7 @@ async def apply_profile_to_instrument(
             listing.provider_symbol,
             provider_exchange_code=listing.exchange_code,
             provider_instrument_type=listing.provider_instrument_type,
-            currency=listing.currency or profile.currency,
+            currency=_normalize_currency_code(listing.currency) or normalized_currency,
             is_primary=listing.is_primary,
             extra_data=listing.extra_data,
         )
@@ -743,7 +779,7 @@ async def apply_profile_to_instrument(
             profile.symbol,
             provider_exchange_code=profile.exchange,
             provider_instrument_type=quote_type,
-            currency=profile.currency,
+            currency=normalized_currency,
             is_primary=True,
         )
 
@@ -770,10 +806,11 @@ async def apply_profile_to_instrument(
         if detail is None:
             detail = EquityDetail(instrument_id=instrument.id)
             db.add(detail)
+        normalized_exchange = _normalize_exchange_code(profile.exchange)
         detail.sector = profile.extra.get("sector") or detail.sector
         detail.industry = profile.extra.get("industry") or detail.industry
         detail.country = profile.extra.get("country") or detail.country
-        detail.exchange_mic = profile.exchange or detail.exchange_mic
+        detail.exchange_mic = normalized_exchange or detail.exchange_mic
         detail.website = profile.extra.get("website") or detail.website
         detail.market_cap_tier = (
             _cap_tier(profile.extra.get("market_cap")) or detail.market_cap_tier
@@ -784,7 +821,7 @@ async def apply_profile_to_instrument(
             ("sector", profile.extra.get("sector")),
             ("industry", profile.extra.get("industry")),
             ("country", profile.extra.get("country")),
-            ("exchange_mic", profile.exchange),
+            ("exchange_mic", normalized_exchange),
             ("website", profile.extra.get("website")),
             ("market_cap_tier", _cap_tier(profile.extra.get("market_cap"))),
             ("employees", profile.extra.get("employees")),

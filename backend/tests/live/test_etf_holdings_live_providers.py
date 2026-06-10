@@ -10,7 +10,9 @@ from app.services.etf_holdings_adapters import (
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "ark",
     "global_x",
+    "invesco",
     "ishares",
+    "sprott",
     "spdr",
     "vaneck",
 }
@@ -18,7 +20,6 @@ EXPLICIT_CANDIDATE_ROUTE_GAPS = {
     "direxion",
     "fidelity",
     "franklin",
-    "invesco",
     "jpmorgan",
     "proshares",
     "schwab",
@@ -76,6 +77,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "ishares",
+            "EEM",
+            None,
+            {},
+            100,
+        ),
+        (
+            "ishares",
             "IWM",
             None,
             {},
@@ -94,6 +102,20 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "invesco",
+            "QQQ",
+            None,
+            {},
+            100,
+        ),
+        (
+            "sprott",
+            "NIKL",
+            None,
+            {},
+            10,
         ),
     ],
 )
@@ -150,7 +172,6 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
         ("direxion", "SPXL"),
         ("fidelity", "FBCG"),
         ("franklin", "FLQL"),
-        ("invesco", "QQQ"),
         ("jpmorgan", "JEPI"),
         ("proshares", "TQQQ"),
         ("schwab", "SCHD"),

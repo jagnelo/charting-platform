@@ -23,6 +23,7 @@ from app.services.etf_holdings import (
     get_etf_profile_for_instrument,
     get_latest_snapshot,
     ingest_holdings_snapshot,
+    reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import (
     HoldingsAdapterProbe,
@@ -394,6 +395,152 @@ async def discover_etf_profiles_from_sec_fund_tickers(
     }
 
 
+async def enrich_etf_profile_from_sec_fund_tickers(
+    db: AsyncSession,
+    *,
+    profile: ETFProfile,
+    source_url: str = SEC_FUND_TICKERS_URL,
+) -> bool:
+    """Hydrate SEC identifiers for a single ETF profile from the public fund ticker map."""
+
+    if profile.instrument is None:
+        raise ValueError("ETF profile is missing its linked instrument.")
+
+    symbol = profile.instrument.symbol.strip().upper()
+    async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+        response = await client.get(
+            source_url,
+            headers={"User-Agent": settings.EDGAR_USER_AGENT},
+            follow_redirects=True,
+        )
+    response.raise_for_status()
+
+    target_row = next(
+        (
+            row
+            for row in _parse_sec_fund_ticker_rows(response.json())
+            if row["symbol"] == symbol
+        ),
+        None,
+    )
+    if target_row is None:
+        return False
+
+    profile = await ensure_etf_profile(
+        db,
+        profile.instrument,
+        sec_cik=target_row.get("sec_cik"),
+        sec_series_id=target_row.get("sec_series_id"),
+        sec_class_id=target_row.get("sec_class_id"),
+        provider_aliases={
+            **(_aliases(profile)),
+            "sec_fund_tickers_source_url": source_url,
+            "sec_fund_tickers_symbol": symbol,
+            **{
+                key: value
+                for key, value in {
+                    "sec_cik": target_row.get("sec_cik"),
+                    "sec_series_id": target_row.get("sec_series_id"),
+                    "sec_class_id": target_row.get("sec_class_id"),
+                }.items()
+                if value
+            },
+        },
+        legal_metadata={
+            **((profile.legal_metadata or {}) if profile else {}),
+            "sec_fund_tickers_source_url": source_url,
+            "sec_fund_tickers_source_access": "sec_public_file",
+            "sec_fund_tickers_last_row": target_row["raw_row"],
+        },
+    )
+    await _register_optional_identifier(
+        db,
+        profile.instrument,
+        "internal",
+        f"SEC-CIK:{target_row['sec_cik']}" if target_row.get("sec_cik") else None,
+        "sec",
+    )
+    return True
+
+
+async def _bootstrap_from_sec_filings(
+    db: AsyncSession,
+    *,
+    profile: ETFProfile,
+) -> ETFHoldingsBootstrapResult | None:
+    """Fallback bootstrap using the latest parseable SEC holdings filings."""
+
+    if profile.instrument is None:
+        raise ValueError("ETF profile is missing its linked instrument.")
+
+    from app.services.etf_holdings_edgar import (
+        backfill_sec_legacy_holdings,
+        backfill_sec_nport_holdings,
+    )
+
+    latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+    if latest is not None:
+        probe = await probe_etf_holdings_adapter_route(db, profile)
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=False,
+            refresh_succeeded=True,
+            message="Loaded the latest stored ETF holdings snapshot.",
+        )
+
+    if not profile.sec_cik:
+        return None
+
+    backfill_attempts: list[tuple[str, Any]] = [
+        ("SEC N-PORT", backfill_sec_nport_holdings),
+        ("SEC legacy holdings", backfill_sec_legacy_holdings),
+    ]
+    failures: list[str] = []
+    for label, loader in backfill_attempts:
+        try:
+            summary = await loader(
+                db,
+                profile=profile,
+                max_filings=3,
+                requested_by_user_id=None,
+            )
+        except Exception as exc:  # noqa: BLE001 - bootstrap should surface fallback issues cleanly.
+            failures.append(f"{label}: {exc}")
+            continue
+
+        latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+        if latest is not None:
+            probe = await probe_etf_holdings_adapter_route(db, profile)
+            return ETFHoldingsBootstrapResult(
+                profile=profile,
+                probe=probe,
+                refresh_attempted=True,
+                refresh_succeeded=True,
+                message=(
+                    f"Fetched ETF holdings from the latest available {label} filing."
+                    if summary.get("ingested", 0)
+                    else f"Loaded the latest stored ETF holdings snapshot after {label} backfill."
+                ),
+            )
+        failures.append(
+            f"{label}: discovered={summary.get('discovered', 0)}, "
+            f"ingested={summary.get('ingested', 0)}, skipped={summary.get('skipped', 0)}, "
+            f"failed={summary.get('failed', 0)}"
+        )
+
+    if failures:
+        probe = await probe_etf_holdings_adapter_route(db, profile)
+        return ETFHoldingsBootstrapResult(
+            profile=profile,
+            probe=probe,
+            refresh_attempted=True,
+            refresh_succeeded=False,
+            message=" ; ".join(failures),
+        )
+    return None
+
+
 async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     """Refresh ETF holdings for profiles whose free-source route is configured."""
 
@@ -489,14 +636,21 @@ async def bootstrap_etf_holdings_profile(
     route_metadata = known_etf_route_metadata(instrument.symbol)
     if route_metadata:
         issuer = route_metadata.get("issuer")
-        if issuer and not profile.issuer:
+        if issuer:
             profile.issuer = issuer
         seeded_aliases = route_metadata.get("provider_aliases")
         if isinstance(seeded_aliases, dict):
             profile.provider_aliases = {
-                **seeded_aliases,
                 **_aliases(profile),
+                **seeded_aliases,
             }
+            profile.sec_cik = str(seeded_aliases.get("sec_cik") or profile.sec_cik or "").strip() or None
+            profile.sec_series_id = (
+                str(seeded_aliases.get("sec_series_id") or profile.sec_series_id or "").strip() or None
+            )
+            profile.sec_class_id = (
+                str(seeded_aliases.get("sec_class_id") or profile.sec_class_id or "").strip() or None
+            )
         probe = infer_adapter_key(
             issuer=profile.issuer,
             fund_family=profile.fund_family,
@@ -509,8 +663,17 @@ async def bootstrap_etf_holdings_profile(
             profile.adapter_status = probe.status
             profile.adapter_confidence = probe.confidence
 
-    latest_snapshot = await get_latest_snapshot(db, instrument.id, include_holdings=False)
+    if not profile.sec_cik:
+        try:
+            await enrich_etf_profile_from_sec_fund_tickers(db, profile=profile)
+        except Exception:
+            # SEC enrichment is opportunistic during bootstrap and should not block
+            # issuer-route bootstrap attempts when the SEC endpoint is unavailable.
+            pass
+
+    latest_snapshot = await get_latest_snapshot(db, instrument.id, include_holdings=True)
     if latest_snapshot is not None:
+        latest_snapshot = await reconcile_snapshot_constituents(db, latest_snapshot)
         probe = await probe_etf_holdings_adapter_route(db, profile)
         if probe.status == "ready":
             profile.adapter_status = "success"
@@ -525,17 +688,26 @@ async def bootstrap_etf_holdings_profile(
 
     probe = await probe_etf_holdings_adapter_route(db, profile)
     if probe.status != "ready":
+        sec_fallback = await _bootstrap_from_sec_filings(db, profile=profile)
+        if sec_fallback is not None and sec_fallback.refresh_succeeded:
+            await db.flush()
+            return sec_fallback
         await db.flush()
         return ETFHoldingsBootstrapResult(
             profile=profile,
             probe=probe,
             refresh_attempted=False,
             refresh_succeeded=False,
-            message=probe.reason or "No free holdings route is configured for this ETF yet.",
+            message=(
+                sec_fallback.message
+                if sec_fallback is not None and sec_fallback.message
+                else probe.reason or "No free holdings route is configured for this ETF yet."
+            ),
         )
 
     try:
-        snapshot = await _refresh_adapter_route(db, profile)
+        async with db.begin_nested():
+            snapshot = await _refresh_adapter_route(db, profile)
         await _record_success(db, profile, snapshot=snapshot)
         await db.flush()
         return ETFHoldingsBootstrapResult(
@@ -546,13 +718,21 @@ async def bootstrap_etf_holdings_profile(
             message="Fetched the latest ETF holdings snapshot.",
         )
     except Exception as exc:
+        sec_fallback = await _bootstrap_from_sec_filings(db, profile=profile)
+        if sec_fallback is not None and sec_fallback.refresh_succeeded:
+            await db.flush()
+            return sec_fallback
         await db.flush()
         return ETFHoldingsBootstrapResult(
             profile=profile,
             probe=probe,
             refresh_attempted=True,
             refresh_succeeded=False,
-            message=str(exc) or "ETF holdings refresh failed.",
+            message=(
+                sec_fallback.message
+                if sec_fallback is not None and sec_fallback.message
+                else str(exc) or "ETF holdings refresh failed."
+            ),
         )
 
 

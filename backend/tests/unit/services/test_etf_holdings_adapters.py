@@ -232,6 +232,23 @@ def test_discover_holdings_download_url_accepts_download_route_without_extension
     )
 
 
+def test_discover_holdings_download_url_accepts_data_uri_with_download_filename():
+    html = """
+      <html>
+        <body>
+          <a download="NIKL-holdings-2026-06-08.csv"
+             href="data:application/csv;charset=utf-8,Ticker%2CName%0D%0ANIC%2CNickel%20Industries">
+             Download holdings
+          </a>
+        </body>
+      </html>
+    """
+    assert _discover_holdings_download_url(
+        "https://sprottetfs.example/nikl",
+        html,
+    ).startswith("data:application/csv")
+
+
 def test_parse_ishares_inline_top_holdings_extracts_rows():
     html_text = (
         '{"topHoldings":['
@@ -294,6 +311,25 @@ async def test_public_csv_holdings_adapter_parses_csv_xlsx_zip_and_ishares_html(
         source_url="https://issuer.example/ivv",
     )
     assert result.rows[0].name == "META"
+
+
+@pytest.mark.asyncio
+async def test_public_csv_holdings_adapter_parses_data_uri_without_http(monkeypatch):
+    FakeAsyncClient.requested = []
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await PublicCsvHoldingsAdapter("sprott").fetch_latest(
+        symbol="NIKL",
+        source_url=(
+            "data:application/csv;charset=utf-8,"
+            "Security%2CMarket%20Value%2CSymbol%2CSEDOL%2CQuantity%2CWeight%0D%0A"
+            "Nickel%20Industries%20Ltd.%2C10029221.90%2CNIC%20AU%2CBZ7NDP2%2C14024607.00%2C15"
+        ),
+    )
+
+    assert FakeAsyncClient.requested == []
+    assert result.rows[0].name == "Nickel Industries Ltd."
+    assert result.rows[0].weight == Decimal("0.15")
 
 
 @pytest.mark.asyncio
@@ -423,11 +459,6 @@ async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
 
     result = await adapter.fetch_latest(
         symbol="QQQ",
-        source_url=(
-            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
-            "QQQ/holdings/fund?idType=ticker&interval=monthly&productType=ETF"
-            "&loadType=initial"
-        ),
         identifiers={},
     )
 
@@ -437,6 +468,23 @@ async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     assert result.rows[0].weight == Decimal("0.08305722")
     assert result.legal_metadata["source_format"] == "json"
     assert result.legal_metadata["route_resolution"] == "issuer_public_json_api"
+    request_headers = FakeAsyncClient.requested[0][1]["headers"]
+    assert request_headers["Referer"] == "https://www.invesco.com/"
+    assert "HeadlessChrome" in request_headers["User-Agent"]
+
+
+def test_invesco_adapter_resolves_default_live_route_from_symbol():
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+
+    source_url = adapter.resolve_source_url(symbol="QQQ", identifiers={})
+    assert source_url == (
+        "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+        "QQQ/holdings/fund?idType=ticker&interval=monthly&productType=ETF"
+    )
+    probe = adapter.probe(symbol="QQQ", name="Invesco QQQ Trust", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == source_url
 
 
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
@@ -463,6 +511,13 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     )
     assert by_name.adapter_key == "ark"
 
+    sprott = infer_adapter_key(
+        issuer="Sprott",
+        fund_family=None,
+        name="Sprott Nickel Miners ETF",
+    )
+    assert sprott.adapter_key == "sprott"
+
     unresolved = infer_adapter_key(
         issuer="Unknown",
         fund_family="Unknown",
@@ -478,6 +533,43 @@ def test_registered_holdings_adapters_are_provider_specific():
         assert adapter is not None
         assert type(adapter) is not IssuerCsvHoldingsAdapter
         assert type(adapter) is not PublicCsvHoldingsAdapter
+
+
+@pytest.mark.asyncio
+async def test_sprott_adapter_discovers_product_page_from_public_sitemap(monkeypatch):
+    adapter = get_holdings_adapter("sprott")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<?xml version="1.0" encoding="utf-8"?>'
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                '<url><loc>https://sprottetfs.com/nikl-sprott-nickel-miners-etf/</loc></url>'
+                "</urlset>"
+            ),
+            content_type="application/xml",
+        ),
+        FakeResponse(
+            text=(
+                '<a download="NIKL-holdings-2026-06-08.csv" '
+                'href="data:application/csv;charset=utf-8,Security%2CMarket%20Value%2CSymbol%2CSEDOL%2CQuantity%2CWeight%0D%0A'
+                'Nickel%20Industries%20Ltd.%2C10029221.90%2CNIC%20AU%2CBZ7NDP2%2C14024607.00%2C15">'
+                "Download holdings</a>"
+            ),
+            content_type="text/html",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NIKL", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://sprottetfs.com/xml-sitemap/"
+    assert FakeAsyncClient.requested[1][0] == "https://sprottetfs.com/nikl-sprott-nickel-miners-etf/"
+    assert result.rows
+    assert result.rows[0].name == "Nickel Industries Ltd."
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
 
 
 def test_ishares_adapter_resolves_known_product_id_from_symbol():
@@ -496,6 +588,19 @@ def test_ishares_adapter_resolves_known_product_id_from_symbol():
     probe = adapter.probe(symbol="IWM", name="iShares Russell 2000 ETF", identifiers={})
     assert probe.status == "ready"
     assert probe.issuer_product_id == "239710"
+
+
+def test_ishares_adapter_resolves_known_product_id_for_eem():
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+
+    source_url = adapter.resolve_source_url(symbol="EEM", identifiers={})
+
+    assert source_url is not None
+    assert "portfolioId=239637" in source_url
+    probe = adapter.probe(symbol="EEM", name="iShares MSCI Emerging Markets ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.issuer_product_id == "239637"
 
 
 @pytest.mark.asyncio

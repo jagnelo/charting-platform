@@ -277,7 +277,11 @@ class YFinanceProvider:
         try:
             info = yf.Ticker(symbol).info or {}
         except Exception as exc:
-            logger.error("Failed to get info for %s: %s", symbol, exc)
+            message = str(exc)
+            if "Quote not found for symbol" in message or "HTTP Error 404" in message:
+                logger.debug("yfinance profile miss for %s: %s", symbol, exc)
+            else:
+                logger.error("Failed to get info for %s: %s", symbol, exc)
             return None
         if not info:
             return None

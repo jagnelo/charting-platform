@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier
 from app.models.provider_observation import (
     InstrumentIdentifierSnapshot,
@@ -383,3 +383,32 @@ async def test_seed_universe_persists_discovery_snapshots(db, monkeypatch):
         == "Bitcoin"
     )
     assert len(snapshots) == 2
+
+
+@pytest.mark.asyncio
+async def test_ingest_provider_profile_normalizes_long_exchange_labels(db):
+    async_db = AsyncSessionAdapter(db)
+
+    profile = InstrumentProfile(
+        provider="openfigi",
+        symbol="2330",
+        canonical_symbol="2330",
+        name="Taiwan Semiconductor Manufacturing Co Ltd",
+        quote_type="EQUITY",
+        exchange="TT (TAIWAN STOCK EXCHANGE)",
+        identifiers=[
+            IdentifierRecord(
+                identifier_type="FIGI",
+                identifier_value="BBG000BD8ZK0",
+                source="openfigi",
+            )
+        ],
+    )
+
+    instrument = await instrument_mastering.ingest_provider_profile(async_db, profile)
+
+    detail = db.execute(
+        select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
+    ).scalar_one()
+    assert detail.exchange_mic == "TT"
+    assert instrument.currency is None

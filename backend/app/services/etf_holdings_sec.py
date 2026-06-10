@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from html import unescape
 from html.parser import HTMLParser
 from typing import Any
 from xml.etree import ElementTree
@@ -33,7 +34,10 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
     primitive, not a claim that every historical filing is perfectly normalized.
     """
 
-    root = ElementTree.fromstring(raw_xml)
+    try:
+        root = ElementTree.fromstring(raw_xml)
+    except ElementTree.ParseError:
+        return _parse_sec_nport_xhtml(raw_xml)
     report_date = _parse_date(_first_text(root, ["repPdDate", "periodOfReport", "reportDate"]))
     security_nodes = [
         node
@@ -64,12 +68,80 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
                 market_value=_decimal(
                     _first_text(node, ["valUSD", "valueUSD", "marketValue", "value"])
                 ),
-                currency=_first_text(node, ["curCd", "currency", "currencyCode"]),
+                currency=_normalize_nport_currency(
+                    _first_text(node, ["curCd", "currency", "currencyCode"])
+                ),
                 country=_first_text(node, ["country", "issuerCountry"]),
                 holding_type=asset_type,
                 row_type=row_type,
                 source_row_id=str(position),
                 extra_data=_flatten_direct_children(node),
+            )
+        )
+    return report_date, rows
+
+
+def _parse_sec_nport_xhtml(raw_html: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
+    report_date = None
+    sections = re.split(
+        r"<h4>\s*Item C\.1\.\s*Identification of investment\.\s*</h4>",
+        raw_html,
+        flags=re.IGNORECASE,
+    )
+    if len(sections) <= 1:
+        return report_date, []
+
+    rows: list[CanonicalHoldingRow] = []
+    for position, section in enumerate(sections[1:], start=1):
+        parser = _HTMLTableParser()
+        parser.feed(section)
+        label_map = _nport_html_label_map(parser.tables)
+        name = (
+            _first_nport_value(
+                label_map,
+                "a. name of issuer",
+                "c. title of the issue or description of the investment",
+            )
+            or _first_nport_value(label_map, "title of the issue or description of the investment")
+        )
+        cusip = _first_nport_value(label_map, "d. cusip", "cusip")
+        isin = _first_nport_value(label_map, "isin")
+        sedol = _first_nport_value(label_map, "sedol")
+        symbol = _first_nport_value(label_map, "ticker", "ticker symbol", "symbol")
+        shares = _decimal(_first_nport_value(label_map, "balance"))
+        market_value = _decimal(_first_nport_value(label_map, "value"))
+        weight = _decimal(_first_nport_value(label_map, "percentage value compared to net assets of the fund"))
+        if weight is not None and weight > 1:
+            weight = weight / Decimal("100")
+        currency = _normalize_nport_currency(
+            _first_nport_value(label_map, "currency. indicate the currency in which the investment is denominated")
+            or _first_nport_value(label_map, "currency")
+        )
+        holding_type = (
+            _first_nport_value(label_map, "asset category")
+            or _first_nport_value(label_map, "security type")
+            or "equity"
+        ).lower()
+        row_type = "cash" if holding_type in {"cash", "currency"} else "security"
+        if not any([name, cusip, isin, sedol, symbol]):
+            continue
+        if shares is None and market_value is None and weight is None:
+            continue
+        rows.append(
+            CanonicalHoldingRow(
+                symbol=symbol,
+                name=name,
+                cusip=cusip,
+                isin=isin,
+                sedol=sedol,
+                weight=weight,
+                shares=shares,
+                market_value=market_value,
+                currency=currency or "USD",
+                holding_type=holding_type,
+                row_type=row_type,
+                source_row_id=str(position),
+                extra_data={"source": "sec_nport_xhtml"},
             )
         )
     return report_date, rows
@@ -140,7 +212,10 @@ def parse_sec_legacy_holdings_xml(raw_xml: str) -> tuple[date | None, list[Canon
                 weight=weight,
                 shares=shares,
                 market_value=market_value,
-                currency=_first_text(node, ["currency", "currencyCode", "curCd"]) or "USD",
+                currency=_normalize_nport_currency(
+                    _first_text(node, ["currency", "currencyCode", "curCd"])
+                )
+                or "USD",
                 country=_first_text(node, ["country", "issuerCountry"]),
                 holding_type=asset_type,
                 row_type=row_type,
@@ -191,6 +266,62 @@ class _HTMLTableParser(HTMLParser):
             if self._current_table:
                 self.tables.append(self._current_table)
             self._current_table = None
+
+
+def _normalize_nport_currency(value: str | None) -> str | None:
+    text = _clean(value)
+    if not text:
+        return None
+    normalized = text.lower()
+    if "united states dollar" in normalized or normalized == "usd":
+        return "USD"
+    if "canada dollar" in normalized or "canadian dollar" in normalized or normalized == "cad":
+        return "CAD"
+    if "euro" in normalized or normalized == "eur":
+        return "EUR"
+    if "british pound" in normalized or normalized == "gbp":
+        return "GBP"
+    if "japanese yen" in normalized or normalized == "jpy":
+        return "JPY"
+    if len(text) == 3 and text.isalpha():
+        return text.upper()
+    return text
+
+
+def _nport_html_label_map(tables: list[list[list[str]]]) -> dict[str, list[str]]:
+    label_map: dict[str, list[str]] = {}
+    for table in tables:
+        for row in table:
+            if len(row) < 2:
+                continue
+            label = _clean(_normalize_html_label(row[0]))
+            value = _clean(_normalize_html_value(row[1]))
+            if not label or not value:
+                continue
+            label_map.setdefault(label, []).append(value)
+    return label_map
+
+
+def _normalize_html_label(value: str) -> str:
+    text = unescape(value or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.lower()
+
+
+def _normalize_html_value(value: str) -> str:
+    text = unescape(value or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _first_nport_value(label_map: dict[str, list[str]], *prefixes: str) -> str | None:
+    wanted = tuple(prefix.strip().lower() for prefix in prefixes if prefix.strip())
+    for label, values in label_map.items():
+        if any(label.startswith(prefix) for prefix in wanted):
+            for value in values:
+                if value and value != "\xa0":
+                    return value
+    return None
 
 
 def _parse_sec_legacy_holdings_html(raw_html: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
