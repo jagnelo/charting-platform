@@ -2042,6 +2042,69 @@ async def test_acquirers_adapter_fetches_native_holdings_workbook(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_clearshares_adapter_fetches_native_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("clearshares")
+    assert adapter is not None
+    xls_payload = b"\xd0\xcf\x11\xe0clearshares-xls"
+
+    def fake_parse_xls(raw_workbook):
+        assert raw_workbook == xls_payload
+        return (
+            [
+                SimpleNamespace(
+                    symbol="AAPL",
+                    name="Apple Inc",
+                    cusip="037833100",
+                    isin=None,
+                    sedol=None,
+                    weight=Decimal("0.0518"),
+                    shares=Decimal("100"),
+                    market_value=Decimal("20000"),
+                    currency=None,
+                    country=None,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=None,
+                    extra_data={},
+                )
+            ],
+            [
+                [
+                    "Percentage Of Net Assets",
+                    "Name",
+                    "Identifier",
+                    "CUSIP",
+                    "Shares Held",
+                    "Market Value",
+                ],
+                ["5.18%", "Apple Inc", "AAPL", "037833100", "100", "20000"],
+            ],
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=xls_payload,
+            content_type="application/vnd.ms-excel",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.parse_holdings_xls", fake_parse_xls)
+
+    result = await adapter.fetch_latest(symbol="OPER", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://clear-shares.com/download-holdings-usbanks.php?fund=oper"
+    )
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://clear-shares.com/"
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_xls"
+    assert result.legal_metadata["source_provider"] == "clearshares"
+    assert result.legal_metadata["source_format"] == "xls"
+
+
+@pytest.mark.asyncio
 async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     adapter = get_holdings_adapter("graniteshares")
     assert adapter is not None
@@ -2296,6 +2359,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert len(adapters) >= 340
     assert adapters["acquirers"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["acquirers"]["support_route_types"]
+    assert adapters["clearshares"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["clearshares"]["support_route_types"]
     assert adapters["first_trust"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["first_trust"]["support_route_types"]
     assert adapters["roundhill"]["live_tested_default_route"] is True
@@ -2332,6 +2397,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["hashdex"]["support_route_types"]
     assert adapters["kurv"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
+    assert adapters["main_management"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
         "capital_group",
         "dimensional",

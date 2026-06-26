@@ -2,6 +2,41 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - Main Management and ClearShares native ETF holdings routes
+
+### Summary
+
+- Promoted `main_management` from candidate/static-only support to native/live-backed support.
+- Verified the public Main Management symbol holdings CSV route:
+  - template: `https://www.mainmgtetfs.com/etfs/download-{symbol_lower}.php`
+  - live validation symbol: `BUYW`
+  - current live artifact returned `21` parseable holdings rows and composition/as-of date `2026-06-25`.
+- The existing isolated `MainManagementHoldingsAdapter` remains provider-specific and preserves Main Management-specific parsing behavior for cash rows, US exchange suffixes, and option-style holdings.
+- Promoted `clearshares` from recognition-only support to native/live-backed support.
+- Added provider-specific `ClearSharesHoldingsAdapter`:
+  - route: `https://clear-shares.com/download-holdings-usbanks.php?fund={symbol_lower}`
+  - live validation symbol: `OPER`
+  - current live artifact returned `6` parseable holdings rows.
+  - the adapter uses the shared legacy XLS parser but has its own source URL construction, request headers, legal metadata, and registry config.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `59`
+  - providers still lacking native/live-backed support: `286`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_main_management_adapter_fetches_symbol_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_clearshares_adapter_fetches_native_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `3 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k main_management` -> `1 passed, 59 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k clearshares` -> `1 passed, 60 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `101 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q` -> `61 passed in 64.58s`
+- count command -> `345`, `59`, `286`, `main_management=True`, `clearshares=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The next unpromoted providers by registry order are `wisdomtree`, `fidelity`, `1251_capital`, `3edge`, `3fourteen`, `818`, `abacus_global`, `abrdn`, `absolute_investment_advisers`, and `acp_horizon`; do not count any of them until their first-party holdings artifacts are verified through static and live tests.
+
 ## 2026-06-13 - Acquirers native ETF holdings route
 
 ### Summary

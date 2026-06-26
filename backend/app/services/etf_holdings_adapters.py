@@ -2850,6 +2850,51 @@ class AcquirersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return result
 
 
+class ClearSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        normalized_symbol = (issuer_product_id or symbol).strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://clear-shares.com/download-holdings-usbanks.php?fund={normalized_symbol}"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="application/vnd.ms-excel,*/*"),
+            "Referer": "https://clear-shares.com/",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": "issuer_symbol_holdings_xls",
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+        }
+        return result
+
+
 class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     primary_base_url = "https://21sharesprimary.paradox-coworking.com"
     secondary_base_url = "https://21sharessecondary.paradox-coworking.com"
@@ -8977,6 +9022,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Acquirers Funds public holdings workbooks may be subject to issuer terms.",
     ),
+    "clearshares": IssuerCsvAdapterConfig(
+        adapter_key="clearshares",
+        source_provider="clearshares",
+        source_access="issuer_public_holdings_xls",
+        url_templates=(
+            "https://clear-shares.com/download-holdings-usbanks.php?fund={symbol_lower}",
+        ),
+        product_page_templates=(
+            "https://clear-shares.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="ClearShares public holdings workbooks may be subject to issuer terms.",
+    ),
     "proshares": IssuerCsvAdapterConfig(
         adapter_key="proshares",
         source_provider="proshares",
@@ -9137,7 +9195,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=(
             "https://www.mainmgtetfs.com/{symbol_lower}/",
         ),
-        live_tested_default_route=False,
+        live_tested_default_route=True,
         terms_note="Main Management public ETF holdings CSV files may be subject to issuer terms.",
     ),
     "procuream": IssuerCsvAdapterConfig(
@@ -9398,6 +9456,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambria": CambriaHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
+        "clearshares": ClearSharesHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,

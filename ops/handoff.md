@@ -5,6 +5,40 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-26T12:23Z
+
+- Promoted `main_management` from candidate/static-only support to native/live-backed support.
+- Verified the current Main Management public ETF holdings route with `BUYW`:
+  - route: `https://www.mainmgtetfs.com/etfs/download-{symbol_lower}.php`
+  - live artifact: `https://www.mainmgtetfs.com/etfs/download-buyw.php`
+  - current live fetch returned `21` parseable holdings rows with composition/as-of date `2026-06-25`.
+  - cash rows remain cash and sector ETF / option-style rows continue to be parsed through the existing provider-specific parser.
+- Promoted `clearshares` from recognition-only support to native/live-backed support.
+- Added a provider-specific `ClearSharesHoldingsAdapter`:
+  - route: `https://clear-shares.com/download-holdings-usbanks.php?fund={symbol_lower}`
+  - product page template: `https://clear-shares.com/{symbol_lower}/`
+  - live validation uses `OPER`; the current issuer workbook returns `6` parseable holdings rows.
+  - the adapter uses the shared legacy XLS parser but has its own URL construction, request headers, route metadata, and live-backed registry configuration.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `59`
+  - providers still lacking native/live-backed support: `286`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_main_management_adapter_fetches_symbol_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_clearshares_adapter_fetches_native_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `3 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k main_management`
+    - result: `1 passed, 59 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k clearshares`
+    - result: `1 passed, 60 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `101 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `61 passed in 64.58s`
+  - Count command returned `345`, `59`, `286`, `main_management=True`, `clearshares=True`.
+
 ## Latest checkpoint - 2026-06-13T18:41Z
 
 - Promoted `acquirers` from recognition-only/generated support to native/live-backed support.
