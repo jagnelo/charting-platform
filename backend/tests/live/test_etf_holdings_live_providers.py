@@ -10,6 +10,7 @@ from app.services.etf_holdings_adapters import (
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
     "acquirers",
+    "abrdn",
     "advisor_shares",
     "allianz",
     "alliancebernstein",
@@ -131,6 +132,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "abrdn",
+            "SGOL",
+            None,
+            {},
+            1,
         ),
         (
             "advisor_shares",

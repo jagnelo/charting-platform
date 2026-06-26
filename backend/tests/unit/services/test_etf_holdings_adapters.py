@@ -78,12 +78,13 @@ class FakeResponse:
         content: bytes | None = None,
         content_type: str = "text/csv",
         status_code: int = 200,
+        url: str = "https://issuer.example/holdings.csv",
     ):
         self.text = text
         self.content = content if content is not None else text.encode()
         self.headers = {"content-type": content_type}
         self.status_code = status_code
-        self.url = "https://issuer.example/holdings.csv"
+        self.url = url
 
     def raise_for_status(self):
         return None
@@ -2862,6 +2863,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert len(adapters) >= 340
     assert adapters["acquirers"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["acquirers"]["support_route_types"]
+    assert adapters["abrdn"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["abrdn"]["support_route_types"]
     assert adapters["clearshares"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["clearshares"]["support_route_types"]
     assert adapters["first_trust"]["live_tested_default_route"] is True
@@ -4134,6 +4137,38 @@ async def test_kurv_adapter_fetches_public_holdings_csv_without_fake_cusips(monk
     assert result.rows[2].symbol is None
     assert result.rows[2].row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "issuer_public_holdings_csv"
+
+
+@pytest.mark.asyncio
+async def test_abrdn_adapter_verifies_physical_metal_product_page(monkeypatch):
+    adapter = get_holdings_adapter("abrdn")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><head><title>abrdn funds</title></head>"
+                "<body>abrdn Gold ETF Trust (SGOL)</body></html>"
+            ),
+            content_type="text/html",
+            url="https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SGOL")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds"
+    )
+    assert result.rows[0].name == "Gold Bullion"
+    assert result.rows[0].weight == Decimal("1")
+    assert result.rows[0].holding_type == "commodity"
+    assert result.rows[0].row_type == "commodity"
+    assert result.rows[0].extra_data["commodity"] == "gold"
+    assert result.legal_metadata["route_resolution"] == "issuer_fund_centre_physical_commodity_trust"
+    assert result.legal_metadata["source_provider"] == "abrdn"
 
 
 @pytest.mark.asyncio

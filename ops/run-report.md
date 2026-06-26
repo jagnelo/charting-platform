@@ -2,6 +2,36 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - abrdn native ETF holdings route
+
+### Summary
+
+- Promoted `abrdn` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `AbrdnHoldingsAdapter`:
+  - route: `https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds`
+  - live validation symbol: `SGOL`
+  - current backend-reachable issuer page references the abrdn physical-metal ETF trust lineup.
+  - adapter models abrdn physical-metal ETF trusts as commodity holdings rather than forcing a missing equity-style holdings table.
+  - `SGOL`, `SIVR`, `PPLT`, and `PALL` produce one 100% physical commodity row; `GLTR` preserves the named basket commodity constituents without inventing weights.
+  - the onlineprospectus product host resets backend-venv connections, so the live route intentionally uses the Aberdeen fund-centre page that is reachable from the backend test environment.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `67`
+  - providers still lacking native/live-backed support: `278`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_abrdn_adapter_verifies_physical_metal_product_page tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k abrdn` -> `1 passed, 68 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `109 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `67`, `278`, `abrdn=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. Larger providers such as WisdomTree, Fidelity, Capital Group, Dimensional, and Goldman Sachs still need backend-reachable provider-native artifacts and should not be promoted until live route tests pass.
+
 ## 2026-06-26 - Baron native ETF holdings route
 
 ### Summary

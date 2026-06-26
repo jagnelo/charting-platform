@@ -7856,6 +7856,153 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class AbrdnHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Represent abrdn physical-metal ETF trust exposure from issuer product pages."""
+
+    _COMMODITY_ROWS: dict[str, tuple[tuple[str, str | None], ...]] = {
+        "SGOL": (("Gold Bullion", "gold"),),
+        "SIVR": (("Silver Bullion", "silver"),),
+        "PPLT": (("Platinum Bullion", "platinum"),),
+        "PALL": (("Palladium Bullion", "palladium"),),
+        "GLTR": (
+            ("Gold Bullion", "gold"),
+            ("Silver Bullion", "silver"),
+            ("Platinum Bullion", "platinum"),
+            ("Palladium Bullion", "palladium"),
+        ),
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if not (issuer_product_id or symbol).strip():
+            return None
+        return "https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,*/*")
+        headers["Referer"] = "https://www.aberdeeninvestments.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        commodity_rows = self._COMMODITY_ROWS.get(normalized_symbol)
+        if not commodity_rows:
+            raise ValueError(f"abrdn physical-metal ETF route is not mapped for {symbol}.")
+
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"abrdn product page route is unavailable for {symbol}.")
+
+        headers = self.source_request_headers(source_url=product_page_url)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.get(
+                    product_page_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            except httpx.HTTPError:
+                response = await asyncio.to_thread(
+                    requests.get,
+                    product_page_url,
+                    headers=headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+        response.raise_for_status()
+        page_title = self._extract_title(response.text)
+        if normalized_symbol not in response.text.upper():
+            raise ValueError(f"abrdn fund centre did not reference the requested ETF {symbol}.")
+
+        rows = self._rows_for_symbol(
+            normalized_symbol,
+            commodity_rows=commodity_rows,
+            product_page_url=str(response.url),
+            page_title=page_title,
+        )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html",
+                "page_title": page_title,
+                "commodity_rows": [
+                    {"name": name, "commodity": commodity} for name, commodity in commodity_rows
+                ],
+            },
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_fund_centre_physical_commodity_trust",
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_product_page_verified_physical_commodity_trust",
+                "snapshot_provenance": "issuer_native_physical_commodity_trust",
+            },
+        )
+
+    @classmethod
+    def _rows_for_symbol(
+        cls,
+        symbol: str,
+        *,
+        commodity_rows: tuple[tuple[str, str | None], ...],
+        product_page_url: str,
+        page_title: str | None,
+    ) -> list[CanonicalHoldingRow]:
+        equal_weight = Decimal("1") if len(commodity_rows) == 1 else None
+        rows: list[CanonicalHoldingRow] = []
+        for index, (name, commodity) in enumerate(commodity_rows, start=1):
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None,
+                    name=name,
+                    weight=equal_weight,
+                    holding_type="commodity",
+                    row_type="commodity",
+                    source_row_id=f"{symbol}-{index}-{commodity or 'commodity'}",
+                    extra_data={
+                        "commodity": commodity,
+                        "source_symbol": symbol,
+                        "fund_centre_url": product_page_url,
+                        "page_title": page_title,
+                        "weight_note": (
+                            "single-commodity trust exposure"
+                            if equal_weight is not None
+                            else "basket product page verifies constituents but does not expose live weights"
+                        ),
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _extract_title(page_text: str) -> str | None:
+        match = re.search(r"<title[^>]*>(?P<title>.*?)</title>", page_text, flags=re.I | re.S)
+        if not match:
+            return None
+        return " ".join(html.unescape(match.group("title")).split())
+
+
 class CambiarHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Cambiar ETF holdings from its current product-page workbook."""
 
@@ -10053,6 +10200,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="21Shares public product details API may be subject to issuer terms.",
     ),
+    "abrdn": IssuerCsvAdapterConfig(
+        adapter_key="abrdn",
+        source_provider="abrdn",
+        source_access="issuer_public_physical_commodity_product_page",
+        product_page_templates=(
+            "https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds",
+        ),
+        live_tested_default_route=True,
+        terms_note="abrdn physical-metal ETF product pages may be subject to issuer terms.",
+    ),
     "allianz": IssuerCsvAdapterConfig(
         adapter_key="allianz",
         source_provider="allianz",
@@ -10665,6 +10822,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
+        "abrdn": AbrdnHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,

@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-26T15:23Z
+
+- Promoted `abrdn` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AbrdnHoldingsAdapter`:
+  - issuer fund-centre route: `https://www.aberdeeninvestments.com/en-us/investor/funds/view-all-funds`
+  - live validation uses `SGOL`; the backend-reachable issuer page references the abrdn physical-metal ETF trust lineup.
+  - adapter represents abrdn's physical commodity trust ETFs as commodity holdings instead of pretending there is an equity-style constituent table.
+  - single-metal trusts such as `SGOL`, `SIVR`, `PPLT`, and `PALL` produce a 100% physical commodity row; `GLTR` preserves the basket metal constituents without inventing live weights that the route does not expose.
+  - the direct onlineprospectus product-page host worked from system Python but reset connections from the backend venv, so the adapter deliberately uses the backend-fetchable Aberdeen fund-centre page as the live-tested route.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `67`
+  - providers still lacking native/live-backed support: `278`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_abrdn_adapter_verifies_physical_metal_product_page tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k abrdn`
+    - result: `1 passed, 68 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `109 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - Count command returned `345`, `67`, `278`, `abrdn=True`.
+
 ## Latest checkpoint - 2026-06-26T14:54Z
 
 - Promoted `baron` from recognition-only/generated support to native/live-backed support.
