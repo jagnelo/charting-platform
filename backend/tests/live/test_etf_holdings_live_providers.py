@@ -35,6 +35,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "graniteshares",
     "grayscale",
     "hashdex",
+    "hartford",
     "harbor",
     "horizon_kinetics",
     "inspire",
@@ -348,6 +349,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "new_york_life",
             "IQSI",
+            None,
+            {},
+            100,
+        ),
+        (
+            "hartford",
+            "HDUS",
             None,
             {},
             100,

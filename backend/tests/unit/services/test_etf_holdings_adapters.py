@@ -2306,6 +2306,106 @@ async def test_alliancebernstein_adapter_fetches_model_linked_workbook(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_hartford_adapter_fetches_full_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("hartford")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            ["Hartford Disciplined US Equity ETF"],
+            ["Fund holdings are unaudited and are subject to change."],
+            [
+                "As of Date",
+                "Asset Class",
+                "Security Description",
+                "CUSIP",
+                "Ticker/TRACE",
+                "SEDOL",
+                "ISIN",
+                "Country of Issuer",
+                "Coupon",
+                "Contracts",
+                "Base Price",
+                "Shares/Par",
+                "Original Face Value",
+                "Notional Value",
+                "Value",
+                "% of Net Assets",
+            ],
+            [
+                "06/26/26",
+                "Common Stocks",
+                "NVIDIA CORP COMMON STOCK USD.001",
+                "67066G104",
+                "NVDA",
+                "2379504",
+                "US67066G1040",
+                "US",
+                "0.00000000000",
+                "0.000",
+                "195.740000",
+                "67028.000",
+                "0.000",
+                "0.00",
+                "13120060.72",
+                "0.0692896983",
+            ],
+            [
+                "06/26/26",
+                "Common Stocks",
+                "APPLE INC COMMON STOCK USD.00001",
+                "037833100",
+                "AAPL",
+                "2046251",
+                "US0378331005",
+                "US",
+                "0.00000000000",
+                "0.000",
+                "275.150000",
+                "34536.000",
+                "0.000",
+                "0.00",
+                "9502580.40",
+                "0.0501850519",
+            ],
+        ]
+    )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HDUS")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.hartfordfunds.com/dam/en/docs/pub/funddocuments/"
+        "fullholdings/HDUS.xlsx"
+    )
+    assert len(result.rows) == 2
+    row = result.rows[0]
+    assert row.symbol == "NVDA"
+    assert row.name == "NVIDIA CORP COMMON STOCK USD.001"
+    assert row.cusip == "67066G104"
+    assert row.isin == "US67066G1040"
+    assert row.sedol == "2379504"
+    assert row.country == "US"
+    assert row.shares == Decimal("67028.000")
+    assert row.market_value == Decimal("13120060.72")
+    assert row.weight == Decimal("0.0692896983")
+    assert result.legal_metadata["source_provider"] == "hartford"
+    assert result.legal_metadata["source_format"] == "xlsx"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_full_holdings_xlsx"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
 async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     adapter = get_holdings_adapter("graniteshares")
     assert adapter is not None
@@ -2602,6 +2702,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["gmo"]["support_route_types"]
     assert adapters["hashdex"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["hashdex"]["support_route_types"]
+    assert adapters["hartford"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["hartford"]["support_route_types"]
     assert adapters["kurv"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True

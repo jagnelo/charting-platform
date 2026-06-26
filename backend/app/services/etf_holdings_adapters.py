@@ -7647,6 +7647,162 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class HartfordHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hartford ETF holdings from public full-holdings workbooks."""
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return (
+            "https://www.hartfordfunds.com/dam/en/docs/pub/funddocuments/"
+            f"fullholdings/{normalized_symbol}.xlsx"
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        symbol = urlparse(source_url).path.rsplit("/", 1)[-1].split(".", 1)[0].lower()
+        headers = _holdings_request_headers(
+            accept=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                "application/octet-stream,*/*"
+            )
+        )
+        headers["Referer"] = f"https://www.hartfordfunds.com/funds/{symbol}.html"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Hartford holdings route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        workbook_rows = parse_xlsx_table(response.content)
+        rows, composition_date = self._parse_workbook_rows(workbook_rows)
+        if not rows:
+            raise ValueError(f"Hartford holdings workbook did not expose rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "issuer_symbol_full_holdings_xlsx",
+                "source_format": "xlsx",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[Any]],
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:40])
+                if {
+                    "as of date",
+                    "security description",
+                    "cusip",
+                    "ticker/trace",
+                    "value",
+                    "% of net assets",
+                }
+                <= {str(cell).strip().lower() for cell in row}
+            ),
+            -1,
+        )
+        if header_index < 0:
+            return [], None
+
+        header = [str(cell).strip() for cell in workbook_rows[header_index]]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            row = _row_dict(header, raw_row)
+            name = _clean(row.get("Security Description"))
+            if not name:
+                continue
+            as_of_date = cls._parse_hartford_date(row.get("As of Date"))
+            if composition_date is None:
+                composition_date = as_of_date
+            symbol = _clean(row.get("Ticker/TRACE"))
+            asset_class = _clean(row.get("Asset Class"))
+            market_value = _decimal(row.get("Value"))
+            holding_type = (asset_class or "security").strip().lower()
+            row_type = "cash" if "cash" in holding_type else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if row_type == "cash" else symbol,
+                    name=name,
+                    cusip=_clean(row.get("CUSIP")),
+                    isin=_clean(row.get("ISIN")),
+                    sedol=_clean(row.get("SEDOL")),
+                    weight=_decimal(row.get("% of Net Assets")),
+                    shares=_decimal(row.get("Shares/Par")),
+                    market_value=market_value,
+                    country=_clean(row.get("Country of Issuer")),
+                    holding_type="cash" if row_type == "cash" else holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{position}:{_clean(row.get('CUSIP')) or symbol or name}",
+                    extra_data={key: value for key, value in row.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_hartford_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for date_format in ("%m/%d/%y", "%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+
 class CalamosHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -9796,6 +9952,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "hartford": IssuerCsvAdapterConfig(
+        adapter_key="hartford",
+        source_provider="hartford",
+        source_access="issuer_public_full_holdings_workbook",
+        url_templates=(
+            "https://www.hartfordfunds.com/dam/en/docs/pub/funddocuments/"
+            "fullholdings/{symbol_upper}.xlsx",
+        ),
+        product_page_templates=(
+            "https://www.hartfordfunds.com/funds/{symbol_lower}.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="Hartford Funds public ETF full-holdings workbooks may be subject to issuer terms.",
+    ),
     "gmo": IssuerCsvAdapterConfig(
         adapter_key="gmo",
         source_provider="gmo",
@@ -10049,6 +10219,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "gmo": GmoHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,
+        "hartford": HartfordHoldingsAdapter,
         "hashdex": HashdexHoldingsAdapter,
         "harbor": HarborHoldingsAdapter,
         "horizon_kinetics": HorizonKineticsHoldingsAdapter,

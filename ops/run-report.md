@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - Hartford native ETF holdings route
+
+### Summary
+
+- Promoted `hartford` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `HartfordHoldingsAdapter`:
+  - route: `https://www.hartfordfunds.com/dam/en/docs/pub/funddocuments/fullholdings/{symbol_upper}.xlsx`
+  - live validation symbol: `HDUS`
+  - current live workbook returned more than `100` parseable holdings rows.
+  - parser handles Hartford's workbook-specific columns directly, including `Ticker/TRACE`, actual market `Value`, `Shares/Par`, `CUSIP`, `SEDOL`, `ISIN`, country, and decimal-fraction `% of Net Assets`.
+  - parser avoids the generic-parser failure modes that would miss Hartford tickers, choose `Notional Value` instead of market value, or divide weights by 100 incorrectly.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `63`
+  - providers still lacking native/live-backed support: `282`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_hartford_adapter_fetches_full_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k hartford` -> `1 passed, 64 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `105 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `63`, `282`, `hartford=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. Recent probes this slice did not promote WisdomTree, Fidelity, Alger, Allspring, Angel Oak, abrdn, Capital Group, Baird, Brookfield, or Tidal because their first-party artifacts were blocked, missing, auth-gated, or not yet discovered in a backend-fetchable form.
+
 ## 2026-06-26 - AllianceBernstein native ETF holdings route
 
 ### Summary
