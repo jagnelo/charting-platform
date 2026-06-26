@@ -1178,6 +1178,42 @@ async def test_cambria_adapter_filters_public_aggregate_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_beyond_investing_adapter_filters_public_aggregate_csv(monkeypatch):
+    adapter = get_holdings_adapter("beyond_investing")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "06/26/2026,VEGN,AAPL,037833100,Apple Inc,25107.00000000,275.150000,6908191.05,3.71%,186413152.50,2325000,93.000000000000,",
+                    "06/26/2026,VEGN,USDOLLAR,,Cash,500,1,500,0.05%,186413152.50,2325000,93.000000000000,1",
+                    "06/26/2026,OTHER,MSFT,594918104,Microsoft Corp,2,400,800,1.10%,100000,1,1,",
+                ]
+            ),
+            content_type="text/csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="VEGN", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.veganetf-sftp.com/csvs/BeyondAdvisorsWEB.40XZ.XZ_Holdings.csv"
+    )
+    assert [row.symbol for row in result.rows] == ["AAPL", None]
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.0371")
+    assert result.rows[0].shares == Decimal("25107.00000000")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "beyond_investing"
+    assert result.legal_metadata["route_resolution"] == "issuer_aggregate_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
 async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch):
     adapter = get_holdings_adapter("cambiar")
     assert adapter is not None
@@ -2812,6 +2848,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["new_york_life"]["support_route_types"]
     assert adapters["bondbloxx"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["bondbloxx"]["support_route_types"]
+    assert adapters["beyond_investing"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["beyond_investing"]["support_route_types"]
     assert adapters["grayscale"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["grayscale"]["support_route_types"]
     assert adapters["gmo"]["live_tested_default_route"] is True

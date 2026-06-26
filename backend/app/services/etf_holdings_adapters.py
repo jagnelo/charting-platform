@@ -6898,6 +6898,17 @@ class CambriaHoldingsAdapter(InnovatorHoldingsAdapter):
         return headers
 
 
+class BeyondInvestingHoldingsAdapter(InnovatorHoldingsAdapter):
+    aggregate_holdings_url = (
+        "https://www.veganetf-sftp.com/csvs/BeyondAdvisorsWEB.40XZ.XZ_Holdings.csv"
+    )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,*/*")
+        headers["Referer"] = "https://veganetf.com/"
+        return headers
+
+
 class SimplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.simplify.us/etfs"
 
@@ -9872,6 +9883,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cambria public ETF holdings files may be subject to issuer terms.",
     ),
+    "beyond_investing": IssuerCsvAdapterConfig(
+        adapter_key="beyond_investing",
+        source_provider="beyond_investing",
+        source_access="issuer_public_multi_fund_holdings_csv",
+        url_templates=(
+            "https://www.veganetf-sftp.com/csvs/BeyondAdvisorsWEB.40XZ.XZ_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://veganetf.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Beyond Investing/VEGN public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "cambiar": IssuerCsvAdapterConfig(
         adapter_key="cambiar",
         source_provider="cambiar",
@@ -10427,6 +10451,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bitwise": BitwiseHoldingsAdapter,
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,
+        "beyond_investing": BeyondInvestingHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
