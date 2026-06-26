@@ -682,7 +682,7 @@ async def _resolve_or_create_constituent(
                 ),
             )
 
-    if symbol:
+    if symbol and settings.APP_ENV != "test":
         for provider in get_identifier_providers():
             try:
                 for record in provider.fetch_stable_identifiers(symbol) or []:

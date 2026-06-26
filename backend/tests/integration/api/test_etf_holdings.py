@@ -6,6 +6,7 @@ from io import BytesIO
 from xml.sax.saxutils import escape
 
 import httpx
+import pytest
 
 
 def _xlsx_workbook(rows: list[list[str]]) -> bytes:
@@ -36,6 +37,11 @@ def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     with zipfile.ZipFile(output, mode="w") as workbook:
         workbook.writestr("xl/worksheets/sheet1.xml", worksheet)
     return output.getvalue()
+
+
+@pytest.fixture(autouse=True)
+def disable_live_constituent_enrichment(monkeypatch):
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
 
 
 def test_admin_can_refresh_ark_provider_route(
@@ -107,6 +113,9 @@ def test_admin_can_refresh_ark_provider_route(
 def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     client, auth_headers, monkeypatch
 ):
+    async def fake_bootstrap_from_sec_filings(db, profile):
+        return None
+
     async def fake_refresh_adapter_route(db, profile):
         from app.services.etf_holdings import ingest_holdings_snapshot
         from app.services.etf_holdings_adapters import CanonicalHoldingRow
@@ -153,6 +162,10 @@ def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
         "app.services.etf_holdings_refresh._refresh_adapter_route",
         fake_refresh_adapter_route,
     )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_bootstrap_from_sec_filings,
+    )
 
     response = client.post(
         "/api/v1/etf-holdings/XLE/bootstrap",
@@ -177,6 +190,9 @@ def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
 def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
     client, auth_headers, monkeypatch
 ):
+    async def fake_bootstrap_from_sec_filings(db, profile):
+        return None
+
     async def fake_refresh_adapter_route(db, profile):
         from app.services.etf_holdings import ingest_holdings_snapshot
         from app.services.etf_holdings_adapters import CanonicalHoldingRow
@@ -219,6 +235,10 @@ def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
         "app.services.etf_holdings_refresh._refresh_adapter_route",
         fake_refresh_adapter_route,
     )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_bootstrap_from_sec_filings,
+    )
 
     response = client.post(
         "/api/v1/etf-holdings/IWM/bootstrap",
@@ -241,6 +261,9 @@ def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(
 def test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata(
     client, auth_headers, monkeypatch
 ):
+    async def fake_bootstrap_from_sec_filings(db, profile):
+        return None
+
     async def fake_refresh_adapter_route(db, profile):
         from app.services.etf_holdings import ingest_holdings_snapshot
         from app.services.etf_holdings_adapters import CanonicalHoldingRow
@@ -283,6 +306,10 @@ def test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata(
         "app.services.etf_holdings_refresh._refresh_adapter_route",
         fake_refresh_adapter_route,
     )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._bootstrap_from_sec_filings",
+        fake_bootstrap_from_sec_filings,
+    )
 
     response = client.post(
         "/api/v1/etf-holdings/EEM/bootstrap",
@@ -319,7 +346,7 @@ def test_bootstrap_endpoint_falls_back_to_sec_when_invesco_refresh_route_fails(
         assert profile.adapter_key == "invesco"
         profile.sec_cik = "0001067839"
 
-        snapshot = await ingest_holdings_snapshot(
+        await ingest_holdings_snapshot(
             db,
             etf_instrument=profile.instrument,
             rows=[
@@ -1451,9 +1478,14 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
     ishares = adapters["ishares"]
     assert ishares["source_provider"] == "ishares"
     assert ishares["required_identifiers"] == ["issuer_product_id"]
-    assert ishares["supported_formats"] == ["csv", "xlsx", "zip"]
+    assert ishares["supported_formats"] == ["csv", "xlsx", "zip", "json", "xml", "html"]
     assert ishares["supports_product_page_discovery"] is False
     assert ishares["live_tested_default_route"] is True
+    assert ishares["supports_sec_filing_fallback"] is True
+    assert ishares["support_route_types"] == [
+        "issuer_native_live_route",
+        "sec_edgar_filing_fallback",
+    ]
     assert ishares["supports_issuer_product_id"] is True
     assert ishares["supports_dated_fetch"] is True
     assert ishares["supports_etf_discovery"] is True
@@ -1468,7 +1500,12 @@ def test_admin_can_list_holdings_adapter_catalog(client, admin_headers):
     assert schwab["product_page_templates"] == [
         "https://www.schwabassetmanagement.com/products/{symbol_lower}"
     ]
-    assert schwab["live_tested_default_route"] is False
+    assert schwab["live_tested_default_route"] is True
+    assert schwab["supports_sec_filing_fallback"] is True
+    assert schwab["support_route_types"] == [
+        "issuer_native_live_route",
+        "sec_edgar_filing_fallback",
+    ]
     assert schwab["supports_product_page_discovery"] is True
 
     invesco = adapters["invesco"]
@@ -2442,10 +2479,10 @@ def test_profile_ticker_alone_does_not_guess_issuer_adapter(client, admin_header
     assert body["adapter_status"] == "holdings_adapter_unresolved"
 
 
-def test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured(client, admin_headers):
+def test_admin_probe_uses_sec_identifiers_as_vanguard_support_route(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/VOOG/profile",
-        json={"issuer": "Vanguard"},
+        json={"issuer": "Vanguard", "sec_cik": "0000036405"},
         headers=admin_headers,
     )
     assert profile.status_code == 200
@@ -2455,9 +2492,9 @@ def test_admin_probe_keeps_vanguard_as_candidate_until_route_is_configured(clien
     body = probe.json()
     assert body["symbol"] == "VOOG"
     assert body["adapter_key"] == "vanguard"
-    assert body["status"] == "needs_provider_implementation"
+    assert body["status"] == "ready"
     assert body["required_identifiers"] == []
-    assert body["source_url"] is None
+    assert body["source_url"] == "https://data.sec.gov/submissions/CIK0000036405.json"
 
 
 def test_admin_can_probe_invesco_as_ready_symbol_route(client, admin_headers):

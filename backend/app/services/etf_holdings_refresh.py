@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import zipfile
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -51,6 +52,17 @@ class ETFHoldingsBootstrapResult:
 
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
+
+
+@asynccontextmanager
+async def _bootstrap_savepoint(db: AsyncSession):
+    nested = db.begin_nested()
+    if hasattr(nested, "__aenter__"):
+        async with nested:
+            yield
+        return
+    with nested:
+        yield
 
 
 def _parse_discovery_response(source_url: str, response) -> list:
@@ -706,7 +718,7 @@ async def bootstrap_etf_holdings_profile(
         )
 
     try:
-        async with db.begin_nested():
+        async with _bootstrap_savepoint(db):
             snapshot = await _refresh_adapter_route(db, profile)
         await _record_success(db, profile, snapshot=snapshot)
         await db.flush()
@@ -1182,13 +1194,20 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         composition_date=composition_date,
         as_of_date=as_of_date,
         known_at=datetime.now(UTC),
-        provenance="issuer_self_snapshotted_holdings",
+        provenance=str(result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"),
         source_provider=str(source_provider),
         source_url=fetch_result.source_url,
         source_identifier=fetch_result.source_identifier or issuer_product_id,
-        source_quality="self_snapshotted_holdings",
-        completeness_status=str(aliases.get("holdings_completeness_status") or "unknown"),
-        parser_version=f"{adapter.adapter_key}-{source_format}-v1",
+        source_quality=str(result_metadata.get("source_quality") or "self_snapshotted_holdings"),
+        completeness_status=str(
+            result_metadata.get("completeness_status")
+            or aliases.get("holdings_completeness_status")
+            or "unknown"
+        ),
+        parser_version=str(
+            result_metadata.get("parser_version")
+            or f"{adapter.adapter_key}-{source_format}-v1"
+        ),
         raw_payload_text=fetch_result.raw_text,
         raw_payload_json=fetch_result.raw_json,
         legal_metadata={
@@ -1198,7 +1217,12 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             "probe_confidence": str(probe.confidence),
             "artifact_identity_validation": artifact_identity_validation,
         },
-        notes="Fetched through the ETF profile's issuer holdings adapter route.",
+        notes=(
+            "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
+            "provider-specific adapter."
+            if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
+            else "Fetched through the ETF profile's issuer holdings adapter route."
+        ),
     )
     profile.adapter_status = "success"
     profile.adapter_confidence = probe.confidence
