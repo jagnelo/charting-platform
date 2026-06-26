@@ -2,6 +2,34 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - Arrow native ETF holdings route
+
+### Summary
+
+- Promoted `arrow` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `ArrowHoldingsAdapter`:
+  - route: `https://arrowfunds.com/ArrowSharesExport.aspx?ProductID={product_id}&type=holdings`
+  - live validation symbol: `ARCM`
+  - current live export returned `157` parseable holdings rows.
+  - parser strips Arrow's SQL/debug preamble, extracts the `Holdings as of` composition date, preserves CUSIP-style Security ID values, market value, country, and percent-of-net-assets weights, and classifies bond-like holdings as fixed income.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `61`
+  - providers still lacking native/live-backed support: `284`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_arrow_adapter_fetches_native_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k arrow` -> `1 passed, 62 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `103 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q` -> `63 passed in 60.92s`
+- count command -> `345`, `61`, `284`, `arrow=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The next unpromoted providers by registry order include `wisdomtree`, `fidelity`, `1251_capital`, `3edge`, `3fourteen`, `818`, `abacus_global`, `abrdn`, `absolute_investment_advisers`, and `acp_horizon`; do not count any provider until its first-party holdings artifact is verified through static and live tests.
+
 ## 2026-06-26 - Aptus native ETF holdings route
 
 ### Summary

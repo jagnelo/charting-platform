@@ -2165,6 +2165,55 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_arrow_adapter_fetches_native_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("arrow")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    'SELECT "HoldingsEquityPercentage","HoldingsFixedIncomePercentage"<br>"Arrow Reserve Capital Management ETF","","","","","",""',
+                    '"Ticker: ARCM","","","","","",""',
+                    '"","","","","","",""',
+                    '"Holdings as of 06/25/2026","","","","","",""',
+                    '"","","","","","",""',
+                    '"Symbol","Name","% Of Net Assets","Market Value ($)","Security ID","Country"',
+                    '"","AT&T Inc. 4.25% Due 03/01/2027","1.013205","514643.3","00206RDQ2","US"',
+                    '"MSFT","Microsoft Corp.","0.500000","250000","594918104","US"',
+                ]
+            ),
+            content_type="text/csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ARCM")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://arrowfunds.com/ArrowSharesExport.aspx?ProductID=4&type=holdings"
+    )
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == (
+        "https://arrowfunds.com/default.aspx?menuitemid=518"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "AT&T Inc. 4.25% Due 03/01/2027"
+    assert result.rows[0].cusip == "00206RDQ2"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.01013205")
+    assert result.rows[0].market_value == Decimal("514643.3")
+    assert result.rows[0].country == "US"
+    assert result.rows[1].symbol == "MSFT"
+    assert result.rows[1].holding_type == "equity"
+    assert result.legal_metadata["source_provider"] == "arrow"
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_id_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
 async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     adapter = get_holdings_adapter("graniteshares")
     assert adapter is not None
@@ -2435,6 +2484,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
     assert adapters["aptus"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["aptus"]["support_route_types"]
+    assert adapters["arrow"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["arrow"]["support_route_types"]
     assert adapters["teucrium"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["teucrium"]["support_route_types"]
     assert adapters["us_global_investors"]["live_tested_default_route"] is True

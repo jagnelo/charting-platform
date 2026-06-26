@@ -3025,6 +3025,180 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class ArrowHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Arrow ETF holdings from the issuer's public export endpoint."""
+
+    PRODUCT_IDS = {
+        "ARCM": "4",
+    }
+    PRODUCT_PAGE_MENU_IDS = {
+        "ARCM": "518",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        identifiers = identifiers or {}
+        product_id = (
+            issuer_product_id
+            or _identifier(identifiers, "arrow_product_id", "product_id", "issuer_product_id")
+            or self.PRODUCT_IDS.get(symbol.strip().upper())
+        )
+        if not product_id:
+            return None
+        return f"https://arrowfunds.com/ArrowSharesExport.aspx?ProductID={product_id}&type=holdings"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://arrowfunds.com/default.aspx?menuitemid=514",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Arrow needs a product id for {symbol}.")
+
+        normalized_symbol = symbol.strip().upper()
+        referer_menu_id = self.PRODUCT_PAGE_MENU_IDS.get(normalized_symbol)
+        headers = self.source_request_headers(source_url=resolved_url)
+        if referer_menu_id:
+            headers["Referer"] = (
+                f"https://arrowfunds.com/default.aspx?menuitemid={referer_menu_id}"
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_arrow_csv(response.text)
+        if not rows:
+            raise ValueError(f"Arrow holdings export did not expose parseable rows for {symbol}.")
+
+        source_identifier = (
+            issuer_product_id
+            or _identifier(identifiers or {}, "arrow_product_id", "product_id", "issuer_product_id")
+            or self.PRODUCT_IDS.get(normalized_symbol)
+        )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(response.url),
+            source_identifier=source_identifier,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_id_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_arrow_csv(cls, raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        cleaned_text = raw_csv.replace("<br>", "\n")
+        lines = [
+            line
+            for line in cleaned_text.splitlines()
+            if not line.strip().upper().startswith("SELECT ")
+        ]
+        reader = csv.reader(StringIO("\n".join(lines)))
+        table = list(reader)
+        composition_date = cls._extract_composition_date(table)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table)
+                if row and row[0].strip().lower() == "symbol"
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+
+        header = table[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(table[header_index + 1 :], start=1):
+            if not any(_clean(value) for value in raw_row):
+                continue
+            raw = _row_dict(header, raw_row)
+            symbol = _clean(_first(raw, ["symbol"]))
+            name = _clean(_first(raw, ["name"]))
+            security_id = _clean(_first(raw, ["security id", "security identifier"]))
+            cusip = security_id if _looks_like_cusip(security_id) else None
+            weight = _decimal_percent_points(_first(raw, ["% of net assets"]))
+            market_value = _decimal(_first(raw, ["market value ($)", "market value"]))
+            country = _clean(_first(raw, ["country"]))
+            if not any([symbol, name, cusip, weight, market_value]):
+                continue
+            holding_type = cls._classify_holding_type(name=name, symbol=symbol)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip,
+                    weight=weight,
+                    market_value=market_value,
+                    country=country,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={k: v for k, v in raw.items() if v not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(table: list[list[str]]) -> date | None:
+        for row in table[:20]:
+            for cell in row:
+                match = re.search(r"Holdings\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", cell)
+                if not match:
+                    continue
+                try:
+                    return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+                except ValueError:
+                    return None
+        return None
+
+    @staticmethod
+    def _classify_holding_type(*, name: str | None, symbol: str | None) -> str:
+        lowered_name = (name or "").strip().lower()
+        upper_symbol = (symbol or "").strip().upper()
+        if upper_symbol in {"CASH", "USD"} or lowered_name in {"cash", "us dollar", "u.s. dollar"}:
+            return "cash"
+        if " due " in lowered_name or re.search(r"\b\d+(?:\.\d+)?%\b", lowered_name):
+            return "fixed_income"
+        return "equity"
+
+
 class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     primary_base_url = "https://21sharesprimary.paradox-coworking.com"
     secondary_base_url = "https://21sharessecondary.paradox-coworking.com"
@@ -9139,6 +9313,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "arrow": IssuerCsvAdapterConfig(
+        adapter_key="arrow",
+        source_provider="arrow",
+        source_access="issuer_public_holdings_csv",
+        url_templates=(
+            "https://arrowfunds.com/ArrowSharesExport.aspx?ProductID={issuer_product_id}&type=holdings",
+        ),
+        product_page_templates=(
+            "https://arrowfunds.com/default.aspx?menuitemid={arrow_menu_item_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Arrow Funds public ETF holdings exports may be subject to issuer terms.",
+    ),
     "acquirers": IssuerCsvAdapterConfig(
         adapter_key="acquirers",
         source_provider="acquirers",
@@ -9590,6 +9777,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amplify": AmplifyHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,
         "ark": ArkHoldingsAdapter,
+        "arrow": ArrowHoldingsAdapter,
         "axs": AxsHoldingsAdapter,
         "bitwise": BitwiseHoldingsAdapter,
         "bny_mellon": BnyMellonHoldingsAdapter,
