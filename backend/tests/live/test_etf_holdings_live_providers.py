@@ -8,22 +8,70 @@ from app.services.etf_holdings_adapters import (
 )
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
+    "21shares",
+    "acquirers",
+    "advisor_shares",
+    "allianz",
+    "american_century",
+    "amplify",
     "ark",
+    "axs",
+    "bitwise",
+    "bny_mellon",
+    "bondbloxx",
+    "cambria",
+    "calamos",
+    "defiance",
+    "direxion",
+    "distillate",
+    "first_trust",
+    "franklin",
     "global_x",
+    "gmo",
+    "graniteshares",
+    "grayscale",
+    "hashdex",
+    "harbor",
+    "horizon_kinetics",
+    "inspire",
+    "innovator",
     "invesco",
     "ishares",
+    "janus_henderson",
+    "jpmorgan",
+    "kraneshares",
+    "kurv",
+    "matthews",
+    "neos",
+    "new_york_life",
+    "northern_trust",
+    "pacer",
+    "procuream",
+    "proshares",
+    "renaissance_capital",
+    "roundhill",
+    "schwab",
+    "simplify",
     "sprott",
     "spdr",
+    "strive",
+    "tema",
+    "teucrium",
+    "themes",
+    "us_global_investors",
+    "vanguard",
     "vaneck",
+    "volatility_shares",
+    "wahed",
+    "world_gold_council",
+    "yieldmax",
 }
-EXPLICIT_CANDIDATE_ROUTE_GAPS = {
+SEC_BACKED_SAMPLE_ADAPTERS = {
+    "capital_group",
+    "dimensional",
     "direxion",
     "fidelity",
-    "franklin",
-    "jpmorgan",
-    "proshares",
-    "schwab",
-    "vanguard",
+    "goldman_sachs",
     "wisdomtree",
 }
 
@@ -40,10 +88,10 @@ def test_live_provider_matrix_covers_every_registered_issuer_adapter():
     registered = set(ISSUER_ADAPTER_CONFIGS)
 
     assert LIVE_BACKED_ISSUER_ADAPTERS <= registered
-    assert EXPLICIT_CANDIDATE_ROUTE_GAPS <= registered
-    assert registered == LIVE_BACKED_ISSUER_ADAPTERS | EXPLICIT_CANDIDATE_ROUTE_GAPS
+    assert SEC_BACKED_SAMPLE_ADAPTERS <= registered
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
         assert config.live_tested_default_route is (adapter_key in LIVE_BACKED_ISSUER_ADAPTERS)
+        assert config.supports_sec_filing_fallback is True
 
 
 def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10):
@@ -61,6 +109,41 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
+        (
+            "21shares",
+            "ARKB",
+            None,
+            {},
+            1,
+        ),
+        (
+            "acquirers",
+            "ZIG",
+            None,
+            {},
+            20,
+        ),
+        (
+            "advisor_shares",
+            "MSOS",
+            None,
+            {},
+            5,
+        ),
+        (
+            "allianz",
+            "FEBT",
+            None,
+            {},
+            5,
+        ),
+        (
+            "amplify",
+            "BLOK",
+            None,
+            {},
+            20,
+        ),
         (
             "spdr",
             "SPY",
@@ -90,11 +173,25 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         (
+            "kraneshares",
+            "KWEB",
+            None,
+            {},
+            20,
+        ),
+        (
             "vaneck",
             "SMH",
             None,
             {"product_slug": "semiconductor-etf-smh"},
             20,
+        ),
+        (
+            "american_century",
+            "AVUV",
+            None,
+            {},
+            100,
         ),
         (
             "ark",
@@ -104,6 +201,69 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         (
+            "axs",
+            "TARK",
+            None,
+            {},
+            5,
+        ),
+        (
+            "bitwise",
+            "BITB",
+            None,
+            {},
+            1,
+        ),
+        (
+            "bny_mellon",
+            "BKAG",
+            None,
+            {},
+            100,
+        ),
+        (
+            "bondbloxx",
+            "PCMM",
+            None,
+            {},
+            20,
+        ),
+        (
+            "cambria",
+            "SYLD",
+            None,
+            {},
+            50,
+        ),
+        (
+            "calamos",
+            "CPSM",
+            None,
+            {},
+            3,
+        ),
+        (
+            "defiance",
+            "QQQY",
+            None,
+            {},
+            4,
+        ),
+        (
+            "direxion",
+            "SPXL",
+            None,
+            {},
+            100,
+        ),
+        (
+            "distillate",
+            "DSTL",
+            None,
+            {},
+            50,
+        ),
+        (
             "invesco",
             "QQQ",
             None,
@@ -111,8 +271,246 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         (
+            "janus_henderson",
+            "JAAA",
+            None,
+            {},
+            100,
+        ),
+        (
+            "jpmorgan",
+            "JEPI",
+            "46641Q332",
+            {},
+            100,
+        ),
+        (
+            "graniteshares",
+            "NVD",
+            None,
+            {},
+            1,
+        ),
+        (
+            "gmo",
+            "INVG",
+            None,
+            {},
+            100,
+        ),
+        (
+            "grayscale",
+            "GBTC",
+            None,
+            {},
+            1,
+        ),
+        (
+            "hashdex",
+            "DEFI",
+            None,
+            {},
+            3,
+        ),
+        (
+            "matthews",
+            "MCH",
+            None,
+            {},
+            50,
+        ),
+        (
+            "new_york_life",
+            "IQSI",
+            None,
+            {},
+            100,
+        ),
+        (
+            "harbor",
+            "WINN",
+            None,
+            {},
+            50,
+        ),
+        (
+            "horizon_kinetics",
+            "INFL",
+            None,
+            {},
+            20,
+        ),
+        (
+            "inspire",
+            "BIBL",
+            None,
+            {},
+            50,
+        ),
+        (
+            "neos",
+            "SPYI",
+            None,
+            {},
+            100,
+        ),
+        (
+            "northern_trust",
+            "QDF",
+            None,
+            {},
+            100,
+        ),
+        (
+            "pacer",
+            "COWZ",
+            None,
+            {},
+            50,
+        ),
+        (
+            "procuream",
+            "UFO",
+            None,
+            {},
+            20,
+        ),
+        (
             "sprott",
             "NIKL",
+            None,
+            {},
+            10,
+        ),
+        (
+            "kurv",
+            "AAPY",
+            None,
+            {},
+            10,
+        ),
+        (
+            "renaissance_capital",
+            "IPO",
+            None,
+            {},
+            20,
+        ),
+        (
+            "world_gold_council",
+            "GLD",
+            None,
+            {},
+            1,
+        ),
+        (
+            "vanguard",
+            "VOO",
+            None,
+            {},
+            100,
+        ),
+        (
+            "innovator",
+            "BALT",
+            None,
+            {},
+            5,
+        ),
+        (
+            "schwab",
+            "SCHD",
+            None,
+            {},
+            100,
+        ),
+        (
+            "simplify",
+            "CTA",
+            None,
+            {},
+            5,
+        ),
+        (
+            "strive",
+            "STXF",
+            None,
+            {},
+            20,
+        ),
+        (
+            "proshares",
+            "TQQQ",
+            None,
+            {},
+            100,
+        ),
+        (
+            "first_trust",
+            "QQEW",
+            None,
+            {},
+            20,
+        ),
+        (
+            "franklin",
+            "FLQL",
+            None,
+            {},
+            100,
+        ),
+        (
+            "roundhill",
+            "MAGS",
+            None,
+            {},
+            20,
+        ),
+        (
+            "teucrium",
+            "CORN",
+            None,
+            {},
+            3,
+        ),
+        (
+            "tema",
+            "TOLL",
+            None,
+            {},
+            20,
+        ),
+        (
+            "themes",
+            "SPAM",
+            None,
+            {},
+            20,
+        ),
+        (
+            "us_global_investors",
+            "JETS",
+            None,
+            {},
+            20,
+        ),
+        (
+            "volatility_shares",
+            "SVIX",
+            None,
+            {},
+            3,
+        ),
+        (
+            "wahed",
+            "HLAL",
+            None,
+            {},
+            50,
+        ),
+        (
+            "yieldmax",
+            "TSLY",
             None,
             {},
             10,
@@ -169,25 +567,23 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 @pytest.mark.parametrize(
     ("adapter_key", "symbol"),
     [
-        ("direxion", "SPXL"),
         ("fidelity", "FBCG"),
-        ("franklin", "FLQL"),
-        ("jpmorgan", "JEPI"),
-        ("proshares", "TQQQ"),
-        ("schwab", "SCHD"),
-        ("vanguard", "VOO"),
         ("wisdomtree", "DXJ"),
     ],
 )
-async def test_live_candidate_route_gap_adapters_do_not_claim_default_support(
+async def test_live_sec_backed_adapters_probe_ready_with_sec_identifiers(
     adapter_key,
     symbol,
 ):
     adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
-    probe = adapter.probe(symbol=symbol, name="", identifiers={})
+    probe = adapter.probe(
+        symbol=symbol,
+        name="",
+        identifiers={"sec_cik": "0000036405"},
+    )
 
-    assert adapter_key in EXPLICIT_CANDIDATE_ROUTE_GAPS
     assert not ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route
-    assert probe.status == "needs_provider_implementation"
+    assert probe.status == "ready"
+    assert probe.source_url == "https://data.sec.gov/submissions/CIK0000036405.json"
