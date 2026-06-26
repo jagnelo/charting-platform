@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - Cambiar native ETF holdings route
+
+### Summary
+
+- Promoted `cambiar` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `CambiarHoldingsAdapter`:
+  - product-page route: `https://cambiar.com/etf/{symbol_lower}/`
+  - discovers the current dated `SEI_Cambiar_Tradedate_Holdings_*-viewall.xlsx` workbook link from the product page instead of hardcoding the date.
+  - live validation symbol: `CAMX`
+  - current live workbook returned more than `20` parseable holdings rows.
+  - parser handles Cambiar-specific workbook columns directly, filters rows by selected fund ticker, preserves cash rows, derives US CUSIPs from US ISINs when available, and converts percent-point `percent_of_net_assets` values into canonical weights.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `64`
+  - providers still lacking native/live-backed support: `281`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_cambiar_adapter_fetches_product_page_linked_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k cambiar` -> `1 passed, 65 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `106 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `64`, `281`, `cambiar=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. Fidelity remains backend-blocked by temporary-unavailable/access-denied pages; Running Oak exposes holdings as PDFs only and should not be promoted until reliable PDF table extraction exists; Cambiar was promoted because it exposes a backend-fetchable, product-page-linked XLSX artifact.
+
 ## 2026-06-26 - Hartford native ETF holdings route
 
 ### Summary

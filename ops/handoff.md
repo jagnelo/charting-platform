@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-26T14:22Z
+
+- Promoted `cambiar` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `CambiarHoldingsAdapter`:
+  - product-page route: `https://cambiar.com/etf/{symbol_lower}/`
+  - adapter discovers the current dated workbook link from the product page, currently shaped like `SEI_Cambiar_Tradedate_Holdings_06252026-viewall.xlsx`.
+  - live validation uses `CAMX`; the current issuer workbook returns more than `20` parseable holdings rows.
+  - parser handles Cambiar-specific workbook columns directly: `fund_ticker`, `security_group`, `security_isin`, `security_ticker`, `security_description`, `quantity`, `market_value`, and percent-point `percent_of_net_assets`.
+  - parser filters workbook rows by the requested fund ticker, preserves cash rows as cash, derives US CUSIPs from US ISINs when available, and converts percent-point weights correctly.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `64`
+  - providers still lacking native/live-backed support: `281`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_cambiar_adapter_fetches_product_page_linked_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k cambiar`
+    - result: `1 passed, 65 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `106 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - Count command returned `345`, `64`, `281`, `cambiar=True`.
+
 ## Latest checkpoint - 2026-06-26T14:05Z
 
 - Promoted `hartford` from recognition-only/generated support to native/live-backed support.

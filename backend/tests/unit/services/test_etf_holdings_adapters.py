@@ -1178,6 +1178,122 @@ async def test_cambria_adapter_filters_public_aggregate_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch):
+    adapter = get_holdings_adapter("cambiar")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            [
+                "date",
+                "fund_id",
+                "fund_name",
+                "fund_ticker",
+                "security_group",
+                "security_type",
+                "security_isin",
+                "security_ticker",
+                "security_description",
+                "quantity",
+                "market_value",
+                "notional_value",
+                "percent_of_market_value",
+                "percent_of_net_assets",
+            ],
+            [
+                "06/25/2026",
+                "6525",
+                "Cambiar Aggressive Value ETF",
+                "CAMX",
+                "Cash",
+                "",
+                "",
+                "",
+                "Cash",
+                "618733.47",
+                "618733.47",
+                "",
+                "0.94",
+                "0.93",
+            ],
+            [
+                "06/25/2026",
+                "6525",
+                "Cambiar Aggressive Value ETF",
+                "CAMX",
+                "Stock - Foreign",
+                "",
+                "US0092791005",
+                "EADSY",
+                "AIRBUS SE - UNSP ADR",
+                "54000.0",
+                "2980260.0",
+                "",
+                "4.51",
+                "4.47",
+            ],
+            [
+                "06/25/2026",
+                "9999",
+                "Other Fund",
+                "OTHR",
+                "Stock - Common",
+                "",
+                "US0378331005",
+                "AAPL",
+                "APPLE INC",
+                "1",
+                "200",
+                "",
+                "1",
+                "1",
+            ],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="https://cambiar.com/wp-content/uploads/Secure/'
+                'SEI_Cambiar_Tradedate_Holdings_06252026-viewall.xlsx">'
+                "View all holdings</a>"
+            ),
+            content_type="text/html",
+        ),
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CAMX")
+
+    assert FakeAsyncClient.requested[0][0] == "https://cambiar.com/etf/camx/"
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://cambiar.com/wp-content/uploads/Secure/"
+        "SEI_Cambiar_Tradedate_Holdings_06252026-viewall.xlsx"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "Cash"
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].weight == Decimal("0.0093")
+    assert result.rows[1].symbol == "EADSY"
+    assert result.rows[1].name == "AIRBUS SE - UNSP ADR"
+    assert result.rows[1].isin == "US0092791005"
+    assert result.rows[1].cusip == "009279100"
+    assert result.rows[1].holding_type == "equity"
+    assert result.rows[1].shares == Decimal("54000.0")
+    assert result.rows[1].market_value == Decimal("2980260.0")
+    assert result.rows[1].weight == Decimal("0.0447")
+    assert result.legal_metadata["source_provider"] == "cambiar"
+    assert result.legal_metadata["source_format"] == "xlsx"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_linked_holdings_workbook"
+    assert result.legal_metadata["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
 async def test_bitwise_adapter_parses_product_page_embedded_holdings(monkeypatch):
     adapter = get_holdings_adapter("bitwise")
     assert adapter is not None
@@ -2704,6 +2820,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["hashdex"]["support_route_types"]
     assert adapters["hartford"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["hartford"]["support_route_types"]
+    assert adapters["cambiar"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["cambiar"]["support_route_types"]
     assert adapters["kurv"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True

@@ -7647,6 +7647,220 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class CambiarHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Cambiar ETF holdings from its current product-page workbook."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://cambiar.com/etf/{normalized_symbol}/"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(
+            accept=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                "application/octet-stream,*/*"
+            )
+        )
+        headers["Referer"] = "https://cambiar.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        resolved_source_url = source_url or self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+
+        product_page_text: str | None = None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if not resolved_source_url:
+                if not product_page_url:
+                    raise ValueError(f"Cambiar product page route is unavailable for {symbol}.")
+                product_response = await client.get(
+                    product_page_url,
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+                product_response.raise_for_status()
+                product_page_text = product_response.text
+                resolved_source_url = self._discover_workbook_url(
+                    product_page_text,
+                    base_url=str(product_response.url),
+                )
+            if not resolved_source_url:
+                raise ValueError(f"Cambiar product page did not expose a holdings workbook for {symbol}.")
+
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        workbook_rows = parse_xlsx_table(response.content)
+        rows, composition_date = self._parse_workbook_rows(workbook_rows, symbol=symbol)
+        if not rows:
+            raise ValueError(f"Cambiar holdings workbook did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "xlsx",
+                "workbook_rows": workbook_rows,
+                "product_page_contains_holdings_link": product_page_text is not None,
+            },
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "issuer_product_page_linked_holdings_workbook",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_workbook_url(product_page_text: str, *, base_url: str) -> str | None:
+        matches = re.findall(
+            r"""(?P<url>[^"'<>]+SEI_Cambiar_Tradedate_Holdings_\d+-viewall\.xlsx)""",
+            product_page_text,
+            flags=re.IGNORECASE,
+        )
+        if not matches:
+            return None
+        return urljoin(base_url, html.unescape(matches[0]))
+
+    def _parse_workbook_rows(
+        self,
+        workbook_rows: list[list[Any]],
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not workbook_rows:
+            return [], None
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if {str(value).strip().lower() for value in row if _clean(value)}
+                >= {
+                    "date",
+                    "fund_ticker",
+                    "security_isin",
+                    "security_ticker",
+                    "security_description",
+                    "quantity",
+                    "market_value",
+                    "percent_of_net_assets",
+                }
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+
+        normalized_symbol = symbol.strip().upper()
+        header = [str(cell).strip() for cell in workbook_rows[header_index]]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for row_index, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            fund_ticker = _clean(raw.get("fund_ticker"))
+            if fund_ticker and fund_ticker.upper() != normalized_symbol:
+                continue
+            name = _clean(raw.get("security_description"))
+            symbol_value = _clean(raw.get("security_ticker"))
+            isin = _clean(raw.get("security_isin"))
+            if not any([name, symbol_value, isin]):
+                continue
+
+            row_date = self._parse_date(raw.get("date"))
+            if composition_date is None:
+                composition_date = row_date
+            security_group = _clean(raw.get("security_group"))
+            holding_type = self._holding_type(security_group=security_group, name=name)
+            row_type = "cash" if holding_type == "cash" else "security"
+            cusip = self._cusip_from_isin(isin)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip,
+                    isin=isin,
+                    weight=_decimal_percent_points(raw.get("percent_of_net_assets")),
+                    shares=_decimal(raw.get("quantity")),
+                    market_value=_decimal(raw.get("market_value")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{row_index}:{isin or symbol_value or name}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for date_format in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _holding_type(*, security_group: str | None, name: str | None) -> str:
+        text = " ".join(part.upper() for part in (security_group, name) if part)
+        if "CASH" in text:
+            return "cash"
+        if "STOCK" in text or "EQUITY" in text:
+            return "equity"
+        if "BOND" in text or "NOTE" in text or "FIXED" in text:
+            return "fixed_income"
+        return "security"
+
+    @staticmethod
+    def _cusip_from_isin(isin: str | None) -> str | None:
+        if not isin or not isin.upper().startswith("US") or len(isin) < 11:
+            return None
+        candidate = isin[2:11].upper()
+        return candidate if _looks_like_cusip(candidate) else None
+
+
 class HartfordHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hartford ETF holdings from public full-holdings workbooks."""
 
@@ -9658,6 +9872,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cambria public ETF holdings files may be subject to issuer terms.",
     ),
+    "cambiar": IssuerCsvAdapterConfig(
+        adapter_key="cambiar",
+        source_provider="cambiar",
+        source_access="issuer_public_product_page_linked_holdings_workbook",
+        product_page_templates=("https://cambiar.com/etf/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Cambiar public ETF holdings workbooks may be subject to issuer terms.",
+    ),
     "simplify": IssuerCsvAdapterConfig(
         adapter_key="simplify",
         source_provider="simplify",
@@ -10206,6 +10428,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,
+        "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,
