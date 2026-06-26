@@ -2214,6 +2214,98 @@ async def test_arrow_adapter_fetches_native_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_alliancebernstein_adapter_fetches_model_linked_workbook(monkeypatch):
+    adapter = get_holdings_adapter("alliancebernstein")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            ["AB Disruptors ETF", "", "", "", "", "", "", ""],
+            ["Full Holdings as of 04/30/2026", "", "", "", "", "", "", ""],
+            ["Net Assets $2,478,960,606", "", "", "", "", "", "", ""],
+            ["Base Currency: USD", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", ""],
+            [" Securities", "", "", "", "", "", "", ""],
+            [
+                "Units/Par Value/ # of contracts",
+                "Issue Description/Name",
+                "Accounting Value (BC) ",
+                "% of Net Assets",
+                "ISIN (Primary ID)",
+                "Cusip",
+                "Sedol",
+                "Ticker",
+            ],
+            [
+                "203705",
+                "Broadcom, Inc.",
+                "85032578.15",
+                "0.034301706104805",
+                "US11135F1012",
+                "11135F101",
+                "BDZ78H9",
+                "AVGO",
+            ],
+        ]
+    )
+    model_url = (
+        "/content/alliancebernstein/us/en-us/investments/products/etf/equities/"
+        "ab-disruptors-etf/jcr:content/root/wrapper/abde_section_1349391/"
+        "responsiveGrid/abde_layout/column1/abde_holdings.model.json"
+    )
+    workbook_url = (
+        "/content/dam/alliancebernstein/literature/us-holdings/2026/04/"
+        "64FN_AB_DISRUPTORS_ETF_full_holdings_0426.xlsx"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<div id="fund-detail-holdings" data-portfolio-holding="{model_url}"></div>',
+            content_type="text/html",
+        ),
+        FakeResponse(
+            text=json.dumps({"links": [{"url": workbook_url, "date": "April 2026"}]}),
+            content_type="application/json",
+        ),
+        FakeResponse(
+            content=workbook,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FWD")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.alliancebernstein.com/us/en-us/investments/products/etf/"
+        "equities/ab-disruptors-etf.-.00039J509.html"
+    )
+    assert FakeAsyncClient.requested[1][0].endswith("abde_holdings.model.json")
+    assert FakeAsyncClient.requested[2][0].endswith(
+        "64FN_AB_DISRUPTORS_ETF_full_holdings_0426.xlsx"
+    )
+    assert len(result.rows) == 1
+    row = result.rows[0]
+    assert row.symbol == "AVGO"
+    assert row.name == "Broadcom, Inc."
+    assert row.isin == "US11135F1012"
+    assert row.cusip == "11135F101"
+    assert row.sedol == "BDZ78H9"
+    assert row.weight == Decimal("0.034301706104805")
+    assert row.shares == Decimal("203705")
+    assert row.market_value == Decimal("85032578.15")
+    assert row.currency == "USD"
+    assert result.legal_metadata["source_provider"] == "alliancebernstein"
+    assert result.legal_metadata["source_format"] == "xlsx"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_model_workbook"
+    assert result.legal_metadata["composition_date"] == "2026-04-30"
+    assert result.legal_metadata["net_assets"] == "2478960606"
+    assert result.legal_metadata["base_currency"] == "USD"
+
+
+@pytest.mark.asyncio
 async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     adapter = get_holdings_adapter("graniteshares")
     assert adapter is not None
@@ -2482,6 +2574,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["advisor_shares"]["support_route_types"]
     assert adapters["allianz"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
+    assert adapters["alliancebernstein"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["alliancebernstein"]["support_route_types"]
     assert adapters["aptus"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["aptus"]["support_route_types"]
     assert adapters["arrow"]["live_tested_default_route"] is True

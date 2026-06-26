@@ -870,8 +870,11 @@ def parse_xlsx_table(raw_workbook: bytes, *, worksheet_index: int = 1) -> list[l
 
         worksheet_name = f"xl/worksheets/sheet{worksheet_index}.xml"
         if worksheet_name not in workbook.namelist():
+            worksheet_prefix = "xl/worksheets/sheet"
             worksheet_name = next(
-                name for name in workbook.namelist() if name.startswith("xl/worksheets/sheet")
+                name
+                for name in workbook.namelist()
+                if name.lower().startswith(worksheet_prefix)
             )
         worksheet_root = ET.fromstring(workbook.read(worksheet_name))
 
@@ -3197,6 +3200,245 @@ class ArrowHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if " due " in lowered_name or re.search(r"\b\d+(?:\.\d+)?%\b", lowered_name):
             return "fixed_income"
         return "equity"
+
+
+class AllianceBernsteinHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch AB ETF holdings through public AEM model JSON and linked workbooks."""
+
+    PRODUCT_PAGE_URLS = {
+        "FWD": (
+            "https://www.alliancebernstein.com/us/en-us/investments/products/etf/"
+            "equities/ab-disruptors-etf.-.00039J509.html"
+        ),
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError(f"AllianceBernstein needs a product page URL for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            model_url = self._extract_model_url(page_response.text, base_url=str(page_response.url))
+            if not model_url:
+                raise ValueError(
+                    f"AllianceBernstein product page did not expose a holdings model for {symbol}."
+                )
+            model_response = await client.get(
+                model_url,
+                headers={
+                    **_issuer_page_request_headers(accept="application/json,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            model_response.raise_for_status()
+            model_payload = model_response.json()
+            holdings_url = self._latest_holdings_url(model_payload, base_url=str(model_response.url))
+            if not holdings_url:
+                raise ValueError(
+                    f"AllianceBernstein holdings model did not expose a workbook for {symbol}."
+                )
+            workbook_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(
+                        accept=(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"
+                        )
+                    ),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            workbook_response.raise_for_status()
+
+        workbook_rows = parse_xlsx_table(workbook_response.content)
+        rows, composition_date, net_assets, base_currency = self._parse_workbook_rows(
+            workbook_rows
+        )
+        if not rows:
+            raise ValueError(
+                f"AllianceBernstein holdings workbook did not expose parseable rows for {symbol}."
+            )
+        raw_text = _table_to_text(workbook_rows)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_text,
+            raw_json={
+                "source_format": "xlsx",
+                "model_url": model_url,
+                "workbook_url": str(workbook_response.url),
+                "workbook_rows": workbook_rows,
+            },
+            source_url=str(workbook_response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "issuer_product_page_model_workbook",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "net_assets": str(net_assets) if net_assets is not None else None,
+                "base_currency": base_currency,
+                "product_page_url": str(page_response.url),
+                "model_url": model_url,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_model_url(raw_html: str, *, base_url: str) -> str | None:
+        match = re.search(
+            r"""data-portfolio-holding=["'](?P<url>[^"']+\.model\.json)["']""",
+            raw_html,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return urljoin(base_url, html.unescape(match.group("url")))
+
+    @staticmethod
+    def _latest_holdings_url(payload: Any, *, base_url: str) -> str | None:
+        if not isinstance(payload, dict):
+            return None
+        links = payload.get("links")
+        if not isinstance(links, list):
+            return None
+        for link in links:
+            if not isinstance(link, dict):
+                continue
+            url = _clean(link.get("url"))
+            if url and url.lower().endswith((".xlsx", ".xlsm")):
+                return urljoin(base_url, url)
+        return None
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[Any]],
+    ) -> tuple[list[CanonicalHoldingRow], date | None, Decimal | None, str | None]:
+        composition_date = cls._extract_composition_date(workbook_rows)
+        net_assets = cls._extract_net_assets(workbook_rows)
+        base_currency = cls._extract_base_currency(workbook_rows)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:30])
+                if {
+                    "units/par value/ # of contracts",
+                    "issue description/name",
+                    "% of net assets",
+                    "ticker",
+                }
+                <= {str(value).strip().lower() for value in row if _clean(value)}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date, net_assets, base_currency
+
+        header = workbook_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            if not any(_clean(value) for value in raw_row):
+                continue
+            raw = _row_dict(header, raw_row)
+            symbol = _clean(_first(raw, ["ticker"]))
+            name = _clean(_first(raw, ["issue description/name"]))
+            shares = _decimal(_first(raw, ["units/par value/ # of contracts"]))
+            market_value = _decimal(_first(raw, ["accounting value (bc)"]))
+            weight = _decimal(_first(raw, ["% of net assets"]))
+            isin = _clean(_first(raw, ["isin (primary id)"]))
+            cusip = _clean(_first(raw, ["cusip"]))
+            sedol = _clean(_first(raw, ["sedol"]))
+            if not any([symbol, name, isin, cusip, sedol, weight, shares, market_value]):
+                continue
+            holding_type = "cash" if (symbol or "").upper() in {"CASH", "USD"} else "equity"
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin,
+                    sedol=sedol,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency=base_currency,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={k: v for k, v in raw.items() if v not in (None, "")},
+                )
+            )
+        return rows, composition_date, net_assets, base_currency
+
+    @staticmethod
+    def _extract_composition_date(workbook_rows: list[list[Any]]) -> date | None:
+        for row in workbook_rows[:10]:
+            for cell in row:
+                match = re.search(r"Full\s+Holdings\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", str(cell))
+                if not match:
+                    continue
+                try:
+                    return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+                except ValueError:
+                    return None
+        return None
+
+    @staticmethod
+    def _extract_net_assets(workbook_rows: list[list[Any]]) -> Decimal | None:
+        for row in workbook_rows[:10]:
+            for cell in row:
+                match = re.search(r"Net\s+Assets\s+\$?([\d,]+(?:\.\d+)?)", str(cell))
+                if match:
+                    return _decimal(match.group(1))
+        return None
+
+    @staticmethod
+    def _extract_base_currency(workbook_rows: list[list[Any]]) -> str | None:
+        for row in workbook_rows[:10]:
+            for cell in row:
+                match = re.search(r"Base\s+Currency:\s*([A-Z]{3})", str(cell))
+                if match:
+                    return match.group(1)
+        return None
 
 
 class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -9326,6 +9568,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Arrow Funds public ETF holdings exports may be subject to issuer terms.",
     ),
+    "alliancebernstein": IssuerCsvAdapterConfig(
+        adapter_key="alliancebernstein",
+        source_provider="alliancebernstein",
+        source_access="issuer_public_product_page_model_workbook",
+        product_page_templates=(
+            "https://www.alliancebernstein.com/us/en-us/investments/products/etf/equities/{product_slug}.-.{issuer_product_id}.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="AllianceBernstein public ETF holdings workbooks may be subject to issuer terms.",
+    ),
     "acquirers": IssuerCsvAdapterConfig(
         adapter_key="acquirers",
         source_provider="acquirers",
@@ -9773,6 +10025,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "acquirers": AcquirersHoldingsAdapter,
         "advisor_shares": AdvisorSharesHoldingsAdapter,
         "allianz": AllianzHoldingsAdapter,
+        "alliancebernstein": AllianceBernsteinHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,

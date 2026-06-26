@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-26T13:37Z
+
+- Promoted `alliancebernstein` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AllianceBernsteinHoldingsAdapter`:
+  - product-page route currently live-tested with `FWD` at the AB Disruptors ETF page.
+  - the adapter fetches the issuer's product page, extracts the `data-portfolio-holding` AEM model JSON route, fetches the latest linked monthly full-holdings XLSX workbook, and parses AB-specific workbook columns directly.
+  - live validation uses `FWD`; the current issuer workbook returns `139` parseable holdings rows.
+  - parser preserves AB workbook semantics for `% of Net Assets` values, avoiding the generic-parser 100x weight understatement, and captures ticker, issue name, ISIN, CUSIP, SEDOL, units/par/contracts, accounting value, base currency, net assets, and composition date.
+  - hardened the shared OpenXML helper so issuer workbooks with uppercase worksheet paths such as `xl/worksheets/Sheet1.xml` parse correctly.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `62`
+  - providers still lacking native/live-backed support: `283`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_alliancebernstein_adapter_fetches_model_linked_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k alliancebernstein`
+    - result: `1 passed, 63 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `104 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `64 passed in 58.71s`
+  - Count command returned `345`, `62`, `283`, `alliancebernstein=True`.
+
 ## Latest checkpoint - 2026-06-26T13:18Z
 
 - Promoted `arrow` from recognition-only/generated support to native/live-backed support.
