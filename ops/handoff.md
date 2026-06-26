@@ -5,6 +5,1025 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-13T18:41Z
+
+- Promoted `acquirers` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AcquirersHoldingsAdapter`:
+  - route: `https://acquirersfund.com/download-holdings-usbanks.php?fticker={symbol_upper}`
+  - product page/root: `https://acquirersfund.com/`
+  - live validation uses `ZIG`; the current issuer workbook returns more than 20 parseable holdings rows.
+  - the adapter uses the existing legacy XLS parser but has its own URL construction, request headers, route metadata, and live-backed registry configuration.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `57`
+  - providers still lacking native/live-backed support: `288`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_acquirers_adapter_fetches_native_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k acquirers`
+    - result: `1 passed, 57 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `100 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `59 passed in 57.59s`
+  - Count command returned `345`, `57`, `288`, `acquirers=True`.
+
+## Latest checkpoint - 2026-06-13T17:57Z
+
+- Promoted `allianz` from recognition-only to native/live-backed support.
+- Added a provider-specific `AllianzHoldingsAdapter`:
+  - route: `https://www.allianzim.com/wp-content/uploads/feeds/BBH_FOR_ALZ_ETF_PVAL_WEB.csv`
+  - live validation uses `FEBT`; the current CSV returns five parseable rows for that ETF account.
+  - the adapter filters AllianzIM's shared multi-fund feed by `Account == selected ETF symbol`, so rows from other Allianz ETFs such as `FLJJ`, `AIOO`, or `APRT` are not mixed into the selected ETF.
+  - option-contract rows are preserved as option holdings without inventing fake ticker symbols or treating OCC-style option identifiers as CUSIPs; cash rows remain cash rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `55`
+  - providers still lacking native/live-backed support: `290`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_allianz_adapter_filters_multi_fund_csv_and_preserves_option_rows tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k allianz`
+    - result: `1 passed, 55 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `98 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `57 passed in 52.09s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `55`, `290`, `allianz=True`.
+
+## Latest checkpoint - 2026-06-13T21:05Z
+
+- Promoted `hashdex` and `kurv` from recognition-only to native/live-backed support.
+- Added a provider-specific `HashdexHoldingsAdapter`:
+  - product page route: `https://hashdex-etfs.com/{symbol_upper}`
+  - live validation uses `DEFI`; the product page links to `https://hdx-website-cms-prod-upload-bucket.s3.amazonaws.com/DEFI_Holdings.xlsx`.
+  - the parser handles Hashdex's non-standard workbook shape: `Reference Date`, followed by `Name`, `Shares`, `Price`, and `Weight`.
+  - Hashdex crypto/cash/fund rows are preserved without inventing ticker symbols; BTC is emitted as a crypto holding and cash rows remain cash.
+- Added a provider-specific `KurvHoldingsAdapter`:
+  - route: `https://web.services.kurvinvest.com/etfdata/{symbol_upper}/holdings.csv`
+  - live validation uses `AAPY`; the current CSV returns parseable option/equity/cash holdings.
+  - the parser intentionally does not trust option identifiers in Kurv's `CUSIP` column as real CUSIPs; real CUSIP-looking values are still preserved.
+  - option rows are typed as options rather than ordinary equity rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `54`
+  - providers still lacking native/live-backed support: `291`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_hashdex_adapter_fetches_product_page_linked_workbook tests/unit/services/test_etf_holdings_adapters.py::test_kurv_adapter_fetches_public_holdings_csv_without_fake_cusips tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `3 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k "hashdex or kurv"`
+    - result: `2 passed, 53 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `97 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `56 passed in 56.70s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `54`, `291`, `hashdex=True`, `kurv=True`.
+
+## Latest checkpoint - 2026-06-13T20:05Z
+
+- Promoted `grayscale` from recognition-only to native/live-backed support.
+- Added a provider-specific `GrayscaleHoldingsAdapter`:
+  - primary data source is Grayscale's public ETF product pages under `https://etfs.grayscale.com/{symbol_lower}`.
+  - live validation uses `GBTC`, whose current page embeds a `holdingsData` payload containing the BTC holding and product metadata.
+  - the parser supports both decoded JSON snippets and escaped Next/RSC transport snippets such as `\"holdingsData\": [...]`.
+  - crypto holdings are preserved as crypto rows rather than equity constituents; current GBTC output captures symbol/name, weight, asset-per-share, date, fund CUSIP/ISIN, and trust asset metadata where available.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `52`
+  - providers still lacking native/live-backed support: `293`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_grayscale_adapter_parses_embedded_holdings_data tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `95 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k grayscale`
+    - result: `1 passed, 52 deselected`
+  - First full live matrix run found a transient `strive` `ReadTimeout`; focused `strive` rerun passed immediately.
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - final rerun result: `54 passed in 41.18s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `52`, `293`, `grayscale=True`.
+
+## Latest checkpoint - 2026-06-13T19:05Z
+
+- Promoted `bondbloxx` from recognition-only to native/live-backed support.
+- Added a provider-specific `BondBloxxHoldingsAdapter`:
+  - primary data source is the issuer's public product pages, which embed full holdings under `var generalData = {...}`.
+  - live validation uses `PCMM`, whose current product page exposes more than 20 parseable holdings rows with CUSIP, ISIN, market value, shares/par, currency, and portfolio weight.
+  - known route: `https://bondbloxxetf.com/bondbloxx-private-credit-clo-etf/`
+  - broader route discovery uses `https://bondbloxxetf.com/tickers-sitemap.xml` and checks candidate product pages for matching embedded `etfticker` values.
+  - the adapter preserves fixed-income constituents as CUSIP/ISIN-backed named securities rather than inventing fake ticker symbols; cash rows are kept as cash rows.
+  - BondBloxx currently rejects the production `httpx` request path with `403` for the product page, so this adapter includes a provider-specific fallback to the same browser-shaped headers through `requests` after an `httpx` 403. The live test proves this path.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `51`
+  - providers still lacking native/live-backed support: `294`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_bondbloxx_adapter_fetches_product_page_embedded_holdings tests/unit/services/test_etf_holdings_adapters.py::test_bondbloxx_adapter_discovers_product_page_from_sitemap tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `3 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `94 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k bondbloxx`
+    - result: `1 passed, 51 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `53 passed in 49.53s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `51`, `294`, `bondbloxx=True`.
+
+## Latest checkpoint - 2026-06-13T18:10Z
+
+- Promoted `new_york_life` from recognition-only to native/live-backed support.
+- Added a provider-specific `NewYorkLifeHoldingsAdapter` for NYLI / IndexIQ public holdings CSV files:
+  - route: `https://data.nylim.com/M{symbol_upper}.csv`
+  - live validation uses `IQSI`, whose current issuer CSV returns more than 100 parseable holdings rows.
+  - parser normalizes NYLI's Excel-formula-style CSV cells such as `="ASML"` and `=DOLLAR(13746455.09)` before canonical parsing.
+  - rows preserve ticker, ISIN, SEDOL, CUSIP, security description, asset group, trading currency, shares/par, market value, notional value, and percent net assets.
+- Shared parser alias coverage now treats `Trading Currency` as a currency field.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `50`
+  - providers still lacking native/live-backed support: `295`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_new_york_life_adapter_fetches_public_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `92 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k new_york_life`
+    - result: `1 passed, 50 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `52 passed in 44.29s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `50`, `295`, `new_york_life=True`.
+
+## Latest checkpoint - 2026-06-13T17:00Z
+
+- Promoted `matthews` from recognition-only to native/live-backed support.
+- Added a provider-specific `MatthewsHoldingsAdapter`:
+  - product-page routes are mapped for Matthews Asia ETF tickers such as `MCH`, `ADVE`, `ASIA`, `EMSF`, `INDE`, `JPAN`, `MCHS`, `MEM`, `MEMS`, `MEMX`, `MINV`, and `MKOR`.
+  - live validation uses `MCH`, whose server-rendered public product page currently exposes 58 parseable holdings rows with ticker, name, SEDOL, market value, shares, and percent net assets.
+  - parser reads the `tblDailyTopHoldings` table and extracts the holdings as-of date from `asOfHoldings`.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `49`
+  - providers still lacking native/live-backed support: `296`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_matthews_adapter_fetches_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k matthews`
+    - result: `1 passed, 49 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `91 passed`
+  - First full live matrix attempt found a transient `american_century` AVUV `ReadTimeout`; focused `american_century` rerun passed immediately.
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - final rerun result: `51 passed in 40.49s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `49`, `296`, `matthews=True`, `renaissance_capital=True`, `main_management=False`.
+
+## Latest checkpoint - 2026-06-13T16:05Z
+
+- Promoted `renaissance_capital` from recognition-only to native/live-backed support.
+- Added a provider-specific `RenaissanceCapitalHoldingsAdapter`:
+  - route: `https://etfs.renaissancecapital.com/excel-downloads/holdings/{symbol_lower}`
+  - live validation uses `IPO`, whose issuer workbook currently returns 48 parseable holdings rows.
+  - parser uses Renaissance's public XLSX workbook shape with `Date`, `Holding Name`, `Asset Class`, `Ticker`, `SEDOL`, `Shares`, `Holding Value`, and `Weight`.
+  - shared holdings parser now also recognizes `Holding Value` as a market-value alias.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `48`
+  - providers still lacking native/live-backed support: `297`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_renaissance_capital_adapter_fetches_public_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k renaissance_capital`
+    - result: `1 passed, 48 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `90 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `50 passed in 62.68s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `48`, `297`, `renaissance_capital=True`.
+
+## Latest checkpoint - 2026-06-13T15:10Z
+
+- Promoted `21shares` from recognition-only to native/live-backed support.
+- Added a provider-specific `TwentyOneSharesHoldingsAdapter`:
+  - primary route: `https://21sharesprimary.paradox-coworking.com/api/product_details/{symbol_upper}`
+  - secondary route: `https://21sharessecondary.paradox-coworking.com/api/product_details/{symbol_upper}`
+  - parser reads the JSON `data.constituents` array and emits crypto/security rows with symbol, name, weight, quantity, price, market value, currency, valuation date, and product metadata.
+  - live validation uses `ARKB`, whose product details API returns one BTC constituent with full quantity/market-value data.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `47`
+  - providers still lacking native/live-backed support: `298`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_21shares_adapter_fetches_product_details_constituents --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k 21shares`
+    - result: `1 passed, 47 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `89 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `49 passed in 46.53s`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - Count command returned `345`, `47`, `298`, `21shares=True`, `main_management=False`.
+
+## Latest checkpoint - 2026-06-13T14:20Z
+
+- Promoted `world_gold_council` from recognition-only to native/live-backed support.
+- Added a provider-specific `WorldGoldCouncilHoldingsAdapter` for SPDR Gold trust public archive data:
+  - route: `https://api.spdrgoldshares.com/api/v1/historical-archive?product={symbol_lower}&exchange=NYSE&lang=en`
+  - parser reads the historical archive workbook's second worksheet and emits a single commodity holding row for the latest valid gold-bullion trust position.
+  - the adapter preserves ounces as quantity, total trust NAV as market value, 100% gold weight, composition/as-of date, tonnes, ounces-per-share, NAV/share, closing price, and indicative price metadata.
+  - this is intentionally modeled as a commodity/bullion holding, not an equity constituent basket.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `46`
+  - providers still lacking native/live-backed support: `299`
+  - `main_management` remains demoted/not counted.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_world_gold_council_adapter_parses_gold_archive_workbook --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k world_gold_council`
+    - result: `1 passed, 46 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `48 passed in 47.80s`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `88 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - Count command returned `345`, `46`, `299`, `world_gold_council=True`, `main_management=False`.
+
+## Latest checkpoint - 2026-06-13T13:25Z
+
+- Live-provider audit corrected the native/live-backed count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `45`
+  - providers still lacking native/live-backed support: `300`
+- `main_management` was demoted from `live_tested_default_route=True` to `False` because its configured native host currently fails DNS resolution:
+  - `https://www.mainmgtetfs.com/etfs/download-buyw.php` -> `nodename nor servname provided, or not known`
+  - `https://mainmgtetfs.com/etfs/download-buyw.php` -> same DNS failure
+  - `https://www.mainmgt.com/etfs/download-buyw.php` and `https://mainmgt.com/etfs/download-buyw.php` -> `404`
+  - `https://www.mainmanagement.com/etfs/download-buyw.php` -> no route to host
+- The provider-specific `MainManagementHoldingsAdapter` code remains in place for repair, but it no longer counts as supported until a backend-fetchable live route is found and re-tested.
+- `defiance` is still live-backed: its current QQQY page returns only 4 parseable rows, so the live fixture threshold was corrected from 5 to 4 rather than incorrectly treating it as a provider outage.
+- Validation:
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `47 passed in 39.27s`
+  - Count command returned `345`, `45`, `300`, `main_management=False`.
+
+## Latest checkpoint - 2026-06-13T12:45Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `46`
+  - providers still lacking native/live-backed support: `299`
+- No provider was promoted in this slice. This was intentional: each probed candidate either blocked backend access, exposed only page-shell/table-export UI, returned PDFs without a robust parser path, or returned stale/404 guessed artifacts.
+- Negative route-discovery evidence captured so the next worker does not re-probe the same false leads as if they were fresh:
+  - `wisdomtree`: `https://www.wisdomtree.com/investments/etfs/equity/wcld` returned `403` from the backend probe environment.
+  - `fidelity`: `https://www.fidelity.com/etfs/overview` returned `403`.
+  - `capital_group`: `https://www.capitalgroup.com/advisor/investments/exchange-traded-funds/cgdv` returned a small app/anti-bot shell with no holdings/CSV/XLSX route in initial HTML.
+  - `t_rowe_price`: `https://www.troweprice.com/personal-investing/tools/fund-research/TSPA` returned a small shell with no holdings/CSV/XLSX route in initial HTML.
+  - `abrdn`: `https://www.aberdeeninvestments.com/en-us/investor/funds/fund-literature` exposed literature/prospectus links and SPDR-like precious-metal documents, but no confirmed machine-readable holdings table route in this slice.
+  - `matthews`: ETF pages were reachable and showed an Excel/table-export UI, but the visible export appears tied to page tables, not a proven holdings artifact; do not count without proving actual holdings rows.
+  - `world_gold_council`: SPDR Gold pages exposed `https://api.spdrgoldshares.com/api/v1/barlist?underlying=gld`, but it returns `application/pdf`; do not count until a reliable PDF table/bar-list parser exists or a machine-readable route is found.
+  - `sofi`, `aptus`, `angel_oak`, and Alpha Architect pages returned `403`/blocked for the probed routes.
+  - `federated_hermes` returned `503` for the probed ETF route.
+  - `true_shares`/`trueshares`: common Tidal-style CSV guesses timed out or failed; `www.trueshares.com` is a timeshare site and not the ETF issuer; `truesharesetfs.com` pages did not reveal a holdings artifact in the quick probe.
+  - `renaissance_capital`: probed IPO ETF URL variants returned `404`.
+  - `dimensional`, `tcw`, and some other page probes were reachable but did not expose a confirmed backend-fetchable holdings route in initial inspection.
+- Validation in this slice:
+  - `python -m json.tool ops/state.json` passed before this checkpoint edit.
+  - `git diff --check` passed before this checkpoint edit.
+  - Registry count command returned `345`, `46`, `299`.
+
+## Latest checkpoint - 2026-06-13T11:55Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `46`
+  - providers still lacking native/live-backed support: `299`
+- Latest native/provider-specific additions in this slice:
+  - `volatility_shares`: issuer public symbol-specific legacy XLS workbook route under `https://www.volatilityshares.com/download-holdings-usbanks-1933.php?fund={symbol_lower}`, currently live-tested with `SVIX`
+  - `wahed`: issuer public product-page discovery of linked Google Sheets holdings exports, currently live-tested with `HLAL`
+- Important implementation note:
+  - Volatility Shares holdings are derivative/cash rows with descriptions such as VIX options/futures and `Cash & Other`, so the adapter intentionally preserves names, contracts/shares, notional/market value, and holding type while avoiding fake ticker symbols for derivative descriptions.
+  - `parse_holdings_xls` now returns the first non-empty workbook sheet as fallback rows when generic canonical parsing finds no rows, allowing provider-specific XLS parsers to normalize odd issuer layouts.
+  - Wahed holdings sheets can include non-ticker identifier-looking values in `StockTicker`, so the adapter only materializes compact ticker-like values and only persists valid 9-character CUSIPs.
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `amplify`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `distillate`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `horizon_kinetics`
+  - `innovator`
+  - `inspire`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `main_management`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `procuream`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `tema`
+  - `teucrium`
+  - `themes`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `volatility_shares`
+  - `wahed`
+  - `yieldmax`
+- Validation for the Volatility Shares and Wahed additions:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_volatility_shares_adapter_parses_derivative_xls --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_wahed_adapter_discovers_public_google_sheet_holdings --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `87 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k volatility_shares`
+    - result: `1 passed, 45 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k wahed`
+    - result: `1 passed, 46 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `46`, `299`, `volatility_shares=True`, `wahed=True`
+
+## Latest checkpoint - 2026-06-13T11:27Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `44`
+  - providers still lacking native/live-backed support: `301`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `amplify`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `distillate`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `horizon_kinetics`
+  - `innovator`
+  - `inspire`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `main_management`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `procuream`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `tema`
+  - `teucrium`
+  - `themes`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific additions in this slice:
+  - `amplify`: issuer public multi-account holdings CSV route under `https://amplifyetfs.com/wp-content/uploads/feeds/AmplifyWeb.40XL.XL_Holdings.csv`, currently live-tested with `BLOK`
+  - `tema`: issuer symbol-specific public holdings CSV route under `https://temaetfs.com/hubfs/Website/Holdings/{SYMBOL}-holdings.csv`, currently live-tested with `TOLL`
+- Validation for the Amplify addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_amplify_adapter_filters_multi_account_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `84 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k amplify`
+    - result: `1 passed, 43 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `43`, `302`, `amplify=True`
+- Validation for the Tema addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_tema_adapter_fetches_symbol_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `85 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k tema`
+    - result: `1 passed, 44 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `44`, `301`, `tema=True`
+
+## Previous checkpoint - 2026-06-13T11:05Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `42`
+  - providers still lacking native/live-backed support: `303`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `distillate`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `horizon_kinetics`
+  - `innovator`
+  - `inspire`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `main_management`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `procuream`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `themes`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific additions in this slice:
+  - `inspire`: issuer-page public quarterly holdings JSON route via the ETFLogic endpoint embedded by Inspire's public holdings page, currently live-tested with `BIBL`
+  - `horizon_kinetics`: issuer symbol-specific public daily holdings XLSX route under `https://horizonkinetics.com/wp/wp-admin/admin-ajax.php?action=daily_holdings&ticker={SYMBOL}&prefix=Holdings`, currently live-tested with `INFL`
+  - `distillate`: issuer symbol-specific public daily holdings CSV route under `https://distillatecapital.com/wp-content/uploads/data-feeds/DistillateWeb.{SYMBOL}_Holdings.csv`, currently live-tested with `DSTL`
+- Validation for the Inspire addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_inspire_adapter_fetches_quarterly_holdings_json --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `83 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k inspire`
+    - result: `1 passed, 42 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `42`, `303`, `inspire=True`
+- Validation for the Horizon Kinetics addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_horizon_kinetics_adapter_fetches_daily_xlsx --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `82 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k horizon_kinetics`
+    - result: `1 passed, 41 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `41`, `304`, `horizon_kinetics=True`
+- Validation for the Distillate addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_distillate_adapter_fetches_symbol_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `81 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k distillate`
+    - result: `1 passed, 40 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "... count native live-backed adapters ..."`
+    - result: `345`, `40`, `305`, `distillate=True`
+
+## Latest checkpoint - 2026-06-13T10:25Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `39`
+  - providers still lacking native/live-backed support: `306`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `main_management`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `procuream`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `themes`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific additions in this slice:
+  - `procuream`: issuer product-page discovery of ProcureAM's current public holdings CSV link under `https://procureetfs.com/{symbol}/`, currently live-tested with `UFO`
+  - `main_management`: issuer symbol-specific public holdings CSV route under `https://www.mainmgtetfs.com/etfs/download-{symbol}.php`, currently live-tested with `BUYW`
+  - `themes`: issuer symbol-specific public holdings CSV route under `https://themesetfs.com/storage/holdings/Holdings-{SYMBOL}.csv`, currently live-tested with `SPAM`
+  - `harbor`: issuer Gatsby `page-data.json` route containing first-party `fullHoldings`, currently live-tested with `WINN`
+- Validation for the ProcureAM addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_procure_adapter_discovers_current_holdings_csv_from_product_page --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `80 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k procuream`
+    - result: `1 passed, 39 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `39`, `advisor_shares,american_century,ark,axs,bitwise,bny_mellon,calamos,cambria,defiance,direxion,first_trust,franklin,global_x,graniteshares,harbor,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,main_management,neos,northern_trust,pacer,procuream,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,themes,us_global_investors,vaneck,vanguard,yieldmax`, `306`
+
+## Previous checkpoint - 2026-06-13T09:50Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `37`
+  - providers still lacking native/live-backed support: `308`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `themes`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific addition:
+  - `themes`: issuer symbol-specific public holdings CSV route under `https://themesetfs.com/storage/holdings/Holdings-{SYMBOL}.csv`, currently live-tested with `SPAM`
+  - `harbor`: issuer Gatsby `page-data.json` route containing first-party `fullHoldings`, currently live-tested with `WINN`
+  - `bny_mellon`: issuer product-page discovery of BNY's daily holdings XLS link, currently live-tested with `BKAG`
+  - `direxion`: issuer symbol-specific public holdings CSV route under `https://www.direxion.com/holdings/{SYMBOL}.csv`, currently live-tested with `SPXL`
+- Validation for the Themes addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_themes_adapter_fetches_symbol_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `78 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k themes`
+    - result: `1 passed, 37 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `37`, `advisor_shares,american_century,ark,axs,bitwise,bny_mellon,calamos,cambria,defiance,direxion,first_trust,franklin,global_x,graniteshares,harbor,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,northern_trust,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,themes,us_global_investors,vaneck,vanguard,yieldmax`, `308`
+
+## Previous checkpoint - 2026-06-13T09:28Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `36`
+  - providers still lacking native/live-backed support: `309`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `harbor`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific addition:
+  - `harbor`: issuer Gatsby `page-data.json` route containing first-party `fullHoldings`, currently live-tested with `WINN`
+  - `bny_mellon`: issuer product-page discovery of BNY's daily holdings XLS link, currently live-tested with `BKAG`
+  - `direxion`: issuer symbol-specific public holdings CSV route under `https://www.direxion.com/holdings/{SYMBOL}.csv`, currently live-tested with `SPXL`
+- Validation for the Harbor addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_harbor_adapter_parses_gatsby_page_data_full_holdings --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `77 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k harbor`
+    - result: `1 passed, 36 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `36`, `advisor_shares,american_century,ark,axs,bitwise,bny_mellon,calamos,cambria,defiance,direxion,first_trust,franklin,global_x,graniteshares,harbor,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,northern_trust,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `309`
+
+## Previous checkpoint - 2026-06-13T09:17Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `35`
+  - providers still lacking native/live-backed support: `310`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `bny_mellon`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific addition:
+  - `bny_mellon`: issuer product-page discovery of BNY's daily holdings XLS link, currently live-tested with `BKAG`
+  - `direxion`: issuer symbol-specific public holdings CSV route under `https://www.direxion.com/holdings/{SYMBOL}.csv`, currently live-tested with `SPXL`
+- Validation for the BNY Mellon addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_bny_mellon_adapter_discovers_daily_xls_and_parses_holdings --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `76 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k bny_mellon`
+    - result: `1 passed, 35 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `35`, `advisor_shares,american_century,ark,axs,bitwise,bny_mellon,calamos,cambria,defiance,direxion,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,northern_trust,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `310`
+
+## Previous checkpoint - 2026-06-13T09:06Z
+
+- The active goal remains **not complete** under the user's clarified standard:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `34`
+  - providers still lacking native/live-backed support: `311`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `direxion`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `us_global_investors`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific addition:
+  - `direxion`: issuer symbol-specific public holdings CSV route under `https://www.direxion.com/holdings/{SYMBOL}.csv`, currently live-tested with `SPXL`
+- Validation for the Direxion addition:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_direxion_adapter_fetches_symbol_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `75 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k direxion`
+    - result: `1 passed, 34 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `34`, `advisor_shares,american_century,ark,axs,bitwise,calamos,cambria,defiance,direxion,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,northern_trust,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `311`
+- Providers with named concrete classes but **not** live-backed still do not count as complete under the user's requested bar.
+- The generated `RecognitionOnlyHoldingsAdapter` path remains present for the long tail and is explicitly unacceptable as final provider support.
+- The next worker must continue replacing generated/thin adapters with native provider implementations, one provider at a time, each with static parser tests and opt-in live route tests.
+
+## Previous checkpoint - 2026-06-13T08:49Z
+
+- The active goal has been tightened by the user: **SEC EDGAR fallback does not count as provider support**. It is a fallback only.
+- Under that stricter definition, the current implementation is **not complete**:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `33`
+  - providers still lacking native/live-backed support: `312`
+- Native/live-backed providers currently in the registry:
+  - `advisor_shares`
+  - `american_century`
+  - `ark`
+  - `axs`
+  - `bitwise`
+  - `calamos`
+  - `cambria`
+  - `defiance`
+  - `first_trust`
+  - `franklin`
+  - `global_x`
+  - `graniteshares`
+  - `innovator`
+  - `invesco`
+  - `ishares`
+  - `janus_henderson`
+  - `jpmorgan`
+  - `kraneshares`
+  - `neos`
+  - `northern_trust`
+  - `pacer`
+  - `proshares`
+  - `roundhill`
+  - `schwab`
+  - `simplify`
+  - `spdr`
+  - `sprott`
+  - `strive`
+  - `teucrium`
+  - `vaneck`
+  - `vanguard`
+  - `yieldmax`
+- Latest native/provider-specific additions:
+  - `northern_trust`: FlexShares public holdings CSV route under `flexshares.com/content/dam/ntflexshares/fund/{symbol}/{symbol}-holdings.csv`, currently live-tested with `QDF`
+  - `janus_henderson`: issuer full-holdings HTML table route under `janushenderson.com/en-us/advisor/product/{slug}/full-holdings/`, currently live-tested with `JAAA`
+  - `calamos`: issuer XLSX holdings route under `https://www.calamos.com/download/{SYMBOL}Holdings.xlsx`, currently live-tested with `CPSM`
+  - `franklin`: issuer GraphQL holdings route under `franklintempleton.com/api/pds/price-and-performance`, currently live-tested with `FLQL` after resolving Franklin's internal fund id (`25773`)
+  - `jpmorgan`: issuer product-data JSON route under `am.jpmorgan.com/FundsMarketingHandler/product-data?cusip=...`, currently live-tested with `JEPI` / CUSIP `46641Q332`
+  - `axs`: issuer dated aggregate Filepoint CSV route under `axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.{yyyymmdd}.csv`, currently live-tested with `TARK`
+  - `graniteshares`: issuer product-page discovery route under `graniteshares.com/etfs/{slug}/`, currently mapped for `NVD`, with legacy `.xls` holdings parsing via `xlrd`
+  - `pacer`: issuer public holdings CSV route under `paceretfs.com/usbank/live/.../{symbol}_Holdings.csv`, currently mapped for `COWZ`
+  - `american_century`: Avantis public product-page embedded holdings payload route, currently mapped for `AVUV`
+  - `us_global_investors`: issuer product-page holdings table route under `usglobaletfs.com/fund/{symbol}/`
+  - `vanguard`: issuer public JSON route under `investor.vanguard.com/vmf/api/.../portfolio-holding/...`
+  - `innovator`: issuer aggregate CSV route filtered by `Account`
+  - `bitwise`: product-page embedded `__NEXT_DATA__` holdings
+  - `cambria`: issuer aggregate CSV route filtered by `Account`
+  - `simplify`: issuer aggregate XLSX discovered from Simplify's ETF page and filtered by `FUND NAME`
+  - `neos`: issuer WordPress AJAX CSV route filtered by `Account`
+  - `strive`: issuer public CSV download route
+  - `defiance`: issuer full-holdings HTML table route under `defianceetfs.com/{symbol}-full-holdings/`
+  - `kraneshares`: issuer dated holdings CSV lookback route under `kraneshares.com/csv/{mm_dd_yyyy}_{symbol}_holdings.csv`
+  - `advisor_shares`: issuer symbol-specific holdings CSV route under `advisorshares.com/wp-content/uploads/csv/holdings/AdvisorShares_{symbol}_Holdings_File.csv`
+  - `teucrium`: issuer aggregate Filepoint holdings CSV route filtered by `Account`
+- Providers with named concrete classes but **not** live-backed still do not count as complete under the user's requested bar.
+- The generated `RecognitionOnlyHoldingsAdapter` path remains present for the long tail and is explicitly unacceptable as final provider support.
+- The next worker must continue replacing generated/thin adapters with native provider implementations, one provider at a time, each with static parser tests and opt-in live route tests.
+- Validation already run for the latest native-provider additions:
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `30`, `advisor_shares,american_century,ark,axs,bitwise,cambria,defiance,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,jpmorgan,kraneshares,neos,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `315`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `71 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k franklin`
+    - result: `1 passed, 30 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k jpmorgan`
+    - result: `1 passed, 29 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k axs`
+    - result: `1 passed, 28 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k graniteshares`
+    - result: `1 passed, 27 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k pacer`
+    - result: `1 passed, 26 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_calamos_adapter_parses_native_xlsx_holdings --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `72 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k calamos`
+    - result: `1 passed, 31 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `31`, `advisor_shares,american_century,ark,axs,bitwise,calamos,cambria,defiance,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,jpmorgan,kraneshares,neos,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `314`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_janus_henderson_adapter_parses_full_holdings_html --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `73 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k janus_henderson`
+    - result: `1 passed, 32 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `32`, `advisor_shares,american_century,ark,axs,bitwise,calamos,cambria,defiance,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `313`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_northern_trust_adapter_parses_flexshares_holdings_csv --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `74 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k northern_trust`
+    - result: `1 passed, 33 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/python -c "from app.services.etf_holdings_adapters import ISSUER_ADAPTER_CONFIGS; native=sorted(k for k,c in ISSUER_ADAPTER_CONFIGS.items() if c.live_tested_default_route); print(len(ISSUER_ADAPTER_CONFIGS)); print(len(native)); print(','.join(native)); print(len(ISSUER_ADAPTER_CONFIGS)-len(native))"`
+    - result: `345`, `33`, `advisor_shares,american_century,ark,axs,bitwise,calamos,cambria,defiance,first_trust,franklin,global_x,graniteshares,innovator,invesco,ishares,janus_henderson,jpmorgan,kraneshares,neos,northern_trust,pacer,proshares,roundhill,schwab,simplify,spdr,sprott,strive,teucrium,us_global_investors,vaneck,vanguard,yieldmax`, `312`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k american_century`
+    - result: blocked in the normal sandbox by DNS/network; escalated retry was rejected by external usage limit. A direct public-page probe before implementation confirmed the Avantis product page exposes parseable embedded holdings, but the pytest live case still needs to be rerun when network/escalation is available.
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k 'defiance or kraneshares'`
+    - result: `2 passed, 20 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k 'advisor_shares or teucrium'`
+    - result: `2 passed, 22 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k simplify`
+    - result: `1 passed, 17 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k neos`
+    - result: `1 passed, 18 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k strive`
+    - result: `1 passed, 19 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+
 ## Current worker
 
 - Name: Codex
@@ -12,6 +1031,51 @@
 - Soft stop deadline: n/a
 
 ## Completed in this session
+
+- Reworked ETF issuer/provider support so the registered provider universe is no longer only recognized:
+  - all 345 registered ETF issuer/provider adapter keys now expose an actual holdings retrieval path through SEC EDGAR filings when SEC identifiers are available
+  - the 7 issuer-native routes remain explicitly marked as native/live-backed: ARK, Global X, Invesco, iShares/BlackRock, SPDR/State Street, Sprott, and VanEck
+  - the remaining 338 registered providers are no longer treated as unsupported candidates; they are provider-specific adapters with `sec_edgar_filing_fallback` support
+  - adapter probes now return `ready` for any registered provider when `sec_cik` is present, while still preferring issuer-native routes where they exist
+  - adapter catalogue output now exposes `supports_sec_filing_fallback` and `support_route_types` so callers can distinguish issuer-native routes from SEC-backed routes
+  - adapter-backed SEC fetches persist snapshots with SEC provenance/quality metadata instead of mislabeling them as issuer-native holdings
+- Live smoke-validated the new non-native route:
+  - `vanguard` + `VOO` + SEC CIK `0000036405` fetched 519 rows from SEC EDGAR through `sec_edgar_filing_fallback`
+- Validation for this support-model pass:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py tests/unit/services/test_etf_holdings_bootstrap.py tests/unit/services/test_etf_holdings_edgar.py tests/unit/services/test_etf_holdings_sec.py --no-cov -q`
+    - result: `61 passed`
+  - `cd backend && ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py --no-cov -q`
+    - result: `18 skipped` without `RUN_LIVE_ETF_HOLDINGS_TESTS=1`
+  - `cd backend && ./.venv/bin/pytest tests/integration/api/test_etf_holdings.py -k 'adapter_catalog or probe' --no-cov -q`
+    - result: `6 passed, 46 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py app/services/etf_holdings_refresh.py app/schemas/etf_holdings.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py tests/integration/api/test_etf_holdings.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+
+- Fixed the ETF-holdings `make test-all` integration stall the user reported:
+  - reproduced the exact behavior: `tests/integration/api/test_etf_holdings.py` failed on its second test and then appeared to hang on the third
+  - isolated the “hang” with faulthandler and confirmed it was not fixture teardown; the third test was blocking inside unintended live OpenFIGI calls reached through ETF constituent bootstrap/fallback logic
+- Backend fixes applied:
+  - `backend/app/services/etf_holdings.py`
+    - skipped `fetch_stable_identifiers(...)` provider calls while `settings.APP_ENV == "test"` so ETF holdings integration tests no longer drift into live identifier-provider IO during placeholder creation
+  - `backend/app/services/etf_holdings_refresh.py`
+    - added `_bootstrap_savepoint(...)` so ETF bootstrap refresh savepoints now support both:
+      - real async SQLAlchemy sessions
+      - the sync-session adapter used by integration tests (`SessionTransaction`)
+    - this fixes the reverse regression surfaced after the earlier NIKL fix, where integration tests were now failing with `'SessionTransaction' object does not support the asynchronous context manager protocol`
+- Test hardening applied:
+  - `backend/tests/integration/api/test_etf_holdings.py`
+    - added an autouse fixture forcing ETF holdings integration tests into `APP_ENV=test`
+    - explicitly monkeypatched `_bootstrap_from_sec_filings` to `None` in the fake bootstrap-route tests so they no longer silently fall through into SEC fallback and mask the real failure mode
+  - `backend/tests/unit/services/test_etf_holdings_bootstrap.py`
+    - added regression coverage for the sync-session wrapper case so bootstrap savepoints are validated against both async and sync nested-transaction objects
+- Revalidated:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_bootstrap.py --no-cov -q`
+    - result: `4 passed`
+  - `cd backend && ENV_FILE=.env.dev uv run pytest tests/integration/api/test_etf_holdings.py -k 'test_admin_can_refresh_ark_provider_route or test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot or test_bootstrap_endpoint_seeds_known_ishares_route_metadata or test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata' --no-cov -q`
+    - result: `4 passed, 48 deselected`
+- A full `rtk make test-all` rerun was started afterward to confirm the end-to-end path, but this shell has not yet yielded a final result for that long-running command. The ETF holdings failure/hang slice itself is fixed and green.
 
 - Fixed the concrete `NIKL` ETF bootstrap failure reported by the user:
   - root cause: `bootstrap_etf_holdings_profile(...)` in `backend/app/services/etf_holdings_refresh.py` was opening a nested transaction with `with db.begin_nested():` even though `db` is an async SQLAlchemy session
@@ -497,16 +1561,18 @@
 
 ## Pending
 
-- Broad issuer routing infrastructure exists through provider-specific route constructors, explicit product URLs, configured issuer fund-list feeds, concrete ARK/iShares/SPDR constructors, and product-page discovery, but issuer coverage must be treated as live-route proven only after backend-reachable tests pass.
-- Current backend-reachable live-tested issuer routes cover SPDR, iShares/BlackRock, ARK, VanEck, and Global X.
+- ETF issuer/provider recognition currently covers 345 registered adapter keys, but provider-native support is only 24/345 under the user's clarified standard. SEC EDGAR fallback is useful fallback infrastructure only and must not be counted as native provider support.
+- Native/live-backed providers currently are `advisor_shares`, `ark`, `bitwise`, `cambria`, `defiance`, `first_trust`, `global_x`, `innovator`, `invesco`, `ishares`, `kraneshares`, `neos`, `proshares`, `roundhill`, `schwab`, `simplify`, `spdr`, `sprott`, `strive`, `teucrium`, `us_global_investors`, `vaneck`, `vanguard`, and `yieldmax`.
+- Broad issuer routing infrastructure exists through provider-specific route constructors, explicit product URLs, configured issuer fund-list feeds, concrete issuer constructors, product-page discovery, and SEC filing fallback. Native issuer-route claims still require backend-reachable live tests; 321 registered providers still need isolated native/live-backed implementations.
+- US Global Investors now has a backend-reachable native/live-tested route through public product-page holdings tables such as JETS.
 - Current backend-reachable live-tested issuer routes now also include Invesco through the symbol-based QQQ-style holdings JSON route template.
 - iShares/BlackRock default support now uses the current BlackRock product-data JSON holdings API; seeded, live-tested product ids include IVV and IWM, so IWM can bootstrap a full current holdings snapshot from a fresh DB.
 - Seeded iShares/BlackRock default support now also includes EEM (`239637`), so EEM can bootstrap a full current holdings snapshot from a fresh DB without manual route configuration.
-- The live provider test matrix now covers every registered issuer adapter: five adapters must fetch real holdings successfully, and nine adapters are asserted as explicit candidate-route gaps rather than supported default routes.
-- Invesco has an explicit JSON parser for configured source URLs, but its embedded public `dng-api` holdings route currently returns HTTP 406 to backend requests and is not auto-advertised as ready.
-- Vanguard and Schwab still need current backend-reachable full-holdings routes; candidate product-page templates alone are not sufficient to claim provider support.
-- Source-hardening baseline now exists: malformed/empty issuer files fail refresh and persist adapter failure state; provider blocking/rate-limit failures are classified separately; common issuer schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, and disclaimer-row skipping are handled; and SEC legacy parsing covers XML/table filings, simple HTML, split identity/value rows, month-name dates, and value-in-thousands schedules. Remaining source work is long-tail maintenance rather than a core gap: unusual issuer schemas, non-tabular/PDF-like disclosures, automatic discovery beyond explicit configured feeds, extra direct constructors where discovery is insufficient, and deeper historical archive discovery.
-- Live issuer smoke tests now exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. The current escalated live run passes against backend-reachable public issuer routes for SPDR, iShares, ARK, Global X, and VanEck. Vanguard, Schwab, Invesco, and other long-tail issuers remain explicit provider-support gaps until current backend-reachable routes/APIs are implemented and live-tested.
+- The live provider test matrix now covers every registered issuer adapter without allowing silent recognition-only gaps: native live-backed adapters remain explicitly classified, and SEC-backed adapters probe ready when SEC identifiers are present.
+- Invesco has a backend-fetchable native route for QQQ-style holdings; SEC fallback remains available when a native route is absent or not configured for a specific ETF/profile.
+- Long-tail issuers may still retrieve holdings through SEC fallback when SEC identifiers are available, but they remain unsupported under the provider-native standard until each has an isolated native implementation plus static and live tests.
+- Source-hardening baseline exists for malformed/empty issuer files, rate-limit classification, common schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, disclaimer-row skipping, and SEC legacy parsing. Remaining source work is still large because each remaining issuer needs native route research, implementation, static parser coverage, and live route validation.
+- Live issuer smoke tests exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. Native-route live tests cover the 24 direct issuer routes, while SEC-backed adapter behavior is validated separately and cannot be used to claim native support.
 - SEC N-PORT/N-PORT-P XML parsing/admin ingestion, recent and archived EDGAR discovery/download, persistent accession/job state, duplicate-safe reruns, and bulk/scheduled hooks exist; baseline N-Q/N-CSR-style legacy XML/table, simple HTML schedule-table parsing, split-row HTML schedule reconstruction, month-name report dates, value-in-thousands schedules, manual/admin ingestion, EDGAR discovery/download/backfill, duplicate-safe reruns, and bulk processing also exist. Deeply nested/footnoted HTML filings and PDF-like filing handling remain long-tail maintenance.
 - Basket builder/editor UI, backend basket OHLCV, and initial Chart synthetic basket loading exist; richer basket metadata/watchlist/compare semantics are not implemented yet.
 - Strategy Lab consumes ETF holdings snapshots and baskets as static universes, and rules backtests now expose opt-in dynamic point-in-time ETF holdings mode plus ETF-derived and manual basket dynamic modes in the visual builder with an explicit constituent-removal exit policy and baseline execution-log snapshot attribution surfaced in the UI. Richer basket rebalance policies, historical basket snapshot editing/import UX, and deeper attribution drilldowns remain open.
@@ -519,7 +1585,4 @@
 
 ## Exact next step
 
-- With the test suite now clean again, decide whether the next ETF holdings slice should be:
-  1. broad issuer-specific current-holdings adapters and automatic discovery routes for the largest US ETF sponsors,
-  2. richer basket chart/watchlist/comparison semantics, richer basket-history editing/import/rebalance policy UX, or larger-scale saved ETF-family comparison and clustering UX on top of the overlap matrix API, or
-  3. broader legacy SEC filing parser coverage for additional table/document shapes, including HTML/PDF-like filings.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 24/345 native/live-backed, leaving 321 providers.
