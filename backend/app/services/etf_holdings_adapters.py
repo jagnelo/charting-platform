@@ -6909,6 +6909,204 @@ class BeyondInvestingHoldingsAdapter(InnovatorHoldingsAdapter):
         return headers
 
 
+class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    product_index_url = "https://www.baroncapitalgroup.com/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        page_or_csv_url = source_url or self.product_index_url
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if self._is_csv_url(page_or_csv_url):
+                holdings_url = page_or_csv_url
+            else:
+                page_url, page_text = await self._fetch_product_page(
+                    client,
+                    page_or_csv_url,
+                )
+                holdings_url = self._discover_holdings_url(
+                    page_text,
+                    symbol=normalized_symbol,
+                    base_url=page_url,
+                )
+            if not holdings_url:
+                raise ValueError(f"Baron product pages did not expose holdings CSV for {symbol}.")
+            holdings_url, response_text = await self._fetch_holdings_csv(client, holdings_url)
+        rows = self._parse_baron_csv(response_text)
+        if not rows:
+            raise ValueError(f"Baron holdings CSV did not expose rows for {symbol}.")
+        composition_date = self._composition_date_from_url(holdings_url)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response_text,
+            raw_json=None,
+            source_url=holdings_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_linked_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,*/*")
+        headers["Referer"] = self.product_index_url
+        return headers
+
+    async def _fetch_product_page(
+        self,
+        client: httpx.AsyncClient,
+        source_url: str,
+    ) -> tuple[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,*/*")
+        try:
+            response = await client.get(
+                source_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+            return source_url, response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+
+        def _request() -> requests.Response:
+            return requests.get(
+                source_url,
+                headers=headers,
+                allow_redirects=True,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            )
+
+        response = await asyncio.to_thread(_request)
+        response.raise_for_status()
+        return source_url, response.text
+
+    async def _fetch_holdings_csv(
+        self,
+        client: httpx.AsyncClient,
+        source_url: str,
+    ) -> tuple[str, str]:
+        headers = self.source_request_headers(source_url=source_url)
+        try:
+            response = await client.get(
+                source_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+            return source_url, response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+
+        def _request() -> requests.Response:
+            return requests.get(
+                source_url,
+                headers=headers,
+                allow_redirects=True,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            )
+
+        response = await asyncio.to_thread(_request)
+        response.raise_for_status()
+        return source_url, response.text
+
+    @staticmethod
+    def _is_csv_url(value: str) -> bool:
+        return value.split("?", 1)[0].lower().endswith(".csv")
+
+    @staticmethod
+    def _discover_holdings_url(raw_html: str, *, symbol: str, base_url: str) -> str | None:
+        candidates: list[tuple[date, str]] = []
+        for pattern in (
+            re.compile(
+                rf"""(?P<url>https?://[^\s"'<>)]*{re.escape(symbol)}-HOLDINGS-(?P<date>\d{{8}})-0\.csv)""",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                rf"""(?P<url>[^\s"'<>)]*{re.escape(symbol)}-HOLDINGS-(?P<date>\d{{8}})-0\.csv)""",
+                re.IGNORECASE,
+            ),
+        ):
+            for match in pattern.finditer(raw_html):
+                parsed_date = BaronHoldingsAdapter._parse_compact_yyyymmdd(
+                    match.group("date")
+                )
+                if parsed_date is None:
+                    continue
+                candidates.append((parsed_date, urljoin(base_url, match.group("url"))))
+            if candidates:
+                break
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1]
+
+    @staticmethod
+    def _composition_date_from_url(source_url: str) -> date | None:
+        match = re.search(r"-HOLDINGS-(\d{8})-0\.csv", source_url, flags=re.IGNORECASE)
+        if not match:
+            return None
+        return BaronHoldingsAdapter._parse_compact_yyyymmdd(match.group(1))
+
+    @staticmethod
+    def _parse_compact_yyyymmdd(value: str) -> date | None:
+        try:
+            return datetime.strptime(value, "%Y%m%d").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_baron_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(reader, start=1):
+            symbol = _clean(item.get("Ticker"))
+            name = _clean(item.get("Holding"))
+            if not symbol and not name:
+                continue
+            cash_like = (
+                (symbol or "").strip().upper() in {"CASH", "USD", "US DOLLAR"}
+                or "CASH" in (name or "").strip().upper()
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if cash_like else symbol,
+                    name=name,
+                    cusip=_clean(item.get("CUSIP")),
+                    isin=_clean(item.get("ISIN")),
+                    sedol=_clean(item.get("SEDOL")),
+                    weight=_decimal(item.get("Weight (%)")),
+                    shares=_decimal(item.get("Quantity")),
+                    market_value=_decimal(item.get("Market Value ($)")),
+                    currency=_clean(item.get("Currency Code")),
+                    holding_type="cash" if cash_like else "equity",
+                    row_type="cash" if cash_like else "security",
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows
+
+
 class SimplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.simplify.us/etfs"
 
@@ -9896,6 +10094,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Beyond Investing/VEGN public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "baron": IssuerCsvAdapterConfig(
+        adapter_key="baron",
+        source_provider="baron",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=(
+            "https://www.baroncapitalgroup.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Baron Capital public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "cambiar": IssuerCsvAdapterConfig(
         adapter_key="cambiar",
         source_provider="cambiar",
@@ -10448,6 +10656,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ark": ArkHoldingsAdapter,
         "arrow": ArrowHoldingsAdapter,
         "axs": AxsHoldingsAdapter,
+        "baron": BaronHoldingsAdapter,
         "bitwise": BitwiseHoldingsAdapter,
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,

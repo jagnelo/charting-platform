@@ -19,6 +19,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ark",
     "arrow",
     "axs",
+    "baron",
     "bitwise",
     "bny_mellon",
     "bondbloxx",
@@ -253,6 +254,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "bondbloxx",
             "PCMM",
+            None,
+            {},
+            20,
+        ),
+        (
+            "baron",
+            "RONB",
             None,
             {},
             20,

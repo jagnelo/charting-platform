@@ -1214,6 +1214,56 @@ async def test_beyond_investing_adapter_filters_public_aggregate_csv(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("baron")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="https://live-baron-capital-cms.pantheonsite.io/sites/default/files/'
+                'etf-downloads/RONB-HOLDINGS-20260624-0.csv">old</a>'
+                '<a href="https://live-baron-capital-cms.pantheonsite.io/sites/default/files/'
+                'etf-downloads/RONB-HOLDINGS-20260625-0.csv">new</a>'
+            ),
+            content_type="text/html",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    'Holding,Ticker,"Weight (%)","Market Value ($)",Quantity,CUSIP,ISIN,SEDOL,"Currency Code"',
+                    '"SPACE EXPLORATION TECHN CL A",SPCX,29.77%,"$141,199,569.00","922,873",84615Q103,US84615Q1031,BXCVG25,USD',
+                    '"TESLA INC",TSLA,11.66%,"$55,313,319.60","147,455",88160R101,US88160R1014,B616C79,USD',
+                ]
+            ),
+            content_type="text/csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RONB", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.baroncapitalgroup.com/"
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://live-baron-capital-cms.pantheonsite.io/sites/default/files/"
+        "etf-downloads/RONB-HOLDINGS-20260625-0.csv"
+    )
+    assert result.rows[0].symbol == "SPCX"
+    assert result.rows[0].name == "SPACE EXPLORATION TECHN CL A"
+    assert result.rows[0].cusip == "84615Q103"
+    assert result.rows[0].isin == "US84615Q1031"
+    assert result.rows[0].sedol == "BXCVG25"
+    assert result.rows[0].weight == Decimal("0.2977")
+    assert result.rows[0].market_value == Decimal("141199569.00")
+    assert result.rows[0].shares == Decimal("922873")
+    assert result.rows[0].currency == "USD"
+    assert result.legal_metadata["source_provider"] == "baron"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_linked_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
 async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch):
     adapter = get_holdings_adapter("cambiar")
     assert adapter is not None
@@ -2850,6 +2900,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["bondbloxx"]["support_route_types"]
     assert adapters["beyond_investing"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["beyond_investing"]["support_route_types"]
+    assert adapters["baron"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["baron"]["support_route_types"]
     assert adapters["grayscale"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["grayscale"]["support_route_types"]
     assert adapters["gmo"]["live_tested_default_route"] is True

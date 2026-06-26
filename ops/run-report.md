@@ -2,6 +2,36 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-26 - Baron native ETF holdings route
+
+### Summary
+
+- Promoted `baron` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `BaronHoldingsAdapter`:
+  - product/root discovery page: `https://www.baroncapitalgroup.com/`
+  - discovers the latest public dated holdings CSV link shaped like `RONB-HOLDINGS-YYYYMMDD-0.csv` from Baron pages instead of hardcoding the date.
+  - live validation symbol: `RONB`
+  - current live CSV returned more than `20` parseable holdings rows.
+  - parser handles Baron-specific CSV columns directly, preserving `Holding` security names, ticker, CUSIP, ISIN, SEDOL, quantity, market value, currency, and weights.
+  - narrow requests fallbacks handle Baron 403 responses against the async HTTP client without broadening this into a generic URL fallback.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `66`
+  - providers still lacking native/live-backed support: `279`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_baron_adapter_discovers_latest_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k baron` -> `1 passed, 67 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `108 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `66`, `279`, `baron=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The next candidates need the same standard: first-party backend-fetchable artifact, provider-specific parser if generic parsing loses semantics, static test, live test, and truthful catalog count.
+
 ## 2026-06-26 - Beyond Investing native ETF holdings route
 
 ### Summary
