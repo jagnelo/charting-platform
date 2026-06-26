@@ -5,6 +5,32 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-26T12:58Z
+
+- Promoted `aptus` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AptusHoldingsAdapter`:
+  - product page template: `https://aptusetfs.com/{symbol_lower}/`
+  - live validation uses `DRSK`; the current issuer product page exposes a server-rendered holdings table with `27` parseable holdings rows.
+  - parser reads the Aptus `fund_holdings_table`-style HTML table, normalizes `Stock Ticker` and `Security Desc` into canonical ticker/name fields, preserves CUSIP, shares, market value, weight, and effective-date metadata, and extracts the page-level `Current as of` composition date.
+  - request path uses browser-shaped issuer page headers plus an Aptus referer because the issuer returns a 403 to overly generic user-agent requests.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `60`
+  - providers still lacking native/live-backed support: `285`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_aptus_adapter_fetches_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k aptus`
+    - result: `1 passed, 61 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `102 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q`
+    - result: `62 passed in 58.15s`
+  - Count command returned `345`, `60`, `285`, `aptus=True`.
+
 ## Latest checkpoint - 2026-06-26T12:23Z
 
 - Promoted `main_management` from candidate/static-only support to native/live-backed support.

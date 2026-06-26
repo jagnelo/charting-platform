@@ -14,6 +14,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "allianz",
     "american_century",
     "amplify",
+    "aptus",
     "ark",
     "axs",
     "bitwise",
@@ -142,6 +143,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "amplify",
             "BLOK",
+            None,
+            {},
+            20,
+        ),
+        (
+            "aptus",
+            "DRSK",
             None,
             {},
             20,

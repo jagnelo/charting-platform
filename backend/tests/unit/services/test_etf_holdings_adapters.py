@@ -2105,6 +2105,66 @@ async def test_clearshares_adapter_fetches_native_holdings_workbook(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("aptus")
+    assert adapter is not None
+
+    html = """
+    <html>
+      <body>
+        <span class="currentdate">Current as of 06/25/2026</span>
+        <table class="custom_tables fund_holdings_table">
+          <thead>
+            <tr>
+              <th>Stock Ticker</th>
+              <th>Cusip</th>
+              <th>Security Desc</th>
+              <th>Shares</th>
+              <th>Price</th>
+              <th>Market Value</th>
+              <th>Weightings</th>
+              <th>Effective Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>BSCU</td>
+              <td>46138J460</td>
+              <td>Invesco BulletShares 2030 Corporate Bond ETF</td>
+              <td>9,353,234.00</td>
+              <td>16.65</td>
+              <td>155,731,346.10</td>
+              <td>10.23%</td>
+              <td>06/26/2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=html, content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DRSK")
+
+    assert FakeAsyncClient.requested[0][0] == "https://aptusetfs.com/drsk/"
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://aptusetfs.com/"
+    assert len(result.rows) == 1
+    row = result.rows[0]
+    assert row.symbol == "BSCU"
+    assert row.name == "Invesco BulletShares 2030 Corporate Bond ETF"
+    assert row.cusip == "46138J460"
+    assert row.weight == Decimal("0.1023")
+    assert row.shares == Decimal("9353234.00")
+    assert row.market_value == Decimal("155731346.10")
+    assert result.legal_metadata["source_provider"] == "aptus"
+    assert result.legal_metadata["source_format"] == "html"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
 async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
     adapter = get_holdings_adapter("graniteshares")
     assert adapter is not None
@@ -2373,6 +2433,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["advisor_shares"]["support_route_types"]
     assert adapters["allianz"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
+    assert adapters["aptus"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["aptus"]["support_route_types"]
     assert adapters["teucrium"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["teucrium"]["support_route_types"]
     assert adapters["us_global_investors"]["live_tested_default_route"] is True

@@ -2895,6 +2895,136 @@ class ClearSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return result
 
 
+class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Aptus ETF holdings from server-rendered product pages."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = (issuer_product_id or symbol).strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://aptusetfs.com/{normalized_symbol}/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError(f"Aptus needs a product page URL for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/html,*/*"),
+                    "Referer": "https://aptusetfs.com/",
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text)
+        if not rows:
+            raise ValueError(f"Aptus product page did not expose parseable holdings for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "product_page_url": product_page_url,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(cls, raw_html: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        composition_date = cls._extract_current_as_of_date(raw_html)
+        for table in parser.tables:
+            if not table:
+                continue
+            header_values = {str(value).strip().lower() for value in table[0] if _clean(value)}
+            if not {"stock ticker", "cusip", "security desc", "weightings"} <= header_values:
+                continue
+            normalized_table = [
+                [cls._normalize_header(value) for value in table[0]],
+                *table[1:],
+            ]
+            rows = parse_holdings_table(normalized_table)
+            if composition_date is None:
+                composition_date = cls._extract_effective_date(rows)
+            return rows, composition_date
+        return [], composition_date
+
+    @staticmethod
+    def _normalize_header(value: Any) -> str:
+        text = str(value).strip()
+        lowered = text.lower()
+        if lowered == "stock ticker":
+            return "Ticker"
+        if lowered == "security desc":
+            return "Security Description"
+        if lowered == "weightings":
+            return "Weightings"
+        return text
+
+    @staticmethod
+    def _extract_current_as_of_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"Current\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
+            raw_html,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _extract_effective_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        for row in rows:
+            text = _clean(row.extra_data.get("Effective Date"))
+            if not text:
+                continue
+            try:
+                return datetime.strptime(text, "%m/%d/%Y").date()
+            except ValueError:
+                continue
+        return None
+
+
 class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     primary_base_url = "https://21sharesprimary.paradox-coworking.com"
     secondary_base_url = "https://21sharessecondary.paradox-coworking.com"
@@ -9035,6 +9165,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="ClearShares public holdings workbooks may be subject to issuer terms.",
     ),
+    "aptus": IssuerCsvAdapterConfig(
+        adapter_key="aptus",
+        source_provider="aptus",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://aptusetfs.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Aptus public ETF product pages may be subject to issuer terms.",
+    ),
     "proshares": IssuerCsvAdapterConfig(
         adapter_key="proshares",
         source_provider="proshares",
@@ -9448,6 +9588,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "allianz": AllianzHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
+        "aptus": AptusHoldingsAdapter,
         "ark": ArkHoldingsAdapter,
         "axs": AxsHoldingsAdapter,
         "bitwise": BitwiseHoldingsAdapter,
