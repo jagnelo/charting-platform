@@ -1513,6 +1513,48 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_davis_adapter_parses_holdings_download_csv(monkeypatch):
+    adapter = get_holdings_adapter("davis")
+    assert adapter is not None
+
+    holdings_url = "https://www.davisetfs.com/etfs/us_equity/holdings_download"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    '"Davis Select U.S. Equity ETF All Holdings as of 6/26/26"',
+                    'Name,Ticker,"Weighting (%)",Shares,"Market Value ($)",Country,CUSIP',
+                    '"Capital One Financial Corp.",COF,6.79,"405,995","82,822,980",,14040H105,2654461,0.20,"Capital One Financial",0.20',
+                    '"Samsung Electronics Co., Ltd.","005930 KS",6.63,"83,089","18,381,803","Korea, Republic of (South Korea)",,6771720,2.83,"Samsung Electronics",3.15',
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DUSA", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "COF"
+    assert result.rows[0].name == "Capital One Financial Corp."
+    assert result.rows[0].cusip == "14040H105"
+    assert result.rows[0].weight == Decimal("0.0679")
+    assert result.rows[0].shares == Decimal("405995")
+    assert result.rows[0].market_value == Decimal("82822980")
+    assert result.rows[0].extra_data["extra_column_1"] == "2654461"
+    assert result.rows[1].symbol == "005930"
+    assert result.rows[1].exchange == "KS"
+    assert result.rows[1].country == "Korea, Republic of (South Korea)"
+    assert result.legal_metadata["source_provider"] == "davis"
+    assert result.legal_metadata["route_resolution"] == "issuer_holdings_download_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
 async def test_t_rowe_price_adapter_discovers_product_page_and_fetches_graphql(monkeypatch):
     adapter = get_holdings_adapter("t_rowe_price")
     assert adapter is not None
@@ -3316,6 +3358,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["t_rowe_price"]["support_route_types"]
     assert adapters["fm_investments"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["fm_investments"]["support_route_types"]
+    assert adapters["davis"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["davis"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T11:32Z
+
+- Promoted `davis` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `DavisHoldingsAdapter`:
+  - issuer product routes include `https://www.davisetfs.com/etfs/us_equity`, `international`, `worldwide`, and `financial`.
+  - native data route: `https://www.davisetfs.com/etfs/{product_slug}/holdings_download`
+  - live validation uses `DUSA`; the current issuer CSV returns more than `20` parseable rows dated `2026-06-26`.
+  - parser handles Davis-specific CSVs with a title/as-of first row, second-row headers, `Name`, `Ticker`, `Weighting (%)`, `Shares`, `Market Value ($)`, `Country`, and `CUSIP`.
+  - parser preserves exchange-coded foreign tickers such as `005930 KS` as symbol plus exchange and stores Davis' unlabelled trailing CSV columns in row metadata rather than dropping the row.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `74`
+  - providers still lacking native/live-backed support: `271`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_davis_adapter_parses_holdings_download_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k davis`
+    - result: `1 passed, 75 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `116 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `74`, `271`, `davis=True`.
+
 ## Latest checkpoint - 2026-06-29T11:23Z
 
 - Promoted `fm_investments` from recognition-only/generated support to native/live-backed support.

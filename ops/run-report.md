@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - Davis ETFs native ETF holdings route
+
+### Summary
+
+- Promoted `davis` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `DavisHoldingsAdapter`:
+  - product routes: `https://www.davisetfs.com/etfs/us_equity`, `international`, `worldwide`, and `financial`
+  - native data route: `https://www.davisetfs.com/etfs/{product_slug}/holdings_download`
+  - live validation symbol: `DUSA`
+  - current issuer CSV returned more than `20` parseable holdings rows dated `2026-06-26`.
+  - parser handles Davis-specific title/as-of first row, header second row, `Name`, `Ticker`, `Weighting (%)`, `Shares`, `Market Value ($)`, `Country`, and `CUSIP`.
+  - parser preserves exchange-coded foreign tickers such as `005930 KS` and keeps Davis' unlabelled trailing columns in row metadata.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `74`
+  - providers still lacking native/live-backed support: `271`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_davis_adapter_parses_holdings_download_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k davis` -> `1 passed, 75 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `116 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `74`, `271`, `davis=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `271` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - F/M Investments native ETF holdings route
 
 ### Summary

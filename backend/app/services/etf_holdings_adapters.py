@@ -8426,6 +8426,206 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class DavisHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Davis ETFs holdings from issuer CSV download routes."""
+
+    PRODUCT_SLUGS: dict[str, str] = {
+        "DUSA": "us_equity",
+        "DINT": "international",
+        "DWLD": "worldwide",
+        "DFNL": "financial",
+    }
+    PRODUCT_PAGE_BASE = "https://www.davisetfs.com"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        identifiers = identifiers or {}
+        slug = (
+            _identifier(identifiers, "davis_product_slug", "product_slug", "issuer_product_id")
+            or issuer_product_id
+            or self.PRODUCT_SLUGS.get(normalized_symbol)
+        )
+        if not slug:
+            return None
+        return f"{self.PRODUCT_PAGE_BASE}/etfs/{slug}/holdings_download"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        slug = (
+            issuer_product_id
+            or _identifier(identifiers or {}, "davis_product_slug", "product_slug")
+            or self.PRODUCT_SLUGS.get(normalized_symbol)
+        )
+        if not slug:
+            return None
+        return f"{self.PRODUCT_PAGE_BASE}/etfs/{slug}"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://www.davisetfs.com/etfs"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Davis ETFs needs a product slug for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_davis_csv(response.text)
+        if not rows:
+            raise ValueError(f"Davis ETFs holdings download did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "csv",
+                "product_slug": self._slug_for_symbol(symbol, issuer_product_id, identifiers or {}),
+            },
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or self.PRODUCT_SLUGS.get(symbol.strip().upper()),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_holdings_download_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_davis_csv(cls, raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        csv_rows = list(csv.reader(StringIO(raw_csv)))
+        if len(csv_rows) < 2:
+            return [], None
+        composition_date = cls._extract_composition_date(csv_rows[0][0] if csv_rows[0] else None)
+        header = [cell.strip() for cell in csv_rows[1]]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_values in enumerate(csv_rows[2:], start=1):
+            if not raw_values or not any(_clean(value) for value in raw_values):
+                continue
+            raw = {header[column_index].strip().lower(): value for column_index, value in enumerate(raw_values[:len(header)])}
+            name = _clean(raw.get("name"))
+            ticker = _clean(raw.get("ticker"))
+            symbol, exchange = cls._split_ticker(ticker)
+            cusip = _clean(raw.get("cusip"))
+            if not any([name, symbol, cusip, raw.get("weighting (%)")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal_percent_points(raw.get("weighting (%)")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("market value ($)")),
+                    country=_clean(raw.get("country")),
+                    exchange=exchange,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=str(index),
+                    extra_data={
+                        "raw_ticker": ticker,
+                        **{
+                            f"extra_column_{extra_index}": value
+                            for extra_index, value in enumerate(raw_values[len(header):], start=1)
+                            if _clean(value)
+                        },
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        match = re.search(r"\bas\s+of\s+(?P<value>\d{1,2}/\d{1,2}/\d{2,4})", text, re.IGNORECASE)
+        if not match:
+            return None
+        raw_value = match.group("value")
+        for date_format in ("%m/%d/%y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(raw_value, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _split_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if not text:
+            return None, None
+        parts = text.split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z0-9.=-]{1,12}", parts[0].upper()):
+            return parts[0].upper(), parts[1].upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", text.upper()):
+            return text.upper(), None
+        return None, None
+
+    def _slug_for_symbol(
+        self,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        return (
+            _identifier(identifiers, "davis_product_slug", "product_slug", "issuer_product_id")
+            or issuer_product_id
+            or self.PRODUCT_SLUGS.get(symbol.strip().upper())
+        )
+
+
 class FMInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch F/M Investments ETF holdings from its public Drupal JSON route."""
 
@@ -11673,6 +11873,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "davis": IssuerCsvAdapterConfig(
+        adapter_key="davis",
+        source_provider="davis",
+        source_access="issuer_public_holdings_download_csv",
+        url_templates=(
+            "https://www.davisetfs.com/etfs/{product_slug}/holdings_download",
+        ),
+        product_page_templates=(
+            "https://www.davisetfs.com/etfs/{product_slug}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Davis ETFs public holdings download files may be subject to issuer terms.",
+    ),
     "fm_investments": IssuerCsvAdapterConfig(
         adapter_key="fm_investments",
         source_provider="fm_investments",
@@ -11974,6 +12187,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "21shares": TwentyOneSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,
+        "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
