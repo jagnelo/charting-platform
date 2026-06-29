@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T17:01Z
+
+- Promoted `timothy_plan` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `TimothyPlanHoldingsAdapter`:
+  - native data route: `https://timothyplan.com/our-etfs/summary-etf-{slug}-holdings.php`
+  - supported issuer slugs include `hds`, `lcc`, `scc`, `int`, `tpfc`, `tpfg`, and `tpfi`, mapped from symbols such as `TPHD`, `TPLC`, `TPSC`, `TPIF`, `TPFC`, `TPFG`, and `TPFI`.
+  - live validation uses `TPHD`; the current issuer page returns more than `50` parseable holdings rows dated `2026-06-29`.
+  - parser handles Timothy Plan-specific HTML holdings tables with `Name`, `Symbol`, `ISIN`, `Shares Held`, `Market Value %`, and `Market Value $`.
+  - parser preserves Bloomberg-style symbol/exchange pairs such as `AFL U` and keeps no-symbol fixed-income rows as fixed-income holdings instead of fabricating tradable tickers.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `78`
+  - providers still lacking native/live-backed support: `267`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_timothy_plan_adapter_parses_holdings_page_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k timothy_plan`
+    - result: `1 passed, 79 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `120 passed`
+  - Count command returned `345`, `78`, `267`, `timothy_plan=True`.
+
 ## Latest checkpoint - 2026-06-29T16:42Z
 
 - Promoted `allspring` from recognition-only/generated support to native/live-backed support.

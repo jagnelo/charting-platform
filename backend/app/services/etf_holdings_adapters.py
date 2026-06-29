@@ -2981,6 +2981,160 @@ class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return text, None
 
 
+class TimothyPlanHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    symbol_slugs = {
+        "TPHD": "hds",
+        "TPLC": "lcc",
+        "TPSC": "scc",
+        "TPIF": "int",
+        "TPFC": "tpfc",
+        "TPFG": "tpfg",
+        "TPFI": "tpfi",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        normalized_symbol = symbol.strip().upper()
+        slug = (issuer_product_id or "").strip().lower() or self.symbol_slugs.get(
+            normalized_symbol
+        )
+        if not slug:
+            return None
+        return f"https://timothyplan.com/our-etfs/summary-etf-{slug}-holdings.php"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_issuer_page_request_headers(),
+            "Referer": "https://timothyplan.com/our-etfs/",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        holdings_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not holdings_url:
+            raise ValueError(f"Timothy Plan needs a known ETF holdings route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = self._parse_timothy_plan_holdings_table(response.text)
+        if not rows:
+            raise ValueError(f"Timothy Plan holdings page did not expose rows for {symbol}.")
+        as_of_date = self._extract_as_of_date(response.text)
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_symbol_holdings_page_table",
+                "composition_date": as_of_date.isoformat() if as_of_date else None,
+                "as_of_date": as_of_date.isoformat() if as_of_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_timothy_plan_holdings_table(cls, raw_html: str) -> list[CanonicalHoldingRow]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "name",
+            "symbol",
+            "isin",
+            "shares held",
+            "market value %",
+            "market value $",
+        }
+        for table in parser.tables:
+            for header_index, row in enumerate(table[:30]):
+                normalized_row = {str(value).strip().lower() for value in row if _clean(value)}
+                if not required_headers <= normalized_row:
+                    continue
+                header = table[header_index]
+                rows: list[CanonicalHoldingRow] = []
+                for index, raw_row in enumerate(table[header_index + 1 :], start=1):
+                    row_dict = _row_dict(header, raw_row)
+                    name = _clean(_first(row_dict, ["name"]))
+                    if not name:
+                        continue
+                    raw_symbol = _clean(_first(row_dict, ["symbol"]))
+                    symbol, exchange = cls._split_symbol(raw_symbol)
+                    isin = _clean(_first(row_dict, ["isin"]))
+                    holding_type = "fixed_income" if symbol is None and isin is None else "equity"
+                    rows.append(
+                        CanonicalHoldingRow(
+                            symbol=symbol,
+                            name=name,
+                            isin=isin,
+                            weight=_decimal(_first(row_dict, ["market value %"])),
+                            shares=_decimal(_first(row_dict, ["shares held"])),
+                            market_value=_decimal(_first(row_dict, ["market value $"])),
+                            exchange=exchange,
+                            holding_type=holding_type,
+                            row_type="security",
+                            source_row_id=str(index),
+                            extra_data={
+                                key: value
+                                for key, value in row_dict.items()
+                                if key is not None and _clean(value) is not None
+                            },
+                        )
+                    )
+                return rows
+        return []
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        match = re.search(r"As\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", raw_html, re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_symbol(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None or text in {"-", "—"}:
+            return None, None
+        parts = text.split()
+        if len(parts) == 2:
+            return parts[0], parts[1]
+        return text, None
+
+
 class AcquirersHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -12705,6 +12859,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TappAlpha public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "timothy_plan": IssuerCsvAdapterConfig(
+        adapter_key="timothy_plan",
+        source_provider="timothy_plan",
+        source_access="issuer_public_symbol_holdings_page_table",
+        product_page_templates=(
+            "https://timothyplan.com/our-etfs/summary-etf-{issuer_product_id}-holdings.php",
+        ),
+        live_tested_default_route=True,
+        terms_note="Timothy Plan public ETF holdings pages may be subject to issuer terms.",
+    ),
     "kurv": IssuerCsvAdapterConfig(
         adapter_key="kurv",
         source_provider="kurv",
@@ -12842,6 +13006,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
+        "timothy_plan": TimothyPlanHoldingsAdapter,
         "t_rowe_price": TRowePriceHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,

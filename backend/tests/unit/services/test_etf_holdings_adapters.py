@@ -3430,6 +3430,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
     assert adapters["allspring"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allspring"]["support_route_types"]
+    assert adapters["timothy_plan"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["timothy_plan"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
@@ -3905,6 +3907,79 @@ async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "allspring"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
+async def test_timothy_plan_adapter_parses_holdings_page_table(monkeypatch):
+    adapter = get_holdings_adapter("timothy_plan")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <body>
+                <h5>As of 06/29/2026 </h5>
+                <table>
+                  <thead>
+                    <tr>
+                      <td>Name</td>
+                      <td>Symbol</td>
+                      <td>ISIN</td>
+                      <td>Shares Held</td>
+                      <td>Market Value %</td>
+                      <td>Market Value $</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>AFLAC INC</td>
+                      <td>AFL U</td>
+                      <td>US0010551028</td>
+                      <td>26,982</td>
+                      <td>2.67%</td>
+                      <td>$2,653,238</td>
+                    </tr>
+                    <tr>
+                      <td>1261229 B 10. 041532</td>
+                      <td></td>
+                      <td></td>
+                      <td>120,000</td>
+                      <td>1.25%</td>
+                      <td>$118,450</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </body>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://timothyplan.com/our-etfs/summary-etf-hds-holdings.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TPHD")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://timothyplan.com/our-etfs/summary-etf-hds-holdings.php"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AFL"
+    assert result.rows[0].exchange == "U"
+    assert result.rows[0].name == "AFLAC INC"
+    assert result.rows[0].isin == "US0010551028"
+    assert result.rows[0].shares == Decimal("26982")
+    assert result.rows[0].weight == Decimal("0.0267")
+    assert result.rows[0].market_value == Decimal("2653238")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].shares == Decimal("120000")
+    assert result.rows[1].market_value == Decimal("118450")
+    assert result.legal_metadata["source_provider"] == "timothy_plan"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_page_table"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
 
 
 @pytest.mark.asyncio
