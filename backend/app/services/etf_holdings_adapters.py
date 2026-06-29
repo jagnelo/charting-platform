@@ -5361,6 +5361,166 @@ class SwanGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return headers
 
 
+class RunningOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Running Oak Efficient Growth ETF holdings from its FilePoint-backed feed."""
+
+    PRODUCT_IDS = {
+        "ROEQ": "1363",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        product_id = (
+            issuer_product_id
+            or _identifier(identifiers or {}, "running_oak_fund_id", "fund_id", "issuer_product_id")
+            or self.PRODUCT_IDS.get(symbol.strip().upper())
+        )
+        if not product_id:
+            return None
+        return f"https://filepoint.live/runningoak_holdings_{product_id}_data.json"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Running Oak needs a FilePoint fund id for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_running_oak_json(payload)
+        if not rows:
+            raise ValueError(f"Running Oak holdings feed did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "json", "payload": payload},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or self.PRODUCT_IDS.get(symbol.strip().upper()),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_filepoint_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="application/json,*/*")
+        headers["Referer"] = "https://www.runningoaketfs.com/full-holdings.html"
+        return headers
+
+    @classmethod
+    def _parse_running_oak_json(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_as_of_date(item.get("asOfDate"))
+            raw_symbol = _clean(item.get("securityTicker"))
+            symbol, exchange = cls._split_security_ticker(raw_symbol)
+            name = _clean(
+                item.get("securityDescriptionLong")
+                or item.get("securityDescriptionShort")
+            )
+            cusip = _clean(item.get("securityIdentifier"))
+            if not any([symbol, name, cusip, item.get("marketValuePercent")]):
+                continue
+            holding_type = cls._classify_holding(item)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency")),
+                    country=_clean(item.get("country")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_security_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if not text:
+            return None, None
+        parts = text.split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", parts[0].upper()):
+            return parts[0].upper(), parts[1].upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", text.upper()):
+            return text.upper(), None
+        return None, None
+
+    @staticmethod
+    def _classify_holding(item: dict[str, Any]) -> str:
+        segment = (_clean(item.get("segment")) or "").lower()
+        ticker = (_clean(item.get("securityTicker")) or "").upper()
+        name = (_clean(item.get("securityDescriptionLong")) or "").lower()
+        if "cash" in segment or ticker in {"CASH", "USD", "RECPAY"} or name in {"cash"}:
+            return "cash"
+        if "option" in segment or re.search(r"\b\d{6}[CP]\d{8}\b", ticker):
+            return "option"
+        return "equity"
+
+
 class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -10374,6 +10534,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Swan Global public ETF product pages and holdings files may be subject to issuer terms.",
     ),
+    "running_oak": IssuerCsvAdapterConfig(
+        adapter_key="running_oak",
+        source_provider="running_oak",
+        source_access="issuer_public_filepoint_holdings_json",
+        url_templates=(
+            "https://filepoint.live/runningoak_holdings_{issuer_product_id}_data.json",
+        ),
+        product_page_templates=(
+            "https://www.runningoaketfs.com/full-holdings.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="Running Oak public ETF product pages and FilePoint holdings feeds may be subject to issuer terms.",
+    ),
     "global_x": IssuerCsvAdapterConfig(
         adapter_key="global_x",
         source_provider="global_x",
@@ -10933,6 +11106,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "proshares": ProSharesHoldingsAdapter,
         "renaissance_capital": RenaissanceCapitalHoldingsAdapter,
         "roundhill": RoundhillHoldingsAdapter,
+        "running_oak": RunningOakHoldingsAdapter,
         "schwab": SchwabHoldingsAdapter,
         "simplify": SimplifyHoldingsAdapter,
         "spdr": SpdrHoldingsAdapter,

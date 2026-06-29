@@ -60,6 +60,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "proshares",
     "renaissance_capital",
     "roundhill",
+    "running_oak",
     "schwab",
     "simplify",
     "sprott",
@@ -469,6 +470,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             1,
+        ),
+        (
+            "running_oak",
+            "ROEQ",
+            None,
+            {},
+            50,
         ),
         (
             "vanguard",

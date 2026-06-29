@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T10:00Z
+
+- Promoted `running_oak` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `RunningOakHoldingsAdapter`:
+  - issuer page route: `https://www.runningoaketfs.com/full-holdings.html`
+  - native data route: `https://filepoint.live/runningoak_holdings_1363_data.json`
+  - live validation uses `ROEQ`; the current issuer-backed FilePoint JSON feed returns more than `50` parseable holdings rows.
+  - parser handles Running Oak's JSON schema directly, including `securityTicker`, `securityIdentifier`, `securityDescriptionLong`, `shares`, `marketValueBase`, `tradingCurrency`, `country`, `segment`, and decimal-fraction `marketValuePercent`.
+  - ticker/exchange pairs such as `SSNC US` are normalized into ticker `SSNC` plus exchange `US`, CUSIP-like identifiers are preserved, and cash-like rows are kept as cash instead of materialized as tradable equities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `69`
+  - providers still lacking native/live-backed support: `276`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_running_oak_adapter_parses_filepoint_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k running_oak`
+    - result: `1 passed, 70 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `111 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - Count command returned `345`, `69`, `276`, `running_oak=True`.
+
 ## Latest checkpoint - 2026-06-29T09:45Z
 
 - Promoted `swan_global` from recognition-only/generated support to native/live-backed support.

@@ -2,6 +2,36 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - Running Oak native ETF holdings route
+
+### Summary
+
+- Promoted `running_oak` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `RunningOakHoldingsAdapter`:
+  - issuer page route: `https://www.runningoaketfs.com/full-holdings.html`
+  - native data route: `https://filepoint.live/runningoak_holdings_1363_data.json`
+  - live validation symbol: `ROEQ`
+  - current live JSON feed returned more than `50` parseable holdings rows.
+  - parser handles Running Oak's FilePoint JSON schema directly, including ticker/exchange splitting, CUSIP preservation, shares, market value, country, currency, sector/industry metadata, and decimal-fraction weights.
+  - cash-like rows are kept as cash instead of being materialized as tradable equities.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `69`
+  - providers still lacking native/live-backed support: `276`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_running_oak_adapter_parses_filepoint_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k running_oak` -> `1 passed, 70 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `111 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `69`, `276`, `running_oak=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `276` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - Swan Global native ETF holdings route
 
 ### Summary

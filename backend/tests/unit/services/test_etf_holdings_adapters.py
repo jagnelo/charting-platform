@@ -1266,6 +1266,70 @@ async def test_swan_global_adapter_discovers_product_page_holdings_csv(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_running_oak_adapter_parses_filepoint_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("running_oak")
+    assert adapter is not None
+
+    payload = [
+        {
+            "asOfDate": "2026-06-26T00:00:00",
+            "portfolioNumber": "1363",
+            "portfolioName": "Running Oak Efficient Growth ETF",
+            "securityIdentifier": "78467J100",
+            "securityTicker": "SSNC US",
+            "securityDescriptionLong": "SS&C Technologies Holdings, Inc.",
+            "shares": 82566.0,
+            "marketValueBase": 5256151.56,
+            "tradingCurrency": "USD",
+            "country": "US",
+            "segment": "COMMON STOCKS",
+            "sector": "SOFTWARE",
+            "marketValuePercent": 0.015860798135,
+        },
+        {
+            "asOfDate": "2026-06-26T00:00:00",
+            "portfolioNumber": "1363",
+            "securityIdentifier": "USD",
+            "securityTicker": "RECPAY",
+            "securityDescriptionLong": "Receivable / payable",
+            "shares": 1,
+            "marketValueBase": 1000,
+            "tradingCurrency": "USD",
+            "segment": "CASH AND EQUIVALENTS",
+            "marketValuePercent": 0.0001,
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/runningoak_holdings_1363_data.json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ROEQ", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://filepoint.live/runningoak_holdings_1363_data.json"
+    )
+    assert result.rows[0].symbol == "SSNC"
+    assert result.rows[0].exchange == "US"
+    assert result.rows[0].name == "SS&C Technologies Holdings, Inc."
+    assert result.rows[0].cusip == "78467J100"
+    assert result.rows[0].weight == Decimal("0.015860798135")
+    assert result.rows[0].shares == Decimal("82566.0")
+    assert result.rows[0].market_value == Decimal("5256151.56")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["source_provider"] == "running_oak"
+    assert result.legal_metadata["route_resolution"] == "issuer_filepoint_holdings_json"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
 async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("baron")
     assert adapter is not None
