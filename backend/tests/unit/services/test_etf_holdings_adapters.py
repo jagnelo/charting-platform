@@ -3428,6 +3428,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
+    assert adapters["allspring"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["allspring"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
@@ -3846,6 +3848,63 @@ async def test_distillate_adapter_fetches_symbol_holdings_csv(monkeypatch):
     assert result.rows[2].currency == "USD"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-15"
+
+
+@pytest.mark.asyncio
+async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("allspring")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "\ufeffTotal holdings as of 6/26/2026",
+                    "Portfolio holdings are subject to change and may have changed since the date specified.",
+                    "",
+                    "SecurityName,Ticker,CUSIP,ISIN,SEDOL,AssetClass,SharesPrincipalAmount,MarketValue,NotionalValue,PercentOfNetAssets",
+                    '"Amazon.com, Inc.",AMZN,023135106,US0231351067,2000019,Equity Security,"59,011.00","$13,731,270",,6.04%',
+                    "Labcorp Holdings Inc.,LH-US,504922105,US5049221055,BSBK800,Equity Security,\"24,612.00\",\"$6,681,420\",,2.94%",
+                    "U.S. Treasuries,,912810UT3,US912810UT33,BT3F9G3,Fixed Income Security,\"9,865,000.00\",\"$9,559,802\",,4.37%",
+                    'Net Other Assets,,NETOTHASS,NETOTHASS,NETOTHASS,Other Asset,0.00,"-$1,144,838",,-0.52%',
+                    "© 2026 Allspring Global Investments Holdings, LLC. All rights reserved.",
+                ]
+            ),
+            content_type="text/csv",
+            url="https://www.allspringglobal.com/globalassets/data/total-holdings/ASLV.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ASLV")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.allspringglobal.com/globalassets/data/total-holdings/ASLV.csv"
+    )
+    assert len(result.rows) == 4
+    assert result.rows[0].symbol == "AMZN"
+    assert result.rows[0].name == "Amazon.com, Inc."
+    assert result.rows[0].cusip == "023135106"
+    assert result.rows[0].isin == "US0231351067"
+    assert result.rows[0].sedol == "2000019"
+    assert result.rows[0].shares == Decimal("59011.00")
+    assert result.rows[0].market_value == Decimal("13731270")
+    assert result.rows[0].weight == Decimal("0.0604")
+    assert result.rows[1].symbol == "LH"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[2].holding_type == "fixed_income"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].shares == Decimal("9865000.00")
+    assert result.rows[3].row_type == "other"
+    assert result.rows[3].cusip is None
+    assert result.rows[3].isin is None
+    assert result.rows[3].sedol is None
+    assert result.rows[3].market_value == Decimal("-1144838")
+    assert result.rows[3].weight == Decimal("-0.0052")
+    assert result.legal_metadata["source_provider"] == "allspring"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
 
 
 @pytest.mark.asyncio

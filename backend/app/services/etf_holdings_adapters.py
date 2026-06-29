@@ -190,6 +190,20 @@ def _looks_like_cusip(value: str | None) -> bool:
     return bool(re.fullmatch(r"[0-9A-Z]{8}[0-9A-Z]", text.strip().upper()))
 
 
+def _looks_like_isin(value: str | None) -> bool:
+    text = _clean(value)
+    if text is None:
+        return False
+    return bool(re.fullmatch(r"[A-Z]{2}[0-9A-Z]{9}[0-9]", text.strip().upper()))
+
+
+def _looks_like_sedol(value: str | None) -> bool:
+    text = _clean(value)
+    if text is None:
+        return False
+    return bool(re.fullmatch(r"[0-9BCDFGHJKLMNPQRSTVWXYZ]{6}[0-9]", text.strip().upper()))
+
+
 def _template_fields(template: str) -> set[str]:
     return {
         field_name
@@ -2803,6 +2817,168 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
+
+
+class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and source_url.strip().lower().endswith(".csv"):
+            return source_url.strip()
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if not normalized_symbol:
+            return None
+        return f"https://www.allspringglobal.com/globalassets/data/total-holdings/{normalized_symbol}.csv"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://www.allspringglobal.com/investments/performance/etfs/",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        holdings_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not holdings_url:
+            raise ValueError(f"Allspring needs a symbol-based holdings CSV route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_allspring_csv(response.text)
+        if not rows:
+            raise ValueError(f"Allspring holdings CSV did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_symbol_total_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_allspring_csv(
+        cls,
+        raw_csv: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        cleaned_csv = raw_csv.lstrip("\ufeff")
+        composition_date = cls._extract_composition_date(cleaned_csv)
+        lines = cleaned_csv.splitlines()
+        header_index = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.lower().startswith("securityname,ticker,cusip,isin,sedol,")
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+
+        rows: list[CanonicalHoldingRow] = []
+        reader = csv.DictReader(StringIO("\n".join(lines[header_index:])))
+        for index, row in enumerate(reader, start=1):
+            name = _clean(row.get("SecurityName"))
+            if not name or name.startswith("©") or name.startswith("Â©"):
+                continue
+            asset_class = (_clean(row.get("AssetClass")) or "").lower()
+            symbol, exchange = cls._split_symbol(_clean(row.get("Ticker")))
+            cusip = _clean(row.get("CUSIP"))
+            isin = _clean(row.get("ISIN"))
+            sedol = _clean(row.get("SEDOL"))
+            if asset_class == "other asset":
+                symbol = None
+                exchange = None
+                row_type = "other"
+                holding_type = "other"
+                cusip = None
+                isin = None
+                sedol = None
+            elif "fixed income" in asset_class:
+                row_type = "security"
+                holding_type = "fixed_income"
+            elif "cash" in asset_class or "cash" in name.lower():
+                symbol = None
+                exchange = None
+                row_type = "cash"
+                holding_type = "cash"
+            else:
+                row_type = "security"
+                holding_type = "equity"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip,
+                    isin=isin,
+                    sedol=sedol,
+                    weight=_decimal(row.get("PercentOfNetAssets")),
+                    shares=_decimal(row.get("SharesPrincipalAmount")),
+                    market_value=_decimal(row.get("MarketValue")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in row.items()
+                        if key is not None and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(raw_csv: str) -> date | None:
+        first_line = raw_csv.splitlines()[0] if raw_csv.splitlines() else ""
+        match = re.search(r"as of\s+(\d{1,2}/\d{1,2}/\d{4})", first_line, flags=re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_symbol(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        if text.endswith("-US") and len(text) > 3:
+            return text[:-3], "US"
+        return text, None
 
 
 class AcquirersHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -12055,6 +12231,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AllianceBernstein public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "allspring": IssuerCsvAdapterConfig(
+        adapter_key="allspring",
+        source_provider="allspring",
+        source_access="issuer_public_symbol_total_holdings_csv",
+        url_templates=(
+            "https://www.allspringglobal.com/globalassets/data/total-holdings/{symbol_upper}.csv",
+        ),
+        product_page_templates=(
+            "https://www.allspringglobal.com/investments/performance/etfs/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Allspring public ETF total-holdings CSV files may be subject to issuer terms.",
+    ),
     "acquirers": IssuerCsvAdapterConfig(
         adapter_key="acquirers",
         source_provider="acquirers",
@@ -12590,6 +12779,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "advisor_shares": AdvisorSharesHoldingsAdapter,
         "allianz": AllianzHoldingsAdapter,
         "alliancebernstein": AllianceBernsteinHoldingsAdapter,
+        "allspring": AllspringHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,

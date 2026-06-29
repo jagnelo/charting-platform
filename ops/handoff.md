@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T16:42Z
+
+- Promoted `allspring` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AllspringHoldingsAdapter`:
+  - native data route: `https://www.allspringglobal.com/globalassets/data/total-holdings/{symbol_upper}.csv`
+  - product/listing route context: `https://www.allspringglobal.com/investments/performance/etfs/`
+  - live validation uses `ASLV`; the current issuer CSV returns more than `20` parseable holdings rows dated `2026-06-26`.
+  - parser handles Allspring-specific CSV preamble text such as `Total holdings as of ...`, then normalizes `SecurityName`, `Ticker`, `CUSIP`, `ISIN`, `SEDOL`, `AssetClass`, `SharesPrincipalAmount`, `MarketValue`, `NotionalValue`, and `PercentOfNetAssets`.
+  - parser preserves equity rows, fixed-income rows without fake ticker materialization, `-US` ticker suffixes as symbol plus exchange, and `Other Asset` rows as non-tradable exposure while clearing pseudo-identifiers such as `NETOTHASS`.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `77`
+  - providers still lacking native/live-backed support: `268`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_allspring_adapter_parses_symbol_total_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k allspring`
+    - result: `1 passed, 78 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `119 passed`
+  - Count command returned `345`, `77`, `268`, `allspring=True`.
+
 ## Latest checkpoint - 2026-06-29T16:26Z
 
 - Promoted `eventide` from recognition-only/generated support to native/live-backed support.
