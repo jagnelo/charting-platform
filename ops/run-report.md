@@ -2,6 +2,34 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - TappAlpha native ETF holdings route
+
+### Summary
+
+- Promoted `tapp` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `TappAlphaHoldingsAdapter`:
+  - route: `https://www.tappalphafunds.com/etfs/{symbol_lower}`
+  - live validation symbol: `TDAX`
+  - current product page linked a public Google Sheets holdings CSV export returning `3` parseable rows.
+  - parser discovers the issuer-linked CSV from the product page and then parses TappAlpha-specific `Date`, `Account`, `Stock Ticker`, `CUSIP`, `Security Name`, `Shares`, `Market Value`, and `Weightings` columns.
+  - swap rows are preserved as swaps, cash rows as cash, and fund rows retain valid CUSIPs without materializing fake swap/cash symbols.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `71`
+  - providers still lacking native/live-backed support: `274`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_tapp_adapter_discovers_google_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k tapp` -> `1 passed, 72 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `113 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `71`, `274`, `tapp=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `274` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - Hennessy native ETF holdings route
 
 ### Summary

@@ -1388,6 +1388,57 @@ async def test_hennessy_adapter_parses_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("tapp")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=1Q_N-DI9P4dj4QKioTXUcoXgL3NOC0nkzztJ4ntbuWfo&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download Holdings CSV</a>',
+            content_type="text/html",
+            url="https://www.tappalphafunds.com/etfs/tdax",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "06/29/2026,TDAX,26923N546-TRS-01/12/28-L,26923N546-TRS-01/12/28-L,ETF OPPORTUNITIES TRUST TAPPALPHA INNVTN SWAP CS,1955181,27.32,53415544.92,129.93%,41111448",
+                    "06/29/2026,TDAX,FGXXX,31846V336,First American Government Obligations Fund 12/01/2031,27452452.06,100,27452452.06,66.78%,41111448",
+                    "06/29/2026,TDAX,Cash&Other,Cash&Other,Cash & Other,-39761858.88,1,-39761858.88,-96.72%,41111448",
+                    "06/29/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1%,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TDAX", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.tappalphafunds.com/etfs/tdax"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert [row.holding_type for row in result.rows] == ["swap", "fund", "cash"]
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "ETF OPPORTUNITIES TRUST TAPPALPHA INNVTN SWAP CS"
+    assert result.rows[0].cusip is None
+    assert result.rows[0].weight == Decimal("1.2993")
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].cusip == "31846V336"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].weight == Decimal("-0.9672")
+    assert result.legal_metadata["source_provider"] == "tapp"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_google_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
+
+
+@pytest.mark.asyncio
 async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("baron")
     assert adapter is not None
@@ -3092,6 +3143,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["cambiar"]["support_route_types"]
     assert adapters["kurv"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
+    assert adapters["tapp"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
