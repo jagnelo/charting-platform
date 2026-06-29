@@ -3424,6 +3424,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["fm_investments"]["support_route_types"]
     assert adapters["davis"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["davis"]["support_route_types"]
+    assert adapters["eventide"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
@@ -3844,6 +3846,66 @@ async def test_distillate_adapter_fetches_symbol_holdings_csv(monkeypatch):
     assert result.rows[2].currency == "USD"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-15"
+
+
+@pytest.mark.asyncio
+async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("eventide")
+    assert adapter is not None
+
+    csv_url = (
+        "https://assets.ctfassets.net/tiol9r5yvqqu/4IYE4vPqDpYNlrGE3NHg7r/"
+        "ab89966c9cbd0e16fc60a2561f63adf2/ESUM_etfHoldingsCsv.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<script>{"etfHoldingsCsv":{"url":"//assets.ctfassets.net/tiol9r5yvqqu/'
+                '60EaH1oFwn5cSTkB0g5KSV/07376e153b4b7ebc75d13adabccddb05/'
+                'ESIM_etfHoldingsCsv.csv"},"other":"ignored"}</script>'
+                f'<script>{{"etfHoldingsCsv":{{"url":"{csv_url}"}}}}</script>'
+            ),
+            content_type="text/html",
+            url="https://www.eventideinvestments.com/etfs",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    'Product,"Eventide US Market ETF"',
+                    "Ticker,ESUM",
+                    '"As-of Date",2026-06-26',
+                    ",",
+                    "Ticker,Description,Shares,Weight",
+                    'NVDA,"NVIDIA CORP",59449.0,0.065416',
+                    '"HY9H GR","SK HYNIX INC",363.0,0.036176',
+                    ',"CASH AND CASH EQUIVALENTS",227746.91,0.007712',
+                ]
+            ),
+            content_type="text/csv",
+            url=csv_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ESUM")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.eventideinvestments.com/etfs"
+    assert FakeAsyncClient.requested[1][0] == csv_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].name == "NVIDIA CORP"
+    assert result.rows[0].weight == Decimal("0.065416")
+    assert result.rows[0].shares == Decimal("59449.0")
+    assert result.rows[1].symbol == "HY9H"
+    assert result.rows[1].exchange == "GR"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "eventide"
+    assert result.legal_metadata["route_resolution"] == "issuer_listing_page_contentful_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-26"
+    assert result.legal_metadata["product_name"] == "Eventide US Market ETF"
 
 
 @pytest.mark.asyncio

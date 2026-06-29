@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - Eventide native ETF holdings route
+
+### Summary
+
+- Promoted `eventide` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `EventideHoldingsAdapter`:
+  - listing route: `https://www.eventideinvestments.com/etfs`
+  - native data route: issuer-published Contentful holdings CSV files discovered from the Eventide ETF listing page
+  - live validation symbol: `ESUM`
+  - current issuer CSV returned more than `100` parseable holdings rows dated `2026-06-26`.
+  - parser handles Eventide-specific `Product`, `Ticker`, `As-of Date`, `Ticker`, `Description`, `Shares`, and `Weight` CSV fields.
+  - parser preserves exchange-coded symbols such as `HY9H GR` as symbol plus exchange and keeps cash-equivalent rows as cash.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `76`
+  - providers still lacking native/live-backed support: `269`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_eventide_adapter_discovers_contentful_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k eventide` -> `1 passed, 77 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `118 passed`
+- count command -> `345`, `76`, `269`, `eventide=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `269` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - First Eagle native ETF holdings route
 
 ### Summary

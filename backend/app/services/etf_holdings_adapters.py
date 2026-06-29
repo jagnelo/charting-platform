@@ -4729,6 +4729,207 @@ class DistillateHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security"
 
 
+class EventideHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Eventide ETF holdings from issuer-linked Contentful CSV files."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        return explicit or "https://www.eventideinvestments.com/etfs"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        holdings_url = source_url if source_url and source_url.lower().endswith(".csv") else None
+        product_page_url = None
+        page_text: str | None = None
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if holdings_url is None:
+                product_page_url = source_url or self.resolve_product_page_url(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if not product_page_url:
+                    raise ValueError(f"Eventide needs an ETF listing page for {symbol}.")
+                page_response = await client.get(
+                    product_page_url,
+                    headers=self.source_request_headers(source_url=product_page_url),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                page_text = page_response.text
+                holdings_url = self._discover_eventide_holdings_csv(
+                    page_text,
+                    symbol=normalized_symbol,
+                    base_url=str(page_response.url),
+                )
+                if not holdings_url:
+                    raise ValueError(
+                        f"Eventide listing page did not expose a holdings CSV for {normalized_symbol}."
+                    )
+
+            csv_response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        rows, composition_date, product_name = self._parse_eventide_csv(
+            csv_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Eventide holdings CSV did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json=None,
+            source_url=str(getattr(csv_response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_listing_page_contentful_holdings_csv",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "product_name": product_name,
+                "listing_page_cached": bool(page_text),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,text/csv,*/*")
+        headers["Referer"] = "https://www.eventideinvestments.com/etfs"
+        return headers
+
+    @classmethod
+    def _discover_eventide_holdings_csv(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+        base_url: str,
+    ) -> str | None:
+        unescaped = html.unescape(raw_html).replace("\\/", "/")
+        candidates = sorted(
+            set(
+                re.findall(
+                    r"(?:https:)?//assets\.ctfassets\.net/[^\"'<>\\\s]+?\.csv",
+                    unescaped,
+                    flags=re.IGNORECASE,
+                )
+            )
+        )
+        expected_file_name = f"{symbol.upper()}_etfholdingscsv.csv".lower()
+        for candidate in candidates:
+            url = candidate
+            if url.startswith("//"):
+                url = f"https:{url}"
+            resolved = urljoin(base_url, url)
+            if resolved.rsplit("/", 1)[-1].lower() == expected_file_name:
+                return resolved
+        return None
+
+    @classmethod
+    def _parse_eventide_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
+        table_rows = list(csv.reader(StringIO(raw_csv.strip())))
+        metadata: dict[str, str] = {}
+        for row in table_rows[:10]:
+            key = _clean(row[0]) if row else ""
+            if str(key).strip().lower() in {"ticker", "description"} and len(row) > 2:
+                break
+            if len(row) >= 2 and key:
+                metadata.setdefault(str(row[0]).strip().lower(), str(row[1]).strip())
+        if metadata.get("ticker", "").upper() not in {"", symbol.upper()}:
+            raise ValueError(
+                f"Eventide holdings CSV ticker {metadata.get('ticker')} did not match {symbol}."
+            )
+        composition_date = cls._parse_eventide_date(metadata.get("as-of date"))
+        normalized_rows: list[CanonicalHoldingRow] = []
+        for row in parse_holdings_table(table_rows):
+            row_type = row.row_type
+            holding_type = row.holding_type
+            symbol_value, exchange = cls._split_eventide_symbol(row.symbol)
+            name = row.name
+            if (name or "").strip().lower() in {"cash and cash equivalents", "cash equivalents"}:
+                symbol_value = None
+                exchange = None
+                row_type = "cash"
+                holding_type = "cash"
+            normalized_rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value if row_type != "cash" else None,
+                    name=name,
+                    cusip=row.cusip,
+                    isin=row.isin,
+                    sedol=row.sedol,
+                    weight=row.weight,
+                    shares=row.shares,
+                    market_value=row.market_value,
+                    currency=row.currency,
+                    country=row.country,
+                    exchange=exchange or row.exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=row.source_row_id,
+                    extra_data=row.extra_data,
+                )
+            )
+        return normalized_rows, composition_date, metadata.get("product")
+
+    @staticmethod
+    def _split_eventide_symbol(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if not text:
+            return None, None
+        normalized = " ".join(text.split()).upper()
+        parts = normalized.split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z0-9.=-]{1,12}", parts[0]):
+            return parts[0], parts[1]
+        if re.fullmatch(r"[A-Z0-9.=-]{1,12}", normalized):
+            return normalized, None
+        return normalized, None
+
+    @staticmethod
+    def _parse_eventide_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%Y-%m-%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+
 class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -11998,6 +12199,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Distillate Capital public ETF holdings files may be subject to issuer terms.",
     ),
+    "eventide": IssuerCsvAdapterConfig(
+        adapter_key="eventide",
+        source_provider="eventide",
+        source_access="issuer_public_listing_page_contentful_holdings_csv",
+        product_page_templates=(
+            "https://www.eventideinvestments.com/etfs",
+        ),
+        live_tested_default_route=True,
+        terms_note="Eventide public ETF pages and Contentful-hosted holdings CSV files may be subject to issuer terms.",
+    ),
     "bny_mellon": IssuerCsvAdapterConfig(
         adapter_key="bny_mellon",
         source_provider="bny_mellon",
@@ -12400,6 +12611,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "defiance": DefianceHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
+        "eventide": EventideHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,

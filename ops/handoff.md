@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T16:26Z
+
+- Promoted `eventide` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `EventideHoldingsAdapter`:
+  - issuer listing route: `https://www.eventideinvestments.com/etfs`
+  - native data route: issuer-published Contentful holdings CSV files discovered from the Eventide ETF listing page.
+  - live validation uses `ESUM`; the current CSV returns more than `100` parseable holdings rows dated `2026-06-26`.
+  - parser handles Eventide-specific CSV preamble metadata such as `Product`, `Ticker`, and `As-of Date`, then normalizes the holdings table with `Ticker`, `Description`, `Shares`, and `Weight`.
+  - parser preserves exchange-coded symbols such as `HY9H GR` as symbol plus exchange and keeps cash-equivalent rows as cash rather than tradable securities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `76`
+  - providers still lacking native/live-backed support: `269`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_eventide_adapter_discovers_contentful_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k eventide`
+    - result: `1 passed, 77 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `118 passed`
+  - Count command returned `345`, `76`, `269`, `eventide=True`.
+
 ## Latest checkpoint - 2026-06-29T11:55Z
 
 - Promoted `first_eagle` from recognition-only/generated support to native/live-backed support.
