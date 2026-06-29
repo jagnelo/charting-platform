@@ -1330,6 +1330,64 @@ async def test_running_oak_adapter_parses_filepoint_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_hennessy_adapter_parses_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("hennessy")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <table><tr><th>Ticker</th><th>STNC</th></tr></table>
+              <table>
+                <tr>
+                  <th>Name</th><th>Ticker</th><th>CUSIP</th>
+                  <th>Shares</th><th>Market Value</th><th>% of Net Assets</th>
+                </tr>
+                <tr>
+                  <td>Short Table Holding</td><td>SHORT</td><td>999999999</td>
+                  <td>1</td><td>$1</td><td>1.0%</td>
+                </tr>
+              </table>
+              <table>
+                <tr>
+                  <th>Name</th><th>Ticker</th><th>CUSIP</th>
+                  <th>Shares</th><th>Market Value</th><th>% of Net Assets</th>
+                </tr>
+                <tr>
+                  <td>Intel Corp</td><td>INTC</td><td>458140100</td>
+                  <td>40,218</td><td>$5,160,773.76</td><td>5.4%</td>
+                </tr>
+                <tr>
+                  <td>Applied Materials Inc</td><td>AMAT</td><td>038222105</td>
+                  <td>7,087</td><td>$4,442,415.08</td><td>4.7%</td>
+                </tr>
+              </table>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://www.hennessyetfs.com/etfs/stnc",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="STNC", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.hennessyetfs.com/etfs/stnc"
+    assert [row.symbol for row in result.rows] == ["INTC", "AMAT"]
+    assert result.rows[0].name == "Intel Corp"
+    assert result.rows[0].cusip == "458140100"
+    assert result.rows[0].weight == Decimal("0.054")
+    assert result.rows[0].shares == Decimal("40218")
+    assert result.rows[0].market_value == Decimal("5160773.76")
+    assert result.rows[0].currency == "USD"
+    assert result.legal_metadata["source_provider"] == "hennessy"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["source_format"] == "html"
+
+
+@pytest.mark.asyncio
 async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("baron")
     assert adapter is not None
@@ -3028,6 +3086,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["hashdex"]["support_route_types"]
     assert adapters["hartford"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["hartford"]["support_route_types"]
+    assert adapters["hennessy"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["hennessy"]["support_route_types"]
     assert adapters["cambiar"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["cambiar"]["support_route_types"]
     assert adapters["kurv"]["live_tested_default_route"] is True

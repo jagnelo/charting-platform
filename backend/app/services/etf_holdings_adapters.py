@@ -5521,6 +5521,136 @@ class RunningOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class HennessyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Hennessy ETF holdings from issuer-rendered product-page tables."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        ) or self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Hennessy needs an ETF product page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = self._parse_hennessy_product_page(response.text)
+        if not rows:
+            raise ValueError(f"Hennessy product page did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_holdings_table",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return _holdings_request_headers(accept="text/html,*/*")
+
+    @classmethod
+    def _parse_hennessy_product_page(cls, raw_html: str) -> list[CanonicalHoldingRow]:
+        tables = re.findall(r"<table\b[^>]*>.*?</table>", raw_html, flags=re.IGNORECASE | re.DOTALL)
+        best_rows: list[CanonicalHoldingRow] = []
+        for table in tables:
+            matrix = cls._html_table_to_matrix(table)
+            if not matrix:
+                continue
+            header = [_clean(cell) or "" for cell in matrix[0]]
+            normalized_header = {cell.lower() for cell in header}
+            if not {"name", "ticker", "cusip", "shares", "market value", "% of net assets"}.issubset(
+                normalized_header
+            ):
+                continue
+            rows: list[CanonicalHoldingRow] = []
+            for position, values in enumerate(matrix[1:], start=1):
+                raw = _row_dict(header, values)
+                name = _clean(_first(raw, ["name"]))
+                ticker = cls._clean_symbol(_first(raw, ["ticker"]))
+                cusip = _clean(_first(raw, ["cusip"]))
+                if not any([name, ticker, cusip]):
+                    continue
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=ticker,
+                        name=name,
+                        cusip=cusip if _looks_like_cusip(cusip) else None,
+                        weight=_decimal(_first(raw, ["% of net assets"])),
+                        shares=_decimal(_first(raw, ["shares"])),
+                        market_value=_decimal(_first(raw, ["market value"])),
+                        currency="USD",
+                        holding_type="equity",
+                        row_type="security",
+                        source_row_id=str(position),
+                        extra_data={
+                            key: value
+                            for key, value in raw.items()
+                            if value not in (None, "")
+                        },
+                    )
+                )
+            if rows:
+                best_rows = max(best_rows, rows, key=len)
+        return best_rows
+
+    @staticmethod
+    def _html_table_to_matrix(table_html: str) -> list[list[str]]:
+        matrix: list[list[str]] = []
+        for row_html in re.findall(
+            r"<tr\b[^>]*>(.*?)</tr>",
+            table_html,
+            flags=re.IGNORECASE | re.DOTALL,
+        ):
+            cells = [
+                _clean(html.unescape(re.sub(r"<[^>]+>", " ", cell))) or ""
+                for cell in re.findall(
+                    r"<t[dh]\b[^>]*>(.*?)</t[dh]>",
+                    row_html,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
+            ]
+            if any(cells):
+                matrix.append(cells)
+        return matrix
+
+    @staticmethod
+    def _clean_symbol(value: Any) -> str | None:
+        text = _clean(value)
+        if not text:
+            return None
+        normalized = text.strip().upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized
+        return None
+
+
 class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -10950,6 +11080,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Horizon Kinetics public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "hennessy": IssuerCsvAdapterConfig(
+        adapter_key="hennessy",
+        source_provider="hennessy",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://www.hennessyetfs.com/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Hennessy Funds public ETF product-page holdings tables may be subject to issuer terms.",
+    ),
     "inspire": IssuerCsvAdapterConfig(
         adapter_key="inspire",
         source_provider="inspire",
@@ -11087,6 +11227,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "hartford": HartfordHoldingsAdapter,
         "hashdex": HashdexHoldingsAdapter,
         "harbor": HarborHoldingsAdapter,
+        "hennessy": HennessyHoldingsAdapter,
         "horizon_kinetics": HorizonKineticsHoldingsAdapter,
         "inspire": InspireHoldingsAdapter,
         "innovator": InnovatorHoldingsAdapter,
