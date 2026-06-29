@@ -1388,6 +1388,70 @@ async def test_hennessy_adapter_parses_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_first_eagle_adapter_parses_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("first_eagle")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <section>ETF Holdings As of Jun 29, 2026</section>
+              <table>
+                <tr><th>Some</th><th>Other</th></tr>
+                <tr><td>Not</td><td>Holdings</td></tr>
+              </table>
+              <table>
+                <tr>
+                  <th>Stock Ticker</th><th>CUSIP/Other</th><th>Security Name</th>
+                  <th>Shares</th><th>Price</th><th>Market Value</th><th>Weightings</th>
+                </tr>
+                <tr>
+                  <td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>Cash &amp; Other</td>
+                  <td>19,259,769</td><td>1.00</td><td>$19,259,769.10</td><td>0.95%</td>
+                </tr>
+                <tr>
+                  <td>005930 KS</td><td>6771720</td><td>Samsung Electronics Co Ltd</td>
+                  <td>327,243</td><td>339,133.00</td><td>$72,317,802.89</td><td>3.57%</td>
+                </tr>
+                <tr>
+                  <td>GOOG</td><td>02079K107</td><td>Alphabet Inc</td>
+                  <td>123,456</td><td>178.50</td><td>$22,036,416.00</td><td>2.62%</td>
+                </tr>
+              </table>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://www.firsteagle.com/funds/global-equity-etf",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FEGE", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.firsteagle.com/funds/global-equity-etf"
+    assert [row.row_type for row in result.rows] == ["cash", "security", "security"]
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "Cash & Other"
+    assert result.rows[0].weight == Decimal("0.0095")
+    assert result.rows[0].market_value == Decimal("19259769.10")
+    assert result.rows[1].symbol == "005930"
+    assert result.rows[1].exchange == "KS"
+    assert result.rows[1].sedol == "6771720"
+    assert result.rows[1].cusip is None
+    assert result.rows[1].weight == Decimal("0.0357")
+    assert result.rows[1].shares == Decimal("327243")
+    assert result.rows[1].market_value == Decimal("72317802.89")
+    assert result.rows[2].symbol == "GOOG"
+    assert result.rows[2].cusip == "02079K107"
+    assert result.legal_metadata["source_provider"] == "first_eagle"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["source_format"] == "html"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
+
+
+@pytest.mark.asyncio
 async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("tapp")
     assert adapter is not None
@@ -3360,6 +3424,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["fm_investments"]["support_route_types"]
     assert adapters["davis"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["davis"]["support_route_types"]
+    assert adapters["first_eagle"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

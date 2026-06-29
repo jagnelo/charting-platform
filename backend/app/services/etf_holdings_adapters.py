@@ -8426,6 +8426,205 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class FirstEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse First Eagle ETF holdings from issuer-rendered product pages."""
+
+    PRODUCT_PAGE_SLUGS: dict[str, str] = {
+        "FEGE": "global-equity-etf",
+        "FEOE": "overseas-equity-etf",
+        "USFE": "usfe-us-equity-etf",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        identifiers = identifiers or {}
+        slug = (
+            _identifier(identifiers, "first_eagle_product_slug", "product_slug", "fund_slug")
+            or issuer_product_id
+            or self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        )
+        if not slug:
+            return None
+        return f"https://www.firsteagle.com/funds/{slug}"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"First Eagle needs an ETF product page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=self.source_request_headers(source_url=product_page_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_first_eagle_product_page(response.text)
+        if not rows:
+            raise ValueError(f"First Eagle product page did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,*/*")
+        headers["Referer"] = "https://www.firsteagle.com/active-equity-etfs"
+        return headers
+
+    @classmethod
+    def _parse_first_eagle_product_page(
+        cls,
+        raw_html: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "stock ticker",
+            "cusip/other",
+            "security name",
+            "shares",
+            "price",
+            "market value",
+            "weightings",
+        }
+        table: list[list[str]] = []
+        for candidate in parser.tables:
+            for row in candidate[:30]:
+                normalized_row = {str(value).strip().lower() for value in row if _clean(value)}
+                if required_headers <= normalized_row:
+                    table = candidate
+                    break
+            if table:
+                break
+
+        normalized_rows: list[CanonicalHoldingRow] = []
+        if not table:
+            return normalized_rows, cls._extract_composition_date(raw_html)
+
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table[:30])
+                if required_headers <= {str(value).strip().lower() for value in row if _clean(value)}
+            ),
+            None,
+        )
+        if header_index is None:
+            return normalized_rows, cls._extract_composition_date(raw_html)
+
+        header = table[header_index]
+        for source_index, raw_values in enumerate(table[header_index + 1 :], start=1):
+            raw_row = _row_dict(header, raw_values)
+            name = _clean(_first(raw_row, ["security name"]))
+            ticker = _clean(_first(raw_row, ["stock ticker"]))
+            if not (name or ticker):
+                continue
+            symbol, exchange = cls._split_ticker(ticker)
+            identifier = _clean(_first(raw_row, ["cusip/other"]))
+            cusip = identifier if _looks_like_cusip(identifier) else None
+            sedol = (
+                identifier.strip().upper()
+                if identifier and cusip is None and re.fullmatch(r"[A-Z0-9]{6,7}", identifier.strip().upper())
+                else None
+            )
+            holding_type = "equity"
+            row_type = "security"
+            if (name or "").strip().lower() == "cash & other":
+                symbol = None
+                exchange = None
+                cusip = None
+                sedol = None
+                holding_type = "cash"
+                row_type = "cash"
+
+            normalized_rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip,
+                    isin=None,
+                    sedol=sedol,
+                    weight=_decimal(_first(raw_row, ["weightings"])),
+                    shares=_decimal(_first(raw_row, ["shares"])),
+                    market_value=_decimal(_first(raw_row, ["market value"])),
+                    currency="USD",
+                    country=None,
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(source_index),
+                    extra_data=raw_row,
+                )
+            )
+        return normalized_rows, cls._extract_composition_date(raw_html)
+
+    @staticmethod
+    def _split_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if not text:
+            return None, None
+        normalized = text.strip().upper()
+        if normalized in {"CASH&OTHER", "CASH", "USD"}:
+            return None, None
+        parts = normalized.split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z0-9.=-]{1,12}", parts[0]):
+            return parts[0], parts[1]
+        return normalized, None
+
+    @staticmethod
+    def _extract_composition_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"ETF\s+Holdings\s+As\s+of\s+([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})",
+            raw_html,
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%b %d, %Y").date()
+        except ValueError:
+            return None
+
+
 class DavisHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Davis ETFs holdings from issuer CSV download routes."""
 
@@ -11873,6 +12072,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "first_eagle": IssuerCsvAdapterConfig(
+        adapter_key="first_eagle",
+        source_provider="first_eagle",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://www.firsteagle.com/funds/{product_slug}",
+        ),
+        live_tested_default_route=True,
+        terms_note="First Eagle public ETF product pages and holdings tables may be subject to issuer terms.",
+    ),
     "davis": IssuerCsvAdapterConfig(
         adapter_key="davis",
         source_provider="davis",
@@ -12192,6 +12401,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
+        "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,

@@ -5,6 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T11:55Z
+
+- Promoted `first_eagle` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `FirstEagleHoldingsAdapter`:
+  - issuer product page routes include `https://www.firsteagle.com/funds/global-equity-etf`, `overseas-equity-etf`, and `usfe-us-equity-etf`.
+  - native data route: issuer-rendered ETF holdings table on the First Eagle product page.
+  - live validation uses `FEGE`; the current page returns more than `50` parseable holdings rows with an `ETF Holdings As of ...` date.
+  - parser handles First Eagle-specific `Stock Ticker`, `CUSIP/Other`, `Security Name`, `Shares`, `Price`, `Market Value`, and `Weightings` table columns.
+  - parser preserves exchange-coded tickers such as `005930 KS` as symbol plus exchange, treats `CUSIP/Other` as either CUSIP or SEDOL depending on identifier shape, and keeps `Cash & Other` as cash rather than a tradable symbol.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `75`
+  - providers still lacking native/live-backed support: `270`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_first_eagle_adapter_parses_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k first_eagle`
+    - result: `1 passed, 76 deselected`
+
 ## Latest checkpoint - 2026-06-29T11:32Z
 
 - Promoted `davis` from recognition-only/generated support to native/live-backed support.
