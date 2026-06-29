@@ -32,6 +32,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "defiance",
     "direxion",
     "distillate",
+    "fm_investments",
     "first_trust",
     "franklin",
     "global_x",
@@ -326,6 +327,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             50,
+        ),
+        (
+            "fm_investments",
+            "TBIL",
+            None,
+            {},
+            2,
         ),
         (
             "invesco",

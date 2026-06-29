@@ -2,6 +2,36 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - F/M Investments native ETF holdings route
+
+### Summary
+
+- Promoted `fm_investments` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `FMInvestmentsHoldingsAdapter`:
+  - listing route: `https://www.fminvest.com/etfs`
+  - product page discovery by ticker, with `TBIL` resolving to the F/M US Treasury 3 Month Bill ETF page.
+  - native data route: `https://www.fminvest.com/api/v1/etfs/{node_id}/holdings`
+  - live validation symbol: `TBIL`
+  - current product page exposed Drupal node id `1`, and the issuer JSON route returned parseable holdings dated `2026-06-29`.
+  - parser preserves HTML-wrapped as-of dates, security names, CUSIP-like `field_symbol` values, par value, market value, percent weights, fixed-income classification, and cash rows.
+  - F/M-specific fetch path includes a narrow 403-only `requests` fallback because the issuer route is backend-reachable with `requests` even when `httpx` receives 403.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `73`
+  - providers still lacking native/live-backed support: `272`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_fm_investments_adapter_discovers_drupal_holdings_api tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k fm_investments` -> `1 passed, 74 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `115 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `73`, `272`, `fm_investments=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `272` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - T. Rowe Price native ETF holdings route
 
 ### Summary

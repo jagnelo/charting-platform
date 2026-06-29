@@ -5,6 +5,32 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T11:23Z
+
+- Promoted `fm_investments` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `FMInvestmentsHoldingsAdapter`:
+  - issuer ETF listing route: `https://www.fminvest.com/etfs`
+  - product page route discovered by ticker, for example `https://www.fminvest.com/etfs/tbil-fm-us-treasury-3-month-bill-etf`
+  - native data route: `https://www.fminvest.com/api/v1/etfs/{node_id}/holdings`
+  - live validation uses `TBIL`; the current product page exposes Drupal ETF node id `1`, and the issuer JSON route returns parseable Treasury/cash holdings dated `2026-06-29`.
+  - parser handles F/M-specific JSON rows including HTML-wrapped as-of dates, security name, CUSIP-like `field_symbol` values, par value, market value, percent weights, fixed-income classification, and cash rows.
+  - adapter includes a narrow F/M-only requests fallback for issuer-page/API `403` responses because the route is backend-reachable with `requests` even when `httpx` receives 403.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `73`
+  - providers still lacking native/live-backed support: `272`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_fm_investments_adapter_discovers_drupal_holdings_api tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k fm_investments`
+    - result: `1 passed, 74 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `115 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `73`, `272`, `fm_investments=True`.
+
 ## Latest checkpoint - 2026-06-29T11:03Z
 
 - Promoted `t_rowe_price` from recognition-only/generated support to native/live-backed support.

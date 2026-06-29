@@ -1439,6 +1439,80 @@ async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("fm_investments")
+    assert adapter is not None
+
+    listing_url = "https://www.fminvest.com/etfs"
+    product_url = "https://www.fminvest.com/etfs/tbil-fm-us-treasury-3-month-bill-etf"
+    api_url = "https://www.fminvest.com/api/v1/etfs/1/holdings"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<a href="/etfs/tbil-fm-us-treasury-3-month-bill-etf">TBIL</a>',
+            content_type="text/html",
+            url=listing_url,
+        ),
+        FakeResponse(
+            text='<script type="application/json">{"etf":{"node_id":"1"}}</script>',
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "field_as_of_date": (
+                            '<time datetime="2026-06-29T12:00:00Z">06/29/2026</time>'
+                        ),
+                        "field_name": "United States Treasury Bill 09/24/2026",
+                        "field_symbol": "912797UH8",
+                        "field_par_value": "7,193,948,305.48",
+                        "field_market_value": "$7,130,201,987.85",
+                        "field_weightings": "100.30%\n",
+                    },
+                    {
+                        "field_as_of_date": (
+                            '<time datetime="2026-06-29T12:00:00Z">06/29/2026</time>'
+                        ),
+                        "field_name": "Cash &amp; Other",
+                        "field_symbol": "Cash&amp;Other",
+                        "field_par_value": "-21,593,305.48",
+                        "field_market_value": "-$21,201,987.85",
+                        "field_weightings": "-0.30%\n",
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url=api_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TBIL", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == listing_url
+    assert FakeAsyncClient.requested[1][0] == product_url
+    assert FakeAsyncClient.requested[2][0] == api_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].cusip == "912797UH8"
+    assert result.rows[0].name == "United States Treasury Bill 09/24/2026"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("1.0030")
+    assert result.rows[0].shares == Decimal("7193948305.48")
+    assert result.rows[0].market_value == Decimal("7130201987.85")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].name == "Cash & Other"
+    assert result.rows[1].weight == Decimal("-0.0030")
+    assert result.legal_metadata["source_provider"] == "fm_investments"
+    assert result.legal_metadata["route_resolution"] == "issuer_drupal_holdings_api"
+    assert result.legal_metadata["node_id"] == "1"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
+
+
+@pytest.mark.asyncio
 async def test_t_rowe_price_adapter_discovers_product_page_and_fetches_graphql(monkeypatch):
     adapter = get_holdings_adapter("t_rowe_price")
     assert adapter is not None
@@ -3240,6 +3314,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
     assert adapters["t_rowe_price"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["t_rowe_price"]["support_route_types"]
+    assert adapters["fm_investments"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["fm_investments"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

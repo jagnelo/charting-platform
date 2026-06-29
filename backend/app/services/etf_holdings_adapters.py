@@ -8426,6 +8426,243 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class FMInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch F/M Investments ETF holdings from its public Drupal JSON route."""
+
+    ETF_LIST_URL = "https://www.fminvest.com/etfs"
+    PRODUCT_PAGE_BASE = "https://www.fminvest.com"
+    API_TEMPLATE = "https://www.fminvest.com/api/v1/etfs/{node_id}/holdings"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        if "/api/v1/etfs/" in source_url:
+            return {
+                **_holdings_request_headers(accept="application/json,*/*"),
+                "Referer": self.ETF_LIST_URL,
+            }
+        return _issuer_page_request_headers(accept="text/html,*/*")
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        identifiers = identifiers or {}
+        node_id = (
+            issuer_product_id
+            or _identifier(identifiers, "fm_node_id", "node_id", "issuer_product_id")
+        )
+        product_page_url = source_url or _identifier(
+            identifiers,
+            "product_url",
+            "issuer_product_url",
+            "fund_url",
+        )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if not product_page_url:
+                listing_url, listing_text = await self._fetch_text(
+                    client,
+                    self.ETF_LIST_URL,
+                    headers=self.source_request_headers(source_url=self.ETF_LIST_URL),
+                )
+                product_page_url = self._extract_product_page_url(
+                    listing_text,
+                    symbol=normalized_symbol,
+                    base_url=listing_url,
+                )
+            if not product_page_url:
+                raise ValueError(f"F/M Investments could not discover a product page for {symbol}.")
+
+            if not node_id:
+                _, product_text = await self._fetch_text(
+                    client,
+                    product_page_url,
+                    headers=self.source_request_headers(source_url=product_page_url),
+                )
+                node_id = self._extract_node_id(product_text)
+            if not node_id:
+                raise ValueError(f"F/M Investments product page did not expose a node id for {symbol}.")
+
+            api_url = self.API_TEMPLATE.format(node_id=node_id)
+            holdings_url, holdings_text = await self._fetch_text(
+                client,
+                api_url,
+                headers=self.source_request_headers(source_url=api_url),
+            )
+
+        payload = json.loads(holdings_text)
+        rows, composition_date = self._parse_holdings_payload(payload)
+        if not rows:
+            raise ValueError(f"F/M Investments holdings API did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_text,
+            raw_json={
+                "source_format": "json",
+                "payload": payload,
+                "product_page_url": product_page_url,
+            },
+            source_url=holdings_url,
+            source_identifier=str(node_id),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_drupal_holdings_api",
+                "product_page_url": product_page_url,
+                "node_id": str(node_id),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _extract_product_page_url(cls, raw_html: str, *, symbol: str, base_url: str) -> str | None:
+        normalized_symbol = re.escape(symbol.strip().lower())
+        pattern = re.compile(
+            rf"""href=["'](?P<url>[^"']*/etfs/{normalized_symbol}[-/][^"']*)["']""",
+            re.IGNORECASE,
+        )
+        match = pattern.search(raw_html)
+        if not match:
+            return None
+        return urljoin(base_url, html.unescape(match.group("url")))
+
+    @staticmethod
+    def _extract_node_id(raw_html: str) -> str | None:
+        match = re.search(r'"node_id"\s*:\s*"?(?P<node_id>\d+)', raw_html, re.IGNORECASE)
+        return match.group("node_id") if match else None
+
+    async def _fetch_text(
+        self,
+        client: httpx.AsyncClient,
+        source_url: str,
+        *,
+        headers: dict[str, str],
+    ) -> tuple[str, str]:
+        try:
+            response = await client.get(
+                source_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+            return str(getattr(response, "url", source_url)), response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+
+        def _request() -> requests.Response:
+            return requests.get(
+                source_url,
+                headers=headers,
+                allow_redirects=True,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            )
+
+        response = await asyncio.to_thread(_request)
+        response.raise_for_status()
+        return str(getattr(response, "url", source_url)), response.text
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_as_of_date(item.get("field_as_of_date"))
+
+            name = cls._clean_html_text(item.get("field_name"))
+            raw_symbol = cls._clean_html_text(item.get("field_symbol"))
+            weight = _decimal(item.get("field_weightings"))
+            shares = _decimal(item.get("field_par_value"))
+            market_value = _decimal(item.get("field_market_value"))
+            if not any([name, raw_symbol, weight, shares, market_value]):
+                continue
+
+            holding_type = cls._classify_holding(name=name, symbol=raw_symbol)
+            row_type = "cash" if holding_type == "cash" else "security"
+            symbol_value = raw_symbol.upper() if raw_symbol and cls._looks_like_ticker(raw_symbol) else None
+            cusip = raw_symbol.upper() if raw_symbol and _looks_like_cusip(raw_symbol) else None
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = FMInvestmentsHoldingsAdapter._clean_html_text(value)
+        if not text:
+            return None
+        datetime_match = re.search(r'datetime=["\'](?P<value>[^"\']+)["\']', str(value))
+        if datetime_match:
+            try:
+                return datetime.fromisoformat(
+                    datetime_match.group("value").replace("Z", "+00:00")
+                ).date()
+            except ValueError:
+                pass
+        for date_format in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _clean_html_text(value: Any) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        text = re.sub(r"<[^>]+>", " ", text)
+        text = html.unescape(text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return _clean(text)
+
+    @staticmethod
+    def _classify_holding(*, name: str | None, symbol: str | None) -> str:
+        text = " ".join(part.upper() for part in (name, symbol) if part)
+        if "CASH" in text or "OTHER" in text:
+            return "cash"
+        if "TREASURY" in text or "BILL" in text or "NOTE/BOND" in text or "MUNICIPAL" in text:
+            return "fixed_income"
+        return "equity"
+
+    @staticmethod
+    def _looks_like_ticker(value: str) -> bool:
+        return bool(re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", value.strip().upper()))
+
+
 class TRowePriceHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch T. Rowe Price ETF holdings from its public product GraphQL API."""
 
@@ -11436,6 +11673,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "fm_investments": IssuerCsvAdapterConfig(
+        adapter_key="fm_investments",
+        source_provider="fm_investments",
+        source_access="issuer_public_drupal_holdings_json",
+        product_page_templates=(
+            "https://www.fminvest.com/etfs/{product_slug}",
+        ),
+        live_tested_default_route=True,
+        terms_note="F/M Investments public ETF product pages and holdings API data may be subject to issuer terms.",
+    ),
     "t_rowe_price": IssuerCsvAdapterConfig(
         adapter_key="t_rowe_price",
         source_provider="t_rowe_price",
@@ -11731,6 +11978,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
+        "fm_investments": FMInvestmentsHoldingsAdapter,
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
