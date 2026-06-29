@@ -1215,6 +1215,57 @@ async def test_beyond_investing_adapter_filters_public_aggregate_csv(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_swan_global_adapter_discovers_product_page_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("swan_global")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://etfs.swanglobalinvestments.com/wp-content/uploads/documents/"
+        "swanweb1.40jr.jr_holdings.csv?1767228128"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download full holdings</a>',
+            content_type="text/html",
+            url="https://etfs.swanglobalinvestments.com/hedged-equity-etf/",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "06/29/2026,HEGD,SPY,78462F103,State Street SPDR S&P 500 ETF Trust,871868,728.99,635583053.32,91.48%,694781568,26520000,2652,",
+                    "06/29/2026,HEGD,SPX   271217C07500000,SPX   271217C07500000,SPX US 12/17/27 C7500,219,787.65,17249535,2.48%,694781568,26520000,2652,",
+                    "06/29/2026,HEGD,Cash&Other,Cash&Other,Cash & Other,1446158.19,1,1446158.19,0.21%,694781568,26520000,2652,Y",
+                    "06/29/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1%,20000,1,1,",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HEGD", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://etfs.swanglobalinvestments.com/hedged-equity-etf/"
+    )
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert [row.holding_type for row in result.rows] == ["equity", "option", "cash"]
+    assert result.rows[0].symbol == "SPY"
+    assert result.rows[0].cusip == "78462F103"
+    assert result.rows[0].weight == Decimal("0.9148")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].name == "SPX US 12/17/27 C7500"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["source_provider"] == "swan_global"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_linked_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
+
+
+@pytest.mark.asyncio
 async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("baron")
     assert adapter is not None

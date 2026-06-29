@@ -5294,6 +5294,73 @@ class AllianzHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class SwanGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Swan Global HEGD holdings from the issuer's public ETF product page."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        route_resolution = "issuer_profile_metadata"
+        if not resolved_source_url:
+            resolved_source_url = await self._discover_source_url_from_product_page(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers or {},
+            )
+            route_resolution = "issuer_product_page_linked_holdings_csv"
+        if not resolved_source_url:
+            raise ValueError(f"Swan Global product page did not expose holdings CSV for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = AllianzHoldingsAdapter._parse_allianz_csv(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Swan Global holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": route_resolution,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,*/*")
+        headers["Referer"] = "https://etfs.swanglobalinvestments.com/hedged-equity-etf/"
+        return headers
+
+
 class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -10297,6 +10364,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Strive public ETF holdings files may be subject to issuer terms.",
     ),
+    "swan_global": IssuerCsvAdapterConfig(
+        adapter_key="swan_global",
+        source_provider="swan_global",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=(
+            "https://etfs.swanglobalinvestments.com/hedged-equity-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Swan Global public ETF product pages and holdings files may be subject to issuer terms.",
+    ),
     "global_x": IssuerCsvAdapterConfig(
         adapter_key="global_x",
         source_provider="global_x",
@@ -10861,6 +10938,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "spdr": SpdrHoldingsAdapter,
         "sprott": SprottHoldingsAdapter,
         "strive": StriveHoldingsAdapter,
+        "swan_global": SwanGlobalHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,
         "themes": ThemesHoldingsAdapter,

@@ -65,6 +65,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "sprott",
     "spdr",
     "strive",
+    "swan_global",
     "tema",
     "teucrium",
     "themes",
@@ -503,6 +504,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "swan_global",
+            "HEGD",
+            None,
+            {},
+            10,
         ),
         (
             "proshares",
