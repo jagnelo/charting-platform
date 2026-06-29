@@ -69,6 +69,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "strive",
     "swan_global",
     "tapp",
+    "t_rowe_price",
     "tema",
     "teucrium",
     "themes",
@@ -535,6 +536,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             3,
+        ),
+        (
+            "t_rowe_price",
+            "TCHP",
+            None,
+            {},
+            50,
         ),
         (
             "proshares",

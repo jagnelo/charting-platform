@@ -1439,6 +1439,99 @@ async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_t_rowe_price_adapter_discovers_product_page_and_fetches_graphql(monkeypatch):
+    adapter = get_holdings_adapter("t_rowe_price")
+    assert adapter is not None
+
+    overview_url = "https://www.troweprice.com/financial-intermediary/us/en/investments/etfs.html"
+    product_url = (
+        "https://www.troweprice.com/financial-intermediary/us/en/investments/"
+        "etfs/blue-chip-growth-etf.html"
+    )
+    graphql_url = "https://api.public.troweprice.com/ds-dada/graphql"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<h3 slot="heading"><a href="/financial-intermediary/us/en/'
+                'investments/etfs/blue-chip-growth-etf.html">TCHP</a></h3>'
+            ),
+            content_type="text/html",
+            url=overview_url,
+        ),
+        FakeResponse(
+            text='<script>window["_popConfiguration"] = { productCode: "BCX" };</script>',
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "data": {
+                        "fetchData": {
+                            "type": "productRequest",
+                            "fullHoldingsExhibit": [
+                                {
+                                    "effectiveDate": "2026-04-30T00:00:00Z",
+                                    "currencyCode": "USD",
+                                    "assetClass": "Equity",
+                                    "holdings": [
+                                        {
+                                            "rank": 1,
+                                            "tickerSymbol": "NVDA",
+                                            "name": "NVIDIA",
+                                            "cusip": "67066G104",
+                                            "shareQuantity": 1610873,
+                                            "marketValue": 321481924.61,
+                                            "percentageTotalNetAssets": 15.338156,
+                                            "sectorName": "Information Technology",
+                                            "industryName": "Semiconductors",
+                                        },
+                                        {
+                                            "rank": 2,
+                                            "tickerSymbol": "MSFT",
+                                            "name": "Microsoft",
+                                            "cusip": "594918104",
+                                            "shareQuantity": 493094,
+                                            "marketValue": 201073871.32,
+                                            "percentageTotalNetAssets": 9.593393,
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    }
+                }
+            ),
+            content_type="application/json",
+            url=graphql_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TCHP", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == overview_url
+    assert FakeAsyncClient.requested[1][0] == product_url
+    assert FakeAsyncClient.requested[2][0] == graphql_url
+    assert FakeAsyncClient.requested[2][1]["json"]["variables"]["productRequest"]["productRequest"] == {
+        "productCode": "BCX"
+    }
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.15338156")
+    assert result.rows[0].shares == Decimal("1610873")
+    assert result.rows[0].market_value == Decimal("321481924.61")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[0].holding_type == "equity"
+    assert result.legal_metadata["source_provider"] == "t_rowe_price"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_product_graphql_full_holdings"
+    assert result.legal_metadata["product_code"] == "BCX"
+    assert result.legal_metadata["composition_date"] == "2026-04-30"
+
+
+@pytest.mark.asyncio
 async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("baron")
     assert adapter is not None
@@ -3145,6 +3238,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
     assert adapters["tapp"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
+    assert adapters["t_rowe_price"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["t_rowe_price"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

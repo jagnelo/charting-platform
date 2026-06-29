@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-06-29 - T. Rowe Price native ETF holdings route
+
+### Summary
+
+- Promoted `t_rowe_price` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `TRowePriceHoldingsAdapter`:
+  - overview route: `https://www.troweprice.com/financial-intermediary/us/en/investments/etfs.html`
+  - product page discovery by ticker, with `TCHP` resolving to the Blue Chip Growth ETF page and product code `BCX`
+  - native data route: `https://api.public.troweprice.com/ds-dada/graphql`
+  - live validation symbol: `TCHP`
+  - current public `fullHoldingsExhibit` GraphQL response returned `59` parseable holdings rows dated `2026-04-30`.
+  - parser preserves ticker, name, CUSIP, ISIN, SEDOL, shares, market value, percent-point net-asset weights, currency, sector, industry, country, investment type, and asset class.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `72`
+  - providers still lacking native/live-backed support: `273`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_t_rowe_price_adapter_discovers_product_page_and_fetches_graphql tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k t_rowe_price` -> `1 passed, 73 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `114 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `72`, `273`, `t_rowe_price=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `273` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - TappAlpha native ETF holdings route
 
 ### Summary

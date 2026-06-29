@@ -8426,6 +8426,286 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class TRowePriceHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch T. Rowe Price ETF holdings from its public product GraphQL API."""
+
+    GRAPHQL_ENDPOINT = "https://api.public.troweprice.com/ds-dada/graphql"
+    GRAPHQL_API_KEY = "dfalKOgR1TyFTzz9Uv35a7cUczNRrk1K"
+    ETF_OVERVIEW_URL = "https://www.troweprice.com/financial-intermediary/us/en/investments/etfs.html"
+    PRODUCT_PAGE_BASE = "https://www.troweprice.com"
+
+    FULL_HOLDINGS_QUERY = """
+    query getProduct($productRequest: DataRequest) {
+      fetchData(req: $productRequest) {
+        type
+        fullHoldingsExhibit {
+          effectiveDate
+          tradingDate
+          currencyCode
+          vehicleType
+          assetClass
+          holdings {
+            rank
+            tickerSymbol
+            name
+            securityLongName
+            cusip
+            isin
+            sedol
+            shareQuantity
+            sharesQuantity
+            marketValue
+            percentageTotalNetAssets
+            parentBaseISOCurrencyCode
+            assetClass
+            sectorName
+            industryName
+            countryName
+            investmentType
+          }
+        }
+      }
+    }
+    """
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        if urlparse(source_url).netloc == "api.public.troweprice.com":
+            return {
+                **_holdings_request_headers(accept="application/json,*/*"),
+                "apikey": self.GRAPHQL_API_KEY,
+                "Origin": "https://www.troweprice.com",
+                "Referer": self.ETF_OVERVIEW_URL,
+            }
+        return _issuer_page_request_headers(accept="text/html,*/*")
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = source_url or await self._discover_product_page_url(
+            symbol=normalized_symbol,
+            identifiers=identifiers or {},
+        )
+        product_code = issuer_product_id or _identifier(
+            identifiers or {},
+            "trowe_product_code",
+            "product_code",
+            "issuer_product_id",
+        )
+        product_page_text: str | None = None
+        resolved_product_page_url = product_page_url
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if not product_code:
+                if not product_page_url:
+                    raise ValueError(f"T. Rowe Price ETF product page route is unavailable for {symbol}.")
+                page_response = await client.get(
+                    product_page_url,
+                    headers=self.source_request_headers(source_url=product_page_url),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                product_page_text = page_response.text
+                resolved_product_page_url = str(page_response.url)
+                product_code = self._extract_product_code(page_response.text)
+            if not product_code:
+                raise ValueError(f"T. Rowe Price product page did not expose a product code for {symbol}.")
+
+            response = await client.post(
+                self.GRAPHQL_ENDPOINT,
+                headers=self.source_request_headers(source_url=self.GRAPHQL_ENDPOINT),
+                json={
+                    "query": self.FULL_HOLDINGS_QUERY,
+                    "variables": {
+                        "productRequest": {
+                            "type": "productRequest",
+                            "context": {
+                                "audience": "INTERMEDIARY",
+                                "country": "us",
+                                "language": "en",
+                            },
+                            "productRequest": {"productCode": product_code},
+                        }
+                    },
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date, exhibit_metadata = self._parse_graphql_payload(payload)
+        if not rows:
+            raise ValueError(f"T. Rowe Price GraphQL holdings response did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=json.dumps(payload),
+            raw_json={
+                "source_format": "graphql_json",
+                "payload": payload,
+                "product_page_html": product_page_text,
+            },
+            source_url=str(response.url),
+            source_identifier=product_code,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "graphql_json",
+                "route_resolution": "issuer_public_product_graphql_full_holdings",
+                "product_page_url": resolved_product_page_url,
+                "product_code": product_code,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                **exhibit_metadata,
+            },
+        )
+
+    async def _discover_product_page_url(
+        self,
+        *,
+        symbol: str,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        explicit_url = _identifier(identifiers, "product_url", "issuer_product_page_url")
+        if explicit_url:
+            return explicit_url
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.ETF_OVERVIEW_URL,
+                headers=self.source_request_headers(source_url=self.ETF_OVERVIEW_URL),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        return self._extract_product_page_url(response.text, symbol=symbol, base_url=str(response.url))
+
+    @classmethod
+    def _extract_product_page_url(cls, raw_html: str, *, symbol: str, base_url: str) -> str | None:
+        normalized_symbol = re.escape(symbol.strip().upper())
+        pattern = re.compile(
+            rf"<h3[^>]*>\s*<a[^>]+href=[\"'](?P<href>[^\"']+)[\"'][^>]*>\s*{normalized_symbol}\s*</a>",
+            re.IGNORECASE,
+        )
+        match = pattern.search(raw_html)
+        if not match:
+            return None
+        return urljoin(base_url or cls.PRODUCT_PAGE_BASE, html.unescape(match.group("href")))
+
+    @staticmethod
+    def _extract_product_code(raw_html: str) -> str | None:
+        match = re.search(r"productCode:\s*[\"'](?P<code>[^\"']+)[\"']", raw_html)
+        if match:
+            return match.group("code").strip()
+        match = re.search(r'"productCode"\s*:\s*"(?P<code>[^"]+)"', raw_html)
+        if match:
+            return match.group("code").strip()
+        return None
+
+    @classmethod
+    def _parse_graphql_payload(
+        cls,
+        payload: dict[str, Any],
+    ) -> tuple[list[CanonicalHoldingRow], date | None, dict[str, Any]]:
+        exhibits = (
+            ((payload.get("data") or {}).get("fetchData") or {}).get("fullHoldingsExhibit")
+            or []
+        )
+        if not exhibits:
+            return [], None, {}
+        exhibit = next((item for item in exhibits if item.get("holdings")), exhibits[0])
+        composition_date = cls._parse_trowe_date(
+            exhibit.get("effectiveDate") or exhibit.get("tradingDate")
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for index, holding in enumerate(exhibit.get("holdings") or [], start=1):
+            name = _clean(holding.get("securityLongName") or holding.get("name"))
+            symbol = _clean(holding.get("tickerSymbol"))
+            holding_type, row_type = cls._classify_holding(holding)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=_clean(holding.get("cusip")) if _looks_like_cusip(_clean(holding.get("cusip"))) else None,
+                    isin=_clean(holding.get("isin")),
+                    sedol=_clean(holding.get("sedol")),
+                    weight=_decimal_percent_points(holding.get("percentageTotalNetAssets")),
+                    shares=_decimal(holding.get("sharesQuantity") or holding.get("shareQuantity")),
+                    market_value=_decimal(holding.get("marketValue")),
+                    currency=_clean(
+                        holding.get("parentBaseISOCurrencyCode") or exhibit.get("currencyCode")
+                    ),
+                    country=_clean(holding.get("countryName")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(holding.get("rank") or index),
+                    extra_data={
+                        key: value
+                        for key, value in holding.items()
+                        if value not in (None, "")
+                        and key
+                        not in {
+                            "tickerSymbol",
+                            "securityLongName",
+                            "name",
+                            "cusip",
+                            "isin",
+                            "sedol",
+                            "percentageTotalNetAssets",
+                            "sharesQuantity",
+                            "shareQuantity",
+                            "marketValue",
+                            "parentBaseISOCurrencyCode",
+                            "countryName",
+                        }
+                    },
+                )
+            )
+        return rows, composition_date, {
+            "graphql_effective_date": exhibit.get("effectiveDate"),
+            "graphql_trading_date": exhibit.get("tradingDate"),
+            "vehicle_type": exhibit.get("vehicleType"),
+            "asset_class": exhibit.get("assetClass"),
+        }
+
+    @staticmethod
+    def _parse_trowe_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _classify_holding(holding: dict[str, Any]) -> tuple[str, str]:
+        text = " ".join(
+            str(value).upper()
+            for value in (
+                holding.get("assetClass"),
+                holding.get("investmentType"),
+                holding.get("name"),
+                holding.get("securityLongName"),
+                holding.get("tickerSymbol"),
+            )
+            if value
+        )
+        if "CASH" in text or "CURRENCY" in text:
+            return "cash", "cash"
+        if "BOND" in text or "FIXED INCOME" in text:
+            return "fixed_income", "security"
+        if "OPTION" in text:
+            return "option", "security"
+        return "equity", "security"
+
+
 class AbrdnHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Represent abrdn physical-metal ETF trust exposure from issuer product pages."""
 
@@ -11156,6 +11436,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "t_rowe_price": IssuerCsvAdapterConfig(
+        adapter_key="t_rowe_price",
+        source_provider="t_rowe_price",
+        source_access="issuer_public_product_graphql_full_holdings",
+        product_page_templates=(
+            "https://www.troweprice.com/financial-intermediary/us/en/investments/etfs.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="T. Rowe Price public ETF product pages and product GraphQL data may be subject to issuer terms.",
+    ),
     "hartford": IssuerCsvAdapterConfig(
         adapter_key="hartford",
         source_provider="hartford",
@@ -11478,6 +11768,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
+        "t_rowe_price": TRowePriceHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,
         "themes": ThemesHoldingsAdapter,

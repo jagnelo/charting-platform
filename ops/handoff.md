@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-06-29T11:03Z
+
+- Promoted `t_rowe_price` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `TRowePriceHoldingsAdapter`:
+  - issuer overview route: `https://www.troweprice.com/financial-intermediary/us/en/investments/etfs.html`
+  - product page route discovered by ticker, for example `https://www.troweprice.com/financial-intermediary/us/en/investments/etfs/blue-chip-growth-etf.html`
+  - native data route: `https://api.public.troweprice.com/ds-dada/graphql`
+  - live validation uses `TCHP`; the current product page exposes product code `BCX`, and the public `fullHoldingsExhibit` GraphQL route returns `59` parseable rows dated `2026-04-30`.
+  - parser handles T. Rowe Price-specific GraphQL rows including ticker, name, CUSIP, ISIN, SEDOL, shares, market value, percent-point net-asset weights, currency, sector, industry, country, investment type, and asset class.
+  - route remains T. Rowe Price-specific; SEC EDGAR remains fallback only and is not counted as native provider support.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `72`
+  - providers still lacking native/live-backed support: `273`
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_t_rowe_price_adapter_discovers_product_page_and_fetches_graphql tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k t_rowe_price`
+    - result: `1 passed, 73 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `114 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - Count command returned `345`, `72`, `273`, `t_rowe_price=True`.
+
 ## Latest checkpoint - 2026-06-29T10:42Z
 
 - Promoted `tapp` from recognition-only/generated support to native/live-backed support.
