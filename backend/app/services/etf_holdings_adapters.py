@@ -2981,6 +2981,121 @@ class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return text, None
 
 
+class SpearHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    holdings_url = "https://spear-funds.com/archivos/SpearAdv.40FU.FU_Holdings.csv"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and source_url.strip().lower().endswith(".csv"):
+            return source_url.strip()
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if normalized_symbol != "SPRX":
+            return None
+        return self.holdings_url
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://spear-funds.com/",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        holdings_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not holdings_url:
+            raise ValueError(f"Spear needs a known ETF holdings CSV route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_spear_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Spear holdings CSV did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_fixed_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_spear_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = list(csv.reader(StringIO(raw_csv.lstrip("\ufeff"))))
+        if not table_rows:
+            return [], None
+        header = [str(value).strip() for value in table_rows[0]]
+        account_index = next(
+            (index for index, value in enumerate(header) if value.lower() == "account"),
+            None,
+        )
+        date_index = next(
+            (index for index, value in enumerate(header) if value.lower() == "date"),
+            None,
+        )
+        filtered_rows = [table_rows[0]]
+        composition_date: date | None = None
+        for raw_row in table_rows[1:]:
+            if account_index is not None and account_index < len(raw_row):
+                account = raw_row[account_index].strip().upper()
+                if account and account != symbol:
+                    continue
+            if composition_date is None and date_index is not None and date_index < len(raw_row):
+                composition_date = cls._parse_composition_date(raw_row[date_index])
+            filtered_rows.append(raw_row)
+        return parse_holdings_table(filtered_rows), composition_date
+
+    @staticmethod
+    def _parse_composition_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+
 class TimothyPlanHoldingsAdapter(IssuerCsvHoldingsAdapter):
     symbol_slugs = {
         "TPHD": "hds",
@@ -12849,6 +12964,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Sprott public product pages and holdings files may be subject to issuer terms.",
     ),
+    "spear": IssuerCsvAdapterConfig(
+        adapter_key="spear",
+        source_provider="spear",
+        source_access="issuer_public_holdings_csv",
+        url_templates=(
+            "https://spear-funds.com/archivos/SpearAdv.40FU.FU_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://spear-funds.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Spear public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -13002,6 +13130,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "schwab": SchwabHoldingsAdapter,
         "simplify": SimplifyHoldingsAdapter,
         "spdr": SpdrHoldingsAdapter,
+        "spear": SpearHoldingsAdapter,
         "sprott": SprottHoldingsAdapter,
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,

@@ -3432,6 +3432,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["allspring"]["support_route_types"]
     assert adapters["timothy_plan"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["timothy_plan"]["support_route_types"]
+    assert adapters["spear"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["spear"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
@@ -3907,6 +3909,47 @@ async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "allspring"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
+async def test_spear_adapter_parses_fixed_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("spear")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "06/29/2026,SPRX,ALAB,04626A103,Astera Labs Inc,61346.00000000,391.740000,24031682.04,9.84%,244106360.000000,4600000,184.000000000000,",
+                    "06/29/2026,SPRX,COHR,19247G107,Coherent Corp,56999.00000000,380.560000,21691539.44,8.89%,244106360.000000,4600000,184.000000000000,",
+                    "06/29/2026,OTHER,MSFT,594918104,Microsoft Corp,1,500,500,0.01%,244106360.000000,4600000,184.000000000000,",
+                ]
+            ),
+            content_type="text/csv",
+            url="https://spear-funds.com/archivos/SpearAdv.40FU.FU_Holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SPRX")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://spear-funds.com/archivos/SpearAdv.40FU.FU_Holdings.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ALAB"
+    assert result.rows[0].name == "Astera Labs Inc"
+    assert result.rows[0].cusip == "04626A103"
+    assert result.rows[0].shares == Decimal("61346.00000000")
+    assert result.rows[0].market_value == Decimal("24031682.04")
+    assert result.rows[0].weight == Decimal("0.0984")
+    assert result.rows[1].symbol == "COHR"
+    assert result.rows[1].weight == Decimal("0.0889")
+    assert result.legal_metadata["source_provider"] == "spear"
+    assert result.legal_metadata["route_resolution"] == "issuer_fixed_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-29"
 
 
 @pytest.mark.asyncio

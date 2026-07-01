@@ -2,6 +2,34 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-01 - Spear native ETF holdings route
+
+### Summary
+
+- Promoted `spear` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `SpearHoldingsAdapter`:
+  - native data route: `https://spear-funds.com/archivos/SpearAdv.40FU.FU_Holdings.csv`
+  - live validation symbol: `SPRX`
+  - current issuer CSV returned more than `20` parseable holdings rows dated `2026-06-29`.
+  - parser handles Spear-specific `Date`, `Account`, `StockTicker`, `CUSIP`, `SecurityName`, `Shares`, `MarketValue`, and `Weightings` CSV rows.
+  - parser filters the aggregate CSV by requested ETF account symbol, avoiding cross-account ingestion.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `79`
+  - providers still lacking native/live-backed support: `266`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_spear_adapter_parses_fixed_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `121 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k spear` -> sandbox DNS failed first, then escalated network run passed with `1 passed, 80 deselected`
+- count command -> `345`, `79`, `266`, `spear=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `266` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-06-29 - Timothy Plan native ETF holdings route
 
 ### Summary
