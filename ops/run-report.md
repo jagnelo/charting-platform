@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-01 - OneAscent native ETF holdings route
+
+### Summary
+
+- Promoted `oneascent` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `OneAscentHoldingsAdapter`:
+  - native data route: OneAscent ETF product pages such as `https://oneascent.com/investment-solutions/public-markets/etfs/oalc/`
+  - live validation symbol: `OALC`
+  - current OneAscent product pages expose holdings CSV files through a public `pds_download_holdings_csv` AJAX route.
+  - parser handles OneAscent-specific CSV columns including `As Of Date`, `Ticker`, `Security Name`, `CUSIP`, `Shares`, `Market Value`, `Weight (%)`, `Sector`, `Category`, and `Country`.
+  - parser splits venue-qualified tickers, maps valid CUSIPs, converts percent-point weights into canonical decimal weights, and keeps cash rows as cash rather than synthetic tradable symbols.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `85`
+  - providers still lacking native/live-backed support: `260`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_oneascent_adapter_discovers_ajax_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k oneascent` -> `1 passed, 85 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `127 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `85`, `260`, `oneascent=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `260` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-01 - Faith Investor Services native ETF holdings route
 
 ### Summary

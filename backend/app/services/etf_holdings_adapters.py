@@ -6167,6 +6167,173 @@ class FaithInvestorServicesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return composition_date, rows
 
 
+class OneAscentHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch OneAscent ETF holdings from issuer product-page AJAX CSV routes."""
+
+    product_page_template = "https://oneascent.com/investment-solutions/public-markets/etfs/{symbol_lower}/"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.product_page_template.format(symbol_lower=symbol.strip().lower())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = None
+        holdings_url = source_url if source_url and "pds_download_holdings_csv" in source_url else None
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if holdings_url is None:
+                product_page_url = source_url or self.resolve_product_page_url(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if not product_page_url:
+                    raise ValueError(f"OneAscent needs an ETF product page for {symbol}.")
+                page_response = await client.get(
+                    product_page_url,
+                    headers=self.source_request_headers(source_url=product_page_url),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                holdings_url = self._discover_holdings_csv(
+                    page_response.text,
+                    base_url=str(getattr(page_response, "url", product_page_url)),
+                )
+                if not holdings_url:
+                    raise ValueError(f"OneAscent product page did not expose holdings CSV for {symbol}.")
+
+            csv_response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        rows, composition_date = self._parse_oneascent_csv(csv_response.text)
+        if not rows:
+            raise ValueError(f"OneAscent holdings CSV did not expose holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            source_url=str(getattr(csv_response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_ajax_holdings_csv",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,text/csv,*/*")
+        headers["Referer"] = "https://oneascent.com/investment-solutions/public-markets/etfs/"
+        return headers
+
+    @staticmethod
+    def _discover_holdings_csv(page_text: str, *, base_url: str) -> str | None:
+        match = re.search(
+            r'["\']([^"\']*pds_download_holdings_csv[^"\']*)["\']',
+            page_text,
+            flags=re.I,
+        )
+        if not match:
+            return None
+        return urljoin(base_url, html.unescape(match.group(1)))
+
+    @staticmethod
+    def _parse_oneascent_csv(raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        if not table_rows:
+            return [], None
+        header = table_rows[0]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, row in enumerate(table_rows[1:], start=1):
+            raw = _row_dict(header, row)
+            row_date = _clean(_first(raw, ["As Of Date"]))
+            if row_date and composition_date is None:
+                try:
+                    composition_date = datetime.strptime(row_date, "%m/%d/%Y").date()
+                except ValueError:
+                    composition_date = None
+            raw_symbol = _clean(_first(raw, ["Ticker"]))
+            symbol_value, exchange = OneAscentHoldingsAdapter._split_symbol(raw_symbol)
+            name = _clean(_first(raw, ["Security Name"]))
+            cusip = _clean(_first(raw, ["CUSIP"]))
+            holding_type = OneAscentHoldingsAdapter._holding_type(
+                symbol=symbol_value,
+                name=name,
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal_percent_points(_first(raw, ["Weight (%)"])),
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=_decimal(_first(raw, ["Market Value"])),
+                    country=_clean(_first(raw, ["Country"])),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                        "source_symbol": raw_symbol,
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        text = _clean(raw_symbol)
+        if not text:
+            return None, None
+        normalized = " ".join(text.split()).upper()
+        match = re.fullmatch(r"([A-Z0-9./=-]+)\s+([A-Z]{2})", normalized)
+        if match:
+            return match.group(1), match.group(2)
+        return normalized, None
+
+    @staticmethod
+    def _holding_type(*, symbol: str | None, name: str | None) -> str:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if not text or "CASH" in text or "TREASURY BILL" in text or "MONEY MARKET" in text:
+            return "cash"
+        return "equity"
+
+
 class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -13618,6 +13785,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Faith Investor Services public ETF pages and holdings CSV files may be subject to issuer terms.",
     ),
+    "oneascent": IssuerCsvAdapterConfig(
+        adapter_key="oneascent",
+        source_provider="oneascent",
+        source_access="issuer_product_page_ajax_holdings_csv",
+        product_page_templates=(
+            "https://oneascent.com/investment-solutions/public-markets/etfs/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="OneAscent public ETF product pages and holdings CSV files may be subject to issuer terms.",
+    ),
     "bny_mellon": IssuerCsvAdapterConfig(
         adapter_key="bny_mellon",
         source_provider="bny_mellon",
@@ -14099,6 +14276,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
+        "oneascent": OneAscentHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,

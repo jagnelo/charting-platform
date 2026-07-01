@@ -4446,6 +4446,60 @@ async def test_faith_investor_services_adapter_discovers_next_data_holdings_csv(
 
 
 @pytest.mark.asyncio
+async def test_oneascent_adapter_discovers_ajax_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("oneascent")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://oneascent.com/wp-admin/admin-ajax.php?"
+        "action=pds_download_holdings_csv&portfolio=1340"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download holdings</a>',
+            content_type="text/html",
+            url="https://oneascent.com/investment-solutions/public-markets/etfs/oalc/",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    '"As Of Date",Ticker,"Security Name",CUSIP,Shares,"Market Value","Weight (%)",Sector,Category,Country',
+                    '06/30/2026,"NVDA US","NVIDIA Corporation",67066G104,88450,17697960.5,7.1633,SEMICONDUCTORS,TECHNOLOGY,US',
+                    '06/30/2026,"USD CASH","Cash",,100,100,0.0100,CASH,CASH,US',
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="OALC")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://oneascent.com/investment-solutions/public-markets/etfs/oalc/"
+    )
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].exchange == "US"
+    assert result.rows[0].name == "NVIDIA Corporation"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.071633")
+    assert result.rows[0].shares == Decimal("88450")
+    assert result.rows[0].market_value == Decimal("17697960.5")
+    assert result.rows[0].country == "US"
+    assert result.rows[0].extra_data["Sector"] == "SEMICONDUCTORS"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "oneascent"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_ajax_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
 async def test_amplify_adapter_filters_multi_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("amplify")
     assert adapter is not None

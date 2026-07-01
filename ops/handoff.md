@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-01T14:45Z
+
+- Promoted `oneascent` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `OneAscentHoldingsAdapter`:
+  - native data route: OneAscent ETF product pages such as `https://oneascent.com/investment-solutions/public-markets/etfs/oalc/`
+  - supported live validation symbol: `OALC`
+  - current OneAscent product pages expose holdings CSV files through a public `pds_download_holdings_csv` AJAX route.
+  - parser handles OneAscent-specific CSV columns including `As Of Date`, `Ticker`, `Security Name`, `CUSIP`, `Shares`, `Market Value`, `Weight (%)`, `Sector`, `Category`, and `Country`.
+  - parser splits venue-qualified tickers such as `NVDA US` into `symbol=NVDA` plus `exchange=US`, maps valid CUSIPs, converts percent-point weights into canonical decimal weights, and preserves cash rows as cash instead of fake tradable symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `85`
+  - providers still lacking native/live-backed support: `260`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_oneascent_adapter_discovers_ajax_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k oneascent`
+    - result: `1 passed, 85 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `127 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - count command returned `345`, `85`, `260`, `oneascent=True`.
+
 ## Latest checkpoint - 2026-07-01T14:08Z
 
 - Promoted `faith_investor_services` from recognition-only/generated support to native/live-backed support.
