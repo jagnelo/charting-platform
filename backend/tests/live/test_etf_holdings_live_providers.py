@@ -33,6 +33,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "davis",
     "defiance",
     "deutsche_bank",
+    "diamond_hill",
     "direxion",
     "distillate",
     "eventide",
@@ -480,6 +481,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "horizon_kinetics",
             "INFL",
+            None,
+            {},
+            20,
+        ),
+        (
+            "diamond_hill",
+            "DHLX",
             None,
             {},
             20,

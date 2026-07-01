@@ -4109,6 +4109,55 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_diamond_hill_adapter_parses_symbol_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("diamond_hill")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Diamond Hill Large Cap Concentrated ETF",
+                    "Fund Holdings Data as of 06/30/2026",
+                    "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
+                    "AON PLC-CLASS A, G0403H108, AON US, 5.856984202900, 331.690000000000, 15379.0000000, 5101060.51, 5.857067299500",
+                    "STATE ST GOVT MM, 857492706, , 1.335040930200, 100.000000000000, 1162735.6900000, 1162735.69, 1.335059871300",
+                ]
+            ),
+            content_type="application/octet-stream",
+            url=(
+                "https://www.diamond-hill.com/sitefiles/live/documents/etfs/holdings/"
+                "diamond-hill-DHLX-holdings.csv"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DHLX")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.diamond-hill.com/sitefiles/live/documents/etfs/holdings/"
+        "diamond-hill-DHLX-holdings.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AON"
+    assert result.rows[0].exchange == "US"
+    assert result.rows[0].name == "AON PLC-CLASS A"
+    assert result.rows[0].cusip == "G0403H108"
+    assert result.rows[0].weight == Decimal("0.058569842029")
+    assert result.rows[0].shares == Decimal("15379.0000000")
+    assert result.rows[0].market_value == Decimal("5101060.51")
+    assert result.rows[0].extra_data["source_symbol"] == "AON US"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "diamond_hill"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
 async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch):
     adapter = get_holdings_adapter("miller_value")
     assert adapter is not None

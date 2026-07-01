@@ -9671,6 +9671,155 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
+
+    HOLDINGS_URL_TEMPLATE = (
+        "https://www.diamond-hill.com/sitefiles/live/documents/etfs/holdings/"
+        "diamond-hill-{symbol_upper}-holdings.csv"
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.HOLDINGS_URL_TEMPLATE.format(symbol_upper=symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"{self.adapter_key} needs a Diamond Hill holdings URL for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/csv,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        composition_date, rows = self._parse_holdings_csv(response.text)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=resolved_source_url,
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_symbol_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        text = _clean(raw_symbol)
+        if not text:
+            return None, None
+        parts = text.split()
+        if len(parts) == 2:
+            return parts[0].upper(), parts[1].upper()
+        return text.upper(), None
+
+    def _parse_holdings_csv(self, raw_csv: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        composition_date: date | None = None
+        for row in table_rows[:5]:
+            line = " ".join(str(cell) for cell in row if _clean(cell))
+            match = re.search(r"as of\s+([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})", line, re.I)
+            if match:
+                composition_date = datetime.strptime(match.group(1), "%m/%d/%Y").date()
+                break
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows)
+                if {"name", "security identifier", "symbol"}.issubset(
+                    {str(cell).strip().lower() for cell in row}
+                )
+            ),
+            None,
+        )
+        if header_index is None:
+            return composition_date, []
+        header = table_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for row_index, raw_row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(_first(raw, ["name"]))
+            raw_symbol = _clean(_first(raw, ["symbol"]))
+            symbol, exchange = self._split_symbol(raw_symbol)
+            identifier = _clean(_first(raw, ["security identifier"]))
+            cusip = identifier if _looks_like_cusip(identifier) else None
+            isin = identifier if _looks_like_isin(identifier) else None
+            sedol = identifier if _looks_like_sedol(identifier) else None
+            row_type = "cash" if (
+                symbol is None
+                and (name or "").lower().startswith(("state st govt mm", "cash"))
+            ) else "security"
+            holding_type = "cash" if row_type == "cash" else "equity"
+            if row_type == "cash":
+                symbol = None
+                exchange = None
+            weight = _decimal_percent_points(_first(raw, ["net assets %"]))
+            if weight is None:
+                weight = _decimal_percent_points(_first(raw, ["market value %"]))
+            if not any([name, symbol, cusip, isin, sedol, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip,
+                    isin=isin,
+                    sedol=sedol,
+                    weight=weight,
+                    shares=_decimal(_first(raw, ["shares held"])),
+                    market_value=_decimal(_first(raw, ["market value"])),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(row_index),
+                    extra_data={
+                        "source_symbol": raw_symbol,
+                        "market_price": _clean(_first(raw, ["market price"])),
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                    },
+                )
+            )
+        return composition_date, rows
+
+
 class FirstEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse First Eagle ETF holdings from issuer-rendered product pages."""
 
@@ -13340,6 +13489,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "diamond_hill": IssuerCsvAdapterConfig(
+        adapter_key="diamond_hill",
+        source_provider="diamond_hill",
+        source_access="issuer_public_symbol_holdings_csv",
+        url_templates=(
+            "https://www.diamond-hill.com/sitefiles/live/documents/etfs/holdings/"
+            "diamond-hill-{symbol_upper}-holdings.csv",
+        ),
+        product_page_templates=(
+            "https://www.diamond-hill.com/investment-strategies/us-equity/"
+            "large-cap-concentrated/etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Diamond Hill public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "deutsche_bank": IssuerCsvAdapterConfig(
         adapter_key="deutsche_bank",
         source_provider="deutsche_bank",
@@ -13727,6 +13891,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
+        "diamond_hill": DiamondHillHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,

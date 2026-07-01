@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-01 - Diamond Hill native ETF holdings route
+
+### Summary
+
+- Promoted `diamond_hill` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `DiamondHillHoldingsAdapter`:
+  - native data route: `https://www.diamond-hill.com/sitefiles/live/documents/etfs/holdings/diamond-hill-{symbol_upper}-holdings.csv`
+  - live validation symbol: `DHLX`
+  - current Diamond Hill CSV returned more than `20` parseable holdings rows dated `2026-06-30`.
+  - parser handles Diamond Hill-specific CSV preamble metadata and columns: `Name`, `Security Identifier`, `Symbol`, `Net Assets %`, `Market Price`, `Shares Held`, `Market Value`, and `Market Value %`.
+  - parser splits symbols such as `AON US` into symbol plus exchange, keeps source ticker metadata, maps CUSIP-like identifiers, and preserves money-market rows as cash.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `83`
+  - providers still lacking native/live-backed support: `262`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_diamond_hill_adapter_parses_symbol_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k diamond_hill` -> `1 passed, 83 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `125 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `83`, `262`, `diamond_hill=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `262` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-01 - Miller Value native ETF holdings route
 
 ### Summary
