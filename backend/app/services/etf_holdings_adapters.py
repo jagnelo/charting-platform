@@ -5974,6 +5974,199 @@ class EventideHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class FaithInvestorServicesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Faith Investor Services ETF holdings from issuer page metadata."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return f"https://faithinvestorservices.com/etfs/{symbol.strip().lower()}"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = None
+        page_text: str | None = None
+        holdings_url = source_url if source_url and source_url.lower().endswith(".csv") else None
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if holdings_url is None:
+                product_page_url = source_url or self.resolve_product_page_url(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if not product_page_url:
+                    raise ValueError(f"Faith Investor Services needs an ETF product page for {symbol}.")
+                page_response = await client.get(
+                    product_page_url,
+                    headers=self.source_request_headers(source_url=product_page_url),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                page_text = page_response.text
+                holdings_url = self._discover_holdings_csv(
+                    page_text,
+                    symbol=normalized_symbol,
+                )
+                if not holdings_url:
+                    raise ValueError(
+                        "Faith Investor Services product page did not expose a full "
+                        f"holdings CSV for {normalized_symbol}."
+                    )
+
+            csv_response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        composition_date, rows = self._parse_holdings_csv(
+            csv_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Faith Investor Services holdings CSV did not expose holdings rows for {symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            source_url=str(getattr(csv_response, "url", holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": (
+                    "issuer_product_page_next_data_holdings_csv"
+                    if page_text is not None
+                    else "issuer_profile_metadata"
+                ),
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,text/csv,*/*")
+        headers["Referer"] = "https://faithinvestorservices.com/etfs"
+        return headers
+
+    @staticmethod
+    def _discover_holdings_csv(page_text: str, *, symbol: str) -> str | None:
+        match = re.search(
+            r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
+            page_text,
+            flags=re.S | re.I,
+        )
+        if not match:
+            return None
+        try:
+            payload = json.loads(html.unescape(match.group(1)))
+        except json.JSONDecodeError:
+            return None
+        data = payload.get("props", {}).get("pageProps", {}).get("data", {})
+        distributions_copy = data.get("distributionsCopy") or {}
+        download = distributions_copy.get("download") or {}
+        download_url = _clean(download.get("url")) if isinstance(download, dict) else None
+        if (
+            download_url
+            and "holding" in download_url.lower()
+            and download_url.lower().endswith(".csv")
+        ):
+            return download_url
+
+        data_reference = data.get("dataReference") or {}
+        for reference in data_reference.values():
+            if not isinstance(reference, dict):
+                continue
+            media_url = _clean(reference.get("mediaItemUrl"))
+            if (
+                media_url
+                and "holding" in media_url.lower()
+                and symbol.lower() in media_url.lower()
+                and media_url.lower().endswith(".csv")
+            ):
+                return media_url
+        return download_url if download_url and download_url.lower().endswith(".csv") else None
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
+        composition_date: date | None = None
+        rows: list[CanonicalHoldingRow] = []
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        for index, row in enumerate(table_rows, start=1):
+            if len(row) < 9:
+                continue
+            if row[0].strip().lower() == "date":
+                continue
+            account = _clean(row[1])
+            if account and account.upper() != symbol:
+                continue
+            row_date = _clean(row[0])
+            if row_date and composition_date is None:
+                try:
+                    composition_date = datetime.strptime(row_date, "%m/%d/%Y").date()
+                except ValueError:
+                    composition_date = None
+            raw_symbol = _clean(row[2])
+            name = _clean(row[4])
+            money_market_flag = _clean(row[12]) if len(row) > 12 else None
+            row_type = "cash" if (
+                (money_market_flag or "").upper() == "Y"
+                or (name or "").lower().startswith(("first american treasury", "cash"))
+            ) else "security"
+            holding_type = "cash" if row_type == "cash" else "equity"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if row_type == "cash" else raw_symbol,
+                    name=name,
+                    cusip=_clean(row[3]) if _looks_like_cusip(_clean(row[3])) else None,
+                    weight=_decimal(row[8]),
+                    shares=_decimal(row[5]),
+                    market_value=_decimal(row[7]),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        "account": account,
+                        "source_symbol": raw_symbol,
+                        "price": _clean(row[6]),
+                        "net_assets": _clean(row[9]) if len(row) > 9 else None,
+                        "shares_outstanding": _clean(row[10]) if len(row) > 10 else None,
+                        "creation_units": _clean(row[11]) if len(row) > 11 else None,
+                        "money_market_flag": money_market_flag,
+                    },
+                )
+            )
+        return composition_date, rows
+
+
 class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -13415,6 +13608,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Eventide public ETF pages and Contentful-hosted holdings CSV files may be subject to issuer terms.",
     ),
+    "faith_investor_services": IssuerCsvAdapterConfig(
+        adapter_key="faith_investor_services",
+        source_provider="faith_investor_services",
+        source_access="issuer_product_page_next_data_holdings_csv",
+        product_page_templates=(
+            "https://faithinvestorservices.com/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Faith Investor Services public ETF pages and holdings CSV files may be subject to issuer terms.",
+    ),
     "bny_mellon": IssuerCsvAdapterConfig(
         adapter_key="bny_mellon",
         source_provider="bny_mellon",
@@ -13895,6 +14098,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
+        "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,

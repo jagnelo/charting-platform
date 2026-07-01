@@ -37,6 +37,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "direxion",
     "distillate",
     "eventide",
+    "faith_investor_services",
     "first_eagle",
     "fm_investments",
     "first_trust",
@@ -365,6 +366,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "faith_investor_services",
+            "BRIF",
+            None,
+            {},
+            20,
         ),
         (
             "timothy_plan",

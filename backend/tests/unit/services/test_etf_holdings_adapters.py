@@ -4381,6 +4381,71 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_faith_investor_services_adapter_discovers_next_data_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("faith_investor_services")
+    assert adapter is not None
+
+    csv_url = "https://faithinvestorservices.flywheelsites.com/wp-content/uploads/FaithInvSvrs.40KF.Holdings.BRIF_.csv"
+    next_data_payload = {
+        "props": {
+            "pageProps": {
+                "data": {
+                    "distributionsCopy": {
+                        "download": {
+                            "url": csv_url,
+                            "title": "Download Full Holdings",
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<script id="__NEXT_DATA__" type="application/json">'
+                f"{json.dumps(next_data_payload)}"
+                "</script>"
+            ),
+            content_type="text/html",
+            url="https://faithinvestorservices.com/etfs/brif",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "02/03/2025,BRIF,ABBV,00287Y109,AbbVie Inc,17336.000000,183.900000,3188090.40,3.95%,80747095.800000,3122000,312.200000000000,",
+                    "02/03/2025,BRIF,FXFXX,31846V328,First American Treasury Obligations Fund 01/01/2040,2800092.150000,100.000000,2800092.15,3.47%,80747095.800000,3122000,312.200000000000,Y",
+                    "02/03/2025,OTHER,MSFT,594918104,Microsoft Corp,1,500,500,0.01%,80747095.800000,3122000,312.200000000000,",
+                ]
+            ),
+            content_type="text/csv",
+            url=csv_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BRIF")
+
+    assert FakeAsyncClient.requested[0][0] == "https://faithinvestorservices.com/etfs/brif"
+    assert FakeAsyncClient.requested[1][0] == csv_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ABBV"
+    assert result.rows[0].name == "AbbVie Inc"
+    assert result.rows[0].cusip == "00287Y109"
+    assert result.rows[0].weight == Decimal("0.0395")
+    assert result.rows[0].shares == Decimal("17336.000000")
+    assert result.rows[0].market_value == Decimal("3188090.40")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].extra_data["money_market_flag"] == "Y"
+    assert result.legal_metadata["source_provider"] == "faith_investor_services"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_next_data_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2025-02-03"
+
+
+@pytest.mark.asyncio
 async def test_amplify_adapter_filters_multi_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("amplify")
     assert adapter is not None
