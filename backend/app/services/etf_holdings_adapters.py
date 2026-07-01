@@ -3232,6 +3232,192 @@ class PrincipalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return lowered_type or "security"
 
 
+class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Miller Value's public Nuxt ETF holdings payload."""
+
+    product_page_template = "https://etf.millervaluefunds.com/{symbol_lower}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Miller Value publishes current ETF holdings in its public fund-page payload.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and "etf.millervaluefunds.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Miller Value needs a fund page route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = self._parse_embedded_holdings(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"Miller Value page did not expose holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_payload",
+                "route_resolution": "issuer_public_fund_page_embedded_holdings",
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_fund_page_payload",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_embedded_holdings(cls, raw_html: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        component_id = f'milleretf-{symbol.strip().lower()}-holdings-1'
+        component_match = re.search(
+            rf'(?P<var>[A-Za-z_$][\w$]*)\.componentId="{re.escape(component_id)}";'
+            rf'(?P<body>.*?)(?P=var)\.btnLink=',
+            raw_html,
+            flags=re.DOTALL,
+        )
+        if component_match is None:
+            return []
+
+        variable_name = component_match.group("var")
+        body = component_match.group("body")
+        data_match = re.search(
+            rf'{re.escape(variable_name)}\.finData=\[(?P<rows>.*?)\];',
+            body,
+            flags=re.DOTALL,
+        )
+        if data_match is None:
+            return []
+
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_object in enumerate(cls._split_js_objects(data_match.group("rows")), start=1):
+            parsed = cls._parse_js_object(raw_object)
+            ticker = _clean(parsed.get("ticker"))
+            name = _clean(parsed.get("description"))
+            if ticker is None and name is None:
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=ticker.upper() if ticker else None,
+                    name=name,
+                    weight=_decimal(parsed.get("percent_of_nav")),
+                    shares=_decimal(parsed.get("quantity")),
+                    market_value=_decimal(parsed.get("market_value")),
+                    holding_type=cls._holding_type(ticker=ticker, name=name),
+                    row_type="security",
+                    source_row_id=f"miller-value-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in parsed.items()
+                        if key not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                        and _clean(value) is not None
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _split_js_objects(raw_rows: str) -> list[str]:
+        objects: list[str] = []
+        depth = 0
+        start: int | None = None
+        in_string = False
+        escaped = False
+        for index, char in enumerate(raw_rows):
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                if depth == 0:
+                    start = index
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0 and start is not None:
+                    objects.append(raw_rows[start : index + 1])
+                    start = None
+        return objects
+
+    @staticmethod
+    def _parse_js_object(raw_object: str) -> dict[str, str]:
+        parsed: dict[str, str] = {}
+        for match in re.finditer(
+            r'(?P<key>[A-Za-z_][\w]*)\s*:\s*(?:"(?P<string>(?:\\.|[^"])*)"|(?P<number>-?\d+(?:\.\d+)?))',
+            raw_object,
+        ):
+            key = match.group("key")
+            if match.group("string") is not None:
+                try:
+                    parsed[key] = json.loads(f'"{match.group("string")}"')
+                except json.JSONDecodeError:
+                    parsed[key] = match.group("string").replace(r"\/", "/")
+            else:
+                parsed[key] = match.group("number")
+        return parsed
+
+    @staticmethod
+    def _holding_type(*, ticker: str | None, name: str | None) -> str:
+        lowered_name = (name or "").lower()
+        if "cash" in lowered_name:
+            return "cash"
+        if ticker and ticker.upper().endswith("WW"):
+            return "warrant"
+        return "equity"
+
+
 class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -13255,6 +13441,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Matthews Asia public ETF product pages and holdings tables may be subject to issuer terms.",
     ),
+    "miller_value": IssuerCsvAdapterConfig(
+        adapter_key="miller_value",
+        source_provider="miller_value",
+        source_access="issuer_public_fund_page_embedded_holdings",
+        product_page_templates=(
+            "https://etf.millervaluefunds.com/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Miller Value public ETF fund-page holdings payloads may be subject to issuer terms.",
+    ),
     "new_york_life": IssuerCsvAdapterConfig(
         adapter_key="new_york_life",
         source_provider="new_york_life",
@@ -13558,6 +13754,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "kurv": KurvHoldingsAdapter,
         "main_management": MainManagementHoldingsAdapter,
         "matthews": MatthewsHoldingsAdapter,
+        "miller_value": MillerValueHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,

@@ -4109,6 +4109,55 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("miller_value")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<html><script>var a={};'
+                'dg.id=261;dg.componentId="milleretf-mvpa-holdings-1";'
+                'dg.titleText="Holdings";'
+                'dg.finData=['
+                '{figi:"BBG002VZ68Y2",ticker:"BLMN",quantity:416324,'
+                'description:"BLOOMIN BRANDS INC",market_value:"3,805,201.36",'
+                'percent_of_nav:"5.76%"},'
+                '{figi:"BBG01RRDN7W5",ticker:"VRMWW",quantity:5720,'
+                'description:"VROOM INC WARRANTS",market_value:"3,604.17",'
+                'percent_of_nav:"0.01%"}'
+                '];dg.btnLink=null;'
+                'ns.componentId="milleretf-mvpl-holdings-1";'
+                'ns.finData=['
+                '{figi:"OTHER",ticker:"MSFT",quantity:1,description:"MICROSOFT CORP",'
+                'market_value:"500",percent_of_nav:"1.00%"}'
+                '];ns.btnLink=null;</script></html>'
+            ),
+            content_type="text/html",
+            url="https://etf.millervaluefunds.com/mvpa",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MVPA")
+
+    assert FakeAsyncClient.requested[0][0] == "https://etf.millervaluefunds.com/mvpa"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "BLMN"
+    assert result.rows[0].name == "BLOOMIN BRANDS INC"
+    assert result.rows[0].weight == Decimal("0.0576")
+    assert result.rows[0].shares == Decimal("416324")
+    assert result.rows[0].market_value == Decimal("3805201.36")
+    assert result.rows[0].extra_data["figi"] == "BBG002VZ68Y2"
+    assert result.rows[1].symbol == "VRMWW"
+    assert result.rows[1].holding_type == "warrant"
+    assert result.legal_metadata["source_provider"] == "miller_value"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
+    assert result.legal_metadata["source_format"] == "nuxt_payload"
+
+
+@pytest.mark.asyncio
 async def test_spear_adapter_parses_fixed_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("spear")
     assert adapter is not None

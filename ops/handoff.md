@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-01T12:49Z
+
+- Promoted `miller_value` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `MillerValueHoldingsAdapter`:
+  - native data route: `https://etf.millervaluefunds.com/{symbol_lower}`
+  - supported live validation symbol: `MVPA`
+  - current Miller Value fund page returns more than `20` parseable holdings rows.
+  - parser extracts the requested fund's provider-specific Nuxt holdings component, such as `milleretf-mvpa-holdings-1`, rather than ingesting unrelated embedded fund data.
+  - parser handles Miller Value fields including `figi`, `ticker`, `quantity`, `description`, `market_value`, and `percent_of_nav`, converts percent-of-NAV values into canonical weights, and classifies warrant tickers separately from ordinary equities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `82`
+  - providers still lacking native/live-backed support: `263`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_miller_value_adapter_parses_embedded_holdings_payload tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k miller_value`
+    - result: `1 passed, 82 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `124 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - count command returned `345`, `82`, `263`, `miller_value=True`.
+
 ## Latest checkpoint - 2026-07-01T12:17Z
 
 - Promoted `principal` from recognition-only/generated support to native/live-backed support.
