@@ -3424,6 +3424,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["fm_investments"]["support_route_types"]
     assert adapters["davis"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["davis"]["support_route_types"]
+    assert adapters["deutsche_bank"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["deutsche_bank"]["support_route_types"]
     assert adapters["eventide"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
@@ -3909,6 +3911,91 @@ async def test_allspring_adapter_parses_symbol_total_holdings_csv(monkeypatch):
     assert result.legal_metadata["source_provider"] == "allspring"
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_total_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-06-26"
+
+
+@pytest.mark.asyncio
+async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("deutsche_bank")
+    assert adapter is not None
+
+    payload = {
+        "tablesHeadlineText": "Fund holdings",
+        "headlineText": "",
+        "asOfDate": "",
+        "tables": [
+            {
+                "values": [
+                    {
+                        "ISIN": {
+                            "ISIN_0": {"value": "NVDA.O"},
+                            "ISIN_1": {"value": "67066G104"},
+                            "ISIN_2": {"value": "US67066G1040"},
+                            "ISIN_3": {"value": "2379504"},
+                        },
+                        "Name": {"value": "NVIDIA Corp"},
+                        "Weighting": {"value": "13.55%", "sortValue": 13.54763711},
+                        "MarketValue": {"value": "77.33 M", "sortValue": 77326581.31},
+                        "NotionalValue": {"value": "--", "sortValue": None},
+                        "Quantity": {"value": "386,459", "sortValue": 386459},
+                        "Country": {"value": "US"},
+                        "IndustryClassName": {"value": "Information Technology"},
+                        "AssetClass": {"value": "Equity"},
+                    },
+                    {
+                        "ISIN": {
+                            "ISIN_0": {"value": ""},
+                            "ISIN_1": {"value": ""},
+                            "ISIN_2": {"value": ""},
+                            "ISIN_3": {"value": ""},
+                        },
+                        "Name": {"value": "Cash & Cash Equivalents"},
+                        "Weighting": {"value": "0.26%"},
+                        "MarketValue": {"value": "1.50 M", "sortValue": 1500000},
+                        "Quantity": {"value": "--"},
+                        "Country": {"value": "US"},
+                        "IndustryClassName": {"value": ""},
+                        "AssetClass": {"value": "Cash"},
+                    },
+                ]
+            }
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://etf.dws.com/api/pdp/en-us/etf/USSG/holdings",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="USSG")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://etf.dws.com/api/pdp/en-us/etf/USSG/holdings"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].exchange == "O"
+    assert result.rows[0].name == "NVIDIA Corp"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].isin == "US67066G1040"
+    assert result.rows[0].sedol == "2379504"
+    assert result.rows[0].weight == Decimal("0.1355")
+    assert result.rows[0].shares == Decimal("386459")
+    assert result.rows[0].market_value == Decimal("77326581.31")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[0].extra_data["raw_ticker"] == "NVDA.O"
+    assert result.rows[0].extra_data["sector"] == "Information Technology"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].weight == Decimal("0.0026")
+    assert result.rows[1].market_value == Decimal("1500000")
+    assert result.legal_metadata["source_provider"] == "deutsche_bank"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_pdp_holdings_json"
+    assert result.legal_metadata["source_format"] == "json"
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-01 - Deutsche Bank / DWS native ETF holdings route
+
+### Summary
+
+- Promoted `deutsche_bank` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `DeutscheBankHoldingsAdapter`:
+  - native data route: `https://etf.dws.com/api/pdp/en-us/etf/{symbol}/holdings`
+  - live validation symbol: `USSG`
+  - current DWS/Xtrackers JSON returned more than `100` parseable holdings rows.
+  - parser handles DWS-specific nested `Ticker`, `CUSIP`, `ISIN`, and `SEDOL` identifier cells.
+  - parser splits venue-qualified tickers such as `NVDA.O` into symbol plus exchange, preserves raw source ticker metadata, maps issuer weights/market value/quantity/country/sector/asset-class fields, and keeps cash rows as cash.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `80`
+  - providers still lacking native/live-backed support: `265`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_deutsche_bank_adapter_parses_dws_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `122 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k deutsche_bank` -> `1 passed, 81 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `80`, `265`, `deutsche_bank=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `265` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-01 - Spear native ETF holdings route
 
 ### Summary

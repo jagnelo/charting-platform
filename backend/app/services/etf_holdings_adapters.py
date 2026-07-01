@@ -2819,6 +2819,206 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse DWS/Xtrackers public PDP holdings JSON."""
+
+    holdings_endpoint_template = "https://etf.dws.com/api/pdp/en-us/etf/{symbol_upper}/holdings"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="DWS/Xtrackers exposes public PDP holdings JSON by ticker.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().upper()
+        if not resolved_symbol:
+            return None
+        return self.holdings_endpoint_template.format(symbol_upper=resolved_symbol)
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+            "Referer": "https://etf.dws.com/en-us/",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"{self.adapter_key} needs a DWS/Xtrackers symbol for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows = self._parse_holdings_payload(payload)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "json",
+                "tables_headline_text": payload.get("tablesHeadlineText"),
+                "headline_text": payload.get("headlineText"),
+                "as_of_date": payload.get("asOfDate"),
+            },
+            source_url=resolved_source_url,
+            source_identifier=issuer_product_id or symbol.upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_public_pdp_holdings_json",
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_pdp_holdings_json",
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_payload(cls, payload: dict[str, Any]) -> list[CanonicalHoldingRow]:
+        tables = payload.get("tables")
+        if not isinstance(tables, list) or not tables:
+            return []
+        values = tables[0].get("values") if isinstance(tables[0], dict) else None
+        if not isinstance(values, list):
+            return []
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(values, start=1):
+            if not isinstance(raw_row, dict):
+                continue
+            identifiers = raw_row.get("ISIN") if isinstance(raw_row.get("ISIN"), dict) else {}
+            raw_ticker = cls._cell_value(identifiers.get("ISIN_0"))
+            symbol, exchange = cls._split_ticker(raw_ticker)
+            cusip = cls._cell_value(identifiers.get("ISIN_1"))
+            isin = cls._cell_value(identifiers.get("ISIN_2"))
+            sedol = cls._cell_value(identifiers.get("ISIN_3"))
+            name = cls._cell_value(raw_row.get("Name"))
+            asset_class = cls._cell_value(raw_row.get("AssetClass"))
+            holding_type = cls._holding_type(asset_class)
+            row_type = "cash" if holding_type == "cash" else "security"
+            if row_type == "cash":
+                symbol = None
+                exchange = None
+
+            weight = cls._cell_decimal(raw_row.get("Weighting"), percent_points=True)
+            market_value = cls._cell_decimal(raw_row.get("MarketValue"))
+            shares = cls._cell_decimal(raw_row.get("Quantity"))
+            if not any([symbol, cusip, isin, sedol, name]) and not any(
+                [weight, market_value, shares]
+            ):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin if _looks_like_isin(isin) else None,
+                    sedol=sedol if _looks_like_sedol(sedol) else None,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    country=cls._cell_value(raw_row.get("Country")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"dws-{index}",
+                    extra_data={
+                        "raw_ticker": raw_ticker,
+                        "sector": cls._cell_value(raw_row.get("IndustryClassName")),
+                        "asset_class": asset_class,
+                        "notional_value": cls._cell_decimal(raw_row.get("NotionalValue")),
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _cell_value(cell: Any) -> str | None:
+        if isinstance(cell, dict):
+            return _clean(cell.get("value"))
+        return _clean(cell)
+
+    @classmethod
+    def _cell_decimal(cls, cell: Any, *, percent_points: bool = False) -> Decimal | None:
+        value = cls._cell_value(cell)
+        if percent_points:
+            if value is not None and value.endswith("%"):
+                return _decimal(value)
+            parsed_percent = _decimal_percent_points(value)
+            if parsed_percent is not None:
+                return parsed_percent
+            if isinstance(cell, dict):
+                return _decimal_percent_points(cell.get("sortValue"))
+            return None
+        parsed = _decimal(value)
+        if parsed is not None:
+            return parsed
+        if isinstance(cell, dict):
+            sort_value = cell.get("sortValue")
+            return _decimal(sort_value)
+        return None
+
+    @staticmethod
+    def _split_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        normalized = text.replace("/", ".").strip().upper()
+        if "." in normalized:
+            symbol, exchange = normalized.split(".", 1)
+            return symbol or None, exchange or None
+        return normalized, None
+
+    @staticmethod
+    def _holding_type(asset_class: str | None) -> str:
+        lowered = (asset_class or "").strip().lower()
+        if "cash" in lowered:
+            return "cash"
+        if "fixed" in lowered or "bond" in lowered:
+            return "fixed_income"
+        if "derivative" in lowered or "swap" in lowered:
+            return "derivative"
+        return "equity"
+
+
 class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -12741,6 +12941,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "deutsche_bank": IssuerCsvAdapterConfig(
+        adapter_key="deutsche_bank",
+        source_provider="deutsche_bank",
+        source_access="issuer_public_pdp_holdings_json",
+        url_templates=(
+            "https://etf.dws.com/api/pdp/en-us/etf/{symbol_upper}/holdings",
+        ),
+        product_page_templates=(
+            "https://etf.dws.com/en-us/{symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note="DWS/Xtrackers public product-data endpoints may be subject to issuer terms.",
+    ),
     "first_eagle": IssuerCsvAdapterConfig(
         adapter_key="first_eagle",
         source_provider="first_eagle",
@@ -13091,6 +13304,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "clearshares": ClearSharesHoldingsAdapter,
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
+        "deutsche_bank": DeutscheBankHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
