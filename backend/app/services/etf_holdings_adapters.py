@@ -3019,6 +3019,219 @@ class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class PrincipalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Principal public ETF holdings workbooks."""
+
+    holdings_endpoint_template = (
+        "https://api.assetmgmt.principalam.com/public/files?key={symbol_upper}.xlsx"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Principal exposes public symbol-based ETF holdings workbooks.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and source_url.strip().lower().endswith(".xlsx"):
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().upper()
+        if not resolved_symbol:
+            return None
+        return self.holdings_endpoint_template.format(symbol_upper=resolved_symbol)
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(
+                accept=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                    "application/octet-stream,*/*"
+                )
+            ),
+            "Referer": "https://www.principalam.com/us/active-etfs",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Principal needs a symbol-based holdings workbook route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        workbook_rows = parse_xlsx_table(response.content)
+        rows, composition_date = self._parse_workbook_rows(workbook_rows)
+        if not rows:
+            raise ValueError(
+                f"Principal holdings workbook did not expose holdings rows for {symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "issuer_symbol_holdings_xlsx",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_symbol_holdings_workbook",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[Any]],
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        composition_date = cls._extract_composition_date(workbook_rows)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if {
+                    "% of net assets",
+                    "market value",
+                    "security type",
+                    "description",
+                    "ticker",
+                    "cusip/identifier",
+                    "isin",
+                    "sedol",
+                }
+                <= {str(cell).strip().lower() for cell in row}
+            ),
+            -1,
+        )
+        if header_index < 0:
+            return [], composition_date
+
+        header = [str(cell).strip() for cell in workbook_rows[header_index]]
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            row = _row_dict(header, raw_row)
+            name = _clean(row.get("Description"))
+            if not name:
+                continue
+            security_type = _clean(row.get("Security Type"))
+            symbol, exchange = cls._split_ticker(_clean(row.get("Ticker")))
+            holding_type = cls._holding_type(security_type, name=name)
+            row_type = "cash" if holding_type == "cash" else "security"
+            if row_type == "cash":
+                symbol = None
+                exchange = None
+
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=_clean(row.get("CUSIP/Identifier")),
+                    isin=_clean(row.get("ISIN")),
+                    sedol=_clean(row.get("SEDOL")),
+                    weight=_decimal(row.get("% of Net Assets")),
+                    shares=_decimal(row.get("Par Value/Quantity/Notional")),
+                    market_value=_decimal(row.get("Market Value")),
+                    currency=_clean(row.get("Currency")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"principal-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in row.items()
+                        if key is not None and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(workbook_rows: list[list[Any]]) -> date | None:
+        for row in workbook_rows[:10]:
+            for cell in row:
+                text = _clean(cell)
+                if text is None:
+                    continue
+                match = re.search(
+                    r"\bas\s+of:\s*(\d{1,2}/\d{1,2}/\d{4})\b",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                if not match:
+                    continue
+                try:
+                    return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+                except ValueError:
+                    return None
+        return None
+
+    @staticmethod
+    def _split_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        normalized = text.strip().upper()
+        if " " in normalized:
+            symbol, exchange = normalized.split(None, 1)
+            return symbol or None, exchange or None
+        return normalized, None
+
+    @staticmethod
+    def _holding_type(security_type: str | None, *, name: str) -> str:
+        lowered_type = (security_type or "").strip().lower()
+        lowered_name = name.strip().lower()
+        if "cash" in lowered_type or lowered_name in {"cash", "cash collateral"}:
+            return "cash"
+        if "future" in lowered_type:
+            return "future"
+        if "option" in lowered_type:
+            return "option"
+        if "fixed" in lowered_type or "bond" in lowered_type:
+            return "fixed_income"
+        if "equity" in lowered_type:
+            return "equity"
+        return lowered_type or "security"
+
+
 class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -13098,6 +13311,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Pacer public ETF product pages and holdings files may be subject to issuer terms.",
     ),
+    "principal": IssuerCsvAdapterConfig(
+        adapter_key="principal",
+        source_provider="principal",
+        source_access="issuer_public_symbol_holdings_workbook",
+        url_templates=(
+            "https://api.assetmgmt.principalam.com/public/files?key={symbol_upper}.xlsx",
+        ),
+        product_page_templates=(
+            "https://www.principalam.com/us/fund/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Principal public ETF product pages and holdings workbooks may be subject to issuer terms.",
+    ),
     "graniteshares": IssuerCsvAdapterConfig(
         adapter_key="graniteshares",
         source_provider="graniteshares",
@@ -13336,6 +13562,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,
         "pacer": PacerHoldingsAdapter,
+        "principal": PrincipalHoldingsAdapter,
         "procuream": ProcureHoldingsAdapter,
         "proshares": ProSharesHoldingsAdapter,
         "renaissance_capital": RenaissanceCapitalHoldingsAdapter,

@@ -3999,6 +3999,116 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("principal")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=_xlsx_workbook(
+                [
+                    [
+                        "As of: 07/01/2026",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "Capital Shares Outstanding:",
+                        "33600001",
+                    ],
+                    [
+                        "% of Net Assets",
+                        "Market Value",
+                        "Security Type",
+                        "Description",
+                        "Ticker",
+                        "CUSIP/Identifier",
+                        "ISIN",
+                        "SEDOL",
+                        "Coupon Rate",
+                        "Maturity Date",
+                        "Par Value/Quantity/Notional",
+                        "Contracts",
+                        "Security Price",
+                        "Issue Date",
+                        "Currency",
+                        "Underlying Asset Identifier",
+                    ],
+                    [
+                        "0.013942990371",
+                        "32416440",
+                        "Equity",
+                        "CREDO TECHNOLOGY GROUP HOLDI COMMON STOCK USD.00005",
+                        "CRDO",
+                        "G25457105",
+                        "KYG254571055",
+                        "BLD13F2",
+                        "",
+                        "",
+                        "119200",
+                        "",
+                        "271.95",
+                        "",
+                        "USD",
+                        "",
+                    ],
+                    [
+                        "0.0001",
+                        "1000",
+                        "Cash",
+                        "Cash Collateral",
+                        "USD",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "1000",
+                        "",
+                        "1",
+                        "",
+                        "USD",
+                        "",
+                    ],
+                ]
+            ),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url="https://api.assetmgmt.principalam.com/public/files?key=PSC.xlsx",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PSC")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://api.assetmgmt.principalam.com/public/files?key=PSC.xlsx"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "CRDO"
+    assert result.rows[0].name == "CREDO TECHNOLOGY GROUP HOLDI COMMON STOCK USD.00005"
+    assert result.rows[0].cusip == "G25457105"
+    assert result.rows[0].isin == "KYG254571055"
+    assert result.rows[0].sedol == "BLD13F2"
+    assert result.rows[0].weight == Decimal("0.013942990371")
+    assert result.rows[0].shares == Decimal("119200")
+    assert result.rows[0].market_value == Decimal("32416440")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[0].holding_type == "equity"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].currency == "USD"
+    assert result.legal_metadata["source_provider"] == "principal"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_xlsx"
+    assert result.legal_metadata["composition_date"] == "2026-07-01"
+
+
+@pytest.mark.asyncio
 async def test_spear_adapter_parses_fixed_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("spear")
     assert adapter is not None

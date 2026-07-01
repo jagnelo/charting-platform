@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-01T12:17Z
+
+- Promoted `principal` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `PrincipalHoldingsAdapter`:
+  - native data route: `https://api.assetmgmt.principalam.com/public/files?key={symbol}.xlsx`
+  - supported live validation symbol: `PSC`
+  - current Principal workbook returns more than `100` parseable holdings rows.
+  - parser handles Principal-specific workbook rows with `As of: ...`, `% of Net Assets`, `Market Value`, `Security Type`, `Description`, `Ticker`, `CUSIP/Identifier`, `ISIN`, `SEDOL`, `Par Value/Quantity/Notional`, `Security Price`, and `Currency`.
+  - parser preserves Principal's decimal-fraction net-asset weights without 100x distortion, maps identifiers and quantities directly, and keeps cash rows as cash rather than synthetic tradable symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `81`
+  - providers still lacking native/live-backed support: `264`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_principal_adapter_parses_symbol_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k principal`
+    - result: `1 passed, 81 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `123 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `81`, `264`, `principal=True`.
+
 ## Latest checkpoint - 2026-07-01T11:46Z
 
 - Promoted `deutsche_bank` from recognition-only/generated support to native/live-backed support.

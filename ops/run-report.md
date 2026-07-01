@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-01 - Principal native ETF holdings route
+
+### Summary
+
+- Promoted `principal` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `PrincipalHoldingsAdapter`:
+  - native data route: `https://api.assetmgmt.principalam.com/public/files?key={symbol}.xlsx`
+  - live validation symbol: `PSC`
+  - current Principal workbook returned more than `100` parseable holdings rows.
+  - parser handles Principal-specific holdings workbooks with as-of metadata, security type, description, ticker, CUSIP/ISIN/SEDOL, quantity/notional, market value, currency, and decimal-fraction net-asset weights.
+  - parser keeps cash rows as cash and avoids synthetic tradable symbols.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `81`
+  - providers still lacking native/live-backed support: `264`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_principal_adapter_parses_symbol_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k principal` -> `1 passed, 81 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `123 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `81`, `264`, `principal=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `264` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-01 - Deutsche Bank / DWS native ETF holdings route
 
 ### Summary
