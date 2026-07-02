@@ -7689,6 +7689,43 @@ Append a short entry after each worker session.
 
 - Continue replacing generated/thin ETF provider adapters with isolated native routes. Fidelity, Direxion, WisdomTree, Capital Group, Dimensional, Goldman Sachs, Hartford, T. Rowe Price, BNY Mellon, Columbia, and Victory remain high-value candidates that still lack native/live-backed support.
 
+## 2026-07-02 - Clough native ETF holdings route
+
+### Summary
+
+- Added a provider-specific native/live-backed `CloughHoldingsAdapter`.
+- The adapter uses Clough Capital's public WordPress AJAX JSON route at `https://www.cloughcapital.com/wp-admin/admin-ajax.php?action=get_holdings_json&slug={symbol_lower}`.
+- Confirmed the route live with `CBSE`, whose JSON returned parseable holdings rows from the issuer's public endpoint.
+- Added issuer-specific JSON parsing for Clough fields:
+  - maps `name`, `hTicker`, `cusip`, `sharesPar`, `weight`, and `marketValue`
+  - converts percent weights into canonical decimal weights
+  - maps valid CUSIPs and normalizes shares/market values
+  - classifies pseudo cash rows such as `BROKER SWEEP` / `GS.BROKER` as cash instead of materializing them as tradable securities
+- Promoted `clough` to native/live-backed support only after the focused live route passed.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `86`
+  - providers still lacking native/live-backed support: `259`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_clough_adapter_fetches_native_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k clough` -> `1 passed, 86 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `128 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `86`, `259` remaining, `clough=True`
+
+### Problems found
+
+- Clough was previously only registered through the broad recognition-hint set, so it was backed by a generated recognition-only adapter and SEC fallback rather than a real issuer route.
+- Clough's CBLS feed includes pseudo rows such as `BROKER SWEEP` with `GS.BROKER`; those rows need provider-specific cash classification to avoid fake tradable instrument materialization.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native routes. The truthful gap is still large: `259` of `345` registered providers lack native/live-backed support. SEC EDGAR remains fallback only and must not be counted as native provider support.
+
 ## 2026-06-13 - Themes ETFs native ETF holdings route
 
 ### Summary

@@ -2805,6 +2805,66 @@ async def test_clearshares_adapter_fetches_native_holdings_workbook(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_clough_adapter_fetches_native_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("clough")
+    assert adapter is not None
+
+    payload = {
+        "success": True,
+        "data": {
+            "asOfDate": "07/02/2026",
+            "holdings": [
+                {
+                    "name": "Tenable Holdings Inc",
+                    "hTicker": "TENB",
+                    "cusip": "88025T102",
+                    "sharesPar": "45,361",
+                    "weight": "3.55%",
+                    "marketValue": "$1,719,181.90",
+                },
+                {
+                    "name": "BROKER SWEEP",
+                    "hTicker": "GS.BROKER",
+                    "cusip": "GS.BROKER",
+                    "sharesPar": "22,297,187",
+                    "weight": "36.46%",
+                    "marketValue": "$22,297,187.32",
+                },
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CBSE", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.cloughcapital.com/wp-admin/admin-ajax.php"
+        "?action=get_holdings_json&slug=cbse"
+    )
+    assert result.rows[0].symbol == "TENB"
+    assert result.rows[0].name == "Tenable Holdings Inc"
+    assert result.rows[0].cusip == "88025T102"
+    assert result.rows[0].shares == Decimal("45361")
+    assert result.rows[0].weight == Decimal("0.0355")
+    assert result.rows[0].market_value == Decimal("1719181.90")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].extra_data["source_symbol"] == "GS.BROKER"
+    assert result.legal_metadata["route_resolution"] == "issuer_wordpress_holdings_json"
+    assert result.legal_metadata["source_provider"] == "clough"
+    assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3364,6 +3424,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["abrdn"]["support_route_types"]
     assert adapters["clearshares"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["clearshares"]["support_route_types"]
+    assert adapters["clough"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["clough"]["support_route_types"]
     assert adapters["first_trust"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["first_trust"]["support_route_types"]
     assert adapters["roundhill"]["live_tested_default_route"] is True

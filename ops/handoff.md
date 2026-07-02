@@ -5,6 +5,35 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-02T11:45Z
+
+- Promoted `clough` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `CloughHoldingsAdapter`:
+  - native data route: `https://www.cloughcapital.com/wp-admin/admin-ajax.php?action=get_holdings_json&slug={symbol_lower}`
+  - supported live validation symbol: `CBSE`
+  - current Clough endpoint returns JSON with `data.asOfDate` plus `data.holdings` rows.
+  - parser handles Clough-specific JSON fields including `name`, `hTicker`, `cusip`, `sharesPar`, `weight`, and `marketValue`.
+  - parser converts percent weights into canonical decimal weights, maps valid CUSIPs, normalizes market values/shares, and preserves pseudo rows such as `BROKER SWEEP` / `GS.BROKER` as cash instead of fake tradable symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `86`
+  - providers still lacking native/live-backed support: `259`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_clough_adapter_fetches_native_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k clough`
+    - result: `1 passed, 86 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `128 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `86`, `259`, `clough=True`.
+
 ## Latest checkpoint - 2026-07-01T14:45Z
 
 - Promoted `oneascent` from recognition-only/generated support to native/live-backed support.
