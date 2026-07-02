@@ -10196,6 +10196,175 @@ class CloughHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Palmer Square ETF holdings from issuer product-page JSON data."""
+
+    PRODUCT_PAGE_SLUGS: dict[str, str] = {
+        "PSQO": "palmer-square-credit-opportunities-etf",
+        "PSQA": "palmer-square-clo-senior-debt-etf",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        slug = issuer_product_id or self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        if not slug:
+            return None
+        return f"https://etf.palmersquarefunds.com/funds/us-etfs/{slug}"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"Palmer Square product page route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date, holdings_payload = self._parse_product_page(
+            response.text,
+            fund_symbol=symbol,
+        )
+        if not rows:
+            raise ValueError(f"Palmer Square product page did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html_embedded_json",
+                "holdings": holdings_payload,
+            },
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_embedded_json",
+                "route_resolution": "issuer_product_page_embedded_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_full_investment_holdings",
+                "snapshot_provenance": "issuer_native_product_page_json",
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        page_text: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, list[dict[str, Any]]]:
+        holdings_payload = cls._extract_holdings_payload(page_text)
+        composition_date = cls._extract_composition_date(page_text)
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(holdings_payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            name = _clean(raw.get("name"))
+            cusip = _clean(raw.get("cusip"))
+            asset_type = _clean(raw.get("asset_type"))
+            if not any([name, cusip, asset_type]):
+                continue
+            row_type, holding_type = cls._classify_row(name=name, asset_type=asset_type)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None,
+                    name=name,
+                    cusip=cusip if cusip and _looks_like_cusip(cusip) else None,
+                    weight=_decimal_percent_points(raw.get("weight_percent")),
+                    shares=_decimal(raw.get("shares_par")),
+                    market_value=_decimal(raw.get("market_value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"{fund_symbol.strip().upper()}-"
+                        f"{composition_date.isoformat() if composition_date else 'latest'}-"
+                        f"{index}:{cusip or name or asset_type}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date, holdings_payload
+
+    @staticmethod
+    def _extract_holdings_payload(page_text: str) -> list[dict[str, Any]]:
+        marker = "var holdingsData ="
+        marker_index = page_text.find(marker)
+        if marker_index < 0:
+            return []
+        payload_start = page_text.find("[", marker_index)
+        if payload_start < 0:
+            return []
+        decoder = json.JSONDecoder()
+        try:
+            payload, _ = decoder.raw_decode(page_text[payload_start:])
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(payload, list):
+            return []
+        return [item for item in payload if isinstance(item, dict)]
+
+    @staticmethod
+    def _extract_composition_date(page_text: str) -> date | None:
+        match = re.search(
+            r"Full\s+Investment\s+Holdings\s+as\s+of\s+(?P<value>[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4})",
+            page_text,
+            flags=re.I,
+        )
+        if not match:
+            return None
+        for date_format in ("%b %d, %Y", "%B %d, %Y"):
+            try:
+                return datetime.strptime(match.group("value"), date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _classify_row(*, name: str | None, asset_type: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, asset_type) if part)
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if any(token in text for token in ("BOND", "NOTE", "DEBT", "LOAN", "CDO", "CLO")):
+            return "security", "fixed_income"
+        return "security", "security"
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -14335,6 +14504,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Spear public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "palmer_square": IssuerCsvAdapterConfig(
+        adapter_key="palmer_square",
+        source_provider="palmer_square",
+        source_access="issuer_public_product_page_embedded_holdings_json",
+        product_page_templates=(
+            "https://etf.palmersquarefunds.com/funds/us-etfs/{issuer_product_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Palmer Square public ETF product-page holdings data may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -14457,6 +14636,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "eventide": EventideHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
+        "palmer_square": PalmerSquareHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,

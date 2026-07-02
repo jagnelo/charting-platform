@@ -7764,6 +7764,44 @@ Append a short entry after each worker session.
 
 - Continue replacing generated/thin ETF provider adapters with isolated native routes. `wisdomtree` remains recognition/SEC-fallback-only because the probed product pages are Cloudflare-blocked and guessed holdings paths returned 404; do not count it until a first-party route can be fetched and live-tested. Continue probing other high-value unsupported issuers such as `fidelity`, `abrdn`, `allspring`, `capital_group`, `dimensional`, `goldman_sachs`, `hartford`, `t_rowe_price`, `columbia`, and `victory`.
 
+## 2026-07-02 - Palmer Square native ETF holdings route
+
+### Summary
+
+- Added a provider-specific native/live-backed `PalmerSquareHoldingsAdapter`.
+- The adapter uses Palmer Square public ETF product pages such as `https://etf.palmersquarefunds.com/funds/us-etfs/palmer-square-credit-opportunities-etf`.
+- Confirmed the route live with `PSQO`, whose page embeds a full `holdingsData` JSON array used by the issuer page itself for CSV/XLSX export.
+- Added issuer-specific parsing for Palmer Square fields:
+  - maps valid CUSIPs
+  - maps `weight_percent` from percent points to decimal weights
+  - maps principal amount, market value, asset type, and composition date
+  - classifies CLO/CDO/debt rows as fixed income
+  - avoids inventing fake tradable ticker symbols for fixed-income holdings without tickers
+- Promoted `palmer_square` to native/live-backed support only after the focused live test passed.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `87`
+  - providers still lacking native/live-backed support: `258`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_palmer_square_adapter_parses_embedded_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k palmer_square` -> `1 passed, 87 deselected`
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `129 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `87`, `258` remaining
+
+### Problems found
+
+- Palmer Square does not expose a simple visible CSV URL; the useful holdings dataset is embedded as JavaScript JSON in the product page and then exported client-side by the issuer page.
+- Palmer Square holdings are fixed-income/CLO-heavy and generally do not provide equity-style tradable tickers, so provider-specific classification is necessary to avoid fake symbol materialization.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native routes. Current useful but still unsupported/native-unproven candidates include `federated_hermes`, `motley_fool`, `doubleline`, `brookfield`, `neuberger_berman`, and `morgan_stanley`; do not count any of them until a first-party backend-fetchable route is implemented and live-tested.
+
 ## 2026-06-13 - Main Management native ETF holdings route
 
 ### Summary

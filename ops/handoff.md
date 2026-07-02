@@ -5,6 +5,35 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-02T12:03Z
+
+- Promoted `palmer_square` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `PalmerSquareHoldingsAdapter`:
+  - native data route: Palmer Square public ETF product pages such as `https://etf.palmersquarefunds.com/funds/us-etfs/palmer-square-credit-opportunities-etf`
+  - supported live validation symbol: `PSQO`
+  - current Palmer Square product pages embed a full `holdingsData` JSON array that the issuer page itself uses for CSV/XLSX export.
+  - parser handles Palmer Square-specific fields including `cusip`, `name`, `asset_type`, `shares_par`, `market_value`, and `weight_percent`.
+  - parser converts percent-point weights into canonical decimal weights, maps valid CUSIPs, preserves principal/market value, classifies CLO/CDO/debt rows as fixed income, and avoids inventing fake tradable symbols for fixed-income holdings without tickers.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `87`
+  - providers still lacking native/live-backed support: `258`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_palmer_square_adapter_parses_embedded_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k palmer_square`
+    - result: `1 passed, 87 deselected`
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`
+    - result: `129 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `87`, `258`, `palmer_square=True`.
+
 ## Latest checkpoint - 2026-07-02T11:45Z
 
 - Promoted `clough` from recognition-only/generated support to native/live-backed support.

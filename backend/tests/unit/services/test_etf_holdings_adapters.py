@@ -2865,6 +2865,69 @@ async def test_clough_adapter_fetches_native_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("palmer_square")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <h3>Full Investment Holdings as of Jul 1, 2026</h3>
+        <script>
+          var holdingsData = [
+            {
+              "cusip": "64755YAJ7",
+              "name": "NEW MOUNTAIN FLT 04/39",
+              "asset_type": "CDO/COLLATERALIZED DEBT OBLIGATION",
+              "shares_par": "1,000,000.00000000",
+              "market_value": "997,441.09",
+              "weight_percent": "0.38"
+            },
+            {
+              "cusip": "USD",
+              "name": "Cash & Cash Equivalents",
+              "asset_type": "Cash",
+              "shares_par": "125.00",
+              "market_value": "125.00",
+              "weight_percent": "0.01"
+            }
+          ];
+        </script>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://etf.palmersquarefunds.com/funds/us-etfs/palmer-square-credit-opportunities-etf",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PSQO", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://etf.palmersquarefunds.com/funds/us-etfs/"
+        "palmer-square-credit-opportunities-etf"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "NEW MOUNTAIN FLT 04/39"
+    assert result.rows[0].cusip == "64755YAJ7"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].shares == Decimal("1000000.00000000")
+    assert result.rows[0].market_value == Decimal("997441.09")
+    assert result.rows[0].weight == Decimal("0.0038")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
+    assert result.legal_metadata["source_provider"] == "palmer_square"
+    assert result.legal_metadata["composition_date"] == "2026-07-01"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3498,6 +3561,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["timothy_plan"]["support_route_types"]
     assert adapters["spear"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["spear"]["support_route_types"]
+    assert adapters["palmer_square"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["palmer_square"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
