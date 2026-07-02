@@ -3013,6 +3013,47 @@ async def test_future_fund_adapter_parses_account_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_counterpoint_adapter_parses_symbol_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("counterpoint")
+    assert adapter is not None
+
+    raw_csv = """asOfDate,portfolioNumber,portfolioName,securityIdentifier,securityTicker,securityDescriptionShort,securityDescriptionLong,shares,priceLocal,marketValueBase,fxRate,tradingCurrency,accruedIncome,incomeCurrency,country,longShortIndicator,segment,category,sector,industry,marketValuePercent,netAssetsPercent,grossAssetPercent
+2026-06-30T00:00:00,1351,Counterpoint Quantitative Equity ETF,BBHETFMM,9BBH,BBH SWEEP VEHICLE,BBH SWEEP VEHICLE,653582.22,100,653582.22,1,USD,1279.03,USD,US,Long,SHORT TERM INVESTMENTS - OTHER,BANKS SAVINGS-DEPOSIT ACCOUNT,BANKS SAVINGS-DEPOSIT ACCOUNT,BANKS SAVINGS-DEPOSIT ACCOUNT,0.00176722665,0.001767192088,0
+2026-06-30T00:00:00,1351,Counterpoint Quantitative Equity ETF,037833100,AAPL US,APPLE INC,Apple Inc.,25488,289.36,7375207.68,1,USD,0,USD,US,Long,COMMON STOCKS,TECHNOLOGY,TECHNOLOGY HARDWARE,COMMUNICATIONS EQUIPMENT,0.019941888206,0.019941498196,0
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url="https://counterpointfunds.com/etfdata/holdings_cpai.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CPAI", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://counterpointfunds.com/etfdata/holdings_cpai.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].market_value == Decimal("653582.22")
+    assert result.rows[0].weight == Decimal("0.001767192088")
+    assert result.rows[1].symbol == "AAPL"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].name == "Apple Inc."
+    assert result.rows[1].cusip == "037833100"
+    assert result.rows[1].shares == Decimal("25488")
+    assert result.rows[1].market_value == Decimal("7375207.68")
+    assert result.rows[1].weight == Decimal("0.019941498196")
+    assert result.legal_metadata["source_provider"] == "counterpoint"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3650,6 +3691,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["palmer_square"]["support_route_types"]
     assert adapters["future_fund"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["future_fund"]["support_route_types"]
+    assert adapters["counterpoint"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["counterpoint"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

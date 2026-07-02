@@ -10640,6 +10640,176 @@ class FutureFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class CounterpointHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Counterpoint ETF holdings from issuer-published CSV feeds."""
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://counterpointfunds.com/etfdata/holdings_{normalized_symbol}.csv"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://counterpointfunds.com/quantitative-equity-etf/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Counterpoint holdings CSV route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_counterpoint_csv(response.text, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Counterpoint holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_symbol_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_csv_feed",
+            },
+        )
+
+    @classmethod
+    def _parse_counterpoint_csv(
+        cls,
+        raw_csv: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            if composition_date is None:
+                composition_date = cls._parse_as_of_date(item.get("asOfDate"))
+            raw_symbol = _clean(item.get("securityTicker"))
+            symbol, exchange = cls._split_security_ticker(raw_symbol)
+            name = _clean(
+                item.get("securityDescriptionLong")
+                or item.get("securityDescriptionShort")
+            )
+            cusip = _clean(item.get("securityIdentifier"))
+            holding_type = cls._classify_holding(item)
+            row_type = "cash" if holding_type == "cash" else "security"
+            if not any([symbol, name, cusip, item.get("marketValueBase"), item.get("netAssetsPercent")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(item.get("netAssetsPercent") or item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency")),
+                    country=_clean(item.get("country")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{fund_symbol.strip().upper()}-{index}",
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_security_ticker(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        normalized = " ".join(text.split()).upper()
+        parts = normalized.split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", parts[0]):
+            return parts[0], parts[1]
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized, None
+        return None, None
+
+    @staticmethod
+    def _classify_holding(item: dict[str, Any]) -> str:
+        text = " ".join(
+            (_clean(item.get(key)) or "").upper()
+            for key in (
+                "securityTicker",
+                "securityIdentifier",
+                "securityDescriptionShort",
+                "securityDescriptionLong",
+                "segment",
+                "category",
+            )
+        )
+        if any(
+            marker in text
+            for marker in ("CASH", "SWEEP", "SHORT TERM INVESTMENTS", "RECEIVABLE", "PAYABLE")
+        ):
+            return "cash"
+        if "OPTION" in text:
+            return "option"
+        if "BOND" in text or "FIXED INCOME" in text:
+            return "fixed_income"
+        return "equity"
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -14799,6 +14969,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Future Fund public ETF holdings CSV modules may be subject to issuer terms.",
     ),
+    "counterpoint": IssuerCsvAdapterConfig(
+        adapter_key="counterpoint",
+        source_provider="counterpoint",
+        source_access="issuer_public_symbol_holdings_csv",
+        url_templates=(
+            "https://counterpointfunds.com/etfdata/holdings_{symbol_lower}.csv",
+        ),
+        product_page_templates=(
+            "https://counterpointfunds.com/quantitative-equity-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Counterpoint public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -14922,6 +15105,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,
+        "counterpoint": CounterpointHoldingsAdapter,
         "future_fund": FutureFundHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
