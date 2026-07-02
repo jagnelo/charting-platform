@@ -44,6 +44,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "fm_investments",
     "first_trust",
     "franklin",
+    "future_fund",
     "global_x",
     "gmo",
     "graniteshares",
@@ -677,6 +678,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "future_fund",
+            "FFOX",
+            None,
+            {},
+            20,
         ),
         (
             "roundhill",

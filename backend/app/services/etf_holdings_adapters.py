@@ -10365,6 +10365,281 @@ class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "security"
 
 
+class FutureFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Future Fund ETF holdings from issuer-published CSV modules."""
+
+    HOLDINGS_URLS: dict[str, str] = {
+        "FFLS": "https://futurefundetf.com/modules/mod_csvtables_copy/cron/holdings.csv",
+        "FFOX": (
+            "https://futurefundetf.com/modules/mod_csvtables_ffox/cron/"
+            "FundxFutureWeb.40F3.F3_Holdings.csv"
+        ),
+    }
+
+    PRODUCT_PAGE_SLUGS: dict[str, str] = {
+        "FFLS": "the-future-fund-long-short-etf",
+        "FFOX": "fundx-future-fund-opportunities-etf",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.HOLDINGS_URLS.get(symbol.strip().upper())
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        slug = issuer_product_id or self.PRODUCT_PAGE_SLUGS.get(symbol.strip().upper())
+        if not slug:
+            return None
+        return f"https://futurefundetf.com/fund/{slug}"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://futurefundetf.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Future Fund holdings CSV route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date, source_format = self._parse_holdings_csv(
+            response.text,
+            symbol=symbol,
+        )
+        if not rows:
+            raise ValueError(f"Future Fund holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "issuer_schema": source_format,
+                "route_resolution": "issuer_symbol_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_csv_module",
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        if not table_rows:
+            return [], None, "empty"
+        first_row = {cell.strip().lower() for cell in table_rows[0]}
+        if {"date", "account", "stockticker", "cusip", "securityname"} <= first_row:
+            rows, composition_date = cls._parse_account_csv(raw_csv, symbol=symbol)
+            return rows, composition_date, "account_holdings_csv"
+        rows, composition_date = cls._parse_preamble_csv(table_rows)
+        return rows, composition_date, "preamble_holdings_csv"
+
+    @classmethod
+    def _parse_account_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        requested_symbol = symbol.strip().upper()
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(item.get("Account")) or "").upper()
+            if account and account != requested_symbol:
+                continue
+            row_date = cls._parse_date(item.get("Date"))
+            if composition_date is None:
+                composition_date = row_date
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            money_market_flag = _clean(item.get("MoneyMarketFlag"))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=name,
+                identifier=_clean(item.get("CUSIP")),
+                money_market_flag=money_market_flag,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=raw_symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=(
+                        _clean(item.get("CUSIP"))
+                        if _looks_like_cusip(_clean(item.get("CUSIP")))
+                        else None
+                    ),
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={key: value for key, value in item.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @classmethod
+    def _parse_preamble_csv(
+        cls,
+        table_rows: list[list[str]],
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        composition_date = cls._extract_as_of_date(table_rows[:5])
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lower() for cell in row}
+                >= {"name", "security identifier", "symbol"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+        header = table_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            raw_symbol = _clean(_first(raw, ["Symbol"]))
+            symbol, exchange = cls._split_symbol(raw_symbol)
+            name = _clean(_first(raw, ["Name"]))
+            security_identifier = _clean(_first(raw, ["Security Identifier"]))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=name,
+                identifier=security_identifier,
+                money_market_flag=None,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=security_identifier if _looks_like_cusip(security_identifier) else None,
+                    weight=_decimal_percent_points(_first(raw, ["Market Value %", "Net Assets %"])),
+                    shares=_decimal(_first(raw, ["Shares Held"])),
+                    market_value=_decimal(_first(raw, ["Market Value"])),
+                    currency="USD",
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_as_of_date(prefix_rows: list[list[Any]]) -> date | None:
+        text = " ".join(str(cell) for row in prefix_rows for cell in row if cell is not None)
+        match = re.search(r"as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", text, re.IGNORECASE)
+        if not match:
+            return None
+        return FutureFundHoldingsAdapter._parse_date(match.group(1))
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for date_format in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        text = _clean(raw_symbol)
+        if text is None:
+            return None, None
+        normalized = " ".join(text.split())
+        if normalized.endswith(" US") and re.fullmatch(r"[A-Z0-9. -]+ US", normalized):
+            return normalized[:-3].strip(), "US"
+        return normalized, None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        identifier: str | None,
+        money_market_flag: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name, identifier) if part)
+        if money_market_flag or any(
+            marker in text
+            for marker in ("DOLLAR", "CASH", "BROKER", "RECEIVABLE", "PAYABLE", "SWEEP")
+        ):
+            return "cash", "cash"
+        if "FUND" in text or "ETF" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -14514,6 +14789,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Palmer Square public ETF product-page holdings data may be subject to issuer terms.",
     ),
+    "future_fund": IssuerCsvAdapterConfig(
+        adapter_key="future_fund",
+        source_provider="future_fund",
+        source_access="issuer_public_symbol_holdings_csv",
+        product_page_templates=(
+            "https://futurefundetf.com/fund/{issuer_product_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Future Fund public ETF holdings CSV modules may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -14637,6 +14922,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,
+        "future_fund": FutureFundHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,

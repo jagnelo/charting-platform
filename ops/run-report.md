@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-02 - Future Fund native ETF holdings route
+
+### Summary
+
+- Promoted `future_fund` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `FutureFundHoldingsAdapter`:
+  - native routes:
+    - `https://futurefundetf.com/modules/mod_csvtables_copy/cron/holdings.csv` for `FFLS`
+    - `https://futurefundetf.com/modules/mod_csvtables_ffox/cron/FundxFutureWeb.40F3.F3_Holdings.csv` for `FFOX`
+  - live validation symbol: `FFOX`
+  - parser supports both Future Fund CSV shapes seen in public modules: preamble/header holdings CSVs and account-style daily holdings CSVs.
+  - parser filters account-style rows by requested ETF, maps CUSIPs, splits venue-qualified tickers such as `NVDA US`, converts issuer percent values to canonical decimal weights, and preserves broker/cash/sweep rows as cash.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `88`
+  - providers still lacking native/live-backed support: `257`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_future_fund_adapter_parses_preamble_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_future_fund_adapter_parses_account_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `3 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k future_fund` -> sandbox DNS failed first, escalated network rerun passed with `1 passed, 88 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `88`, `257`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `257` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-01 - OneAscent native ETF holdings route
 
 ### Summary

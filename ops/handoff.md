@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-02T12:22Z
+
+- Promoted `future_fund` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `FutureFundHoldingsAdapter`:
+  - native data routes:
+    - `https://futurefundetf.com/modules/mod_csvtables_copy/cron/holdings.csv` for `FFLS`
+    - `https://futurefundetf.com/modules/mod_csvtables_ffox/cron/FundxFutureWeb.40F3.F3_Holdings.csv` for `FFOX`
+  - supported live validation symbol: `FFOX`
+  - current Future Fund public modules expose two issuer-specific CSV shapes: a preamble/header holdings CSV and an account-style daily holdings CSV.
+  - parser handles Future Fund-specific fields including `Name`, `Security Identifier`, `Symbol`, `Market Value %`, `Date`, `Account`, `StockTicker`, `CUSIP`, `SecurityName`, `Shares`, `MarketValue`, `Weightings`, and `MoneyMarketFlag`.
+  - parser filters account-style rows by requested ETF symbol, splits venue-qualified symbols such as `NVDA US`, maps valid CUSIPs, converts issuer percent values into canonical decimal weights, and preserves cash/broker/sweep rows as cash rather than fake tradable symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `88`
+  - providers still lacking native/live-backed support: `257`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_future_fund_adapter_parses_preamble_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_future_fund_adapter_parses_account_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `3 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k future_fund`
+    - result: sandbox DNS failed first, escalated network rerun passed with `1 passed, 88 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `88`, `257`.
+
 ## Latest checkpoint - 2026-07-02T12:03Z
 
 - Promoted `palmer_square` from recognition-only/generated support to native/live-backed support.

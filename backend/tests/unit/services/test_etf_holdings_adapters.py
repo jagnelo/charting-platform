@@ -2928,6 +2928,91 @@ async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_future_fund_adapter_parses_preamble_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("future_fund")
+    assert adapter is not None
+
+    raw_csv = """The Future Fund Long/Short ETF
+Fund Holdings Data as of 07/01/2026
+Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %
+US DOLLAR BROKER,USDB,USDB,56.38,1.00,"24,497,621.85","24,497,621.85",56.40
+NVIDIA CORP,67066G104,NVDA US,6.37,197.58,"14,011.00","2,768,293.38",6.37
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url="https://futurefundetf.com/modules/mod_csvtables_copy/cron/holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FFLS", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://futurefundetf.com/modules/mod_csvtables_copy/cron/holdings.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].weight == Decimal("0.564")
+    assert result.rows[1].symbol == "NVDA"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].name == "NVIDIA CORP"
+    assert result.rows[1].cusip == "67066G104"
+    assert result.rows[1].shares == Decimal("14011.00")
+    assert result.rows[1].market_value == Decimal("2768293.38")
+    assert result.rows[1].weight == Decimal("0.0637")
+    assert result.legal_metadata["source_provider"] == "future_fund"
+    assert result.legal_metadata["issuer_schema"] == "preamble_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-01"
+
+
+@pytest.mark.asyncio
+async def test_future_fund_adapter_parses_account_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("future_fund")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/02/2026,FFOX,ADMA,000899104,ADMA Biologics Inc,248524.00000000,8.610000,2139791.64,0.89%,240000000,12000000,240,
+07/02/2026,OTHER,ZZZ,000000000,Other Holding,1,1,1,1.00%,1,1,1,
+07/02/2026,FFOX,CASH,CASH,Cash Sweep,1000,1,1000,0.01%,240000000,12000000,240,Y
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url=(
+                "https://futurefundetf.com/modules/mod_csvtables_ffox/cron/"
+                "FundxFutureWeb.40F3.F3_Holdings.csv"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FFOX", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://futurefundetf.com/modules/mod_csvtables_ffox/cron/"
+        "FundxFutureWeb.40F3.F3_Holdings.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ADMA"
+    assert result.rows[0].name == "ADMA Biologics Inc"
+    assert result.rows[0].cusip == "000899104"
+    assert result.rows[0].shares == Decimal("248524.00000000")
+    assert result.rows[0].market_value == Decimal("2139791.64")
+    assert result.rows[0].weight == Decimal("0.0089")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "future_fund"
+    assert result.legal_metadata["issuer_schema"] == "account_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3563,6 +3648,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["spear"]["support_route_types"]
     assert adapters["palmer_square"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["palmer_square"]["support_route_types"]
+    assert adapters["future_fund"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["future_fund"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
