@@ -87,6 +87,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "strive",
     "swan_global",
     "tapp",
+    "true_shares",
     "t_rowe_price",
     "timothy_plan",
     "tema",
@@ -667,6 +668,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             3,
+        ),
+        (
+            "true_shares",
+            "ONEH",
+            None,
+            {},
+            5,
         ),
         (
             "t_rowe_price",

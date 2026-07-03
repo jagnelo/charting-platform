@@ -1503,6 +1503,62 @@ async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("true_shares")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=17f1gPEVOaxXna1Vbr98Zhfxd208yS1xARzFV1SNTWqU&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download Holdings CSV</a>',
+            content_type="text/html",
+            url="https://www.true-shares.com/etf/oneh",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "7/6/2026,ONEH,912797UG0,912797UG0,TREASURY BILL B 09/17/26,7447000,99.265177,7392277.73,50.95,14509457",
+                    "7/6/2026,ONEH,RCXTESHT,RCXTESHT,RECV RCXTESHT SHALLOW HEDGE,77211.9528,91.91,7096550.58,-1.4,14509457",
+                    "7/6/2026,ONEH,RCXTESHT,RCXTESHT,PAYB RCXTESHT SHALLOW HEDGE,-7300006.64,100,-7300006.64,0,14509457",
+                    "7/6/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ONEH", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.true-shares.com/etf/oneh"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].cusip == "912797UG0"
+    assert result.rows[0].row_type == "security"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.5095")
+    assert result.rows[0].market_value == Decimal("7392277.73")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].weight == Decimal("-0.014")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "other"
+    assert result.rows[2].holding_type == "derivative"
+    assert result.rows[2].weight == Decimal("0")
+    assert result.legal_metadata["source_provider"] == "true_shares"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_google_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("fm_investments")
     assert adapter is not None
@@ -3770,6 +3826,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
     assert adapters["tapp"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
+    assert adapters["true_shares"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["true_shares"]["support_route_types"]
     assert adapters["t_rowe_price"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["t_rowe_price"]["support_route_types"]
     assert adapters["fm_investments"]["live_tested_default_route"] is True

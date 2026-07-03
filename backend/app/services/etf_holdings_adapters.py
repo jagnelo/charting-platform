@@ -7469,6 +7469,206 @@ class TappAlphaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch TrueShares holdings from ETF product pages and linked Google CSV exports."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return f"https://www.true-shares.com/etf/{symbol.strip().lower()}"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://www.true-shares.com/etfs",
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        route_resolution = "issuer_profile_metadata"
+        if not resolved_source_url:
+            resolved_source_url = await self._discover_source_url_from_product_page(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers or {},
+            )
+            route_resolution = "issuer_product_page_google_holdings_csv"
+        if not resolved_source_url:
+            raise ValueError(f"TrueShares product page did not expose holdings CSV for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_true_shares_csv(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"TrueShares holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": route_resolution,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_google_sheet_csv",
+            },
+        )
+
+    async def _discover_source_url_from_product_page(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            return None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        return TappAlphaHoldingsAdapter._discover_google_csv_export(
+            response.text,
+            base_url=str(response.url),
+        )
+
+    @classmethod
+    def _parse_true_shares_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        requested_symbol = symbol.strip().upper()
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(reader, start=1):
+            account = (_clean(_first(raw, ["Account"])) or "").upper()
+            if account and account != requested_symbol:
+                continue
+            row_date = cls._parse_date(_first(raw, ["Date"]))
+            if composition_date is None:
+                composition_date = row_date
+
+            raw_symbol = _clean(_first(raw, ["Stock Ticker", "StockTicker", "Ticker"]))
+            name = _clean(_first(raw, ["Security Name", "SecurityName", "Name"]))
+            row_type, holding_type = cls._classify_holding(symbol=raw_symbol, name=name)
+            symbol_value = cls._clean_symbol(raw_symbol) if holding_type == "equity" else None
+            cusip_value = _clean(_first(raw, ["CUSIP", "Cusip"]))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+
+            if not any([symbol_value, name, cusip, _first(raw, ["Weightings"]), _first(raw, ["Market Value"])]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal_percent_points(_first(raw, ["Weightings", "Weight"])),
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=_decimal(_first(raw, ["Market Value", "MarketValue"])),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{requested_symbol}-{position}",
+                    extra_data={
+                        "source_symbol": raw_symbol,
+                        "account": account,
+                        "price": _clean(_first(raw, ["Price"])),
+                        "net_assets": _clean(_first(raw, ["Net Assets", "NetAssets"])),
+                        **{key: value for key, value in raw.items() if _clean(value) is not None},
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _clean_symbol(value: Any) -> str | None:
+        text = _clean(value)
+        if not text:
+            return None
+        normalized = text.strip().upper()
+        if _looks_like_cusip(normalized):
+            return None
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized
+        return None
+
+    @staticmethod
+    def _classify_holding(*, symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if any(marker in text for marker in ("CASH", "MMDA", "MONEY MARKET", "SWEEP")):
+            return "cash", "cash"
+        if "TREASURY BILL" in text or "TREASURY NOTE" in text:
+            return "security", "fixed_income"
+        if any(marker in text for marker in ("RECV ", "PAYB ", "RECEIVABLE", "PAYABLE")):
+            return "other", "derivative"
+        if "FUND" in text or "ETF" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -15414,6 +15614,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TappAlpha public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "true_shares": IssuerCsvAdapterConfig(
+        adapter_key="true_shares",
+        source_provider="true_shares",
+        source_access="issuer_public_product_page_google_holdings_csv",
+        product_page_templates=(
+            "https://www.true-shares.com/etf/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="TrueShares public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
+    ),
     "timothy_plan": IssuerCsvAdapterConfig(
         adapter_key="timothy_plan",
         source_provider="timothy_plan",
@@ -15576,6 +15786,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "tapp": TappAlphaHoldingsAdapter,
         "timothy_plan": TimothyPlanHoldingsAdapter,
         "t_rowe_price": TRowePriceHoldingsAdapter,
+        "true_shares": TrueSharesHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,
         "themes": ThemesHoldingsAdapter,

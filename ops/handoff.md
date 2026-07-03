@@ -5,6 +5,32 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T14:50Z
+
+- Promoted `true_shares` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `TrueSharesHoldingsAdapter`:
+  - native product-page route: `https://www.true-shares.com/etf/{symbol_lower}`
+  - current holdings CSV is discovered from the product page through the issuer's `Download Holdings CSV` Google Sheets export link.
+  - supported live validation symbol: `ONEH`
+  - parser filters account-style rows by the requested ETF account symbol so sibling TrueShares funds are not ingested into the selected ETF.
+  - parser handles TrueShares-specific fields including `Date`, `Account`, `Stock Ticker`, `CUSIP`, `Security Name`, `Shares`, `Price`, `Market Value`, `Weightings`, and `Net Assets`.
+  - parser converts issuer percent-point weights into canonical decimal weights, maps valid CUSIPs, preserves market values/shares, classifies Treasury bills as fixed income, and keeps hedge receivable/payable rows as derivative/other rather than fake tradable equity symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `92`
+  - providers still lacking native/live-backed support: `253`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_true_shares_adapter_discovers_google_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k true_shares`
+    - result: `1 passed, 92 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `92`, `253`, `true_shares=True`.
+
 ## Latest checkpoint - 2026-07-03T14:33Z
 
 - Promoted `madison` from recognition-only/generated support to native/live-backed support.
