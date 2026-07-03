@@ -5,6 +5,30 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T15:45Z
+
+- Promoted `zacks` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `ZacksHoldingsAdapter`:
+  - native public holdings download routes:
+    - `https://www.zacksetfs.com/webservices/holdings.php` for `ZECP`
+    - `https://www.zacksetfs.com/webservices/{symbol_lower}-holdings.php` style explicit routes for `SMIZ`, `GROZ`, `QUIZ`, `PRIZ`, and `ZINC`
+  - supported live validation symbol: `ZECP`
+  - parser handles Zacks' preamble CSV-like holdings downloads with `Fund Holdings Data as of ...`, `Name`, `Security Identifier`, `Symbol`, `Net Assets %`, `Market Price`, `Shares Held`, `Market Value`, and `Market Value %`.
+  - parser splits venue-qualified symbols such as `RTX US` into `symbol=RTX` plus `exchange=US`, maps valid CUSIPs, converts percent-point weights into canonical decimal weights, preserves shares/market values, and classifies sweep rows as cash instead of fake tradable securities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `95`
+  - providers still lacking native/live-backed support: `250`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_zacks_adapter_parses_symbol_holdings_download tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k zacks`
+    - result: `1 passed, 95 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - count command returned `345`, `95`, `250`, `zacks=True`.
+
 ## Latest checkpoint - 2026-07-03T15:21Z
 
 - Promoted `deepwater` from recognition-only/generated support to native/live-backed support.

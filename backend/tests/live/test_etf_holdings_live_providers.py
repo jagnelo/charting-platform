@@ -102,6 +102,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "wahed",
     "world_gold_council",
     "yieldmax",
+    "zacks",
 }
 SEC_BACKED_SAMPLE_ADAPTERS = {
     "capital_group",
@@ -156,6 +157,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "acquirers",
             "ZIG",
+            None,
+            {},
+            20,
+        ),
+        (
+            "zacks",
+            "ZECP",
             None,
             {},
             20,

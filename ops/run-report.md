@@ -2,6 +2,38 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-03 - Zacks native ETF holdings route
+
+### Summary
+
+- Promoted `zacks` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `ZacksHoldingsAdapter`:
+  - native public holdings download route: `https://www.zacksetfs.com/webservices/holdings.php` for `ZECP`
+  - explicit sibling download routes for `SMIZ`, `GROZ`, `QUIZ`, `PRIZ`, and `ZINC`
+  - live validation symbol: `ZECP`
+  - parser handles Zacks preamble holdings downloads with `Fund Holdings Data as of ...` metadata.
+  - parser maps venue-qualified symbols, CUSIPs, percent-point weights, shares, market values, and sweep/cash rows.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `95`
+  - providers still lacking native/live-backed support: `250`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_zacks_adapter_parses_symbol_holdings_download tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k zacks` -> `1 passed, 95 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `95`, `250`, `zacks=True`
+
+### Problems Found
+
+- WisdomTree obvious CSV/API routes still did not pass direct backend access checks in this session; the old `/-/media/...` CSV path redirects to `/us/...`, and that canonical URL returned 404.
+- Fidelity, Dimensional, Capital Group, Goldman Sachs, Brown Advisory, Federated Hermes, and several smaller issuers still need deeper route discovery before they can honestly be counted as native/live-backed.
+
+### Next Step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `250` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-03 - Deepwater native ETF holdings route
 
 ### Summary

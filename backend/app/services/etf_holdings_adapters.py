@@ -11150,6 +11150,207 @@ class DeepwaterHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class ZacksHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Zacks ETF holdings from issuer-published holdings downloads."""
+
+    HOLDINGS_URLS: dict[str, str] = {
+        "ZECP": "https://www.zacksetfs.com/webservices/holdings.php",
+        "SMIZ": "https://www.zacksetfs.com/webservices/smiz-holdings.php",
+        "GROZ": "https://www.zacksetfs.com/webservices/groz-holdings.php",
+        "QUIZ": "https://www.zacksetfs.com/webservices/quiz-holdings.php",
+        "PRIZ": "https://www.zacksetfs.com/webservices/priz-holdings.php",
+        "ZINC": "https://www.zacksetfs.com/webservices/zinc-holdings.php",
+    }
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        symbol: f"https://www.zacksetfs.com/{symbol.lower()}.php"
+        for symbol in ("ZECP", "SMIZ", "GROZ", "QUIZ", "PRIZ", "ZINC")
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        return self.HOLDINGS_URLS.get(normalized_symbol)
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,text/plain,application/octet-stream,*/*")
+        headers["Referer"] = "https://www.zacksetfs.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Zacks ETF holdings route is unavailable for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        composition_date, rows = self._parse_holdings_csv(response.text)
+        if not rows:
+            raise ValueError(f"Zacks holdings download did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_symbol_holdings_download",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_csv_export",
+                "product_page_url": self.resolve_product_page_url(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                ),
+            },
+        )
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        text = _clean(raw_symbol)
+        if not text:
+            return None, None
+        parts = text.split()
+        if len(parts) == 2:
+            return parts[0].upper(), parts[1].upper()
+        return text.upper(), None
+
+    def _parse_holdings_csv(self, raw_csv: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        composition_date: date | None = None
+        for row in table_rows[:5]:
+            line = " ".join(str(cell) for cell in row if _clean(cell))
+            match = re.search(r"as of\s+([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})", line, re.I)
+            if match:
+                composition_date = datetime.strptime(match.group(1), "%m/%d/%Y").date()
+                break
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows)
+                if {"name", "security identifier", "symbol"}.issubset(
+                    {str(cell).strip().lower() for cell in row}
+                )
+            ),
+            None,
+        )
+        if header_index is None:
+            return composition_date, []
+        header = table_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for row_index, raw_row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(_first(raw, ["name"]))
+            raw_symbol = _clean(_first(raw, ["symbol"]))
+            symbol, exchange = self._split_symbol(raw_symbol)
+            identifier = _clean(_first(raw, ["security identifier"]))
+            cusip = identifier if _looks_like_cusip(identifier) else None
+            isin = identifier if _looks_like_isin(identifier) else None
+            sedol = identifier if _looks_like_sedol(identifier) else None
+            row_type, holding_type = self._classify_holding(raw_symbol, name, identifier)
+            if row_type == "cash":
+                symbol = None
+                exchange = None
+            weight = _decimal_percent_points(_first(raw, ["net assets %"]))
+            if weight is None:
+                weight = _decimal_percent_points(_first(raw, ["market value %"]))
+            if not any([name, symbol, cusip, isin, sedol, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip,
+                    isin=isin,
+                    sedol=sedol,
+                    weight=weight,
+                    shares=_decimal(_first(raw, ["shares held"])),
+                    market_value=_decimal(_first(raw, ["market value"])),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(row_index),
+                    extra_data={
+                        "source_symbol": raw_symbol,
+                        "market_price": _clean(_first(raw, ["market price"])),
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                    },
+                )
+            )
+        return composition_date, rows
+
+    @staticmethod
+    def _classify_holding(
+        raw_symbol: str | None,
+        name: str | None,
+        identifier: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name, identifier) if part)
+        if any(marker in text for marker in ("CASH", "SWEEP", "MONEY MARKET")):
+            return "cash", "cash"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if any(marker in text for marker in ("BOND", "TREASURY", "NOTE")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class HowardCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Howard Capital ETF holdings from issuer-hosted CSV files."""
 
@@ -15316,6 +15517,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "zacks": IssuerCsvAdapterConfig(
+        adapter_key="zacks",
+        source_provider="zacks",
+        source_access="issuer_public_symbol_holdings_download",
+        live_tested_default_route=True,
+        terms_note="Zacks ETF public holdings downloads may be subject to issuer terms.",
+    ),
     "arrow": IssuerCsvAdapterConfig(
         adapter_key="arrow",
         source_provider="arrow",
@@ -16174,6 +16382,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "wisdomtree": WisdomTreeHoldingsAdapter,
         "world_gold_council": WorldGoldCouncilHoldingsAdapter,
         "yieldmax": YieldMaxHoldingsAdapter,
+        "zacks": ZacksHoldingsAdapter,
     }
     adapter_type = adapter_types.get(config.adapter_key)
     if adapter_type is None:

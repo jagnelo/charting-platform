@@ -3218,6 +3218,52 @@ async def test_deepwater_adapter_parses_product_page_holdings_table(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_zacks_adapter_parses_symbol_holdings_download(monkeypatch):
+    adapter = get_holdings_adapter("zacks")
+    assert adapter is not None
+
+    raw_csv = """Zacks Earnings Consistent Portfolio ETF
+Fund Holdings Data as of 07/02/2026
+Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+BBH SWEEP VEHICLE, BBHETFMM, 9BBH, 2.195982243500, 100.000000000000, 7839669.1900000, 7839669.19, 2.196097106700
+RTX CORP, 75513E101, RTX US, 1.848780296500, 199.250000000000, 33125.0000000, 6600156.25, 1.848876998900
+PROLOGIS INC, 74340W103, PLD US, 0.689259577400, 139.430000000000, 17648.0000000, 2460660.64, 0.689295629900
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            content_type="application/octet-stream",
+            url="https://www.zacksetfs.com/webservices/holdings.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ZECP", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.zacksetfs.com/webservices/holdings.php"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].shares == Decimal("7839669.1900000")
+    assert result.rows[0].market_value == Decimal("7839669.19")
+    assert result.rows[0].weight == Decimal("0.021959822435")
+    assert result.rows[1].symbol == "RTX"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].cusip == "75513E101"
+    assert result.rows[1].holding_type == "equity"
+    assert result.rows[1].shares == Decimal("33125.0000000")
+    assert result.rows[1].market_value == Decimal("6600156.25")
+    assert result.rows[1].weight == Decimal("0.018487802965")
+    assert result.rows[2].symbol == "PLD"
+    assert result.legal_metadata["source_provider"] == "zacks"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_download"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+    assert result.legal_metadata["product_page_url"] == "https://www.zacksetfs.com/zecp.php"
+
+
+@pytest.mark.asyncio
 async def test_anfield_adapter_discovers_product_page_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("anfield")
     assert adapter is not None
@@ -3946,6 +3992,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["deutsche_bank"]["support_route_types"]
     assert adapters["deepwater"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["deepwater"]["support_route_types"]
+    assert adapters["zacks"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["zacks"]["support_route_types"]
     assert adapters["eventide"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
