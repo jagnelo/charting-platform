@@ -109,7 +109,6 @@ SEC_BACKED_SAMPLE_ADAPTERS = {
     "capital_group",
     "dimensional",
     "direxion",
-    "fidelity",
     "goldman_sachs",
     "wisdomtree",
 }

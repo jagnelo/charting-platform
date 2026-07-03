@@ -5,6 +5,26 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T16:43Z
+
+- Corrected ETF holdings live-provider test bookkeeping so Fidelity is no longer included in `SEC_BACKED_SAMPLE_ADAPTERS`.
+- Fidelity still has explicit SEC-backed probe coverage through `test_live_sec_backed_adapters_probe_ready_with_sec_identifiers`, but it is not a native/live-backed issuer route and should not be used as a generic SEC-backed sample in the provider-matrix set.
+- Current truthful provider count remains:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `96`
+  - providers still lacking native/live-backed support: `249`
+  - `fidelity.live_tested_default_route` is `False`
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_sec_backed_adapters_probe_ready_with_sec_identifiers --no-cov -q`
+    - result: `2 passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `96`, `249`, `fidelity_native=False`.
+
 ## Latest checkpoint - 2026-07-03T16:15Z
 
 - Promoted `motley_fool` from recognition-only/generated support to native/live-backed support.

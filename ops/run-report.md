@@ -8150,3 +8150,28 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native routes. Fidelity, Direxion, WisdomTree, Capital Group, Dimensional, Goldman Sachs, Hartford, T. Rowe Price, BNY Mellon, Columbia, and Victory remain high-value candidates that still lack native/live-backed support.
+
+## 2026-07-03 - ETF holdings live-test bookkeeping correction
+
+### Summary
+
+- Corrected ETF holdings live-provider test bookkeeping by removing `fidelity` from `SEC_BACKED_SAMPLE_ADAPTERS`.
+- Fidelity remains covered by the explicit SEC-backed probe test, but its adapter config is intentionally not native/live-backed (`live_tested_default_route=False`).
+- No provider was promoted in this slice.
+- Current truthful provider count remains:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `96`
+  - providers still lacking native/live-backed support: `249`
+  - SEC EDGAR remains fallback only.
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_sec_backed_adapters_probe_ready_with_sec_identifiers --no-cov -q` -> `2 passed`
+- `git diff --check` -> passed
+- count command -> `345`, `96`, `249`, `fidelity_native=False`
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `249` registered providers still lack native/live-backed support.
