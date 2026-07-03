@@ -5,6 +5,30 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T16:15Z
+
+- Promoted `motley_fool` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `MotleyFoolHoldingsAdapter`:
+  - native public FilePoint aggregate holdings CSV:
+    - `https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv`
+  - supported live validation symbol: `TMFC`
+  - parser reuses the account-filtered FilePoint CSV shape already used by similar ETF issuers and filters rows by requested ETF account symbol, so sibling Motley Fool funds in the same aggregate file are not ingested into the selected ETF.
+  - parser handles `Date`, `Account`, `StockTicker`, `CUSIP`, `SecurityName`, `Shares`, `Price`, `MarketValue`, `Weightings`, `NetAssets`, `SharesOutstanding`, `CreationUnits`, and `MoneyMarketFlag`.
+  - parser maps percent weights into canonical decimal weights, preserves CUSIPs/shares/market values, and preserves cash rows as cash instead of fake tradable securities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `96`
+  - providers still lacking native/live-backed support: `249`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_motley_fool_adapter_filters_filepoint_account_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k motley_fool`
+    - result: `1 passed, 96 deselected`
+  - `cd backend && uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - count command returned `345`, `96`, `249`, `motley_fool=True`.
+
 ## Latest checkpoint - 2026-07-03T15:45Z
 
 - Promoted `zacks` from recognition-only/generated support to native/live-backed support.

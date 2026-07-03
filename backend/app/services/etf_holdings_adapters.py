@@ -9284,6 +9284,19 @@ class BeyondInvestingHoldingsAdapter(InnovatorHoldingsAdapter):
         return headers
 
 
+class MotleyFoolHoldingsAdapter(InnovatorHoldingsAdapter):
+    """Parse Motley Fool Asset Management FilePoint holdings by ETF account symbol."""
+
+    aggregate_holdings_url = (
+        "https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv"
+    )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,*/*")
+        headers["Referer"] = "https://etfs.fooletfs.com/"
+        return headers
+
+
 class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.baroncapitalgroup.com/"
 
@@ -15969,6 +15982,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Miller Value public ETF fund-page holdings payloads may be subject to issuer terms.",
     ),
+    "motley_fool": IssuerCsvAdapterConfig(
+        adapter_key="motley_fool",
+        source_provider="motley_fool",
+        source_access="issuer_public_filepoint_multi_fund_holdings_csv",
+        url_templates=(
+            "https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://etfs.fooletfs.com/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Motley Fool Asset Management public FilePoint ETF holdings CSV files "
+            "may be subject to issuer terms."
+        ),
+    ),
     "new_york_life": IssuerCsvAdapterConfig(
         adapter_key="new_york_life",
         source_provider="new_york_life",
@@ -16350,6 +16379,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "madison": MadisonHoldingsAdapter,
         "matthews": MatthewsHoldingsAdapter,
         "miller_value": MillerValueHoldingsAdapter,
+        "motley_fool": MotleyFoolHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,

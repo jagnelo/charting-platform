@@ -2,6 +2,37 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-03 - Motley Fool native ETF holdings route
+
+### Summary
+
+- Promoted `motley_fool` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `MotleyFoolHoldingsAdapter`:
+  - native public FilePoint aggregate holdings CSV at `https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv`
+  - live validation symbol: `TMFC`
+  - parser filters the aggregate holdings file by requested ETF account symbol, so sibling Motley Fool ETF rows are not mixed into the selected ETF.
+  - parser maps FilePoint columns for date/account/ticker/CUSIP/name/shares/market value/weight/net assets and preserves cash rows correctly.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `96`
+  - providers still lacking native/live-backed support: `249`
+
+### Validation
+
+- `cd backend && uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_motley_fool_adapter_filters_filepoint_account_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k motley_fool` -> `1 passed, 96 deselected`
+- `cd backend && uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `96`, `249`, `motley_fool=True`
+
+### Problems Found
+
+- WisdomTree still blocks simple backend access and Fidelity did not expose an obvious native holdings artifact in the first pass; neither was promoted.
+- Several larger issuers still need deeper JS/API discovery before they can honestly be counted as native/live-backed.
+
+### Next Step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `249` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-03 - Zacks native ETF holdings route
 
 ### Summary

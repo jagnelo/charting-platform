@@ -3365,6 +3365,48 @@ async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_motley_fool_adapter_filters_filepoint_account_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("motley_fool")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/06/2026,MFIG,AAPL,037833100,Apple Inc,1658.00000000,308.630000,511708.54,4.35%,11769296.00,560000,56.000000000000,
+07/06/2026,TMFC,AMZN,023135106,Amazon.com Inc,2150.00000000,226.110000,486136.50,1.23%,39523292.55,1500000,150.000000000000,
+07/06/2026,TMFC,CASH,CASH,Cash & Other,1000.00000000,1.000000,1000.00,0.01%,39523292.55,1500000,150.000000000000,Y
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url="https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv",
+            content_type="application/octet-stream",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TMFC", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://etfs.fooletfs.com/assets/data/FilepointMotleyF.40MU.FW_Holdings.csv"
+    )
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://etfs.fooletfs.com/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AMZN"
+    assert result.rows[0].name == "Amazon.com Inc"
+    assert result.rows[0].cusip == "023135106"
+    assert result.rows[0].shares == Decimal("2150.00000000")
+    assert result.rows[0].market_value == Decimal("486136.50")
+    assert result.rows[0].weight == Decimal("0.0123")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].weight == Decimal("0.0001")
+    assert result.legal_metadata["source_provider"] == "motley_fool"
+    assert result.legal_metadata["route_resolution"] == "issuer_aggregate_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -4016,6 +4058,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["anfield"]["support_route_types"]
     assert adapters["madison"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["madison"]["support_route_types"]
+    assert adapters["motley_fool"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
