@@ -35,6 +35,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "clough",
     "davis",
     "defiance",
+    "deepwater",
     "deutsche_bank",
     "diamond_hill",
     "direxion",
@@ -361,6 +362,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "deepwater",
+            "DBSC",
+            None,
+            {},
+            20,
         ),
         (
             "direxion",

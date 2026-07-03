@@ -11010,6 +11010,146 @@ class CounterpointHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class DeepwaterHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Deepwater ETF holdings from its server-rendered product page."""
+
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "DBSC": "https://etfs.deepwatermgmt.com/dbsc-2/",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"Deepwater product page route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Deepwater product page did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_holdings_table",
+                "snapshot_provenance": "issuer_native_product_page",
+                "product_page_url": product_page_url,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        composition_date = cls._extract_as_of_date(raw_html)
+        for table in parser.tables:
+            if not table:
+                continue
+            header_values = {str(value).strip().lower() for value in table[0] if _clean(value)}
+            if not {"name", "symbol", "shares", "market value", "weightings (%)"} <= header_values:
+                continue
+            header = table[0]
+            rows: list[CanonicalHoldingRow] = []
+            for index, row in enumerate(table[1:], start=1):
+                item = _row_dict(header, row)
+                symbol = cls._normalize_symbol(_first(item, ["Symbol"]))
+                name = _clean(_first(item, ["Name"]))
+                if not any([symbol, name, _first(item, ["Shares"]), _first(item, ["Market Value"])]):
+                    continue
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=symbol,
+                        name=name,
+                        weight=_decimal(_first(item, ["Weightings (%)", "Weightings"])),
+                        shares=_decimal(_first(item, ["Shares"])),
+                        market_value=_decimal(_first(item, ["Market Value"])),
+                        currency="USD",
+                        holding_type="equity",
+                        row_type="security",
+                        source_row_id=f"{fund_symbol.strip().upper()}-{index}",
+                        extra_data={key: value for key, value in item.items() if _clean(value) is not None},
+                    )
+                )
+            return rows, composition_date
+        return [], composition_date
+
+    @staticmethod
+    def _normalize_symbol(value: Any) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = " ".join(text.split()).upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized
+        return None
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"data-asof=[\"'](\d{4}-\d{2}-\d{2})[\"']",
+            raw_html,
+            re.IGNORECASE,
+        ) or re.search(
+            r"<time[^>]+datetime=[\"'](\d{4}-\d{2}-\d{2})[\"']",
+            raw_html,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class HowardCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Howard Capital ETF holdings from issuer-hosted CSV files."""
 
@@ -15513,6 +15653,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="DWS/Xtrackers public product-data endpoints may be subject to issuer terms.",
     ),
+    "deepwater": IssuerCsvAdapterConfig(
+        adapter_key="deepwater",
+        source_provider="deepwater",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://etfs.deepwatermgmt.com/dbsc-2/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Deepwater public ETF product pages may be subject to issuer terms.",
+    ),
     "first_eagle": IssuerCsvAdapterConfig(
         adapter_key="first_eagle",
         source_provider="first_eagle",
@@ -15954,6 +16104,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "clough": CloughHoldingsAdapter,
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
+        "deepwater": DeepwaterHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,

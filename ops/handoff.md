@@ -5,6 +5,30 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T15:21Z
+
+- Promoted `deepwater` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `DeepwaterHoldingsAdapter`:
+  - native public ETF product page route: `https://etfs.deepwatermgmt.com/dbsc-2/`
+  - supported live validation symbol: `DBSC`
+  - parser handles Deepwater's server-rendered holdings table with `Name`, `Symbol`, `Shares`, `Market Value`, and `Weightings (%)` columns.
+  - parser extracts the composition date from the page/table `data-asof` metadata, maps percent weights to canonical decimal weights, preserves shares and market values, and avoids generic parser ambiguity around the page's DataTables CSV-export UI.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `94`
+  - providers still lacking native/live-backed support: `251`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_deepwater_adapter_parses_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k deepwater`
+    - result: `1 passed, 94 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `94`, `251`, `deepwater=True`.
+
 ## Latest checkpoint - 2026-07-03T15:07Z
 
 - Promoted `howard_capital` from recognition-only/generated support to native/live-backed support.

@@ -3154,6 +3154,70 @@ async def test_howard_capital_adapter_parses_symbol_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_deepwater_adapter_parses_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("deepwater")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <table class="table-top-holdings responsive" data-title="DBSC" data-asof="2026-04-23">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Symbol</th>
+              <th>Shares</th>
+              <th>Market Value</th>
+              <th>Weightings (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Credo Technology Group Holding Ltd</td>
+              <td>CRDO</td>
+              <td>721.00</td>
+              <td>$136,622.29</td>
+              <td>3.02%</td>
+            </tr>
+            <tr>
+              <td>SiTime Corp</td>
+              <td>SITM</td>
+              <td>238.00</td>
+              <td>$124,833.38</td>
+              <td>2.76%</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            url="https://etfs.deepwatermgmt.com/dbsc-2/",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DBSC", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://etfs.deepwatermgmt.com/dbsc-2/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "CRDO"
+    assert result.rows[0].name == "Credo Technology Group Holding Ltd"
+    assert result.rows[0].shares == Decimal("721.00")
+    assert result.rows[0].market_value == Decimal("136622.29")
+    assert result.rows[0].weight == Decimal("0.0302")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[1].symbol == "SITM"
+    assert result.rows[1].weight == Decimal("0.0276")
+    assert result.legal_metadata["source_provider"] == "deepwater"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-04-23"
+
+
+@pytest.mark.asyncio
 async def test_anfield_adapter_discovers_product_page_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("anfield")
     assert adapter is not None
@@ -3880,6 +3944,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["davis"]["support_route_types"]
     assert adapters["deutsche_bank"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["deutsche_bank"]["support_route_types"]
+    assert adapters["deepwater"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["deepwater"]["support_route_types"]
     assert adapters["eventide"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
