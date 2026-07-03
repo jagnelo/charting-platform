@@ -8175,3 +8175,41 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `249` registered providers still lack native/live-backed support.
+
+## 2026-07-03 - Leuthold native ETF holdings route
+
+### Summary
+
+- Promoted `leuthold` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `LeutholdHoldingsAdapter`.
+- The adapter uses Leuthold public ETF product pages at `https://funds.leutholdgroup.com/etf/{symbol_upper}`.
+- Confirmed the route live with `LCR`, whose product page returned parseable issuer holdings rows.
+- Added issuer-specific HTML table parsing for Leuthold's fields:
+  - `Percentage of Net Assets`
+  - `Name`
+  - `Identifier (Cusip)`
+  - `Shares Held`
+  - `Market Value`
+- The parser extracts ticker/CUSIP pairs such as `SHY (464287457)`, maps issuer percent weights into canonical decimal weights, preserves shares/market values, classifies ETF/fund holdings as funds, and avoids materializing cash-like rows as fake tradable securities.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `97`
+  - providers still lacking native/live-backed support: `248`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_leuthold_adapter_parses_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k leuthold` -> sandboxed DNS failure first, escalated network rerun passed with `1 passed, 97 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `git diff --check` -> passed
+- count command -> `345`, `97`, `248`, `leuthold_native=True`
+
+### Problems found
+
+- Leuthold exposes holdings as an issuer-rendered product-page table, not as a simple static CSV route.
+- Its identifier field combines ticker and CUSIP in one cell, so generic table parsing would lose useful identifier fidelity without provider-specific extraction.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `248` registered providers still lack native/live-backed support.

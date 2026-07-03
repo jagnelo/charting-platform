@@ -11976,6 +11976,175 @@ class MadisonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class LeutholdHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Leuthold ETF holdings from issuer-rendered product-page tables."""
+
+    PRODUCT_PAGE_URL_TEMPLATE = "https://funds.leutholdgroup.com/etf/{symbol_upper}"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URL_TEMPLATE.format(symbol_upper=symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"Leuthold product page route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Leuthold product page did not expose holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_holdings_table",
+                "snapshot_provenance": "issuer_native_product_page",
+                "product_page_url": product_page_url,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        composition_date = cls._extract_as_of_date(raw_html)
+        for table in parser.tables:
+            if not table:
+                continue
+            header_values = {str(value).strip().lower() for value in table[0] if _clean(value)}
+            if not {
+                "percentage of net assets",
+                "name",
+                "identifier (cusip)",
+                "shares held",
+                "market value",
+            } <= header_values:
+                continue
+            header = table[0]
+            rows: list[CanonicalHoldingRow] = []
+            for index, row in enumerate(table[1:], start=1):
+                item = _row_dict(header, row)
+                name = _clean(_first(item, ["Name"]))
+                identifier = _clean(_first(item, ["Identifier (Cusip)", "Identifier"]))
+                symbol, cusip = cls._parse_identifier(identifier)
+                row_type, holding_type = cls._classify_row(symbol=symbol, name=name)
+                if row_type != "security":
+                    symbol = None
+                    cusip = None
+                if not any([symbol, name, cusip, _first(item, ["Percentage of Net Assets"]), _first(item, ["Market Value"])]):
+                    continue
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=symbol,
+                        name=name,
+                        cusip=cusip,
+                        weight=_decimal(_first(item, ["Percentage of Net Assets"])),
+                        shares=_decimal(_first(item, ["Shares Held"])),
+                        market_value=_decimal(_first(item, ["Market Value"])),
+                        currency="USD",
+                        holding_type=holding_type,
+                        row_type=row_type,
+                        source_row_id=f"{fund_symbol.strip().upper()}-{index}",
+                        extra_data={
+                            "identifier": identifier,
+                            **{key: value for key, value in item.items() if _clean(value) is not None},
+                        },
+                    )
+                )
+            return rows, composition_date
+        return [], composition_date
+
+    @staticmethod
+    def _parse_identifier(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        match = re.match(r"^\s*([A-Z0-9.=-]{1,12})\s*\(([0-9A-Z]{9})\)\s*$", text.strip().upper())
+        if match:
+            symbol = match.group(1)
+            cusip = match.group(2)
+            return symbol, cusip if _looks_like_cusip(cusip) else None
+        if _looks_like_cusip(text):
+            return None, text.strip().upper()
+        normalized = text.strip().upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized):
+            return normalized, None
+        return None, None
+
+    @staticmethod
+    def _classify_row(*, symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if any(marker in text for marker in ("CASH", "MONEY MARKET", "TREASURY BILL", "U.S. DOLLAR")):
+            return "cash", "cash"
+        if "ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if "BOND" in text or "TREASURY" in text:
+            return "security", "fixed_income"
+        return "security", "equity"
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        for pattern in (
+            r"ETF Summary\s+As of\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
+            r"Fund Prices\s+as of\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
+            r"As of\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
+        ):
+            match = re.search(pattern, raw_html, re.IGNORECASE)
+            if not match:
+                continue
+            try:
+                return datetime.strptime(match.group(1), "%B %d, %Y").date()
+            except ValueError:
+                continue
+        return None
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -16215,6 +16384,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Madison public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "leuthold": IssuerCsvAdapterConfig(
+        adapter_key="leuthold",
+        source_provider="leuthold",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://funds.leutholdgroup.com/etf/{symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Leuthold public ETF product-page holdings tables may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -16375,6 +16554,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "jpmorgan": JPMorganHoldingsAdapter,
         "kraneshares": KranesharesHoldingsAdapter,
         "kurv": KurvHoldingsAdapter,
+        "leuthold": LeutholdHoldingsAdapter,
         "main_management": MainManagementHoldingsAdapter,
         "madison": MadisonHoldingsAdapter,
         "matthews": MatthewsHoldingsAdapter,

@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T18:05Z
+
+- Promoted `leuthold` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `LeutholdHoldingsAdapter`:
+  - native public ETF product page route: `https://funds.leutholdgroup.com/etf/{symbol_upper}`
+  - supported live validation symbol: `LCR`
+  - parser handles the Leuthold product-page holdings table with `Percentage of Net Assets`, `Name`, `Identifier (Cusip)`, `Shares Held`, and `Market Value`.
+  - parser extracts ticker and CUSIP from issuer cells such as `SHY (464287457)`, maps percent weights into canonical decimal weights, preserves shares/market values, classifies ETF/fund holdings as funds, and avoids materializing cash-like rows as fake tradable securities.
+  - parser extracts the composition date from product-page copy such as `ETF Summary As of July 2, 2026`.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `97`
+  - providers still lacking native/live-backed support: `248`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_leuthold_adapter_parses_product_page_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k leuthold`
+    - sandboxed run failed at DNS as expected; escalated network rerun passed with `1 passed, 97 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `97`, `248`, `leuthold_native=True`.
+
 ## Latest checkpoint - 2026-07-03T16:43Z
 
 - Corrected ETF holdings live-provider test bookkeeping so Fidelity is no longer included in `SEC_BACKED_SAMPLE_ADAPTERS`.

@@ -3407,6 +3407,73 @@ async def test_motley_fool_adapter_filters_filepoint_account_holdings_csv(monkey
 
 
 @pytest.mark.asyncio
+async def test_leuthold_adapter_parses_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("leuthold")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <section>ETF Summary As of July 2, 2026</section>
+        <table class="table-striped w-100 table">
+          <thead>
+            <tr>
+              <th>Percentage of Net Assets</th>
+              <th>Name</th>
+              <th>Identifier (Cusip)</th>
+              <th>Shares Held</th>
+              <th>Market Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>14.57%</td>
+              <td>iShares 1-3 Year Treasury Bond ETF</td>
+              <td>SHY (464287457)</td>
+              <td>121,781</td>
+              <td>$9,978,735.14</td>
+            </tr>
+            <tr>
+              <td>14.26%</td>
+              <td>State Street Technology Select Sector SPDR ETF</td>
+              <td>XLK (81369Y803)</td>
+              <td>54,085</td>
+              <td>$9,767,210.15</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://funds.leutholdgroup.com/etf/LCR",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LCR", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://funds.leutholdgroup.com/etf/LCR"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SHY"
+    assert result.rows[0].cusip == "464287457"
+    assert result.rows[0].name == "iShares 1-3 Year Treasury Bond ETF"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].weight == Decimal("0.1457")
+    assert result.rows[0].shares == Decimal("121781")
+    assert result.rows[0].market_value == Decimal("9978735.14")
+    assert result.rows[1].symbol == "XLK"
+    assert result.rows[1].cusip == "81369Y803"
+    assert result.legal_metadata["source_provider"] == "leuthold"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -4060,6 +4127,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["madison"]["support_route_types"]
     assert adapters["motley_fool"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
+    assert adapters["leuthold"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["leuthold"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [
