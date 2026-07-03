@@ -3109,6 +3109,52 @@ Receivables/Payables, RECPAY, RECPAY, -242.721765193400, 1.000000000000, -457551
 
 
 @pytest.mark.asyncio
+async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("madison")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/06/2026,CVRD,8AMMF0JA0,8AMMF0JA0,US BANK MMDA - USBGFS 9 09/01/2037,1211418.43000000,100.000000,1211418.43,3.72%,32527522.50,1815000,181.500000000000,Y
+07/06/2026,CVRD,A,00846U101,Agilent Technologies Inc,9500.00000000,130.690000,1241555.00,3.82%,32527522.50,1815000,181.500000000000,
+07/06/2026,CVRD,A     260821C00140000,A     260821C00140000,A US 08/21/26 C140,-95.00000000,3.150000,-29925.00,-0.09%,32527522.50,1815000,181.500000000000,
+07/06/2026,OTHER,MSFT,594918104,Microsoft Corp,100.00000000,497.450000,49745.00,1.00%,5000000.00,100000,10.000000000000,
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url="https://madisonfunds.com/data/etf/MadisonAdvWeb.40M3.M3_ETF_Holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CVRD", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://madisonfunds.com/data/etf/MadisonAdvWeb.40M3.M3_ETF_Holdings.csv"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].weight == Decimal("0.0372")
+    assert result.rows[1].symbol == "A"
+    assert result.rows[1].name == "Agilent Technologies Inc"
+    assert result.rows[1].cusip == "00846U101"
+    assert result.rows[1].shares == Decimal("9500.00000000")
+    assert result.rows[1].market_value == Decimal("1241555.00")
+    assert result.rows[1].weight == Decimal("0.0382")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "option"
+    assert result.rows[2].row_type == "security"
+    assert result.rows[2].market_value == Decimal("-29925.00")
+    assert result.rows[2].weight == Decimal("-0.0009")
+    assert result.legal_metadata["source_provider"] == "madison"
+    assert result.legal_metadata["route_resolution"] == "issuer_aggregate_account_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3750,6 +3796,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["counterpoint"]["support_route_types"]
     assert adapters["anfield"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["anfield"]["support_route_types"]
+    assert adapters["madison"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["madison"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

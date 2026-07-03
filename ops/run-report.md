@@ -2,6 +2,33 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-03 - Madison native ETF holdings route
+
+### Summary
+
+- Promoted `madison` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `MadisonHoldingsAdapter`:
+  - native aggregate holdings CSV route: `https://madisonfunds.com/data/etf/MadisonAdvWeb.40M3.M3_ETF_Holdings.csv`
+  - live validation symbol: `CVRD`
+  - parser filters the multi-account CSV by ETF account symbol, maps valid CUSIPs, uses issuer percent values as canonical decimal weights, and preserves shares/market values.
+  - parser classifies money-market rows as cash and option-like Madison rows as options without manufacturing fake equity symbols.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `91`
+  - providers still lacking native/live-backed support: `254`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_madison_adapter_filters_account_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k madison` -> `1 passed, 91 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `91`, `254`, `madison=True`
+
+### Next step
+
+- Continue replacing recognition-only providers with isolated native routes. The full goal remains all `345` registered providers; `254` still need backend-reachable provider-native artifacts plus static and live tests, and SEC EDGAR remains fallback only.
+
 ## 2026-07-03 - Anfield native ETF holdings route
 
 ### Summary

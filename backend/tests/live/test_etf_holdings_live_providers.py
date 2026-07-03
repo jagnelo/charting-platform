@@ -65,6 +65,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "kraneshares",
     "kurv",
     "main_management",
+    "madison",
     "matthews",
     "miller_value",
     "neos",
@@ -698,6 +699,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "future_fund",
             "FFOX",
+            None,
+            {},
+            20,
+        ),
+        (
+            "madison",
+            "CVRD",
             None,
             {},
             20,

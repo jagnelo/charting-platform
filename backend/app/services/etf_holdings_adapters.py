@@ -11023,6 +11023,192 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class MadisonHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Madison ETF holdings from its public multi-account holdings CSV."""
+
+    HOLDINGS_URL = "https://madisonfunds.com/data/etf/MadisonAdvWeb.40M3.M3_ETF_Holdings.csv"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        return explicit or self.HOLDINGS_URL
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://madisonfunds.com/etfs/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Madison holdings route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"Madison holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_aggregate_account_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_csv_feed",
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for source_index, item in enumerate(reader, start=1):
+            account = (_clean(item.get("Account")) or "").upper()
+            if account != normalized_symbol:
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_composition_date(item.get("Date"))
+
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            cusip_value = _clean(item.get("CUSIP"))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=name,
+                money_market_flag=item.get("MoneyMarketFlag"),
+            )
+            symbol_value = (
+                cls._normalize_symbol(raw_symbol)
+                if row_type == "security" and holding_type != "option"
+                else None
+            )
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+
+            if not any([symbol_value, name, cusip, item.get("Weightings"), item.get("MarketValue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value,
+                    name=name,
+                    cusip=cusip,
+                    isin=None,
+                    sedol=None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{normalized_symbol}-{source_index}",
+                    extra_data={
+                        "source_symbol": raw_symbol,
+                        "account": account,
+                        "price": _clean(item.get("Price")),
+                        "net_assets": _clean(item.get("NetAssets")),
+                        "shares_outstanding": _clean(item.get("SharesOutstanding")),
+                        **{key: value for key, value in item.items() if _clean(value) is not None},
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_composition_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _normalize_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.strip().upper()
+        if " " in normalized or _looks_like_cusip(normalized):
+            return None
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized):
+            return normalized
+        return None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        money_market_flag: Any,
+    ) -> tuple[str, str]:
+        flag = (_clean(money_market_flag) or "").upper()
+        text = " ".join(part.upper() for part in (raw_symbol, name) if part)
+        if flag == "Y" or any(
+            marker in text
+            for marker in (
+                "CASH",
+                "MMDA",
+                "MONEY MARKET",
+                "SWEEP",
+                "TREASURY BILL",
+            )
+        ):
+            return "cash", "cash"
+        if re.search(r"\d{6}[CP]\d{6,8}", text) or re.search(
+            r"\b\d{2}/\d{2}/\d{2,4}\s+[CP]\d+",
+            text,
+        ):
+            return "security", "option"
+        return "security", "equity"
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -15205,6 +15391,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Anfield public ETF product pages and holdings CSV exports may be subject to issuer terms.",
     ),
+    "madison": IssuerCsvAdapterConfig(
+        adapter_key="madison",
+        source_provider="madison",
+        source_access="issuer_public_aggregate_account_holdings_csv",
+        url_templates=(
+            "https://madisonfunds.com/data/etf/MadisonAdvWeb.40M3.M3_ETF_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://madisonfunds.com/etfs/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Madison public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -15354,6 +15553,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "kraneshares": KranesharesHoldingsAdapter,
         "kurv": KurvHoldingsAdapter,
         "main_management": MainManagementHoldingsAdapter,
+        "madison": MadisonHoldingsAdapter,
         "matthews": MatthewsHoldingsAdapter,
         "miller_value": MillerValueHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
