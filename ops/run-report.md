@@ -7897,6 +7897,44 @@ Append a short entry after each worker session.
 
 ### Problems found
 
+## 2026-07-03 - Howard Capital native ETF holdings route
+
+### Summary
+
+- Added a provider-specific native/live-backed `HowardCapitalHoldingsAdapter`.
+- The adapter uses Howard Capital's public issuer-hosted holdings CSV files:
+  - `https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-100-holdings.csv` for `QQH`
+  - `https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-500-holdings.csv` for `LGH`
+- Confirmed the route live with `QQH`, whose CSV returned parseable holdings rows from the issuer's public file.
+- Added issuer-specific CSV parsing for Howard Capital fields:
+  - maps `securityTicker` values such as `AAPL US` into symbol/exchange
+  - maps valid `securityIdentifier` values as CUSIPs
+  - maps `netAssetsPercent`/`marketValuePercent`, shares, market value, currency, country, sector/category metadata, and composition date
+  - classifies ETF holdings as fund rows
+  - keeps cash-like rows as cash instead of materializing fake tradable instruments
+- Promoted `howard_capital` to native/live-backed support only after focused live test passed.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `93`
+  - providers still lacking native/live-backed support: `252`
+
+### Validation
+
+- `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_howard_capital_adapter_parses_symbol_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k howard_capital` -> `1 passed, 93 deselected`
+- `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `93`, `252`, `howard_capital=True`
+
+### Problems found
+
+- Howard Capital's site also hosts the `HCMT` tactical fund page, but that product is branded as Direxion HCM Tactical and should not be counted under Howard's own native route unless a safe Howard-owned holdings route is proven.
+- The public CSV schema is similar to other accounting-style ETF feeds, but provider-specific classification is still needed to preserve ETF holdings as funds and avoid treating cash rows as tradable equity symbols.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native routes. Current useful unsupported/native-unproven candidates include `brookmont`, `federated_hermes`, `fidelity`, `brown_advisory`, `capital_group`, `dimensional`, `goldman_sachs`, and `wisdomtree`; do not count any of them until a first-party backend-fetchable route is implemented and live-tested.
+
 - The generic CSV parser could detect Themes holdings rows, but it missed the issuer-specific `stock_ticker` and `security_name` fields, producing rows with identifiers but no usable symbol/name.
 - Themes also reports currency rows in the same CSV, so provider-specific cash classification is required to avoid treating FX cash balances as normal equities.
 

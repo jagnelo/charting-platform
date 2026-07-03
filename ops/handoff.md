@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-03T15:07Z
+
+- Promoted `howard_capital` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `HowardCapitalHoldingsAdapter`:
+  - native public CSV routes:
+    - `https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-100-holdings.csv` for `QQH`
+    - `https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-500-holdings.csv` for `LGH`
+  - supported live validation symbol: `QQH`
+  - parser handles Howard Capital-specific fields including `asOfDate`, `portfolioName`, `securityIdentifier`, `securityTicker`, `securityDescriptionShort`, `securityDescriptionLong`, `shares`, `priceLocal`, `marketValueBase`, `tradingCurrency`, `country`, `segment`, `category`, `sector`, `industry`, `marketValuePercent`, and `netAssetsPercent`.
+  - parser splits venue-qualified symbols such as `AAPL US` into `symbol=AAPL` plus `exchange=US`, maps valid CUSIPs, preserves market values/shares/currency/country, classifies ETF holdings as `fund`, and keeps cash-like rows as cash instead of fake tradable symbols.
+  - deliberately keeps Howard's own QQH/LGH routes separate from the HCM/Direxion tactical product page on the same site, because HCMT belongs under Direxion-style issuer responsibility unless a safe Howard-owned route is proven.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `93`
+  - providers still lacking native/live-backed support: `252`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && ./.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py::test_howard_capital_adapter_parses_symbol_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 ./.venv/bin/pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k howard_capital`
+    - result: `1 passed, 93 deselected`
+  - `cd backend && ./.venv/bin/ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `93`, `252`, `howard_capital=True`.
+
 ## Latest checkpoint - 2026-07-03T14:50Z
 
 - Promoted `true_shares` from recognition-only/generated support to native/live-backed support.

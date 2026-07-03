@@ -56,6 +56,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "harbor",
     "hennessy",
     "horizon_kinetics",
+    "howard_capital",
     "inspire",
     "innovator",
     "invesco",
@@ -521,6 +522,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "howard_capital",
+            "QQH",
+            None,
+            {},
+            50,
         ),
         (
             "diamond_hill",

@@ -3110,6 +3110,50 @@ async def test_counterpoint_adapter_parses_symbol_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_howard_capital_adapter_parses_symbol_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("howard_capital")
+    assert adapter is not None
+
+    raw_csv = """asOfDate,portfolioNumber,portfolioName,securityIdentifier,securityTicker,securityDescriptionShort,securityDescriptionLong,shares,priceLocal,marketValueBase,fxRate,tradingCurrency,accruedIncome,incomeCurrency,country,longShortIndicator,segment,category,sector,industry,marketValuePercent,netAssetsPercent,grossAssetPercent
+2026-07-02T00:00:00,1241,HCM Defender 100 Index ETF,74347X831,TQQQ US,PROSHARES UL QQQ,ProShares UltraPro QQQ USD Class,1857072,73.35,136216231.2,1,USD,0,USD,US,Long,EXCHANGE-TRADED FUNDS,EQUITY,EQUITY,EQUITY,0.183607908661,0.183590553948,0
+2026-07-02T00:00:00,1241,HCM Defender 100 Index ETF,037833100,AAPL US,APPLE INC,Apple Inc.,237541,308.63,73312278.83,1,USD,0,USD,US,Long,COMMON STOCKS,TECHNOLOGY,TECHNOLOGY HARDWARE,COMMUNICATIONS EQUIPMENT,0.098818724293,0.098809383897,0
+2026-07-02T00:00:00,1241,HCM Defender 100 Index ETF,CASHUSD,,US Dollar,US Dollar,100,1,100,1,USD,0,USD,US,Long,CASH,CASH,CASH,CASH,0.000001,0.000001,0
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_csv,
+            url="https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-100-holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QQH", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://howardcmfunds.com/wp-content/themes/cms/assets/hcm-defender-100-holdings.csv"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "TQQQ"
+    assert result.rows[0].exchange == "US"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].cusip == "74347X831"
+    assert result.rows[0].shares == Decimal("1857072")
+    assert result.rows[0].market_value == Decimal("136216231.2")
+    assert result.rows[0].weight == Decimal("0.183590553948")
+    assert result.rows[1].symbol == "AAPL"
+    assert result.rows[1].holding_type == "equity"
+    assert result.rows[1].name == "Apple Inc."
+    assert result.rows[1].cusip == "037833100"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "howard_capital"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_anfield_adapter_discovers_product_page_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("anfield")
     assert adapter is not None
@@ -3842,6 +3886,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
     assert adapters["allspring"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allspring"]["support_route_types"]
+    assert adapters["howard_capital"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["howard_capital"]["support_route_types"]
     assert adapters["timothy_plan"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["timothy_plan"]["support_route_types"]
     assert adapters["spear"]["live_tested_default_route"] is True
