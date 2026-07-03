@@ -3054,6 +3054,61 @@ async def test_counterpoint_adapter_parses_symbol_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_anfield_adapter_discovers_product_page_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("anfield")
+    assert adapter is not None
+
+    page_html = """
+    <html>
+      <body>
+        <a href="/csv/holdings-2924-2026-07-03-06-10.csv">Download holdings</a>
+      </body>
+    </html>
+    """
+    raw_csv = """Anfield Enhanced Market ETF
+Fund Holdings Data as of 07/02/2026
+Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+US DOLLAR FUTURE, USDF, USDF, 0.000491754400, 1.000000000000, 9.2700000, 9.27, 0.000492620600
+US DOLLARS, USD, USD, 342.545442735900, 1.000000000000, 6457280.9200000, 6457280.92, 343.148803690300
+Receivables/Payables, RECPAY, RECPAY, -242.721765193400, 1.000000000000, -4575517.3700000, -4575517.37, -243.149296310900
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/",
+        ),
+        FakeResponse(
+            text=raw_csv,
+            url="https://anfieldfunds.com/csv/holdings-2924-2026-07-03-06-10.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AEMS", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/"
+    )
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://anfieldfunds.com/csv/holdings-2924-2026-07-03-06-10.csv"
+    )
+    assert len(result.rows) == 3
+    assert all(row.symbol is None for row in result.rows)
+    assert all(row.row_type == "cash" for row in result.rows)
+    assert result.rows[0].name == "US DOLLAR FUTURE"
+    assert result.rows[0].weight == Decimal("0.000004926206")
+    assert result.rows[1].market_value == Decimal("6457280.92")
+    assert result.rows[1].weight == Decimal("3.431488036903")
+    assert result.rows[2].market_value == Decimal("-4575517.37")
+    assert result.rows[2].weight == Decimal("-2.431492963109")
+    assert result.legal_metadata["source_provider"] == "anfield"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovered_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -3693,6 +3748,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["future_fund"]["support_route_types"]
     assert adapters["counterpoint"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["counterpoint"]["support_route_types"]
+    assert adapters["anfield"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["anfield"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

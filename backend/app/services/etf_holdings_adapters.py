@@ -10810,6 +10810,219 @@ class CounterpointHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Anfield ETF holdings from issuer product-page CSV exports."""
+
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "AEMS": "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = (
+            source_url
+            if source_url and source_url.lower().split("?", 1)[0].endswith(".csv")
+            else None
+        )
+        page_url = None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if not resolved_source_url:
+                page_url = source_url or self.resolve_product_page_url(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if not page_url:
+                    raise ValueError(f"Anfield product page route is unavailable for {symbol}.")
+                page_response = await client.get(
+                    page_url,
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                resolved_source_url = self._discover_holdings_csv(
+                    page_response.text,
+                    base_url=str(page_response.url),
+                )
+                if not resolved_source_url:
+                    raise ValueError(f"Anfield product page did not expose a holdings CSV for {symbol}.")
+
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Anfield holdings CSV did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_discovered_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_csv_export",
+                "product_page_url": page_url,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_csv(page_text: str, *, base_url: str) -> str | None:
+        candidates: list[str] = []
+        for match in re.finditer(
+            r"""(?P<url>(?:https?:)?//[^"'<>]+/csv/holdings-[^"'<>]+\.csv|/csv/holdings-[^"'<>]+\.csv)""",
+            page_text,
+            flags=re.I,
+        ):
+            raw_url = html.unescape(match.group("url")).replace("\\/", "/")
+            candidates.append(urljoin(base_url, raw_url))
+        return candidates[0] if candidates else None
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_csv.strip()))
+            if any(_clean(cell) for cell in row)
+        ]
+        if not table_rows:
+            return [], None
+        composition_date = cls._extract_as_of_date(table_rows[:5])
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lower() for cell in row}
+                >= {"name", "security identifier", "symbol"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+        header = table_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            raw_symbol = _clean(_first(raw, ["Symbol"]))
+            symbol, exchange = cls._split_symbol(raw_symbol)
+            name = _clean(_first(raw, ["Name"]))
+            security_identifier = _clean(_first(raw, ["Security Identifier"]))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=name,
+                identifier=security_identifier,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=security_identifier if _looks_like_cusip(security_identifier) else None,
+                    weight=_decimal_percent_points(_first(raw, ["Market Value %", "Net Assets %"])),
+                    shares=_decimal(_first(raw, ["Shares Held"])),
+                    market_value=_decimal(_first(raw, ["Market Value"])),
+                    currency="USD",
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{fund_symbol.strip().upper()}-{index}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_as_of_date(prefix_rows: list[list[Any]]) -> date | None:
+        text = " ".join(str(cell) for row in prefix_rows for cell in row if cell is not None)
+        match = re.search(r"as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", text, re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        text = _clean(raw_symbol)
+        if text is None:
+            return None, None
+        normalized = " ".join(text.split()).upper()
+        if normalized.endswith(" US") and re.fullmatch(r"[A-Z0-9. -]+ US", normalized):
+            return normalized[:-3].strip(), "US"
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized, None
+        return None, None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        identifier: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name, identifier) if part)
+        if any(
+            marker in text
+            for marker in (
+                "USD",
+                "US DOLLAR",
+                "CASH",
+                "FUTURE",
+                "RECEIVABLE",
+                "PAYABLE",
+                "RECPAY",
+                "SWEEP",
+            )
+        ):
+            return "cash", "cash"
+        if "FUND" in text or "ETF" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -14982,6 +15195,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Counterpoint public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "anfield": IssuerCsvAdapterConfig(
+        adapter_key="anfield",
+        source_provider="anfield",
+        source_access="issuer_public_product_page_discovered_holdings_csv",
+        product_page_templates=(
+            "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Anfield public ETF product pages and holdings CSV exports may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -15079,6 +15302,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "allspring": AllspringHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
+        "anfield": AnfieldHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,
         "ark": ArkHoldingsAdapter,
         "arrow": ArrowHoldingsAdapter,
