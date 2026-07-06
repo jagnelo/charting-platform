@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T17:12Z
+
+- Promoted `bahl_gaynor` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `BahlGaynorHoldingsAdapter`:
+  - native public Bahl & Gaynor ETF product page route: `https://www.bahl-gaynor.com/etf/{symbol_lower}/`
+  - supported live validation symbol: `BGIG`
+  - discovers the latest linked holdings CSV under the issuer's `etf_holdings_csv` path.
+  - parser handles `Name`, `Symbol/Ticker`, `CUSIP`, `Quantity`, and `Weight (%)`.
+  - parser converts percent-point weights into canonical decimals, preserves CUSIPs/shares, and captures the composition/as-of date from the dated CSV filename.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `109`
+  - providers still lacking native/live-backed support: `236`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_bahl_gaynor_adapter_discovers_product_page_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k bahl_gaynor`
+    - escalated network run passed with `1 passed, 109 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `109`, `236`, `bahl_gaynor_native=True`.
+
 ## Latest checkpoint - 2026-07-06T17:05Z
 
 - Promoted `etf_architect` from generated/SEC-backed recognition-only support to native/live-backed support.

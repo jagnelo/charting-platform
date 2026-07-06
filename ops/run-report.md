@@ -2,6 +2,40 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-06 - Bahl & Gaynor native ETF holdings route
+
+### Summary
+
+- Promoted `bahl_gaynor` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `BahlGaynorHoldingsAdapter`:
+  - native public Bahl & Gaynor ETF product page route: `https://www.bahl-gaynor.com/etf/{symbol_lower}/`
+  - live validation symbol: `BGIG`
+  - discovers the latest linked CSV from the issuer's `etf_holdings_csv` product-page links.
+  - parser handles `Name`, `Symbol/Ticker`, `CUSIP`, `Quantity`, and `Weight (%)`.
+  - parser converts percent-point weights into canonical decimals, preserves CUSIPs/shares, and captures composition/as-of date from the dated CSV filename.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `109`
+  - providers still lacking native/live-backed support: `236`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_bahl_gaynor_adapter_discovers_product_page_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k bahl_gaynor` -> escalated network run passed with `1 passed, 109 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `109`, `236`, `bahl_gaynor_native=True`
+
+### Problems found
+
+- Bahl & Gaynor exposes holdings as dated CSV links from product pages rather than a single universal API, so this adapter intentionally discovers and selects the newest symbol-specific CSV link.
+- The full goal remains open: `236` registered providers still lack native/live-backed support.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. SEC EDGAR remains fallback only and must not count as native provider support.
+
 ## 2026-07-06 - ETF Architect / Alpha Architect native ETF holdings route
 
 ### Summary

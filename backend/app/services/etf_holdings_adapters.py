@@ -5334,6 +5334,147 @@ class AxsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class BahlGaynorHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Bahl & Gaynor ETF holdings from product-page linked CSV files."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://www.bahl-gaynor.com/etf/{normalized_symbol}/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"{self.adapter_key} needs a Bahl & Gaynor ETF page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            holdings_url = self._discover_holdings_csv_url(
+                page_response.text,
+                base_url=str(getattr(page_response, "url", product_page_url)),
+                symbol=symbol,
+            )
+            if not holdings_url:
+                raise ValueError(
+                    f"{self.adapter_key} did not expose a holdings CSV link for {symbol}."
+                )
+            holdings_response = await client.get(
+                holdings_url,
+                headers=_holdings_request_headers(accept="text/csv,*/*"),
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows = self._parse_holdings_csv(holdings_response.text)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        composition_date = self._extract_date_from_url(
+            str(getattr(holdings_response, "url", holdings_url))
+        )
+        return HoldingsFetchResult(
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_linked_holdings_csv",
+                "product_page_url": str(getattr(page_response, "url", product_page_url)),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_csv_url(raw_html: str, *, base_url: str, symbol: str) -> str | None:
+        normalized_symbol = symbol.strip().upper()
+        candidates: list[str] = []
+        for match in re.finditer(r"""(?:href|src)=["']([^"']+)["']""", raw_html, re.I):
+            href = html.unescape(match.group(1))
+            lowered_href = href.lower()
+            if "etf_holdings_csv" not in lowered_href or not lowered_href.endswith(".csv"):
+                continue
+            if f"/{normalized_symbol.lower()}_holdings_" not in lowered_href:
+                continue
+            candidates.append(urljoin(base_url, href))
+        if not candidates:
+            return None
+        return sorted(
+            candidates,
+            key=lambda value: BahlGaynorHoldingsAdapter._extract_date_from_url(value) or date.min,
+            reverse=True,
+        )[0]
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
+        source_rows = list(csv.DictReader(StringIO(raw_csv.strip())))
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(source_rows, start=1):
+            symbol = _clean(row.get("Symbol/Ticker"))
+            name = _clean(row.get("Name"))
+            cusip = _clean(row.get("CUSIP"))
+            if not any([symbol, name, cusip]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(row.get("Weight (%)")),
+                    shares=_decimal(row.get("Quantity")),
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=str(index),
+                    extra_data={key: value for key, value in row.items() if value not in (None, "")},
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _extract_date_from_url(url: str) -> date | None:
+        match = re.search(r"_holdings_(\d{4}-\d{2}-\d{2})\.csv", url)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class USGlobalInvestorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_product_page_url(
         self,
@@ -17875,6 +18016,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AXS/Tradr public ETF holdings files may be subject to issuer terms.",
     ),
+    "bahl_gaynor": IssuerCsvAdapterConfig(
+        adapter_key="bahl_gaynor",
+        source_provider="bahl_gaynor",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=(
+            "https://www.bahl-gaynor.com/etf/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Bahl & Gaynor public ETF product pages and holdings CSV files may be subject to issuer terms.",
+    ),
     "pacer": IssuerCsvAdapterConfig(
         adapter_key="pacer",
         source_provider="pacer",
@@ -18261,6 +18412,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ark": ArkHoldingsAdapter,
         "arrow": ArrowHoldingsAdapter,
         "axs": AxsHoldingsAdapter,
+        "bahl_gaynor": BahlGaynorHoldingsAdapter,
         "baron": BaronHoldingsAdapter,
         "bitwise": BitwiseHoldingsAdapter,
         "bny_mellon": BnyMellonHoldingsAdapter,

@@ -4569,6 +4569,66 @@ async def test_axs_adapter_filters_dated_aggregate_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_bahl_gaynor_adapter_discovers_product_page_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("bahl_gaynor")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <body>
+                <a href="https://www.bahl-gaynor.com/wp-content/uploads/etf_holdings_csv/BGDV_holdings_2026-07-05.csv">
+                  Previous Holdings
+                </a>
+                <a href="/wp-content/uploads/etf_holdings_csv/BGIG_holdings_2026-07-06.csv">
+                  Download Holdings CSV
+                </a>
+              </body>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://www.bahl-gaynor.com/etf/bgig/",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Name,Symbol/Ticker,CUSIP,Quantity,Weight (%)",
+                    '"UnitedHealth Group Inc","UNH","91324P102","252,626","4.94%"',
+                    '"Broadcom Inc","AVGO","11135F101","279,430","4.63%"',
+                ]
+            ),
+            content_type="text/csv",
+            url=(
+                "https://www.bahl-gaynor.com/wp-content/uploads/etf_holdings_csv/"
+                "BGIG_holdings_2026-07-06.csv"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BGIG", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.bahl-gaynor.com/etf/bgig/"
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://www.bahl-gaynor.com/wp-content/uploads/etf_holdings_csv/"
+        "BGIG_holdings_2026-07-06.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "UNH"
+    assert result.rows[0].name == "UnitedHealth Group Inc"
+    assert result.rows[0].cusip == "91324P102"
+    assert result.rows[0].shares == Decimal("252626")
+    assert result.rows[0].weight == Decimal("0.0494")
+    assert result.rows[1].symbol == "AVGO"
+    assert result.rows[1].weight == Decimal("0.0463")
+    assert result.legal_metadata["source_provider"] == "bahl_gaynor"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_linked_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("kraneshares")
     assert adapter is not None
@@ -5013,6 +5073,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
     assert adapters["etf_architect"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["etf_architect"]["support_route_types"]
+    assert adapters["bahl_gaynor"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["bahl_gaynor"]["support_route_types"]
     assert adapters["federated_hermes"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["federated_hermes"][
         "support_route_types"
