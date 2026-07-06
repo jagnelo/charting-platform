@@ -5604,6 +5604,215 @@ class CullenHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class VirtusHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Virtus ETF holdings from public product-page XLS position files."""
+
+    _PRODUCT_PAGE_BY_SYMBOL = {
+        "SSMG": "https://www.virtus.com/products/virtus-silvant-small-mid-growth-etf",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        return self._PRODUCT_PAGE_BY_SYMBOL.get(normalized_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        requested_symbol = symbol.strip().upper()
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"{self.adapter_key} needs a Virtus ETF product page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if product_page_url.lower().endswith(".xls"):
+                positions_url = product_page_url
+                page_text = None
+            else:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                page_text = page_response.text
+                positions_url = self._discover_positions_xls_url(
+                    page_text,
+                    base_url=str(page_response.url),
+                )
+                if not positions_url:
+                    raise ValueError(
+                        f"{self.adapter_key} product page did not expose a positions XLS for {symbol}."
+                    )
+
+            workbook_response = await client.get(
+                positions_url,
+                headers=_issuer_page_request_headers(
+                    accept="application/vnd.ms-excel,application/octet-stream,*/*",
+                ),
+                follow_redirects=True,
+            )
+        workbook_response.raise_for_status()
+        _, table_rows = parse_holdings_xls(workbook_response.content)
+        rows, composition_date = self._parse_positions_table(
+            table_rows,
+            fund_symbol=requested_symbol,
+        )
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            source_url=str(getattr(workbook_response, "url", positions_url)),
+            source_identifier=issuer_product_id or requested_symbol,
+            rows=rows,
+            raw_text=page_text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xls",
+                "route_resolution": "issuer_product_page_positions_xls",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "positions_url": str(getattr(workbook_response, "url", positions_url)),
+                "product_page_url": product_page_url,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_positions_xls_url(raw_html: str, *, base_url: str) -> str | None:
+        candidates: list[str] = []
+        for match in re.finditer(r"href=[\"']([^\"']+\.xls(?:\?[^\"']*)?)[\"']", raw_html, re.I):
+            href = html.unescape(match.group(1))
+            if "positions_" not in href.lower():
+                continue
+            candidates.append(urljoin(base_url, href))
+        return candidates[0] if candidates else None
+
+    @classmethod
+    def _parse_positions_table(
+        cls,
+        table_rows: list[list[str]],
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        composition_date = cls._extract_positions_date(table_rows)
+        header_index = cls._find_header_index(table_rows)
+        if header_index is None:
+            return [], composition_date
+
+        rows: list[CanonicalHoldingRow] = []
+        for source_index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            row = [str(value).strip() for value in row]
+            account_name = _clean(row[0] if len(row) > 0 else None)
+            security_id = _clean(row[1] if len(row) > 1 else None)
+            name = _clean(row[2] if len(row) > 2 else None)
+            ticker = _clean(row[3] if len(row) > 3 else None)
+            security_type = _clean(row[4] if len(row) > 4 else None)
+            shares = _decimal(row[5] if len(row) > 5 else None)
+            price = _decimal(row[6] if len(row) > 6 else None)
+            market_value = _decimal(row[11] if len(row) > 11 else None)
+            if not any([account_name, security_id, name, ticker, market_value]):
+                continue
+            row_type, holding_type = cls._classify_position(
+                ticker=ticker,
+                name=name,
+                security_type=security_type,
+            )
+            symbol = ticker if row_type == "security" else None
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{fund_symbol}-{source_index}",
+                    extra_data={
+                        "account_name": account_name,
+                        "security_id": security_id,
+                        "security_type": security_type,
+                        "price": str(price) if price is not None else None,
+                    },
+                )
+            )
+
+        total_market_value = sum(
+            (row.market_value for row in rows if row.market_value is not None),
+            Decimal("0"),
+        )
+        if total_market_value:
+            for row in rows:
+                if row.market_value is not None:
+                    row.weight = row.market_value / total_market_value
+        return rows, composition_date
+
+    @staticmethod
+    def _find_header_index(table_rows: list[list[str]]) -> int | None:
+        required = {"account name", "security id", "name", "ticker", "security type"}
+        for index, row in enumerate(table_rows[:40]):
+            normalized = {str(value).strip().lower() for value in row if _clean(value)}
+            if required <= normalized:
+                return index
+        return None
+
+    @staticmethod
+    def _extract_positions_date(table_rows: list[list[str]]) -> date | None:
+        for row in table_rows[:10]:
+            text = " ".join(str(value).strip() for value in row if _clean(value))
+            match = re.search(r"Positions\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", text, re.I)
+            if not match:
+                continue
+            try:
+                return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
+    def _classify_position(
+        *,
+        ticker: str | None,
+        name: str | None,
+        security_type: str | None,
+    ) -> tuple[str, str]:
+        type_text = (security_type or "").strip().lower()
+        name_text = (name or "").strip().lower()
+        ticker_text = (ticker or "").strip().upper()
+        if type_text == "cash" or ticker_text in {"USD", "CASH"} or "cash" in name_text:
+            return "cash", "cash"
+        if "option" in type_text or "option" in name_text:
+            return "security", "option"
+        if "bond" in type_text or "debt" in type_text or "note" in type_text:
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -17037,6 +17246,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "may be subject to issuer terms."
         ),
     ),
+    "virtus": IssuerCsvAdapterConfig(
+        adapter_key="virtus",
+        source_provider="virtus",
+        source_access="issuer_public_product_page_positions_xls",
+        product_page_templates=(
+            "https://www.virtus.com/products/virtus-silvant-small-mid-growth-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note="Virtus public ETF product pages and positions workbooks may be subject to issuer terms.",
+    ),
     "renaissance_capital": IssuerCsvAdapterConfig(
         adapter_key="renaissance_capital",
         source_provider="renaissance_capital",
@@ -17174,6 +17393,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "us_global_investors": USGlobalInvestorsHoldingsAdapter,
         "vaneck": VanEckHoldingsAdapter,
         "vanguard": VanguardHoldingsAdapter,
+        "virtus": VirtusHoldingsAdapter,
         "volatility_shares": VolatilitySharesHoldingsAdapter,
         "wahed": WahedHoldingsAdapter,
         "wisdomtree": WisdomTreeHoldingsAdapter,

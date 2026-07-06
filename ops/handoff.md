@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T13:02Z
+
+- Promoted `virtus` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `VirtusHoldingsAdapter`:
+  - native public Virtus ETF product page route: `https://www.virtus.com/products/virtus-silvant-small-mid-growth-etf`
+  - supported live validation symbol: `SSMG`
+  - discovers the linked public legacy XLS positions workbook from the product page: `https://www.virtus.com/assets/files/a72/positions_ssmg.xls`
+  - parser handles Virtus' multi-row XLS schema with `Account Name`, `Security Id`, `Name`, `Ticker`, `Security Type`, `Quantity`, `Price`, and local `Market Value` columns.
+  - parser calculates canonical weights from row market value divided by total workbook market value, preserves shares/market values/security ids, and classifies cash rows as cash instead of fake securities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `103`
+  - providers still lacking native/live-backed support: `242`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_virtus_adapter_parses_positions_workbook_rows tests/unit/services/test_etf_holdings_adapters.py::test_virtus_adapter_discovers_public_positions_xls tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `3 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k virtus`
+    - escalated network run passed with `1 passed, 103 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `103`, `242`, `virtus_native=True`.
+
 ## Latest checkpoint - 2026-07-06T12:55Z
 
 - Promoted `cullen` from recognition-only/generated support to native/live-backed support.

@@ -2427,6 +2427,154 @@ ENERGY SELECT SECTOR SPDR,XLE,81369Y506,"3,559","330,310.79",3.30
     assert result.legal_metadata["composition_date"] == "2026-07-02"
 
 
+def test_virtus_adapter_parses_positions_workbook_rows():
+    adapter = get_holdings_adapter("virtus")
+    assert adapter is not None
+
+    table_rows = [
+        ["Positions as of 7/6/2026"],
+        ["", "", "", "", "", "", "", "Accrued Int", "", "Notional Value", "", "Market Value"],
+        [
+            "Account Name",
+            "Security Id",
+            "Name",
+            "Ticker",
+            "Security Type",
+            "Quantity",
+            "Price",
+            "(Local)",
+            "(Base)",
+            "(Local)",
+            "(Base)",
+            "(Local)",
+        ],
+        [
+            "Virtus Silvant Small/Mid Growth ETF",
+            "EQ0010453400001000",
+            "Sterling Infrastructure Inc",
+            "STRL",
+            "Common Stock",
+            "161",
+            "700.75",
+            "0",
+            "0",
+            "",
+            "",
+            "112820.75",
+        ],
+        [
+            "Virtus Silvant Small/Mid Growth ETF",
+            "USD",
+            "Cash/Cash equivalents",
+            "",
+            "Cash",
+            "55295.27",
+            "0",
+            "0",
+            "0",
+            "",
+            "",
+            "55295.27",
+        ],
+    ]
+
+    rows, composition_date = adapter._parse_positions_table(table_rows, fund_symbol="SSMG")
+
+    assert composition_date == date(2026, 7, 6)
+    assert len(rows) == 2
+    equity = rows[0]
+    assert equity.symbol == "STRL"
+    assert equity.name == "Sterling Infrastructure Inc"
+    assert equity.holding_type == "equity"
+    assert equity.row_type == "security"
+    assert equity.shares == Decimal("161")
+    assert equity.market_value == Decimal("112820.75")
+    assert equity.weight == Decimal("112820.75") / Decimal("168116.02")
+    cash = rows[1]
+    assert cash.symbol is None
+    assert cash.name == "Cash/Cash equivalents"
+    assert cash.holding_type == "cash"
+    assert cash.row_type == "cash"
+    assert cash.weight == Decimal("55295.27") / Decimal("168116.02")
+
+
+@pytest.mark.asyncio
+async def test_virtus_adapter_discovers_public_positions_xls(monkeypatch):
+    adapter = get_holdings_adapter("virtus")
+    assert adapter is not None
+
+    product_page = """
+    <html>
+      <a href="/assets/files/a72/positions_ssmg.xls">Download Full Holdings</a>
+    </html>
+    """
+    table_rows = [
+        ["Positions as of 7/6/2026"],
+        [
+            "Account Name",
+            "Security Id",
+            "Name",
+            "Ticker",
+            "Security Type",
+            "Quantity",
+            "Price",
+            "",
+            "",
+            "",
+            "",
+            "(Local)",
+        ],
+        [
+            "Virtus Silvant Small/Mid Growth ETF",
+            "EQ0010027700001000",
+            "Carpenter Technology Corp",
+            "CRS",
+            "Common Stock",
+            "172",
+            "597.24",
+            "0",
+            "0",
+            "",
+            "",
+            "102725.28",
+        ],
+    ]
+
+    def fake_parse_holdings_xls(raw_workbook):
+        assert raw_workbook == b"virtus-xls"
+        return [], table_rows
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url="https://www.virtus.com/products/virtus-silvant-small-mid-growth-etf",
+        ),
+        FakeResponse(
+            content=b"virtus-xls",
+            content_type="application/vnd.ms-excel",
+            url="https://www.virtus.com/assets/files/a72/positions_ssmg.xls",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.parse_holdings_xls", fake_parse_holdings_xls)
+
+    result = await adapter.fetch_latest(symbol="SSMG")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.virtus.com/products/virtus-silvant-small-mid-growth-etf",
+        "https://www.virtus.com/assets/files/a72/positions_ssmg.xls",
+    ]
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "CRS"
+    assert result.rows[0].weight == Decimal("1")
+    assert result.legal_metadata["source_provider"] == "virtus"
+    assert result.legal_metadata["source_format"] == "xls"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_positions_xls"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
 @pytest.mark.asyncio
 async def test_american_century_adapter_parses_avantis_embedded_holdings(monkeypatch):
     adapter = get_holdings_adapter("american_century")
@@ -4362,6 +4510,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["burney"]["support_route_types"]
     assert adapters["cullen"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["cullen"]["support_route_types"]
+    assert adapters["virtus"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["virtus"]["support_route_types"]
     assert adapters["pacer"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["pacer"]["support_route_types"]
     assert adapters["21shares"]["live_tested_default_route"] is True
