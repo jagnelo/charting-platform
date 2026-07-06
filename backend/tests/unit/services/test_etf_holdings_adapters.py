@@ -798,6 +798,87 @@ async def test_renaissance_capital_adapter_fetches_public_holdings_workbook(monk
 
 
 @pytest.mark.asyncio
+async def test_goldman_sachs_adapter_fetches_public_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("goldman_sachs")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            ["Goldman Sachs Hedge Industry VIP ETF"],
+            [
+                "Date",
+                "Ticker",
+                "Cusip",
+                "ISIN",
+                "Sedol",
+                "Description",
+                "Market Value",
+                "Number of Shares",
+                "% Weighting",
+            ],
+            [
+                "45847.0",
+                "AAPL",
+                "03783310",
+                "US0378331005",
+                "2046251",
+                "Apple Inc",
+                "6746767.56",
+                "31954.00",
+                "1.93",
+            ],
+            [
+                "45847.0",
+                "CRH",
+                "G2550810",
+                "IE0001827041",
+                "B01ZKD6",
+                "CRH PLC",
+                "6662700.55",
+                "69065.00",
+                "1.90",
+            ],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            url=(
+                "https://www.gsam.com/content/dam/gsam/xls/us/en/etf/"
+                "Goldman%20Sachs%20Hedge%20Industry%20VIP%20ETF_9532.xlsx"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GVIP")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.gsam.com/content/dam/gsam/xls/us/en/etf/"
+        "Goldman%20Sachs%20Hedge%20Industry%20VIP%20ETF_9532.xlsx"
+    )
+    assert len(result.rows) == 2
+    row = result.rows[0]
+    assert row.symbol == "AAPL"
+    assert row.name == "Apple Inc"
+    assert row.cusip == "03783310"
+    assert row.isin == "US0378331005"
+    assert row.sedol == "2046251"
+    assert row.weight == Decimal("0.0193")
+    assert row.shares == Decimal("31954.00")
+    assert row.market_value == Decimal("6746767.56")
+    assert row.currency == "USD"
+    assert result.legal_metadata["source_provider"] == "goldman_sachs"
+    assert result.legal_metadata["source_format"] == "xlsx"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_xlsx"
+    assert result.legal_metadata["composition_date"] == "2025-07-09"
+
+
+@pytest.mark.asyncio
 async def test_matthews_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("matthews")
     assert adapter is not None
@@ -4649,6 +4730,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["madison"]["support_route_types"]
     assert adapters["brookmont"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["brookmont"]["support_route_types"]
+    assert adapters["goldman_sachs"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["goldman_sachs"]["support_route_types"]
     assert adapters["motley_fool"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
     assert adapters["leuthold"]["live_tested_default_route"] is True
@@ -4660,7 +4743,6 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     for adapter_key in [
         "capital_group",
         "dimensional",
-        "goldman_sachs",
         "3edge",
         "stone_ridge",
     ]:

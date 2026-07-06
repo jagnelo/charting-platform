@@ -8296,6 +8296,41 @@ Append a short entry after each worker session.
   - native/live-backed provider integrations: `101`
   - providers still lacking native/live-backed support: `244`
 
+## 2026-07-06 - Goldman Sachs native ETF holdings route
+
+### Summary
+
+- Promoted `goldman_sachs` from SEC-backed/recognition-only support to native/live-backed support.
+- Added provider-specific `GoldmanSachsHoldingsAdapter`:
+  - native public GSAM holdings workbook route: `https://www.gsam.com/content/dam/gsam/xls/us/en/etf/{issuer_product_id}.xlsx`
+  - live validation symbol: `GVIP`
+  - default workbook id for `GVIP`: `Goldman Sachs Hedge Industry VIP ETF_9532`
+  - parser handles `Date`, `Ticker`, `Cusip`, `ISIN`, `Sedol`, `Description`, `Market Value`, `Number of Shares`, and `% Weighting`.
+  - parser converts percent-point weights into canonical decimals, preserves ticker/CUSIP/ISIN/SEDOL/shares/market value, and converts Excel serial dates into composition/as-of dates.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `105`
+  - providers still lacking native/live-backed support: `240`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_goldman_sachs_adapter_fetches_public_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k goldman_sachs` -> escalated network run passed with `1 passed, 105 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- count command -> `345`, `105`, `240`, `goldman_native=True`
+
+### Problems found
+
+- Goldman Sachs' public ETF holdings route is workbook-based rather than CSV-based, and the workbook stores dates as Excel serials.
+- The workbook reports `% Weighting` as percent points such as `1.93`, so the adapter normalizes those values to canonical decimal weights such as `0.0193`.
+- Goldman Sachs is removed from the SEC-backed sample bucket because it now has a native/live-backed route; SEC EDGAR remains fallback only.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `240` registered providers still lack native/live-backed support.
+
 ## 2026-07-06 - Brookmont native ETF holdings route
 
 ### Summary

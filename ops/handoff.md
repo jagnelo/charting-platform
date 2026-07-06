@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T15:26Z
+
+- Promoted `goldman_sachs` from SEC-backed/recognition-only support to native/live-backed support.
+- Added a provider-specific `GoldmanSachsHoldingsAdapter`:
+  - native public GSAM holdings workbook route: `https://www.gsam.com/content/dam/gsam/xls/us/en/etf/{issuer_product_id}.xlsx`
+  - supported live validation symbol: `GVIP`
+  - default workbook id for `GVIP`: `Goldman Sachs Hedge Industry VIP ETF_9532`
+  - parser handles Goldman Sachs' workbook schema with title row, then `Date`, `Ticker`, `Cusip`, `ISIN`, `Sedol`, `Description`, `Market Value`, `Number of Shares`, and `% Weighting`.
+  - parser converts percent-point weights into canonical decimals, preserves ticker/CUSIP/ISIN/SEDOL/shares/market value, and converts Excel serial workbook dates into composition/as-of dates.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `105`
+  - providers still lacking native/live-backed support: `240`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_goldman_sachs_adapter_fetches_public_holdings_workbook tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k goldman_sachs`
+    - escalated network run passed with `1 passed, 105 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `105`, `240`, `goldman_native=True`.
+
 ## Latest checkpoint - 2026-07-06T13:44Z
 
 - Promoted `brookmont` from recognition-only/generated support to native/live-backed support.

@@ -9399,6 +9399,170 @@ class GrayscaleHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class GoldmanSachsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Goldman Sachs ETF holdings from public GSAM XLSX workbooks."""
+
+    holdings_workbook_ids_by_symbol = {
+        "GVIP": "Goldman Sachs Hedge Industry VIP ETF_9532",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        resolved = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved:
+            return resolved
+        workbook_id = issuer_product_id or self.holdings_workbook_ids_by_symbol.get(
+            symbol.strip().upper()
+        )
+        if not workbook_id:
+            return None
+        encoded_id = workbook_id.strip().replace(" ", "%20")
+        return f"https://www.gsam.com/content/dam/gsam/xls/us/en/etf/{encoded_id}.xlsx"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return _holdings_request_headers(
+            accept=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                "application/vnd.ms-excel,*/*"
+            )
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not source_url:
+            raise ValueError(f"Goldman Sachs holdings workbook route is unavailable for {symbol}.")
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(
+                source_url,
+                headers=self.source_request_headers(source_url=source_url),
+            )
+        response.raise_for_status()
+        workbook_rows = parse_xlsx_table(response.content)
+        rows, composition_date = self._parse_workbook_rows(workbook_rows)
+        if not rows:
+            raise ValueError(f"Goldman Sachs holdings workbook did not expose rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(getattr(response, "url", source_url)),
+            source_identifier=symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "issuer_symbol_holdings_xlsx",
+                "terms_note": self.config.terms_note,
+                **(
+                    {
+                        "composition_date": composition_date.isoformat(),
+                        "as_of_date": composition_date.isoformat(),
+                    }
+                    if composition_date is not None
+                    else {}
+                ),
+            },
+        )
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[Any]],
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:10])
+                if {
+                    "date",
+                    "ticker",
+                    "cusip",
+                    "isin",
+                    "sedol",
+                    "description",
+                    "market value",
+                    "number of shares",
+                    "% weighting",
+                }
+                <= {str(cell).strip().lower() for cell in row}
+            ),
+            -1,
+        )
+        if header_index < 0:
+            return [], None
+
+        header = [str(cell).strip() for cell in workbook_rows[header_index]]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            row = _row_dict(header, raw_row)
+            name = _clean(row.get("Description"))
+            symbol = _clean(row.get("Ticker"))
+            if not any([name, symbol, row.get("CUSIP"), row.get("ISIN")]):
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_excel_serial_date(row.get("Date"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=_clean(row.get("Cusip") or row.get("CUSIP")),
+                    isin=_clean(row.get("ISIN")),
+                    sedol=_clean(row.get("Sedol") or row.get("SEDOL")),
+                    weight=_decimal_percent_points(row.get("% Weighting")),
+                    shares=_decimal(row.get("Number of Shares")),
+                    market_value=_decimal(row.get("Market Value")),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=f"goldman-sachs-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in row.items()
+                        if key is not None and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_excel_serial_date(value: Any) -> date | None:
+        parsed = _decimal(value)
+        if parsed is None:
+            return None
+        try:
+            return (datetime(1899, 12, 30) + timedelta(days=int(parsed))).date()
+        except (OverflowError, ValueError):
+            return None
+
+
 class GmoHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch GMO ETF holdings workbooks from GMO's public document paths."""
 
@@ -17481,6 +17645,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Virtus public ETF product pages and positions workbooks may be subject to issuer terms.",
     ),
+    "goldman_sachs": IssuerCsvAdapterConfig(
+        adapter_key="goldman_sachs",
+        source_provider="goldman_sachs",
+        source_access="issuer_public_holdings_xlsx",
+        url_templates=(
+            "https://www.gsam.com/content/dam/gsam/xls/us/en/etf/{issuer_product_id}.xlsx",
+        ),
+        live_tested_default_route=True,
+        terms_note="Goldman Sachs Asset Management public ETF holdings workbooks may be subject to issuer terms.",
+    ),
     "renaissance_capital": IssuerCsvAdapterConfig(
         adapter_key="renaissance_capital",
         source_provider="renaissance_capital",
@@ -17568,6 +17742,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
+        "goldman_sachs": GoldmanSachsHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,
         "hartford": HartfordHoldingsAdapter,

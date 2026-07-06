@@ -53,6 +53,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "future_fund",
     "global_x",
     "gmo",
+    "goldman_sachs",
     "graniteshares",
     "grayscale",
     "hashdex",
@@ -117,7 +118,6 @@ SEC_BACKED_SAMPLE_ADAPTERS = {
     "capital_group",
     "dimensional",
     "direxion",
-    "goldman_sachs",
     "wisdomtree",
 }
 
@@ -497,6 +497,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "goldman_sachs",
+            "GVIP",
+            None,
+            {},
+            20,
         ),
         (
             "grayscale",
