@@ -7469,6 +7469,59 @@ class TappAlphaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class TuttleHoldingsAdapter(TappAlphaHoldingsAdapter):
+    """Fetch Tuttle-managed ETF holdings from public product-page Google CSV exports."""
+
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "BITK": "https://www.incomeblastetfs.com/etf/bitk",
+        "DRMP": "https://www.incomeblastetfs.com/etf/drmp",
+        "MAGO": "https://www.incomeblastetfs.com/etf/mago",
+        "MEMY": "https://www.incomeblastetfs.com/etf/memy",
+        "SPCI": "https://www.incomeblastetfs.com/etf/spci",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        return self.PRODUCT_PAGE_URLS.get(
+            normalized_symbol,
+            f"https://www.incomeblastetfs.com/etf/{normalized_symbol.lower()}",
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://www.incomeblastetfs.com/",
+        }
+
+    @staticmethod
+    def _classify_holding(*, symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if "CASH&OTHER" in text or "CASH & OTHER" in text or text == "CASH":
+            return "cash", "cash"
+        if "TREASURY BILL" in text or re.fullmatch(r"91279[A-Z0-9]{4}", (symbol or "").strip().upper()):
+            return "security", "fixed_income"
+        if re.search(r"\b\d{6}[CP]\d{8}\b", text) or re.search(r"\b[CP]\s*$", text):
+            return "security", "option"
+        if "-TRS-" in text or " SWAP " in f" {text} ":
+            return "security", "swap"
+        if "FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch TrueShares holdings from ETF product pages and linked Google CSV exports."""
 
@@ -16563,6 +16616,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TappAlpha public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "tuttle": IssuerCsvAdapterConfig(
+        adapter_key="tuttle",
+        source_provider="tuttle",
+        source_access="issuer_public_product_page_google_holdings_csv",
+        product_page_templates=(
+            "https://www.incomeblastetfs.com/etf/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Tuttle-managed public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
+    ),
     "true_shares": IssuerCsvAdapterConfig(
         adapter_key="true_shares",
         source_provider="true_shares",
@@ -16740,6 +16803,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "tapp": TappAlphaHoldingsAdapter,
         "timothy_plan": TimothyPlanHoldingsAdapter,
         "t_rowe_price": TRowePriceHoldingsAdapter,
+        "tuttle": TuttleHoldingsAdapter,
         "true_shares": TrueSharesHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,

@@ -1503,6 +1503,58 @@ async def test_tapp_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_tuttle_adapter_discovers_income_blast_google_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("tuttle")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=14SlKR5cGsW3si8JKjQfDq-0tzVr_ZDk_lLYe9wyi9eo&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download Holdings CSV</a>',
+            content_type="text/html",
+            url="https://www.incomeblastetfs.com/etf/mago",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "07/02/2026,MAGO,2AAPL 260918C00245010,2AAPL 260918C00245010,AAPL 09/18/2026 245.01 C,10,null,53591.6,2.65%,2022201",
+                    "07/02/2026,MAGO,912797RS8,912797RS8,United States Treasury Bill 09/03/2026,1739000,null,1727921.35,85.45%,2022201",
+                    "07/02/2026,MAGO,Cash&Other,Cash&Other,Cash & Other,27571.98,null,27571.98,1.36%,2022201",
+                    "07/02/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1%,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MAGO", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.incomeblastetfs.com/etf/mago"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert [row.holding_type for row in result.rows] == ["option", "fixed_income", "cash"]
+    assert result.rows[0].symbol is None
+    assert result.rows[0].cusip is None
+    assert result.rows[0].weight == Decimal("0.0265")
+    assert result.rows[0].market_value == Decimal("53591.6")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip == "912797RS8"
+    assert result.rows[1].weight == Decimal("0.8545")
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].weight == Decimal("0.0136")
+    assert result.legal_metadata["source_provider"] == "tuttle"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_google_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("true_shares")
     assert adapter is not None
@@ -4157,6 +4209,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["kurv"]["support_route_types"]
     assert adapters["tapp"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
+    assert adapters["tuttle"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["tuttle"]["support_route_types"]
     assert adapters["true_shares"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["true_shares"]["support_route_types"]
     assert adapters["t_rowe_price"]["live_tested_default_route"] is True
