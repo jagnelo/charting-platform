@@ -5311,6 +5311,238 @@ class USGlobalInvestorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class FederatedHermesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    product_pages = {
+        "payr": "https://www.federatedhermes.com/us/products/exchange-traded-funds/enhanced-income-etf.do",
+        "fhil": "https://www.federatedhermes.com/us/products/exchange-traded-funds/intl-leaders-etf.do",
+        "flcc": "https://www.federatedhermes.com/us/products/exchange-traded-funds/mdt-large-cap-core-etf.do",
+        "flcg": "https://www.federatedhermes.com/us/products/exchange-traded-funds/mdt-large-cap-growth-etf.do",
+        "flcv": "https://www.federatedhermes.com/us/products/exchange-traded-funds/mdt-large-cap-value-etf.do",
+        "mktn": "https://www.federatedhermes.com/us/products/exchange-traded-funds/mdt-market-neutral-etf.do",
+        "fscc": "https://www.federatedhermes.com/us/products/exchange-traded-funds/mdt-small-cap-core-etf.do",
+        "fcsh": "https://www.federatedhermes.com/us/products/exchange-traded-funds/short-duration-corporate-etf.do",
+        "fhys": "https://www.federatedhermes.com/us/products/exchange-traded-funds/short-duration-high-yield-etf.do",
+        "ftrb": "https://www.federatedhermes.com/us/products/exchange-traded-funds/total-return-bond-etf.do",
+        "fdv": "https://www.federatedhermes.com/us/products/exchange-traded-funds/us-strategic-dividend-etf.do",
+        "fusd": "https://www.federatedhermes.com/us/products/exchange-traded-funds/ultrashort-bond-etf.do",
+    }
+    etf_listing_url = "https://www.federatedhermes.com/us/products.do?productType=12"
+    product_post_url = "https://www.federatedhermes.com/us/products/product.do"
+    daily_section = "section-characteristics-daily-holdings"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.product_pages.get(symbol.strip().lower())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"{self.adapter_key} needs a Federated Hermes ETF product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            # The Federated Hermes section route depends on the same anonymous session cookies
+            # that the product listing establishes in the browser.
+            listing_response = await client.get(
+                self.etf_listing_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            listing_response.raise_for_status()
+
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            form_payload = self._extract_product_form_payload(product_response.text)
+            form_payload["section"] = self.daily_section
+
+            section_response = await client.post(
+                self.product_post_url,
+                data=form_payload,
+                headers={
+                    **_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Referer": product_page_url,
+                },
+                follow_redirects=True,
+            )
+            section_response.raise_for_status()
+            daily_holdings_url = self._extract_daily_holdings_url(
+                section_response.text,
+                base_url=product_page_url,
+            )
+            if not daily_holdings_url:
+                raise ValueError(
+                    f"{self.adapter_key} did not expose a daily holdings link for {symbol}."
+                )
+
+            holdings_response = await client.get(
+                daily_holdings_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+
+        rows, composition_date = self._parse_daily_holdings_page(holdings_response.text)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "product_page_url": str(getattr(product_response, "url", product_page_url)),
+                "daily_section_url": str(getattr(section_response, "url", self.product_post_url)),
+            },
+            source_url=str(getattr(holdings_response, "url", daily_holdings_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_daily_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_product_form_payload(raw_html: str) -> dict[str, str]:
+        payload: dict[str, str] = {}
+        for field_name in [
+            "fundbasketid",
+            "shareclassid",
+            "managedaccountid",
+            "compositeid",
+            "section",
+            "tab",
+            "tokenW",
+            "bonyClient",
+        ]:
+            match = re.search(
+                rf'id="{re.escape(field_name)}"\s+name="{re.escape(field_name)}"'
+                rf'\s+type="hidden"\s+value="([^"]*)"',
+                raw_html,
+            )
+            payload[field_name] = html.unescape(match.group(1)) if match else ""
+        if not payload.get("fundbasketid") or not payload.get("shareclassid"):
+            raise ValueError("Federated Hermes product page did not expose fund identifiers.")
+        return payload
+
+    @staticmethod
+    def _extract_daily_holdings_url(raw_html: str, *, base_url: str) -> str | None:
+        match = re.search(
+            r'href=["\']([^"\']*daily-portfolio-holdings/[^"\']+\.do)["\']',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return urljoin(base_url, html.unescape(match.group(1)))
+
+    @classmethod
+    def _parse_daily_holdings_page(
+        cls,
+        raw_html: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        composition_date = cls._extract_as_of_date(raw_html)
+        parser = _HTMLTableByIdParser(table_id="daily-portfolio-holdings-table")
+        parser.feed(raw_html)
+        if not parser.rows:
+            return [], composition_date
+        header = parser.rows[0]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(parser.rows[1:], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(_first(raw, ["name"]))
+            security_type = _clean(_first(raw, ["security type"]))
+            symbol = cls._clean_federated_text(_first(raw, ["ticker"]))
+            cusip = cls._clean_federated_text(_first(raw, ["cusip"]))
+            isin = cls._clean_federated_text(_first(raw, ["isin"]))
+            sedol = cls._clean_federated_text(_first(raw, ["sedol"]))
+            if not any([name, symbol, cusip, isin, sedol]):
+                continue
+            holding_type = cls._holding_type(security_type=security_type, name=name, symbol=symbol)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin if _looks_like_isin(isin) else None,
+                    sedol=sedol if _looks_like_sedol(sedol) else None,
+                    weight=_decimal(_first(raw, ["market valueweight (%)"])),
+                    shares=_decimal(_first(raw, ["shares /number ofcontracts"])),
+                    market_value=_decimal(
+                        _first(
+                            raw,
+                            ["market value /unrealizedappreciationor depreciation"],
+                        )
+                    ),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _clean_federated_text(value: Any) -> str | None:
+        text = _clean(value)
+        if text in {"—", "\u2014"}:
+            return None
+        return text
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        match = re.search(r'\bAS\s+OF\s*<time\s+datetime=["\'](\d{4}-\d{2}-\d{2})', raw_html)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _holding_type(*, security_type: str | None, name: str | None, symbol: str | None) -> str:
+        text = " ".join(part.upper() for part in [security_type, name, symbol] if part)
+        if "CASH" in text or text in {"USD", "US DOLLAR"}:
+            return "cash"
+        if "FORWARD" in text or "FUTURE" in text or "OPTION" in text or "SWAP" in text:
+            return "derivative"
+        if "BOND" in text or "NOTE" in text or "TREASURY" in text or "FIXED" in text:
+            return "fixed_income"
+        return "equity"
+
+
 class BurneyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Burney ETF holdings from public product-page wpDataTables."""
 
@@ -17041,6 +17273,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Faith Investor Services public ETF pages and holdings CSV files may be subject to issuer terms.",
     ),
+    "federated_hermes": IssuerCsvAdapterConfig(
+        adapter_key="federated_hermes",
+        source_provider="federated_hermes",
+        source_access="issuer_public_product_page_xhr_daily_holdings_table",
+        product_page_templates=(
+            "https://www.federatedhermes.com/us/products/exchange-traded-funds/{issuer_product_id}.do",
+        ),
+        live_tested_default_route=True,
+        terms_note="Federated Hermes public ETF product pages and daily holdings tables may be subject to issuer terms.",
+    ),
     "oneascent": IssuerCsvAdapterConfig(
         adapter_key="oneascent",
         source_provider="oneascent",
@@ -17730,6 +17972,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
+        "federated_hermes": FederatedHermesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,
         "counterpoint": CounterpointHoldingsAdapter,

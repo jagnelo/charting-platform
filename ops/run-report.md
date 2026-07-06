@@ -8484,3 +8484,14 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `242` registered providers still lack native/live-backed support.
+## 2026-07-06 - Federated Hermes native ETF holdings route
+
+- Promoted `federated_hermes` from SEC-backed/recognition-only support to native/live-backed support.
+- Added a provider-specific Federated Hermes adapter that establishes the issuer session via the ETF listing, loads ETF product pages, posts the daily-holdings section request, follows the public daily portfolio holdings table link, and parses the issuer table.
+- Live validation symbol: `FTRB`.
+- Current count: `345` registered provider keys, `106` native/live-backed integrations, `239` remaining.
+- Validation passed:
+  - targeted ruff for ETF holdings adapter/tests.
+  - focused Federated Hermes unit/parser test and expanded catalog assertion.
+  - live provider matrix test.
+  - focused live Federated Hermes provider route test with network access.

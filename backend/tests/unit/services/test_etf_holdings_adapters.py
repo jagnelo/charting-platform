@@ -4535,6 +4535,141 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-06-11"
 
 
+@pytest.mark.asyncio
+async def test_federated_hermes_adapter_fetches_daily_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("federated_hermes")
+    assert adapter is not None
+
+    product_page = """
+    <form id="form-product" action="/us/products/product.do" method="post">
+      <input id="fundbasketid" name="fundbasketid" type="hidden" value="31023"/>
+      <input id="shareclassid" name="shareclassid" type="hidden" value="18031"/>
+      <input id="managedaccountid" name="managedaccountid" type="hidden" value=""/>
+      <input id="compositeid" name="compositeid" type="hidden" value=""/>
+      <input id="section" name="section" type="hidden" value=""/>
+      <input id="tab" name="tab" type="hidden" value=""/>
+      <input id="tokenW" name="tokenW" type="hidden" value="token"/>
+      <input id="bonyClient" name="bonyClient" type="hidden" value="false"/>
+    </form>
+    """
+    daily_section = """
+    <span class="content-heading-3" role="heading">DAILY PORTFOLIO HOLDINGS</span>
+    <table>
+      <tr>
+        <td><a href="/us/products/daily-portfolio-holdings/exchange-traded-funds/total-return-bond-etf.do">View Daily Portfolio Holdings</a></td>
+      </tr>
+    </table>
+    """
+    holdings_page = """
+    <span class="as-of-date">AS OF <time datetime="2026-07-06">07-06-2026</time></span>
+    <table id="daily-portfolio-holdings-table">
+      <thead>
+        <tr>
+          <th>NAME</th>
+          <th>SECURITY TYPE</th>
+          <th>TICKER</th>
+          <th>CUSIP</th>
+          <th>ISIN</th>
+          <th>SEDOL</th>
+          <th>MATURITY /<br/>EXPIRATION DATE</th>
+          <th>LONG /<br/>SHORT</th>
+          <th>SHARES /<br/>NUMBER OF<br/>CONTRACTS</th>
+          <th>PRICE</th>
+          <th>NOTIONAL VALUE</th>
+          <th>MARKET VALUE /<br/>UNREALIZED<br/>APPRECIATION<br/>OR DEPRECIATION</th>
+          <th>MARKET VALUE<br/>WEIGHT (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>US TREASURY N/B</td>
+          <td>Bond</td>
+          <td>91282CME8</td>
+          <td>91282CME8</td>
+          <td>US91282CME89</td>
+          <td>BS82CME</td>
+          <td>06-30-2031</td>
+          <td>Long</td>
+          <td>10,000</td>
+          <td>$99.50</td>
+          <td>$995,000.00</td>
+          <td>$995,000.00</td>
+          <td>1.68000000%</td>
+        </tr>
+        <tr>
+          <td>AUD260715</td>
+          <td>Forward</td>
+          <td>&#8212;</td>
+          <td>AUD260715</td>
+          <td>&#8212;</td>
+          <td>&#8212;</td>
+          <td>07-15-2026</td>
+          <td>Short</td>
+          <td>0</td>
+          <td>$1.445</td>
+          <td>$1,038,062.273</td>
+          <td>-$33,264.877</td>
+          <td>-0.00560485%</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html>ETF listing</html>", content_type="text/html"),
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url=(
+                "https://www.federatedhermes.com/us/products/"
+                "exchange-traded-funds/total-return-bond-etf.do"
+            ),
+        ),
+        FakeResponse(text=daily_section, content_type="text/html"),
+        FakeResponse(
+            text=holdings_page,
+            content_type="text/html",
+            url=(
+                "https://www.federatedhermes.com/us/products/daily-portfolio-holdings/"
+                "exchange-traded-funds/total-return-bond-etf.do"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FTRB", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.federatedhermes.com/us/products.do?productType=12",
+        (
+            "https://www.federatedhermes.com/us/products/"
+            "exchange-traded-funds/total-return-bond-etf.do"
+        ),
+        "https://www.federatedhermes.com/us/products/product.do",
+        (
+            "https://www.federatedhermes.com/us/products/daily-portfolio-holdings/"
+            "exchange-traded-funds/total-return-bond-etf.do"
+        ),
+    ]
+    section_request = FakeAsyncClient.requested[2][1]
+    assert section_request["data"]["section"] == "section-characteristics-daily-holdings"
+    assert section_request["data"]["fundbasketid"] == "31023"
+    assert result.rows[0].name == "US TREASURY N/B"
+    assert result.rows[0].cusip == "91282CME8"
+    assert result.rows[0].isin == "US91282CME89"
+    assert result.rows[0].weight == Decimal("0.0168000000")
+    assert result.rows[0].shares == Decimal("10000")
+    assert result.rows[0].market_value == Decimal("995000.00")
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].market_value == Decimal("-33264.877")
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_daily_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -4708,6 +4843,10 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["zacks"]["support_route_types"]
     assert adapters["eventide"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
+    assert adapters["federated_hermes"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["federated_hermes"][
+        "support_route_types"
+    ]
     assert adapters["first_eagle"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["first_eagle"]["support_route_types"]
     assert adapters["allspring"]["live_tested_default_route"] is True

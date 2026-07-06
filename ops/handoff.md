@@ -2846,4 +2846,38 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 102/345 native/live-backed, leaving 243 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 106/345 native/live-backed, leaving 239 providers.
+
+## 2026-07-06 - Federated Hermes native ETF holdings route
+
+### Summary
+
+- Promoted `federated_hermes` from SEC-backed/recognition-only support to native/live-backed support.
+- Added provider-specific `FederatedHermesHoldingsAdapter`:
+  - visits the public ETF listing first to establish the anonymous session state Federated Hermes expects.
+  - loads symbol-specific public ETF product pages such as `https://www.federatedhermes.com/us/products/exchange-traded-funds/total-return-bond-etf.do`.
+  - posts the issuer product form to the Federated Hermes product section endpoint for daily holdings.
+  - follows the public daily portfolio holdings table link and parses `daily-portfolio-holdings-table`.
+  - handles Federated Hermes fields including name, security type, ticker, CUSIP, ISIN, SEDOL, maturity/expiration, long/short, shares/contracts, price, notional value, market value/unrealized appreciation or depreciation, and market-value weight.
+  - classifies bonds/fixed income, derivatives, cash, and equities instead of treating every row as a tradable equity.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `106`
+  - providers still lacking native/live-backed support: `239`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_federated_hermes_adapter_fetches_daily_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k federated_hermes` -> escalated network run passed with `1 passed, 106 deselected`
+- count command -> `345`, `106`, `239`, `federated_hermes_native=True`
+
+### Problems found
+
+- Federated Hermes does not expose a direct static CSV/XLSX route for the tested ETF. The daily holdings table is only reachable after product listing/session setup and an XHR-style product-section form post.
+- Fetching the product page directly without the listing session can make the daily holdings section appear unavailable, so the adapter intentionally establishes issuer session state first.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `239` registered providers still lack native/live-backed support.
