@@ -2463,6 +2463,83 @@ async def test_burney_adapter_parses_product_page_wpdatatables_holdings(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_etf_architect_adapter_parses_alpha_architect_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("etf_architect")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <body>
+                <script>{"latest_effective_date":"2026-06-17"}</script>
+                <section id="fund-holdings">
+                  <table id="table_13">
+                    <thead>
+                      <tr>
+                        <th>Ticker</th>
+                        <th>Name</th>
+                        <th>CUSIP</th>
+                        <th>Shares</th>
+                        <th>Price (Local)</th>
+                        <th>Market Value ($mm)</th>
+                        <th>% of Net Assets</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>ADT</td>
+                        <td>ADT Inc</td>
+                        <td>00090Q103</td>
+                        <td>1,717,080</td>
+                        <td>6.83</td>
+                        <td>11.73</td>
+                        <td>2.14</td>
+                      </tr>
+                      <tr>
+                        <td>T</td>
+                        <td>AT&amp;T Inc</td>
+                        <td>00206R102</td>
+                        <td>483,156</td>
+                        <td>20.58</td>
+                        <td>9.94</td>
+                        <td>1.81</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              </body>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://funds.alphaarchitect.com/qval/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://funds.alphaarchitect.com/qval/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ADT"
+    assert result.rows[0].name == "ADT Inc"
+    assert result.rows[0].cusip == "00090Q103"
+    assert result.rows[0].shares == Decimal("1717080")
+    assert result.rows[0].market_value == Decimal("11730000")
+    assert result.rows[0].weight == Decimal("0.0214")
+    assert result.rows[1].symbol == "T"
+    assert result.rows[1].name == "AT&T Inc"
+    assert result.rows[1].market_value == Decimal("9940000")
+    assert result.rows[1].weight == Decimal("0.0181")
+    assert result.legal_metadata["source_provider"] == "etf_architect"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_wpdatatables_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-06-17"
+
+
+@pytest.mark.asyncio
 async def test_cullen_adapter_fetches_public_srp_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("cullen")
     assert adapter is not None
@@ -4934,6 +5011,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["zacks"]["support_route_types"]
     assert adapters["eventide"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["eventide"]["support_route_types"]
+    assert adapters["etf_architect"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["etf_architect"]["support_route_types"]
     assert adapters["federated_hermes"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["federated_hermes"][
         "support_route_types"

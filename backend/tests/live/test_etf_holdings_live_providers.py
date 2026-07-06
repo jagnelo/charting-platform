@@ -44,6 +44,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "direxion",
     "distillate",
     "eventide",
+    "etf_architect",
     "faith_investor_services",
     "federated_hermes",
     "oneascent",
@@ -422,6 +423,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "etf_architect",
+            "QVAL",
+            None,
+            {},
+            20,
         ),
         (
             "faith_investor_services",

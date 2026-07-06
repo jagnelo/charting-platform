@@ -2,6 +2,38 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-06 - ETF Architect / Alpha Architect native ETF holdings route
+
+### Summary
+
+- Promoted `etf_architect` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `ETFArchitectHoldingsAdapter`:
+  - native public Alpha Architect / ETF Architect product page route: `https://funds.alphaarchitect.com/{symbol_lower}/`
+  - live validation symbol: `QVAL`
+  - parser handles the issuer-rendered wpDataTables holdings table with `Ticker`, `Name`, `CUSIP`, `Shares`, `Price (Local)`, `Market Value ($mm)`, and `% of Net Assets`.
+  - parser converts issuer market values from millions into full-dollar market values, converts percent-point weights into canonical decimals, preserves CUSIPs/shares, and captures page-level ISO dates when present.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `108`
+  - providers still lacking native/live-backed support: `237`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_etf_architect_adapter_parses_alpha_architect_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k etf_architect` -> escalated network run passed with `1 passed, 108 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- count command -> `345`, `108`, `237`, `etf_architect_native=True`
+
+### Problems found
+
+- ETF Architect/Alpha Architect exposes holdings in a rendered HTML/wpDataTables table rather than a simple downloadable CSV URL, so the adapter is intentionally provider/table specific.
+- The full goal remains open: `237` registered providers still lack native/live-backed support.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. SEC EDGAR remains fallback only and must not count as native provider support.
+
 ## 2026-07-06 - Tuttle native ETF holdings route
 
 ### Summary

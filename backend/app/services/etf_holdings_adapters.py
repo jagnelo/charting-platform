@@ -5835,6 +5835,134 @@ class BurneyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return parsed * Decimal("1000000")
 
 
+class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Alpha Architect / ETF Architect holdings from public fund pages."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://funds.alphaarchitect.com/{normalized_symbol}/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"{self.adapter_key} needs an ETF Architect fund page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_wpdatatables_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(cls, raw_html: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "price (local)",
+            "market value ($mm)",
+            "% of net assets",
+        }
+        for table in parser.tables:
+            for header_index, row in enumerate(table[:30]):
+                normalized_row = {str(value).strip().lower() for value in row if _clean(value)}
+                if not required_headers <= normalized_row:
+                    continue
+                rows: list[CanonicalHoldingRow] = []
+                for source_row_id, raw_row in enumerate(table[header_index + 1 :], start=1):
+                    row_data = _row_dict(row, raw_row)
+                    rows.append(
+                        CanonicalHoldingRow(
+                            symbol=_clean(row_data.get("Ticker")),
+                            name=_clean(row_data.get("Name")),
+                            cusip=(
+                                _clean(row_data.get("CUSIP"))
+                                if _looks_like_cusip(_clean(row_data.get("CUSIP")))
+                                else None
+                            ),
+                            weight=_decimal_percent_points(row_data.get("% of Net Assets")),
+                            shares=_decimal(row_data.get("Shares")),
+                            market_value=cls._market_value_from_millions(
+                                row_data.get("Market Value ($mm)")
+                            ),
+                            holding_type="equity",
+                            row_type="security",
+                            source_row_id=str(source_row_id),
+                            extra_data={k: v for k, v in row_data.items() if v not in (None, "")},
+                        )
+                    )
+                return rows, cls._extract_as_of_date(raw_html)
+        return [], cls._extract_as_of_date(raw_html)
+
+    @staticmethod
+    def _extract_as_of_date(raw_html: str) -> date | None:
+        date_candidates = re.findall(r"\b(20\d{2}-\d{2}-\d{2})\b", raw_html)
+        for value in date_candidates:
+            try:
+                return datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _market_value_from_millions(value: Any) -> Decimal | None:
+        parsed = _decimal(value)
+        if parsed is None:
+            return None
+        return parsed * Decimal("1000000")
+
+
 class CullenHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Cullen ETF holdings from the public SRP holdings CSV endpoint."""
 
@@ -17420,6 +17548,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Eventide public ETF pages and Contentful-hosted holdings CSV files may be subject to issuer terms.",
     ),
+    "etf_architect": IssuerCsvAdapterConfig(
+        adapter_key="etf_architect",
+        source_provider="etf_architect",
+        source_access="issuer_public_product_page_wpdatatables_holdings_table",
+        product_page_templates=(
+            "https://funds.alphaarchitect.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Alpha Architect / ETF Architect public ETF product-page holdings tables "
+            "may be subject to issuer terms."
+        ),
+    ),
     "faith_investor_services": IssuerCsvAdapterConfig(
         adapter_key="faith_investor_services",
         source_provider="faith_investor_services",
@@ -18143,6 +18284,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
+        "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "federated_hermes": FederatedHermesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,

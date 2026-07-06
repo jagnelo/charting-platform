@@ -5,6 +5,30 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T17:05Z
+
+- Promoted `etf_architect` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `ETFArchitectHoldingsAdapter`:
+  - native public Alpha Architect / ETF Architect product page route: `https://funds.alphaarchitect.com/{symbol_lower}/`
+  - supported live validation symbol: `QVAL`
+  - parser handles the issuer-rendered wpDataTables holdings table with `Ticker`, `Name`, `CUSIP`, `Shares`, `Price (Local)`, `Market Value ($mm)`, and `% of Net Assets`.
+  - parser converts percent-point weights into canonical decimals, converts issuer-reported market values from millions into full-dollar values, preserves CUSIPs/shares, and captures page-level ISO dates as composition/as-of metadata when present.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `108`
+  - providers still lacking native/live-backed support: `237`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_etf_architect_adapter_parses_alpha_architect_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k etf_architect`
+    - escalated network run passed with `1 passed, 108 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - count command returned `345`, `108`, `237`, `etf_architect_native=True`.
+
 ## Latest checkpoint - 2026-07-06T15:26Z
 
 - Promoted `goldman_sachs` from SEC-backed/recognition-only support to native/live-backed support.
