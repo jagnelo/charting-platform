@@ -3700,6 +3700,69 @@ Receivables/Payables, RECPAY, RECPAY, -242.721765193400, 1.000000000000, -457551
 
 
 @pytest.mark.asyncio
+async def test_brookmont_adapter_discovers_product_page_all_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("brookmont")
+    assert adapter is not None
+
+    page_html = """
+    <html>
+      <body>
+        <script src="https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/gemini/etf-holding.js"></script>
+        <a href="https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1485_all_holdings.csv">
+          Download all holdings
+        </a>
+      </body>
+    </html>
+    """
+    raw_csv = """Brookstone Active ETF
+Fund Holdings Data as of 07/02/2026
+Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+BBH SWEEP VEHICLE, BBHETFMM, 9BBH, 0.961691962000, 100.000000000000, 485598.1400000, 485598.14, 0.961788776000
+STATE STREET SPD, 78464A854, SPYM US, 22.785557219800, 87.670000000000, 131235.0000000, 11505372.45, 22.787851054100
+Receivables/Payables, RECPAY, RECPAY, -0.020553590700, 1.000000000000, -10378.3600000, -10378.36, -0.020555659800
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://www.brookstoneam.com/brookstone-active-etf",
+        ),
+        FakeResponse(
+            text=raw_csv,
+            url="https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1485_all_holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BAMA", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.brookstoneam.com/brookstone-active-etf"
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1485_all_holdings.csv"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].weight == Decimal("0.00961788776")
+    assert result.rows[1].symbol == "SPYM"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].cusip == "78464A854"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[1].shares == Decimal("131235.0000000")
+    assert result.rows[1].market_value == Decimal("11505372.45")
+    assert result.rows[1].weight == Decimal("0.227878510541")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].market_value == Decimal("-10378.36")
+    assert result.rows[2].weight == Decimal("-0.000205556598")
+    assert result.legal_metadata["source_provider"] == "brookmont"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_all_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -4584,6 +4647,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["anfield"]["support_route_types"]
     assert adapters["madison"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["madison"]["support_route_types"]
+    assert adapters["brookmont"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["brookmont"]["support_route_types"]
     assert adapters["motley_fool"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
     assert adapters["leuthold"]["live_tested_default_route"] is True

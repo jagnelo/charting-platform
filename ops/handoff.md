@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T13:44Z
+
+- Promoted `brookmont` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `BrookmontHoldingsAdapter`:
+  - native public Brookstone Active ETF product page route: `https://www.brookstoneam.com/brookstone-active-etf`
+  - supported live validation symbol: `BAMA`
+  - discovers the linked public all-holdings CSV: `https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1485_all_holdings.csv`
+  - parser handles Brookstone's preamble CSV schema with `Fund Holdings Data as of`, `Name`, `Security Identifier`, `Symbol`, `Net Assets %`, `Market Price`, `Shares Held`, `Market Value`, and `Market Value %`.
+  - parser converts percent-point weights into canonical decimals, splits venue-qualified symbols such as `SPYM US`, preserves shares/market values/CUSIPs/composition date, and keeps sweep/receivable/payable rows as cash rather than fake tradable symbols.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `104`
+  - providers still lacking native/live-backed support: `241`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_brookmont_adapter_discovers_product_page_all_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k brookmont`
+    - escalated network run passed with `1 passed, 104 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `104`, `241`, `brookmont_native=True`.
+
 ## Latest checkpoint - 2026-07-06T13:02Z
 
 - Promoted `virtus` from recognition-only/generated support to native/live-backed support.

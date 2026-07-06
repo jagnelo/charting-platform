@@ -8296,6 +8296,40 @@ Append a short entry after each worker session.
   - native/live-backed provider integrations: `101`
   - providers still lacking native/live-backed support: `244`
 
+## 2026-07-06 - Brookmont native ETF holdings route
+
+### Summary
+
+- Promoted `brookmont` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `BrookmontHoldingsAdapter`:
+  - native public Brookstone Active ETF product page route: `https://www.brookstoneam.com/brookstone-active-etf`
+  - live validation symbol: `BAMA`
+  - discovers the linked public all-holdings CSV: `https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1485_all_holdings.csv`
+  - parser handles `Fund Holdings Data as of`, `Name`, `Security Identifier`, `Symbol`, `Net Assets %`, `Market Price`, `Shares Held`, `Market Value`, and `Market Value %`.
+  - parser converts percent-point weights into canonical decimals, splits venue-qualified symbols, preserves shares/market values/CUSIPs/composition date, and keeps sweep/receivable/payable rows as cash.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `104`
+  - providers still lacking native/live-backed support: `241`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_brookmont_adapter_discovers_product_page_all_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k brookmont` -> escalated network run passed with `1 passed, 104 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `104`, `241`, `brookmont_native=True`
+
+### Problems found
+
+- Brookstone's product page links the all-holdings CSV on `retirementwealth.com`, so the adapter validates/discovers that issuer-linked route from the Brookstone page instead of hardcoding an arbitrary third-party mirror.
+- Brookstone abbreviates SPDR/State Street ETF holdings as labels like `STATE STREET SPD`, so provider-specific classification recognizes those as fund holdings while cash/sweep/receivable/payable rows remain non-tradable cash rows.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `241` registered providers still lack native/live-backed support.
+
 ### Validation
 
 - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_burney_adapter_parses_product_page_wpdatatables_holdings tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
