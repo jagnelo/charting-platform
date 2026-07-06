@@ -2297,6 +2297,83 @@ async def test_us_global_investors_adapter_parses_product_page_holdings_table(mo
 
 
 @pytest.mark.asyncio
+async def test_burney_adapter_parses_product_page_wpdatatables_holdings(monkeypatch):
+    adapter = get_holdings_adapter("burney")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <body>
+                <h2>Fund Holdings</h2>
+                <table id="table_10">
+                  <thead>
+                    <tr>
+                      <th>Ticker</th>
+                      <th>Name</th>
+                      <th>CUSIP</th>
+                      <th>Shares</th>
+                      <th>Price (Local)</th>
+                      <th>Market Value ($mm)</th>
+                      <th>% of Net Assets</th>
+                      <th>EFFECTIVE_DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>ADTN</td>
+                      <td>ADTRAN Holdings Inc</td>
+                      <td>00486H105</td>
+                      <td>184,606</td>
+                      <td>12.71</td>
+                      <td>2.35</td>
+                      <td>0.40</td>
+                      <td>07/06/2026</td>
+                    </tr>
+                    <tr>
+                      <td>AMD</td>
+                      <td>Advanced Micro Devices Inc</td>
+                      <td>007903107</td>
+                      <td>37,154</td>
+                      <td>517.82</td>
+                      <td>19.24</td>
+                      <td>3.30</td>
+                      <td>07/06/2026</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </body>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://burneyetfs.com/brny/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BRNY", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://burneyetfs.com/brny/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ADTN"
+    assert result.rows[0].name == "ADTRAN Holdings Inc"
+    assert result.rows[0].cusip == "00486H105"
+    assert result.rows[0].shares == Decimal("184606")
+    assert result.rows[0].market_value == Decimal("2350000")
+    assert result.rows[0].weight == Decimal("0.004")
+    assert result.rows[1].symbol == "AMD"
+    assert result.rows[1].market_value == Decimal("19240000")
+    assert result.rows[1].weight == Decimal("0.033")
+    assert result.legal_metadata["source_provider"] == "burney"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_wpdatatables_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_american_century_adapter_parses_avantis_embedded_holdings(monkeypatch):
     adapter = get_holdings_adapter("american_century")
     assert adapter is not None
@@ -4227,6 +4304,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["teucrium"]["support_route_types"]
     assert adapters["us_global_investors"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["us_global_investors"]["support_route_types"]
+    assert adapters["burney"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["burney"]["support_route_types"]
     assert adapters["pacer"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["pacer"]["support_route_types"]
     assert adapters["21shares"]["live_tested_default_route"] is True

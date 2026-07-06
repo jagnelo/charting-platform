@@ -27,6 +27,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "bny_mellon",
     "bondbloxx",
     "beyond_investing",
+    "burney",
     "cambria",
     "cambiar",
     "calamos",
@@ -815,6 +816,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "burney",
+            "BRNY",
+            None,
+            {},
+            50,
         ),
         (
             "volatility_shares",

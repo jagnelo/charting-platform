@@ -8280,6 +8280,40 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `248` registered providers still lack native/live-backed support.
+## 2026-07-06 - Burney native ETF holdings route
+
+### Summary
+
+- Promoted `burney` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `BurneyHoldingsAdapter`:
+  - native public Burney ETF product page route: `https://burneyetfs.com/{symbol_lower}/`
+  - live validation symbol: `BRNY`
+  - parser handles the issuer-rendered wpDataTables holdings table.
+  - parser handles `Ticker`, `Name`, `CUSIP`, `Shares`, `Price (Local)`, `Market Value ($mm)`, `% of Net Assets`, and `EFFECTIVE_DATE`.
+  - parser converts issuer-reported market value from millions into full-dollar values, converts percent-point weights into canonical decimals, and preserves composition date.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `101`
+  - providers still lacking native/live-backed support: `244`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_burney_adapter_parses_product_page_wpdatatables_holdings tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k burney` -> sandboxed DNS failure first, escalated network rerun passed with `1 passed, 101 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `101`, `244`, `burney_native=True`
+
+### Problems found
+
+- WisdomTree's obvious product-page routes were Cloudflare-blocked from backend probes, so it was not promoted.
+- Capital Group and Dimensional first-pass pages were gated behind audience/auth flows, Fidelity did not expose a simple holdings route in the inspected quote page, and Goldman did not expose a usable holdings artifact in the fetched page HTML.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `244` registered providers still lack native/live-backed support.
+
 ## 2026-07-06 - Yorkville native ETF holdings route
 
 ### Summary

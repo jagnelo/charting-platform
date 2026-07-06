@@ -5311,6 +5311,141 @@ class USGlobalInvestorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class BurneyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Burney ETF holdings from public product-page wpDataTables."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://burneyetfs.com/{normalized_symbol}/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"{self.adapter_key} needs a Burney ETF product page for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_wpdatatables_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(cls, raw_html: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "price (local)",
+            "market value ($mm)",
+            "% of net assets",
+            "effective_date",
+        }
+        for table in parser.tables:
+            for header_index, row in enumerate(table[:30]):
+                normalized_row = {str(value).strip().lower() for value in row if _clean(value)}
+                if not required_headers <= normalized_row:
+                    continue
+                rows: list[CanonicalHoldingRow] = []
+                composition_date: date | None = None
+                for source_row_id, raw_row in enumerate(table[header_index + 1 :], start=1):
+                    row_data = _row_dict(row, raw_row)
+                    parsed_date = cls._parse_date(row_data.get("EFFECTIVE_DATE"))
+                    if composition_date is None and parsed_date is not None:
+                        composition_date = parsed_date
+                    rows.append(
+                        CanonicalHoldingRow(
+                            symbol=_clean(row_data.get("Ticker")),
+                            name=_clean(row_data.get("Name")),
+                            cusip=(
+                                _clean(row_data.get("CUSIP"))
+                                if _looks_like_cusip(_clean(row_data.get("CUSIP")))
+                                else None
+                            ),
+                            weight=_decimal_percent_points(row_data.get("% of Net Assets")),
+                            shares=_decimal(row_data.get("Shares")),
+                            market_value=cls._market_value_from_millions(
+                                row_data.get("Market Value ($mm)")
+                            ),
+                            holding_type="equity",
+                            row_type="security",
+                            source_row_id=str(source_row_id),
+                            extra_data={k: v for k, v in row_data.items() if v not in (None, "")},
+                        )
+                    )
+                return rows, composition_date
+        return [], None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for date_format in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _market_value_from_millions(value: Any) -> Decimal | None:
+        parsed = _decimal(value)
+        if parsed is None:
+            return None
+        return parsed * Decimal("1000000")
+
+
 class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -16624,6 +16759,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Madison public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "burney": IssuerCsvAdapterConfig(
+        adapter_key="burney",
+        source_provider="burney",
+        source_access="issuer_public_product_page_wpdatatables_holdings_table",
+        product_page_templates=(
+            "https://burneyetfs.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Burney public ETF product-page holdings tables may be subject to issuer terms.",
+    ),
     "leuthold": IssuerCsvAdapterConfig(
         adapter_key="leuthold",
         source_provider="leuthold",
@@ -16781,6 +16926,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,
         "beyond_investing": BeyondInvestingHoldingsAdapter,
+        "burney": BurneyHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
