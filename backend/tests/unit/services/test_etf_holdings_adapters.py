@@ -3474,6 +3474,74 @@ async def test_leuthold_adapter_parses_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_point_bridge_adapter_parses_maga_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("point_bridge")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <table id="tablepress-4" class="tablepress tablepress-id-4 tablepress-responsive">
+          <thead>
+            <tr>
+              <th>StockTicker</th>
+              <th>CUSIP</th>
+              <th>SecurityName</th>
+              <th>Shares</th>
+              <th>Weightings</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ABT</td>
+              <td>002824100</td>
+              <td>Abbott Laboratories</td>
+              <td>2251.00000000</td>
+              <td>0.69%</td>
+              <td>07/06/2026</td>
+            </tr>
+            <tr>
+              <td>AMCR</td>
+              <td>G0250X149</td>
+              <td>Amcor PLC</td>
+              <td>5336.00000000</td>
+              <td>0.77%</td>
+              <td>07/06/2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://www.investpolitically.com/maga-holdings/",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MAGA", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.investpolitically.com/maga-holdings/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ABT"
+    assert result.rows[0].cusip == "002824100"
+    assert result.rows[0].name == "Abbott Laboratories"
+    assert result.rows[0].shares == Decimal("2251.00000000")
+    assert result.rows[0].weight == Decimal("0.0069")
+    assert result.rows[1].symbol == "AMCR"
+    assert result.rows[1].cusip == "G0250X149"
+    assert result.rows[1].weight == Decimal("0.0077")
+    assert result.legal_metadata["source_provider"] == "point_bridge"
+    assert result.legal_metadata["route_resolution"] == "issuer_holdings_page_tablepress_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -4129,6 +4197,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
     assert adapters["leuthold"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["leuthold"]["support_route_types"]
+    assert adapters["point_bridge"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["point_bridge"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     for adapter_key in [

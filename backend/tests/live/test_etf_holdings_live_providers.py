@@ -77,6 +77,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "northern_trust",
     "pacer",
     "palmer_square",
+    "point_bridge",
     "principal",
     "procuream",
     "proshares",
@@ -585,6 +586,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "palmer_square",
             "PSQO",
+            None,
+            {},
+            100,
+        ),
+        (
+            "point_bridge",
+            "MAGA",
             None,
             {},
             100,

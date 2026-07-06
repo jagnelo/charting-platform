@@ -12145,6 +12145,155 @@ class LeutholdHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Point Bridge MAGA ETF holdings from its public holdings table."""
+
+    HOLDINGS_PAGE_URLS: dict[str, str] = {
+        "MAGA": "https://www.investpolitically.com/maga-holdings/",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.HOLDINGS_PAGE_URLS.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not page_url:
+            raise ValueError(f"Point Bridge holdings route is unavailable for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_page(response.text, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Point Bridge holdings page did not expose rows for {symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_holdings_page_tablepress_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_holdings_table",
+                "snapshot_provenance": "issuer_native_product_page",
+                "product_page_url": page_url,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_page(
+        cls,
+        raw_html: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        for table in parser.tables:
+            if not table:
+                continue
+            header_values = {str(value).strip().lower() for value in table[0] if _clean(value)}
+            if not {"stockticker", "cusip", "securityname", "shares", "weightings", "date"} <= header_values:
+                continue
+            header = table[0]
+            rows: list[CanonicalHoldingRow] = []
+            composition_date: date | None = None
+            for index, row in enumerate(table[1:], start=1):
+                item = _row_dict(header, row)
+                if composition_date is None:
+                    composition_date = cls._parse_date(_first(item, ["Date"]))
+                raw_symbol = _clean(_first(item, ["StockTicker"]))
+                name = _clean(_first(item, ["SecurityName"]))
+                cusip_value = _clean(_first(item, ["CUSIP"]))
+                row_type, holding_type = cls._classify_row(symbol=raw_symbol, name=name)
+                symbol_value = cls._normalize_symbol(raw_symbol) if row_type == "security" else None
+                cusip = cusip_value.strip().upper() if _looks_like_cusip(cusip_value) else None
+                if not any([symbol_value, name, cusip, _first(item, ["Shares"]), _first(item, ["Weightings"])]):
+                    continue
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=symbol_value,
+                        name=name,
+                        cusip=cusip,
+                        weight=_decimal(_first(item, ["Weightings"])),
+                        shares=_decimal(_first(item, ["Shares"])),
+                        currency="USD",
+                        holding_type=holding_type,
+                        row_type=row_type,
+                        source_row_id=f"{fund_symbol.strip().upper()}-{index}",
+                        extra_data={key: value for key, value in item.items() if _clean(value) is not None},
+                    )
+                )
+            return rows, composition_date
+        return [], None
+
+    @staticmethod
+    def _normalize_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.strip().upper()
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized):
+            return normalized
+        return None
+
+    @staticmethod
+    def _classify_row(*, symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if any(marker in text for marker in ("CASH", "MONEY MARKET", "TREASURY BILL", "U.S. DOLLAR")):
+            return "cash", "cash"
+        if "ETF" in text or "FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+
 class DiamondHillHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Diamond Hill ETF holdings from issuer-published CSV files."""
 
@@ -16394,6 +16543,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Leuthold public ETF product-page holdings tables may be subject to issuer terms.",
     ),
+    "point_bridge": IssuerCsvAdapterConfig(
+        adapter_key="point_bridge",
+        source_provider="point_bridge",
+        source_access="issuer_public_holdings_page_table",
+        product_page_templates=(
+            "https://www.investpolitically.com/maga-holdings/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Point Bridge public ETF holdings pages may be subject to issuer terms.",
+    ),
     "tapp": IssuerCsvAdapterConfig(
         adapter_key="tapp",
         source_provider="tapp",
@@ -16564,6 +16723,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,
         "pacer": PacerHoldingsAdapter,
+        "point_bridge": PointBridgeHoldingsAdapter,
         "principal": PrincipalHoldingsAdapter,
         "procuream": ProcureHoldingsAdapter,
         "proshares": ProSharesHoldingsAdapter,

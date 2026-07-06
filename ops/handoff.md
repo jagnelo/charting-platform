@@ -5,6 +5,32 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T00:24Z
+
+- Promoted `point_bridge` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `PointBridgeHoldingsAdapter`:
+  - native public MAGA holdings page route: `https://www.investpolitically.com/maga-holdings/`
+  - supported live validation symbol: `MAGA`
+  - parser handles the issuer's server-rendered TablePress holdings table with `StockTicker`, `CUSIP`, `SecurityName`, `Shares`, `Weightings`, and `Date`.
+  - parser maps valid CUSIPs, converts percent weights into canonical decimal weights, preserves shares and composition date, and avoids materializing cash-like rows as fake tradable securities.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `98`
+  - providers still lacking native/live-backed support: `247`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_point_bridge_adapter_parses_maga_holdings_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k point_bridge`
+    - sandboxed run failed at DNS as expected; escalated network rerun passed with `1 passed, 98 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `98`, `247`, `point_bridge_native=True`.
+
 ## Latest checkpoint - 2026-07-03T18:05Z
 
 - Promoted `leuthold` from recognition-only/generated support to native/live-backed support.
