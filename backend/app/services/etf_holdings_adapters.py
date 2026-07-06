@@ -1302,7 +1302,7 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS: dict[str, list[str]] = {
     "sound_capital": ["sound capital"],
     "spear": ["spear advisors"],
     "spend_life_wisely": ["spend life wisely"],
-    "ssc": ["ss&c", "ss and c"],
+    "ssc": ["ss&c", "ss and c", "alps", "alps advisors"],
     "sterling_capital": ["sterling capital"],
     "sterling_fund": ["sterling fund"],
     "strive": ["strive"],
@@ -1505,6 +1505,7 @@ ISSUER_DOMAIN_HINTS: dict[str, list[str]] = {
 ISSUER_DOMAIN_HINTS.update(
     {
         "advisor_shares": ["advisorshares.com"],
+        "ssc": ["alpsfunds.com", "alpsinc.com"],
         "amplify": ["amplifyetfs.com"],
         "bitwise": ["bitwiseinvestments.com"],
         "bondbloxx": ["bondbloxxetf.com"],
@@ -3895,6 +3896,162 @@ class AcquirersHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "source_provider": self.source_provider,
         }
         return result
+
+
+class AlpsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch ALPS ETF holdings through the public product-page API proxy."""
+
+    proxy_url = "https://www.alpsfunds.com/_hcms/api/getData"
+    holdings_api_template = (
+        "https://secure.alpsinc.com/MarketingAPI/api/v1/Holding/{symbol_upper}/Full"
+    )
+    product_page_template = "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if not normalized_symbol:
+            return None
+        api_url = self.holdings_api_template.format(symbol_upper=normalized_symbol)
+        return f"{self.proxy_url}?{urlencode({'api_url': api_url})}"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        source = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers or {},
+        )
+        if not source:
+            raise ValueError(f"{self.adapter_key} needs an ALPS ETF symbol.")
+
+        product_page = self.product_page_template.format(symbol_lower=symbol.strip().lower())
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                source,
+                headers={
+                    **_issuer_page_request_headers(accept="application/json,*/*"),
+                    "Referer": product_page,
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, list):
+            raise ValueError(f"{self.adapter_key} returned a non-list holdings payload.")
+
+        rows, composition_date = self._parse_rows(payload)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"rows": payload},
+            source_url=str(getattr(response, "url", source)),
+            source_identifier=(issuer_product_id or symbol).strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_public_hubspot_proxy_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_rows(
+        cls,
+        payload: list[Any],
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            name = _clean(item.get("name"))
+            symbol = _clean(item.get("holdingsymbol") or item.get("primaryidentifier"))
+            cusip = _clean(item.get("cusip"))
+            isin = _clean(item.get("isin"))
+            sedol = _clean(item.get("sedol"))
+            if not any([name, symbol, cusip, isin, sedol]):
+                continue
+            row_date = cls._parse_as_of_date(item.get("asofdate"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            holding_type = cls._holding_type(item)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin if _looks_like_isin(isin) else None,
+                    sedol=sedol if _looks_like_sedol(sedol) else None,
+                    weight=_decimal(item.get("weight")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketvalue")),
+                    country=_clean(item.get("clientcountry")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _holding_type(item: dict[str, Any]) -> str:
+        text = " ".join(
+            str(part).upper()
+            for part in [
+                item.get("holdingtype"),
+                item.get("holdingtypeabbrev"),
+                item.get("name"),
+                item.get("primaryidentifiername"),
+            ]
+            if part
+        )
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash"
+        if "BOND" in text or "TREASURY" in text or "FIXED" in text:
+            return "fixed_income"
+        if "FUTURE" in text or "FORWARD" in text or "OPTION" in text or "SWAP" in text:
+            return "derivative"
+        if "ETF" in text or "FUND" in text:
+            return "fund"
+        return "equity"
 
 
 class ClearSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -17777,6 +17934,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cullen public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "ssc": IssuerCsvAdapterConfig(
+        adapter_key="ssc",
+        source_provider="ssc_alps",
+        source_access="issuer_public_hubspot_proxy_holdings_json",
+        url_templates=(
+            "https://www.alpsfunds.com/_hcms/api/getData"
+            "?api_url=https%3A%2F%2Fsecure.alpsinc.com%2FMarketingAPI%2Fapi%2Fv1%2FHolding%2F{symbol_upper}%2FFull",
+        ),
+        product_page_templates=(
+            "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="SS&C/ALPS public ETF product pages and holdings API proxy may be subject to issuer terms.",
+    ),
     "leuthold": IssuerCsvAdapterConfig(
         adapter_key="leuthold",
         source_provider="leuthold",
@@ -17961,6 +18132,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "calamos": CalamosHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,
+        "ssc": AlpsHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,
         "clough": CloughHoldingsAdapter,
         "davis": DavisHoldingsAdapter,

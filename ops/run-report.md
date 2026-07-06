@@ -8484,6 +8484,18 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `242` registered providers still lack native/live-backed support.
+## 2026-07-06 - SS&C/ALPS native ETF holdings route
+
+- Promoted `ssc` from generated/SEC-backed recognition-only support to native/live-backed support through the public ALPS ETF holdings route.
+- Added a provider-specific ALPS adapter using the public HubSpot proxy route that ALPS product pages call for full holdings JSON.
+- Live validation symbol: `SDOG`.
+- Current count: `345` registered provider keys, `107` native/live-backed integrations, `238` remaining.
+- Validation passed:
+  - targeted ruff for ETF holdings adapter/tests.
+  - focused SS&C/ALPS unit/parser test and expanded catalog assertion.
+  - live provider matrix test.
+  - focused live SS&C/ALPS provider route test with network access.
+
 ## 2026-07-06 - Federated Hermes native ETF holdings route
 
 - Promoted `federated_hermes` from SEC-backed/recognition-only support to native/live-backed support.

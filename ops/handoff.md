@@ -2846,7 +2846,41 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 106/345 native/live-backed, leaving 239 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 107/345 native/live-backed, leaving 238 providers.
+
+## 2026-07-06 - SS&C/ALPS native ETF holdings route
+
+### Summary
+
+- Promoted `ssc` from generated/SEC-backed recognition-only support to native/live-backed support through the public ALPS ETF holdings route.
+- Added provider-specific `AlpsHoldingsAdapter`:
+  - uses the same public HubSpot proxy route the ALPS product page calls: `https://www.alpsfunds.com/_hcms/api/getData?api_url=...`.
+  - targets the public ALPS holdings API path `https://secure.alpsinc.com/MarketingAPI/api/v1/Holding/{symbol}/Full`.
+  - uses public product pages such as `https://www.alpsfunds.com/exchange-traded-funds/sdog` as the request referer.
+  - parses JSON fields including holding symbol, name, CUSIP, ISIN, SEDOL, weight, shares, market value, as-of date, holding type, sector, country, region, and industry.
+  - classifies cash, fixed income, derivatives, funds, and equities instead of treating every row as a tradable equity.
+  - expands `ssc` inference hints to include ALPS names/domains.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `107`
+  - providers still lacking native/live-backed support: `238`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_ssc_alps_adapter_fetches_public_proxy_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k ssc` -> escalated network run passed with `1 passed, 107 deselected`
+- count command -> `345`, `107`, `238`, `ssc_native=True`
+
+### Problems found
+
+- The direct ALPS API returns `401` when called without the ALPS/HubSpot proxy path; the native route must use the same `_hcms/api/getData` proxy used by the public product page.
+- ALPS is represented in the registry as `ssc`, so this promotion had to include ALPS-specific issuer aliases and domain hints for better inference.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `238` registered providers still lack native/live-backed support.
 
 ## 2026-07-06 - Federated Hermes native ETF holdings route
 

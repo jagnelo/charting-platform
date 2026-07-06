@@ -94,6 +94,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "spdr",
     "spear",
     "sprott",
+    "ssc",
     "strive",
     "swan_global",
     "tapp",
@@ -432,6 +433,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "federated_hermes",
             "FTRB",
+            None,
+            {},
+            10,
+        ),
+        (
+            "ssc",
+            "SDOG",
             None,
             {},
             10,

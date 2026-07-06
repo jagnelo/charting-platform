@@ -4536,6 +4536,95 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("ssc")
+    assert adapter is not None
+
+    payload = [
+        {
+            "fullpartial": "full",
+            "fundid": "SDOG - ALPS Sector Dividend Dogs ETF",
+            "fundsymbol": "SDOG",
+            "cusip": "372460105",
+            "name": "Genuine Parts Co.",
+            "holdingsymbol": "GPC",
+            "weight": 0.0255,
+            "shares": 259100,
+            "marketvalue": 34348887,
+            "settlementprice": 132.57,
+            "asofdate": "2026-07-02T05:00:00",
+            "sedol": "2367480",
+            "isin": "US3724601055",
+            "primaryidentifier": "GPC",
+            "primaryidentifiername": "SYMBOL",
+            "identifiertodisplay": "GPC",
+            "holdingtype": "Common Stock",
+            "holdingtypeabbrev": "COMMON",
+            "clientsector": "Consumer Discretionary",
+            "clientcountry": "United States",
+            "clientregion": "North America",
+            "industry": "Distributors",
+        },
+        {
+            "fullpartial": "full",
+            "fundid": "SDOG - ALPS Sector Dividend Dogs ETF",
+            "fundsymbol": "SDOG",
+            "cusip": None,
+            "name": "Cash & Other",
+            "holdingsymbol": None,
+            "weight": 0.0001,
+            "shares": 1,
+            "marketvalue": 1234.56,
+            "asofdate": "2026-07-02T05:00:00",
+            "holdingtype": "Cash",
+            "holdingtypeabbrev": "CASH",
+            "clientcountry": "United States",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=(
+                "https://www.alpsfunds.com/_hcms/api/getData?api_url="
+                "https%3A%2F%2Fsecure.alpsinc.com%2FMarketingAPI%2Fapi%2Fv1"
+                "%2FHolding%2FSDOG%2FFull"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SDOG", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.alpsfunds.com/_hcms/api/getData?api_url="
+        "https%3A%2F%2Fsecure.alpsinc.com%2FMarketingAPI%2Fapi%2Fv1"
+        "%2FHolding%2FSDOG%2FFull"
+    )
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == (
+        "https://www.alpsfunds.com/exchange-traded-funds/sdog"
+    )
+    assert result.rows[0].symbol == "GPC"
+    assert result.rows[0].name == "Genuine Parts Co."
+    assert result.rows[0].cusip == "372460105"
+    assert result.rows[0].isin == "US3724601055"
+    assert result.rows[0].sedol == "2367480"
+    assert result.rows[0].weight == Decimal("0.0255")
+    assert result.rows[0].shares == Decimal("259100")
+    assert result.rows[0].market_value == Decimal("34348887")
+    assert result.rows[0].country == "United States"
+    assert result.rows[0].holding_type == "equity"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_public_hubspot_proxy_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_federated_hermes_adapter_fetches_daily_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("federated_hermes")
     assert adapter is not None
@@ -4789,6 +4878,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["burney"]["support_route_types"]
     assert adapters["cullen"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["cullen"]["support_route_types"]
+    assert adapters["ssc"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["ssc"]["support_route_types"]
     assert adapters["virtus"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["virtus"]["support_route_types"]
     assert adapters["pacer"]["live_tested_default_route"] is True
