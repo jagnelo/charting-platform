@@ -7522,6 +7522,44 @@ class TuttleHoldingsAdapter(TappAlphaHoldingsAdapter):
         return "security", "equity"
 
 
+class YorkvilleHoldingsAdapter(TappAlphaHoldingsAdapter):
+    """Fetch Yorkville/Truth Social ETF holdings from public Google CSV exports."""
+
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "TSES": "https://www.truthsocialfunds.com/etfs/tses",
+        "TSIC": "https://www.truthsocialfunds.com/etfs/tsic",
+        "TSNF": "https://www.truthsocialfunds.com/etfs/tsnf",
+        "TSRS": "https://www.truthsocialfunds.com/etfs/tsrs",
+        "TSSD": "https://www.truthsocialfunds.com/etfs/tssd",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        return self.PRODUCT_PAGE_URLS.get(
+            normalized_symbol,
+            f"https://www.truthsocialfunds.com/etfs/{normalized_symbol.lower()}",
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="text/csv,*/*"),
+            "Referer": "https://www.truthsocialfunds.com/",
+        }
+
+
 class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch TrueShares holdings from ETF product pages and linked Google CSV exports."""
 
@@ -16626,6 +16664,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Tuttle-managed public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "yorkville": IssuerCsvAdapterConfig(
+        adapter_key="yorkville",
+        source_provider="yorkville",
+        source_access="issuer_public_product_page_google_holdings_csv",
+        product_page_templates=(
+            "https://www.truthsocialfunds.com/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Yorkville/Truth Social Funds public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
+    ),
     "true_shares": IssuerCsvAdapterConfig(
         adapter_key="true_shares",
         source_provider="true_shares",
@@ -16815,6 +16863,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "wahed": WahedHoldingsAdapter,
         "wisdomtree": WisdomTreeHoldingsAdapter,
         "world_gold_council": WorldGoldCouncilHoldingsAdapter,
+        "yorkville": YorkvilleHoldingsAdapter,
         "yieldmax": YieldMaxHoldingsAdapter,
         "zacks": ZacksHoldingsAdapter,
     }

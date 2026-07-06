@@ -8280,3 +8280,36 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `248` registered providers still lack native/live-backed support.
+## 2026-07-06 - Yorkville native ETF holdings route
+
+### Summary
+
+- Promoted `yorkville` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `YorkvilleHoldingsAdapter`:
+  - native public Truth Social Funds product page route: `https://www.truthsocialfunds.com/etfs/{symbol_lower}`
+  - live validation symbol: `TSIC`
+  - parser discovers the public Google Sheets holdings CSV linked from the product page.
+  - parser handles `Date`, `Account`, `Stock Ticker`, `CUSIP`, `Security Name`, `Shares`, `Price`, `Market Value`, `Weightings`, and `Net Assets`.
+  - parser filters by ETF account symbol and preserves ticker, CUSIP, shares, market value, weight, and composition date.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `100`
+  - providers still lacking native/live-backed support: `245`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_yorkville_adapter_discovers_truth_social_google_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k yorkville` -> sandboxed DNS failure first, escalated network rerun passed with `1 passed, 100 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `100`, `245`, `yorkville_native=True`
+
+### Problems found
+
+- Spend Life Wisely candidate product URLs returned 404 in the quick probe.
+- Retireful DNS did not resolve from the probe environment, Corgi `/etfs` returned 404, and Soundwatch exposed no obvious CSV/Google holdings artifact in fetched HTML.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `245` registered providers still lack native/live-backed support.

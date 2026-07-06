@@ -105,6 +105,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "volatility_shares",
     "wahed",
     "world_gold_council",
+    "yorkville",
     "yieldmax",
     "zacks",
 }
@@ -653,6 +654,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             1,
+        ),
+        (
+            "yorkville",
+            "TSIC",
+            None,
+            {},
+            20,
         ),
         (
             "running_oak",

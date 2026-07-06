@@ -1555,6 +1555,56 @@ async def test_tuttle_adapter_discovers_income_blast_google_holdings_csv(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_yorkville_adapter_discovers_truth_social_google_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("yorkville")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=1j-Oe_ySv_nafdf6Ku1IWnPYqUy8RbnK7pyXM7YzPorQ&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download Holdings CSV</a>',
+            content_type="text/html",
+            url="https://www.truthsocialfunds.com/etfs/tsic",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "07/06/2026,TSIC,ACI,013091103,Albertsons Cos Inc,244,null,3447.72,0.15%,2314656",
+                    "07/06/2026,TSIC,ADM,039483102,Archer-Daniels-Midland Co,353,null,27106.87,1.17%,2314656",
+                    "07/06/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1%,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TSIC", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.truthsocialfunds.com/etfs/tsic"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ACI"
+    assert result.rows[0].cusip == "013091103"
+    assert result.rows[0].name == "Albertsons Cos Inc"
+    assert result.rows[0].shares == Decimal("244")
+    assert result.rows[0].market_value == Decimal("3447.72")
+    assert result.rows[0].weight == Decimal("0.0015")
+    assert result.rows[1].symbol == "ADM"
+    assert result.rows[1].cusip == "039483102"
+    assert result.rows[1].weight == Decimal("0.0117")
+    assert result.legal_metadata["source_provider"] == "yorkville"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_google_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("true_shares")
     assert adapter is not None
@@ -4211,6 +4261,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["tapp"]["support_route_types"]
     assert adapters["tuttle"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["tuttle"]["support_route_types"]
+    assert adapters["yorkville"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["yorkville"]["support_route_types"]
     assert adapters["true_shares"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["true_shares"]["support_route_types"]
     assert adapters["t_rowe_price"]["live_tested_default_route"] is True

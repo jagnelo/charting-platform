@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T11:55Z
+
+- Promoted `yorkville` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `YorkvilleHoldingsAdapter`:
+  - native public Truth Social Funds product page route: `https://www.truthsocialfunds.com/etfs/{symbol_lower}`
+  - supported live validation symbol: `TSIC`
+  - parser discovers the public Google Sheets holdings CSV linked from the product page.
+  - parser handles the issuer's `Date`, `Account`, `Stock Ticker`, `CUSIP`, `Security Name`, `Shares`, `Price`, `Market Value`, `Weightings`, and `Net Assets` schema.
+  - parser filters by ETF account symbol and preserves ticker, CUSIP, shares, market value, weight, and composition date.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `100`
+  - providers still lacking native/live-backed support: `245`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_yorkville_adapter_discovers_truth_social_google_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k yorkville`
+    - sandboxed run failed at DNS as expected; escalated network rerun passed with `1 passed, 100 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `100`, `245`, `yorkville_native=True`.
+
 ## Latest checkpoint - 2026-07-06T11:42Z
 
 - Promoted `tuttle` from recognition-only/generated support to native/live-backed support.
