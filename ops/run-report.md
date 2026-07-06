@@ -8347,3 +8347,37 @@ Append a short entry after each worker session.
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `245` registered providers still lack native/live-backed support.
+
+## 2026-07-06 - Cullen native ETF holdings route
+
+### Summary
+
+- Promoted `cullen` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `CullenHoldingsAdapter`:
+  - native public SRP holdings CSV route: `https://www.cullenfunds.com/srp/api/fund-holdings-csv-download/38/?fund_id={fund_id}&as_at_date={date}`
+  - live validation symbol: `DIVP`
+  - default fund id mapping: `DIVP -> 3156`
+  - parser handles `Security Name`, `Ticker`, `CUSIP`, `Shares`, `Market Value`, and Cullen's issuer-specific `Percentage` column.
+  - parser converts percent-point weights into canonical decimals and preserves CUSIP, shares, market value, and composition date.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `102`
+  - providers still lacking native/live-backed support: `243`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_cullen_adapter_fetches_public_srp_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k cullen` -> escalated network run passed with `1 passed, 102 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `102`, `243`, `cullen_native=True`
+
+### Problems found
+
+- Cullen labels the holdings weight column as `Percentage`, so the provider-specific adapter normalizes it to `% of Net Assets` before using the shared canonical parser.
+- An initial broad edit briefly touched an unrelated parse call; this was caught by diff review and reverted before commit.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `243` registered providers still lack native/live-backed support.

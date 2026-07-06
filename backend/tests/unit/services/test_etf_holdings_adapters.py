@@ -35,6 +35,14 @@ from app.services.etf_holdings_adapters import (
 )
 
 
+class MockDate(date):
+    today_value = date(2026, 7, 6)
+
+    @classmethod
+    def today(cls) -> date:
+        return cls.today_value
+
+
 def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     return _xlsx_workbook_sheets([rows])
 
@@ -2374,6 +2382,52 @@ async def test_burney_adapter_parses_product_page_wpdatatables_holdings(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_cullen_adapter_fetches_public_srp_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("cullen")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""Cullen Enhanced Equity Income ETF Holdings as at 2026-07-02
+
+Security Name,Ticker,CUSIP,Shares,Market Value,Percentage
+EOG RESOURCES INC,EOG,26875P101,"3,225","427,151.25",4.27
+CISCO SYSTEMS INC,CSCO,17275R102,"7,648","414,904.00",4.15
+ENERGY SELECT SECTOR SPDR,XLE,81369Y506,"3,559","330,310.79",3.30
+""",
+            content_type="text/csv",
+            url=(
+                "https://www.cullenfunds.com/srp/api/fund-holdings-csv-download/38/"
+                "?fund_id=3156&as_at_date=2026-07-06"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    MockDate.today_value = date(2026, 7, 6)
+
+    result = await adapter.fetch_latest(symbol="DIVP", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.cullenfunds.com/srp/api/fund-holdings-csv-download/38/"
+        "?fund_id=3156&as_at_date=2026-07-06"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "EOG"
+    assert result.rows[0].name == "EOG RESOURCES INC"
+    assert result.rows[0].cusip == "26875P101"
+    assert result.rows[0].shares == Decimal("3225")
+    assert result.rows[0].market_value == Decimal("427151.25")
+    assert result.rows[0].weight == Decimal("0.0427")
+    assert result.rows[2].symbol == "XLE"
+    assert result.rows[2].weight == Decimal("0.033")
+    assert result.legal_metadata["source_provider"] == "cullen"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_srp_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
 async def test_american_century_adapter_parses_avantis_embedded_holdings(monkeypatch):
     adapter = get_holdings_adapter("american_century")
     assert adapter is not None
@@ -4306,6 +4360,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["us_global_investors"]["support_route_types"]
     assert adapters["burney"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["burney"]["support_route_types"]
+    assert adapters["cullen"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["cullen"]["support_route_types"]
     assert adapters["pacer"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["pacer"]["support_route_types"]
     assert adapters["21shares"]["live_tested_default_route"] is True

@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-06T12:55Z
+
+- Promoted `cullen` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `CullenHoldingsAdapter`:
+  - native public Cullen SRP holdings CSV route: `https://www.cullenfunds.com/srp/api/fund-holdings-csv-download/38/?fund_id={fund_id}&as_at_date={date}`
+  - supported live validation symbol: `DIVP`
+  - default fund id mapping: `DIVP -> 3156`
+  - parser handles Cullen's `Security Name`, `Ticker`, `CUSIP`, `Shares`, `Market Value`, and issuer-specific `Percentage` schema.
+  - parser converts percent-point weights into canonical decimals and preserves CUSIP, shares, market value, and composition date.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `102`
+  - providers still lacking native/live-backed support: `243`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_cullen_adapter_fetches_public_srp_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k cullen`
+    - escalated network run passed with `1 passed, 102 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `102`, `243`, `cullen_native=True`.
+
 ## Latest checkpoint - 2026-07-06T12:28Z
 
 - Promoted `burney` from recognition-only/generated support to native/live-backed support.
@@ -2714,8 +2741,8 @@
 
 ## Pending
 
-- ETF issuer/provider recognition currently covers 345 registered adapter keys, but provider-native support is only 24/345 under the user's clarified standard. SEC EDGAR fallback is useful fallback infrastructure only and must not be counted as native provider support.
-- Native/live-backed providers currently are `advisor_shares`, `ark`, `bitwise`, `cambria`, `defiance`, `first_trust`, `global_x`, `innovator`, `invesco`, `ishares`, `kraneshares`, `neos`, `proshares`, `roundhill`, `schwab`, `simplify`, `spdr`, `sprott`, `strive`, `teucrium`, `us_global_investors`, `vaneck`, `vanguard`, and `yieldmax`.
+- ETF issuer/provider recognition currently covers 345 registered adapter keys, but provider-native support is only 102/345 under the user's clarified standard. SEC EDGAR fallback is useful fallback infrastructure only and must not be counted as native provider support.
+- Native/live-backed providers currently total `102`; inspect `ISSUER_ADAPTER_CONFIGS` entries with `live_tested_default_route=True` for the authoritative list.
 - Broad issuer routing infrastructure exists through provider-specific route constructors, explicit product URLs, configured issuer fund-list feeds, concrete issuer constructors, product-page discovery, and SEC filing fallback. Native issuer-route claims still require backend-reachable live tests; 321 registered providers still need isolated native/live-backed implementations.
 - US Global Investors now has a backend-reachable native/live-tested route through public product-page holdings tables such as JETS.
 - Current backend-reachable live-tested issuer routes now also include Invesco through the symbol-based QQQ-style holdings JSON route template.
@@ -2725,7 +2752,7 @@
 - Invesco has a backend-fetchable native route for QQQ-style holdings; SEC fallback remains available when a native route is absent or not configured for a specific ETF/profile.
 - Long-tail issuers may still retrieve holdings through SEC fallback when SEC identifiers are available, but they remain unsupported under the provider-native standard until each has an isolated native implementation plus static and live tests.
 - Source-hardening baseline exists for malformed/empty issuer files, rate-limit classification, common schema aliases, CUSIP-like security identifiers, cash rows, accounting negatives, disclaimer-row skipping, and SEC legacy parsing. Remaining source work is still large because each remaining issuer needs native route research, implementation, static parser coverage, and live route validation.
-- Live issuer smoke tests exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. Native-route live tests cover the 24 direct issuer routes, while SEC-backed adapter behavior is validated separately and cannot be used to claim native support.
+- Live issuer smoke tests exist in `backend/tests/live/test_etf_holdings_live_providers.py` behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`. Native-route live tests cover the 102 direct issuer routes, while SEC-backed adapter behavior is validated separately and cannot be used to claim native support.
 - SEC N-PORT/N-PORT-P XML parsing/admin ingestion, recent and archived EDGAR discovery/download, persistent accession/job state, duplicate-safe reruns, and bulk/scheduled hooks exist; baseline N-Q/N-CSR-style legacy XML/table, simple HTML schedule-table parsing, split-row HTML schedule reconstruction, month-name report dates, value-in-thousands schedules, manual/admin ingestion, EDGAR discovery/download/backfill, duplicate-safe reruns, and bulk processing also exist. Deeply nested/footnoted HTML filings and PDF-like filing handling remain long-tail maintenance.
 - Basket builder/editor UI, backend basket OHLCV, and initial Chart synthetic basket loading exist; richer basket metadata/watchlist/compare semantics are not implemented yet.
 - Strategy Lab consumes ETF holdings snapshots and baskets as static universes, and rules backtests now expose opt-in dynamic point-in-time ETF holdings mode plus ETF-derived and manual basket dynamic modes in the visual builder with an explicit constituent-removal exit policy and baseline execution-log snapshot attribution surfaced in the UI. Richer basket rebalance policies, historical basket snapshot editing/import UX, and deeper attribution drilldowns remain open.
@@ -2738,4 +2765,4 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 24/345 native/live-backed, leaving 321 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 102/345 native/live-backed, leaving 243 providers.

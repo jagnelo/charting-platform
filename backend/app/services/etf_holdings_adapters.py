@@ -5446,6 +5446,164 @@ class BurneyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return parsed * Decimal("1000000")
 
 
+class CullenHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Cullen ETF holdings from the public SRP holdings CSV endpoint."""
+
+    _FUND_IDS_BY_SYMBOL = {
+        "DIVP": "3156",
+    }
+    _DOWNLOAD_ID = "38"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return f"https://www.cullenfunds.com/US/P/ETF/{normalized_symbol}/"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        fund_id = self._resolve_fund_id(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not fund_id:
+            fund_id = await self._discover_fund_id(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers or {},
+            )
+        if not fund_id:
+            raise ValueError(f"{self.adapter_key} needs a Cullen fund id for {symbol}.")
+
+        holdings_url = source_url or self._holdings_url(
+            fund_id=fund_id,
+            requested_date=date.today(),
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=_issuer_page_request_headers(accept="text/csv,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = self._parse_cullen_csv(response.text)
+        if not rows:
+            raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
+        composition_date = self._extract_composition_date(response.text)
+        return HoldingsFetchResult(
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=fund_id,
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_public_srp_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "issuer_product_id": fund_id,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _resolve_fund_id(
+        cls,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        return (
+            _clean(issuer_product_id)
+            or _identifier(identifiers, "issuer_product_id", "fund_id", "cullen_fund_id")
+            or cls._FUND_IDS_BY_SYMBOL.get(symbol.strip().upper())
+        )
+
+    async def _discover_fund_id(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        source_url: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            return None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        match = re.search(r"fund_id:\s*['\"]?(\d+)['\"]?", response.text)
+        return match.group(1) if match else None
+
+    @classmethod
+    def _holdings_url(cls, *, fund_id: str, requested_date: date) -> str:
+        return (
+            "https://www.cullenfunds.com/srp/api/fund-holdings-csv-download/"
+            f"{cls._DOWNLOAD_ID}/?fund_id={fund_id}&as_at_date={requested_date.isoformat()}"
+        )
+
+    @staticmethod
+    def _parse_cullen_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
+        table_rows = list(csv.reader(StringIO(raw_csv.strip())))
+        for row in table_rows:
+            normalized = [str(value).strip().lower() for value in row]
+            if normalized == [
+                "security name",
+                "ticker",
+                "cusip",
+                "shares",
+                "market value",
+                "percentage",
+            ]:
+                row[-1] = "% of Net Assets"
+                break
+        return parse_holdings_table(table_rows)
+
+    @staticmethod
+    def _extract_composition_date(raw_csv: str) -> date | None:
+        match = re.search(r"Holdings\s+as\s+at\s+(\d{4}-\d{1,2}-\d{1,2})", raw_csv)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -16769,6 +16927,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Burney public ETF product-page holdings tables may be subject to issuer terms.",
     ),
+    "cullen": IssuerCsvAdapterConfig(
+        adapter_key="cullen",
+        source_provider="cullen",
+        source_access="issuer_public_srp_holdings_csv",
+        product_page_templates=(
+            "https://www.cullenfunds.com/US/P/ETF/{symbol_upper}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Cullen public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "leuthold": IssuerCsvAdapterConfig(
         adapter_key="leuthold",
         source_provider="leuthold",
@@ -16946,6 +17114,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,
         "counterpoint": CounterpointHoldingsAdapter,
+        "cullen": CullenHoldingsAdapter,
         "future_fund": FutureFundHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
