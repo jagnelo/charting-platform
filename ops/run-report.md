@@ -8795,3 +8795,17 @@ Append a short entry after each worker session.
   - live provider matrix test.
   - targeted ruff for ETF holdings adapter/tests.
 - Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `doubleline`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+
+## 2026-07-07 - DoubleLine native ETF holdings route
+
+- Promoted `doubleline` from generated/SEC-backed recognition-only support to native/live-backed support from the user-confirmed high-priority provider set.
+- Added `pypdf` and a provider-specific DoubleLine adapter that probes recent dated public holdings PDFs such as `DoubleLine_DBND_Holdings_07-06-2026.pdf`.
+- The adapter parses PDF-extracted rows into canonical holdings, preserving CUSIP/security identifiers, issuer tickers, market value, quantity, asset class, weights, and as-of date while avoiding fake tradable symbols for generic fixed-income tickers.
+- Live validation symbol: `DBND`.
+- Current count: `345` registered provider keys, `120` native/live-backed integrations, `225` remaining.
+- Validation passed:
+  - focused DoubleLine PDF parser test and expanded catalog assertion.
+  - focused live DoubleLine route test with network access.
+  - live provider matrix test.
+  - targeted ruff for ETF holdings adapter/tests.
+- Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.

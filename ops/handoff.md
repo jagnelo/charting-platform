@@ -5,6 +5,36 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T16:05Z
+
+- Promoted `doubleline` from generated/SEC-backed recognition-only support to native/live-backed support.
+- This was from the user-confirmed fast-track screenshot set:
+  - `dimensional`, `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, `wellington`.
+- Added a provider-specific `DoubleLineHoldingsAdapter`:
+  - probes recent dated public holdings PDFs such as `https://doubleline.com/wp-content/uploads/holdings/DoubleLine_DBND_Holdings_07-06-2026.pdf`.
+  - adds `pypdf` as a backend dependency for issuer PDF text extraction.
+  - parses PDF-extracted rows for weight, security name, security identifier/CUSIP, issuer ticker, market value, quantity, contract size, asset class, and composition date.
+  - avoids treating generic fixed-income issuer tickers such as `T`, `FN`, or `FR` as platform tradable symbols while preserving them in row metadata.
+  - classifies treasury/RMBS/CMBS/etc. rows as fixed income, fund rows as funds, and cash rows as cash.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `120`
+  - providers still lacking native/live-backed support: `225`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_doubleline_adapter_parses_pdf_extracted_text tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k doubleline`
+    - result: `1 passed, 120 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+- Remaining fast-track screenshot set:
+  - `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+- Next step:
+  - Continue the exact screenshot-priority set. `wisdomtree` remains browser-renderable but backend-fetch blocked with HTTP `403`; do not claim it native until the backend can fetch a complete holdings artifact.
+
 ## Latest checkpoint - 2026-07-07T15:20Z
 
 - Promoted `angel_oak` from generated/SEC-backed recognition-only support to native/live-backed support.
