@@ -12598,6 +12598,209 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class TexasCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Texas Capital ETF holdings from issuer-published static JSON files."""
+
+    FUND_SLUGS: dict[str, str] = {
+        "TXS": "txs",
+        "TXSS": "txss",
+        "OILT": "oilt",
+        "MMKT": "mmkt",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        fund_slug = (
+            _clean(issuer_product_id)
+            or _identifier(identifiers or {}, "issuer_product_id", "texas_capital_fund_slug")
+            or self.FUND_SLUGS.get(normalized_symbol)
+        )
+        if not fund_slug:
+            return None
+        return (
+            "https://texascapitalbank.com/sites/default/files/documents/"
+            f"etf-funds-management/{fund_slug.strip().lower()}/data/holdings-data.json"
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Texas Capital did not expose a holdings JSON route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, fund_symbol=symbol)
+        if not rows:
+            raise ValueError(f"Texas Capital holdings JSON did not expose rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"rows": payload} if isinstance(payload, list) else None,
+            source_url=resolved_source_url,
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_static_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_static_json",
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: list[date] = []
+        for index, raw_row in enumerate(payload, start=1):
+            if not isinstance(raw_row, dict):
+                continue
+            row = cls._flatten_suffixed_row(raw_row)
+            if not row:
+                continue
+            composition_date = cls._parse_date(row.get("asOfDate"))
+            if composition_date:
+                composition_dates.append(composition_date)
+            raw_symbol = _clean(row.get("ticker") or row.get("symbol"))
+            symbol = cls._normalize_symbol(raw_symbol)
+            name = _clean(row.get("securityDescriptionLong") or row.get("securityDescription"))
+            segment = _clean(row.get("segment"))
+            category = _clean(row.get("category"))
+            identifier = _clean(row.get("securityIdentifier"))
+            row_type, holding_type = cls._classify_row(
+                symbol=symbol,
+                name=name,
+                segment=segment,
+                category=category,
+                identifier=identifier,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type == "security" else None,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal_percent_points(row.get("marketValuePercentage")),
+                    shares=_decimal(row.get("sharesHeldOfSecurity")),
+                    market_value=_decimal(row.get("marketValueOfHolding")),
+                    currency=_clean(row.get("tradingCurrency") or row.get("incomeCurrency")),
+                    country=_clean(row.get("country")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"{fund_symbol.strip().upper()}-"
+                        f"{composition_date.isoformat() if composition_date else 'latest'}-"
+                        f"{index}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in row.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        composition_date = max(composition_dates) if composition_dates else None
+        return rows, composition_date
+
+    @staticmethod
+    def _flatten_suffixed_row(raw_row: dict[str, Any]) -> dict[str, Any]:
+        row: dict[str, Any] = {}
+        for key, value in raw_row.items():
+            match = re.fullmatch(r"(.+)_\d+", str(key))
+            if match:
+                row[match.group(1)] = value
+            else:
+                row[str(key)] = value
+        return row
+
+    @staticmethod
+    def _normalize_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.strip().upper()
+        if normalized in {"USD", "CASH"}:
+            return normalized
+        if "." in normalized or " " in normalized:
+            return None
+        return normalized
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for date_format in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        symbol: str | None,
+        name: str | None,
+        segment: str | None,
+        category: str | None,
+        identifier: str | None,
+    ) -> tuple[str, str]:
+        haystack = " ".join(
+            part.upper()
+            for part in (symbol, name, segment, category, identifier)
+            if part
+        )
+        if any(marker in haystack for marker in ("CASH", "CURRENCY", "US DOLLARS", "USD")):
+            return "cash", "cash"
+        if any(marker in haystack for marker in ("TREASURY", "BILL", "NOTE", "BOND")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class CloughHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Clough Capital ETF holdings from its public WordPress JSON endpoint."""
 
@@ -19060,6 +19263,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="fidelity",
         source_provider="fidelity",
     ),
+    "texas_capital": IssuerCsvAdapterConfig(
+        adapter_key="texas_capital",
+        source_provider="texas_capital",
+        source_access="issuer_public_static_holdings_json",
+        url_templates=(
+            "https://texascapitalbank.com/sites/default/files/documents/"
+            "etf-funds-management/{issuer_product_id}/data/holdings-data.json",
+        ),
+        product_page_templates=(
+            "https://texascapitalbank.com/etfform",
+        ),
+        live_tested_default_route=True,
+        terms_note="Texas Capital public ETF data files may be subject to issuer terms.",
+    ),
     "diamond_hill": IssuerCsvAdapterConfig(
         adapter_key="diamond_hill",
         source_provider="diamond_hill",
@@ -19742,6 +19959,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
+        "texas_capital": TexasCapitalHoldingsAdapter,
         "timothy_plan": TimothyPlanHoldingsAdapter,
         "t_rowe_price": TRowePriceHoldingsAdapter,
         "tuttle": TuttleHoldingsAdapter,

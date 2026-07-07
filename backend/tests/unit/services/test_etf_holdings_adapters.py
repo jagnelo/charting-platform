@@ -5469,6 +5469,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["point_bridge"]["support_route_types"]
     assert adapters["main_management"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
+    assert adapters["texas_capital"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["texas_capital"]["support_route_types"]
     for adapter_key in [
         "capital_group",
         "dimensional",
@@ -6280,6 +6282,93 @@ async def test_adaptive_investments_adapter_parses_variable_embedded_holdings_pa
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
     assert result.legal_metadata["composition_date"] == "2026-07-07"
+
+
+@pytest.mark.asyncio
+async def test_texas_capital_adapter_parses_static_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("texas_capital")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "asOfDate_1": "April 29, 2025",
+                        "securityDescription_1": "CROWDSTRIKE HO-A",
+                        "securityDescriptionLong_1": "Crowdstrike Holdings, Inc.",
+                        "securityIdentifier_1": "22788C105",
+                        "ticker_1": "CRWD",
+                        "symbol_1": "CRWD",
+                        "marketValuePercentage_1": "5.63",
+                        "sharesHeldOfSecurity_1": "3,587.00",
+                        "marketValueOfHolding_1": "1,545,961.13",
+                        "segment_1": "COMMON STOCKS",
+                        "category_1": "TECHNOLOGY",
+                        "country_1": "US",
+                        "tradingCurrency_1": "USD",
+                    },
+                    {
+                        "asOfDate_2": "April 29, 2025",
+                        "securityDescription_2": "TF FLOAT 07/31/25",
+                        "securityIdentifier_2": "91282CHS3",
+                        "ticker_2": "",
+                        "symbol_2": "",
+                        "marketValuePercentage_2": "10.11",
+                        "sharesHeldOfSecurity_2": "1,000,000.00",
+                        "marketValueOfHolding_2": "1,001,230.00",
+                        "segment_2": "U.S. TREASURY",
+                        "category_2": "TREASURY",
+                        "country_2": "US",
+                        "tradingCurrency_2": "USD",
+                    },
+                    {
+                        "asOfDate_3": "April 29, 2025",
+                        "securityDescription_3": "US DOLLARS",
+                        "securityIdentifier_3": "USD",
+                        "ticker_3": "USD",
+                        "symbol_3": "USD",
+                        "marketValuePercentage_3": "0.25",
+                        "sharesHeldOfSecurity_3": "2,500.00",
+                        "marketValueOfHolding_3": "2,500.00",
+                        "segment_3": "CURRENCY",
+                        "category_3": "CURRENCY",
+                        "country_3": "US",
+                        "tradingCurrency_3": "USD",
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url=(
+                "https://texascapitalbank.com/sites/default/files/documents/"
+                "etf-funds-management/txs/data/holdings-data.json"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TXS")
+
+    assert FakeAsyncClient.requested[0][0].endswith("/txs/data/holdings-data.json")
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "CRWD"
+    assert result.rows[0].name == "Crowdstrike Holdings, Inc."
+    assert result.rows[0].cusip == "22788C105"
+    assert result.rows[0].weight == Decimal("0.0563")
+    assert result.rows[0].shares == Decimal("3587.00")
+    assert result.rows[0].market_value == Decimal("1545961.13")
+    assert result.rows[0].holding_type == "equity"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].cusip == "91282CHS3"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "texas_capital"
+    assert result.legal_metadata["route_resolution"] == "issuer_static_holdings_json"
+    assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["composition_date"] == "2025-04-29"
 
 
 @pytest.mark.asyncio
