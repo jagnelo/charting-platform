@@ -2,6 +2,43 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-07 - Texas Capital native ETF holdings route
+
+### Summary
+
+- Promoted `texas_capital` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `TexasCapitalHoldingsAdapter`:
+  - native static JSON holdings route: `https://texascapitalbank.com/sites/default/files/documents/etf-funds-management/{issuer_product_id}/data/holdings-data.json`
+  - live validation symbol: `TXS`
+  - built-in Texas Capital fund slug map for `TXS`, `TXSS`, `OILT`, and `MMKT`
+  - parser flattens suffixed row keys such as `ticker_1`, `marketValuePercentage_1`, and `sharesHeldOfSecurity_1`.
+  - parser preserves ticker, name, CUSIP, shares, market value, currency, country, canonical decimal weight, composition date, and source metadata.
+  - parser classifies cash/currency and treasury rows without manufacturing fake tradable symbols.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `116`
+  - providers still lacking native/live-backed support: `229`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_texas_capital_adapter_parses_static_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k texas_capital` -> escalated network run passed with `1 passed, 116 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `git diff --check` -> passed
+- count command -> `345`, `116`, `229`, `texas_capital_native=True`
+
+### Problems found
+
+- Fidelity's public page bundle did not reveal a holdings API, and the obvious Fidelity document URL returned access denied.
+- Exchange Traded Concepts was reachable but exposed a platform/catalogue payload rather than a provider-owned per-fund holdings source.
+- SoFi and REX were Cloudflare-gated; Victory and TCW routes were blocked or redirected before a parseable holdings source could be verified.
+- The full goal remains open: `229` registered providers still lack native/live-backed support.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. SEC EDGAR remains fallback only and must not count as native provider support.
+
 ## 2026-07-07 - Adaptive Investments native ETF holdings route
 
 ### Summary
