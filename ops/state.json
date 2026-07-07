@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-07T11:31:00Z",
-    "last_commit": null,
-    "git_ready_to_commit": true,
+    "last_commit": "988b668",
+    "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-07 targeted ruff check for Ocean Park native adapter)",
         "backend_tests": "passed ETF holdings Ocean Park native-route validation (2026-07-07: static parser/catalog tests passed, focused live DUKQ route passed after network escalation, provider matrix test passed, registry count is now 345 registered provider keys, 113 native/live-backed providers, and 232 remaining; ocean_park_native=True).",
