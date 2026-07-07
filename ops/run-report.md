@@ -8780,3 +8780,18 @@ Append a short entry after each worker session.
   - `neuberger_berman` returned HTTP `429`.
   - `lazard` pages are reachable, but no holdings artifact/API was found in the inspected ETF page.
   - `brookfield`, `tcw`, `thrivent`, `voya`, and `wellington` still need deeper route work before native support can be claimed.
+
+## 2026-07-07 - Angel Oak native ETF holdings route
+
+- Promoted `angel_oak` from generated/SEC-backed recognition-only support to native/live-backed support from the user-confirmed high-priority provider set.
+- Added a provider-specific Angel Oak adapter using the issuer's public combined ETF holdings CSV at `https://angeloakcapital.com/secure-gs/Angel_Oak_ETF_Holdings.csv`.
+- The adapter filters by ETF `Account`, parses the Angel Oak holdings schema, avoids fake ticker creation for CUSIP-like fixed-income rows, and preserves cash-like rows as cash.
+- Live validation symbol: `AOHY`.
+- Also hardened DWS/Xtrackers and Principal issuer file downloads by routing those issuer fetches through `requests` via `asyncio.to_thread`.
+- Current count: `345` registered provider keys, `119` native/live-backed integrations, `226` remaining.
+- Validation passed:
+  - focused Angel Oak unit/parser test and expanded catalog assertion.
+  - focused live Angel Oak route test with network access.
+  - live provider matrix test.
+  - targeted ruff for ETF holdings adapter/tests.
+- Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `doubleline`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
