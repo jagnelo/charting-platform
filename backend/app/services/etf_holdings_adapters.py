@@ -3419,6 +3419,281 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
+
+    product_page_template = "https://adpvetf.com/{symbol_lower}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Adaptive Investments publishes ETF holdings in its public fund-page payload.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and "adpvetf.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Adaptive Investments needs a fund page route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_embedded_holdings(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"Adaptive Investments page did not expose holdings rows for {symbol}.")
+
+        legal_metadata: dict[str, Any] = {
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "source_format": "nuxt_payload",
+            "route_resolution": "issuer_public_fund_page_embedded_holdings",
+            "source_quality": "issuer_reported_current_holdings",
+            "snapshot_provenance": "issuer_native_fund_page_payload",
+            "terms_note": self.config.terms_note,
+        }
+        if composition_date is not None:
+            legal_metadata["composition_date"] = composition_date.isoformat()
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata=legal_metadata,
+        )
+
+    @classmethod
+    def _parse_embedded_holdings(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        payload = cls._extract_nuxt_payload(raw_html)
+        if payload is None:
+            return [], None
+
+        component_id = f'adpvetf-{symbol.strip().lower()}-holdings-1'
+        component_match = re.search(
+            rf'(?P<var>[A-Za-z_$][\w$]*)\.componentId="{re.escape(component_id)}";',
+            payload,
+        )
+        if component_match is None:
+            return [], None
+
+        variable_name = component_match.group("var")
+        body_start = component_match.start()
+        body_end = payload.find(f"{variable_name}.created_at=", body_start)
+        if body_end == -1:
+            body_end = payload.find(f"{variable_name}.quicklookDisplay=", body_start)
+        if body_end == -1:
+            body_end = payload.find(f"{variable_name}.componentType=", body_start)
+        body = payload[body_start: body_end if body_end != -1 else len(payload)]
+
+        value_map = cls._extract_nuxt_argument_map(payload)
+        data_match = re.search(
+            rf'{re.escape(variable_name)}\.finData=\[(?P<rows>.*?)\];',
+            body,
+            flags=re.DOTALL,
+        )
+        if data_match is None:
+            return [], cls._parse_component_date(body, variable_name=variable_name, value_map=value_map)
+
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_object in enumerate(
+            MillerValueHoldingsAdapter._split_js_objects(data_match.group("rows")),
+            start=1,
+        ):
+            parsed = cls._parse_variable_js_object(raw_object, value_map=value_map)
+            ticker = _clean(parsed.get("ticker"))
+            name = _clean(parsed.get("description"))
+            if ticker is None and name is None:
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=ticker.upper() if ticker else None,
+                    name=name,
+                    weight=_decimal(parsed.get("percent_of_nav")),
+                    shares=_decimal(parsed.get("quantity")),
+                    market_value=_decimal(parsed.get("market_value")),
+                    holding_type=cls._holding_type(ticker=ticker, name=name),
+                    row_type="security",
+                    source_row_id=f"adaptive-investments-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in parsed.items()
+                        if key
+                        not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                        and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, cls._parse_component_date(body, variable_name=variable_name, value_map=value_map)
+
+    @staticmethod
+    def _extract_nuxt_payload(raw_html: str) -> str | None:
+        start = raw_html.find("window.__NUXT__=")
+        if start == -1:
+            return None
+        end = raw_html.find("</script>", start)
+        return raw_html[start:end] if end != -1 else raw_html[start:]
+
+    @classmethod
+    def _extract_nuxt_argument_map(cls, payload: str) -> dict[str, Any]:
+        wrapper_match = re.search(r'window\.__NUXT__=\(function\((?P<params>.*?)\)\{', payload, re.DOTALL)
+        invocation_start = payload.rfind("}(")
+        if wrapper_match is None or invocation_start == -1:
+            return {}
+
+        params = [part.strip() for part in wrapper_match.group("params").split(",") if part.strip()]
+        argument_text = payload[invocation_start + 2 :].strip()
+        if argument_text.endswith(");"):
+            argument_text = argument_text[:-2]
+        elif argument_text.endswith(")"):
+            argument_text = argument_text[:-1]
+        values = cls._split_js_arguments(argument_text)
+        return {
+            param: cls._parse_js_literal(value)
+            for param, value in zip(params, values, strict=False)
+        }
+
+    @staticmethod
+    def _split_js_arguments(argument_text: str) -> list[str]:
+        values: list[str] = []
+        depth = 0
+        start = 0
+        in_string = False
+        escaped = False
+        for index, char in enumerate(argument_text):
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char in "[{(":
+                depth += 1
+            elif char in "]})":
+                depth -= 1
+            elif char == "," and depth == 0:
+                values.append(argument_text[start:index])
+                start = index + 1
+        values.append(argument_text[start:])
+        return values
+
+    @staticmethod
+    def _parse_js_literal(value: str) -> Any:
+        text = value.strip()
+        if text == "null":
+            return None
+        if text == "true":
+            return True
+        if text == "false":
+            return False
+        if text.startswith('"') and text.endswith('"'):
+            try:
+                return html.unescape(json.loads(text))
+            except json.JSONDecodeError:
+                return html.unescape(text[1:-1].replace(r"\/", "/"))
+        if re.fullmatch(r"-?\d+(?:\.\d+)?", text):
+            return text
+        return text
+
+    @classmethod
+    def _parse_variable_js_object(
+        cls,
+        raw_object: str,
+        *,
+        value_map: dict[str, Any],
+    ) -> dict[str, Any]:
+        parsed: dict[str, Any] = {}
+        for match in re.finditer(
+            r'(?P<key>[A-Za-z_][\w]*)\s*:\s*(?P<value>"(?:\\.|[^"])*"|[A-Za-z_$][\w$]*|-?\d+(?:\.\d+)?)',
+            raw_object,
+        ):
+            raw_value = match.group("value")
+            parsed[match.group("key")] = value_map.get(raw_value, cls._parse_js_literal(raw_value))
+        return parsed
+
+    @classmethod
+    def _parse_component_date(
+        cls,
+        body: str,
+        *,
+        variable_name: str,
+        value_map: dict[str, Any],
+    ) -> date | None:
+        date_match = re.search(rf'{re.escape(variable_name)}\.date=(?P<value>[A-Za-z_$][\w$]*|"[^"]*");', body)
+        if date_match is None:
+            return None
+        value = value_map.get(date_match.group("value"), cls._parse_js_literal(date_match.group("value")))
+        text = _clean(value)
+        if text is None:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _holding_type(*, ticker: str | None, name: str | None) -> str:
+        lowered_name = (name or "").lower()
+        if "cash" in lowered_name:
+            return "cash"
+        if ticker and ticker.upper().endswith("WW"):
+            return "warrant"
+        return "equity"
+
+
 class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -18252,6 +18527,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AllianzIM public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "adaptive_investments": IssuerCsvAdapterConfig(
+        adapter_key="adaptive_investments",
+        source_provider="adaptive_investments",
+        source_access="issuer_public_fund_page_embedded_holdings",
+        product_page_templates=(
+            "https://adpvetf.com/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Adaptive Investments public ETF fund-page holdings payloads may be subject to issuer terms.",
+    ),
     "applied_finance": IssuerCsvAdapterConfig(
         adapter_key="applied_finance",
         source_provider="applied_finance",
@@ -19365,6 +19650,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "allspring": AllspringHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
+        "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,

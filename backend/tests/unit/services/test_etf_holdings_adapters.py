@@ -5347,6 +5347,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["advisor_shares"]["support_route_types"]
     assert adapters["allianz"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
+    assert adapters["adaptive_investments"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["adaptive_investments"]["support_route_types"]
     assert adapters["applied_finance"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["applied_finance"]["support_route_types"]
     assert adapters["alliancebernstein"]["live_tested_default_route"] is True
@@ -6232,6 +6234,52 @@ async def test_miller_value_adapter_parses_embedded_holdings_payload(monkeypatch
     assert result.legal_metadata["source_provider"] == "miller_value"
     assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
     assert result.legal_metadata["source_format"] == "nuxt_payload"
+
+
+@pytest.mark.asyncio
+async def test_adaptive_investments_adapter_parses_variable_embedded_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("adaptive_investments")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<html><script>window.__NUXT__='
+                '(function(a,pl,datev,fig1,ticker1,qty1,desc1,mv1,pct1,fig2,ticker2,qty2,desc2,mv2,pct2){'
+                'pl.componentId="adpvetf-adpv-holdings-1";'
+                'pl.date=datev;'
+                'pl.finData=['
+                '{figi:fig1,ticker:ticker1,quantity:qty1,description:desc1,market_value:mv1,percent_of_nav:pct1},'
+                '{figi:fig2,ticker:ticker2,quantity:qty2,description:desc2,market_value:mv2,percent_of_nav:pct2}'
+                '];'
+                'pl.created_at="2026-07-07T09:45:44.758Z";'
+                'return {}}'
+                '(null,{},"07/07/2026","BBG01R388JG1","SNDK","8502",'
+                '"SANDISK CORP","14,831,143.86","7.26%","BBG000C0G1D1","INTC","116260",'
+                '"INTEL CORP","14,206,972.00","6.96%"));</script></html>'
+            ),
+            content_type="text/html",
+            url="https://adpvetf.com/adpv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ADPV")
+
+    assert FakeAsyncClient.requested[0][0] == "https://adpvetf.com/adpv"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SNDK"
+    assert result.rows[0].name == "SANDISK CORP"
+    assert result.rows[0].weight == Decimal("0.0726")
+    assert result.rows[0].shares == Decimal("8502")
+    assert result.rows[0].market_value == Decimal("14831143.86")
+    assert result.rows[0].extra_data["figi"] == "BBG01R388JG1"
+    assert result.rows[1].symbol == "INTC"
+    assert result.legal_metadata["source_provider"] == "adaptive_investments"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_fund_page_embedded_holdings"
+    assert result.legal_metadata["source_format"] == "nuxt_payload"
+    assert result.legal_metadata["composition_date"] == "2026-07-07"
 
 
 @pytest.mark.asyncio
