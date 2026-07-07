@@ -2,6 +2,39 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-07 - Applied Finance native ETF holdings route
+
+### Summary
+
+- Promoted `applied_finance` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `AppliedFinanceHoldingsAdapter`:
+  - native Applied Finance ETFData product page route: `https://appliedfinancefunds.com/ETF/ETFData/{symbol_upper}`
+  - live validation symbol: `VSLU`
+  - parser targets the issuer-rendered `etf_constituents` HTML table.
+  - parser preserves ticker, name, FIGI metadata, shares, market value, USD currency, canonical decimal weight, and composition/as-of date.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `114`
+  - providers still lacking native/live-backed support: `231`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_applied_finance_adapter_parses_etf_constituents_table tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k applied_finance` -> escalated network run passed with `1 passed, 114 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `git diff --check` -> passed
+- count command -> `345`, `114`, `231`, `applied_finance_native=True`
+
+### Problems found
+
+- Applied Finance publishes holdings as a server-rendered HTML table, not a downloadable CSV/XLSX artifact, so the adapter must target the table id and carry FIGI/date fields from the row payload.
+- The full goal remains open: `231` registered providers still lack native/live-backed support.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. SEC EDGAR remains fallback only and must not count as native provider support.
+
 ## 2026-07-07 - Ocean Park native ETF holdings route
 
 ### Summary
