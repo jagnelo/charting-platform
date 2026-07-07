@@ -8584,3 +8584,15 @@ Append a short entry after each worker session.
   - focused CoinShares unit/parser test and expanded catalog assertion.
   - live provider matrix test.
   - focused live CoinShares provider route test with network access.
+
+## 2026-07-07 - CastleArk native ETF holdings route
+
+- Promoted `castleark` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific CastleArk adapter using the issuer's public daily holdings text files at `http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_{MMDDYYYY}.txt`.
+- Live validation symbol: `CARK`.
+- Current count: `345` registered provider keys, `111` native/live-backed integrations, `234` remaining.
+- Validation passed:
+  - targeted ruff for ETF holdings adapter/tests.
+  - focused CastleArk unit/parser test and expanded catalog assertion.
+  - live provider matrix test.
+  - focused live CastleArk provider route test with network access.

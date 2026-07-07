@@ -13405,6 +13405,238 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class CastleArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch CastleArk ETF holdings from issuer-hosted daily text files."""
+
+    HOLDINGS_URL_TEMPLATE = (
+        "http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_{date_mmddyyyy}.txt"
+    )
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "CARK": "http://castleark-etfs.com",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="CastleArk publishes current ETF holdings in issuer-hosted daily text files.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self._source_url_for_date(date.today())
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/plain,text/csv,*/*")
+        headers["Referer"] = "http://castleark-etfs.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        requested_symbol = symbol.strip().upper()
+        candidate_urls = (
+            [source_url]
+            if source_url
+            else [self._source_url_for_date(date.today() - timedelta(days=offset)) for offset in range(15)]
+        )
+        response = None
+        resolved_source_url = None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            for candidate_url in candidate_urls:
+                if not candidate_url:
+                    continue
+                candidate_response = await client.get(
+                    candidate_url,
+                    headers=self.source_request_headers(source_url=candidate_url),
+                    follow_redirects=True,
+                )
+                if candidate_response.status_code == 404 and not source_url:
+                    continue
+                candidate_response.raise_for_status()
+                response = candidate_response
+                resolved_source_url = str(candidate_response.url)
+                break
+        if response is None or resolved_source_url is None:
+            raise ValueError(f"CastleArk holdings file was unavailable for {requested_symbol}.")
+
+        rows, composition_date = self._parse_holdings_text(
+            response.text,
+            requested_symbol=requested_symbol,
+        )
+        if not rows:
+            raise ValueError(f"CastleArk holdings file did not expose rows for {requested_symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=resolved_source_url,
+            source_identifier=issuer_product_id or requested_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pipe_delimited_text",
+                "route_resolution": "issuer_public_daily_holdings_text",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_daily_holdings_text",
+                "product_page_url": self.resolve_product_page_url(
+                    symbol=requested_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                ),
+            },
+        )
+
+    @classmethod
+    def _source_url_for_date(cls, source_date: date) -> str:
+        return cls.HOLDINGS_URL_TEMPLATE.format(date_mmddyyyy=source_date.strftime("%m%d%Y"))
+
+    @classmethod
+    def _parse_holdings_text(
+        cls,
+        raw_text: str,
+        *,
+        requested_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [
+            row
+            for row in csv.reader(StringIO(raw_text.strip()), delimiter="|")
+            if any(_clean(cell) for cell in row)
+        ]
+        if not table_rows:
+            return [], None
+        header = table_rows[0]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, row in enumerate(table_rows[1:], start=1):
+            raw = _row_dict(header, row)
+            fund_ticker = (_clean(_first(raw, ["fund_ticker"])) or "").upper()
+            if fund_ticker and fund_ticker != requested_symbol:
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_row_date(_first(raw, ["date"]))
+
+            raw_symbol = _clean(_first(raw, ["security_ticker"]))
+            name = _clean(_first(raw, ["security_description"]))
+            security_group = _clean(_first(raw, ["security_group"]))
+            security_type = _clean(_first(raw, ["security_type"]))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=name,
+                security_group=security_group,
+                security_type=security_type,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=raw_symbol.strip().upper() if raw_symbol and row_type != "cash" else None,
+                    name=name,
+                    cusip=(
+                        _first(raw, ["security_cusip"])
+                        if _looks_like_cusip(_first(raw, ["security_cusip"]))
+                        else None
+                    ),
+                    isin=(
+                        _first(raw, ["security_isin"])
+                        if _looks_like_isin(_first(raw, ["security_isin"]))
+                        else None
+                    ),
+                    sedol=(
+                        _first(raw, ["security_sedol"])
+                        if _looks_like_sedol(_first(raw, ["security_sedol"]))
+                        else None
+                    ),
+                    weight=_decimal_percent_points(_first(raw, ["percent_of_net_assets"])),
+                    shares=_decimal(_first(raw, ["quantity"])),
+                    market_value=_decimal(_first(raw, ["market_value"])),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{requested_symbol}-{index}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_row_date(value: str | None) -> date | None:
+        cleaned = _clean(value)
+        if not cleaned:
+            return None
+        try:
+            return datetime.strptime(cleaned, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        security_group: str | None,
+        security_type: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(
+            part.upper()
+            for part in (raw_symbol, name, security_group, security_type)
+            if part
+        )
+        if "CASH" in text or "RECEIVABLE" in text or "PAYABLE" in text:
+            return "cash", "cash"
+        if "ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if "BOND" in text or "FIXED" in text or "TREASURY" in text:
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class BrookmontHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brookmont/Brookstone ETF holdings from public product-page CSV exports."""
 
@@ -17597,6 +17829,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Beyond Investing/VEGN public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "castleark": IssuerCsvAdapterConfig(
+        adapter_key="castleark",
+        source_provider="castleark",
+        source_access="issuer_public_daily_holdings_text",
+        product_page_templates=(
+            "http://castleark-etfs.com",
+        ),
+        live_tested_default_route=True,
+        terms_note="CastleArk public ETF product pages and daily holdings text files may be subject to issuer terms.",
+    ),
     "baron": IssuerCsvAdapterConfig(
         adapter_key="baron",
         source_provider="baron",
@@ -18636,6 +18878,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambria": CambriaHoldingsAdapter,
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
+        "castleark": CastleArkHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,

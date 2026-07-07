@@ -5,6 +5,33 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T10:42Z
+
+- Promoted `castleark` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `CastleArkHoldingsAdapter`:
+  - native public CastleArk daily holdings text route: `http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_{MMDDYYYY}.txt`
+  - supported live validation symbol: `CARK`
+  - scans the current trading day and recent prior days for the newest issuer-published holdings file.
+  - parser handles CastleArk's pipe-delimited schema with `fund_ticker`, security identifiers, ticker, description, quantity, market value, notional value, and percent-of-net-assets fields.
+  - parser preserves ticker, name, CUSIP, ISIN, SEDOL, shares, market value, USD currency, canonical decimal weight, and composition/as-of date, while preserving cash rows as cash rather than fake tradable instruments.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `111`
+  - providers still lacking native/live-backed support: `234`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_castleark_adapter_fetches_recent_daily_holdings_text tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k castleark`
+    - escalated network run passed with `1 passed, 111 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `111`, `234`, `castleark_native=True`.
+
 ## Latest checkpoint - 2026-07-06T17:12Z
 
 - Promoted `bahl_gaynor` from generated/SEC-backed recognition-only support to native/live-backed support.

@@ -33,6 +33,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "cambria",
     "cambiar",
     "calamos",
+    "castleark",
     "coinshares",
     "counterpoint",
     "cullen",
@@ -369,6 +370,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             3,
+        ),
+        (
+            "castleark",
+            "CARK",
+            None,
+            {},
+            20,
         ),
         (
             "coinshares",

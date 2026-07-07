@@ -815,6 +815,71 @@ async def test_coinshares_adapter_fetches_widget_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_castleark_adapter_fetches_recent_daily_holdings_text(monkeypatch):
+    adapter = get_holdings_adapter("castleark")
+    assert adapter is not None
+
+    holdings_text = "\n".join(
+        [
+            (
+                "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
+                "security_type|security_number|security_cusip|security_sedol|"
+                "security_isin|security_ticker|security_description|quantity|"
+                "market_value|notional_value|percent_of_market_value|percent_of_net_assets"
+            ),
+            (
+                "07/06/2026|4870|CastleArk Large Growth ETF|00791R608|CARK|Cash|||||||"
+                "Cash|15699388.18|15699388.18||5.08|4.84"
+            ),
+            (
+                "07/06/2026|4870|CastleArk Large Growth ETF|00791R608|CARK|Stock - Common||"
+                "007903107|007903107|2007849|US0079031078|AMD|ADVANCED MICRO DEVICES|"
+                "14248.00|7865608.40||2.55|2.42"
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="not found", content_type="text/html", status_code=404),
+        FakeResponse(
+            text=holdings_text,
+            content_type="text/plain",
+            url="http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_07062026.txt",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    MockDate.today_value = date(2026, 7, 7)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+
+    result = await adapter.fetch_latest(symbol="CARK")
+
+    requested_urls = [request[0] for request in FakeAsyncClient.requested]
+    assert requested_urls == [
+        "http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_07072026.txt",
+        "http://castleark-etfs.com/assets/data/SEI_CRK_Tradedate_Holdings_07062026.txt",
+    ]
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "http://castleark-etfs.com/"
+    assert len(result.rows) == 2
+    cash_row = result.rows[0]
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("0.0484")
+    equity_row = result.rows[1]
+    assert equity_row.symbol == "AMD"
+    assert equity_row.name == "ADVANCED MICRO DEVICES"
+    assert equity_row.cusip == "007903107"
+    assert equity_row.isin == "US0079031078"
+    assert equity_row.sedol == "2007849"
+    assert equity_row.shares == Decimal("14248.00")
+    assert equity_row.market_value == Decimal("7865608.40")
+    assert equity_row.weight == Decimal("0.0242")
+    assert result.source_url.endswith("SEI_CRK_Tradedate_Holdings_07062026.txt")
+    assert result.legal_metadata["source_provider"] == "castleark"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_daily_holdings_text"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
 async def test_renaissance_capital_adapter_fetches_public_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("renaissance_capital")
     assert adapter is not None
@@ -5112,6 +5177,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["bondbloxx"]["support_route_types"]
     assert adapters["beyond_investing"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["beyond_investing"]["support_route_types"]
+    assert adapters["castleark"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["castleark"]["support_route_types"]
     assert adapters["baron"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["baron"]["support_route_types"]
     assert adapters["grayscale"]["live_tested_default_route"] is True
