@@ -51,6 +51,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "dimensional",
     "direxion",
     "distillate",
+    "doubleline",
     "eventide",
     "etf_architect",
     "faith_investor_services",
@@ -479,6 +480,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "direxion",
             "SPXL",
+            None,
+            {},
+            100,
+        ),
+        (
+            "doubleline",
+            "DBND",
             None,
             {},
             100,

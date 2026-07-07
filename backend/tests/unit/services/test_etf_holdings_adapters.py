@@ -5439,6 +5439,74 @@ async def test_angel_oak_adapter_filters_combined_holdings_csv(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-07-07"
 
 
+def test_doubleline_adapter_parses_pdf_extracted_text():
+    adapter = get_holdings_adapter("doubleline")
+    assert adapter is not None
+
+    raw_text = """
+% of Net
+Assets
+Security Name
+Security Id
+Ticker
+Coupon
+Maturity
+Market Value
+Quantity
+Contract Size
+Asset Class
+4.68
+T 0 5/8 08/15/30
+91282CAE1
+T
+0.625
+8/15/2030
+34,423,464.98
+39,700,000
+1
+TREASURY
+2.93
+DoubleLine Emerging
+Markets Lo
+258620582
+DBELX
+5.9173
+21,585,164.05
+2,239,124.66
+1
+MUTUAL FUND
+1.36
+CASH
+USD
+0
+10,008,256.70
+10,008,253.15
+1
+CASH
+DBND - DoubleLine Opportunistic Core Bond ETF
+Holdings as of 7/6/2026
+"""
+
+    rows, composition_date = adapter._parse_doubleline_pdf_text(raw_text, symbol="DBND")
+
+    assert composition_date == date(2026, 7, 6)
+    assert len(rows) == 3
+    assert rows[0].symbol is None
+    assert rows[0].name == "T 0 5/8 08/15/30"
+    assert rows[0].cusip == "91282CAE1"
+    assert rows[0].weight == Decimal("0.0468")
+    assert rows[0].market_value == Decimal("34423464.98")
+    assert rows[0].shares == Decimal("39700000")
+    assert rows[0].holding_type == "fixed_income"
+    assert rows[0].extra_data["issuer_ticker"] == "T"
+    assert rows[1].symbol == "DBELX"
+    assert rows[1].holding_type == "fund"
+    assert rows[1].name == "DoubleLine Emerging Markets Lo"
+    assert rows[2].row_type == "cash"
+    assert rows[2].currency == "USD"
+    assert rows[2].symbol is None
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

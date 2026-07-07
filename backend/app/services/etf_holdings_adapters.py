@@ -5849,6 +5849,287 @@ class AngelOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "fixed_income"
 
 
+class DoubleLineHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch DoubleLine ETF holdings from issuer-published holdings PDFs."""
+
+    URL_TEMPLATE = (
+        "https://doubleline.com/wp-content/uploads/holdings/"
+        "DoubleLine_{symbol_upper}_Holdings_{date_mm_dd_yyyy}.pdf"
+    )
+    LOOKBACK_DAYS = 14
+    PDF_ASSET_CLASSES = {
+        "ABS",
+        "AGENCY",
+        "CASH",
+        "CMBS",
+        "CORPORATE",
+        "ETF",
+        "FUTURE",
+        "LOAN",
+        "MBS",
+        "MONEY MARKET",
+        "MUTUAL FUND",
+        "NON-AGENCY",
+        "OPTION",
+        "RMBS",
+        "SOVEREIGN",
+        "TREASURY",
+    }
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="application/pdf,*/*")
+        headers["Referer"] = "https://doubleline.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        candidates = [source_url.strip()] if source_url else list(self._candidate_pdf_urls(normalized_symbol))
+        failures: list[str] = []
+        for candidate_url in candidates:
+            try:
+                response = await asyncio.to_thread(
+                    requests.get,
+                    candidate_url,
+                    headers=self.source_request_headers(source_url=candidate_url),
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                response.raise_for_status()
+                raw_text = self._extract_pdf_text(response.content)
+                rows, composition_date = self._parse_doubleline_pdf_text(
+                    raw_text,
+                    symbol=normalized_symbol,
+                )
+                if not rows:
+                    failures.append(f"{candidate_url} had no parseable holdings rows")
+                    continue
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=raw_text,
+                    raw_json=None,
+                    source_url=str(getattr(response, "url", candidate_url)),
+                    source_identifier=normalized_symbol,
+                    legal_metadata={
+                        "source_access": self.config.source_access,
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "pdf",
+                        "route_resolution": "issuer_recent_dated_holdings_pdf",
+                        "composition_date": (
+                            composition_date.isoformat() if composition_date else None
+                        ),
+                        "as_of_date": composition_date.isoformat() if composition_date else None,
+                        "terms_note": self.config.terms_note,
+                    },
+                )
+            except Exception as exc:  # noqa: BLE001 - try the next recent dated file.
+                failures.append(f"{candidate_url}: {exc}")
+                continue
+        raise ValueError(
+            f"DoubleLine did not publish a parseable recent holdings PDF for {normalized_symbol}. "
+            + "; ".join(failures[:3])
+        )
+
+    @classmethod
+    def _candidate_pdf_urls(cls, symbol: str) -> list[str]:
+        today = date.today()
+        return [
+            cls.URL_TEMPLATE.format(
+                symbol_upper=symbol.strip().upper(),
+                date_mm_dd_yyyy=(today - timedelta(days=offset)).strftime("%m-%d-%Y"),
+            )
+            for offset in range(cls.LOOKBACK_DAYS + 1)
+        ]
+
+    @staticmethod
+    def _extract_pdf_text(raw_pdf: bytes) -> str:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        reader = PdfReader(BytesIO(raw_pdf))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    @classmethod
+    def _parse_doubleline_pdf_text(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        composition_date = cls._parse_composition_date(raw_text)
+        lines = [
+            line.strip()
+            for line in raw_text.splitlines()
+            if line.strip() and not line.strip().startswith("% of Net")
+        ]
+        rows: list[CanonicalHoldingRow] = []
+        index = 0
+        source_row = 0
+        while index < len(lines):
+            if not cls._is_record_start(lines, index):
+                index += 1
+                continue
+            weight = cls._parse_weight_line(lines[index])
+            if weight is None:
+                index += 1
+                continue
+            end = index + 1
+            while end < len(lines) and not cls._is_record_start(lines, end):
+                end += 1
+            block = lines[index + 1 : end]
+            parsed = cls._parse_holding_block(
+                block,
+                weight=weight,
+                source_row_id=f"{symbol}-{source_row + 1}",
+            )
+            if parsed is not None:
+                rows.append(parsed)
+                source_row += 1
+            index = end
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_composition_date(raw_text: str) -> date | None:
+        match = re.search(r"Holdings\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", raw_text, re.I)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @classmethod
+    def _is_record_start(cls, lines: list[str], index: int) -> bool:
+        if cls._parse_weight_line(lines[index]) is None:
+            return False
+        if index > 0:
+            previous = lines[index - 1].strip().upper()
+            previous_allows_record = (
+                previous in cls.PDF_ASSET_CLASSES
+                or previous == "ASSET CLASS"
+                or previous.startswith("HOLDINGS AS OF")
+                or "DOUBLELINE" in previous
+            )
+            if not previous_allows_record:
+                return False
+        for value in lines[index + 1 : index + 8]:
+            text = value.strip().upper()
+            if _looks_like_cusip(text) or text in {"USD", "CAD", "EUR", "GBP", "JPY"}:
+                return True
+        return False
+
+    @staticmethod
+    def _parse_weight_line(value: str) -> Decimal | None:
+        if not re.fullmatch(r"-?\d+(?:\.\d+)?", value.strip()):
+            return None
+        parsed = _decimal(value)
+        if parsed is None or parsed.copy_abs() > Decimal("100"):
+            return None
+        return parsed / Decimal("100")
+
+    @classmethod
+    def _parse_holding_block(
+        cls,
+        block: list[str],
+        *,
+        weight: Decimal,
+        source_row_id: str,
+    ) -> CanonicalHoldingRow | None:
+        if len(block) < 5:
+            return None
+        asset_class = cls._extract_asset_class(block)
+        if not asset_class:
+            return None
+        asset_index = max(
+            idx for idx, value in enumerate(block) if value.strip().upper() == asset_class
+        )
+        payload = block[:asset_index]
+        id_index = cls._find_security_id_index(payload)
+        if id_index is None or id_index == 0:
+            return None
+        name = " ".join(payload[:id_index]).strip()
+        security_id = payload[id_index].strip()
+        issuer_ticker = payload[id_index + 1].strip() if id_index + 1 < len(payload) else None
+        numeric_tail = [
+            value
+            for value in payload[id_index + 2 :]
+            if _decimal(value) is not None or cls._parse_pdf_date(value) is not None
+        ]
+        market_value, shares = cls._parse_market_value_and_shares(numeric_tail)
+        holding_type = cls._holding_type(asset_class=asset_class, name=name)
+        row_type = "cash" if holding_type == "cash" else "security"
+        symbol = issuer_ticker if holding_type in {"equity", "fund"} else None
+        currency = security_id if holding_type == "cash" and len(security_id) == 3 else None
+        return CanonicalHoldingRow(
+            symbol=symbol,
+            name=name or None,
+            cusip=security_id if _looks_like_cusip(security_id) else None,
+            weight=weight,
+            shares=shares,
+            market_value=market_value,
+            currency=currency,
+            holding_type=holding_type,
+            row_type=row_type,
+            source_row_id=source_row_id,
+            extra_data={
+                "security_id": security_id,
+                "issuer_ticker": issuer_ticker,
+                "asset_class": asset_class,
+                "pdf_tail": payload[id_index + 2 :],
+            },
+        )
+
+    @classmethod
+    def _extract_asset_class(cls, block: list[str]) -> str | None:
+        for value in reversed(block):
+            normalized = re.sub(r"\s+", " ", value.strip().upper())
+            if normalized in cls.PDF_ASSET_CLASSES:
+                return normalized
+        return None
+
+    @staticmethod
+    def _find_security_id_index(payload: list[str]) -> int | None:
+        for idx, value in enumerate(payload):
+            text = value.strip().upper()
+            if _looks_like_cusip(text) or text in {"USD", "CAD", "EUR", "GBP", "JPY"}:
+                return idx
+        return None
+
+    @staticmethod
+    def _parse_pdf_date(value: str) -> date | None:
+        try:
+            return datetime.strptime(value.strip(), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_market_value_and_shares(values: list[str]) -> tuple[Decimal | None, Decimal | None]:
+        numeric_values = [_decimal(value) for value in values if _decimal(value) is not None]
+        if len(numeric_values) < 3:
+            return None, None
+        # Last numeric is the contract size. The two before it are quantity and market value.
+        return numeric_values[-3], numeric_values[-2]
+
+    @staticmethod
+    def _holding_type(*, asset_class: str, name: str | None) -> str:
+        text = f"{asset_class} {name or ''}".upper()
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash"
+        if "FUND" in asset_class or asset_class == "ETF":
+            return "fund"
+        if any(token in text for token in ("TREASURY", "BOND", "MBS", "ABS", "CMBS", "RMBS", "LOAN", "SOVEREIGN")):
+            return "fixed_income"
+        if asset_class in {"FUTURE", "OPTION"}:
+            return "derivative"
+        return "equity"
+
+
 class TeucriumHoldingsAdapter(IssuerCsvHoldingsAdapter):
     source_url = "https://etfs.teucrium.com/assets/data/FilepointTeucrium.40TZ.TZ_Holdings.csv"
 
@@ -19650,6 +19931,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Victory Capital public ETF product pages and API responses may be subject to issuer terms.",
     ),
+    "doubleline": IssuerCsvAdapterConfig(
+        adapter_key="doubleline",
+        source_provider="doubleline",
+        source_access="issuer_recent_dated_holdings_pdf",
+        product_page_templates=(
+            "https://doubleline.com/etfs/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="DoubleLine public ETF holdings PDFs may be subject to issuer terms.",
+    ),
     "zacks": IssuerCsvAdapterConfig(
         adapter_key="zacks",
         source_provider="zacks",
@@ -20628,6 +20919,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dimensional": DimensionalHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
+        "doubleline": DoubleLineHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
