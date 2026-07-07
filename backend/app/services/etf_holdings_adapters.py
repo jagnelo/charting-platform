@@ -3157,12 +3157,13 @@ class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not resolved_source_url:
             raise ValueError(f"{self.adapter_key} needs a DWS/Xtrackers symbol for {symbol}.")
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                resolved_source_url,
-                headers=self.source_request_headers(source_url=resolved_source_url),
-                follow_redirects=True,
-            )
+        response = await asyncio.to_thread(
+            requests.get,
+            resolved_source_url,
+            headers=self.source_request_headers(source_url=resolved_source_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_holdings_payload(payload)
@@ -3364,12 +3365,13 @@ class PrincipalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not resolved_source_url:
             raise ValueError(f"Principal needs a symbol-based holdings workbook route for {symbol}.")
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                resolved_source_url,
-                headers=self.source_request_headers(source_url=resolved_source_url),
-                follow_redirects=True,
-            )
+        response = await asyncio.to_thread(
+            requests.get,
+            resolved_source_url,
+            headers=self.source_request_headers(source_url=resolved_source_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
         response.raise_for_status()
         workbook_rows = parse_xlsx_table(response.content)
         rows, composition_date = self._parse_workbook_rows(workbook_rows)
@@ -5699,6 +5701,152 @@ class AdvisorSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             except ValueError:
                 return None
         return None
+
+
+class AngelOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    source_url = "https://angeloakcapital.com/secure-gs/Angel_Oak_ETF_Holdings.csv"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        return source_url.strip() if source_url else self.source_url
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/octet-stream,*/*")
+        headers["Referer"] = "https://angeloakcapital.com/investments/?aofund=&vehicle=etf"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Angel Oak holdings route is unavailable for {normalized_symbol}.")
+
+        response = await asyncio.to_thread(
+            requests.get,
+            resolved_source_url,
+            headers=self.source_request_headers(source_url=resolved_source_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        rows, composition_date = self._parse_angel_oak_csv(
+            response.text,
+            account_symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Angel Oak did not publish parseable {normalized_symbol} rows "
+                "in the current combined ETF holdings file."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_combined_account_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_angel_oak_csv(
+        cls,
+        raw_csv: str,
+        *,
+        account_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(reader, start=1):
+            if (item.get("Account") or "").strip().upper() != account_symbol:
+                continue
+            row_date = cls._parse_angel_oak_date(item.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(item.get("StockTicker"))
+            cusip = _clean(item.get("CUSIP"))
+            symbol = None if _looks_like_cusip(raw_symbol) else raw_symbol
+            if cusip is None and _looks_like_cusip(raw_symbol):
+                cusip = raw_symbol
+            holding_type = cls._holding_type(
+                symbol=symbol,
+                name=_clean(item.get("SecurityName")),
+                money_market_flag=item.get("MoneyMarketFlag"),
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=_clean(item.get("SecurityName")),
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{account_symbol}-{index}",
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_angel_oak_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for fmt in ("%m/%d/%Y", "%m/%d/%y"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _holding_type(*, symbol: str | None, name: str | None, money_market_flag: Any) -> str:
+        text = " ".join(
+            part.upper()
+            for part in [
+                symbol,
+                name,
+                money_market_flag,
+            ]
+            if part
+        )
+        if "CASH" in text or "MONEY MARKET" in text or text.endswith(" MM"):
+            return "cash"
+        return "fixed_income"
 
 
 class TeucriumHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -19469,6 +19617,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "angel_oak": IssuerCsvAdapterConfig(
+        adapter_key="angel_oak",
+        source_provider="angel_oak",
+        source_access="issuer_public_combined_account_holdings_csv",
+        url_templates=(
+            "https://angeloakcapital.com/secure-gs/Angel_Oak_ETF_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://angeloakcapital.com/investments/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Angel Oak public ETF holdings files may be subject to issuer terms.",
+    ),
     "dimensional": IssuerCsvAdapterConfig(
         adapter_key="dimensional",
         source_provider="dimensional",
@@ -20433,6 +20594,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
+        "angel_oak": AngelOakHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,

@@ -5402,6 +5402,43 @@ async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     assert result.legal_metadata["composition_date"] == "07/07/2026"
 
 
+@pytest.mark.asyncio
+async def test_angel_oak_adapter_filters_combined_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("angel_oak")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/07/2026,AOHY,00404AAQ2,00404AAQ2,Acadia Healthcare Co Inc 7.375% 03/15/2033,1030000.00000000,103.479900,1065842.97,0.87%,122675304.94,11110384,444.420000000000,
+07/07/2026,AOHY,CASH,,Cash & Cash Equivalents,100.00000000,1.000000,100.00,0.01%,122675304.94,11110384,444.420000000000,Y
+07/07/2026,CARY,123456789,123456789,Other Fund Bond,10.00000000,99.000000,990.00,0.50%,1000,100,1,
+"""
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="AOHY", identifiers={})
+
+    assert requested[0][0] == (
+        "https://angeloakcapital.com/secure-gs/Angel_Oak_ETF_Holdings.csv"
+    )
+    assert result.rows[0].symbol is None
+    assert result.rows[0].cusip == "00404AAQ2"
+    assert result.rows[0].name == "Acadia Healthcare Co Inc 7.375% 03/15/2033"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.0087")
+    assert result.rows[0].shares == Decimal("1030000.00000000")
+    assert result.rows[0].market_value == Decimal("1065842.97")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert len(result.rows) == 2
+    assert result.legal_metadata["route_resolution"] == "issuer_combined_account_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-07"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

@@ -18,6 +18,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "allspring",
     "american_century",
     "amplify",
+    "angel_oak",
     "anfield",
     "applied_finance",
     "aptus",
@@ -236,6 +237,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "angel_oak",
+            "AOHY",
+            None,
+            {},
+            100,
         ),
         (
             "anfield",
