@@ -11278,6 +11278,130 @@ class BrandesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security"
 
 
+class AppliedFinanceHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Applied Finance ETF holdings from its public ETFData pages."""
+
+    product_page_template = "https://appliedfinancefunds.com/ETF/ETFData/{symbol_upper}"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = source_url or self.product_page_template.format(
+            symbol_upper=normalized_symbol
+        )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+
+        table_parser = _HTMLTableByIdParser(table_id="etf_constituents")
+        table_parser.feed(response.text)
+        rows = self._parse_applied_finance_rows(table_parser.rows)
+        if not rows:
+            raise ValueError(
+                f"Applied Finance product page did not expose holdings rows for {symbol}."
+            )
+        composition_date = self._composition_date_from_table(table_parser.rows)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=product_page_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_public_product_page_holdings_table",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_applied_finance_rows(
+        cls,
+        table_rows: list[list[Any]],
+    ) -> list[CanonicalHoldingRow]:
+        rows = parse_holdings_table(table_rows)
+        for row in rows:
+            row.currency = row.currency or "USD"
+            row.holding_type = cls._holding_type(
+                symbol=row.symbol,
+                name=row.name,
+                market_value=row.market_value,
+            )
+            row.row_type = "cash" if row.holding_type == "cash" else "security"
+            if row.row_type == "cash":
+                row.symbol = None
+        return rows
+
+    @staticmethod
+    def _composition_date_from_table(table_rows: list[list[Any]]) -> date | None:
+        rows_by_index = [
+            ["" if value is None else value for value in row]
+            for row in table_rows
+            if any(_clean(value) for value in row)
+        ]
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(rows_by_index[:30])
+                if "as of date" in {str(value).strip().lower() for value in row}
+            ),
+            None,
+        )
+        if header_index is None:
+            return None
+        header = rows_by_index[header_index]
+        dates: list[date] = []
+        for raw_row in rows_by_index[header_index + 1 :]:
+            raw = _row_dict(header, raw_row)
+            parsed = AppliedFinanceHoldingsAdapter._parse_date(raw.get("As Of Date"))
+            if parsed:
+                dates.append(parsed)
+        return max(dates) if dates else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _holding_type(
+        *,
+        symbol: str | None,
+        name: str | None,
+        market_value: Decimal | None,
+    ) -> str:
+        text = f"{symbol or ''} {name or ''}".upper()
+        if any(token in text for token in ["CASH", "CURRENCY", "RECEIVABLE", "PAYABLE"]):
+            return "cash"
+        if market_value == Decimal("0") and not _clean(symbol):
+            return "cash"
+        return "equity"
+
+
 class OceanParkHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Ocean Park ETF holdings from its public FilePoint-backed JSON endpoint."""
 
@@ -18128,6 +18252,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AllianzIM public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "applied_finance": IssuerCsvAdapterConfig(
+        adapter_key="applied_finance",
+        source_provider="applied_finance",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://appliedfinancefunds.com/ETF/ETFData/{symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Applied Finance public ETF product pages may be subject to issuer terms.",
+    ),
     "bitwise": IssuerCsvAdapterConfig(
         adapter_key="bitwise",
         source_provider="bitwise",
@@ -19232,6 +19366,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
+        "applied_finance": AppliedFinanceHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,
         "ark": ArkHoldingsAdapter,
         "arrow": ArrowHoldingsAdapter,

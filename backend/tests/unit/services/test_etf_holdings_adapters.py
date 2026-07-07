@@ -1621,6 +1621,57 @@ async def test_hennessy_adapter_parses_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_applied_finance_adapter_parses_etf_constituents_table(monkeypatch):
+    adapter = get_holdings_adapter("applied_finance")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html>
+              <table id="etf_constituents">
+                <tr>
+                  <th>As Of Date</th><th>Ticker</th><th>Name</th>
+                  <th>Weight</th><th>Market Value</th><th>FIGI</th>
+                  <th>Shares Held</th>
+                </tr>
+                <tr>
+                  <td>7/2/2026</td><td>2556706D</td>
+                  <td>SYCAMORE PARTNERS LLC-CVR</td><td>0.00%</td>
+                  <td>0.00</td><td></td><td>1,820</td>
+                </tr>
+                <tr>
+                  <td>7/2/2026</td><td>A</td>
+                  <td>AGILENT TECHNOLOGIES INC</td><td>0.08%</td>
+                  <td>460,420.87</td><td>BBG000C2V3D6</td><td>3,523</td>
+                </tr>
+              </table>
+            </html>
+            """,
+            content_type="text/html",
+            url="https://appliedfinancefunds.com/ETF/ETFData/VSLU",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="VSLU", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://appliedfinancefunds.com/ETF/ETFData/VSLU"
+    assert [row.symbol for row in result.rows] == ["2556706D", "A"]
+    assert result.rows[1].name == "AGILENT TECHNOLOGIES INC"
+    assert result.rows[1].weight == Decimal("0.0008")
+    assert result.rows[1].shares == Decimal("3523")
+    assert result.rows[1].market_value == Decimal("460420.87")
+    assert result.rows[1].currency == "USD"
+    assert result.rows[1].extra_data["FIGI"] == "BBG000C2V3D6"
+    assert result.legal_metadata["source_provider"] == "applied_finance"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_product_page_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-02"
+    assert result.legal_metadata["source_format"] == "html"
+
+
+@pytest.mark.asyncio
 async def test_first_eagle_adapter_parses_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("first_eagle")
     assert adapter is not None
@@ -5296,6 +5347,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["advisor_shares"]["support_route_types"]
     assert adapters["allianz"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
+    assert adapters["applied_finance"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["applied_finance"]["support_route_types"]
     assert adapters["alliancebernstein"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["alliancebernstein"]["support_route_types"]
     assert adapters["aptus"]["live_tested_default_route"] is True
