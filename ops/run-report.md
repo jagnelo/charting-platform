@@ -8573,3 +8573,14 @@ Append a short entry after each worker session.
   - focused Federated Hermes unit/parser test and expanded catalog assertion.
   - live provider matrix test.
   - focused live Federated Hermes provider route test with network access.
+## 2026-07-07 - CoinShares native ETF holdings route
+
+- Promoted `coinshares` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific CoinShares/Valkyrie adapter using the public widgets API behind `https://coinshares.com/us/etf/{symbol}/`.
+- Live validation symbol: `WGMI`.
+- Current count: `345` registered provider keys, `110` native/live-backed integrations, `235` remaining.
+- Validation passed:
+  - targeted ruff for ETF holdings adapter/tests.
+  - focused CoinShares unit/parser test and expanded catalog assertion.
+  - live provider matrix test.
+  - focused live CoinShares provider route test with network access.

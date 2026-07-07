@@ -10488,6 +10488,206 @@ class HashdexHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return text
 
 
+class CoinSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch CoinShares/Valkyrie holdings from the public widget API."""
+
+    api_key = "094DA478-140C-4E3E-B394-7A19BBE8326B"
+    widgets_url = "https://www-api.coinshares.com/api/v2/Widgets"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        if not normalized_symbol:
+            return None
+        return f"https://coinshares.com/us/etf/{normalized_symbol}/"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return (
+            f"{self.widgets_url}?"
+            f"{urlencode({'ApiKey': self.api_key, 'names': f'VALKYRIE_HOLDINGS_{normalized_symbol}'})}"
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            return await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        headers = _holdings_request_headers(accept="application/json,*/*")
+        if product_page_url:
+            headers["Referer"] = product_page_url
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        try:
+            payload = response.json()
+        except json.JSONDecodeError:
+            payload = []
+        rows, composition_date = self._parse_widgets_payload(payload)
+        if not rows:
+            return await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"widgets": payload},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "coinshares_widgets_json",
+                "route_resolution": "issuer_public_widgets_api",
+                "composition_date": composition_date,
+                "as_of_date": composition_date,
+                "product_page_url": product_page_url,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def _parse_widgets_payload(
+        self,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], str | None]:
+        widgets = payload if isinstance(payload, list) else []
+        rows: list[CanonicalHoldingRow] = []
+        composition_date = None
+        for widget in widgets:
+            if not isinstance(widget, dict):
+                continue
+            sections = widget.get("sections")
+            if not isinstance(sections, list):
+                continue
+            for section in sections:
+                if not isinstance(section, dict):
+                    continue
+                item = self._meta_to_dict(section.get("meta"))
+                symbol_value = _clean(item.get("stockticker"))
+                name = _clean(item.get("securityname"))
+                cusip = _clean(item.get("cusip"))
+                if not any([symbol_value, name, cusip]):
+                    continue
+                date_value = self._parse_composition_date(item.get("date"))
+                composition_date = composition_date or date_value
+                holding_type = self._holding_type(symbol=symbol_value, name=name, cusip=cusip)
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=None if holding_type == "cash" else symbol_value,
+                        name=name,
+                        cusip=None if holding_type == "cash" else cusip,
+                        weight=_decimal(item.get("weightpercentage")),
+                        shares=_decimal(item.get("shares")),
+                        market_value=_decimal(item.get("marketvalue")),
+                        currency="USD",
+                        holding_type=holding_type,
+                        row_type="cash" if holding_type == "cash" else "security",
+                        source_row_id=_clean(section.get("key")) or str(len(rows) + 1),
+                        extra_data={
+                            "creation_units": _decimal(item.get("creationunits")),
+                            "net_assets": _decimal(item.get("netassets")),
+                            "price": _decimal(item.get("price")),
+                            "shares_outstanding": _decimal(item.get("sharesoutstanding")),
+                            "date": date_value,
+                            "widget_code": widget.get("code"),
+                            "source": section.get("source"),
+                            "updated": section.get("updated"),
+                            **{
+                                key: value
+                                for key, value in item.items()
+                                if value not in (None, "")
+                            },
+                        },
+                    )
+                )
+        return rows, composition_date
+
+    @staticmethod
+    def _meta_to_dict(meta: Any) -> dict[str, Any]:
+        if not isinstance(meta, list):
+            return {}
+        values: dict[str, Any] = {}
+        for item in meta:
+            if not isinstance(item, dict):
+                continue
+            key = _clean(item.get("key"))
+            if not key:
+                continue
+            values[key] = item.get("value")
+        return values
+
+    @staticmethod
+    def _parse_composition_date(value: Any) -> str | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(text, fmt).date().isoformat()
+            except ValueError:
+                continue
+        return text
+
+    @staticmethod
+    def _holding_type(*, symbol: str | None, name: str | None, cusip: str | None) -> str:
+        text = " ".join(part.upper() for part in (symbol, name, cusip) if part)
+        if "CASH" in text or "OTHER" in text:
+            return "cash"
+        return "equity"
+
+
 class KurvHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Kurv public holdings CSV files without trusting option IDs as CUSIPs."""
 
@@ -17365,6 +17565,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Bitwise public ETF product pages may be subject to issuer terms.",
     ),
+    "coinshares": IssuerCsvAdapterConfig(
+        adapter_key="coinshares",
+        source_provider="coinshares",
+        source_access="issuer_public_widgets_holdings_json",
+        product_page_templates=(
+            "https://coinshares.com/us/etf/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "CoinShares/Valkyrie public ETF product pages and widget API "
+            "may be subject to issuer terms."
+        ),
+    ),
     "cambria": IssuerCsvAdapterConfig(
         adapter_key="cambria",
         source_provider="cambria",
@@ -18424,6 +18637,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
+        "coinshares": CoinSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,
         "ssc": AlpsHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,

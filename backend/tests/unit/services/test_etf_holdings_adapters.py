@@ -736,6 +736,85 @@ async def test_21shares_adapter_fetches_product_details_constituents(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_coinshares_adapter_fetches_widget_holdings(monkeypatch):
+    adapter = get_holdings_adapter("coinshares")
+    assert adapter is not None
+
+    payload = [
+        {
+            "code": "WGMI",
+            "sections": [
+                {
+                    "key": "VALKYRIE_HOLDINGS_WGMI_0",
+                    "source": "Coinshares TBA",
+                    "updated": "2026-07-07T10:01:06Z",
+                    "meta": [
+                        {"key": "cusip", "value": "433921103"},
+                        {"key": "date", "value": "2026/07/07"},
+                        {"key": "marketvalue", "value": "11508021.20"},
+                        {"key": "netassets", "value": "248831880.0"},
+                        {"key": "price", "value": "3.38"},
+                        {"key": "securityname", "value": "Hive Digital Technologies Ltd"},
+                        {"key": "shares", "value": "3404740.0"},
+                        {"key": "stockticker", "value": "HIVE"},
+                        {"key": "weightpercentage", "value": "4.62%"},
+                    ],
+                },
+                {
+                    "key": "VALKYRIE_HOLDINGS_WGMI_1",
+                    "meta": [
+                        {"key": "cusip", "value": "Cash&Other"},
+                        {"key": "date", "value": "2026/07/07"},
+                        {"key": "marketvalue", "value": "1234302.01"},
+                        {"key": "price", "value": "1.0"},
+                        {"key": "securityname", "value": "Cash & Other"},
+                        {"key": "shares", "value": "1234302.01"},
+                        {"key": "stockticker", "value": "Cash&Other"},
+                        {"key": "weightpercentage", "value": "0.50%"},
+                    ],
+                },
+            ],
+        }
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=(
+                "https://www-api.coinshares.com/api/v2/Widgets"
+                "?ApiKey=094DA478-140C-4E3E-B394-7A19BBE8326B"
+                "&names=VALKYRIE_HOLDINGS_WGMI"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="WGMI")
+
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url.startswith("https://www-api.coinshares.com/api/v2/Widgets")
+    assert "names=VALKYRIE_HOLDINGS_WGMI" in requested_url
+    assert request_kwargs["headers"]["Referer"] == "https://coinshares.com/us/etf/wgmi/"
+    assert len(result.rows) == 2
+    equity_row = result.rows[0]
+    assert equity_row.symbol == "HIVE"
+    assert equity_row.name == "Hive Digital Technologies Ltd"
+    assert equity_row.cusip == "433921103"
+    assert equity_row.weight == Decimal("0.0462")
+    assert equity_row.shares == Decimal("3404740.0")
+    assert equity_row.market_value == Decimal("11508021.20")
+    assert equity_row.holding_type == "equity"
+    cash_row = result.rows[1]
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "coinshares"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_widgets_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-07"
+
+
+@pytest.mark.asyncio
 async def test_renaissance_capital_adapter_fetches_public_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("renaissance_capital")
     assert adapter is not None
@@ -5075,6 +5154,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["etf_architect"]["support_route_types"]
     assert adapters["bahl_gaynor"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["bahl_gaynor"]["support_route_types"]
+    assert adapters["coinshares"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["coinshares"]["support_route_types"]
     assert adapters["federated_hermes"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["federated_hermes"][
         "support_route_types"

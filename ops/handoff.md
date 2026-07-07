@@ -2897,7 +2897,36 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 107/345 native/live-backed, leaving 238 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 110/345 native/live-backed, leaving 235 providers.
+
+## 2026-07-07 - CoinShares native ETF holdings route
+
+### Summary
+
+- Promoted `coinshares` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added provider-specific `CoinSharesHoldingsAdapter`:
+  - uses the public CoinShares/Valkyrie widgets API behind product pages such as `https://coinshares.com/us/etf/wgmi/`.
+  - fetches `https://www-api.coinshares.com/api/v2/Widgets?...&names=VALKYRIE_HOLDINGS_{symbol}`.
+  - parses widget sections into canonical holdings rows with ticker, name, CUSIP, shares, price, market value, net assets, weight, and composition date.
+  - preserves `Cash & Other` as a cash row rather than a fake tradable symbol.
+- Live validation symbol: `WGMI`.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `110`
+  - providers still lacking native/live-backed support: `235`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_coinshares_adapter_fetches_widget_holdings tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `git diff --check` -> passed
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k coinshares` -> escalated network run passed with `1 passed, 110 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- count command -> `345`, `110`, `235`, `coinshares_native=True`
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `235` registered providers still lack native/live-backed support.
 
 ## 2026-07-06 - SS&C/ALPS native ETF holdings route
 
