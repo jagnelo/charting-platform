@@ -5,6 +5,41 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T13:45Z
+
+- Promoted `dimensional` from generated/SEC-backed recognition-only support to native/live-backed support.
+- This was the first provider from the user-confirmed fast-track screenshot set:
+  - `dimensional`, `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, `wellington`.
+- Added a provider-specific `DimensionalHoldingsAdapter`:
+  - discovers ETF product pages from `https://www.dimensional.com/us-en/funds/sitemap.xml` when no product URL is already stored.
+  - selects the public US individual-investor audience before loading the product page.
+  - parses product-page runtime values such as `portfolioNumber` and `servicesApiBaseUrl`.
+  - calls the issuer's public fund-detail API at `https://etf.dimensional.com/public/v2/fundcenter/funddetail`.
+  - extracts the returned `fullHoldingsCsvUrl` instead of hardcoding a dated CSV path.
+  - parses Dimensional's holdings CSV fields: `date`, `etf_ticker`, `ticker`, `description`, `weight`, `market_value`, `identifier`/CUSIP, `isin`, `sedol`, `shares`, `coupon_rate`, `maturity_date`, and `principal`.
+  - preserves source ticker/exchange metadata and classifies maturity/coupon rows as fixed income rather than generic equity.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `117`
+  - providers still lacking native/live-backed support: `228`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_dimensional_adapter_discovers_product_page_and_fetches_full_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k dimensional`
+    - escalated network run passed with `1 passed, 117 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `git diff --check`
+    - result: passed
+- Remaining fast-track screenshot set:
+  - `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, `wellington`.
+- Important probe notes:
+  - `fidelity` and `wisdomtree` public routes remain blocked or not yet resolved to a reliable backend-fetchable holdings artifact; do not mark them native until live tests pass.
+  - Continue down the exact screenshot-priority list; do not substitute unrelated providers unless one of the priority providers is demonstrably blocked and checkpointed.
+
 ## Latest checkpoint - 2026-07-07T12:55Z
 
 - Promoted `texas_capital` from generated/SEC-backed recognition-only support to native/live-backed support.

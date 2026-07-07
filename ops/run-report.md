@@ -8747,3 +8747,17 @@ Append a short entry after each worker session.
   - focused Brandes unit/parser test and expanded catalog assertion.
   - live provider matrix test.
   - focused live Brandes provider route test with network access.
+
+## 2026-07-07 - Dimensional native ETF holdings route
+
+- Promoted `dimensional` from generated/SEC-backed recognition-only support to native/live-backed support from the user-confirmed high-priority provider set.
+- Added a provider-specific Dimensional adapter that discovers ETF product pages through `https://www.dimensional.com/us-en/funds/sitemap.xml`, selects the public US individual-investor audience, parses product-page runtime values, calls `https://etf.dimensional.com/public/v2/fundcenter/funddetail`, extracts `fullHoldingsCsvUrl`, and parses the returned full holdings CSV.
+- Live validation symbol: `DFAC`.
+- Current count: `345` registered provider keys, `117` native/live-backed integrations, `228` remaining.
+- Validation passed:
+  - focused Dimensional unit/parser/API-flow test and expanded catalog assertion.
+  - focused live Dimensional route test with network access.
+  - live provider matrix test.
+  - targeted ruff for ETF holdings adapter/tests.
+  - `git diff --check`.
+- Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
