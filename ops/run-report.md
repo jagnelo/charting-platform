@@ -8761,3 +8761,22 @@ Append a short entry after each worker session.
   - targeted ruff for ETF holdings adapter/tests.
   - `git diff --check`.
 - Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+
+## 2026-07-07 - Victory native ETF holdings route
+
+- Promoted `victory` from generated/SEC-backed recognition-only support to native/live-backed support from the user-confirmed high-priority provider set.
+- Added a provider-specific Victory adapter that reads VictoryShares product-page metadata when available, uses the page-visible public API key, and fetches full current holdings from `https://investorapi.vcm.com/search/product/{symbol}/AllHoldings`.
+- Live validation symbol: `VFLO`.
+- Current count: `345` registered provider keys, `118` native/live-backed integrations, `227` remaining.
+- Validation passed:
+  - focused Victory unit/parser/API-flow test and expanded catalog assertion.
+  - focused live Victory route test with network access.
+  - live provider matrix test.
+  - targeted ruff for ETF holdings adapter/tests.
+- Probe notes for the same screenshot-priority set:
+  - `capital_group` is still auth-gated.
+  - `fidelity` returns an unavailable/Akamai shell from this environment.
+  - `wisdomtree`, `doubleline`, `sofi`, `rex`, and `angel_oak` were Cloudflare/challenge blocked.
+  - `neuberger_berman` returned HTTP `429`.
+  - `lazard` pages are reachable, but no holdings artifact/API was found in the inspected ETF page.
+  - `brookfield`, `tcw`, `thrivent`, `voya`, and `wellington` still need deeper route work before native support can be claimed.

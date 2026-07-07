@@ -5,6 +5,45 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T14:35Z
+
+- Promoted `victory` from generated/SEC-backed recognition-only support to native/live-backed support.
+- This was from the user-confirmed fast-track screenshot set:
+  - `dimensional`, `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `victory`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, `wellington`.
+- Added a provider-specific `VictoryHoldingsAdapter`:
+  - uses Victory Capital/VictoryShares public product-page metadata when a product URL is available.
+  - reads page-visible `fundID` and `fundApiKey` values instead of relying on SEC fallback.
+  - fetches full current holdings from `https://investorapi.vcm.com/search/product/{symbol}/AllHoldings`.
+  - sends the required public `x-api-key` header used by the issuer site.
+  - parses Victory JSON fields such as `holding_name`, `stock_symbol`, `security_type`, `portfolio_percentage`, `market_value`, `shares`, `isin`, and `as_of_date`.
+  - preserves venue suffixes such as `ADBE US` as symbol/exchange metadata and classifies cash rows separately.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `118`
+  - providers still lacking native/live-backed support: `227`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_victory_adapter_fetches_public_all_holdings_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k victory`
+    - escalated network run passed with `1 passed, 118 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+- Priority-set probe notes from this pass:
+  - `capital_group`: advisor ETF pages redirect to authentication; no public native holdings artifact found.
+  - `fidelity`: public endpoints returned Fidelity unavailable/Akamai shell; no backend-fetchable holdings artifact validated.
+  - `wisdomtree`: product/API routes were Cloudflare-blocked from this environment.
+  - `neuberger_berman`: sitemap endpoints returned HTTP `429`.
+  - `doubleline`, `sofi`, `rex`, `angel_oak`: product pages were Cloudflare/challenge blocked.
+  - `lazard`: ETF product pages and sitemap are reachable, but no holdings artifact/API was found in the inspected page.
+  - `brookfield`, `tcw`, `thrivent`, `voya`, `wellington`: probed quickly but no live-backed route was validated in this pass.
+- Remaining fast-track screenshot set:
+  - `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `doubleline`, `lazard`, `brookfield`, `angel_oak`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+- Next step:
+  - Continue with the exact screenshot-priority set. Do not mark any blocked issuer native unless a provider-specific route plus static and live tests pass.
+
 ## Latest checkpoint - 2026-07-07T13:45Z
 
 - Promoted `dimensional` from generated/SEC-backed recognition-only support to native/live-backed support.
