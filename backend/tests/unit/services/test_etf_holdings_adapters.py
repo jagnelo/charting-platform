@@ -5333,6 +5333,75 @@ async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdi
     assert result.legal_metadata["composition_date"] == "2026-07-06"
 
 
+@pytest.mark.asyncio
+async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("victory")
+    assert adapter is not None
+
+    product_page = """
+    <html>
+      <input type="hidden" id="fundID" value="VFLO"/>
+      <input type="hidden" id="fundApiKey" value="test-victory-key"/>
+    </html>
+    """
+    payload = [
+        {
+            "holding_name": "CASH AND CASH EQUIVALENTS",
+            "as_of_date": "07/07/2026",
+            "market_value": "17358096.390000000000",
+            "portfolio_percentage": "0.216199860000",
+            "shares": "17358096.390000000000",
+        },
+        {
+            "holding_name": "ADOBE INC",
+            "stock_symbol": "ADBE US",
+            "as_of_date": "07/07/2026",
+            "isin": "US00724F1012",
+            "security_type": "COMMON STOCK",
+            "market_value": "280661759.820000000000",
+            "portfolio_percentage": "3.495719370000",
+            "shares": "1287026.000000000000",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html"),
+        FakeResponse(text=json.dumps(payload), content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="VFLO",
+        identifiers={
+            "product_url": (
+                "https://advisor.vcm.com/products/victoryshares-etfs/"
+                "victoryshares-etfs-list/victoryshares-free-cash-flow-etf"
+            )
+        },
+    )
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        (
+            "https://advisor.vcm.com/products/victoryshares-etfs/"
+            "victoryshares-etfs-list/victoryshares-free-cash-flow-etf"
+        ),
+        "https://investorapi.vcm.com/search/product/VFLO/AllHoldings",
+    ]
+    assert FakeAsyncClient.requested[1][1]["headers"]["x-api-key"] == "test-victory-key"
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].weight == Decimal("0.0021619986")
+    assert result.rows[1].symbol == "ADBE"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].name == "ADOBE INC"
+    assert result.rows[1].isin == "US00724F1012"
+    assert result.rows[1].weight == Decimal("0.0349571937")
+    assert result.rows[1].market_value == Decimal("280661759.820000000000")
+    assert result.legal_metadata["route_resolution"] == "issuer_public_product_api_all_holdings"
+    assert result.legal_metadata["composition_date"] == "07/07/2026"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

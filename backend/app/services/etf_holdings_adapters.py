@@ -2820,6 +2820,284 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch VictoryShares holdings from Victory Capital's public product API."""
+
+    PRODUCT_SITEMAP_URL = "https://investor.vcm.com/sitemap.xml"
+    PRODUCT_PATH_MARKER = "/products/victoryshares-etfs/victoryshares-etfs-list/"
+    API_KEY_RE = re.compile(r'id=["\'](?:fundApiKey|productDetailKey)["\'][^>]*value=["\']([^"\']+)')
+    FUND_ID_RE = re.compile(r'id=["\']fundID["\'][^>]*value=["\']([^"\']+)')
+    DEFAULT_PUBLIC_API_KEY = "orcyfZFHdC9GK5Tk4haPn7o3CU5ItULauov6JsF9"
+    ALL_HOLDINGS_ENDPOINT = "https://investorapi.vcm.com/search/product/{symbol_upper}/AllHoldings"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id", "product_id"),
+            identifiers=identifiers,
+        )
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="VictoryShares exposes public ETF holdings through the Victory Capital product API.",
+            source_url=product_page_url or source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id", "product_id")
+            or symbol.strip().upper(),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url:
+            return source_url.strip()
+        api_symbol = (
+            issuer_product_id
+            or _identifier(identifiers or {}, "fund_id", "product_id", "issuer_product_id")
+            or symbol
+        ).strip().upper()
+        if not api_symbol:
+            return None
+        return self.ALL_HOLDINGS_ENDPOINT.format(symbol_upper=api_symbol)
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return _identifier(
+            identifiers or {},
+            "victory_product_page_url",
+            "product_url",
+            "issuer_product_url",
+            "fund_url",
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+            "Referer": "https://advisor.vcm.com/products/victoryshares-etfs/",
+            "x-api-key": self.DEFAULT_PUBLIC_API_KEY,
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        identifiers = identifiers or {}
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        api_symbol = issuer_product_id or _identifier(
+            identifiers,
+            "fund_id",
+            "product_id",
+            "issuer_product_id",
+        ) or symbol.strip().upper()
+        api_key = self.DEFAULT_PUBLIC_API_KEY
+        raw_product_page: str | None = None
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if product_page_url:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=_issuer_page_request_headers(),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                raw_product_page = page_response.text
+                api_key = self._extract_api_key(raw_product_page) or api_key
+                api_symbol = self._extract_fund_id(raw_product_page) or api_symbol
+
+            resolved_source_url = self.resolve_source_url(
+                symbol=symbol,
+                issuer_product_id=api_symbol,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+            if not resolved_source_url:
+                raise ValueError(f"{self.adapter_key} needs a VictoryShares ticker for {symbol}.")
+            headers = {
+                **self.source_request_headers(source_url=resolved_source_url),
+                "x-api-key": api_key,
+            }
+            response = await client.get(
+                resolved_source_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows = self._parse_holdings_payload(payload)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "json",
+                "product_page_url": product_page_url,
+                "product_page_fetched": raw_product_page is not None,
+                "composition_date": self._composition_date_from_payload(payload),
+            },
+            source_url=resolved_source_url,
+            source_identifier=api_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_public_product_api_all_holdings",
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_product_api",
+                "composition_date": self._composition_date_from_payload(payload),
+            },
+        )
+
+    @classmethod
+    def _extract_api_key(cls, raw_html: str) -> str | None:
+        match = cls.API_KEY_RE.search(raw_html)
+        if not match:
+            return None
+        return html.unescape(match.group(1)).strip() or None
+
+    @classmethod
+    def _extract_fund_id(cls, raw_html: str) -> str | None:
+        match = cls.FUND_ID_RE.search(raw_html)
+        if not match:
+            return None
+        return html.unescape(match.group(1)).strip().upper() or None
+
+    @classmethod
+    def _parse_holdings_payload(cls, payload: Any) -> list[CanonicalHoldingRow]:
+        holdings = payload.get("holdings") if isinstance(payload, dict) else payload
+        if not isinstance(holdings, list):
+            return []
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(holdings, start=1):
+            if not isinstance(raw_row, dict):
+                continue
+            name = _clean(raw_row.get("holding_name") or raw_row.get("security_name"))
+            raw_symbol = _clean(
+                raw_row.get("stock_symbol")
+                or raw_row.get("holding_ticker")
+                or raw_row.get("symbol")
+                or raw_row.get("ticker")
+            )
+            symbol, exchange = cls._split_symbol(raw_symbol)
+            security_type = _clean(raw_row.get("security_type"))
+            row_type = cls._row_type(symbol=symbol, name=name, security_type=security_type)
+            holding_type = cls._holding_type(security_type=security_type, row_type=row_type)
+            if row_type == "cash":
+                symbol = None
+                exchange = None
+            weight = _decimal_percent_points(raw_row.get("portfolio_percentage"))
+            market_value = _decimal(raw_row.get("market_value"))
+            shares = _decimal(raw_row.get("shares"))
+            if not any([symbol, name, raw_row.get("cusip"), raw_row.get("isin")]) and not any(
+                [weight, market_value, shares]
+            ):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    cusip=_clean(raw_row.get("cusip")) if _looks_like_cusip(_clean(raw_row.get("cusip"))) else None,
+                    isin=_clean(raw_row.get("isin")) if _looks_like_isin(_clean(raw_row.get("isin"))) else None,
+                    sedol=_clean(raw_row.get("sedol")) if _looks_like_sedol(_clean(raw_row.get("sedol"))) else None,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency=_clean(raw_row.get("currency")) or "USD",
+                    country=_clean(raw_row.get("country")),
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"victory-{index}",
+                    extra_data={
+                        "raw_symbol": raw_symbol,
+                        "security_type": security_type,
+                        "coupon_rate": _decimal(raw_row.get("coupon_rate")),
+                        "maturity_date": _clean(raw_row.get("maturity_date")),
+                        "as_of_date": _clean(raw_row.get("as_of_date")),
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _split_symbol(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if text is None:
+            return None, None
+        parts = text.replace("/", ".").strip().upper().split()
+        symbol = parts[0] if parts else text.strip().upper()
+        exchange = parts[1] if len(parts) > 1 else None
+        if symbol in {"CASH", "CASH&OTHER", "USD"}:
+            return None, None
+        return symbol or None, exchange
+
+    @staticmethod
+    def _row_type(*, symbol: str | None, name: str | None, security_type: str | None) -> str:
+        lowered_name = (name or "").strip().lower()
+        lowered_type = (security_type or "").strip().lower()
+        if (
+            lowered_type in {"cash", "cash equivalent"}
+            or "cash" in lowered_name
+            or (symbol or "").upper() in {"CASH", "USD"}
+        ):
+            return "cash"
+        return "security"
+
+    @staticmethod
+    def _holding_type(*, security_type: str | None, row_type: str) -> str:
+        if row_type == "cash":
+            return "cash"
+        lowered = (security_type or "").strip().lower()
+        if "bond" in lowered or "fixed" in lowered:
+            return "fixed_income"
+        if "future" in lowered or "option" in lowered or "swap" in lowered:
+            return "derivative"
+        return "equity"
+
+    @staticmethod
+    def _composition_date_from_payload(payload: Any) -> str | None:
+        holdings = payload.get("holdings") if isinstance(payload, dict) else payload
+        if not isinstance(holdings, list):
+            return None
+        for row in holdings:
+            if isinstance(row, dict):
+                value = _clean(row.get("as_of_date"))
+                if value:
+                    return value
+        return None
+
+
 class DeutscheBankHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse DWS/Xtrackers public PDP holdings JSON."""
 
@@ -19201,6 +19479,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Dimensional public ETF product pages and holdings downloads may be subject to issuer terms.",
     ),
+    "victory": IssuerCsvAdapterConfig(
+        adapter_key="victory",
+        source_provider="victory",
+        source_access="issuer_public_product_api_all_holdings_json",
+        product_page_templates=(
+            "https://advisor.vcm.com/products/victoryshares-etfs/victoryshares-etfs-list/{issuer_product_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Victory Capital public ETF product pages and API responses may be subject to issuer terms.",
+    ),
     "zacks": IssuerCsvAdapterConfig(
         adapter_key="zacks",
         source_provider="zacks",
@@ -20248,6 +20536,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "us_global_investors": USGlobalInvestorsHoldingsAdapter,
         "vaneck": VanEckHoldingsAdapter,
         "vanguard": VanguardHoldingsAdapter,
+        "victory": VictoryHoldingsAdapter,
         "virtus": VirtusHoldingsAdapter,
         "volatility_shares": VolatilitySharesHoldingsAdapter,
         "wahed": WahedHoldingsAdapter,
