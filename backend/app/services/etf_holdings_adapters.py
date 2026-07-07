@@ -12598,6 +12598,273 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Dimensional ETF holdings through the issuer's public fund-details API."""
+
+    COUNTRY_KEY = "5EDA63C7CB764D13BFFC44188EE331A5"
+    INDIVIDUAL_INVESTOR_AUDIENCE_ID = "72F4ED1678744217ADBB47C57F3F0638"
+    PRODUCT_SITEMAP_URL = "https://www.dimensional.com/us-en/funds/sitemap.xml"
+    PUBLIC_API_BASE = "https://etf.dimensional.com/public"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        slug = _clean(
+            issuer_product_id
+            or _identifier(identifiers or {}, "issuer_product_id", "dimensional_fund_slug")
+        )
+        if slug and "/" in slug:
+            return f"https://www.dimensional.com/us-en/funds/{slug.strip('/')}"
+        return None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_url = (
+                source_url
+                or self.resolve_product_page_url(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+                or await self._discover_product_url(client, symbol=normalized_symbol)
+            )
+            if not product_url:
+                raise ValueError(f"Dimensional ETF product page not found for {normalized_symbol}.")
+
+            await self._select_us_individual_audience(client)
+            page_response = await client.get(
+                product_url,
+                headers=self._page_headers(referer="https://www.dimensional.com/us-en/funds"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            page_html = page_response.text
+
+            portfolio_number = self._extract_portfolio_number(page_html)
+            api_base = self._extract_services_api_base(page_html) or self.PUBLIC_API_BASE
+            if portfolio_number is None:
+                raise ValueError(f"Dimensional product page did not expose a portfolio number for {normalized_symbol}.")
+
+            details_url = f"{api_base.rstrip('/')}/v2/fundcenter/funddetail"
+            details_response = await client.post(
+                details_url,
+                json={"portfolioNumber": str(portfolio_number)},
+                headers=self._api_headers(referer=product_url),
+                follow_redirects=True,
+            )
+            details_response.raise_for_status()
+            details_payload = details_response.json()
+            holdings_url = self._find_full_holdings_csv_url(details_payload)
+            if not holdings_url:
+                raise ValueError(f"Dimensional fund details did not expose full holdings CSV for {normalized_symbol}.")
+
+            csv_response = await client.get(
+                holdings_url,
+                headers=self._page_headers(referer=product_url, accept="text/csv,application/octet-stream,*/*"),
+                follow_redirects=True,
+            )
+            csv_response.raise_for_status()
+
+        rows, composition_date = self._parse_dimensional_csv(
+            csv_response.text,
+            symbol=normalized_symbol,
+        )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={
+                "portfolio_number": portfolio_number,
+                "product_url": product_url,
+                "fund_details_url": details_url,
+                "full_holdings_csv_url": holdings_url,
+            },
+            source_url=holdings_url,
+            source_identifier=str(portfolio_number),
+            legal_metadata={
+                "source_access": "issuer_public_fund_details_api_full_holdings_csv",
+                "adapter_key": self.adapter_key,
+                "route_resolution": "dimensional_public_fund_details_api",
+                "product_url": product_url,
+                "fund_details_url": details_url,
+                "full_holdings_csv_url": holdings_url,
+                "portfolio_number": str(portfolio_number),
+                **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    @classmethod
+    async def _discover_product_url(cls, client: httpx.AsyncClient, *, symbol: str) -> str | None:
+        response = await client.get(
+            cls.PRODUCT_SITEMAP_URL,
+            headers=cls._page_headers(referer="https://www.dimensional.com/us-en/funds"),
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        pattern = re.compile(
+            rf"https://www\.dimensional\.com/us-en/funds/{re.escape(symbol.lower())}/[^<\s]+",
+            re.IGNORECASE,
+        )
+        match = pattern.search(response.text)
+        return html.unescape(match.group(0)) if match else None
+
+    @classmethod
+    async def _select_us_individual_audience(cls, client: httpx.AsyncClient) -> None:
+        headers = cls._page_headers(referer="https://www.dimensional.com/")
+        await client.post(
+            "https://www.dimensional.com/audience-selector-api/get-splash-page-data-for-country",
+            json={"countryKey": cls.COUNTRY_KEY},
+            headers=headers,
+            follow_redirects=True,
+        )
+        response = await client.post(
+            "https://www.dimensional.com/audience-selector-api/select-audience-type",
+            json={
+                "countryKey": cls.COUNTRY_KEY,
+                "audienceTypeId": cls.INDIVIDUAL_INVESTOR_AUDIENCE_ID,
+            },
+            headers=headers,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+
+    @staticmethod
+    def _page_headers(*, referer: str, accept: str = "text/html,application/xhtml+xml,*/*") -> dict[str, str]:
+        headers = _holdings_request_headers(accept=accept)
+        headers["Referer"] = referer
+        return headers
+
+    @classmethod
+    def _api_headers(cls, *, referer: str) -> dict[str, str]:
+        headers = cls._page_headers(referer=referer, accept="application/json,*/*")
+        headers["Content-Type"] = "application/json"
+        headers["Origin"] = "https://www.dimensional.com"
+        headers["x-selected-country"] = "US"
+        return headers
+
+    @staticmethod
+    def _extract_portfolio_number(raw_html: str) -> str | None:
+        match = re.search(r"\bvar\s+portfolioNumber\s*=\s*([0-9]+)\s*;", raw_html)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _extract_services_api_base(raw_html: str) -> str | None:
+        match = re.search(r'\bvar\s+servicesApiBaseUrl\s*=\s*"([^"]+)"\s*;', raw_html)
+        return html.unescape(match.group(1)) if match else None
+
+    @classmethod
+    def _find_full_holdings_csv_url(cls, payload: Any) -> str | None:
+        if isinstance(payload, dict):
+            for key, value in payload.items():
+                if key == "fullHoldingsCsvUrl" and isinstance(value, str) and value.strip():
+                    return value.strip()
+                found = cls._find_full_holdings_csv_url(value)
+                if found:
+                    return found
+        elif isinstance(payload, list):
+            for item in payload:
+                found = cls._find_full_holdings_csv_url(item)
+                if found:
+                    return found
+        return None
+
+    @staticmethod
+    def _parse_dimensional_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(reader, start=1):
+            fund_symbol = (_clean(raw.get("etf_ticker")) or "").upper()
+            if fund_symbol and fund_symbol != symbol.upper():
+                continue
+            raw_ticker = _clean(raw.get("ticker"))
+            row_symbol, exchange = DimensionalHoldingsAdapter._split_dimensional_ticker(raw_ticker)
+            name = _clean(raw.get("description"))
+            if not (row_symbol or name or _clean(raw.get("identifier"))):
+                continue
+            row_date = DimensionalHoldingsAdapter._parse_iso_date(raw.get("date"))
+            composition_date = composition_date or row_date
+            holding_type = DimensionalHoldingsAdapter._holding_type(raw=raw, symbol=row_symbol, name=name)
+            row_type = "cash" if holding_type == "cash" else "security"
+            if row_type == "cash":
+                row_symbol = None
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=row_symbol,
+                    name=name,
+                    cusip=_clean(raw.get("identifier")),
+                    isin=_clean(raw.get("isin")),
+                    sedol=_clean(raw.get("sedol")),
+                    weight=_decimal(raw.get("weight")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("market_value")),
+                    currency="USD",
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        "source_provider": "dimensional",
+                        "etf_ticker": fund_symbol or symbol,
+                        "raw_ticker": raw_ticker,
+                        "coupon_rate": _clean(raw.get("coupon_rate")),
+                        "maturity_date": _clean(raw.get("maturity_date")),
+                        "principal": _clean(raw.get("principal")),
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _split_dimensional_ticker(value: str | None) -> tuple[str | None, str | None]:
+        ticker = _clean(value)
+        if not ticker:
+            return None, None
+        parts = ticker.split()
+        symbol = parts[0].strip().upper() if parts else ticker.upper()
+        exchange = parts[1].strip().upper() if len(parts) > 1 else None
+        if symbol in {"CASH", "USD", "US$", "$"}:
+            return None, exchange
+        return symbol, exchange
+
+    @staticmethod
+    def _holding_type(*, raw: dict[str, Any], symbol: str | None, name: str | None) -> str:
+        lowered_name = (name or "").strip().lower()
+        if symbol is None or lowered_name in {"cash", "cash collateral", "us dollar"}:
+            return "cash"
+        if _clean(raw.get("maturity_date")) or _decimal(raw.get("coupon_rate")):
+            return "fixed_income"
+        return "equity"
+
+    @staticmethod
+    def _parse_iso_date(value: Any) -> date | None:
+        cleaned = _clean(value)
+        if not cleaned:
+            return None
+        try:
+            return datetime.strptime(cleaned, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class TexasCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Texas Capital ETF holdings from issuer-published static JSON files."""
 
@@ -18924,6 +19191,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "dimensional": IssuerCsvAdapterConfig(
+        adapter_key="dimensional",
+        source_provider="dimensional",
+        source_access="issuer_public_fund_details_api_full_holdings_csv",
+        product_page_templates=(
+            "https://www.dimensional.com/us-en/funds/{symbol_lower}/{issuer_product_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Dimensional public ETF product pages and holdings downloads may be subject to issuer terms.",
+    ),
     "zacks": IssuerCsvAdapterConfig(
         adapter_key="zacks",
         source_provider="zacks",
@@ -19898,6 +20175,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "deepwater": DeepwaterHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
+        "dimensional": DimensionalHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,

@@ -5242,6 +5242,97 @@ async def test_federated_hermes_adapter_fetches_daily_holdings_table(monkeypatch
     assert result.legal_metadata["composition_date"] == "2026-07-06"
 
 
+@pytest.mark.asyncio
+async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("dimensional")
+    assert adapter is not None
+
+    sitemap_xml = """
+    <urlset>
+      <url>
+        <loc>https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf</loc>
+      </url>
+    </urlset>
+    """
+    product_page = """
+    <html>
+      <script>
+        var servicesApiBaseUrl = "https://etf.dimensional.com/public";
+        var portfolioName = "US Core Equity 2 ETF";
+        var portfolioNumber = 350;
+      </script>
+    </html>
+    """
+    details_payload = {
+        "data": {
+            "lensGroups": [
+                {
+                    "data": {
+                        "lenses": [
+                            {
+                                "data": {
+                                    "slug": "charsEtfTopHoldingsDaily",
+                                    "blends": [
+                                        {
+                                            "data": {
+                                                "fullHoldingsCsvUrl": (
+                                                    "https://tools-blob.dimensional.com/etf/20260706/DFAC.csv"
+                                                )
+                                            }
+                                        }
+                                    ],
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+    holdings_csv = "\n".join(
+        [
+            "date,etf_ticker,ticker,description,weight,market_value,identifier,isin,sedol,shares,coupon_rate,maturity_date,principal",
+            "2026-07-06,DFAC,AAPL US,APPLE INC.,0.0725,3456.78,037833100,US0378331005,2046251,10,0.0,,3456.78",
+            "2026-07-06,DFAC,TREASURY,US TREASURY BILL,0.0125,1000.00,912797AB1,US912797AB12,BKT1234,1000,4.5,2026-12-31,1000.00",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=sitemap_xml, content_type="application/xml"),
+        FakeResponse(text='{"status":"success"}', content_type="application/json"),
+        FakeResponse(text='{"status":"success","action":"reload"}', content_type="application/json"),
+        FakeResponse(text=product_page, content_type="text/html"),
+        FakeResponse(text=json.dumps(details_payload), content_type="application/json"),
+        FakeResponse(text=holdings_csv, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DFAC", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.dimensional.com/us-en/funds/sitemap.xml",
+        "https://www.dimensional.com/audience-selector-api/get-splash-page-data-for-country",
+        "https://www.dimensional.com/audience-selector-api/select-audience-type",
+        "https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf",
+        "https://etf.dimensional.com/public/v2/fundcenter/funddetail",
+        "https://tools-blob.dimensional.com/etf/20260706/DFAC.csv",
+    ]
+    api_request = FakeAsyncClient.requested[4][1]
+    assert api_request["json"] == {"portfolioNumber": "350"}
+    assert api_request["headers"]["x-selected-country"] == "US"
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].exchange == "US"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].isin == "US0378331005"
+    assert result.rows[0].sedol == "2046251"
+    assert result.rows[0].weight == Decimal("0.0725")
+    assert result.rows[0].shares == Decimal("10")
+    assert result.rows[0].market_value == Decimal("3456.78")
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.legal_metadata["route_resolution"] == "dimensional_public_fund_details_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -5471,9 +5562,10 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["main_management"]["support_route_types"]
     assert adapters["texas_capital"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["texas_capital"]["support_route_types"]
+    assert adapters["dimensional"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["dimensional"]["support_route_types"]
     for adapter_key in [
         "capital_group",
-        "dimensional",
         "3edge",
         "stone_ridge",
     ]:

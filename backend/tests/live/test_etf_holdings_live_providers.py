@@ -47,6 +47,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "deepwater",
     "deutsche_bank",
     "diamond_hill",
+    "dimensional",
     "direxion",
     "distillate",
     "eventide",
@@ -127,7 +128,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
 }
 SEC_BACKED_SAMPLE_ADAPTERS = {
     "capital_group",
-    "dimensional",
     "direxion",
     "wisdomtree",
 }
@@ -459,6 +459,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "dimensional",
+            "DFAC",
+            None,
+            {},
+            1000,
         ),
         (
             "direxion",
