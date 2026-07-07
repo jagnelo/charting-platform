@@ -5,6 +5,37 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T12:31Z
+
+- Promoted `adaptive_investments` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `AdaptiveInvestmentsHoldingsAdapter`:
+  - native public ADPV fund page route: `https://adpvetf.com/{symbol_lower}`
+  - supported live validation symbol: `ADPV`
+  - parser targets the symbol-specific holdings component inside the issuer's Nuxt SSR function payload.
+  - parser resolves Nuxt argument references and preserves ticker, name, FIGI, shares, market value, canonical decimal weight, composition date, and source metadata.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `115`
+  - providers still lacking native/live-backed support: `230`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_adaptive_investments_adapter_parses_variable_embedded_holdings_payload tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k adaptive_investments`
+    - escalated network run passed with `1 passed, 115 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `115`, `230`, `adaptive_investments_native=True`.
+- Problems found:
+  - ADPV publishes holdings through Nuxt's embedded payload with values stored as argument references, not as direct JSON table rows, so the native route needs provider-specific payload resolution.
+  - Capital Group and Dimensional were probed but not promoted because the reachable routes were auth/region guarded rather than parseable public holdings feeds.
+- Next step:
+  - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The full goal remains open with `230` providers still lacking native/live-backed support.
+
 ## Latest checkpoint - 2026-07-07T12:02Z
 
 - Promoted `applied_finance` from generated/SEC-backed recognition-only support to native/live-backed support.
