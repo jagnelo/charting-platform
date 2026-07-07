@@ -11110,6 +11110,174 @@ class BaronHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class BrandesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Brandes ETF holdings from the public iframe data CSV."""
+
+    holdings_url = "https://etfs.brandes.com/assets/data/6c11_Report.csv"
+    product_page_template = "https://www.brandes.com/etfs/fund-detail/{slug}"
+    fund_slugs = {
+        "BINV": "brandes-international-etf",
+        "BSMC": "brandes-us-small-mid-cap-value-etf",
+        "BUSA": "brandes-us-value-etf",
+    }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        return explicit or self.holdings_url
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Brandes did not expose a holdings CSV route for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                headers=self.source_request_headers(source_url=resolved_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_brandes_csv(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Brandes holdings CSV did not expose rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=resolved_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_iframe_public_holdings_csv",
+                "product_page_url": self._product_page_url(normalized_symbol),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,*/*")
+        headers["Referer"] = "https://etfs.brandes.com/busa"
+        return headers
+
+    @classmethod
+    def _product_page_url(cls, symbol: str) -> str | None:
+        slug = cls.fund_slugs.get(symbol)
+        if not slug:
+            return None
+        return cls.product_page_template.format(slug=slug)
+
+    @classmethod
+    def _parse_brandes_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: list[date] = []
+        expected_basket_ticker = f"{symbol}.P"
+        for index, item in enumerate(reader, start=1):
+            basket_ticker = (_clean(item.get("Basket Ticker")) or "").upper()
+            if basket_ticker != expected_basket_ticker:
+                continue
+            parsed_date = cls._parse_iso_date(item.get("Basket Evaluation Date"))
+            if parsed_date:
+                composition_dates.append(parsed_date)
+            asset_group = _clean(item.get("Fund Accounting Asset Group Code"))
+            symbol_value = _clean(item.get("Ticker"))
+            name = _clean(item.get("Security Description"))
+            holding_type = cls._holding_type(asset_group=asset_group, name=name, symbol=symbol_value)
+            row_type = "cash" if holding_type == "cash" else "security"
+            if row_type == "cash":
+                symbol_value = None
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value,
+                    name=name,
+                    cusip=_clean(item.get("CUSIP")),
+                    isin=_clean(item.get("ISIN")),
+                    sedol=_clean(item.get("SEDOL")),
+                    weight=_decimal(item.get("Calculated Weight - Base")),
+                    shares=_decimal(item.get("Benchmark Quantity")),
+                    market_value=_decimal(item.get("Benchmark Market Value (Base)")),
+                    currency=_clean(item.get("ETF Base Currency")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        composition_date = max(composition_dates) if composition_dates else None
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_iso_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _holding_type(
+        *,
+        asset_group: str | None,
+        name: str | None,
+        symbol: str | None,
+    ) -> str:
+        text = f"{asset_group or ''} {name or ''} {symbol or ''}".upper()
+        if any(token in text for token in ["CASH", "CURRENCY", "RECEIVABLE", "PAYABLE"]):
+            return "cash"
+        if "BOND" in text or "FIXED" in text:
+            return "fixed_income"
+        if "FUTURE" in text:
+            return "future"
+        if "OPTION" in text:
+            return "option"
+        if "FOREIGN STOCK" in text or "EQUITY" in text or "STOCK" in text:
+            return "equity"
+        return "security"
+
+
 class SimplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.simplify.us/etfs"
 
@@ -17849,6 +18017,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Baron Capital public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "brandes": IssuerCsvAdapterConfig(
+        adapter_key="brandes",
+        source_provider="brandes",
+        source_access="issuer_public_iframe_holdings_csv",
+        url_templates=(
+            "https://etfs.brandes.com/assets/data/6c11_Report.csv",
+        ),
+        product_page_templates=(
+            "https://www.brandes.com/etfs/fund-detail/{issuer_product_id}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Brandes public ETF product pages and iframe holdings CSV files may be subject to issuer terms.",
+    ),
     "cambiar": IssuerCsvAdapterConfig(
         adapter_key="cambiar",
         source_provider="cambiar",
@@ -18873,6 +19054,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,
         "beyond_investing": BeyondInvestingHoldingsAdapter,
+        "brandes": BrandesHoldingsAdapter,
         "brookmont": BrookmontHoldingsAdapter,
         "burney": BurneyHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,

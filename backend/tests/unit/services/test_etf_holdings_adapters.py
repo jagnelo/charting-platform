@@ -2153,6 +2153,76 @@ async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_brandes_adapter_filters_shared_iframe_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("brandes")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "ETF Issuer,Basket Reporting Status,Basket Evaluation Date,"
+                        "Basket Trade Date,Primary Basket ID,Basket Ticker,Official NAV,"
+                        "Total Net Assets,ETF Base Currency,Ticker,CUSIP,ISIN,SEDOL,FIGI,"
+                        "Security Description,Benchmark Quantity,Calculated Weight - Base,"
+                        "Benchmark Market Value (Base),Cash Weight,"
+                        "Fund Accounting Asset Group Code"
+                    ),
+                    (
+                        "Tidal ETFs,Final,2026-07-06,2026-07-07,02P997717,BINV.P,"
+                        "42.91,510628044.78,USD,TSM,874039100,US8740391003,2113382,"
+                        "BBG000BD8ZK0,TAIWAN SEMICONDUCTOR M TWD 10.0 ADR,9322,"
+                        "0.00824785560247097,4211586.38,0.020430643354676,"
+                        "FS(Foreign Stock)"
+                    ),
+                    (
+                        "Tidal ETFs,Final,2026-07-06,2026-07-07,02P997716,BUSA.P,"
+                        "41.62,119392620.41,USD,GOOG,02079K107,US02079K1079,BYY88Y7,"
+                        "BBG009S3NB30,ALPHABET INC-CL C,1289,0.018543132,"
+                        "2213584.90,0.0091,CS(Common Stock)"
+                    ),
+                    (
+                        "Tidal ETFs,Final,2026-07-06,2026-07-07,02P997716,BUSA.P,"
+                        "41.62,119392620.41,USD,USD,,,,,US DOLLAR,1,"
+                        "0.009100000,108649.28,0.0091,CU(Currency Security)"
+                    ),
+                ]
+            ),
+            content_type="text/csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BUSA", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://etfs.brandes.com/assets/data/6c11_Report.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "GOOG"
+    assert result.rows[0].name == "ALPHABET INC-CL C"
+    assert result.rows[0].cusip == "02079K107"
+    assert result.rows[0].isin == "US02079K1079"
+    assert result.rows[0].sedol == "BYY88Y7"
+    assert result.rows[0].weight == Decimal("0.018543132")
+    assert result.rows[0].market_value == Decimal("2213584.90")
+    assert result.rows[0].shares == Decimal("1289")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[0].holding_type == "equity"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "brandes"
+    assert result.legal_metadata["route_resolution"] == "issuer_iframe_public_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+    assert result.legal_metadata["product_page_url"] == (
+        "https://www.brandes.com/etfs/fund-detail/brandes-us-value-etf"
+    )
+
+
+@pytest.mark.asyncio
 async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch):
     adapter = get_holdings_adapter("cambiar")
     assert adapter is not None
@@ -5181,6 +5251,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["castleark"]["support_route_types"]
     assert adapters["baron"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["baron"]["support_route_types"]
+    assert adapters["brandes"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["brandes"]["support_route_types"]
     assert adapters["grayscale"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["grayscale"]["support_route_types"]
     assert adapters["gmo"]["live_tested_default_route"] is True

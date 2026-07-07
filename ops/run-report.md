@@ -8596,3 +8596,15 @@ Append a short entry after each worker session.
   - focused CastleArk unit/parser test and expanded catalog assertion.
   - live provider matrix test.
   - focused live CastleArk provider route test with network access.
+
+## 2026-07-07 - Brandes native ETF holdings route
+
+- Promoted `brandes` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific Brandes adapter using the issuer's public ETF iframe and shared holdings CSV at `https://etfs.brandes.com/assets/data/6c11_Report.csv`.
+- Live validation symbol: `BUSA`.
+- Current count: `345` registered provider keys, `112` native/live-backed integrations, `233` remaining.
+- Validation passed:
+  - targeted ruff for ETF holdings adapter/tests.
+  - focused Brandes unit/parser test and expanded catalog assertion.
+  - live provider matrix test.
+  - focused live Brandes provider route test with network access.

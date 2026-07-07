@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T11:06Z
+
+- Promoted `brandes` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `BrandesHoldingsAdapter`:
+  - native public Brandes iframe route: `https://etfs.brandes.com/{symbol_lower}` via Brandes fund detail pages.
+  - concrete holdings CSV: `https://etfs.brandes.com/assets/data/6c11_Report.csv`
+  - supported live validation symbol: `BUSA`
+  - parser filters the shared multi-fund CSV by Brandes basket ticker (`BINV.P`, `BSMC.P`, `BUSA.P`) so sibling ETF rows are not ingested into the selected fund.
+  - parser preserves ticker, name, CUSIP, ISIN, SEDOL, shares, market value, USD currency, canonical decimal weight, composition/as-of date, and asset-group-derived holding type, while preserving cash/currency rows as cash instead of fake tradable instruments.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `112`
+  - providers still lacking native/live-backed support: `233`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_brandes_adapter_filters_shared_iframe_holdings_csv tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k brandes`
+    - escalated network run passed with `1 passed, 112 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - count command returned `345`, `112`, `233`, `brandes_native=True`.
+
 ## Latest checkpoint - 2026-07-07T10:42Z
 
 - Promoted `castleark` from generated/SEC-backed recognition-only support to native/live-backed support.
