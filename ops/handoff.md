@@ -5,6 +5,38 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-07T11:31Z
+
+- Promoted `ocean_park` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added a provider-specific `OceanParkHoldingsAdapter`:
+  - native public Ocean Park product pages:
+    - `https://oceanparketfs.com/domestic-etf`
+    - `https://oceanparketfs.com/international-etf`
+    - `https://oceanparketfs.com/diversified-income-etf.html`
+    - `https://oceanparketfs.com/high-income-etf.html`
+  - concrete live holdings endpoint used by the issuer pages: `https://filepoint.live/oceanpark_getholdings_cached4.php`
+  - supported live validation symbol: `DUKQ`
+  - maps Ocean Park ETF symbols to issuer fund IDs (`DUKQ` -> `1356`, `DUKX` -> `1357`, `DUKZ` -> `1358`, `DUKH` -> `1359`).
+  - parser preserves symbol, name, CUSIP when the issuer identifier is a valid CUSIP, shares, market value, currency, country, canonical decimal weight, composition/as-of date, and source metadata.
+  - parser preserves sweep/short-term/cash-like rows as cash instead of fake tradable instruments.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations currently passing live route tests: `113`
+  - providers still lacking native/live-backed support: `232`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_ocean_park_adapter_posts_fund_id_and_parses_filepoint_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q`
+    - result: `2 passed`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py`
+    - result: `All checks passed`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k ocean_park`
+    - escalated network run passed with `1 passed, 113 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q`
+    - result: `1 passed`
+  - `git diff --check`
+    - result: passed
+  - count command returned `345`, `113`, `232`, `ocean_park_native=True`.
+
 ## Latest checkpoint - 2026-07-07T11:06Z
 
 - Promoted `brandes` from generated/SEC-backed recognition-only support to native/live-backed support.

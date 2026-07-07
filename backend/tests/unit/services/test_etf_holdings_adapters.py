@@ -2223,6 +2223,87 @@ async def test_brandes_adapter_filters_shared_iframe_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_ocean_park_adapter_posts_fund_id_and_parses_filepoint_json(monkeypatch):
+    adapter = get_holdings_adapter("ocean_park")
+    assert adapter is not None
+
+    payload = [
+        {
+            "asOfDate": "2026-07-06T00:00:00",
+            "portfolioNumber": "1356",
+            "portfolioName": "Ocean Park Domestic ETF",
+            "securityIdentifier": "BBHETFMM",
+            "securityTicker": "9BBH",
+            "securityDescriptionShort": "BBH SWEEP VEHICLE",
+            "securityDescriptionLong": "BBH SWEEP VEHICLE",
+            "shares": 67990.7,
+            "priceLocal": 100.0,
+            "marketValueBase": 67990.7,
+            "tradingCurrency": "USD",
+            "country": "US",
+            "segment": "SHORT TERM INVESTMENTS - OTHER",
+            "category": "BANKS SAVINGS-DEPOSIT ACCOUNT",
+            "marketValuePercent": 0.005002365593,
+        },
+        {
+            "asOfDate": "2026-07-06T00:00:00",
+            "portfolioNumber": "1356",
+            "portfolioName": "Ocean Park Domestic ETF",
+            "securityIdentifier": "464287655",
+            "securityTicker": "IWM US",
+            "securityDescriptionShort": "ISHARES RUSSELL 2000 ETF",
+            "securityDescriptionLong": "ISHARES RUSSELL 2000 ETF",
+            "shares": 125.0,
+            "priceLocal": 230.0,
+            "marketValueBase": 28750.0,
+            "tradingCurrency": "USD",
+            "country": "US",
+            "segment": "DOMESTIC SMALL CAP BLEND",
+            "category": "EXCHANGE TRADED FUND",
+            "marketValuePercent": 0.021145,
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/oceanpark_getholdings_cached4.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DUKQ")
+
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == "https://filepoint.live/oceanpark_getholdings_cached4.php"
+    assert request_kwargs["data"] == {"fundID": "1356"}
+    assert request_kwargs["headers"]["Referer"] == "https://oceanparketfs.com/domestic-etf"
+    assert request_kwargs["headers"]["X-Requested-With"] == "XMLHttpRequest"
+    assert len(result.rows) == 2
+    cash_row = result.rows[0]
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.holding_type == "cash"
+    assert cash_row.weight == Decimal("0.005002365593")
+    fund_row = result.rows[1]
+    assert fund_row.symbol == "IWM"
+    assert fund_row.name == "ISHARES RUSSELL 2000 ETF"
+    assert fund_row.cusip == "464287655"
+    assert fund_row.shares == Decimal("125.0")
+    assert fund_row.market_value == Decimal("28750.0")
+    assert fund_row.weight == Decimal("0.021145")
+    assert fund_row.currency == "USD"
+    assert fund_row.country == "US"
+    assert fund_row.holding_type == "fund"
+    assert result.source_identifier == "1356"
+    assert result.legal_metadata["source_provider"] == "ocean_park"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_filepoint_holdings_json"
+    assert result.legal_metadata["composition_date"] == "2026-07-06"
+    assert result.legal_metadata["product_page_url"] == "https://oceanparketfs.com/domestic-etf"
+
+
+@pytest.mark.asyncio
 async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch):
     adapter = get_holdings_adapter("cambiar")
     assert adapter is not None
@@ -5253,6 +5334,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["baron"]["support_route_types"]
     assert adapters["brandes"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["brandes"]["support_route_types"]
+    assert adapters["ocean_park"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["ocean_park"]["support_route_types"]
     assert adapters["grayscale"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["grayscale"]["support_route_types"]
     assert adapters["gmo"]["live_tested_default_route"] is True

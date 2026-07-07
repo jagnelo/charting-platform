@@ -2,6 +2,41 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-07 - Ocean Park native ETF holdings route
+
+### Summary
+
+- Promoted `ocean_park` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `OceanParkHoldingsAdapter`:
+  - native public Ocean Park ETF product pages for `DUKQ`, `DUKX`, `DUKZ`, and `DUKH`
+  - live holdings endpoint used by the issuer pages: `https://filepoint.live/oceanpark_getholdings_cached4.php`
+  - live validation symbol: `DUKQ`
+  - maps ETF tickers to Ocean Park fund IDs (`1356` through `1359`)
+  - parser handles Ocean Park's FilePoint JSON schema, including `asOfDate`, `securityTicker`, `securityIdentifier`, `shares`, `marketValueBase`, `tradingCurrency`, `country`, and `marketValuePercent`.
+  - parser preserves sweep/short-term/cash-like rows as cash instead of manufacturing fake tradable instruments.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `113`
+  - providers still lacking native/live-backed support: `232`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py::test_ocean_park_adapter_posts_fund_id_and_parses_filepoint_json tests/unit/services/test_etf_holdings_adapters.py::test_holdings_adapter_catalog_exposes_expanded_recognition_set --no-cov -q` -> `2 passed`
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/unit/services/test_etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py` -> `All checks passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows --no-cov -q -k ocean_park` -> escalated network run passed with `1 passed, 113 deselected`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py::test_live_provider_matrix_covers_every_registered_issuer_adapter --no-cov -q` -> `1 passed`
+- `git diff --check` -> passed
+- count command -> `345`, `113`, `232`, `ocean_park_native=True`
+
+### Problems found
+
+- Ocean Park's holdings endpoint requires browser-style AJAX headers and numeric issuer fund IDs; ticker strings alone return a permission response.
+- The full goal remains open: `232` registered providers still lack native/live-backed support.
+
+### Next step
+
+- Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. SEC EDGAR remains fallback only and must not count as native provider support.
+
 ## 2026-07-06 - Bahl & Gaynor native ETF holdings route
 
 ### Summary

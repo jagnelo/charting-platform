@@ -85,6 +85,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "neos",
     "new_york_life",
     "northern_trust",
+    "ocean_park",
     "pacer",
     "palmer_square",
     "point_bridge",
@@ -350,6 +351,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "ocean_park",
+            "DUKQ",
+            None,
+            {},
+            5,
         ),
         (
             "beyond_investing",

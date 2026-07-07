@@ -11278,6 +11278,178 @@ class BrandesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security"
 
 
+class OceanParkHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Ocean Park ETF holdings from its public FilePoint-backed JSON endpoint."""
+
+    holdings_endpoint = "https://filepoint.live/oceanpark_getholdings_cached4.php"
+    product_pages = {
+        "DUKQ": "https://oceanparketfs.com/domestic-etf",
+        "DUKX": "https://oceanparketfs.com/international-etf",
+        "DUKZ": "https://oceanparketfs.com/diversified-income-etf.html",
+        "DUKH": "https://oceanparketfs.com/high-income-etf.html",
+    }
+    fund_ids = {
+        "DUKQ": "1356",
+        "DUKX": "1357",
+        "DUKZ": "1358",
+        "DUKH": "1359",
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        fund_id = (
+            _clean(issuer_product_id)
+            or _identifier(identifiers or {}, "issuer_product_id", "ocean_park_fund_id")
+            or self.fund_ids.get(normalized_symbol)
+        )
+        if not fund_id:
+            raise ValueError(f"Ocean Park did not expose a fund id for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                self.holdings_endpoint,
+                data={"fundID": fund_id},
+                headers=self.source_request_headers(symbol=normalized_symbol),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_ocean_park_rows(payload)
+        if not rows:
+            raise ValueError(f"Ocean Park holdings endpoint did not expose rows for {symbol}.")
+        product_page_url = self.product_pages.get(normalized_symbol)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"rows": payload} if isinstance(payload, list) else None,
+            source_url=self.holdings_endpoint,
+            source_identifier=fund_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_public_filepoint_holdings_json",
+                "fund_id": fund_id,
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, symbol: str) -> dict[str, str]:
+        referer = self.product_pages.get(symbol, "https://oceanparketfs.com/")
+        headers = _issuer_page_request_headers(accept="application/json, text/javascript, */*; q=0.01")
+        headers.update(
+            {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Origin": "https://oceanparketfs.com",
+                "Referer": referer,
+                "X-Requested-With": "XMLHttpRequest",
+            }
+        )
+        return headers
+
+    @classmethod
+    def _parse_ocean_park_rows(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: list[date] = []
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            composition_date = cls._parse_date(item.get("asOfDate"))
+            if composition_date:
+                composition_dates.append(composition_date)
+            raw_symbol = _clean(item.get("securityTicker"))
+            symbol = cls._clean_symbol(raw_symbol)
+            name = _clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort"))
+            row_type, holding_type = cls._classify_row(
+                symbol=symbol,
+                name=name,
+                segment=_clean(item.get("segment")),
+                category=_clean(item.get("category")),
+            )
+            identifier = _clean(item.get("securityIdentifier"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type == "security" else None,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal(item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency") or item.get("incomeCurrency")),
+                    country=_clean(item.get("country")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        composition_date = max(composition_dates) if composition_dates else None
+        return rows, composition_date
+
+    @staticmethod
+    def _clean_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        return text.split()[0].strip().upper() or None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        symbol: str | None,
+        name: str | None,
+        segment: str | None,
+        category: str | None,
+    ) -> tuple[str, str]:
+        haystack = " ".join(
+            part.upper()
+            for part in (symbol, name, segment, category)
+            if part
+        )
+        if any(
+            marker in haystack
+            for marker in (
+                "CASH",
+                "SWEEP",
+                "SHORT TERM INVESTMENTS",
+                "DEPOSIT ACCOUNT",
+                "MONEY MARKET",
+            )
+        ):
+            return "cash", "cash"
+        return "security", "fund"
+
+
 class SimplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.simplify.us/etfs"
 
@@ -18030,6 +18202,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Brandes public ETF product pages and iframe holdings CSV files may be subject to issuer terms.",
     ),
+    "ocean_park": IssuerCsvAdapterConfig(
+        adapter_key="ocean_park",
+        source_provider="ocean_park",
+        source_access="issuer_public_filepoint_holdings_json",
+        url_templates=(
+            "https://filepoint.live/oceanpark_getholdings_cached4.php",
+        ),
+        product_page_templates=(
+            "https://oceanparketfs.com/domestic-etf",
+            "https://oceanparketfs.com/international-etf",
+            "https://oceanparketfs.com/diversified-income-etf.html",
+            "https://oceanparketfs.com/high-income-etf.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="Ocean Park public ETF product pages and FilePoint holdings JSON may be subject to issuer terms.",
+    ),
     "cambiar": IssuerCsvAdapterConfig(
         adapter_key="cambiar",
         source_provider="cambiar",
@@ -19116,6 +19304,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "neos": NeosHoldingsAdapter,
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,
+        "ocean_park": OceanParkHoldingsAdapter,
         "pacer": PacerHoldingsAdapter,
         "point_bridge": PointBridgeHoldingsAdapter,
         "principal": PrincipalHoldingsAdapter,
