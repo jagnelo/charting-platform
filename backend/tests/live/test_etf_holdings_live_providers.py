@@ -103,6 +103,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "principal",
     "procuream",
     "proshares",
+    "rayliant",
     "renaissance_capital",
     "roundhill",
     "running_oak",
@@ -196,6 +197,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             15,
+        ),
+        (
+            "rayliant",
+            "CNQQ",
+            None,
+            {},
+            50,
         ),
         (
             "adaptive_investments",

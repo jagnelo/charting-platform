@@ -3555,6 +3555,192 @@ class AkreHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch full holdings CSVs from Rayliant's published ETF product pages."""
+
+    PRODUCT_SITEMAP_URL = "https://funds.rayliant.com/page-sitemap.xml"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Rayliant publishes full holdings CSV downloads from ETF product pages "
+                "listed in its public product sitemap."
+            ),
+            source_url=self.PRODUCT_SITEMAP_URL,
+            issuer_product_id=symbol.strip().upper() or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Rayliant holdings require an ETF symbol.")
+
+        product_page_url, product_page = await self._discover_product_page(
+            normalized_symbol,
+            product_page_url=source_url,
+        )
+        download_url = self._download_url(product_page_url, product_page)
+        raw_csv = await self._fetch_text(download_url, accept="text/csv,*/*")
+        rows = self._parse_holdings_csv(raw_csv, normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Rayliant's full holdings CSV returned no holdings rows for {normalized_symbol}."
+            )
+
+        composition_date = self._extract_holdings_date(product_page)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_csv,
+            source_url=download_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_sitemap_full_holdings_csv",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _discover_product_page(
+        self,
+        symbol: str,
+        *,
+        product_page_url: str | None,
+    ) -> tuple[str, str]:
+        if product_page_url:
+            raw_html = await self._fetch_text(product_page_url, accept="text/html,*/*")
+            if self._page_symbol(raw_html) != symbol:
+                raise ValueError(
+                    f"Rayliant product page does not identify the requested ETF {symbol}."
+                )
+            return product_page_url, raw_html
+
+        sitemap = await self._fetch_text(
+            self.PRODUCT_SITEMAP_URL,
+            accept="application/xml,text/xml,*/*",
+        )
+        product_page_urls = re.findall(r"<loc>\s*([^<]+?)\s*</loc>", sitemap)
+        expected_suffix = f"/{symbol.lower()}/"
+        for candidate_url in product_page_urls:
+            if not candidate_url.lower().rstrip("/").endswith(expected_suffix.rstrip("/")):
+                continue
+            raw_html = await self._fetch_text(candidate_url, accept="text/html,*/*")
+            if self._page_symbol(raw_html) == symbol:
+                return candidate_url, raw_html
+        raise ValueError(f"Rayliant's product sitemap did not contain ETF {symbol}.")
+
+    @staticmethod
+    async def _fetch_text(url: str, *, accept: str) -> str:
+        headers = _issuer_page_request_headers(accept=accept)
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        # Rayliant's CDN permits the same public request through requests but
+        # currently rejects httpx's TLS fingerprint. Keep this as a narrow
+        # issuer-local transport fallback, not a generic provider fallback.
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response.text
+
+    @staticmethod
+    def _page_symbol(raw_html: str) -> str | None:
+        title_match = re.search(r"<title>\s*([A-Za-z0-9.\-]+)\s+Rayliant", raw_html, re.IGNORECASE)
+        if title_match:
+            return title_match.group(1).upper()
+        ticker_match = re.search(r">\s*([A-Za-z][A-Za-z0-9.\-]{0,11})\s*</p>", raw_html)
+        return ticker_match.group(1).upper() if ticker_match else None
+
+    @staticmethod
+    def _download_url(product_page_url: str, raw_html: str) -> str:
+        match = re.search(r'href=["\']([^"\']*\?download_csv=1[^"\']*)["\']', raw_html, re.IGNORECASE)
+        if not match:
+            raise ValueError("Rayliant product page did not expose its full holdings CSV download.")
+        return urljoin(product_page_url, html.unescape(match.group(1)))
+
+    @classmethod
+    def _parse_holdings_csv(cls, raw_csv: str, fund_symbol: str) -> list[CanonicalHoldingRow]:
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            source_ticker = _clean(item.get("Ticker"))
+            name = _clean(item.get("Company Name"))
+            identifier = _clean(item.get("Security Identifier"))
+            source_text = " ".join(value.upper() for value in [source_ticker, name] if value)
+            is_cash = "CASH" in source_text or "MONEY MARKET" in source_text
+            symbol = cls._tradable_symbol(source_ticker) if not is_cash else None
+            if not any([symbol, source_ticker, name, identifier]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol,
+                    name=name,
+                    sedol=identifier if _looks_like_sedol(identifier) else None,
+                    weight=_decimal(item.get("% of Net Assets")),
+                    shares=_decimal(item.get("Quantity")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{fund_symbol}:{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in item.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source_symbol": source_ticker,
+                        "source": "rayliant_product_page_full_holdings_csv",
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        normalized = _clean(value)
+        if not normalized or " " in normalized:
+            return None
+        upper = normalized.upper()
+        return upper if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", upper) else None
+
+    @staticmethod
+    def _extract_holdings_date(raw_html: str) -> date | None:
+        match = re.search(r"\(as\s+of\s+(\d{1,2}[./]\d{1,2}[./]\d{4})\)", raw_html, re.IGNORECASE)
+        if not match:
+            return None
+        for date_format in ("%m.%d.%Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(match.group(1), date_format).date()
+            except ValueError:
+                continue
+        return None
+
+
 class TortoiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete daily holdings embedded on Tortoise ETF product pages."""
 
@@ -21217,6 +21403,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Akre public FilePoint ETF holdings files may be subject to issuer terms.",
     ),
+    "rayliant": IssuerCsvAdapterConfig(
+        adapter_key="rayliant",
+        source_provider="rayliant",
+        source_access="issuer_product_sitemap_full_holdings_csv",
+        product_page_templates=(
+            "https://funds.rayliant.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Rayliant public ETF product pages and full holdings CSV downloads may be subject to issuer terms.",
+    ),
     "tortoise": IssuerCsvAdapterConfig(
         adapter_key="tortoise",
         source_provider="tortoise",
@@ -22179,6 +22375,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
         "akre": AkreHoldingsAdapter,
+        "rayliant": RayliantHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,

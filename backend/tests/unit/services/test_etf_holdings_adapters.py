@@ -236,6 +236,66 @@ async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_lo
 
 
 @pytest.mark.asyncio
+async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_references(monkeypatch):
+    adapter = get_holdings_adapter("rayliant")
+    assert adapter is not None
+
+    product_page_url = "https://funds.rayliant.com/cnqq/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<?xml version="1.0"?><urlset><url><loc>'
+                f"{product_page_url}"
+                "</loc></url></urlset>"
+            ),
+            content_type="application/xml",
+            url="https://funds.rayliant.com/page-sitemap.xml",
+        ),
+        FakeResponse(
+            text="""
+                <html><head><title>CNQQ Rayliant-ChinaAMC Transformative China Tech ETF</title></head>
+                <body>
+                  <p>(as of 07.09.2026) Holdings are subject to change.</p>
+                  <a href="/cnqq/?download_csv=1">Download Full Holdings</a>
+                </body></html>
+            """,
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    '"Ticker","Company Name","% of Net Assets","Security Identifier","Quantity"',
+                    '"700 HK","Tencent Holdings Ltd.","7.70%","BMMV2K8","49,089"',
+                    '"BABA","Alibaba Group Holding Ltd ADR","3.00%","BK6YZP5","2,000"',
+                    '"CASH","Cash & Other","0.25%","","1"',
+                ]
+            ),
+            url="https://funds.rayliant.com/cnqq/?download_csv=1",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CNQQ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://funds.rayliant.com/page-sitemap.xml",
+        product_page_url,
+        "https://funds.rayliant.com/cnqq/?download_csv=1",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].sedol == "BMMV2K8"
+    assert result.rows[0].extra_data["source_symbol"] == "700 HK"
+    assert result.rows[1].symbol == "BABA"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_sitemap_full_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None
