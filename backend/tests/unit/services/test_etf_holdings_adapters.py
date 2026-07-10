@@ -5512,6 +5512,98 @@ async def test_voya_adapter_filters_symbol_daily_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_lazard_adapter_discovers_product_id_and_parses_full_holdings(monkeypatch):
+    adapter = get_holdings_adapter("lazard")
+    assert adapter is not None
+
+    directory_html = '''
+    <a href="/us/en_us/investment-solutions/how-to-invest/108/6244">Japanese ETF</a>
+    '''
+    payload = [
+        {
+            "id": "6244",
+            "data": {
+                "etfg": {
+                    "asOfDate": "2026-07-09",
+                    "ticker": "JPY",
+                    "discountPremiumCurrencyCode": "USD",
+                    "constituents": [
+                        {
+                            "entityName": "MITSUBISHI UFJ FINANCIAL GROUP",
+                            "constituentTicker": "8306",
+                            "cusip": "633517909",
+                            "isin": "JP3902900004",
+                            "sedol": "6335171",
+                            "weight": "5.41015898",
+                            "sharesHeld": "205100",
+                            "marketValue": "4312310.39",
+                            "securityType": "S",
+                            "securityTypeName": "Equity",
+                        },
+                        {
+                            "entityName": "CASH AND OTHER",
+                            "weight": "0.12",
+                            "marketValue": "95340.51",
+                            "securityType": "C",
+                            "securityTypeName": "Cash",
+                        },
+                        {
+                            "entityName": "JPY / USD FX FORWARD",
+                            "weight": "-0.01",
+                            "marketValue": "-1000.00",
+                            "securityType": "D",
+                            "securityTypeName": "Derivative",
+                        },
+                    ],
+                }
+            },
+        }
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=directory_html,
+            content_type="text/html",
+            url="https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="JPY", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        "https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        "https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+    ]
+    assert result.source_identifier == "6244"
+    assert result.rows[0].symbol == "8306"
+    assert result.rows[0].cusip == "633517909"
+    assert result.rows[0].isin == "JP3902900004"
+    assert result.rows[0].sedol == "6335171"
+    assert result.rows[0].weight == Decimal("0.0541015898")
+    assert result.rows[0].shares == Decimal("205100")
+    assert result.rows[0].market_value == Decimal("4312310.39")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].row_type == "other"
+    assert result.rows[2].holding_type == "forex"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.legal_metadata["route_resolution"] == "lazard_etf_directory_product_api"
+
+
+@pytest.mark.asyncio
 async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("victory")
     assert adapter is not None
@@ -5922,6 +6014,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["capital_group"]["support_route_types"]
     assert adapters["fidelity"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["fidelity"]["support_route_types"]
+    assert adapters["lazard"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["lazard"]["support_route_types"]
     for adapter_key in [
         "3edge",
         "stone_ridge",

@@ -83,6 +83,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "jpmorgan",
     "kraneshares",
     "kurv",
+    "lazard",
     "leuthold",
     "main_management",
     "madison",
@@ -779,6 +780,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             10,
+        ),
+        (
+            "lazard",
+            "JPY",
+            None,
+            {},
+            50,
         ),
         (
             "leuthold",

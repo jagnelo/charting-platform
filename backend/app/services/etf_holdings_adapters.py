@@ -2977,6 +2977,240 @@ class VoyaHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class LazardHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Lazard ETF holdings from the issuer's public product API.
+
+    Lazard's ETF directory exposes the issuer product ids, while the public API
+    returns the full constituent payload for each product. Resolving that id in
+    the adapter keeps a profile usable from just its trading symbol.
+    """
+
+    ETF_DIRECTORY_URL = (
+        "https://www.lazardassetmanagement.com/us/en_us/"
+        "investment-solutions/how-to-invest/etfs"
+    )
+    PRODUCT_API_URL = "https://lazardassetmanagement.com/api/products"
+    PRODUCT_PATH_RE = re.compile(
+        r'href=["\'](?:https?://www\.lazardassetmanagement\.com)?'
+        r'(?P<path>/us/en_us/investment-solutions/how-to-invest/108/(?P<id>\d+))["\']',
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        product_id = _identifier(identifiers, "issuer_product_id", "fund_id", "product_id")
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Lazard's public ETF directory resolves product ids and its public product API "
+                "returns full ETF constituent holdings."
+            ),
+            source_url=self.PRODUCT_API_URL if product_id else self.ETF_DIRECTORY_URL,
+            issuer_product_id=product_id,
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="application/json,*/*")
+        headers["Referer"] = self.ETF_DIRECTORY_URL
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Lazard holdings require an ETF symbol.")
+        normalized_identifiers = identifiers or {}
+        product_id = (
+            issuer_product_id
+            or _identifier(normalized_identifiers, "issuer_product_id", "fund_id", "product_id")
+        )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            if not product_id:
+                product_id = await self._discover_product_id(client, symbol=normalized_symbol)
+            if not product_id:
+                raise ValueError(f"Lazard ETF product id not found for {normalized_symbol}.")
+
+            resolved_url = source_url or self._product_api_url(product_id)
+            response = await client.get(
+                resolved_url,
+                headers=self.source_request_headers(source_url=resolved_url),
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+
+        payload = self._unwrap_payload(response.json(), product_id=product_id)
+        rows, composition_date, source_symbol = self._parse_payload(payload, symbol=normalized_symbol)
+        if source_symbol and source_symbol != normalized_symbol:
+            raise ValueError(
+                f"Lazard returned {source_symbol} holdings for {normalized_symbol}."
+            )
+        if not rows:
+            raise ValueError(f"Lazard returned no holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=str(response.url),
+            source_identifier=product_id,
+            legal_metadata={
+                "source_access": "issuer_public_product_api_full_holdings_json",
+                "source_provider": "lazard",
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "lazard_etf_directory_product_api",
+                "product_id": product_id,
+                "product_url": f"{self.ETF_DIRECTORY_URL}#etfs",
+                **(
+                    {"composition_date": composition_date.isoformat()}
+                    if composition_date
+                    else {}
+                ),
+            },
+        )
+
+    async def _discover_product_id(self, client: httpx.AsyncClient, *, symbol: str) -> str | None:
+        directory_response = await client.get(
+            self.ETF_DIRECTORY_URL,
+            headers=_issuer_page_request_headers(),
+            follow_redirects=True,
+        )
+        directory_response.raise_for_status()
+        product_ids = list(
+            dict.fromkeys(
+                match.group("id") for match in self.PRODUCT_PATH_RE.finditer(directory_response.text)
+            )
+        )
+        for product_id in product_ids:
+            response = await client.get(
+                self._product_api_url(product_id),
+                headers=self.source_request_headers(source_url=self.PRODUCT_API_URL),
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+            payload = self._unwrap_payload(response.json(), product_id=product_id)
+            source_symbol = _clean(
+                ((payload.get("data") or {}).get("etfg") or {}).get("ticker")
+            )
+            if source_symbol and source_symbol.upper() == symbol:
+                return product_id
+        return None
+
+    @classmethod
+    def _product_api_url(cls, product_id: str) -> str:
+        return cls.PRODUCT_API_URL + "?" + urlencode({"id": product_id, "type": "Fund"})
+
+    @staticmethod
+    def _unwrap_payload(payload: Any, *, product_id: str) -> dict[str, Any]:
+        if isinstance(payload, list):
+            for item in payload:
+                if isinstance(item, dict) and str(item.get("id") or "") == product_id:
+                    return item
+        if isinstance(payload, dict):
+            return payload
+        raise ValueError(f"Lazard returned an invalid product payload for {product_id}.")
+
+    @classmethod
+    def _parse_payload(
+        cls,
+        payload: dict[str, Any],
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
+        etfg = (payload.get("data") or {}).get("etfg")
+        if not isinstance(etfg, dict):
+            return [], None, None
+        source_symbol = _clean(etfg.get("ticker"))
+        composition_date = cls._parse_date(etfg.get("asOfDate"))
+        currency = _clean(etfg.get("discountPremiumCurrencyCode"))
+        raw_rows = etfg.get("constituents")
+        if not isinstance(raw_rows, list):
+            return [], composition_date, source_symbol.upper() if source_symbol else None
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(raw_rows):
+            if not isinstance(raw_row, dict):
+                continue
+            name = _clean(raw_row.get("entityName"))
+            source_ticker = _clean(raw_row.get("constituentTicker"))
+            security_type = _clean(raw_row.get("securityTypeName"))
+            row_type, holding_type = cls._classify_row(name=name, security_type=security_type)
+            row_symbol = cls._tradable_symbol(source_ticker) if row_type == "security" else None
+            if not any(
+                [
+                    row_symbol,
+                    name,
+                    _clean(raw_row.get("cusip")),
+                    _clean(raw_row.get("isin")),
+                    _clean(raw_row.get("sedol")),
+                ]
+            ):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=row_symbol,
+                    name=name,
+                    cusip=_clean(raw_row.get("cusip")),
+                    isin=_clean(raw_row.get("isin")),
+                    sedol=_clean(raw_row.get("sedol")),
+                    weight=_decimal_percent_points(raw_row.get("weight")),
+                    shares=_decimal(raw_row.get("sharesHeld")),
+                    market_value=_decimal(raw_row.get("marketValue")),
+                    currency=currency,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        "source_ticker": source_ticker,
+                        "security_type": security_type,
+                        "security_type_code": _clean(raw_row.get("securityType")),
+                        "asset_class": _clean(raw_row.get("assetClass")),
+                    },
+                )
+            )
+        return rows, composition_date, source_symbol.upper() if source_symbol else None
+
+    @staticmethod
+    def _classify_row(*, name: str | None, security_type: str | None) -> tuple[str, str]:
+        text = f"{name or ''} {security_type or ''}".upper()
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if any(token in text for token in ("CURRENCY", "FOREX", "FX")):
+            return "other", "forex"
+        if any(token in text for token in ("FUTURE", "OPTION", "SWAP", "DERIVATIVE")):
+            return "other", "derivative"
+        if any(token in text for token in ("BOND", "NOTE", "DEBT", "FIXED INCOME")):
+            return "security", "fixed_income"
+        if any(token in text for token in ("FUND", "ETF")):
+            return "security", "fund"
+        return "security", "equity"
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.upper()
+        return normalized if re.fullmatch(r"[A-Z0-9][A-Z0-9.\-/]{0,14}", normalized) else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -20393,6 +20627,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Voya Investment Management public ETF holdings files may be subject to issuer terms.",
     ),
+    "lazard": IssuerCsvAdapterConfig(
+        adapter_key="lazard",
+        source_provider="lazard",
+        source_access="issuer_public_product_api_full_holdings_json",
+        product_page_templates=(
+            "https://www.lazardassetmanagement.com/us/en_us/"
+            "investment-solutions/how-to-invest/etfs",
+        ),
+        live_tested_default_route=True,
+        terms_note="Lazard public ETF directory and product API responses may be subject to issuer terms.",
+    ),
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
@@ -21475,6 +21720,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "jpmorgan": JPMorganHoldingsAdapter,
         "kraneshares": KranesharesHoldingsAdapter,
         "kurv": KurvHoldingsAdapter,
+        "lazard": LazardHoldingsAdapter,
         "leuthold": LeutholdHoldingsAdapter,
         "main_management": MainManagementHoldingsAdapter,
         "madison": MadisonHoldingsAdapter,
