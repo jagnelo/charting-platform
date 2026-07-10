@@ -3211,6 +3211,123 @@ class LazardHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class RexHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete REX Shares holdings through the issuer's public CSV form."""
+
+    PRODUCT_PAGE_TEMPLATE = "https://www.rexshares.com/{symbol_lower}/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "REX Shares publishes complete ETF holdings through the public CSV download "
+                "form on each ETF product page."
+            ),
+            source_url=self._product_page_url(normalized_symbol),
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("REX holdings require an ETF symbol.")
+        product_page_url = source_url or self._product_page_url(normalized_symbol)
+        # REX's WordPress form serves its CSV reliably through requests, while
+        # the same public endpoint rejects the async client's TLS fingerprint.
+        response = await asyncio.to_thread(
+            requests.post,
+            product_page_url,
+            data={"CSV": "Download CSV", "symbol": normalized_symbol},
+            headers=self._request_headers(product_page_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        rows = self._parse_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"REX Shares returned no complete holdings CSV rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": "issuer_public_product_page_posted_full_holdings_csv",
+                "source_provider": "rex",
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "rex_product_page_complete_holdings_csv_form",
+                "product_page_url": product_page_url,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _product_page_url(cls, symbol: str) -> str:
+        return cls.PRODUCT_PAGE_TEMPLATE.format(symbol_lower=symbol.lower())
+
+    @staticmethod
+    def _request_headers(product_page_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
+        headers["Referer"] = product_page_url
+        return headers
+
+    @classmethod
+    def _parse_csv(cls, raw_csv: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        table_rows = list(csv.reader(StringIO(raw_csv.strip())))
+        rows = parse_holdings_table(table_rows)
+        for row in rows:
+            source_symbol = row.symbol
+            text = f"{source_symbol or ''} {row.name or ''}".upper()
+            if cls._is_cash(text):
+                row.symbol = None
+                row.row_type = "cash"
+                row.holding_type = "cash"
+            elif cls._is_derivative(text):
+                row.symbol = None
+                row.row_type = "other"
+                row.holding_type = "derivative"
+            elif cls._is_money_market(text):
+                row.row_type = "cash"
+                row.holding_type = "cash"
+            else:
+                row.row_type = "security"
+                row.holding_type = "equity"
+            row.currency = row.currency or "USD"
+            row.source_row_id = row.source_row_id or f"{symbol}:{len(rows)}"
+            row.extra_data = {
+                **row.extra_data,
+                "source_ticker": source_symbol,
+                "source": "rex_product_page_complete_holdings_csv",
+            }
+        return rows
+
+    @staticmethod
+    def _is_cash(text: str) -> bool:
+        return any(token in text for token in ("CASH&OTHER", "CASH & OTHER", "CASH AND OTHER"))
+
+    @staticmethod
+    def _is_money_market(text: str) -> bool:
+        return any(token in text for token in ("MONEY MARKET", "GOVERNMENT OBLIG", "TREASURY OBLIG"))
+
+    @staticmethod
+    def _is_derivative(text: str) -> bool:
+        return any(token in text for token in ("SWAP", " OPTION", " FUTURE", "-TRS-")) or bool(
+            re.search(r"\b\d{2}/\d{2}/\d{2}\s+[CP]\d+(?:\s|$)", text)
+        )
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -20638,6 +20755,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Lazard public ETF directory and product API responses may be subject to issuer terms.",
     ),
+    "rex": IssuerCsvAdapterConfig(
+        adapter_key="rex",
+        source_provider="rex",
+        source_access="issuer_public_product_page_posted_full_holdings_csv",
+        product_page_templates=(
+            "https://www.rexshares.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="REX Shares public ETF product pages and downloadable holdings CSV files may be subject to issuer terms.",
+    ),
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
@@ -21737,6 +21864,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "procuream": ProcureHoldingsAdapter,
         "proshares": ProSharesHoldingsAdapter,
         "renaissance_capital": RenaissanceCapitalHoldingsAdapter,
+        "rex": RexHoldingsAdapter,
         "roundhill": RoundhillHoldingsAdapter,
         "running_oak": RunningOakHoldingsAdapter,
         "schwab": SchwabHoldingsAdapter,

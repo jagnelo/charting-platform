@@ -5604,6 +5604,52 @@ async def test_lazard_adapter_discovers_product_id_and_parses_full_holdings(monk
 
 
 @pytest.mark.asyncio
+async def test_rex_adapter_posts_product_form_for_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("rex")
+    assert adapter is not None
+
+    raw_csv = """Symbol,Name,Security Identifier,Weighting,Net Value,Shares Held
+AAPL,APPLE INC,037833100,7.41%,"$50,290,680.14",159037
+FGXXX,FIRST AMERICAN GOVERNMENT OBLIG X,31846V336,0.12%,"$820,000.00",820000
+,"AAPL US 07/17/26 C220",,0.08%,"$530,000.00",100
+46438R105-TRS-11/05/26-L,ISHARES ETHEREUM TRUST SWAP-L,,200.00%,"$16,551,484.69",1254851
+Cash&Other,Cash & Other,,-109.50%,"$-9,062,237.02",-9062237
+"""
+    requested = []
+
+    def fake_post(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(
+            text=raw_csv,
+            content_type="text/csv",
+            url="https://www.rexshares.com/fepi/",
+        )
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.post", fake_post)
+
+    result = await adapter.fetch_latest(symbol="FEPI", identifiers={})
+
+    request_url, request_kwargs = requested[0]
+    assert request_url == "https://www.rexshares.com/fepi/"
+    assert request_kwargs["data"] == {"CSV": "Download CSV", "symbol": "FEPI"}
+    assert request_kwargs["headers"]["Referer"] == "https://www.rexshares.com/fepi/"
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.0741")
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "derivative"
+    assert result.rows[3].symbol is None
+    assert result.rows[3].holding_type == "derivative"
+    assert result.rows[4].symbol is None
+    assert result.rows[4].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "rex_product_page_complete_holdings_csv_form"
+    )
+
+
+@pytest.mark.asyncio
 async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("victory")
     assert adapter is not None
