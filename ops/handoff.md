@@ -5,6 +5,29 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T18:00Z
+
+- Promoted `tortoise` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `TortoiseHoldingsAdapter` using the issuer's public ETF sitemap and embedded daily product-page holdings tables:
+  - ETF sitemap: `https://tortoisecapital.com/etfs-sitemap.xml`
+  - resolves the requested fund by verifying the product page's declared ticker, rather than guessing a ticker-to-slug URL.
+  - parses the full `Security Name`, `Stock Ticker`, `CUSIP`, `Shares`, `Market Value`, and `Weight` table from the matching issuer page.
+  - extracts the issuer's holdings as-of date and retains the normal cash/security classifications.
+- Live validation symbol: `TPZ`, returning 39 parseable issuer-native holdings rows from Tortoise's public product page.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `127`
+  - providers still lacking native/live-backed support: `218`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `171 passed`
+  - focused live Tortoise route: `1 passed, 130 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `414e720 feat(etf-holdings): add Tortoise native holdings route`
+- Next step:
+  - Continue the user's priority sequence, proving a complete issuer-native route and live test before promoting each provider.
+
 ## Latest checkpoint - 2026-07-10T17:45Z
 
 - Promoted `eldridge` from generated/SEC-backed recognition-only support to native/live-backed support.

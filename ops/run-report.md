@@ -2,6 +2,32 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Tortoise native ETF holdings route
+
+### Summary
+
+- Promoted `tortoise` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `TortoiseHoldingsAdapter`:
+  - reads the issuer's public ETF sitemap at `https://tortoisecapital.com/etfs-sitemap.xml`.
+  - resolves the correct fund only after verifying the ticker declared on its public product page.
+  - parses the product page's embedded daily holdings table with security name, ticker, CUSIP, shares, market value, and weight.
+  - live validation symbol: `TPZ`, returning 39 complete issuer-native rows.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `127`
+  - providers still lacking native/live-backed support: `218`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `171 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k tortoise --no-cov -q` -> `1 passed, 130 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
+### Next step
+
+- Continue the 345-provider goal with the agreed priority issuers. SEC EDGAR stays fallback-only and does not qualify a provider as native support.
+
 ## 2026-07-10 - Eldridge native ETF holdings route
 
 ### Summary
