@@ -5,6 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T19:35Z
+
+- Promoted `astoria` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `AstoriaHoldingsAdapter` that:
+  - discovers public ETF pages from `https://astoriaadvisorsetfs.com/wp-sitemap-posts-page-1.xml` and verifies the page-declared ETF ticker;
+  - parses the complete issuer-owned holdings table, including ticker, name, CUSIP, shares, price, market value, weight, and effective date;
+  - converts Astoria's published `Market Value ($mm)` values to canonical currency units;
+  - uses a narrow issuer-local `requests` fallback only after Astoria returns `403` to `httpx`.
+- Live validation symbol: `ROE`, returning 102 parseable issuer-native holdings rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `130`
+  - providers still lacking native/live-backed support: `215`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `174 passed`
+  - focused live Astoria route: `1 passed, 133 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route; higher-priority blocked issuers remain unpromoted.
+
 ## Latest checkpoint - 2026-07-10T19:10Z
 
 - Promoted `rayliant` from recognition-only/SEC-backed support to native/live-backed support.

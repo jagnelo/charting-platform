@@ -2,6 +2,29 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Astoria native ETF holdings route
+
+### Summary
+
+- Promoted `astoria` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AstoriaHoldingsAdapter`:
+  - discovers ETF pages through the issuer's public WordPress sitemap and verifies the requested ticker;
+  - parses the complete current holdings table instead of top holdings;
+  - normalizes the issuer's market-values-in-millions column into canonical currency units;
+  - uses a narrow 403-only `requests` transport fallback for Astoria's public pages.
+- Live validation symbol: `ROE`, with 102 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `130`
+  - providers still lacking native/live-backed support: `215`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `174 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k astoria --no-cov -q` -> `1 passed, 133 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-10 - Rayliant native ETF holdings route
 
 ### Summary
