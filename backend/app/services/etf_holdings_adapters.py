@@ -3328,6 +3328,101 @@ class RexHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
 
+class EldridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch the combined public daily holdings file published for Eldridge ETFs."""
+
+    DAILY_HOLDINGS_URL = (
+        "https://clozfund.com/assets/data/"
+        "FilepointPanagram.40P2.P2_Holdings.csv"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Eldridge publishes a combined daily CSV with full CLOX and CLOZ holdings.",
+            source_url=self.DAILY_HOLDINGS_URL,
+            issuer_product_id=symbol.strip().upper() or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("eldridge needs an ETF symbol.")
+
+        # The issuer intentionally publishes CLOX and CLOZ in one daily file.
+        # Always use that native route and select only the requested account.
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id or normalized_symbol,
+            source_url=self.DAILY_HOLDINGS_URL,
+            identifiers=identifiers,
+        )
+        rows = [
+            row
+            for row in result.rows
+            if str(row.extra_data.get("Account", "")).strip().upper() == normalized_symbol
+        ]
+        if not rows:
+            raise ValueError(
+                f"Eldridge daily holdings do not contain the requested ETF {normalized_symbol}."
+            )
+
+        for row in rows:
+            source_symbol = _clean(row.extra_data.get("StockTicker"))
+            name = row.name or _clean(row.extra_data.get("SecurityName")) or ""
+            text = f"{source_symbol or ''} {name}".upper()
+            row.source_row_id = row.source_row_id or f"{normalized_symbol}:{row.cusip or name}"
+            row.extra_data = {
+                **row.extra_data,
+                "source_symbol": source_symbol,
+                "source": "eldridge_daily_combined_holdings_csv",
+            }
+            if "CASH" in text or source_symbol == "FXFXX":
+                row.symbol = None
+                row.row_type = "cash"
+                row.holding_type = "cash"
+            else:
+                # The issuer's StockTicker column contains CUSIP-like loan/CLO
+                # identifiers, not exchange-traded instrument tickers.
+                row.symbol = None
+                row.row_type = "security"
+                row.holding_type = "fixed_income"
+
+        composition_date = self._composition_date(rows)
+        result.rows = rows
+        result.source_identifier = issuer_product_id or normalized_symbol
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "issuer_combined_daily_holdings_csv",
+            "composition_date": composition_date.isoformat() if composition_date else None,
+            "as_of_date": composition_date.isoformat() if composition_date else None,
+            "terms_note": self.config.terms_note,
+        }
+        return result
+
+    @staticmethod
+    def _composition_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        raw_date = _clean(rows[0].extra_data.get("Date")) if rows else None
+        if not raw_date:
+            return None
+        try:
+            return datetime.strptime(raw_date, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -20827,6 +20922,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="DoubleLine public ETF holdings PDFs may be subject to issuer terms.",
     ),
+    "eldridge": IssuerCsvAdapterConfig(
+        adapter_key="eldridge",
+        source_provider="eldridge",
+        source_access="issuer_public_combined_daily_holdings_csv",
+        url_templates=(
+            "https://clozfund.com/assets/data/"
+            "FilepointPanagram.40P2.P2_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://clozfund.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Eldridge public ETF daily holdings files may be subject to issuer terms.",
+    ),
     "zacks": IssuerCsvAdapterConfig(
         adapter_key="zacks",
         source_provider="zacks",
@@ -21814,6 +21923,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,
+        "eldridge": EldridgeHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,

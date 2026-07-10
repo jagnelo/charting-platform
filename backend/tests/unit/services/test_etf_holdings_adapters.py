@@ -130,6 +130,58 @@ class FakeAsyncClient:
         return type(self).queue.pop(0)
 
 
+@pytest.mark.asyncio
+async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
+    adapter = get_holdings_adapter("eldridge")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,"
+                        "MarketValue,Weightings,NetAssets"
+                    ),
+                    (
+                        "07/10/2026,CLOX,00119CAN1,00119CAN1,"
+                        "AGL CLO 20 Ltd 5.0452% 10/20/2037,2650000,100.1562,"
+                        "2654139.30,0.86%,308539110"
+                    ),
+                    (
+                        "07/10/2026,CLOZ,FXFXX,FXFXX,Cash & Other,1000,1,1000,"
+                        "0.01%,100000000"
+                    ),
+                    (
+                        "07/10/2026,CLOZ,00121DAA3,00121DAA3,"
+                        "AGL CLO 33 Ltd 5.0221% 07/21/2037,2815000,100.0588,"
+                        "2816655.22,0.91%,100000000"
+                    ),
+                ]
+            )
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CLOZ")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://clozfund.com/assets/data/"
+        "FilepointPanagram.40P2.P2_Holdings.csv"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].name == "Cash & Other"
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip == "00121DAA3"
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].weight == Decimal("0.0091")
+    assert result.legal_metadata["route_resolution"] == "issuer_combined_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
 def test_decimal_handles_percent_parentheses_and_unicode_minus():
     assert _decimal("6.5%") == Decimal("0.065")
     assert _decimal("(1,234.50)") == Decimal("-1234.50")

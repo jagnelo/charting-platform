@@ -53,6 +53,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "direxion",
     "distillate",
     "doubleline",
+    "eldridge",
     "eventide",
     "etf_architect",
     "faith_investor_services",
@@ -1100,6 +1101,20 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_eldridge_combined_daily_holdings_file_filters_requested_etf():
+    adapter = get_holdings_adapter("eldridge")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="CLOX")
+
+    _assert_live_holdings_result(result, adapter_key="eldridge", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "issuer_combined_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+    assert all(row.extra_data.get("Account") == "CLOX" for row in result.rows)
 
 
 @pytest.mark.asyncio
