@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - GQG native ETF holdings route
+
+### Summary
+
+- Promoted `gqg` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `GqgHoldingsAdapter` for GQG's public dated FilePoint daily export.
+- The adapter retries the last ten calendar dates to accommodate non-publishing days, filters the shared daily file by requested ETF ticker, and preserves identifiers, quantities, market values, net-assets weights, cash classification, and issuer as-of date.
+- Live validation symbol: `GQGU`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `133`
+  - providers still lacking native/live-backed support: `212`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `177 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k gqg --no-cov -q` -> `1 passed, 136 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-10 - TCW native ETF holdings route
 
 ### Summary

@@ -5,6 +5,27 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T21:15Z
+
+- Promoted `gqg` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `GqgHoldingsAdapter` that reads GQG's issuer-native dated FilePoint export at `https://gqg.filepoint.live/assets/data/SEI_GQG_Tradedate_Holdings_{MMDDYYYY}.txt`.
+  - probes up to ten prior calendar days for the latest published file, avoiding false failures on weekends and holidays;
+  - filters the shared export by the requested fund ticker before building a snapshot;
+  - preserves ticker, CUSIP, ISIN, SEDOL, shares, market value, net-assets weight, cash rows, and issuer composition date.
+- Live validation symbol: `GQGU`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `133`
+  - providers still lacking native/live-backed support: `212`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `177 passed`
+  - focused live GQG route: `1 passed, 136 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route. WisdomTree, Neuberger Berman, SoFi, and Thrivent remain unpromoted because their public issuer artifacts challenge direct backend requests.
+
 ## Latest checkpoint - 2026-07-10T20:45Z
 
 - Promoted `tcw` from recognition-only/SEC-backed support to native/live-backed support.
