@@ -5,6 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T20:45Z
+
+- Promoted `tcw` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `TcwHoldingsAdapter` that:
+  - reads TCW's public combined fixed-income ETF holdings PDF;
+  - identifies the requested fund's page range before parsing, so schedules from the other TCW ETFs are never mixed into the snapshot;
+  - preserves fixed-income position names, principal amounts, maturity dates, currencies, and market values without inventing equity tickers;
+  - derives canonical position weights from the issuer-published market values.
+- Live validation symbol: `ACLO`, returning more than 100 parseable issuer-native holdings rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `132`
+  - providers still lacking native/live-backed support: `213`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `176 passed`
+  - focused live TCW route: `1 passed, 135 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route. WisdomTree, Neuberger Berman, SoFi, and Thrivent remain unpromoted because their public issuer artifacts challenge direct backend requests.
+
 ## Latest checkpoint - 2026-07-10T20:00Z
 
 - Promoted `groupe_bpce` (Natixis) from recognition-only/SEC-backed support to native/live-backed support.

@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - TCW native ETF holdings route
+
+### Summary
+
+- Promoted `tcw` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `TcwHoldingsAdapter` for TCW's public combined fixed-income ETF holdings PDF.
+- The adapter selects only the requested fund's schedule before parsing, preserving principal, maturity, currency, and market value for fixed-income positions without inventing ticker symbols. Canonical weights are derived from published market values.
+- Live validation symbol: `ACLO`, returning more than 100 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `132`
+  - providers still lacking native/live-backed support: `213`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `176 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k tcw --no-cov -q` -> `1 passed, 135 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-10 - Natixis native ETF holdings route
 
 ### Summary
