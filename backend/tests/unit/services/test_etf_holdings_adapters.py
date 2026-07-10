@@ -5415,6 +5415,60 @@ async def test_capital_group_adapter_fetches_public_daily_holdings_api(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
+    adapter = get_holdings_adapter("fidelity")
+    assert adapter is not None
+
+    holdings_html = """
+    <html><body>
+      <h3 class="num-results">Basket Holdings: 3
+        <span class="timestamp">AS OF 05/31/2026</span>
+      </h3>
+      <table class="results-table sortable">
+        <thead><tr><th>Symbol</th><th>Company</th><th>Weight</th></tr></thead>
+        <tbody>
+          <tr><td>NVDA</td><td>NVIDIA Corp</td><td>14.69</td></tr>
+          <tr><td>AAPL</td><td>Apple Inc</td><td>10.12</td></tr>
+          <tr><td></td><td>Cash</td><td>0.20</td></tr>
+        </tbody>
+      </table>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_html,
+            content_type="text/html",
+            url=(
+                "https://research2.fidelity.com/fidelity/screeners/etf/etfholdings.asp"
+                "?sortBy=Symbol&sortDir=asc&symbol=FBCG&view=Holdings"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FBCG", identifiers={})
+
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url.endswith("sortBy=Symbol&sortDir=asc&symbol=FBCG&view=Holdings")
+    assert request_kwargs["headers"]["Referer"] == "https://www.fidelity.com/"
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].name == "NVIDIA Corp"
+    assert result.rows[0].weight == Decimal("0.1469")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[0].extra_data["basket_composition"] is True
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-05-31"
+    assert result.legal_metadata["declared_basket_holding_count"] == 3
+    assert result.legal_metadata["portfolio_semantics"] == "daily_creation_redemption_basket"
+    assert result.legal_metadata["route_resolution"] == (
+        "fidelity_research_complete_basket_holdings"
+    )
+
+
+@pytest.mark.asyncio
 async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("victory")
     assert adapter is not None
@@ -5821,6 +5875,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["dimensional"]["support_route_types"]
     assert adapters["capital_group"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["capital_group"]["support_route_types"]
+    assert adapters["fidelity"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["fidelity"]["support_route_types"]
     for adapter_key in [
         "3edge",
         "stone_ridge",

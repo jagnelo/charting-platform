@@ -13498,7 +13498,136 @@ class CapitalGroupHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Fetch complete Fidelity ETF creation baskets from Fidelity Research."""
+
+    BASKET_URL = (
+        "https://research2.fidelity.com/fidelity/screeners/etf/etfholdings.asp"
+    )
+    AS_OF_RE = re.compile(
+        r"Basket\s+Holdings:\s*(?P<count>[\d,]+).*?AS\s+OF\s+(?P<date>\d{2}/\d{2}/\d{4})",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return self.BASKET_URL + "?" + urlencode(
+            {
+                "sortBy": "Symbol",
+                "sortDir": "asc",
+                "symbol": normalized_symbol,
+                "view": "Holdings",
+            }
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers()
+        headers["Referer"] = "https://www.fidelity.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Fidelity basket holdings route not found for {normalized_symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                headers=self.source_request_headers(source_url=resolved_url),
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+
+        rows = parse_html_holdings_table_by_headers(
+            response.text,
+            required_headers={"symbol", "company", "weight"},
+        )
+        match = self.AS_OF_RE.search(response.text)
+        expected_count = int(match.group("count").replace(",", "")) if match else None
+        composition_date = self._parse_date(match.group("date")) if match else None
+        if not rows:
+            raise ValueError(f"Fidelity returned no basket holdings for {normalized_symbol}.")
+        if expected_count is not None and len(rows) != expected_count:
+            raise ValueError(
+                f"Fidelity declared {expected_count} basket holdings for {normalized_symbol} "
+                f"but only {len(rows)} rows were parsed."
+            )
+        for row in rows:
+            row.currency = row.currency or "USD"
+            row.extra_data["basket_composition"] = True
+            if (row.name or "").strip().lower().startswith("cash"):
+                row.symbol = None
+                row.row_type = "cash"
+                row.holding_type = "cash"
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html",
+                "declared_basket_holding_count": expected_count,
+            },
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": "issuer_public_complete_creation_basket_html",
+                "source_provider": "fidelity",
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "fidelity_research_complete_basket_holdings",
+                "portfolio_semantics": "daily_creation_redemption_basket",
+                "portfolio_semantics_note": (
+                    "Fidelity states that basket holdings may not represent the fund's full "
+                    "current or future investment portfolio."
+                ),
+                **(
+                    {"composition_date": composition_date.isoformat()}
+                    if composition_date
+                    else {}
+                ),
+                **(
+                    {"declared_basket_holding_count": expected_count}
+                    if expected_count is not None
+                    else {}
+                ),
+            },
+        )
+
+    @staticmethod
+    def _parse_date(value: str) -> date | None:
+        try:
+            return datetime.strptime(value.strip(), "%m/%d/%Y").date()
+        except ValueError:
+            return None
 
 
 class DimensionalHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -20490,6 +20619,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "fidelity": IssuerCsvAdapterConfig(
         adapter_key="fidelity",
         source_provider="fidelity",
+        source_access="issuer_public_complete_creation_basket_html",
+        url_templates=(
+            "https://research2.fidelity.com/fidelity/screeners/etf/etfholdings.asp"
+            "?sortBy=Symbol&sortDir=asc&symbol={symbol_upper}&view=Holdings",
+        ),
+        live_tested_default_route=True,
+        terms_note="Fidelity public ETF basket-holdings pages may be subject to issuer terms.",
     ),
     "texas_capital": IssuerCsvAdapterConfig(
         adapter_key="texas_capital",

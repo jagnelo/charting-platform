@@ -57,6 +57,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "etf_architect",
     "faith_investor_services",
     "federated_hermes",
+    "fidelity",
     "oneascent",
     "first_eagle",
     "fm_investments",
@@ -494,6 +495,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "doubleline",
             "DBND",
+            None,
+            {},
+            100,
+        ),
+        (
+            "fidelity",
+            "FBCG",
             None,
             {},
             100,
@@ -1075,7 +1083,6 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 @pytest.mark.parametrize(
     ("adapter_key", "symbol"),
     [
-        ("fidelity", "FBCG"),
         ("wisdomtree", "DXJ"),
     ],
 )
