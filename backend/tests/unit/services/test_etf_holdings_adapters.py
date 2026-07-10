@@ -296,6 +296,62 @@ async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_ref
 
 
 @pytest.mark.asyncio
+async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millions(monkeypatch):
+    adapter = get_holdings_adapter("astoria")
+    assert adapter is not None
+
+    product_page_url = "https://astoriaadvisorsetfs.com/roe/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<?xml version="1.0"?><urlset><url><loc>'
+                f"{product_page_url}"
+                "</loc></url></urlset>"
+            ),
+            content_type="application/xml",
+            url="https://astoriaadvisorsetfs.com/wp-sitemap-posts-page-1.xml",
+        ),
+        FakeResponse(
+            text="""
+                <html><head><title>ROE ETF - Astoria Portfolio Advisors</title></head>
+                <body><table>
+                  <thead><tr>
+                    <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+                    <th>Price</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
+                    <th>EFFECTIVE_DATE</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr><td>AAPL</td><td>Apple Inc</td><td>037833100</td><td>9,404</td>
+                    <td>294.30</td><td>2.77</td><td>1.07</td><td>07/10/2026</td></tr>
+                    <tr><td>CASH</td><td>Cash & Other</td><td></td><td>1</td>
+                    <td>1</td><td>0.10</td><td>0.04</td><td>07/10/2026</td></tr>
+                  </tbody>
+                </table></body></html>
+            """,
+            content_type="text/html",
+            url=product_page_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ROE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://astoriaadvisorsetfs.com/wp-sitemap-posts-page-1.xml",
+        product_page_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].market_value == Decimal("2770000")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].market_value == Decimal("100000")
+    assert result.legal_metadata["route_resolution"] == "issuer_wordpress_sitemap_complete_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None

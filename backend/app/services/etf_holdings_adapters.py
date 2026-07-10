@@ -3741,6 +3741,156 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class AstoriaHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete holdings tables from Astoria's public ETF product pages."""
+
+    PRODUCT_SITEMAP_URL = "https://astoriaadvisorsetfs.com/wp-sitemap-posts-page-1.xml"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Astoria publishes complete current holdings tables on public ETF product pages "
+                "listed in its WordPress sitemap."
+            ),
+            source_url=self.PRODUCT_SITEMAP_URL,
+            issuer_product_id=symbol.strip().upper() or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Astoria holdings require an ETF symbol.")
+
+        product_page_url, raw_html = await self._discover_product_page(
+            normalized_symbol,
+            product_page_url=source_url,
+        )
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers={"ticker", "name", "cusip", "shares", "% of net assets"},
+        )
+        if not rows:
+            raise ValueError(
+                f"Astoria product page returned no complete holdings rows for {normalized_symbol}."
+            )
+        for row in rows:
+            market_value_millions = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_millions is not None:
+                row.market_value = market_value_millions * Decimal("1000000")
+            row.source_row_id = row.source_row_id or f"{normalized_symbol}:{row.cusip or row.name}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "astoria_product_page_complete_holdings_table",
+            }
+
+        composition_date = self._composition_date(rows)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            source_url=product_page_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_wordpress_sitemap_complete_holdings_table",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _discover_product_page(
+        self,
+        symbol: str,
+        *,
+        product_page_url: str | None,
+    ) -> tuple[str, str]:
+        if product_page_url:
+            raw_html = await self._fetch_page(product_page_url)
+            if self._page_symbol(raw_html) != symbol:
+                raise ValueError(
+                    f"Astoria product page does not identify the requested ETF {symbol}."
+                )
+            return product_page_url, raw_html
+
+        sitemap = await self._fetch_text(
+            self.PRODUCT_SITEMAP_URL,
+            accept="application/xml,text/xml,*/*",
+        )
+        expected_suffix = f"/{symbol.lower()}/"
+        for candidate_url in re.findall(r"<loc>\s*([^<]+?)\s*</loc>", sitemap):
+            if not candidate_url.lower().rstrip("/").endswith(expected_suffix.rstrip("/")):
+                continue
+            raw_html = await self._fetch_page(candidate_url)
+            if self._page_symbol(raw_html) == symbol:
+                return candidate_url, raw_html
+        raise ValueError(f"Astoria's ETF sitemap did not contain ETF {symbol}.")
+
+    @staticmethod
+    async def _fetch_page(product_page_url: str) -> str:
+        return await AstoriaHoldingsAdapter._fetch_text(product_page_url, accept="text/html,*/*")
+
+    @staticmethod
+    async def _fetch_text(url: str, *, accept: str) -> str:
+        headers = _issuer_page_request_headers(accept=accept)
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        # Astoria's public WordPress site currently accepts requests while
+        # rejecting httpx's TLS fingerprint. Keep this issuer-specific.
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response.text
+
+    @staticmethod
+    def _page_symbol(raw_html: str) -> str | None:
+        title_match = re.search(r"<title>\s*([A-Za-z][A-Za-z0-9.\-]{0,11})\s+ETF", raw_html, re.IGNORECASE)
+        if title_match:
+            return title_match.group(1).upper()
+        match = re.search(
+            r"ASTORIA.{0,200}?\(([A-Za-z][A-Za-z0-9.\-]{0,11})\)",
+            raw_html,
+            re.IGNORECASE,
+        )
+        return match.group(1).upper() if match else None
+
+    @staticmethod
+    def _composition_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        value = _clean(rows[0].extra_data.get("EFFECTIVE_DATE")) if rows else None
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class TortoiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete daily holdings embedded on Tortoise ETF product pages."""
 
@@ -21413,6 +21563,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Rayliant public ETF product pages and full holdings CSV downloads may be subject to issuer terms.",
     ),
+    "astoria": IssuerCsvAdapterConfig(
+        adapter_key="astoria",
+        source_provider="astoria",
+        source_access="issuer_wordpress_sitemap_complete_holdings_table",
+        product_page_templates=(
+            "https://astoriaadvisorsetfs.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Astoria public ETF product pages and holdings tables may be subject to issuer terms.",
+    ),
     "tortoise": IssuerCsvAdapterConfig(
         adapter_key="tortoise",
         source_provider="tortoise",
@@ -22377,6 +22537,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "akre": AkreHoldingsAdapter,
         "rayliant": RayliantHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
+        "astoria": AstoriaHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,
         "aptus": AptusHoldingsAdapter,
