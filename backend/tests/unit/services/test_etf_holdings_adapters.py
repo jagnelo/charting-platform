@@ -182,6 +182,67 @@ async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cu
     assert result.legal_metadata["composition_date"] == "2026-07-10"
 
 
+@pytest.mark.asyncio
+async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("tortoise")
+    assert adapter is not None
+
+    product_page_url = "https://tortoisecapital.com/etf/tortoise-electrification-infrastructure-etf/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<?xml version="1.0"?><urlset><url><loc>'
+                f"{product_page_url}"
+                "</loc></url></urlset>"
+            ),
+            content_type="application/xml",
+            url="https://tortoisecapital.com/etfs-sitemap.xml",
+        ),
+        FakeResponse(
+            text="""
+                <html><body>
+                  <table><tr><th>Ticker</th><td>TPZ</td></tr></table>
+                  <section id="holdings"><h2>Daily Fund Holdings</h2>
+                    <p>As of 07/09/2026</p>
+                    <table>
+                      <thead><tr>
+                        <th>Security Name</th><th>Stock Ticker</th><th>CUSIP</th>
+                        <th>Shares</th><th>Market Value</th><th>Weight</th>
+                      </tr></thead>
+                      <tbody>
+                        <tr><td>Energy Transfer LP</td><td>ET</td><td>29273V100</td>
+                        <td>476,713</td><td>$9,434,150.27</td><td>7.33%</td></tr>
+                        <tr><td>US Dollar</td><td>USD</td><td></td>
+                        <td>10</td><td>$10</td><td>0.01%</td></tr>
+                      </tbody>
+                    </table>
+                  </section>
+                </body></html>
+            """,
+            content_type="text/html",
+            url=product_page_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TPZ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://tortoisecapital.com/etfs-sitemap.xml",
+        product_page_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ET"
+    assert result.rows[0].cusip == "29273V100"
+    assert result.rows[0].weight == Decimal("0.0733")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_etf_sitemap_product_page_daily_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
 def test_decimal_handles_percent_parentheses_and_unicode_minus():
     assert _decimal("6.5%") == Decimal("0.065")
     assert _decimal("(1,234.50)") == Decimal("-1234.50")

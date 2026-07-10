@@ -3423,6 +3423,142 @@ class EldridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class TortoiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete daily holdings embedded on Tortoise ETF product pages."""
+
+    ETF_SITEMAP_URL = "https://tortoisecapital.com/etfs-sitemap.xml"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id", "product_id"),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Tortoise publishes complete daily holdings tables directly on each public "
+                "ETF product page, discovered through its ETF sitemap."
+            ),
+            source_url=product_page_url or self.ETF_SITEMAP_URL,
+            issuer_product_id=symbol.strip().upper() or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Tortoise holdings require an ETF symbol.")
+
+        identifiers = identifiers or {}
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if product_page_url:
+            raw_html = await self._fetch_page(product_page_url)
+        else:
+            product_page_url, raw_html = await self._discover_product_page(normalized_symbol)
+
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers={
+                "security name",
+                "stock ticker",
+                "cusip",
+                "shares",
+                "market value",
+                "weight",
+            },
+        )
+        if not rows:
+            raise ValueError(
+                f"Tortoise product page returned no complete daily holdings rows for {normalized_symbol}."
+            )
+
+        composition_date = self._extract_holdings_date(raw_html)
+        for row in rows:
+            row.source_row_id = row.source_row_id or f"{normalized_symbol}:{row.cusip or row.name}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "tortoise_product_page_daily_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            source_url=product_page_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_etf_sitemap_product_page_daily_holdings_table",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _discover_product_page(self, symbol: str) -> tuple[str, str]:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            sitemap_response = await client.get(
+                self.ETF_SITEMAP_URL,
+                headers=_issuer_page_request_headers(accept="application/xml,text/xml,*/*"),
+                follow_redirects=True,
+            )
+        sitemap_response.raise_for_status()
+        product_page_urls = re.findall(r"<loc>\s*([^<]+?)\s*</loc>", sitemap_response.text)
+        for product_page_url in product_page_urls:
+            raw_html = await self._fetch_page(product_page_url)
+            if self._page_symbol(raw_html) == symbol:
+                return product_page_url, raw_html
+        raise ValueError(f"Tortoise ETF sitemap did not contain a product page for {symbol}.")
+
+    @staticmethod
+    async def _fetch_page(product_page_url: str) -> str:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        return response.text
+
+    @staticmethod
+    def _page_symbol(raw_html: str) -> str | None:
+        match = re.search(
+            r"<th[^>]*>\s*Ticker\s*</th>\s*<td[^>]*>\s*([A-Za-z0-9.\-]+)",
+            raw_html,
+            re.IGNORECASE,
+        )
+        return match.group(1).strip().upper() if match else None
+
+    @staticmethod
+    def _extract_holdings_date(raw_html: str) -> date | None:
+        holdings_index = raw_html.lower().find('id="holdings"')
+        section = raw_html[holdings_index : holdings_index + 12_000] if holdings_index >= 0 else raw_html
+        match = re.search(r"\bAs\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", section, re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -20936,6 +21072,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Eldridge public ETF daily holdings files may be subject to issuer terms.",
     ),
+    "tortoise": IssuerCsvAdapterConfig(
+        adapter_key="tortoise",
+        source_provider="tortoise",
+        source_access="issuer_public_product_page_daily_holdings_table",
+        product_page_templates=(
+            "https://tortoisecapital.com/etf/{product_slug}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Tortoise public ETF product pages and daily holdings tables may be subject to issuer terms.",
+    ),
     "zacks": IssuerCsvAdapterConfig(
         adapter_key="zacks",
         source_provider="zacks",
@@ -21986,6 +22132,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
         "texas_capital": TexasCapitalHoldingsAdapter,
+        "tortoise": TortoiseHoldingsAdapter,
         "timothy_plan": TimothyPlanHoldingsAdapter,
         "t_rowe_price": TRowePriceHoldingsAdapter,
         "tuttle": TuttleHoldingsAdapter,
