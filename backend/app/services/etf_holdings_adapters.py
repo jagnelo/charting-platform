@@ -4061,6 +4061,182 @@ class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class TiaaHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Nuveen/TIAA ETF holdings through the issuer's public product API."""
+
+    ETF_CATALOG_URL = "https://api.nuveen.com/etf/products/findanotherfund/"
+    PRODUCT_PAGE_TEMPLATE = "https://www.nuveen.com/en-us/{product_path}/{slug}-etf"
+    PRODUCT_API_TEMPLATE = "https://api.nuveen.com/ETF/v2/productdetail/bycusip/{cusip}?tooltip=1"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        cusip = _identifier(identifiers, "cusip", "issuer_product_id", "fund_cusip")
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Nuveen publishes complete ETF holdings through its public product API."
+                if normalized_symbol
+                else "Nuveen holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.PRODUCT_API_TEMPLATE.format(cusip=cusip)
+                if cusip
+                else self.ETF_CATALOG_URL
+            ),
+            issuer_product_id=cusip or normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Nuveen holdings require an ETF symbol.")
+        identifiers = identifiers or {}
+        cusip = _identifier(identifiers, "cusip", "fund_cusip", "issuer_product_id")
+        if source_url and "/bycusip/" in source_url:
+            cusip = source_url.rstrip("/").split("/bycusip/", 1)[1].split("?", 1)[0]
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page_url: str | None = None
+            if not cusip:
+                product_page_url = await self._resolve_product_page_url(client, normalized_symbol)
+                page_response = await client.get(
+                    product_page_url,
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                cusip = self._extract_cusip(page_response.text)
+            if not cusip:
+                raise ValueError(f"Nuveen product page did not expose a CUSIP for {normalized_symbol}.")
+            api_url = self.PRODUCT_API_TEMPLATE.format(cusip=cusip)
+            response = await client.get(
+                api_url,
+                headers=_holdings_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        returned_symbol = (_clean(payload.get("symbol")) or "").upper()
+        if returned_symbol != normalized_symbol:
+            raise ValueError(
+                f"Nuveen product API returned {returned_symbol or 'no symbol'} for {normalized_symbol}."
+            )
+        rows, composition_date = self._parse_holdings_payload(payload)
+        if not rows:
+            raise ValueError(f"Nuveen product API returned no holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "json",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+            },
+            source_url=str(response.url),
+            source_identifier=cusip,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_catalog_product_page_product_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _resolve_product_page_url(self, client: httpx.AsyncClient, symbol: str) -> str:
+        response = await client.get(
+            self.ETF_CATALOG_URL,
+            headers=_holdings_request_headers(accept="application/json,*/*"),
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        products = payload.get("productoverview") if isinstance(payload, dict) else None
+        if not isinstance(products, list):
+            raise ValueError("Nuveen ETF catalog did not return product entries.")
+        for product in products:
+            if not isinstance(product, dict):
+                continue
+            if (_clean(product.get("fundcode")) or "").upper() != symbol:
+                continue
+            product_path = _clean(product.get("productpath"))
+            legal_name = _clean(product.get("legalname"))
+            if product_path and legal_name:
+                return self.PRODUCT_PAGE_TEMPLATE.format(product_path=product_path, slug=f"{symbol.lower()}-{legal_name}")
+        raise ValueError(f"Nuveen ETF catalog did not contain {symbol}.")
+
+    @staticmethod
+    def _extract_cusip(raw_html: str) -> str | None:
+        match = re.search(r"/bycusip//?([A-Za-z0-9]{9})", raw_html, re.IGNORECASE)
+        return match.group(1).upper() if match else None
+
+    @staticmethod
+    def _parse_holdings_payload(payload: dict[str, Any]) -> tuple[list[CanonicalHoldingRow], date | None]:
+        entries = payload.get("holdings")
+        if not isinstance(entries, list):
+            return [], None
+        composition_date: date | None = None
+        rows: list[CanonicalHoldingRow] = []
+        for index, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                continue
+            source_date = _clean(entry.get("asofdate"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.fromisoformat(source_date).date()
+                except ValueError:
+                    pass
+            name = _clean(entry.get("name"))
+            sector = (_clean(entry.get("sector")) or "").lower()
+            ticker = _clean(entry.get("ticker"))
+            symbol = TiaaHoldingsAdapter._normalize_source_ticker(ticker)
+            is_cash = "currency" in sector or (name or "").upper() in {"U.S. DOLLARS", "CASH"}
+            identifier = _clean(entry.get("cusip"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else symbol,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    sedol=identifier if _looks_like_sedol(identifier) else None,
+                    weight=_decimal_percent_points(entry.get("portprcnt")),
+                    market_value=_decimal(entry.get("mkt_value")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"nuveen:{index}:{identifier or ticker or name or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in entry.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "nuveen_product_detail_api",
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _normalize_source_ticker(value: str | None) -> str | None:
+        ticker = _clean(value)
+        if not ticker:
+            return None
+        return ticker.split(" ", 1)[0].upper()
+
+
 class AstoriaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete holdings tables from Astoria's public ETF product pages."""
 
@@ -22583,6 +22759,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="GQG public FilePoint ETF holdings exports may be subject to issuer terms.",
     ),
+    "tiaa": IssuerCsvAdapterConfig(
+        adapter_key="tiaa",
+        source_provider="nuveen",
+        source_access="issuer_public_catalog_product_holdings_api",
+        url_templates=(
+            "https://api.nuveen.com/ETF/v2/productdetail/bycusip/{cusip}?tooltip=1",
+        ),
+        product_page_templates=(
+            "https://www.nuveen.com/en-us/exchange-traded-funds/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Nuveen/TIAA public ETF product API responses may be subject to issuer terms.",
+    ),
     "calamos": IssuerCsvAdapterConfig(
         adapter_key="calamos",
         source_provider="calamos",
@@ -23186,6 +23375,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
+        "tiaa": TiaaHoldingsAdapter,
         "tcw": TcwHoldingsAdapter,
         "texas_capital": TexasCapitalHoldingsAdapter,
         "tortoise": TortoiseHoldingsAdapter,

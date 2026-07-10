@@ -454,6 +454,87 @@ async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
+    adapter = get_holdings_adapter("tiaa")
+    assert adapter is not None
+
+    product_page_url = (
+        "https://www.nuveen.com/en-us/exchange-traded-funds/"
+        "nulg-nuveen-esg-large-cap-growth-etf"
+    )
+    holdings_url = "https://api.nuveen.com/ETF/v2/productdetail/bycusip/67092P201?tooltip=1"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "productoverview": [
+                        {
+                            "fundcode": "NULG",
+                            "legalname": "nuveen-esg-large-cap-growth",
+                            "productpath": "exchange-traded-funds",
+                        }
+                    ]
+                }
+            ),
+            content_type="application/json",
+            url="https://api.nuveen.com/etf/products/findanotherfund/",
+        ),
+        FakeResponse(
+            text='<nuv-api-table-container-tabs apiurl="https://api.nuveen.com/ETF/v2/productdetail/bycusip//67092P201?tooltip=1">',
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "symbol": "NULG",
+                    "holdings": [
+                        {
+                            "asofdate": "2026-07-09T00:00:00",
+                            "name": "NVIDIA CORP",
+                            "ticker": "NVDA US",
+                            "cusip": "67066G104",
+                            "portprcnt": 14.59,
+                            "mkt_value": 402459493.8,
+                            "sector": "SEMICONDUCTORS",
+                        },
+                        {
+                            "asofdate": "2026-07-09T00:00:00",
+                            "name": "U.S. DOLLARS",
+                            "cusip": "USD",
+                            "portprcnt": 0.18,
+                            "mkt_value": 5017477.04,
+                            "sector": "FOREIGN CURRENCY",
+                        },
+                    ],
+                }
+            ),
+            content_type="application/json",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NULG")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://api.nuveen.com/etf/products/findanotherfund/",
+        product_page_url,
+        holdings_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.1459")
+    assert result.rows[0].market_value == Decimal("402459493.8")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["route_resolution"] == "issuer_catalog_product_page_product_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None
