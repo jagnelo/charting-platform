@@ -2,6 +2,32 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Akre native ETF holdings route
+
+### Summary
+
+- Promoted `akre` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `AkreHoldingsAdapter`:
+  - reads the issuer's daily FilePoint CSV at `https://akre.filepoint.live/assets/data/FilepointAkre.40B4.B4_ETF_Holdings.csv`.
+  - supports the public AKRE fund artifact, preserves CUSIP/SEDOL metadata, and does not turn exchange-qualified foreign references into false US ticker symbols.
+  - classifies cash and money-market rows correctly, including signed cash adjustments.
+  - live validation symbol: `AKRE`, with more than 15 complete issuer-native rows.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `128`
+  - providers still lacking native/live-backed support: `217`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `172 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k akre --no-cov -q` -> `1 passed, 131 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
+### Next step
+
+- Continue the 345-provider goal with a verified issuer-native route. SEC EDGAR remains fallback-only.
+
 ## 2026-07-10 - Priority issuer route audit
 
 ### Findings

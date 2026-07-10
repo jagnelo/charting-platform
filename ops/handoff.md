@@ -5,6 +5,29 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T18:30Z
+
+- Promoted `akre` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `AkreHoldingsAdapter` using the issuer's public daily FilePoint CSV:
+  - source: `https://akre.filepoint.live/assets/data/FilepointAkre.40B4.B4_ETF_Holdings.csv`
+  - validates and selects the issuer's only current ETF, `AKRE`.
+  - preserves CUSIPs and SEDOLs, while keeping exchange-qualified foreign references such as `CSU CN` as references instead of inventing incorrect US ticker symbols.
+  - correctly retains money-market/cash rows as cash, including their actual signed weights.
+- Live validation symbol: `AKRE`, returning more than 15 parseable issuer-native holdings rows from the public daily file.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `128`
+  - providers still lacking native/live-backed support: `217`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `172 passed`
+  - focused live Akre route: `1 passed, 131 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `efe3dc6 feat(etf-holdings): add Akre native holdings route`
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route; do not promote blocked or SEC-only routes.
+
 ## Research checkpoint - 2026-07-10T18:15Z
 
 - Priority-issuer audit after the Tortoise checkpoint:
