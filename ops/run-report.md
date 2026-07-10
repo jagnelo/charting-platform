@@ -8809,3 +8809,16 @@ Append a short entry after each worker session.
   - live provider matrix test.
   - targeted ruff for ETF holdings adapter/tests.
 - Remaining high-priority screenshot set: `capital_group`, `fidelity`, `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+## 2026-07-10 - Capital Group native ETF holdings route
+
+- Promoted `capital_group` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated Capital Group adapter backed by the issuer's public daily holdings JSON API.
+- The parser preserves identifiers and portfolio fields while classifying cash, FX, fixed-income, derivative, fund, and equity rows without manufacturing tradable instruments for non-security exposures.
+- Live validation symbol: `CGGR`.
+- Current count: `345` registered provider keys, `121` native/live-backed integrations, `224` remaining.
+- Validation passed:
+  - full ETF adapter unit suite with `165 passed`.
+  - focused live Capital Group provider route.
+  - live provider matrix.
+  - targeted ruff and `git diff --check`.
+- Feature commit: `2856ada`.

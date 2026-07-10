@@ -5,7 +5,35 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-07T16:05Z
+## Latest checkpoint - 2026-07-10T15:45Z
+
+- Promoted `capital_group` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `CapitalGroupHoldingsAdapter` using Capital Group's public daily holdings JSON API:
+  - `https://www.capitalgroup.com/api/investments/investment-service/v1/etfs/{symbol}/holdings?audience=individual&redirect=true`
+  - sends the public `x-app-source: dis-etf-web` request metadata used by the issuer holdings page.
+  - validates the response belongs to the requested ETF.
+  - parses ticker, name, CUSIP, ISIN, SEDOL, shares/principal, market value, percent-of-net-assets weight, asset class, and as-of date.
+  - preserves cash/equivalent and spot-FX rows without falsely materializing them as tradable securities.
+- Fixed existing DWS and Principal unit fixtures to mock their current `requests`-based fetch paths rather than leaking to the network.
+- Live validation symbol: `CGGR`.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `121`
+  - providers still lacking native/live-backed support: `224`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `165 passed`
+  - focused live Capital Group route: `1 passed, 121 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff: passed
+  - `git diff --check`: passed
+- Feature commit: `2856ada feat(etf-holdings): add Capital Group native route`
+- Remaining fast-track screenshot set:
+  - `fidelity`, `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+- Next step:
+  - Continue the same priority ordering, proving a complete issuer-native route and live test before promoting another provider.
+
+## Previous checkpoint - 2026-07-07T16:05Z
 
 - Promoted `doubleline` from generated/SEC-backed recognition-only support to native/live-backed support.
 - This was from the user-confirmed fast-track screenshot set:
