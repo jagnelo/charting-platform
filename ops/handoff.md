@@ -5,6 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T21:45Z
+
+- Promoted `tiaa` (Nuveen) from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `TiaaHoldingsAdapter` that:
+  - reads Nuveen's issuer-owned ETF catalog to resolve an ETF from its ticker;
+  - derives the product CUSIP from the matching public issuer product page;
+  - calls Nuveen's complete public product API at `https://api.nuveen.com/ETF/v2/productdetail/bycusip/{CUSIP}?tooltip=1`;
+  - preserves ticker, CUSIP/SEDOL, market value, net-assets weight, cash rows, and issuer composition date.
+- Live validation symbol: `NULG`, returning more than 50 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `134`
+  - providers still lacking native/live-backed support: `211`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `178 passed`
+  - focused live Nuveen/TIAA route: `1 passed, 137 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route. WisdomTree, Neuberger Berman, SoFi, and Thrivent remain unpromoted because their public issuer artifacts challenge direct backend requests.
+
 ## Latest checkpoint - 2026-07-10T21:15Z
 
 - Promoted `gqg` from recognition-only/SEC-backed support to native/live-backed support.

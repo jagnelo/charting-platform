@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Nuveen/TIAA native ETF holdings route
+
+### Summary
+
+- Promoted `tiaa` (Nuveen) from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `TiaaHoldingsAdapter` that resolves a product from Nuveen's public ETF catalog, derives its CUSIP from the issuer product page, and uses Nuveen's complete product holdings API.
+- The adapter preserves ticker, CUSIP/SEDOL, market value, net-assets weight, cash classification, and issuer as-of date.
+- Live validation symbol: `NULG`, returning more than 50 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `134`
+  - providers still lacking native/live-backed support: `211`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `178 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k tiaa --no-cov -q` -> `1 passed, 137 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-10 - GQG native ETF holdings route
 
 ### Summary
