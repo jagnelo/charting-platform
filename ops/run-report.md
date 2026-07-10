@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Natixis native ETF holdings route
+
+### Summary
+
+- Promoted `groupe_bpce` (Natixis) from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `NatixisHoldingsAdapter` for the issuer's daily CSV pattern at `https://mkt.im.natixis.com/files/etfs/{SYMBOL}_daily_full_holdings.csv`.
+- The adapter verifies the declared fund ticker, parses complete holdings and issuer as-of date, and preserves cash rows and security identifiers.
+- Natixis omits a public DigiCert intermediate from its TLS chain. The adapter loads that official intermediate while retaining normal certificate verification; it does not use an insecure TLS bypass.
+- Live validation symbol: `GQI`, returning more than 50 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `131`
+  - providers still lacking native/live-backed support: `214`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `175 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k groupe_bpce --no-cov -q` -> `1 passed, 134 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-10 - Astoria native ETF holdings route
 
 ### Summary

@@ -5,6 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T20:00Z
+
+- Promoted `groupe_bpce` (Natixis) from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `NatixisHoldingsAdapter` that reads the issuer-native daily CSV pattern at `https://mkt.im.natixis.com/files/etfs/{SYMBOL}_daily_full_holdings.csv`, verifies the CSV's declared ticker, and parses identifiers, quantity, net-assets weight, market value, cash rows, and the as-of date.
+- Natixis currently omits a public DigiCert intermediate from its TLS chain. The adapter keeps certificate verification enabled and loads that official intermediate locally; it does not disable TLS verification.
+- Live validation symbol: `GQI`, returning more than 50 parseable issuer-native holdings rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `131`
+  - providers still lacking native/live-backed support: `214`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `175 passed`
+  - focused live Natixis route: `1 passed, 134 deselected`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route; higher-priority blocked issuers remain unpromoted.
+
 ## Latest checkpoint - 2026-07-10T19:35Z
 
 - Promoted `astoria` from recognition-only/SEC-backed support to native/live-backed support.
