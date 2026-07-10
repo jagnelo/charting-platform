@@ -37,6 +37,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "cambria",
     "cambiar",
     "calamos",
+    "capital_group",
     "castleark",
     "coinshares",
     "counterpoint",
@@ -130,7 +131,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "zacks",
 }
 SEC_BACKED_SAMPLE_ADAPTERS = {
-    "capital_group",
     "direxion",
     "wisdomtree",
 }
@@ -441,6 +441,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             50,
+        ),
+        (
+            "capital_group",
+            "CGGR",
+            None,
+            {},
+            20,
         ),
         (
             "defiance",

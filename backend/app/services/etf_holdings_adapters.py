@@ -13301,6 +13301,202 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return headers
 
 
+class CapitalGroupHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Capital Group ETF holdings from the issuer's public JSON API."""
+
+    API_TEMPLATE = (
+        "https://www.capitalgroup.com/api/investments/investment-service/v1/"
+        "etfs/{symbol}/holdings"
+    )
+    HOLDINGS_PAGE = (
+        "https://www.capitalgroup.com/individual/investments/"
+        "exchange-traded-funds/holdings"
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return None
+        return (
+            self.API_TEMPLATE.format(symbol=normalized_symbol)
+            + "?"
+            + urlencode({"audience": "individual", "redirect": "true"})
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Capital Group holdings route not found for {normalized_symbol}.")
+
+        headers = _holdings_request_headers(accept="application/json,*/*")
+        headers.update(
+            {
+                "Referer": f"{self.HOLDINGS_PAGE}?etf={normalized_symbol}",
+                "x-app-source": "dis-etf-web",
+            }
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Capital Group returned no holdings for {normalized_symbol}.")
+
+        fund_id = _clean(payload.get("fundId"))
+        actual_symbol = _clean(payload.get("abbreviatedName"))
+        if actual_symbol and actual_symbol.upper() != normalized_symbol:
+            raise ValueError(
+                f"Capital Group returned {actual_symbol} holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=str(response.url),
+            source_identifier=fund_id or issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": "issuer_public_daily_holdings_api",
+                "source_provider": "capital_group",
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "capital_group_daily_holdings_api",
+                "product_url": f"{self.HOLDINGS_PAGE}?etf={normalized_symbol}",
+                **({"fund_id": fund_id} if fund_id else {}),
+                **(
+                    {"composition_date": composition_date.isoformat()}
+                    if composition_date
+                    else {}
+                ),
+            },
+        )
+
+    @classmethod
+    def _parse_payload(
+        cls,
+        payload: dict[str, Any],
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        daily_holdings = payload.get("dailyHoldings")
+        if not isinstance(daily_holdings, dict):
+            return [], None
+        composition_date = cls._parse_date(daily_holdings.get("asOfDate"))
+        raw_rows = daily_holdings.get("holdings")
+        if not isinstance(raw_rows, list):
+            return [], composition_date
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(raw_rows):
+            if not isinstance(raw_row, dict):
+                continue
+            asset_class = (_clean(raw_row.get("assetClass")) or "").lower()
+            source_ticker = _clean(raw_row.get("ticker"))
+            row_type, holding_type = cls._classify_asset(asset_class)
+            row_symbol = cls._tradable_symbol(source_ticker) if row_type == "security" else None
+            name = _clean(raw_row.get("securityName"))
+            if not any(
+                [
+                    row_symbol,
+                    name,
+                    _clean(raw_row.get("cusip")),
+                    _clean(raw_row.get("isin")),
+                ]
+            ):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=row_symbol,
+                    name=name,
+                    cusip=_clean(raw_row.get("cusip")),
+                    isin=_clean(raw_row.get("isin")),
+                    sedol=_clean(raw_row.get("sedol")),
+                    weight=_decimal_percent_points(raw_row.get("percentageOfNetAssets")),
+                    shares=_decimal(raw_row.get("sharesOrPrincipalAmount")),
+                    market_value=_decimal(raw_row.get("marketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        "asset_class": _clean(raw_row.get("assetClass")),
+                        "source_ticker": source_ticker,
+                        "notional_value": _clean(raw_row.get("notionalValue")),
+                        "details_link": _clean(raw_row.get("detailsLink")),
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _classify_asset(asset_class: str) -> tuple[str, str]:
+        if "cash" in asset_class or "equivalent" in asset_class:
+            return "cash", "cash"
+        if "spot fx" in asset_class or "currency" in asset_class:
+            return "other", "forex"
+        if any(term in asset_class for term in ("bond", "fixed income", "debt", "short term")):
+            return "security", "fixed_income"
+        if any(term in asset_class for term in ("option", "future", "swap", "derivative")):
+            return "other", "derivative"
+        if any(term in asset_class for term in ("fund", "etf")):
+            return "security", "fund"
+        return "security", "equity"
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.upper()
+        if _looks_like_cusip(normalized) or _looks_like_isin(normalized):
+            return None
+        return normalized if re.fullmatch(r"[A-Z0-9][A-Z0-9.\-/]{0,14}", normalized) else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+
 class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -19898,6 +20094,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "capital_group": IssuerCsvAdapterConfig(
+        adapter_key="capital_group",
+        source_provider="capital_group",
+        source_access="issuer_public_daily_holdings_api",
+        url_templates=(
+            "https://www.capitalgroup.com/api/investments/investment-service/v1/"
+            "etfs/{symbol_upper}/holdings?audience=individual&redirect=true",
+        ),
+        product_page_templates=(
+            "https://www.capitalgroup.com/individual/investments/"
+            "exchange-traded-funds/holdings?etf={symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Capital Group public ETF holdings API responses may be subject to issuer terms.",
+    ),
     "angel_oak": IssuerCsvAdapterConfig(
         adapter_key="angel_oak",
         source_provider="angel_oak",
@@ -20904,6 +21115,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambria": CambriaHoldingsAdapter,
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
+        "capital_group": CapitalGroupHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,

@@ -5334,6 +5334,87 @@ async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdi
 
 
 @pytest.mark.asyncio
+async def test_capital_group_adapter_fetches_public_daily_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("capital_group")
+    assert adapter is not None
+
+    payload = {
+        "fundId": "75565",
+        "name": "Capital Group Growth ETF",
+        "abbreviatedName": "CGGR",
+        "dailyHoldings": {
+            "asOfDate": "07/09/2026",
+            "holdings": [
+                {
+                    "securityName": "NVIDIA CORP",
+                    "ticker": "NVDA",
+                    "cusip": "67066G104",
+                    "isin": "US67066G1040",
+                    "sedol": "2379504",
+                    "assetClass": "Equity",
+                    "sharesOrPrincipalAmount": "1234",
+                    "notionalValue": "0",
+                    "marketValue": "196483.44",
+                    "percentageOfNetAssets": "6.70",
+                },
+                {
+                    "securityName": "CASH IN U.S. DOLLARS",
+                    "ticker": "CMQXX",
+                    "assetClass": "Cash & Equivalent",
+                    "sharesOrPrincipalAmount": "5000",
+                    "marketValue": "5000",
+                    "percentageOfNetAssets": "0.17",
+                },
+                {
+                    "securityName": "SPOT FX - EUR/USD",
+                    "ticker": None,
+                    "assetClass": "Spot FX",
+                    "notionalValue": "100000",
+                    "marketValue": "-125.50",
+                    "percentageOfNetAssets": "-0.01",
+                },
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=(
+                "https://www.capitalgroup.com/api/investments/investment-service/v1/"
+                "etfs/CGGR/holdings?audience=individual&redirect=true"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CGGR", identifiers={})
+
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url.endswith("etfs/CGGR/holdings?audience=individual&redirect=true")
+    assert request_kwargs["headers"]["x-app-source"] == "dis-etf-web"
+    assert request_kwargs["headers"]["Referer"].endswith("holdings?etf=CGGR")
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].isin == "US67066G1040"
+    assert result.rows[0].sedol == "2379504"
+    assert result.rows[0].weight == Decimal("0.067")
+    assert result.rows[0].shares == Decimal("1234")
+    assert result.rows[0].market_value == Decimal("196483.44")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].extra_data["source_ticker"] == "CMQXX"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "other"
+    assert result.rows[2].holding_type == "forex"
+    assert result.legal_metadata["route_resolution"] == "capital_group_daily_holdings_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.source_identifier == "75565"
+
+
+@pytest.mark.asyncio
 async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("victory")
     assert adapter is not None
@@ -5738,8 +5819,9 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["texas_capital"]["support_route_types"]
     assert adapters["dimensional"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["dimensional"]["support_route_types"]
+    assert adapters["capital_group"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["capital_group"]["support_route_types"]
     for adapter_key in [
-        "capital_group",
         "3edge",
         "stone_ridge",
     ]:
@@ -5785,7 +5867,7 @@ def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
 
 @pytest.mark.asyncio
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
-    adapter = get_holdings_adapter("capital_group")
+    adapter = get_holdings_adapter("3edge")
     assert adapter is not None
 
     async def fake_discover_holdings_filings(**kwargs):
@@ -6258,19 +6340,21 @@ async def test_deutsche_bank_adapter_parses_dws_holdings_json(monkeypatch):
             }
         ],
     }
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(
             text=json.dumps(payload),
             content_type="application/json",
             url="https://etf.dws.com/api/pdp/en-us/etf/USSG/holdings",
         )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
 
     result = await adapter.fetch_latest(symbol="USSG")
 
-    assert FakeAsyncClient.requested[0][0] == (
+    assert requested[0][0] == (
         "https://etf.dws.com/api/pdp/en-us/etf/USSG/holdings"
     )
     assert len(result.rows) == 2
@@ -6301,10 +6385,9 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("principal")
     assert adapter is not None
 
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            content=_xlsx_workbook(
+    requested = []
+    response = FakeResponse(
+        content=_xlsx_workbook(
                 [
                     [
                         "As of: 07/01/2026",
@@ -6376,15 +6459,19 @@ async def test_principal_adapter_parses_symbol_holdings_workbook(monkeypatch):
                     ],
                 ]
             ),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            url="https://api.assetmgmt.principalam.com/public/files?key=PSC.xlsx",
-        )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        url="https://api.assetmgmt.principalam.com/public/files?key=PSC.xlsx",
+    )
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
 
     result = await adapter.fetch_latest(symbol="PSC")
 
-    assert FakeAsyncClient.requested[0][0] == (
+    assert requested[0][0] == (
         "https://api.assetmgmt.principalam.com/public/files?key=PSC.xlsx"
     )
     assert len(result.rows) == 2
