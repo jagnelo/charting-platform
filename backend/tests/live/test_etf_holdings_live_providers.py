@@ -118,6 +118,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "strive",
     "swan_global",
     "tapp",
+    "tcw",
     "tortoise",
     "texas_capital",
     "tuttle",
@@ -213,6 +214,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             50,
+        ),
+        (
+            "tcw",
+            "ACLO",
+            None,
+            {},
+            100,
         ),
         (
             "rayliant",

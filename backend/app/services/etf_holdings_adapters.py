@@ -7503,6 +7503,200 @@ class DoubleLineHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class TcwHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read TCW's issuer-published combined fixed-income ETF holdings PDF."""
+
+    HOLDINGS_PDF_URL = (
+        "https://edge.sitecorecloud.io/thetcwgroupc320-tcwweb7bc3-prod0f26-25f9/"
+        "media/Downloads/TCW/Products/ETFs/Holdings/FI-ETF-Q1-Holdings.pdf?sc_lang=en"
+    )
+    FUND_NAMES = {
+        "ACLO": "TCW AAA CLO ETF",
+        "FIXT": "TCW Core Plus Bond ETF",
+        "IGCB": "TCW Corporate Bond ETF",
+        "FLXR": "TCW Flexible Income ETF",
+        "HYBX": "TCW High Yield Bond ETF",
+        "MUSE": "TCW Multisector Credit Income ETF",
+        "SLNZ": "TCW Senior Loan ETF",
+    }
+    _SCHEDULE_RE = re.compile(
+        r"^(?P<fund>TCW .+? ETF)\s+SCHEDULE OF INVESTMENTS\s+"
+        r"(?P<date>[A-Za-z]+\s+\d{1,2},\s+\d{4})",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _VALUE_LINE_RE = re.compile(
+        r"^(?P<prefix>.*?)\s+(?P<maturity>\d{2}/\d{2}/\d{2})\s+"
+        r"(?:(?P<currency>[A-Z]{3}|\$)\s+)?(?P<principal>[\d,]+(?:\.\d+)?)\s+"
+        r"(?:\$\s*)?(?P<value>[\d,]+(?:\.\d+)?)$"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.FUND_NAMES:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="TCW publishes complete schedules for its fixed-income ETFs in an issuer PDF.",
+            source_url=self.HOLDINGS_PDF_URL,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.FUND_NAMES:
+            raise ValueError(f"TCW does not publish this ETF in its fixed-income holdings PDF: {normalized_symbol}.")
+        pdf_url = source_url or self.HOLDINGS_PDF_URL
+        response = await asyncio.to_thread(
+            requests.get,
+            pdf_url,
+            headers=self.source_request_headers(source_url=pdf_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        raw_text = self._extract_pdf_text(response.content)
+        rows, composition_date = self._parse_pdf_text(raw_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"TCW PDF returned no parseable {normalized_symbol} holdings rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_text,
+            raw_json={"source_format": "issuer_combined_holdings_pdf"},
+            source_url=str(getattr(response, "url", pdf_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "issuer_combined_selected_fund_holdings_pdf",
+                "portfolio_semantics": "issuer_published_schedule_of_investments",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        del source_url
+        headers = _holdings_request_headers(accept="application/pdf,*/*")
+        headers["Referer"] = "https://www.tcw.com/"
+        return headers
+
+    @staticmethod
+    def _extract_pdf_text(raw_pdf: bytes) -> str:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        reader = PdfReader(BytesIO(raw_pdf))
+        return "\f".join(page.extract_text() or "" for page in reader.pages)
+
+    @classmethod
+    def _parse_pdf_text(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        expected_fund = cls.FUND_NAMES[symbol]
+        selected_pages: list[str] = []
+        current_fund: str | None = None
+        composition_date: date | None = None
+        for page in raw_text.split("\f"):
+            page = page.strip()
+            match = cls._SCHEDULE_RE.search(page)
+            if match:
+                current_fund = re.sub(r"\s+", " ", match.group("fund")).strip()
+                if current_fund == expected_fund:
+                    composition_date = cls._parse_composition_date(match.group("date"))
+            if current_fund == expected_fund:
+                selected_pages.append(page)
+        return cls._parse_selected_pages("\n".join(selected_pages), symbol=symbol), composition_date
+
+    @staticmethod
+    def _parse_composition_date(value: str) -> date | None:
+        try:
+            return datetime.strptime(value, "%B %d, %Y").date()
+        except ValueError:
+            return None
+
+    @classmethod
+    def _parse_selected_pages(cls, raw_text: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        rows: list[CanonicalHoldingRow] = []
+        pending: list[str] = []
+        for line in (line.strip() for line in raw_text.splitlines()):
+            if not line or line.startswith("TCW ") or "SCHEDULE OF INVESTMENTS" in line:
+                continue
+            match = cls._VALUE_LINE_RE.match(line)
+            if match:
+                description_parts = pending + ([match.group("prefix")] if match.group("prefix") else [])
+                description = re.sub(r"\s+", " ", " ".join(description_parts)).strip()
+                pending = []
+                if not cls._is_holding_description(description):
+                    continue
+                value = _decimal(match.group("value"))
+                if value is None:
+                    continue
+                currency = match.group("currency")
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=None,
+                        name=description,
+                        shares=_decimal(match.group("principal")),
+                        market_value=value,
+                        currency="USD" if currency in {None, "$"} else currency,
+                        holding_type="fixed_income",
+                        row_type="security",
+                        source_row_id=f"{symbol}:{len(rows) + 1}",
+                        extra_data={
+                            "source": "tcw_combined_holdings_pdf",
+                            "maturity_date": match.group("maturity"),
+                            "principal_amount": match.group("principal"),
+                        },
+                    )
+                )
+                continue
+            if cls._is_section_line(line):
+                pending = []
+                continue
+            pending.append(line)
+        cls._apply_weights(rows)
+        return rows
+
+    @staticmethod
+    def _is_section_line(line: str) -> bool:
+        upper = line.upper()
+        return (
+            "NET ASSETS" in upper
+            or upper.startswith(("FIXED INCOME", "ASSET-BACKED", "TOTAL INVESTMENTS"))
+            or upper.startswith(("ISSUES", "MATURITY", "PRINCIPAL", "VALUE"))
+            or upper.startswith("SEE NOTES")
+        )
+
+    @staticmethod
+    def _is_holding_description(value: str) -> bool:
+        upper = value.upper()
+        return bool(value) and "NET ASSETS" not in upper and not upper.startswith("TOTAL ")
+
+    @staticmethod
+    def _apply_weights(rows: list[CanonicalHoldingRow]) -> None:
+        total_value = sum((row.market_value or Decimal("0")) for row in rows)
+        if total_value <= 0:
+            return
+        for row in rows:
+            if row.market_value is not None:
+                row.weight = row.market_value / total_value
+
+
 class TeucriumHoldingsAdapter(IssuerCsvHoldingsAdapter):
     source_url = "https://etfs.teucrium.com/assets/data/FilepointTeucrium.40TZ.TZ_Holdings.csv"
 
@@ -22684,6 +22878,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="YieldMax public holdings files may be subject to issuer terms.",
     ),
+    "tcw": IssuerCsvAdapterConfig(
+        adapter_key="tcw",
+        source_provider="tcw",
+        source_access="issuer_public_combined_fixed_income_holdings_pdf",
+        url_templates=(
+            "https://edge.sitecorecloud.io/thetcwgroupc320-tcwweb7bc3-prod0f26-25f9/"
+            "media/Downloads/TCW/Products/ETFs/Holdings/FI-ETF-Q1-Holdings.pdf?sc_lang=en",
+        ),
+        live_tested_default_route=True,
+        terms_note="TCW public fixed-income ETF holdings PDFs may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -22808,6 +23013,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strive": StriveHoldingsAdapter,
         "swan_global": SwanGlobalHoldingsAdapter,
         "tapp": TappAlphaHoldingsAdapter,
+        "tcw": TcwHoldingsAdapter,
         "texas_capital": TexasCapitalHoldingsAdapter,
         "tortoise": TortoiseHoldingsAdapter,
         "timothy_plan": TimothyPlanHoldingsAdapter,

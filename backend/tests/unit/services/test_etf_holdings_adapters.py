@@ -6150,6 +6150,39 @@ Holdings as of 7/6/2026
     assert rows[2].symbol is None
 
 
+def test_tcw_adapter_selects_only_requested_fund_from_combined_holdings_pdf():
+    adapter = get_holdings_adapter("tcw")
+    assert adapter is not None
+
+    raw_text = """
+TCW AAA CLO ETF
+SCHEDULE OF INVESTMENTS January 31, 2026 (Unaudited)
+FIXED INCOME SECURITIES — 96.3% of Net Assets
+AB BSL CLO 6 Ltd. Series 2025-6A, Class A
+5.10% (3 mo. USD Term SOFR + 1.430%)(1),(2)    07/20/37   $ 500,000   $ 501,693
+AGL CLO 16 Ltd. Series 2021-16A, Class AR
+4.62% (3 mo. USD Term SOFR + 0.950%)(1),(2)    01/20/35   5,000,000   5,000,965
+\f
+TCW Core Plus Bond ETF
+SCHEDULE OF INVESTMENTS January 31, 2026 (Unaudited)
+OTHER SECURITIES — 1.0% of Net Assets
+Other issuer position    01/20/35   $ 10,000   $ 10,001
+"""
+
+    rows, composition_date = adapter._parse_pdf_text(raw_text, symbol="ACLO")
+
+    assert composition_date == date(2026, 1, 31)
+    assert len(rows) == 2
+    assert rows[0].symbol is None
+    assert rows[0].name == "AB BSL CLO 6 Ltd. Series 2025-6A, Class A 5.10% (3 mo. USD Term SOFR + 1.430%)(1),(2)"
+    assert rows[0].shares == Decimal("500000")
+    assert rows[0].market_value == Decimal("501693")
+    assert rows[0].holding_type == "fixed_income"
+    assert rows[0].extra_data["maturity_date"] == "07/20/37"
+    assert rows[0].weight > Decimal("0")
+    assert sum(row.weight or Decimal("0") for row in rows) == Decimal("1")
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
