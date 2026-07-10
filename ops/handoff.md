@@ -5,6 +5,29 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T16:45Z
+
+- Promoted `lazard` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `LazardHoldingsAdapter` using Lazard's public ETF directory and product API:
+  - directory: `https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs`
+  - holdings API: `https://lazardassetmanagement.com/api/products?id={product_id}&type=Fund`
+  - discovers the issuer product ID from the directory when a stored profile has only a trading symbol.
+  - verifies the returned ETF ticker and parses full constituents with ticker, CUSIP, ISIN, SEDOL, shares, market value, weight, asset class, security type, and as-of date.
+  - preserves cash, FX, derivatives, fixed income, and fund rows with accurate classifications.
+- Live validation symbol: `JPY`, returning 64 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `124`
+  - providers still lacking native/live-backed support: `221`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `168 passed`
+  - focused live Lazard route: `1 passed, 127 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the user-prioritized providers, with `wisdomtree`, `neuberger_berman`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, and `wellington` still to be proven by native provider routes and live tests.
+
 ## Latest checkpoint - 2026-07-10T16:07Z
 
 - Promoted `voya` from generated/SEC-backed recognition-only support to native/live-backed support.

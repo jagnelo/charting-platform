@@ -2,6 +2,33 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Lazard native ETF holdings route
+
+### Summary
+
+- Promoted `lazard` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `LazardHoldingsAdapter`:
+  - discovers product ids from Lazard's public ETF directory.
+  - uses Lazard's public product API at `https://lazardassetmanagement.com/api/products?id={product_id}&type=Fund` for the full holdings payload.
+  - live validation symbol: `JPY`.
+  - verifies the source ticker before accepting results and retains identifiers, quantities, value, weight, classification, and composition date.
+  - keeps cash, FX, derivatives, fixed income, and funds distinct from ordinary equity holdings.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `124`
+  - providers still lacking native/live-backed support: `221`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `168 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k lazard --no-cov -q` -> `1 passed, 127 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
+### Next step
+
+- Continue the 345-provider goal with the remaining user-prioritized issuers. SEC EDGAR stays fallback-only and does not qualify a provider as native support.
+
 ## 2026-07-07 - Texas Capital native ETF holdings route
 
 ### Summary
