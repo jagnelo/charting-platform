@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Priority issuer route audit
+
+### Findings
+
+- WisdomTree's documented US product page is Cloudflare-blocked (`403`) to direct backend requests, so it remains unpromoted despite public browser/search visibility of holdings content.
+- TCW has a reachable issuer-hosted multi-fund quarterly holdings PDF for ACLO, FIXT, IGCB, FLXR, HYBX, MUSE, and SLNZ. It needs a provider-specific current-artifact discovery and selected-fund PDF parser before it can count as native support.
+
+### Next step
+
+- Implement only a verified, issuer-native route. Do not recategorize this research as support or let SEC EDGAR count toward the 345-provider objective.
+
 ## 2026-07-10 - Tortoise native ETF holdings route
 
 ### Summary

@@ -5,6 +5,13 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Research checkpoint - 2026-07-10T18:15Z
+
+- Priority-issuer audit after the Tortoise checkpoint:
+  - `wisdomtree`: the correct US product route (`https://www.wisdomtree.com/us/products/equity/dxj`) publicly exposes holdings in browser/search contexts, but repeated direct backend-style requests return Cloudflare `403`. Do not promote it or route it through SEC until a backend-reachable issuer-native feed is proven.
+  - `tcw`: an issuer-hosted Edge/Sitecore PDF is reachable at `https://edge.sitecorecloud.io/thetcwgroupc320-tcwweb7bc3-prod0f26-25f9/media/Downloads/TCW/Products/ETFs/Holdings/FI-ETF-Q1-Holdings.pdf?sc_lang=en`. It contains complete schedules for ACLO, FIXT, IGCB, FLXR, HYBX, MUSE, and SLNZ, but is a multi-fund quarterly PDF. A native adapter must discover the current publication artifact and segment the selected fund defensibly before it can be promoted.
+- The working tree is clean after the Tortoise feature/ops commits. Continue from the TCW native-PDF route or another backend-reachable high-priority issuer; do not mistake either research finding for completed provider support.
+
 ## Latest checkpoint - 2026-07-10T18:00Z
 
 - Promoted `tortoise` from generated/SEC-backed recognition-only support to native/live-backed support.
