@@ -1,4 +1,28 @@
 tasks:
+  - id: etf-holdings-constituents
+    title: Implement native ETF holdings integrations for all registered issuers
+    status: in_progress
+    priority: high
+    scope: >
+      Replace generated/thin ETF provider adapters with per-provider native holdings
+      integrations for all 345 registered issuers. SEC EDGAR remains fallback-only and
+      does not count as native provider support. Prioritize issuers with larger ETF
+      lineups, higher AUM, and broader US-market constituent coverage.
+    definition_of_done:
+      - Every registered issuer has an isolated provider-specific holdings implementation
+      - Every provider has static and opt-in live coverage for a concrete issuer route
+      - SEC EDGAR is only a fallback path
+      - Handoff and validation evidence are current
+    validation:
+      - backend-unit
+      - provider-live-tests
+      - adapter-matrix
+      - lint
+    notes:
+      - Current truthful count: 126 native/live-backed providers out of 345.
+      - Current priority blockers: WisdomTree, Neuberger Berman, SoFi, and Thrivent publish
+        documented artifacts but their hosts challenge direct backend requests; do not promote
+        them until a reachable issuer-native route passes a live test.
   - id: strategy-lab
     title: Expand Strategy Lab across the remaining roadmap gaps
     status: in_progress

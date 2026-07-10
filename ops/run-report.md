@@ -2,6 +2,32 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Eldridge native ETF holdings route
+
+### Summary
+
+- Promoted `eldridge` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `EldridgeHoldingsAdapter`:
+  - reads Eldridge's public combined daily CSV at `https://clozfund.com/assets/data/FilepointPanagram.40P2.P2_Holdings.csv`.
+  - filters the issuer-wide file to the requested ETF account (`CLOX` or `CLOZ`).
+  - preserves CUSIPs for CLO/fixed-income positions instead of creating misleading ticker symbols; cash/money-market rows remain cash.
+  - live validation symbol: `CLOX`, returning more than 20 full issuer-native rows.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `126`
+  - providers still lacking native/live-backed support: `219`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `170 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k eldridge --no-cov -q` -> `1 passed, 129 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
+### Next step
+
+- Continue the 345-provider goal with the agreed priority issuers. SEC EDGAR stays fallback-only and does not qualify a provider as native support.
+
 ## 2026-07-10 - REX Shares native ETF holdings route
 
 ### Summary

@@ -5,6 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T17:45Z
+
+- Promoted `eldridge` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `EldridgeHoldingsAdapter` using the issuer's public combined daily holdings CSV:
+  - source: `https://clozfund.com/assets/data/FilepointPanagram.40P2.P2_Holdings.csv`
+  - filters the shared issuer file by the requested `Account` so `CLOX` and `CLOZ` never cross-contaminate a snapshot.
+  - keeps issuer CUSIP-like loan/CLO identifiers as identifiers rather than misrepresenting them as exchange-traded tickers.
+  - classifies structured-credit rows as fixed income and cash/money-market rows as cash.
+- Live validation symbol: `CLOX`, returning more than 20 parseable issuer-native rows from the public daily file.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `126`
+  - providers still lacking native/live-backed support: `219`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `170 passed`
+  - focused live Eldridge route: `1 passed, 129 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `f3b16e4 feat(etf-holdings): add Eldridge native holdings route`
+- Research note:
+  - `sofi`, `neuberger_berman`, and `thrivent` each expose a documented issuer-owned complete holdings artifact, but their direct public hosts currently return browser/CDN challenges to backend requests. They remain unpromoted until an actual backend-reachable native route is proven and live-tested.
+- Next step:
+  - Continue the user's priority sequence, proving a complete issuer-native route and live test before promoting each provider.
+
 ## Latest checkpoint - 2026-07-10T17:20Z
 
 - Promoted `rex` from generated/SEC-backed recognition-only support to native/live-backed support.
