@@ -125,6 +125,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "victory",
     "virtus",
     "volatility_shares",
+    "voya",
     "wahed",
     "world_gold_council",
     "yorkville",
@@ -967,6 +968,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "voya",
+            "VMSB",
+            None,
+            {},
+            100,
         ),
         (
             "virtus",

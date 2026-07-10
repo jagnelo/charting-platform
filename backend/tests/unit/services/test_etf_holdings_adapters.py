@@ -5469,6 +5469,49 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_voya_adapter_filters_symbol_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("voya")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding
+07/10/2026,VMSB,,95002YAE3,WELLS FARGO & COMPANY 6.125 PERPETL 6/15/2175,5011000.0,101.16,5069277.93,1.6318%,310430774.67,6280000.0
+07/10/2026,VMSB,,FTCAUSDCT,CITI FUTURES CASH BALANCE - USD,5542664.0,100.00,5542663.64,1.7842%,310430774.67,6280000.0
+07/10/2026,VMSB,,CCTMXN,MEXICAN NUEVO PESO,35177352.0,17.62,1996023.16,0.6425%,310430774.67,6280000.0
+07/10/2026,VMSB,,7707194,ICE: (CDX.NA.HY.46.V1),-33334937.0,-8.08,2692063.00,0.8666%,310430774.67,6280000.0
+07/10/2026,VCOB,,91282CQX2,US TREASURY N/B 4.125 6/30/2031,2120500.0,99.36,2106998.37,0.6783%,310430774.67,6280000.0
+"""
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(
+            text=raw_csv,
+            content_type="text/csv",
+            url="https://vimetfs.com/vmsb/holdings",
+        )
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="VMSB", identifiers={})
+
+    assert requested[0][0] == "https://vimetfs.com/vmsb/holdings"
+    assert result.rows[0].cusip == "95002YAE3"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.016318")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].extra_data["source_identifier"] == "FTCAUSDCT"
+    assert result.rows[2].row_type == "other"
+    assert result.rows[2].holding_type == "forex"
+    assert result.rows[3].row_type == "other"
+    assert result.rows[3].holding_type == "derivative"
+    assert len(result.rows) == 4
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == "voya_symbol_daily_holdings_csv"
+
+
+@pytest.mark.asyncio
 async def test_victory_adapter_fetches_public_all_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("victory")
     assert adapter is not None
@@ -5769,6 +5812,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["ssc"]["support_route_types"]
     assert adapters["virtus"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["virtus"]["support_route_types"]
+    assert adapters["voya"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["voya"]["support_route_types"]
     assert adapters["pacer"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["pacer"]["support_route_types"]
     assert adapters["21shares"]["live_tested_default_route"] is True

@@ -2816,6 +2816,167 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class VoyaHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Voya ETF daily holdings from its issuer-hosted account CSV feed."""
+
+    HOLDINGS_URL = "https://vimetfs.com/{symbol_lower}/holdings"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        normalized_symbol = symbol.strip().lower()
+        return self.HOLDINGS_URL.format(symbol_lower=normalized_symbol) if normalized_symbol else None
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
+        headers["Referer"] = "https://vimetfs.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_url:
+            raise ValueError(f"Voya holdings route not found for {normalized_symbol}.")
+        response = await asyncio.to_thread(
+            requests.get,
+            resolved_url,
+            headers=self.source_request_headers(source_url=resolved_url),
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+
+        rows, composition_date = self._parse_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Voya returned no holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "csv"},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": "issuer_public_daily_holdings_csv",
+                "source_provider": "voya",
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "voya_symbol_daily_holdings_csv",
+                **(
+                    {"composition_date": composition_date.isoformat()}
+                    if composition_date
+                    else {}
+                ),
+            },
+        )
+
+    @classmethod
+    def _parse_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parsed_rows = csv.DictReader(StringIO(raw_csv.strip()))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw_row in enumerate(parsed_rows):
+            if (_clean(raw_row.get("Account")) or "").upper() != symbol:
+                continue
+            if composition_date is None:
+                composition_date = cls._parse_date(raw_row.get("Date"))
+            name = _clean(raw_row.get("SecurityName"))
+            source_ticker = _clean(raw_row.get("StockTicker"))
+            source_identifier = _clean(raw_row.get("CUSIP"))
+            row_type, holding_type = cls._classify_row(name=name, source_ticker=source_ticker)
+            row_symbol = source_ticker if row_type == "security" else None
+            if not any([row_symbol, name, source_identifier]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=row_symbol,
+                    name=name,
+                    cusip=source_identifier if row_type == "security" else None,
+                    weight=_decimal(raw_row.get("Weightings")),
+                    shares=_decimal(raw_row.get("Shares")),
+                    market_value=_decimal(raw_row.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        "source_ticker": source_ticker,
+                        "source_identifier": source_identifier,
+                        "price": _clean(raw_row.get("Price")),
+                        "net_assets": _clean(raw_row.get("NetAssets")),
+                        "shares_outstanding": _clean(raw_row.get("SharesOutstanding")),
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _classify_row(
+        *,
+        name: str | None,
+        source_ticker: str | None,
+    ) -> tuple[str, str]:
+        text = (name or "").upper()
+        if any(token in text for token in ("CASH BALANCE", "IM BALANCE", "CASH COLLATERAL")):
+            return "cash", "cash"
+        if any(
+            token in text
+            for token in (
+                "U.S. DOLLAR",
+                "MEXICAN ",
+                "KRONE",
+                "EURO",
+                "POUND STERLING",
+                "YEN",
+            )
+        ):
+            return "other", "forex"
+        if any(token in text for token in ("CDX.", "FUTURE", "SWAP", "OPTION")):
+            return "other", "derivative"
+        if source_ticker:
+            return "security", "equity"
+        return "security", "fixed_income"
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -20219,6 +20380,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="VanEck public product pages and holdings files may be subject to issuer terms.",
     ),
+    "voya": IssuerCsvAdapterConfig(
+        adapter_key="voya",
+        source_provider="voya",
+        source_access="issuer_public_daily_holdings_csv",
+        url_templates=(
+            "https://vimetfs.com/{symbol_lower}/holdings",
+        ),
+        product_page_templates=(
+            "https://vimetfs.com/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Voya Investment Management public ETF holdings files may be subject to issuer terms.",
+    ),
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
@@ -21341,6 +21515,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "victory": VictoryHoldingsAdapter,
         "virtus": VirtusHoldingsAdapter,
         "volatility_shares": VolatilitySharesHoldingsAdapter,
+        "voya": VoyaHoldingsAdapter,
         "wahed": WahedHoldingsAdapter,
         "wisdomtree": WisdomTreeHoldingsAdapter,
         "world_gold_council": WorldGoldCouncilHoldingsAdapter,
