@@ -3423,6 +3423,138 @@ class EldridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class AkreHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch the complete daily FilePoint CSV published by the Akre Focus ETF."""
+
+    HOLDINGS_URL = "https://akre.filepoint.live/assets/data/FilepointAkre.40B4.B4_ETF_Holdings.csv"
+    FUND_SYMBOL = "AKRE"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.FUND_SYMBOL:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Akre publishes the complete daily Focus ETF holdings CSV through its public FilePoint fund workspace.",
+            source_url=self.HOLDINGS_URL,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.FUND_SYMBOL:
+            raise ValueError("Akre's public FilePoint holdings route currently supports only AKRE.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.HOLDINGS_URL,
+                headers=_holdings_request_headers(accept="text/csv,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text)
+        if not rows:
+            raise ValueError("Akre's public FilePoint CSV returned no AKRE holdings rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(getattr(response, "url", self.HOLDINGS_URL)),
+            source_identifier=self.FUND_SYMBOL,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_filepoint_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(cls, raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            if (_clean(item.get("Account")) or "").upper() != cls.FUND_SYMBOL:
+                continue
+            row_date = cls._parse_date(item.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            holding_type = cls._holding_type(
+                raw_symbol=raw_symbol,
+                name=name,
+                money_market_flag=item.get("MoneyMarketFlag"),
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            raw_identifier = _clean(item.get("CUSIP"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(raw_symbol) if row_type == "security" else None,
+                    name=name,
+                    cusip=raw_identifier if _looks_like_cusip(raw_identifier) else None,
+                    sedol=raw_identifier if _looks_like_sedol(raw_identifier) else None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{cls.FUND_SYMBOL}:{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in item.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source_symbol": raw_symbol,
+                        "source": "akre_filepoint_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        normalized = _clean(value)
+        if not normalized or " " in normalized or _looks_like_cusip(normalized):
+            return None
+        return normalized.upper() if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized.upper()) else None
+
+    @staticmethod
+    def _holding_type(*, raw_symbol: str | None, name: str | None, money_market_flag: Any) -> str:
+        text = " ".join(
+            value.upper()
+            for value in [raw_symbol, name, _clean(money_market_flag)]
+            if value
+        )
+        if "CASH" in text or "MONEY MARKET" in text or _clean(money_market_flag) == "Y":
+            return "cash"
+        return "equity"
+
+
 class TortoiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete daily holdings embedded on Tortoise ETF product pages."""
 
@@ -21072,6 +21204,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Eldridge public ETF daily holdings files may be subject to issuer terms.",
     ),
+    "akre": IssuerCsvAdapterConfig(
+        adapter_key="akre",
+        source_provider="akre",
+        source_access="issuer_filepoint_daily_holdings_csv",
+        url_templates=(
+            "https://akre.filepoint.live/assets/data/FilepointAkre.40B4.B4_ETF_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://www.akrefund.com/fund-summary/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Akre public FilePoint ETF holdings files may be subject to issuer terms.",
+    ),
     "tortoise": IssuerCsvAdapterConfig(
         adapter_key="tortoise",
         source_provider="tortoise",
@@ -22033,6 +22178,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "american_century": AmericanCenturyHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
+        "akre": AkreHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,

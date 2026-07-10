@@ -183,6 +183,59 @@ async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cu
 
 
 @pytest.mark.asyncio
+async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_local_tickers(monkeypatch):
+    adapter = get_holdings_adapter("akre")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,"
+                        "MarketValue,Weightings,NetAssets,MoneyMarketFlag"
+                    ),
+                    (
+                        "07/10/2026,AKRE,ABNB,009066101,Airbnb Inc,1056122,146.89,"
+                        "155133760.58,2.97%,5221106549.86,"
+                    ),
+                    (
+                        "07/10/2026,AKRE,CSU CN,BR52TP7,Constellation Software Inc/Canada,"
+                        "325225,2735.47,627724982.01,12.02%,5221106549.86,"
+                    ),
+                    (
+                        "07/10/2026,AKRE,Cash&Other,Cash&Other,Cash & Other,-6150304.45,1,"
+                        "-6150304.45,-0.12%,5221106549.86,Y"
+                    ),
+                    (
+                        "07/10/2026,OTHER,MSFT,594918104,Microsoft Corp,10,1,10,1%,10,"
+                    ),
+                ]
+            )
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AKRE")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://akre.filepoint.live/assets/data/"
+        "FilepointAkre.40B4.B4_ETF_Holdings.csv"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ABNB"
+    assert result.rows[0].cusip == "009066101"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].sedol == "BR52TP7"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].weight == Decimal("-0.0012")
+    assert result.legal_metadata["route_resolution"] == "issuer_filepoint_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None

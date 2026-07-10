@@ -13,6 +13,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "abrdn",
     "adaptive_investments",
     "advisor_shares",
+    "akre",
     "allianz",
     "alliancebernstein",
     "allspring",
@@ -188,6 +189,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "akre",
+            "AKRE",
+            None,
+            {},
+            15,
         ),
         (
             "adaptive_investments",
