@@ -6,6 +6,7 @@ import csv
 import html
 import json
 import re
+import ssl
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from io import BytesIO, StringIO
+from pathlib import Path
 from string import Formatter
 from typing import Any, Protocol
 from urllib.parse import unquote_to_bytes, urlencode, urljoin, urlparse, urlunparse
@@ -3736,6 +3738,166 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
         for date_format in ("%m.%d.%Y", "%m/%d/%Y"):
             try:
                 return datetime.strptime(match.group(1), date_format).date()
+            except ValueError:
+                continue
+        return None
+
+
+class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Natixis ETF holdings from its issuer-native daily CSV files."""
+
+    DAILY_HOLDINGS_TEMPLATE = (
+        "https://mkt.im.natixis.com/files/etfs/{symbol}_daily_full_holdings.csv"
+    )
+    INTERMEDIATE_CERTIFICATE_PATH = (
+        Path(__file__).resolve().parents[1] / "lib" / "natixis-digicert-intermediate.pem"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Natixis publishes daily ETF holdings through issuer-native CSV files."
+                if normalized_symbol
+                else "Natixis holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.DAILY_HOLDINGS_TEMPLATE.format(symbol=normalized_symbol)
+                if normalized_symbol
+                else None
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Natixis holdings require an ETF symbol.")
+
+        daily_holdings_url = source_url or self.DAILY_HOLDINGS_TEMPLATE.format(
+            symbol=normalized_symbol
+        )
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            verify=self._ssl_context(),
+        ) as client:
+            holdings_response = await client.get(
+                daily_holdings_url,
+                headers=_holdings_request_headers(accept="text/csv,application/csv,*/*"),
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_daily_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Natixis daily holdings CSV returned no rows for {normalized_symbol}.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "issuer_daily_holdings_csv"},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_symbol_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_daily_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = list(csv.reader(StringIO(raw_csv)))
+        csv_symbol = next(
+            (
+                match.group(1).upper()
+                for row in table_rows[:8]
+                for match in [
+                    re.search(
+                        r"ticker:\s*([A-Za-z][A-Za-z0-9.\-]{0,11})",
+                        " ".join(row),
+                        re.I,
+                    )
+                ]
+                if match
+            ),
+            None,
+        )
+        if csv_symbol != symbol:
+            return [], None
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows)
+                if {cell.strip().lower() for cell in row}
+                >= {"ticker", "cusip", "isin", "security name", "quantity held"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+        composition_date = cls._extract_composition_date(table_rows[:header_index])
+        data_rows = [table_rows[header_index]] + [
+            row
+            for row in table_rows[header_index + 1 :]
+            if not row
+            or not all(not cell.strip() or re.fullmatch(r"-+", cell.strip()) for cell in row)
+        ]
+        rows = parse_holdings_table(data_rows)
+        for index, row in enumerate(rows, start=1):
+            row.weight = row.weight or _decimal_percent_points(
+                row.extra_data.get("Percent of net assets")
+            )
+            row.shares = row.shares or _decimal(row.extra_data.get("Quantity held"))
+            row.market_value = row.market_value or _decimal(row.extra_data.get("Market value"))
+            row.source_row_id = row.source_row_id or f"{symbol}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "natixis_daily_holdings_csv",
+            }
+        return rows, composition_date
+
+    @staticmethod
+    def _ssl_context() -> ssl.SSLContext:
+        """Keep TLS verification enabled when Natixis omits its public intermediate."""
+
+        context = ssl.create_default_context()
+        context.load_verify_locations(cafile=str(NatixisHoldingsAdapter.INTERMEDIATE_CERTIFICATE_PATH))
+        return context
+
+    @staticmethod
+    def _extract_composition_date(preamble_rows: list[list[str]]) -> date | None:
+        for row in preamble_rows:
+            text = " ".join(row).strip()
+            match = re.search(r"as\s+of\s+date:\s*(\d{2}/\d{2}/\d{4})", text, re.I)
+            if not match:
+                continue
+            try:
+                return datetime.strptime(match.group(1), "%m/%d/%Y").date()
             except ValueError:
                 continue
         return None
@@ -21464,6 +21626,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="REX Shares public ETF product pages and downloadable holdings CSV files may be subject to issuer terms.",
     ),
+    "groupe_bpce": IssuerCsvAdapterConfig(
+        adapter_key="groupe_bpce",
+        source_provider="natixis",
+        source_access="issuer_public_symbol_daily_holdings_csv",
+        url_templates=(
+            "https://mkt.im.natixis.com/files/etfs/{symbol_upper}_daily_full_holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note="Natixis public daily ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
@@ -22589,6 +22761,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
+        "groupe_bpce": NatixisHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,

@@ -352,6 +352,51 @@ async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millio
 
 
 @pytest.mark.asyncio
+async def test_natixis_adapter_parses_issuer_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("groupe_bpce")
+    assert adapter is not None
+
+    holdings_url = "https://mkt.im.natixis.com/files/etfs/GQI_daily_full_holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "DAILY HOLDINGS",
+                    "Natixis Gateway Quality Income ETF",
+                    "Ticker: GQI",
+                    "As Of Date: 07/09/2026",
+                    (
+                        "Ticker,CUSIP,ISIN,Security name,Quantity held,Percent of net assets,"
+                        "Market value,Maturity date,Coupon rate"
+                    ),
+                    "------,-----,----,-------------,-------------,---------------------,------------,-------------,-----------",
+                    "AAPL,037833100,US0378331005,APPLE INC,60866,7.315,19247046.52,,0.0",
+                    ",, ,US DOLLAR,1000,0.004,1000.00,,0.0",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GQI")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].isin == "US0378331005"
+    assert result.rows[0].weight == Decimal("0.07315")
+    assert result.rows[0].shares == Decimal("60866")
+    assert result.rows[0].market_value == Decimal("19247046.52")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_symbol_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None
