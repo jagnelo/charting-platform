@@ -4237,6 +4237,212 @@ class TiaaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return ticker.split(" ", 1)[0].upper()
 
 
+class PgimHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch PGIM ETF holdings from its public catalog and daily PDF documents."""
+
+    ETF_DIRECTORY_URL = (
+        "https://www.pgim.com/us/en/individual/investment-capabilities/products/etf.html"
+    )
+    DOCUMENT_FILE_TEMPLATE = "https://www.pgim.com/api/pidms/RepositoryEntries/{document_id}/File"
+    _CATALOG_ENTRY_RE = re.compile(
+        r'<td>\s*<a\s+href="(?P<url>https://www\.pgim\.com/[^"]+)"\s*>'
+        r'(?P<symbol>[A-Z0-9.-]+)</a>\s*</td>',
+        re.IGNORECASE,
+    )
+    _DAILY_HOLDINGS_DOCUMENT_RE = re.compile(
+        r'<a\b(?=[^>]*\bdata-document-label="DAILY HOLDINGS")'
+        r'(?=[^>]*\bpdfId=(?P<document_id>[A-F0-9]{32}))[^>]*>',
+        re.IGNORECASE,
+    )
+    _PDF_ROW_RE = re.compile(
+        r"^(?P<fund>[A-Z0-9.-]+)\s+"
+        r"(?P<as_of>\d{2}/\d{2}/\d{4})\s+"
+        r"(?P<prefix>.*?)\s+"
+        r"(?P<security_type>Common stock|Currency|Fund of Funds - Daily Distribution|"
+        r"Net Current Assets|Units)\s+"
+        r"(?P<market_value>-?[\d,.]+)\s+"
+        r"(?:(?P<maturity_date>\d{2}/\d{2}/\d{4})\s+)?"
+        r"(?P<shares>-?[\d,.]+)\s+"
+        r"(?P<security_price>-?[\d,.]+)\s+"
+        r"(?P<asset_currency>[A-Z]{3})\s+"
+        r"(?P<weight>-?[\d,.]+)\s+"
+        r"(?P<trading_currency>[A-Z]{3})$",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "PGIM publishes complete ETF holdings in public daily product documents."
+                if normalized_symbol
+                else "PGIM holdings require an ETF symbol."
+            ),
+            source_url=self.ETF_DIRECTORY_URL if normalized_symbol else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("PGIM holdings require an ETF symbol.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page_url = source_url if source_url and "/products/etf/" in source_url else None
+            if not product_page_url:
+                product_page_url = await self._resolve_product_page_url(client, normalized_symbol)
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            document_id = self._extract_daily_holdings_document_id(product_response.text)
+            if not document_id:
+                raise ValueError(
+                    f"PGIM product page did not expose a daily holdings document for {normalized_symbol}."
+                )
+            document_url = self.DOCUMENT_FILE_TEMPLATE.format(document_id=document_id)
+            document_response = await client.get(
+                document_url,
+                headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                follow_redirects=True,
+            )
+        document_response.raise_for_status()
+        raw_text = self._extract_pdf_text(document_response.content)
+        rows, composition_date = self._parse_daily_holdings_pdf(raw_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"PGIM daily holdings PDF returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_text,
+            raw_json={
+                "source_format": "issuer_daily_holdings_pdf",
+                "product_page_url": product_page_url,
+                "document_id": document_id,
+            },
+            source_url=str(document_response.url),
+            source_identifier=document_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "issuer_catalog_product_page_daily_holdings_pdf",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _resolve_product_page_url(self, client: httpx.AsyncClient, symbol: str) -> str:
+        response = await client.get(
+            self.ETF_DIRECTORY_URL,
+            headers=_issuer_page_request_headers(accept="text/html,*/*"),
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        for match in self._CATALOG_ENTRY_RE.finditer(response.text):
+            if match.group("symbol").upper() == symbol:
+                return match.group("url")
+        raise ValueError(f"PGIM ETF catalog did not contain {symbol}.")
+
+    @classmethod
+    def _extract_daily_holdings_document_id(cls, raw_html: str) -> str | None:
+        match = cls._DAILY_HOLDINGS_DOCUMENT_RE.search(raw_html)
+        return match.group("document_id").upper() if match else None
+
+    @staticmethod
+    def _extract_pdf_text(raw_pdf: bytes) -> str:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        reader = PdfReader(BytesIO(raw_pdf))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    @classmethod
+    def _parse_daily_holdings_pdf(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for line in (line.strip() for line in raw_text.splitlines()):
+            match = cls._PDF_ROW_RE.match(line)
+            if not match or match.group("fund").upper() != symbol:
+                continue
+            try:
+                row_date = datetime.strptime(match.group("as_of"), "%m/%d/%Y").date()
+            except ValueError:
+                row_date = None
+            if composition_date is None:
+                composition_date = row_date
+            parsed = cls._parse_pdf_row(match, source_row_id=f"{symbol}:{len(rows) + 1}")
+            if parsed is not None:
+                rows.append(parsed)
+        return rows, composition_date
+
+    @classmethod
+    def _parse_pdf_row(
+        cls,
+        match: re.Match[str],
+        *,
+        source_row_id: str,
+    ) -> CanonicalHoldingRow | None:
+        security_type = re.sub(r"\s+", " ", match.group("security_type")).strip()
+        prefix_tokens = match.group("prefix").split()
+        isin = next((token.upper() for token in prefix_tokens if _looks_like_isin(token)), None)
+        cusip = next((token.upper() for token in prefix_tokens if _looks_like_cusip(token)), None)
+        sedol = next((token.upper() for token in prefix_tokens if _looks_like_sedol(token)), None)
+        identifiers = {value for value in (isin, cusip, sedol) if value}
+        descriptive_tokens = [token for token in prefix_tokens if token.upper() not in identifiers]
+        normalized_type = security_type.lower()
+        is_cash = normalized_type in {"currency", "net current assets"}
+        ticker: str | None = None
+        if security_type.lower() == "common stock" and descriptive_tokens:
+            ticker = descriptive_tokens.pop(0).upper()
+        name = " ".join(descriptive_tokens).strip() or None
+        if not name and security_type == "Net Current Assets":
+            name = security_type
+        if not any((ticker, name, isin, cusip, sedol)):
+            return None
+        holding_type = "cash" if is_cash else ("fund" if "fund of funds" in normalized_type else "equity")
+        return CanonicalHoldingRow(
+            symbol=None if is_cash else ticker,
+            name=name,
+            cusip=cusip,
+            isin=isin,
+            sedol=sedol,
+            weight=_decimal_percent_points(match.group("weight")),
+            shares=_decimal(match.group("shares")),
+            market_value=_decimal(match.group("market_value")),
+            currency=match.group("asset_currency").upper(),
+            holding_type=holding_type,
+            row_type="cash" if is_cash else "security",
+            source_row_id=source_row_id,
+            extra_data={
+                "source": "pgim_daily_holdings_pdf",
+                "security_type": security_type,
+                "maturity_date": match.group("maturity_date"),
+                "security_price": match.group("security_price"),
+                "trading_currency": match.group("trading_currency").upper(),
+            },
+        )
+
+
 class AstoriaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete holdings tables from Astoria's public ETF product pages."""
 
@@ -22901,6 +23107,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Principal public ETF product pages and holdings workbooks may be subject to issuer terms.",
     ),
+    "prudential": IssuerCsvAdapterConfig(
+        adapter_key="prudential",
+        source_provider="pgim",
+        source_access="issuer_public_catalog_product_daily_holdings_pdf",
+        product_page_templates=(
+            "https://www.pgim.com/us/en/individual/investment-capabilities/products/etf.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="PGIM public ETF catalogs and daily holdings documents may be subject to issuer terms.",
+    ),
     "graniteshares": IssuerCsvAdapterConfig(
         adapter_key="graniteshares",
         source_provider="graniteshares",
@@ -23361,6 +23577,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "pacer": PacerHoldingsAdapter,
         "point_bridge": PointBridgeHoldingsAdapter,
         "principal": PrincipalHoldingsAdapter,
+        "prudential": PgimHoldingsAdapter,
         "procuream": ProcureHoldingsAdapter,
         "proshares": ProSharesHoldingsAdapter,
         "renaissance_capital": RenaissanceCapitalHoldingsAdapter,

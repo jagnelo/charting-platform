@@ -535,6 +535,84 @@ async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_pgim_adapter_discovers_product_page_document_and_parses_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("prudential")
+    assert adapter is not None
+
+    directory_url = "https://www.pgim.com/us/en/individual/investment-capabilities/products/etf.html"
+    product_page_url = (
+        "https://www.pgim.com/us/en/intermediary/investment-capabilities/products/etf/"
+        "pgim-jennison-better-future-etf"
+    )
+    document_id = "7F37BD52813A42DBB4850377D797FD0B"
+    document_url = f"https://www.pgim.com/api/pidms/RepositoryEntries/{document_id}/File"
+    extracted_pdf_text = "\n".join(
+        [
+            (
+                "ETF Ticker Date ISIN CUSIP SEDOL Ticker Description Security Type Market Value "
+                "Maturity Date Shares Security Price Asset Currency Market Value Weight Trading Currency"
+            ),
+            (
+                "PJBF 07/10/2026 US67066G1040 67066G104 2379504 NVDA NVIDIA CORP Common stock "
+                "538380.900000000 2655.000000000 202.780000000 USD 4.658810000 USD"
+            ),
+            (
+                "PJBF 07/10/2026 GBP British Pound Sterling Currency 4.550000000 "
+                "3.390000000 0.745851000 USD 0.000039000 GBP"
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<table><tr><td>PGIM Jennison Better Future ETF</td><td><a href="'
+                f'{product_page_url}">PJBF</a></td></tr></table>'
+            ),
+            content_type="text/html",
+            url=directory_url,
+        ),
+        FakeResponse(
+            text=(
+                '<a class="documents-download-link" '
+                f'href="/us/en/intermediary/pidoc?appId=aemshell&pdfId={document_id}" '
+                'data-document-label="DAILY HOLDINGS">DAILY HOLDINGS</a>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            content=b"%PDF-placeholder",
+            content_type="application/pdf",
+            url=document_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(lambda _raw: extracted_pdf_text))
+
+    result = await adapter.fetch_latest(symbol="PJBF")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        directory_url,
+        product_page_url,
+        document_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].isin == "US67066G1040"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].sedol == "2379504"
+    assert result.rows[0].weight == Decimal("0.0465881")
+    assert result.rows[0].market_value == Decimal("538380.900000000")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_catalog_product_page_daily_holdings_pdf"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None

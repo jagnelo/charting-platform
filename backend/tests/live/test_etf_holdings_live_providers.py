@@ -104,6 +104,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "palmer_square",
     "point_bridge",
     "principal",
+    "prudential",
     "procuream",
     "proshares",
     "rayliant",
@@ -685,6 +686,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             50,
+        ),
+        (
+            "prudential",
+            "PJBF",
+            None,
+            {},
+            30,
         ),
         (
             "goldman_sachs",
