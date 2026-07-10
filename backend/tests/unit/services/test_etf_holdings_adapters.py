@@ -397,6 +397,63 @@ async def test_natixis_adapter_parses_issuer_daily_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
+    adapter = get_holdings_adapter("gqg")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://gqg.filepoint.live/assets/data/"
+        "SEI_GQG_Tradedate_Holdings_07092026.txt"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
+                        "security_type|security_number|security_cusip|security_sedol|security_isin|"
+                        "security_ticker|security_description|quantity|market_value|notional_value|"
+                        "percent_of_market_value|percent_of_net_assets"
+                    ),
+                    (
+                        "07/09/2026|5415|GQG US Equity ETF|00775Y256|GQGU|Stock - Common||"
+                        "00287Y109|00287Y109|B92SR70|US00287Y1091|ABBV|ABBVIE INC|45562.00|"
+                        "11386399.42||1.92|1.87"
+                    ),
+                    (
+                        "07/09/2026|5415|GQG US Equity ETF|00775Y256|GQGU|Cash|||||||Cash|"
+                        "18942831.23|18942831.23||3.20|3.10"
+                    ),
+                    (
+                        "07/09/2026|5416|Another GQG ETF|00775Y257|GQGJ|Stock - Common||"
+                        "037833100|037833100|2046251|US0378331005|AAPL|APPLE INC|100|10000||1|1"
+                    ),
+                ]
+            ),
+            content_type="text/plain",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="GQGU", requested_date=date(2026, 7, 9))
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ABBV"
+    assert result.rows[0].cusip == "00287Y109"
+    assert result.rows[0].isin == "US00287Y1091"
+    assert result.rows[0].sedol == "B92SR70"
+    assert result.rows[0].weight == Decimal("0.0187")
+    assert result.rows[0].shares == Decimal("45562.00")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["route_resolution"] == "issuer_dated_daily_holdings_export"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tortoise_adapter_discovers_product_page_and_parses_daily_holdings(monkeypatch):
     adapter = get_holdings_adapter("tortoise")
     assert adapter is not None

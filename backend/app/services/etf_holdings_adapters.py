@@ -3903,6 +3903,164 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch GQG ETF holdings from the issuer's daily FilePoint export."""
+
+    DAILY_HOLDINGS_TEMPLATE = (
+        "https://gqg.filepoint.live/assets/data/"
+        "SEI_GQG_Tradedate_Holdings_{report_date}.txt"
+    )
+    MAX_LOOKBACK_DAYS = 10
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "GQG publishes daily ETF holdings through its issuer-native FilePoint export."
+                if normalized_symbol
+                else "GQG holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.DAILY_HOLDINGS_TEMPLATE.format(report_date=date.today().strftime("%m%d%Y"))
+                if normalized_symbol
+                else None
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("GQG holdings require an ETF symbol.")
+        if source_url:
+            return await self._fetch_daily_export(symbol=normalized_symbol, source_url=source_url)
+
+        last_error: httpx.HTTPStatusError | None = None
+        for offset in range(self.MAX_LOOKBACK_DAYS):
+            report_date = date.today() - timedelta(days=offset)
+            try:
+                return await self.fetch_for_date(
+                    symbol=normalized_symbol,
+                    requested_date=report_date,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
+                last_error = exc
+        if last_error is not None:
+            raise last_error
+        raise ValueError(f"GQG daily holdings export was unavailable for {normalized_symbol}.")
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("GQG holdings require an ETF symbol.")
+        daily_holdings_url = source_url or self.DAILY_HOLDINGS_TEMPLATE.format(
+            report_date=requested_date.strftime("%m%d%Y")
+        )
+        return await self._fetch_daily_export(symbol=normalized_symbol, source_url=daily_holdings_url)
+
+    async def _fetch_daily_export(self, *, symbol: str, source_url: str) -> HoldingsFetchResult:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                source_url,
+                headers=_holdings_request_headers(accept="text/plain,text/csv,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_daily_holdings_export(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"GQG daily holdings export returned no rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_daily_holdings_pipe_delimited"},
+            source_url=str(response.url),
+            source_identifier=symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pipe_delimited",
+                "route_resolution": "issuer_dated_daily_holdings_export",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_daily_holdings_export(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(payload), delimiter="|")
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, source_row in enumerate(reader):
+            fund_ticker = (_clean(source_row.get("fund_ticker")) or "").upper()
+            if fund_ticker != symbol:
+                continue
+            source_date = _clean(source_row.get("date"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.strptime(source_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            security_group = (_clean(source_row.get("security_group")) or "").lower()
+            security_type = (_clean(source_row.get("security_type")) or "").lower()
+            description = _clean(source_row.get("security_description"))
+            is_cash = "cash" in security_group or "cash" in security_type or description == "Cash"
+            ticker = _clean(source_row.get("security_ticker"))
+            identifier = _clean(source_row.get("security_cusip"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=description,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    isin=_clean(source_row.get("security_isin")),
+                    sedol=_clean(source_row.get("security_sedol")),
+                    weight=_decimal_percent_points(source_row.get("percent_of_net_assets")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{identifier or ticker or description or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "gqg_filepoint_daily_holdings_export",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class AstoriaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete holdings tables from Astoria's public ETF product pages."""
 
@@ -22411,6 +22569,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="GMO public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "gqg": IssuerCsvAdapterConfig(
+        adapter_key="gqg",
+        source_provider="gqg",
+        source_access="issuer_public_dated_filepoint_holdings_export",
+        url_templates=(
+            "https://gqg.filepoint.live/assets/data/"
+            "SEI_GQG_Tradedate_Holdings_{report_date}.txt",
+        ),
+        product_page_templates=(
+            "https://gqg.com/funds/exchange-traded-funds/",
+        ),
+        live_tested_default_route=True,
+        terms_note="GQG public FilePoint ETF holdings exports may be subject to issuer terms.",
+    ),
     "calamos": IssuerCsvAdapterConfig(
         adapter_key="calamos",
         source_provider="calamos",
@@ -22967,6 +23139,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
         "groupe_bpce": NatixisHoldingsAdapter,
+        "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
