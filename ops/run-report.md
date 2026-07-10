@@ -8831,3 +8831,12 @@ Append a short entry after each worker session.
 - Current count: `345` registered provider keys, `122` native/live-backed integrations, `223` remaining.
 - Validation passed: full `166`-test adapter suite, focused live Fidelity route, provider matrix, targeted ruff, and `git diff --check`.
 - Feature commit: `cf87ea3`.
+## 2026-07-10 - Voya native ETF holdings route
+
+- Promoted `voya` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated Voya adapter backed by the issuer's daily per-symbol holdings CSV.
+- The parser filters the multi-account source and preserves fixed-income, cash, currency, and derivative semantics without manufacturing tradable instruments.
+- Live validation symbol: `VMSB` with more than 100 rows.
+- Current count: `345` registered provider keys, `123` native/live-backed integrations, `222` remaining.
+- Validation passed: full `167`-test adapter suite, focused live Voya route, provider matrix, targeted ruff, and `git diff --check`.
+- Feature commit: `6d55337`.

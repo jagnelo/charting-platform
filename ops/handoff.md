@@ -5,7 +5,30 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-10T15:52Z
+## Latest checkpoint - 2026-07-10T16:07Z
+
+- Promoted `voya` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `VoyaHoldingsAdapter` using Voya's public daily account holdings CSV:
+  - `https://vimetfs.com/{symbol}/holdings`
+  - filters the shared CSV by requested ETF account before ingesting it.
+  - parses date, identifiers, security name, shares, price, market value, percentage weight, net assets, and shares outstanding.
+  - preserves cash, currency, and derivative exposures without materializing them as tradable securities; untickered securities are classified as fixed income.
+- Live validation symbol: `VMSB`, returning more than 100 parseable rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `123`
+  - providers still lacking native/live-backed support: `222`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `167 passed`
+  - focused live Voya route: `1 passed, 123 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `6d55337 feat(etf-holdings): add Voya native holdings route`
+- Remaining fast-track screenshot set:
+  - `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, and `wellington`.
+
+## Previous checkpoint - 2026-07-10T15:52Z
 
 - Promoted `fidelity` from generated/SEC-backed recognition-only support to native/live-backed support.
 - Added an isolated `FidelityHoldingsAdapter` using Fidelity's public complete ETF basket table:
@@ -29,7 +52,7 @@
 - Remaining fast-track screenshot set:
   - `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
 
-## Previous checkpoint - 2026-07-10T15:45Z
+## Earlier checkpoint - 2026-07-10T15:45Z
 
 - Promoted `capital_group` from generated/SEC-backed recognition-only support to native/live-backed support.
 - Added an isolated `CapitalGroupHoldingsAdapter` using Capital Group's public daily holdings JSON API:
