@@ -8822,3 +8822,12 @@ Append a short entry after each worker session.
   - live provider matrix.
   - targeted ruff and `git diff --check`.
 - Feature commit: `2856ada`.
+## 2026-07-10 - Fidelity native ETF basket route
+
+- Promoted `fidelity` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated Fidelity adapter backed by the issuer's complete public daily creation/redemption basket table.
+- The parser enforces declared-row-count equality, preserves cash semantics, and records that the basket may differ from the fund's full portfolio.
+- Live validation symbol: `FBCG` with more than 100 rows.
+- Current count: `345` registered provider keys, `122` native/live-backed integrations, `223` remaining.
+- Validation passed: full `166`-test adapter suite, focused live Fidelity route, provider matrix, targeted ruff, and `git diff --check`.
+- Feature commit: `cf87ea3`.

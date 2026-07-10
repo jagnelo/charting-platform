@@ -5,7 +5,31 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-10T15:45Z
+## Latest checkpoint - 2026-07-10T15:52Z
+
+- Promoted `fidelity` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `FidelityHoldingsAdapter` using Fidelity's public complete ETF basket table:
+  - `https://research2.fidelity.com/fidelity/screeners/etf/etfholdings.asp?sortBy=Symbol&sortDir=asc&symbol={symbol}&view=Holdings`
+  - parses the full creation/redemption basket, including symbol, company, weight, declared holding count, and as-of date.
+  - rejects partial parses whenever parsed rows do not exactly match Fidelity's declared basket count.
+  - preserves cash rows without materializing them as tradable instruments.
+  - records the source honestly as a creation/redemption basket, including Fidelity's disclosure that it may differ from the full current or future investment portfolio.
+- Live validation symbol: `FBCG`, returning more than 100 parseable rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `122`
+  - providers still lacking native/live-backed support: `223`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `166 passed`
+  - focused live Fidelity route: `1 passed, 122 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `cf87ea3 feat(etf-holdings): add Fidelity native basket route`
+- Remaining fast-track screenshot set:
+  - `wisdomtree`, `neuberger_berman`, `lazard`, `brookfield`, `sofi`, `rex`, `tcw`, `thrivent`, `voya`, and `wellington`.
+
+## Previous checkpoint - 2026-07-10T15:45Z
 
 - Promoted `capital_group` from generated/SEC-backed recognition-only support to native/live-backed support.
 - Added an isolated `CapitalGroupHoldingsAdapter` using Capital Group's public daily holdings JSON API:
@@ -33,7 +57,7 @@
 - Next step:
   - Continue the same priority ordering, proving a complete issuer-native route and live test before promoting another provider.
 
-## Previous checkpoint - 2026-07-07T16:05Z
+## Earlier checkpoint - 2026-07-07T16:05Z
 
 - Promoted `doubleline` from generated/SEC-backed recognition-only support to native/live-backed support.
 - This was from the user-confirmed fast-track screenshot set:
