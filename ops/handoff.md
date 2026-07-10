@@ -5,6 +5,11 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Research checkpoint - 2026-07-10T18:45Z
+
+- `russell_investments` public ETF directory and product pages are backend-reachable, including RIFR's public product payload. The issuer payload currently has `Holdings: null` and `HideHoldingTable: true`, with no downloadable full-holdings artifact exposed by the public page.
+- Do not promote Russell Investments from this evidence. A native route requires a real issuer disclosure/feed containing complete holdings, not a reachable fund page with holdings explicitly suppressed.
+
 ## Latest checkpoint - 2026-07-10T18:30Z
 
 - Promoted `akre` from generated/SEC-backed recognition-only support to native/live-backed support.

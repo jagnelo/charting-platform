@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-10T18:30:00Z",
+    "last_handoff_at": "2026-07-10T18:45:00Z",
     "last_commit": "efe3dc6",
     "git_ready_to_commit": false,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-10T18:45Z Russell Investments audit: public ETF pages are backend-reachable, but the RIFR issuer payload explicitly has Holdings:null and HideHoldingTable:true, with no full holdings artifact exposed. Russell remains unpromoted and this does not count toward native support.",
         "2026-07-10T18:30Z Akre native route: promoted akre from generated/SEC-backed recognition-only support to native/live-backed support. The isolated AkreHoldingsAdapter reads the issuer's daily FilePoint CSV at https://akre.filepoint.live/assets/data/FilepointAkre.40B4.B4_ETF_Holdings.csv for AKRE, preserves CUSIP/SEDOL metadata, avoids inventing US tickers for exchange-qualified foreign references, and keeps cash/money-market rows as cash. AKRE was verified live with more than 15 parseable issuer-native rows. Current truthful count is 345 registered, 128 native/live-backed, 217 remaining; SEC EDGAR remains fallback only. Full ETF adapter unit suite passed with 172 tests, focused live Akre route passed, provider matrix passed, targeted ruff passed, and git diff --check passed.",
         "2026-07-10T18:15Z Priority audit: WisdomTree's correct public US product page is Cloudflare-blocked to direct backend requests and remains unpromoted. TCW's issuer-hosted Edge/Sitecore FI-ETF-Q1-Holdings.pdf is reachable and contains schedules for ACLO, FIXT, IGCB, FLXR, HYBX, MUSE, and SLNZ, but needs current-artifact discovery plus defensible multi-fund PDF segmentation before promotion. Neither finding counts as native support; current count remains 345 registered, 127 native/live-backed, and 218 remaining.",
         "2026-07-10T18:00Z Tortoise native route: promoted tortoise from generated/SEC-backed recognition-only support to native/live-backed support. The isolated TortoiseHoldingsAdapter reads Tortoise's public ETF sitemap at https://tortoisecapital.com/etfs-sitemap.xml, resolves the requested ETF by verifying the product page ticker, and parses the complete embedded daily holdings table. TPZ was verified live with 39 parseable issuer-native rows. Current truthful count is 345 registered, 127 native/live-backed, 218 remaining; SEC EDGAR remains fallback only. Full ETF adapter unit suite passed with 171 tests, focused live Tortoise route passed, provider matrix passed, targeted ruff passed, and git diff --check passed.",

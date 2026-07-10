@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Russell Investments route audit
+
+### Findings
+
+- Public ETF directory/product pages are backend-reachable, but RIFR's issuer payload has `Holdings: null` and `HideHoldingTable: true`.
+- No complete issuer-native holdings artifact was exposed, so Russell Investments remains unpromoted and SEC is not being counted as a substitute.
+
 ## 2026-07-10 - Akre native ETF holdings route
 
 ### Summary
