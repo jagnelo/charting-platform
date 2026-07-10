@@ -2,6 +2,29 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - Rayliant native ETF holdings route
+
+### Summary
+
+- Promoted `rayliant` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `RayliantHoldingsAdapter`:
+  - discovers the requested ETF through the issuer's public product sitemap;
+  - validates the declared page ticker before following the explicit full holdings CSV download;
+  - retains exchange-qualified foreign references and SEDOLs without creating false local ticker symbols;
+  - contains a narrow Rayliant-only `403` transport fallback because the issuer accepts the same public request through `requests` but rejects `httpx`.
+- Live validation symbol: `CNQQ`, with more than 50 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `129`
+  - providers still lacking native/live-backed support: `216`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `173 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k rayliant --no-cov -q` -> `1 passed, 132 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-10 - Russell Investments route audit
 
 ### Findings

@@ -5,6 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T19:10Z
+
+- Promoted `rayliant` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `RayliantHoldingsAdapter` that:
+  - uses Rayliant's public product sitemap at `https://funds.rayliant.com/page-sitemap.xml` to discover the requested ETF page and verifies the page's declared ticker;
+  - follows the issuer page's explicit `?download_csv=1` full-holdings download, rather than ingesting the visible top-ten table;
+  - preserves exchange-qualified foreign references such as `700 HK` as source references with SEDOL metadata rather than inventing unsupported local tickers;
+  - uses a narrow issuer-local `requests` fallback only after Rayliant returns `403` to `httpx`; the issuer accepts the same public request through this transport.
+- Live validation symbol: `CNQQ`, returning more than 50 parseable issuer-native holdings rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `129`
+  - providers still lacking native/live-backed support: `216`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `173 passed`
+  - focused live Rayliant route: `1 passed, 132 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route; do not promote blocked or SEC-only routes.
+
 ## Research checkpoint - 2026-07-10T18:45Z
 
 - `russell_investments` public ETF directory and product pages are backend-reachable, including RIFR's public product payload. The issuer payload currently has `Holdings: null` and `HideHoldingTable: true`, with no downloadable full-holdings artifact exposed by the public page.
