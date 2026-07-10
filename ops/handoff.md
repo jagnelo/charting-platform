@@ -5,6 +5,29 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-10T17:20Z
+
+- Promoted `rex` from generated/SEC-backed recognition-only support to native/live-backed support.
+- Added an isolated `RexHoldingsAdapter` using the issuer's public product-page CSV download form:
+  - product page: `https://www.rexshares.com/{symbol_lower}/`
+  - posts `CSV=Download CSV` and the selected ETF symbol to retrieve the complete issuer CSV, rather than ingesting the visible top-ten preview.
+  - parses ticker, name, CUSIP/security identifier, weight, net value, and shares.
+  - classifies cash, money-market funds, swaps, and OCC-style option contracts accurately rather than treating them as ordinary equities.
+  - uses `requests` through `asyncio.to_thread` because the issuer accepts the public form with that transport while rejecting the async client's TLS fingerprint.
+- Live validation symbol: `FEPI`, returning 64 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `125`
+  - providers still lacking native/live-backed support: `220`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `169 passed`
+  - focused live REX route: `2 passed, 127 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the user-prioritized providers, with `wisdomtree`, `neuberger_berman`, `brookfield`, `sofi`, `tcw`, `thrivent`, and `wellington` still to be proven by native provider routes and live tests.
+
 ## Latest checkpoint - 2026-07-10T16:45Z
 
 - Promoted `lazard` from generated/SEC-backed recognition-only support to native/live-backed support.

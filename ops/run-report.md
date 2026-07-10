@@ -2,6 +2,32 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - REX Shares native ETF holdings route
+
+### Summary
+
+- Promoted `rex` from recognition-only/generated support to native/live-backed support.
+- Added provider-specific `RexHoldingsAdapter`:
+  - posts the public `CSV=Download CSV` form on `https://www.rexshares.com/{symbol_lower}/` to retrieve the issuer's complete CSV, not its visible top-ten page preview.
+  - live validation symbol: `FEPI`, with 64 complete issuer-native rows.
+  - parses identifiers, weights, values, and shares; retains cash and money-market rows while preventing swaps and OCC-style option contracts from being falsely materialized as ordinary equities.
+  - uses `requests` through `asyncio.to_thread`, matching the issuer-supported public form transport after its endpoint rejected the async client's TLS fingerprint.
+- Current truthful provider-native count is now:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `125`
+  - providers still lacking native/live-backed support: `220`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `169 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k rex --no-cov -q` -> `2 passed, 127 deselected`
+- provider matrix -> `1 passed`
+- targeted ruff and `git diff --check` -> passed
+
+### Next step
+
+- Continue the 345-provider goal with the remaining user-prioritized issuers. SEC EDGAR stays fallback-only and does not qualify a provider as native support.
+
 ## 2026-07-10 - Lazard native ETF holdings route
 
 ### Summary
