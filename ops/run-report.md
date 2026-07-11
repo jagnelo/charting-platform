@@ -9250,3 +9250,11 @@ Append a short entry after each worker session.
 - Current count: `345` registered provider keys, `123` native/live-backed integrations, `222` remaining.
 - Validation passed: full `167`-test adapter suite, focused live Voya route, provider matrix, targeted ruff, and `git diff --check`.
 - Feature commit: `6d55337`.
+## 2026-07-11 - Impax native ETF holdings route
+
+- Promoted `impax` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated Impax adapter that reads the complete holdings dataset embedded in the issuer's public server-rendered BLDX product page. It validates the ETF identity and preserves FIGI, ticker, shares, market value, weight, cash classification, and issuer as-of date.
+- Live validation symbol: `BLDX`, returning more than 20 parseable rows.
+- Current count: `345` registered provider keys, `142` native/live-backed integrations, `203` remaining.
+- Validation passed: full `186`-test adapter suite, focused live Impax route, live provider matrix, targeted ruff, and `git diff --check`.
+- Feature commit: `20c0565`.

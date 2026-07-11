@@ -5,6 +5,27 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T03:20Z
+
+- Promoted `impax` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `ImpaxHoldingsAdapter` that fetches the issuer's public server-rendered
+  BLDX fund page, validates the page's declared ETF symbol, and parses its complete embedded
+  holdings dataset without using SEC as the primary route.
+- It preserves the issuer-published FIGI, ticker, shares, market value, net-assets weight,
+  cash classification, and composition date.
+- Live validation symbol: `BLDX`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `142`
+  - providers still lacking native/live-backed support: `203`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `186 passed`
+  - focused live Impax route: `1 passed, 145 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `20c0565 feat(etf-holdings): add Impax native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T02:50Z
 
 - Promoted `alger` from recognition-only/SEC-backed support to native/live-backed support.
