@@ -10,6 +10,7 @@ from app.services.etf_holdings_adapters import (
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
     "acquirers",
+    "acuitas",
     "abrdn",
     "adaptive_investments",
     "agf",
@@ -187,6 +188,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
+        (
+            "acuitas",
+            "AIMS",
+            None,
+            {},
+            100,
+        ),
         (
             "agf",
             "BTAL",

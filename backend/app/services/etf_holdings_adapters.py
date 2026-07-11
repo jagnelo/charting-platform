@@ -4510,6 +4510,125 @@ class AgfHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class AcuitasHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Acuitas' public daily ETF holdings export."""
+
+    DAILY_HOLDINGS_URL = (
+        "https://phpstack-1541365-5956782.cloudwaysapps.com/"
+        "Acuitas_WEB.40B6.B6_ETF_Holdings.csv"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Acuitas publishes a complete daily ETF holdings CSV."
+                if normalized_symbol
+                else "Acuitas holdings require an ETF symbol."
+            ),
+            source_url=self.DAILY_HOLDINGS_URL if normalized_symbol else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Acuitas holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.DAILY_HOLDINGS_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_daily_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Acuitas daily holdings CSV did not contain holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_daily_holdings_csv"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_daily_holdings_csv(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(payload))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, source_row in enumerate(reader):
+            account = (_clean(source_row.get("Account")) or "").upper()
+            if account != symbol:
+                continue
+            source_date = _clean(source_row.get("Date"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.strptime(source_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            ticker = _clean(source_row.get("StockTicker"))
+            name = _clean(source_row.get("SecurityName"))
+            cash_flag = (_clean(source_row.get("MoneyMarketFlag")) or "").lower()
+            is_cash = cash_flag in {"y", "yes", "true", "1"} or (
+                not ticker and "cash" in (name or "").lower()
+            )
+            cusip = _clean(source_row.get("CUSIP"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    # Acuitas publishes an explicit percent sign (for example, 0.23%),
+                    # so _decimal already returns its canonical fractional weight.
+                    weight=_decimal(source_row.get("Weightings")),
+                    shares=_decimal(source_row.get("Shares")),
+                    market_value=_decimal(source_row.get("MarketValue")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "acuitas_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -24121,6 +24240,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AGF public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "acuitas": IssuerCsvAdapterConfig(
+        adapter_key="acuitas",
+        source_provider="acuitas",
+        source_access="issuer_daily_holdings_csv",
+        url_templates=(
+            "https://phpstack-1541365-5956782.cloudwaysapps.com/"
+            "Acuitas_WEB.40B6.B6_ETF_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://acuitasfunds.com/acuitas-small-cap-active-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Acuitas public ETF daily holdings CSV may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -24136,6 +24269,7 @@ for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "acquirers": AcquirersHoldingsAdapter,
+        "acuitas": AcuitasHoldingsAdapter,
         "advisor_shares": AdvisorSharesHoldingsAdapter,
         "allianz": AllianzHoldingsAdapter,
         "alliancebernstein": AllianceBernsteinHoldingsAdapter,

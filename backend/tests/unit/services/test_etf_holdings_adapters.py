@@ -658,6 +658,53 @@ async def test_agf_adapter_resolves_product_payload_and_parses_per_fund_holdings
 
 
 @pytest.mark.asyncio
+async def test_acuitas_adapter_filters_daily_holdings_by_issuer_account(monkeypatch):
+    adapter = get_holdings_adapter("acuitas")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://phpstack-1541365-5956782.cloudwaysapps.com/"
+        "Acuitas_WEB.40B6.B6_ETF_Holdings.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+                        "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag"
+                    ),
+                    (
+                        "07/13/2026,AIMS,ACCO,00081T108,ACCO Brands Corp,51627,3.88,200312.76,"
+                        "0.23%,88331710,3100000,124,"
+                    ),
+                    (
+                        "07/13/2026,AIMS,,,Cash & Other,1000,1,1000,0.01%,88331710,3100000,124,Y"
+                    ),
+                    "07/13/2026,OTHER,AAPL,037833100,Apple Inc,1,1,1,1%,1,1,1,",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AIMS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ACCO"
+    assert result.rows[0].cusip == "00081T108"
+    assert result.rows[0].weight == Decimal("0.0023")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None
