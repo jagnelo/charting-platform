@@ -6119,6 +6119,154 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
+
+    PRODUCT_URLS = {
+        "ADDS": "https://www.hedgeyeam.com/adds",
+        "HECA": "https://www.hedgeyeam.com/heca",
+        "HEFT": "https://www.hedgeyeam.com/heft",
+        "HELS": "https://www.hedgeyeam.com/hels",
+        "HGRO": "https://www.hedgeyeam.com/hgro",
+    }
+    _SNAPSHOT_START_RE = re.compile(
+        r'"date":"(?P<date>\d{4}-\d{2}-\d{2})","holdings":\{"data":',
+    )
+    _SNAPSHOT_ACCOUNT_RE = re.compile(r',"account":"(?P<account>[A-Z0-9]+)"')
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Hedgeye publishes this ETF's complete daily holdings in its public product-page payload."
+                if source_url
+                else (
+                    "No public Hedgeye ETF product page is configured for this symbol; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Hedgeye ETF product page is configured for this symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Hedgeye holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.PRODUCT_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No public Hedgeye ETF product page is configured for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Hedgeye product page did not contain complete daily holdings rows for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows):
+            row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "hedgeye_product_page_daily_holdings_payload",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_holdings_payload"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_embedded_json",
+                "route_resolution": "issuer_product_page_complete_daily_holdings_payload",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        decoder = json.JSONDecoder()
+        latest_date: date | None = None
+        latest_rows: list[dict[str, Any]] = []
+        for match in cls._SNAPSHOT_START_RE.finditer(payload):
+            try:
+                raw_rows, end_index = decoder.raw_decode(payload, match.end())
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(raw_rows, list):
+                continue
+            account_match = cls._SNAPSHOT_ACCOUNT_RE.search(payload, end_index, end_index + 160)
+            if account_match is None or account_match.group("account").upper() != symbol:
+                continue
+            try:
+                snapshot_date = datetime.strptime(match.group("date"), "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if latest_date is None or snapshot_date > latest_date:
+                latest_date = snapshot_date
+                latest_rows = [item for item in raw_rows if isinstance(item, dict)]
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(latest_rows, start=1):
+            name = _clean(item.get("SecurityName"))
+            raw_symbol = _clean(item.get("StockTicker"))
+            raw_cusip = _clean(item.get("CUSIP"))
+            money_market = _clean(item.get("MoneyMarketFlag"))
+            is_cash = money_market == "Y" or (raw_symbol or "").lower() == "cash&other"
+            if not any([name, raw_symbol, raw_cusip]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else raw_symbol,
+                    name=name,
+                    cusip=raw_cusip if _looks_like_cusip(raw_cusip) else None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value is not None
+                    },
+                )
+            )
+        return rows, latest_date
+
+
 class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch VictoryShares holdings from Victory Capital's public product API."""
 
@@ -24963,6 +25111,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Mairs & Power public ETF portfolio tables may be subject to issuer terms.",
     ),
+    "hedgeye": IssuerCsvAdapterConfig(
+        adapter_key="hedgeye",
+        source_provider="hedgeye",
+        source_access="issuer_public_product_page_complete_daily_holdings_payload",
+        product_page_templates=("https://www.hedgeyeam.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Hedgeye public ETF product-page holdings payloads may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -25060,6 +25216,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "harbor": HarborHoldingsAdapter,
         "hennessy": HennessyHoldingsAdapter,
         "horizon_kinetics": HorizonKineticsHoldingsAdapter,
+        "hedgeye": HedgeyeHoldingsAdapter,
         "howard_capital": HowardCapitalHoldingsAdapter,
         "inspire": InspireHoldingsAdapter,
         "impax": ImpaxHoldingsAdapter,

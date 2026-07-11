@@ -834,6 +834,52 @@ async def test_bbh_adapter_parses_complete_daily_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<script>'
+                '"date":"2026-07-10","holdings":{"data":['
+                '{"SecurityName":"Apple Inc","StockTicker":"AAPL","CUSIP":"037833100",'
+                '"Shares":10,"MarketValue":2000,"Weightings":"2.00%","MoneyMarketFlag":"",'
+                '"Account":"HECA"}]},"account":"HECA","title":"2026-07-10-HECA"'
+                '"date":"2026-07-11","holdings":{"data":['
+                '{"SecurityName":"Microsoft Corp","StockTicker":"MSFT","CUSIP":"594918104",'
+                '"Shares":12,"MarketValue":3000,"Weightings":"3.00%","MoneyMarketFlag":"",'
+                '"Account":"HECA"},'
+                '{"SecurityName":"Cash & Other","StockTicker":"Cash&Other","CUSIP":"Cash&Other",'
+                '"Shares":50,"MarketValue":50,"Weightings":"0.05%","MoneyMarketFlag":"Y",'
+                '"Account":"HECA"}]},"account":"HECA","title":"2026-07-11-HECA"'
+                '"date":"2026-07-12","holdings":{"data":['
+                '{"SecurityName":"Other Fund","StockTicker":"OTHER","CUSIP":"000000000",'
+                '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
+                '"Account":"HGRO"}]},"account":"HGRO","title":"2026-07-12-HGRO"'
+                "</script>"
+            )
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HECA")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.hedgeyeam.com/heca"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_complete_daily_holdings_payload"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].cusip == "594918104"
+    assert result.rows[0].weight == Decimal("0.03")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
 async def test_wbi_adapter_parses_complete_daily_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("wbi")
     assert adapter is not None
