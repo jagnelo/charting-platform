@@ -705,6 +705,45 @@ async def test_acuitas_adapter_filters_daily_holdings_by_issuer_account(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_alger_adapter_parses_per_fund_daily_holdings_and_cash_rows(monkeypatch):
+    adapter = get_holdings_adapter("alger")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://www.alger.com/AlgerETFDailyHoldings/"
+        "Daily_Holdings_Alger_Concentrated_Equity_ETF.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Product Short Name,Effective Date,Ticker,CUSIP,Security Description,Quantity,Percentage Weight",
+                    "CNEQ,07/09/2026,USD,,US Dollar,2251434.8800,0.29 %",
+                    "CNEQ,07/09/2026,TSM,874039100,Taiwan Semiconductor ADR,100054.0000,5.69 %",
+                    "OTHER,07/09/2026,AAPL,037833100,Apple Inc,1,1.00 %",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CNEQ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[1].symbol == "TSM"
+    assert result.rows[1].cusip == "874039100"
+    assert result.rows[1].weight == Decimal("0.0569")
+    assert result.legal_metadata["route_resolution"] == "issuer_per_fund_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None

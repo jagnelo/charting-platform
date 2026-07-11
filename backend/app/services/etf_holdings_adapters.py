@@ -4629,6 +4629,140 @@ class AcuitasHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class AlgerHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Alger's public per-fund daily ETF holdings CSVs."""
+
+    DAILY_HOLDINGS_URLS = {
+        "ATFV": "https://www.alger.com/AlgerETFDailyHoldings/Daily_Holdings_Alger_35_ETF.csv",
+        "FRTY": "https://www.alger.com/AlgerETFDailyHoldings/Daily_Holdings_Alger_Mid_Cap_40_ETF.csv",
+        "ALAI": (
+            "https://www.alger.com/AlgerETFDailyHoldings/"
+            "Daily_Holdings_Alger_AI_Enablers_%26_Adopters_ETF.csv"
+        ),
+        "CNEQ": (
+            "https://www.alger.com/AlgerETFDailyHoldings/"
+            "Daily_Holdings_Alger_Concentrated_Equity_ETF.csv"
+        ),
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.DAILY_HOLDINGS_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Alger publishes a dedicated daily holdings CSV for this ETF."
+                if source_url
+                else (
+                    "No public Alger daily holdings CSV is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Alger daily holdings CSV is configured for this ETF symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Alger holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.DAILY_HOLDINGS_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No public Alger daily holdings CSV is configured for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_daily_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Alger daily holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_per_fund_daily_holdings_csv"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_per_fund_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_daily_holdings_csv(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(payload))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, source_row in enumerate(reader):
+            source_symbol = (_clean(source_row.get("Product Short Name")) or "").upper()
+            if source_symbol != symbol:
+                continue
+            source_date = _clean(source_row.get("Effective Date"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.strptime(source_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            ticker = _clean(source_row.get("Ticker"))
+            name = _clean(source_row.get("Security Description"))
+            cusip = _clean(source_row.get("CUSIP"))
+            is_cash = (
+                ticker == "USD"
+                or "us dollar" in (name or "").lower()
+                or (not cusip and "cash" in (name or "").lower())
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(source_row.get("Percentage Weight")),
+                    shares=_decimal(source_row.get("Quantity")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "alger_per_fund_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -24254,6 +24388,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Acuitas public ETF daily holdings CSV may be subject to issuer terms.",
     ),
+    "alger": IssuerCsvAdapterConfig(
+        adapter_key="alger",
+        source_provider="alger",
+        source_access="issuer_per_fund_daily_holdings_csv",
+        product_page_templates=(
+            "https://www.alger.com/Pages/ETFs.aspx",
+        ),
+        live_tested_default_route=True,
+        terms_note="Alger public ETF daily holdings CSV files may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -24270,6 +24414,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "acquirers": AcquirersHoldingsAdapter,
         "acuitas": AcuitasHoldingsAdapter,
+        "alger": AlgerHoldingsAdapter,
         "advisor_shares": AdvisorSharesHoldingsAdapter,
         "allianz": AllianzHoldingsAdapter,
         "alliancebernstein": AllianceBernsteinHoldingsAdapter,
