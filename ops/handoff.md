@@ -9,6 +9,21 @@
 
 ## Source audit - 2026-07-11T04:10Z
 
+## Blocked-source audit - 2026-07-11T04:25Z
+
+- Continued the priority issuer audit without promoting any adapter that lacks an executable
+  issuer-native route:
+  - `cohen_steers`: its public ETF product pages advertise `DOWNLOAD HOLDING DATA`, but direct
+    backend-style retrieval of a representative ETF page (`CSPF`) returns HTTP `403`.
+  - `praxis`: its public ETF pages advertise full daily holdings, but direct retrieval of the
+    official `PRXV` holdings page returns the issuer's geographic-access-denied page rather than
+    holdings data.
+- Together with the immediately preceding WisdomTree and Thrivent `403` results, this is a
+  repeated external source-access blocker across the highest-priority remaining issuers. Do not
+  promote these adapters or substitute SEC fallback as primary support. Resume only when a
+  backend-readable issuer-native artifact can be identified or the execution environment has
+  access to the issuer hosts.
+
 - Re-checked two of the highest-priority remaining issuers through their official public
   product pages before attempting any promotion:
   - `wisdomtree`: its public ETF pages explicitly expose a Holdings section and state that

@@ -9394,3 +9394,12 @@ Append a short entry after each worker session.
   public product pages returned HTTP `403` with standard browser headers.
 - No provider was promoted without a backend-readable issuer-native artifact and a live test.
 - Registry remains 345 registered providers, 148 native/live-backed, 197 remaining.
+
+# ETF Holdings Provider Blocked-Source Audit - 2026-07-11T04:25Z
+
+- Cohen & Steers advertises a full holdings download, but its representative issuer ETF page
+  returns HTTP `403` to a backend-style request.
+- Praxis advertises daily/full ETF holdings, but the representative issuer page returns an
+  issuer geographic-access-denied response rather than holdings.
+- Combined with the preceding WisdomTree and Thrivent `403`s, this is a repeated external
+  source-access blocker. No unsupported provider was promoted and SEC stays fallback-only.
