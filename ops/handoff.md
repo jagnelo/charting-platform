@@ -5,6 +5,27 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T03:40Z
+
+- Promoted `polen` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `PolenHoldingsAdapter` for Polen Capital's public multi-fund daily CSV.
+  It filters the issuer export by its declared basket name instead of treating the feed as a
+  generic source or mixing funds together.
+- It preserves ticker, CUSIP/ISIN, quantity, market value, weight, cash classification, and
+  issuer composition date.
+- Live validation symbol: `PCLG`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `147`
+  - providers still lacking native/live-backed support: `198`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `191 passed`
+  - focused live Polen route: `1 passed, 150 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `e8db774 feat(etf-holdings): add Polen native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T03:29Z
 
 - Promoted `hedgeye` from recognition-only/SEC-backed support to native/live-backed support.

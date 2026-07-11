@@ -2,6 +2,28 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Polen native ETF holdings route
+
+### Summary
+
+- Promoted `polen` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `PolenHoldingsAdapter` for the issuer's public multi-fund daily CSV.
+  It filters the complete issuer export by the declared ETF basket and does not merge holdings
+  across funds.
+- The adapter preserves ticker, CUSIP/ISIN, quantity, market value, percent weight, cash
+  classification, and issuer as-of date.
+- Live validation symbol: `PCLG`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `147`
+  - providers still lacking native/live-backed support: `198`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `191 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k polen --no-cov -q` -> `1 passed, 150 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - Hedgeye native ETF holdings route
 
 ### Summary
