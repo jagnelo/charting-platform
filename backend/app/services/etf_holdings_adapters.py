@@ -4061,6 +4061,171 @@ class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class FirstPacificHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch FPA ETF holdings from the issuer's dated multi-fund CSV export."""
+
+    DAILY_HOLDINGS_TEMPLATE = (
+        "https://fpag.fpa.com/assets/data/BBH_FPA_ETF_PVAL_WEB.{report_date}.csv"
+    )
+    MAX_LOOKBACK_DAYS = 30
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "First Pacific Advisors publishes daily ETF holdings through its issuer-native "
+                "multi-fund CSV export."
+                if normalized_symbol
+                else "First Pacific Advisors holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.DAILY_HOLDINGS_TEMPLATE.format(report_date=date.today().strftime("%Y%m%d"))
+                if normalized_symbol
+                else None
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("First Pacific Advisors holdings require an ETF symbol.")
+        if source_url:
+            return await self._fetch_daily_export(symbol=normalized_symbol, source_url=source_url)
+
+        last_error: httpx.HTTPStatusError | None = None
+        for offset in range(self.MAX_LOOKBACK_DAYS):
+            requested_date = date.today() - timedelta(days=offset)
+            try:
+                return await self.fetch_for_date(
+                    symbol=normalized_symbol,
+                    requested_date=requested_date,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
+                last_error = exc
+        if last_error is not None:
+            raise last_error
+        raise ValueError(
+            f"First Pacific Advisors daily holdings export was unavailable for {normalized_symbol}."
+        )
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("First Pacific Advisors holdings require an ETF symbol.")
+        daily_holdings_url = source_url or self.DAILY_HOLDINGS_TEMPLATE.format(
+            report_date=requested_date.strftime("%Y%m%d")
+        )
+        return await self._fetch_daily_export(symbol=normalized_symbol, source_url=daily_holdings_url)
+
+    async def _fetch_daily_export(self, *, symbol: str, source_url: str) -> HoldingsFetchResult:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                source_url,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_daily_holdings_export(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(
+                f"First Pacific Advisors daily holdings export returned no rows for {symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_daily_holdings_csv"},
+            source_url=str(response.url),
+            source_identifier=symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_dated_multi_fund_daily_holdings_export",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_daily_holdings_export(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(payload))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, source_row in enumerate(reader):
+            fund_ticker = (_clean(source_row.get("ETF Ticker")) or "").upper()
+            if fund_ticker != symbol:
+                continue
+            source_date = _clean(source_row.get("Date"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.strptime(source_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            security_type = (_clean(source_row.get("Security Type")) or "").lower()
+            description = _clean(source_row.get("Description"))
+            is_cash = "cash" in security_type or (description or "").lower() in {"cash", "us dollars"}
+            ticker = _clean(source_row.get("Ticker"))
+            cusip = _clean(source_row.get("CUSIP"))
+            raw_weight = _clean(source_row.get("Market Value Weight"))
+            weight = _decimal(raw_weight)
+            if weight is not None and raw_weight and not raw_weight.endswith("%"):
+                weight /= Decimal("100")
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=description,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=_clean(source_row.get("ISIN")),
+                    sedol=_clean(source_row.get("SEDOL")),
+                    weight=weight,
+                    shares=_decimal(source_row.get("Shares")),
+                    market_value=_decimal(source_row.get("Market Value")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or description or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "first_pacific_daily_multi_fund_holdings_export",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -23633,6 +23798,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TCW public fixed-income ETF holdings PDFs may be subject to issuer terms.",
     ),
+    "first_pacific": IssuerCsvAdapterConfig(
+        adapter_key="first_pacific",
+        source_provider="first_pacific",
+        source_access="issuer_public_dated_multi_fund_holdings_csv",
+        url_templates=(
+            "https://fpag.fpa.com/assets/data/BBH_FPA_ETF_PVAL_WEB.{report_date}.csv",
+        ),
+        product_page_templates=(
+            "https://fpag.fpa.com/",
+            "https://fpas.fpa.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "First Pacific Advisors public daily ETF holdings CSV exports may be subject to issuer terms."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -23699,6 +23880,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "eventide": EventideHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
+        "first_pacific": FirstPacificHoldingsAdapter,
         "federated_hermes": FederatedHermesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,

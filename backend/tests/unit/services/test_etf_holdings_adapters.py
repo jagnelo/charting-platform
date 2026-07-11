@@ -503,6 +503,54 @@ async def test_brown_advisory_adapter_filters_issuer_dated_filepoint_holdings_ex
 
 
 @pytest.mark.asyncio
+async def test_first_pacific_adapter_filters_issuer_dated_multi_fund_holdings_export(monkeypatch):
+    adapter = get_holdings_adapter("first_pacific")
+    assert adapter is not None
+
+    holdings_url = "https://fpag.fpa.com/assets/data/BBH_FPA_ETF_PVAL_WEB.20260709.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,"
+                        "Market Value,Shares,Market Value Weight"
+                    ),
+                    (
+                        "FPAG,7/9/2026,US0378331005,037833100,2046251,AAPL,APPLE INC,COMMON STOCK,"
+                        "19247046.52,60866,7.315%"
+                    ),
+                    "FPAG,7/9/2026,,,,,US DOLLARS,CASH,1000000,1000000,0.38%",
+                    (
+                        "FPAS,7/9/2026,US91282CQY47,91282CQY4,,,US TREASURY NOTE,GOVERNMENT BOND,"
+                        "6715000,6715000,68.15%"
+                    ),
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="FPAG", requested_date=date(2026, 7, 9))
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].isin == "US0378331005"
+    assert result.rows[0].sedol == "2046251"
+    assert result.rows[0].weight == Decimal("0.07315")
+    assert result.rows[0].shares == Decimal("60866")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["route_resolution"] == "issuer_dated_multi_fund_daily_holdings_export"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None

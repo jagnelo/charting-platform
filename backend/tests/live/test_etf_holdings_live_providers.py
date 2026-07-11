@@ -60,6 +60,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "eventide",
     "etf_architect",
     "faith_investor_services",
+    "first_pacific",
     "federated_hermes",
     "fidelity",
     "oneascent",
@@ -698,6 +699,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "brown_advisory",
             "BAFE",
+            None,
+            {},
+            20,
+        ),
+        (
+            "first_pacific",
+            "FPAG",
             None,
             {},
             20,
