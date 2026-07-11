@@ -551,6 +551,57 @@ async def test_first_pacific_adapter_filters_issuer_dated_multi_fund_holdings_ex
 
 
 @pytest.mark.asyncio
+async def test_gabelli_adapter_parses_per_fund_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("gamco")
+    assert adapter is not None
+
+    holdings_url = "https://gabelli.com/wp-content/uploads/Holdings_GCAD.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        '"Account Description","Position Date","Stock Ticker",'
+                        '"Security Description(Long)","Shares/Par","Price","Security CUSIP",'
+                        '"% of Net Assets","Sector Description","Clean/Dirty"'
+                    ),
+                    (
+                        '"GABELLI CMRCL AERO & DEF","07/09/2026","AIN","ALBANY INTL CORP-CL A",'
+                        '"41121","71.31","012348108","6.6632%","INDUSTRIAL",""'
+                    ),
+                    (
+                        '"GABELLI CMRCL AERO & DEF","07/09/2026","","EURO",'
+                        '"57.5","0.87504","","0.0001%","UNDEFINED",""'
+                    ),
+                    (
+                        '"GABELLI CMRCL AERO & DEF","07/09/2026","","Net Current Assets",'
+                        '"76513.24","1","","0.1739%","",""'
+                    ),
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GCAD")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AIN"
+    assert result.rows[0].cusip == "012348108"
+    assert result.rows[0].weight == Decimal("0.066632")
+    assert result.rows[0].market_value == Decimal("2932338.51")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_per_fund_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None

@@ -4226,6 +4226,147 @@ class FirstPacificHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class GabelliHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Gabelli ETFs from their issuer-published per-fund daily CSV files."""
+
+    DAILY_HOLDINGS_TEMPLATE = "https://gabelli.com/wp-content/uploads/Holdings_{symbol}.csv"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Gabelli publishes a dedicated daily holdings CSV for each ETF."
+                if normalized_symbol
+                else "Gabelli holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.DAILY_HOLDINGS_TEMPLATE.format(symbol=normalized_symbol)
+                if normalized_symbol
+                else None
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Gabelli holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.DAILY_HOLDINGS_TEMPLATE.format(symbol=normalized_symbol)
+        headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
+        headers["Referer"] = f"https://gabelli.com/ticker/{normalized_symbol.lower()}/"
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            raw_csv = response.text
+            fetched_url = str(response.url)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # Gabelli's CDN permits the same public CSV through requests but
+            # rejects httpx's TLS fingerprint. Keep this transport fallback
+            # limited to this issuer-native route.
+            fallback_response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            fallback_response.raise_for_status()
+            raw_csv = fallback_response.text
+            fetched_url = str(fallback_response.url)
+        rows, composition_date = self._parse_daily_holdings_csv(raw_csv, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Gabelli daily holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_csv,
+            raw_json={"source_format": "issuer_daily_holdings_csv"},
+            source_url=fetched_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_per_fund_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_daily_holdings_csv(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(payload))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, source_row in enumerate(reader):
+            source_date = _clean(source_row.get("Position Date"))
+            if composition_date is None and source_date:
+                try:
+                    composition_date = datetime.strptime(source_date, "%m/%d/%Y").date()
+                except ValueError:
+                    pass
+            ticker = _clean(source_row.get("Stock Ticker"))
+            name = _clean(source_row.get("Security Description(Long)"))
+            sector = (_clean(source_row.get("Sector Description")) or "").lower()
+            is_cash = (
+                not ticker
+                and (
+                    "cash" in (name or "").lower()
+                    or "net current assets" in (name or "").lower()
+                    or sector in {"", "undefined"}
+                )
+            )
+            cusip = _clean(source_row.get("Security CUSIP"))
+            shares = _decimal(source_row.get("Shares/Par"))
+            price = _decimal(source_row.get("Price"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(source_row.get("% of Net Assets")),
+                    shares=shares,
+                    market_value=shares * price if shares is not None and price is not None else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "gabelli_per_fund_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -23814,6 +23955,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "First Pacific Advisors public daily ETF holdings CSV exports may be subject to issuer terms."
         ),
     ),
+    "gamco": IssuerCsvAdapterConfig(
+        adapter_key="gamco",
+        source_provider="gamco",
+        source_access="issuer_public_per_fund_daily_holdings_csv",
+        url_templates=(
+            "https://gabelli.com/wp-content/uploads/Holdings_{symbol_upper}.csv",
+        ),
+        product_page_templates=(
+            "https://gabelli.com/ticker/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Gabelli public ETF daily holdings CSV files may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -23881,6 +24035,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
+        "gamco": GabelliHoldingsAdapter,
         "federated_hermes": FederatedHermesHoldingsAdapter,
         "oneascent": OneAscentHoldingsAdapter,
         "palmer_square": PalmerSquareHoldingsAdapter,

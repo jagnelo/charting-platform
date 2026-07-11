@@ -72,6 +72,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "global_x",
     "groupe_bpce",
     "gqg",
+    "gamco",
     "gmo",
     "goldman_sachs",
     "graniteshares",
@@ -706,6 +707,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "first_pacific",
             "FPAG",
+            None,
+            {},
+            20,
+        ),
+        (
+            "gamco",
+            "GCAD",
             None,
             {},
             20,
