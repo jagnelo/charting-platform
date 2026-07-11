@@ -5023,6 +5023,136 @@ class BrownBrothersHarrimanHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class WbiHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch WBI ETFs' complete daily holdings tables from public fund pages."""
+
+    PRODUCT_URLS = {
+        "WBIA": "https://wbietfs.com/bullbear-rising-income-2000-etf/",
+        "WBIE": "https://wbietfs.com/bullbear-rising-income-1000-etf/",
+        "WBIF": "https://wbietfs.com/bullbear-value-3000-etf/",
+        "WBIG": "https://wbietfs.com/bullbear-yield-3000-etf/",
+        "WBIL": "https://wbietfs.com/bullbear-quality-3000-etf/",
+        "WBIY": "https://wbietfs.com/power-factor-high-dividend-etf/",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "WBI publishes this ETF's complete daily holdings table on its public fund page."
+                if source_url
+                else (
+                    "No public WBI ETF fund page is configured for this symbol; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public WBI ETF fund page is configured for this symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("WBI holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.PRODUCT_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(f"No public WBI ETF fund page is configured for {normalized_symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"WBI product page did not contain complete daily holdings rows for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows):
+            row.source_row_id = f"{normalized_symbol}:{index}:{row.cusip or row.symbol or row.name}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "wbi_product_page_daily_holdings_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_daily_holdings_table"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_complete_daily_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        page_symbols = {
+            match.upper()
+            for match in re.findall(r"<p[^>]*>\s*([A-Z]{2,6})\s*</p>", payload)
+        }
+        if symbol not in page_symbols:
+            raise ValueError(f"WBI product page identity did not match requested ETF {symbol}.")
+        rows = parse_html_holdings_table_by_headers(
+            payload,
+            required_headers={"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"},
+        )
+        rows = [
+            row
+            for row in rows
+            if (
+                _clean(
+                    str(
+                        next(
+                            (
+                                value
+                                for key, value in row.extra_data.items()
+                                if key.strip().lower() == "account"
+                            ),
+                            "",
+                        )
+                    )
+                )
+                or ""
+            ).upper()
+            == symbol
+        ]
+        composition_date = None
+        date_matches = re.findall(
+            r"<td[^>]*>\s*(\d{2}/\d{2}/\d{4})\s*</td>", payload, flags=re.IGNORECASE
+        )
+        if date_matches:
+            composition_date = datetime.strptime(date_matches[0], "%m/%d/%Y").date()
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -24676,6 +24806,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="BBH public ETF daily holdings tables may be subject to issuer terms.",
     ),
+    "wbi": IssuerCsvAdapterConfig(
+        adapter_key="wbi",
+        source_provider="wbi",
+        source_access="issuer_product_page_complete_daily_holdings_table",
+        product_page_templates=("https://wbietfs.com/",),
+        live_tested_default_route=True,
+        terms_note="WBI public ETF daily holdings tables may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -24720,6 +24858,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "brandes": BrandesHoldingsAdapter,
         "brown_advisory": BrownAdvisoryHoldingsAdapter,
         "brown_brothers_harriman": BrownBrothersHarrimanHoldingsAdapter,
+        "wbi": WbiHoldingsAdapter,
         "brookmont": BrookmontHoldingsAdapter,
         "burney": BurneyHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,

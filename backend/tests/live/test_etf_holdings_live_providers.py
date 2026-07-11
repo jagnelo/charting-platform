@@ -147,6 +147,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "volatility_shares",
     "voya",
     "wahed",
+    "wbi",
     "world_gold_council",
     "yorkville",
     "yieldmax",
@@ -222,6 +223,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "brown_brothers_harriman",
             "BBHL",
+            None,
+            {},
+            20,
+        ),
+        (
+            "wbi",
+            "WBIL",
             None,
             {},
             20,

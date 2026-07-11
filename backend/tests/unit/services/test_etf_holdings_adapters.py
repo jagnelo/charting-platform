@@ -834,6 +834,53 @@ async def test_bbh_adapter_parses_complete_daily_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_wbi_adapter_parses_complete_daily_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("wbi")
+    assert adapter is not None
+
+    holdings_url = "https://wbietfs.com/bullbear-quality-3000-etf/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="".join(
+                [
+                    "<p>WBIL</p>",
+                    "<table><thead><tr><th>Date</th><th>Account</th><th>StockTicker</th>",
+                    "<th>CUSIP</th><th>SecurityName</th><th>Shares</th><th>MarketValue</th>",
+                    "<th>Weightings</th></tr></thead><tbody>",
+                    "<tr><td>07/13/2026</td><td>WBIL</td><td>ALAB</td><td>04626A103</td>",
+                    "<td>Astera Labs Inc</td><td>2,371</td><td>979151.87</td><td>3.26%</td></tr>",
+                    "<tr><td>07/13/2026</td><td>WBIL</td><td>USD</td><td></td>",
+                    "<td>Cash & Other</td><td>100</td><td>100.00</td><td>0.01%</td></tr>",
+                    "<tr><td>07/13/2026</td><td>OTHER</td><td>AAPL</td><td>037833100</td>",
+                    "<td>Apple Inc</td><td>1</td><td>1.00</td><td>1.00%</td></tr>",
+                    "</tbody></table>",
+                ]
+            ),
+            content_type="text/html",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="WBIL")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ALAB"
+    assert result.rows[0].cusip == "04626A103"
+    assert result.rows[0].shares == Decimal("2371")
+    assert result.rows[0].market_value == Decimal("979151.87")
+    assert result.rows[0].weight == Decimal("0.0326")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_complete_daily_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None
