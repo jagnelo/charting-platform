@@ -2,6 +2,27 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - AGF native ETF holdings route
+
+### Summary
+
+- Promoted `agf` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AgfHoldingsAdapter` that resolves AGF's public ticker-specific
+  product JSON and follows its explicit per-fund holdings CSV link.
+- The adapter validates the returned fund ticker and preserves ticker, SEDOL, quantities,
+  currencies, decimal-fraction weights, cash classification, and issuer as-of date.
+- Live validation symbol: `BTAL`, returning more than 100 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `139`
+  - providers still lacking native/live-backed support: `206`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `183 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k agf --no-cov -q` -> `1 passed, 142 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - Gabelli native ETF holdings route
 
 ### Summary

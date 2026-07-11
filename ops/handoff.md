@@ -5,6 +5,26 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T02:20Z
+
+- Promoted `agf` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `AgfHoldingsAdapter` that resolves the issuer's public ticker-specific
+  `IQ_FUND_CARD_{ticker}` payload, validates the returned fund identity, then follows the
+  issuer-provided per-fund holdings CSV link.
+- It preserves ticker, SEDOL, quantity, currency, decimal-fraction weight, cash classification,
+  and the issuer as-of date.
+- Live validation symbol: `BTAL`, returning more than 100 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `139`
+  - providers still lacking native/live-backed support: `206`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `183 passed`
+  - focused live AGF route: `1 passed, 142 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+
 ## Latest checkpoint - 2026-07-11T02:05Z
 
 - Promoted `gamco` (Gabelli) from recognition-only/SEC-backed support to native/live-backed support.
