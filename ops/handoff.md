@@ -5,7 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-10T22:10Z
+## Latest checkpoint - 2026-07-11T00:05Z
+
+- Promoted `brown_advisory` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `BrownAdvisoryHoldingsAdapter` that reads the issuer's dated FilePoint daily export, retries fifteen preceding dates for non-publishing days, and filters the shared file by ETF ticker.
+- It preserves ticker, CUSIP, ISIN, SEDOL, shares, market value, weight, cash classification, and issuer as-of date.
+- Live validation symbol: `BAFE`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `136`
+  - providers still lacking native/live-backed support: `209`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `180 passed`
+  - focused live Brown Advisory route: `1 passed, 139 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+
+## Previous checkpoint - 2026-07-10T22:10Z
 
 - Promoted `prudential` (PGIM) from recognition-only/SEC-backed support to native/live-backed support.
 - Added an isolated `PgimHoldingsAdapter` that:

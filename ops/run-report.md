@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Brown Advisory native ETF holdings route
+
+### Summary
+
+- Promoted `brown_advisory` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `BrownAdvisoryHoldingsAdapter` for the issuer's dated FilePoint daily export, including a fifteen-day publishing-calendar fallback and account/ticker isolation.
+- The adapter preserves identifiers, shares, market values, net-assets weights, cash classification, and issuer as-of date.
+- Live validation symbol: `BAFE`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `136`
+  - providers still lacking native/live-backed support: `209`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `180 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k brown_advisory --no-cov -q` -> `1 passed, 139 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-10 - PGIM native ETF holdings route
 
 ### Summary

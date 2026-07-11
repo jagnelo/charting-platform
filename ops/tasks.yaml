@@ -19,7 +19,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 135 native/live-backed providers out of 345.
+      - Current truthful count: 136 native/live-backed providers out of 345.
       - Current priority blockers: WisdomTree, Neuberger Berman, SoFi, and Thrivent publish
         documented artifacts but their hosts challenge direct backend requests; do not promote
         them until a reachable issuer-native route passes a live test.
