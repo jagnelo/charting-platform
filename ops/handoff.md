@@ -5,6 +5,27 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T03:29Z
+
+- Promoted `hedgeye` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `HedgeyeHoldingsAdapter` for the issuer's public ETF product pages. It reads
+  the full embedded daily holdings payload, filters it to the requested fund, and chooses the
+  latest issuer-reported snapshot rather than treating the page as a generic route.
+- It preserves ticker, valid CUSIP, shares, market value, weights, cash classification, and
+  issuer composition date.
+- Live validation symbol: `HECA`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `146`
+  - providers still lacking native/live-backed support: `199`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `190 passed`
+  - focused live Hedgeye route: `1 passed, 149 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `bc9f4f1 feat(etf-holdings): add Hedgeye native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T05:25Z
 
 - Promoted `mairs_power` from recognition-only/SEC-backed support to native/live-backed support.
