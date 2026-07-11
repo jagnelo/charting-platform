@@ -5,6 +5,25 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T02:50Z
+
+- Promoted `alger` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `AlgerHoldingsAdapter` for the issuer's documented per-fund daily CSVs
+  covering `ATFV`, `FRTY`, `ALAI`, and `CNEQ`.
+- It validates the product symbol declared in each CSV and preserves ticker, CUSIP, quantity,
+  percent weight, cash classification, and issuer as-of date.
+- Live validation symbol: `CNEQ`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `141`
+  - providers still lacking native/live-backed support: `204`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `185 passed`
+  - focused live Alger route: `1 passed, 144 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+
 ## Latest checkpoint - 2026-07-11T02:35Z
 
 - Promoted `acuitas` from recognition-only/SEC-backed support to native/live-backed support.

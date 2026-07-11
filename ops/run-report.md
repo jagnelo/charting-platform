@@ -2,6 +2,27 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Alger native ETF holdings route
+
+### Summary
+
+- Promoted `alger` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AlgerHoldingsAdapter` for the issuer's public per-fund daily
+  holdings CSVs for `ATFV`, `FRTY`, `ALAI`, and `CNEQ`.
+- The adapter validates the declared ETF ticker and preserves ticker, CUSIP, quantities,
+  percent weights, cash classification, and issuer as-of date.
+- Live validation symbol: `CNEQ`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `141`
+  - providers still lacking native/live-backed support: `204`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `185 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k alger --no-cov -q` -> `1 passed, 144 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - Acuitas native ETF holdings route
 
 ### Summary
