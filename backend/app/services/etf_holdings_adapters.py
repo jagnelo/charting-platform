@@ -4367,6 +4367,149 @@ class GabelliHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class AgfHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch AGF ETFs through the issuer's product payload and per-fund CSV link."""
+
+    PRODUCT_PAYLOAD_TEMPLATE = (
+        "https://www.agf.com/fileDispatcherWeb/process/deliverFileResult.action?"
+        "format=JSON&requestId=IQ_FUND_CARD_{symbol}"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "AGF publishes a product payload that links to a dedicated fund holdings CSV."
+                if normalized_symbol
+                else "AGF holdings require an ETF symbol."
+            ),
+            source_url=(
+                self.PRODUCT_PAYLOAD_TEMPLATE.format(symbol=normalized_symbol)
+                if normalized_symbol
+                else None
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("AGF holdings require an ETF symbol.")
+
+        payload_url = source_url or self.PRODUCT_PAYLOAD_TEMPLATE.format(symbol=normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            payload_response = await client.get(
+                payload_url,
+                headers=_issuer_page_request_headers(accept="application/json,text/plain,*/*"),
+                follow_redirects=True,
+            )
+            payload_response.raise_for_status()
+            payload = payload_response.json()
+
+            fund = payload.get("iq_fund") if isinstance(payload, dict) else None
+            if not isinstance(fund, dict):
+                raise ValueError(f"AGF product payload did not contain a fund record for {normalized_symbol}.")
+            payload_symbol = (_clean(fund.get("iq_code")) or "").upper()
+            if payload_symbol != normalized_symbol:
+                raise ValueError(
+                    f"AGF product payload identity mismatch: expected {normalized_symbol}, got {payload_symbol or 'none'}."
+                )
+            holdings_path = _clean(fund.get("iq_fund_holdings_url"))
+            if not holdings_path:
+                raise ValueError(f"AGF product payload did not expose a holdings CSV for {normalized_symbol}.")
+            holdings_url = urljoin(str(payload_response.url), holdings_path)
+            holdings_response = await client.get(
+                holdings_url,
+                headers=_issuer_page_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"AGF holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"product_payload": fund, "source_format": "issuer_per_fund_holdings_csv"},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_payload_to_per_fund_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        source_lines = payload.splitlines()
+        if not source_lines:
+            return [], None
+        composition_date: date | None = None
+        first_line = _clean(source_lines[0]) or ""
+        match = re.search(r"\bas of\s+(\d{4}-\d{2}-\d{2})\b", first_line, flags=re.IGNORECASE)
+        if match:
+            composition_date = datetime.strptime(match.group(1), "%Y-%m-%d").date()
+
+        reader = csv.DictReader(StringIO("\n".join(source_lines[2:])))
+        rows: list[CanonicalHoldingRow] = []
+        for index, source_row in enumerate(reader):
+            asset_type = (_clean(source_row.get("Asset Type")) or "").lower()
+            ticker = _clean(source_row.get("Ticker"))
+            name = _clean(source_row.get("Issue Name"))
+            is_cash = (
+                "cash" in asset_type
+                or "currency" in asset_type
+                or (name or "").lower() in {"cash", "cash and cash equivalents"}
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    sedol=_clean(source_row.get("SEDOL")),
+                    weight=_decimal(source_row.get("Weight")),
+                    shares=_decimal(source_row.get("Quantity")),
+                    currency=_clean(source_row.get("Currency")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{ticker or name or 'holding'}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "agf_product_payload_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -23968,6 +24111,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Gabelli public ETF daily holdings CSV files may be subject to issuer terms.",
     ),
+    "agf": IssuerCsvAdapterConfig(
+        adapter_key="agf",
+        source_provider="agf",
+        source_access="issuer_product_payload_to_per_fund_holdings_csv",
+        product_page_templates=(
+            "https://www.agf.com/us/products/{symbol_lower}/index.jsp",
+        ),
+        live_tested_default_route=True,
+        terms_note="AGF public ETF holdings CSV files may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -23991,6 +24144,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
         "akre": AkreHoldingsAdapter,
+        "agf": AgfHoldingsAdapter,
         "rayliant": RayliantHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
         "astoria": AstoriaHoldingsAdapter,

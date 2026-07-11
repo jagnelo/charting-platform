@@ -12,6 +12,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "acquirers",
     "abrdn",
     "adaptive_investments",
+    "agf",
     "advisor_shares",
     "akre",
     "allianz",
@@ -186,6 +187,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
+        (
+            "agf",
+            "BTAL",
+            None,
+            {},
+            100,
+        ),
         (
             "21shares",
             "ARKB",
