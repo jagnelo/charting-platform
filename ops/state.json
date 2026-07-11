@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-11T03:45:40Z",
+    "last_handoff_at": "2026-07-11T04:10:00Z",
     "last_commit": "8beba83",
     "git_ready_to_commit": false,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-11T04:10Z Source audit: official WisdomTree ETF pages advertise daily holdings and official Thrivent ETF pages advertise a daily holdings download, but direct backend-style retrieval of representative issuer pages returns HTTP 403 for both (including Thrivent's alternate fp host) even with normal browser headers. Neither provider was falsely promoted. Current truthful count remains 345 registered, 148 native/live-backed, and 197 remaining; SEC EDGAR remains fallback only.",
         "2026-07-11T03:45Z Founder native route: promoted founder from generated/SEC-backed recognition-only support to native/live-backed support. The isolated FounderHoldingsAdapter fetches the issuer's current full-holdings PDF and parses its text layer, preserving ticker, percent weight, founder attribution, cash rows, and issuer composition date. FFF was verified live with more than 90 parseable issuer-native rows. Current truthful count is 345 registered, 148 native/live-backed, 197 remaining; SEC EDGAR remains fallback only. Full ETF adapter unit suite passed with 192 tests, focused live Founder route passed, provider matrix passed, targeted ruff passed, and git diff --check passed.",
         "2026-07-11T03:40Z Polen native route: promoted polen from generated/SEC-backed recognition-only support to native/live-backed support. The isolated PolenHoldingsAdapter fetches the issuer's public multi-fund daily CSV, filters on the issuer-declared basket name, and preserves ticker, CUSIP/ISIN, quantity, market value, percent weight, cash rows, and issuer composition date. PCLG was verified live with more than 20 parseable issuer-native rows. Current truthful count is 345 registered, 147 native/live-backed, 198 remaining; SEC EDGAR remains fallback only. Full ETF adapter unit suite passed with 191 tests, focused live Polen route passed, provider matrix passed, targeted ruff passed, and git diff --check passed.",
         "2026-07-11T03:29Z Hedgeye native route: promoted hedgeye from generated/SEC-backed recognition-only support to native/live-backed support. The isolated HedgeyeHoldingsAdapter fetches the issuer's public ETF product pages, parses their complete embedded daily holdings payload, isolates the requested fund, and chooses the latest issuer-reported snapshot. It preserves ticker, valid CUSIP, shares, market value, percent weight, cash rows, and issuer composition date. HECA was verified live with more than 20 parseable issuer-native rows. Current truthful count is 345 registered, 146 native/live-backed, 199 remaining; SEC EDGAR remains fallback only. Full ETF adapter unit suite passed with 190 tests, focused live Hedgeye route passed, provider matrix passed, targeted ruff passed, and git diff --check passed.",

@@ -9387,3 +9387,10 @@ Append a short entry after each worker session.
 - Current count: `345` registered provider keys, `143` native/live-backed integrations, `202` remaining.
 - Validation passed: full `187`-test adapter suite, focused live BBH route, live provider matrix, targeted ruff, and `git diff --check`.
 - Feature commit: `4c74ffb`.
+# ETF Holdings Provider Source Audit - 2026-07-11T04:10Z
+
+- Reviewed official public holdings surfaces for the high-priority WisdomTree and Thrivent
+  issuers. Both advertise daily/full holdings, but direct backend-style requests to their
+  public product pages returned HTTP `403` with standard browser headers.
+- No provider was promoted without a backend-readable issuer-native artifact and a live test.
+- Registry remains 345 registered providers, 148 native/live-backed, 197 remaining.

@@ -7,6 +7,22 @@
 
 ## Latest checkpoint - 2026-07-11T03:45Z
 
+## Source audit - 2026-07-11T04:10Z
+
+- Re-checked two of the highest-priority remaining issuers through their official public
+  product pages before attempting any promotion:
+  - `wisdomtree`: its public ETF pages explicitly expose a Holdings section and state that
+    holdings are displayed daily. Direct backend-style retrieval of a representative fund page
+    (`WTV`) returns HTTP `403`, even with normal browser headers.
+  - `thrivent`: its public ETF pages explicitly advertise `Download Daily Holdings Data`.
+    Direct backend-style retrieval of representative fund pages on both
+    `www.thriventfunds.com` and `fp.thriventfunds.com` returns HTTP `403`, even with normal
+    browser headers.
+- Neither issuer was promoted. Both need a concrete, backend-readable issuer-native holdings
+  artifact before an isolated adapter and opt-in live test can honestly be added.
+- The strict count remains `345` registered providers, `148` native/live-backed providers,
+  and `197` remaining. SEC EDGAR remains fallback-only and is not counted.
+
 - Promoted `founder` from recognition-only/SEC-backed support to native/live-backed support.
 - Added an isolated `FounderHoldingsAdapter` for Founder ETFs' public current full-holdings PDF.
   It uses the document's text layer to preserve ticker, weight, founder attribution, cash rows, and
