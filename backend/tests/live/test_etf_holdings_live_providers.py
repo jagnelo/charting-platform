@@ -87,6 +87,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "horizon_kinetics",
     "howard_capital",
     "inspire",
+    "impax",
     "innovator",
     "invesco",
     "ishares",
@@ -209,6 +210,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "impax",
+            "BLDX",
+            None,
+            {},
+            20,
         ),
         (
             "21shares",

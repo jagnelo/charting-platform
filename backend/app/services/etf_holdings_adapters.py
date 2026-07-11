@@ -4763,6 +4763,150 @@ class AlgerHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ImpaxHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Impax ETF holdings embedded in the issuer's server-rendered fund page."""
+
+    PRODUCT_URLS = {
+        "BLDX": "https://etf.impaxam.com/",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Impax publishes the complete current holdings dataset in this ETF's public product page."
+                if source_url
+                else (
+                    "No public Impax holdings product page is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Impax holdings product page is configured for this ETF symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Impax holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.PRODUCT_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No public Impax holdings product page is configured for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Impax product page did not contain parseable holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_server_rendered_product_page"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_server_rendered_product_page_holdings_dataset",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        product_symbol = re.search(
+            r'componentId="[^"]+-([A-Za-z0-9]+)-HoldingsComponent-', payload
+        )
+        if product_symbol is None or product_symbol.group(1).upper() != symbol:
+            raise ValueError(f"Impax product page identity did not match requested ETF {symbol}.")
+
+        date_match = re.search(r'dg\.date="(\d{2})\\u002F(\d{2})\\u002F(\d{4})"', payload)
+        composition_date = (
+            datetime.strptime("/".join(date_match.groups()), "%m/%d/%Y").date()
+            if date_match
+            else None
+        )
+        dataset_match = re.search(r"dg\.finData=\[(.*?)\];dg\.btnLink=", payload)
+        if dataset_match is None:
+            return [], composition_date
+
+        rows: list[CanonicalHoldingRow] = []
+        item_pattern = re.compile(
+            r'\{figi:(?P<figi>(?:"(?:\\.|[^"\\])*"|[^,]+)),'
+            r'ticker:(?P<ticker>(?:"(?:\\.|[^"\\])*"|[^,]+)),'
+            r'quantity:(?P<shares>[^,]+),'
+            r'description:(?P<name>(?:"(?:\\.|[^"\\])*"|[^,]+)),'
+            r'market_value:(?P<market_value>(?:"(?:\\.|[^"\\])*"|[^,]+)),'
+            r'percent_of_nav:(?P<weight>(?:"(?:\\.|[^"\\])*"|[^}]+))\}'
+        )
+
+        def literal(value: str) -> str | None:
+            value = value.strip()
+            if not value.startswith('"'):
+                return None
+            try:
+                return _clean(json.loads(value))
+            except json.JSONDecodeError:
+                return None
+
+        for index, match in enumerate(item_pattern.finditer(dataset_match.group(1))):
+            name = literal(match.group("name"))
+            ticker = literal(match.group("ticker"))
+            figi = literal(match.group("figi"))
+            is_cash = "cash" in (name or "").lower() or (ticker or "").lower().startswith("cash")
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    shares=_decimal(literal(match.group("shares")) or match.group("shares")),
+                    market_value=_decimal(
+                        literal(match.group("market_value")) or match.group("market_value")
+                    ),
+                    weight=_decimal(literal(match.group("weight")) or match.group("weight")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{figi or ticker or name or 'holding'}",
+                    extra_data={
+                        "figi": figi,
+                        "source": "impax_server_rendered_product_page_holdings_dataset",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -24398,6 +24542,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Alger public ETF daily holdings CSV files may be subject to issuer terms.",
     ),
+    "impax": IssuerCsvAdapterConfig(
+        adapter_key="impax",
+        source_provider="impax",
+        source_access="issuer_server_rendered_product_page_holdings_dataset",
+        product_page_templates=("https://etf.impaxam.com/",),
+        live_tested_default_route=True,
+        terms_note="Impax public ETF holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -24494,6 +24646,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "horizon_kinetics": HorizonKineticsHoldingsAdapter,
         "howard_capital": HowardCapitalHoldingsAdapter,
         "inspire": InspireHoldingsAdapter,
+        "impax": ImpaxHoldingsAdapter,
         "innovator": InnovatorHoldingsAdapter,
         "invesco": InvescoHoldingsAdapter,
         "ishares": IsharesHoldingsAdapter,

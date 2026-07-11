@@ -744,6 +744,50 @@ async def test_alger_adapter_parses_per_fund_daily_holdings_and_cash_rows(monkey
 
 
 @pytest.mark.asyncio
+async def test_impax_adapter_parses_issuer_server_rendered_holdings_dataset(monkeypatch):
+    adapter = get_holdings_adapter("impax")
+    assert adapter is not None
+
+    holdings_url = "https://etf.impaxam.com/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="".join(
+                [
+                    'dg.componentId="bldximpax-BLDX-HoldingsComponent-1";',
+                    'dg.date="07\\u002F09\\u002F2026";',
+                    'dg.finData=[',
+                    '{figi:"BBG000BW3299",ticker:"UNP",quantity:23023,description:',
+                    '"UNION PACIFIC CORP",market_value:"6,562,475.92",percent_of_nav:"5.55%"},',
+                    '{figi:"BBG0013HGBT3",ticker:"Cash-USD",quantity:2741899,description:',
+                    '"CASH & OTHER",market_value:"2,741,899.89",percent_of_nav:"2.32%"}',
+                    '];dg.btnLink="";',
+                ]
+            ),
+            content_type="text/html",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BLDX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "UNP"
+    assert result.rows[0].shares == Decimal("23023")
+    assert result.rows[0].market_value == Decimal("6562475.92")
+    assert result.rows[0].weight == Decimal("0.0555")
+    assert result.rows[0].extra_data["figi"] == "BBG000BW3299"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_server_rendered_product_page_holdings_dataset"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None
