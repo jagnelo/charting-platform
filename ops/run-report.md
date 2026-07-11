@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Gabelli native ETF holdings route
+
+### Summary
+
+- Promoted `gamco` (Gabelli) from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `GabelliHoldingsAdapter` for issuer-published per-fund daily CSV files.
+- The adapter preserves ticker, CUSIP, shares/par, price-derived market values, net-assets weights, cash classification, and issuer as-of date. A tightly scoped fallback uses `requests` only when Gabelli's CDN rejects `httpx` for the same public file.
+- Live validation symbol: `GCAD`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `138`
+  - providers still lacking native/live-backed support: `207`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `182 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k gamco --no-cov -q` -> `1 passed, 141 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - First Pacific Advisors native ETF holdings route
 
 ### Summary

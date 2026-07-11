@@ -5,7 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-11T01:30Z
+## Latest checkpoint - 2026-07-11T02:05Z
+
+- Promoted `gamco` (Gabelli) from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `GabelliHoldingsAdapter` that reads Gabelli's dedicated public per-fund daily holdings CSV.
+- It preserves ticker, CUSIP, shares/par, price-derived market value, weight, cash classification, and issuer as-of date. A narrow issuer-local `requests` fallback is used only when Gabelli's CDN rejects `httpx` while accepting the same public CSV request.
+- Live validation symbol: `GCAD`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `138`
+  - providers still lacking native/live-backed support: `207`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `182 passed`
+  - focused live Gabelli route: `1 passed, 141 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+
+## Previous checkpoint - 2026-07-11T01:30Z
 
 - Promoted `first_pacific` from recognition-only/SEC-backed support to native/live-backed support.
 - Added an isolated `FirstPacificHoldingsAdapter` that reads FPA's dated multi-fund daily CSV export, retries thirty preceding dates for non-publishing days, and filters the shared file by ETF ticker.
