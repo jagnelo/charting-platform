@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Acuitas native ETF holdings route
+
+### Summary
+
+- Promoted `acuitas` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `AcuitasHoldingsAdapter` for the issuer's complete daily holdings CSV.
+- The adapter isolates the requested fund account and preserves ticker, CUSIP, shares, market value,
+  percent-bearing weight, cash classification, and issuer as-of date.
+- Live validation symbol: `AIMS`, returning more than 100 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `140`
+  - providers still lacking native/live-backed support: `205`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `184 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k acuitas --no-cov -q` -> `1 passed, 143 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - AGF native ETF holdings route
 
 ### Summary

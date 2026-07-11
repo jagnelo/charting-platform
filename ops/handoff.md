@@ -5,6 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T02:35Z
+
+- Promoted `acuitas` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `AcuitasHoldingsAdapter` that reads Acuitas' public daily ETF holdings CSV,
+  isolates the requested issuer account, and parses its issuer-specific percent-bearing weight column.
+- It preserves ticker, CUSIP, shares, market value, weight, cash classification, and issuer as-of date.
+- Live validation symbol: `AIMS`, returning more than 100 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `140`
+  - providers still lacking native/live-backed support: `205`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `184 passed`
+  - focused live Acuitas route: `1 passed, 143 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+
 ## Latest checkpoint - 2026-07-11T02:20Z
 
 - Promoted `agf` from recognition-only/SEC-backed support to native/live-backed support.
