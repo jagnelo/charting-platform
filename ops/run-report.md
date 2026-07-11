@@ -2,6 +2,28 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Mairs & Power native ETF holdings route
+
+### Summary
+
+- Promoted `mairs_power` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `MairsPowerHoldingsAdapter` for MINN's public issuer portfolio
+  page. It normalizes Mairs & Power's bare table-header markup and specialized column labels
+  before parsing the complete daily portfolio.
+- The adapter preserves CUSIP, par/shares, market value, weight, fixed-income classification,
+  and issuer as-of date without creating false equity tickers for municipal bonds.
+- Live validation symbol: `MINN`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `145`
+  - providers still lacking native/live-backed support: `200`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `189 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k mairs_power --no-cov -q` -> `1 passed, 148 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - ETF issuer source audit
 
 ### Summary
