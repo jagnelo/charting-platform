@@ -5,7 +5,28 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
-## Latest checkpoint - 2026-07-10T21:45Z
+## Latest checkpoint - 2026-07-10T22:10Z
+
+- Promoted `prudential` (PGIM) from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `PgimHoldingsAdapter` that:
+  - resolves a requested ticker from PGIM's public ETF directory;
+  - follows the matched PGIM product page to its explicit `DAILY HOLDINGS` document;
+  - downloads and parses the complete issuer PDF, preserving ticker, ISIN, CUSIP, SEDOL, shares, market value, currency, weight, cash rows, and issuer as-of date.
+- Live validation symbol: `PJBF`, returning more than 30 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `135`
+  - providers still lacking native/live-backed support: `210`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `179 passed`
+  - focused live PGIM route: `1 passed, 138 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Next step:
+  - Continue the 345-provider objective with the next backend-reachable issuer-native route. WisdomTree, Neuberger Berman, SoFi, and Thrivent remain unpromoted because their public issuer artifacts challenge direct backend requests.
+
+## Previous checkpoint - 2026-07-10T21:45Z
 
 - Promoted `tiaa` (Nuveen) from recognition-only/SEC-backed support to native/live-backed support.
 - Added an isolated `TiaaHoldingsAdapter` that:

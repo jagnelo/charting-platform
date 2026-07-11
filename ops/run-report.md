@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-10 - PGIM native ETF holdings route
+
+### Summary
+
+- Promoted `prudential` (PGIM) from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `PgimHoldingsAdapter` that resolves ETF product pages from PGIM's public directory and follows the public daily-holdings document linked by the matching product page.
+- The adapter parses the issuer PDF and preserves ticker, ISIN, CUSIP, SEDOL, shares, market value, currency, net-assets weight, cash classification, and issuer as-of date.
+- Live validation symbol: `PJBF`, returning more than 30 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `135`
+  - providers still lacking native/live-backed support: `210`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `179 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k prudential --no-cov -q` -> `1 passed, 138 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-10 - Nuveen/TIAA native ETF holdings route
 
 ### Summary
