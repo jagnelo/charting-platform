@@ -788,6 +788,52 @@ async def test_impax_adapter_parses_issuer_server_rendered_holdings_dataset(monk
 
 
 @pytest.mark.asyncio
+async def test_bbh_adapter_parses_complete_daily_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("brown_brothers_harriman")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://www.bbhfunds.com/us/en/our-funds/bbh-etfs/"
+        "bbh-select-large-cap-etf.html"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="".join(
+                [
+                    '<span class="cmp-fundteaser__item-contentTicker">BBHL</span>',
+                    '<h2>Daily Holdings</h2><p>as of 07/10/2026</p>',
+                    "<table><thead><tr><th>Name</th><th>Ticker</th><th>Shares</th>",
+                    "<th>CUSIP</th><th>Weight</th></tr></thead><tbody>",
+                    "<tr><td>ABBOTT LABORATORIES</td><td>ABT</td><td>38,574</td>",
+                    "<td>002824100</td><td>0.67%</td></tr>",
+                    "<tr><td>Cash & Other</td><td></td><td>100</td><td></td><td>0.01%</td></tr>",
+                    "</tbody></table>",
+                ]
+            ),
+            content_type="text/html",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BBHL")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ABT"
+    assert result.rows[0].cusip == "002824100"
+    assert result.rows[0].shares == Decimal("38574")
+    assert result.rows[0].weight == Decimal("0.0067")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_complete_daily_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None
