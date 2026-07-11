@@ -113,6 +113,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "pacer",
     "palmer_square",
     "point_bridge",
+    "polen",
     "principal",
     "prudential",
     "procuream",
@@ -246,6 +247,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "hedgeye",
             "HECA",
+            None,
+            {},
+            20,
+        ),
+        (
+            "polen",
+            "PCLG",
             None,
             {},
             20,

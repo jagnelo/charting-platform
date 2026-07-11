@@ -6267,6 +6267,123 @@ class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, latest_date
 
 
+class PolenHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Polen Capital ETF holdings from its public multi-fund FilePoint export."""
+
+    HOLDINGS_URL = "https://polen.filepoint.live/assets/data/PolenHoldings_.csv"
+    ETF_BASKETS = {
+        "PCFI": "POLEN FLOATING RATE INCOME ETF",
+        "PCHI": "POLEN HIGH INCOME ETF",
+        "PCLG": "Polen Focus Growth ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol in self.ETF_BASKETS or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Polen Capital publishes this ETF's complete daily holdings in its public multi-fund export."
+                if normalized_symbol in self.ETF_BASKETS
+                else (
+                    "No public Polen ETF basket is configured for this symbol; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Polen ETF basket is configured for this symbol."
+                )
+            ),
+            source_url=self.HOLDINGS_URL if normalized_symbol in self.ETF_BASKETS else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        basket_name = self.ETF_BASKETS.get(normalized_symbol)
+        if basket_name is None:
+            raise ValueError(f"No public Polen ETF basket is configured for {normalized_symbol}.")
+        resolved_source_url = source_url or self.HOLDINGS_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_export(response.text, basket_name=basket_name)
+        if not rows:
+            raise ValueError(f"Polen daily holdings export contained no rows for {normalized_symbol}.")
+        for index, row in enumerate(rows):
+            row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "polen_multi_fund_daily_holdings_csv",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "csv", "basket_name": basket_name},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_multi_fund_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_export(
+        raw_csv: str,
+        *,
+        basket_name: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        lines = raw_csv.splitlines()
+        metadata = lines[0] if lines else ""
+        reader = csv.DictReader(lines[1:])
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(reader, start=1):
+            if _clean(item.get("Basket Name")) != basket_name:
+                continue
+            raw_symbol = _clean(item.get("Ticker"))
+            name = _clean(item.get("Security Description"))
+            raw_cusip = _clean(item.get("CUSIP"))
+            asset_group = _clean(item.get("Fund Accounting Asset Group Code"))
+            is_cash = bool(asset_group and "cash" in asset_group.lower())
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else raw_symbol,
+                    name=name,
+                    cusip=raw_cusip if _looks_like_cusip(raw_cusip) else None,
+                    isin=_clean(item.get("ISIN")) if _looks_like_isin(_clean(item.get("ISIN"))) else None,
+                    weight=_decimal(item.get("Constituent Weight (Base)")),
+                    shares=_decimal(item.get("Basket Quantity")),
+                    market_value=_decimal(item.get("Market Value or Unrealized (Base)")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=str(index),
+                    extra_data={key: value for key, value in item.items() if value not in (None, "")},
+                )
+            )
+        match = re.search(r"Date and Time of Execution:(\d{4}-\d{2}-\d{2})", metadata)
+        composition_date = datetime.strptime(match.group(1), "%Y-%m-%d").date() if match else None
+        return rows, composition_date
+
+
 class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch VictoryShares holdings from Victory Capital's public product API."""
 
@@ -25119,6 +25236,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Hedgeye public ETF product-page holdings payloads may be subject to issuer terms.",
     ),
+    "polen": IssuerCsvAdapterConfig(
+        adapter_key="polen",
+        source_provider="polen",
+        source_access="issuer_public_multi_fund_daily_holdings_csv",
+        url_templates=("https://polen.filepoint.live/assets/data/PolenHoldings_.csv",),
+        product_page_templates=("https://polen.filepoint.live/{symbol_upper}",),
+        live_tested_default_route=True,
+        terms_note="Polen Capital public ETF daily holdings CSV exports may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -25240,6 +25366,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ocean_park": OceanParkHoldingsAdapter,
         "pacer": PacerHoldingsAdapter,
         "point_bridge": PointBridgeHoldingsAdapter,
+        "polen": PolenHoldingsAdapter,
         "principal": PrincipalHoldingsAdapter,
         "prudential": PgimHoldingsAdapter,
         "procuream": ProcureHoldingsAdapter,

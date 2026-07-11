@@ -880,6 +880,54 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
 
 
 @pytest.mark.asyncio
+async def test_polen_adapter_filters_issuer_multi_fund_export(monkeypatch):
+    adapter = get_holdings_adapter("polen")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Output File Name:PolenHoldings_.csv Date and Time of Execution:2026-07-10 18:08:41",
+                    (
+                        "Basket Name,Security Description,Ticker,Fund Accounting Asset Group Code,"
+                        "CUSIP,ISIN,Basket Quantity,Market Value or Unrealized (Base),"
+                        "Constituent Weight (Base)"
+                    ),
+                    (
+                        "Polen Focus Growth ETF,Microsoft Corp,MSFT,EQ(Equities),594918104,"
+                        "US5949181045,100,50000,0.25"
+                    ),
+                    (
+                        "Polen Focus Growth ETF,Cash & Other,Cash&Other,Cash,,"
+                        ",10,10,0.00005"
+                    ),
+                    (
+                        "POLEN HIGH INCOME ETF,Other Issuer,OTHER,EQ(Equities),000000000,"
+                        "US0000000000,1,1,1"
+                    ),
+                ]
+            )
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PCLG")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://polen.filepoint.live/assets/data/PolenHoldings_.csv"
+    )
+    assert result.legal_metadata["route_resolution"] == "issuer_multi_fund_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].weight == Decimal("0.25")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
 async def test_wbi_adapter_parses_complete_daily_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("wbi")
     assert adapter is not None
