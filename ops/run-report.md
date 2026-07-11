@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - ETF issuer source audit
+
+### Summary
+
+- Confirmed that `brookfield`, `neuberger_berman`, and `emles` do not currently have a
+  backend-readable, complete issuer-native holdings route suitable for truthful promotion.
+- Brookfield did not expose a concrete US ETF complete-holdings artifact; Neuberger's public
+  product page returned HTTP `429`; Emles' public API rejected backend requests with `403`/`500`
+  while its page only exposed a top-ten preview.
+- None were added to the native/live-backed set. The count remains `144 / 345`.
+
 ## 2026-07-11 - WBI native ETF holdings route
 
 ### Summary

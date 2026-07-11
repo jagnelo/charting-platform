@@ -5,6 +5,20 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Source audit - 2026-07-11T04:55Z
+
+- Investigated three remaining issuers without promoting any of them:
+  - `brookfield`: public search and issuer surfaces did not yield a concrete, backend-readable
+    US ETF complete-holdings artifact. Do not conflate ProShares' Brookfield-branded index ETF
+    holdings with a Brookfield issuer route.
+  - `neuberger_berman`: the public NBCR product page advertises a detailed-holdings download,
+    but a direct backend request receives HTTP `429`; it remains unpromoted until an issuer-native
+    route is backend-readable and passes a live test.
+  - `emles`: public fund pages identify the issuer API route as `https://api.emles.com/api/funds/{ticker}`
+    and advertise Full Holdings, but the API currently returns `403` and then `500` with normal
+    browser headers. Its rendered page contains only the top-ten preview, so it remains unpromoted.
+- The native/live-backed count remains `144 / 345`; SEC stays fallback-only.
+
 ## Latest checkpoint - 2026-07-11T04:35Z
 
 - Promoted `wbi` from recognition-only/SEC-backed support to native/live-backed support.
