@@ -5,6 +5,25 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T04:10Z
+
+- Promoted `brown_brothers_harriman` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `BrownBrothersHarrimanHoldingsAdapter` that fetches BBH's public product pages,
+  verifies the declared ETF ticker, and parses their complete issuer-native daily holdings tables.
+- It preserves ticker, CUSIP, shares, weight, cash classification, and issuer composition date.
+- Live validation symbol: `BBHL`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `143`
+  - providers still lacking native/live-backed support: `202`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `187 passed`
+  - focused live BBH route: `1 passed, 146 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `4c74ffb feat(etf-holdings): add BBH native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T03:20Z
 
 - Promoted `impax` from recognition-only/SEC-backed support to native/live-backed support.

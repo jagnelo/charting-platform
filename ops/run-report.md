@@ -9263,3 +9263,11 @@ Append a short entry after each worker session.
 - Guinness Atkinson: its public resources index advertises quarterly ETF holdings, but its issuer host returns a Cloudflare challenge to direct backend requests. It remains unpromoted.
 - Cboe: the historical Cboe Vest product path now redirects to a generic Vest Financial page with no ETF-specific holdings artifact. It remains unpromoted.
 - No support count changed: `345` registered providers, `142` native/live-backed, `203` remaining.
+## 2026-07-11 - Brown Brothers Harriman native ETF holdings route
+
+- Promoted `brown_brothers_harriman` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated adapter for BBH's public product pages and complete daily holdings tables. It validates the fund ticker and preserves ticker, CUSIP, shares, weight, cash rows, and issuer composition date.
+- Live validation symbol: `BBHL`, returning more than 20 parseable rows.
+- Current count: `345` registered provider keys, `143` native/live-backed integrations, `202` remaining.
+- Validation passed: full `187`-test adapter suite, focused live BBH route, live provider matrix, targeted ruff, and `git diff --check`.
+- Feature commit: `4c74ffb`.
