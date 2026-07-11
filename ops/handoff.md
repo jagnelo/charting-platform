@@ -26,6 +26,18 @@
   - targeted ruff and `git diff --check`: passed
 - Feature commit: `20c0565 feat(etf-holdings): add Impax native holdings route`.
 
+## Source audit - 2026-07-11T03:45Z
+
+- Investigated two remaining registered issuers without promoting either one:
+  - `guinness_atkinson`: the issuer's public resources/search index advertises quarterly
+    ETF holdings for DIVS and related ETFs, but the actual issuer host returns a Cloudflare
+    challenge to direct backend requests. It remains unpromoted until an issuer-native route
+    is backend-readable and passes a live test.
+  - `cboe`: the historical Cboe Vest product URL now redirects to Vest Financial's generic
+    homepage and exposes no fund-specific holdings artifact. It remains unpromoted pending a
+    concrete current issuer-native endpoint.
+- The native/live-backed count remains `142 / 345`; SEC remains fallback-only.
+
 ## Latest checkpoint - 2026-07-11T02:50Z
 
 - Promoted `alger` from recognition-only/SEC-backed support to native/live-backed support.

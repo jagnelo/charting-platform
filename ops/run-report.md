@@ -9258,3 +9258,8 @@ Append a short entry after each worker session.
 - Current count: `345` registered provider keys, `142` native/live-backed integrations, `203` remaining.
 - Validation passed: full `186`-test adapter suite, focused live Impax route, live provider matrix, targeted ruff, and `git diff --check`.
 - Feature commit: `20c0565`.
+## 2026-07-11 - Remaining issuer source audit
+
+- Guinness Atkinson: its public resources index advertises quarterly ETF holdings, but its issuer host returns a Cloudflare challenge to direct backend requests. It remains unpromoted.
+- Cboe: the historical Cboe Vest product path now redirects to a generic Vest Financial page with no ETF-specific holdings artifact. It remains unpromoted.
+- No support count changed: `345` registered providers, `142` native/live-backed, `203` remaining.
