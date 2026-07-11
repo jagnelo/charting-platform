@@ -881,6 +881,50 @@ async def test_wbi_adapter_parses_complete_daily_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_mairs_power_adapter_parses_complete_municipal_bond_portfolio(monkeypatch):
+    adapter = get_holdings_adapter("mairs_power")
+    assert adapter is not None
+
+    holdings_url = "https://www.mairsandpower.com/funds/mn-muni-bond-etf"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="".join(
+                [
+                    "<h1>Mairs & Power Minnesota Municipal Bond ETF MINN</h1>",
+                    "<table><thead><tr><th>FULL PORTFOLIO AS OF 07/13/2026</th><th>CUSIP</th>",
+                    "<th>SHARES</th><th>$ MARKET VALUE</th><th>% PORTFOLIO</th></tr></thead><tbody>",
+                    "<tr><td>Stillwater Independent School District No 834 5% 02/01/2035</td>",
+                    "<td>860758TP6</td><td>1,075,000</td><td>1,206,818</td><td>2.56%</td></tr>",
+                    "<tr><td>State of Minnesota 5% 08/01/2037</td>",
+                    "<td>60412AW33</td><td>1,000,000</td><td>1,143,166</td><td>2.43%</td></tr>",
+                    "</tbody></table>",
+                ]
+            ),
+            content_type="text/html",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MINN")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "Stillwater Independent School District No 834 5% 02/01/2035"
+    assert result.rows[0].cusip == "860758TP6"
+    assert result.rows[0].shares == Decimal("1075000")
+    assert result.rows[0].market_value == Decimal("1206818")
+    assert result.rows[0].weight == Decimal("0.0256")
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_complete_portfolio_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None

@@ -5153,6 +5153,147 @@ class WbiHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class MairsPowerHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Mairs & Power's public MINN ETF portfolio table."""
+
+    PRODUCT_URLS = {
+        "MINN": "https://www.mairsandpower.com/funds/mn-muni-bond-etf",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Mairs & Power publishes this ETF's complete portfolio table on its public fund page."
+                if source_url
+                else (
+                    "No public Mairs & Power ETF fund page is configured for this symbol; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Mairs & Power ETF fund page is configured for this symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Mairs & Power holdings require an ETF symbol.")
+        resolved_source_url = source_url or self.PRODUCT_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No public Mairs & Power ETF fund page is configured for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Mairs & Power product page did not contain complete portfolio rows for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows):
+            row.source_row_id = f"{normalized_symbol}:{index}:{row.cusip or row.name}"
+            row.holding_type = "fixed_income"
+            row.row_type = "security"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "mairs_power_product_page_complete_portfolio_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_complete_portfolio_table"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_complete_portfolio_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(
+        payload: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if symbol != "MINN" or not re.search(r"\bMINN\b", payload):
+            raise ValueError(f"Mairs & Power product page identity did not match requested ETF {symbol}.")
+        composition_match = re.search(
+            r"FULL\s+PORTFOLIO\s+AS\s+OF\s+(\d{2}/\d{2}/\d{4})",
+            payload,
+            flags=re.IGNORECASE,
+        )
+        composition_date = (
+            datetime.strptime(composition_match.group(1), "%m/%d/%Y").date()
+            if composition_match
+            else None
+        )
+        normalized_table_html = re.sub(
+            r"FULL\s+PORTFOLIO\s+AS\s+OF\s+\d{2}/\d{2}/\d{4}",
+            "Name",
+            payload,
+            flags=re.IGNORECASE,
+        )
+        normalized_table_html = re.sub(
+            r"\$\s*MARKET\s+VALUE",
+            "Market Value",
+            normalized_table_html,
+            flags=re.IGNORECASE,
+        )
+        normalized_table_html = re.sub(
+            r"%\s*PORTFOLIO",
+            "Weight",
+            normalized_table_html,
+            flags=re.IGNORECASE,
+        )
+        # The issuer's table emits bare <th> cells inside <thead> rather than a <tr>.
+        # Normalize it so the shared table parser can retain the header row.
+        normalized_table_html = re.sub(
+            r"(<thead[^>]*>\s*)(<th\b)",
+            r"\1<tr>\2",
+            normalized_table_html,
+            flags=re.IGNORECASE,
+        )
+        normalized_table_html = re.sub(
+            r"(</th>\s*)(</thead>)",
+            r"\1</tr>\2",
+            normalized_table_html,
+            flags=re.IGNORECASE,
+        )
+        rows = parse_html_holdings_table_by_headers(
+            normalized_table_html,
+            required_headers={"name", "cusip", "shares", "market value", "weight"},
+        )
+        return rows, composition_date
+
+
 class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Brown Advisory ETF holdings from its public dated FilePoint export."""
 
@@ -24814,6 +24955,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="WBI public ETF daily holdings tables may be subject to issuer terms.",
     ),
+    "mairs_power": IssuerCsvAdapterConfig(
+        adapter_key="mairs_power",
+        source_provider="mairs_power",
+        source_access="issuer_product_page_complete_portfolio_table",
+        product_page_templates=("https://www.mairsandpower.com/funds/mn-muni-bond-etf",),
+        live_tested_default_route=True,
+        terms_note="Mairs & Power public ETF portfolio tables may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -24859,6 +25008,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "brown_advisory": BrownAdvisoryHoldingsAdapter,
         "brown_brothers_harriman": BrownBrothersHarrimanHoldingsAdapter,
         "wbi": WbiHoldingsAdapter,
+        "mairs_power": MairsPowerHoldingsAdapter,
         "brookmont": BrookmontHoldingsAdapter,
         "burney": BurneyHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,
