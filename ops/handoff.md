@@ -5,6 +5,27 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T04:35Z
+
+- Promoted `wbi` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `WbiHoldingsAdapter` for WBI's public ETF fund pages. It validates the
+  requested ETF ticker and parses the complete issuer-native daily holdings table rather than
+  a top-holdings preview.
+- It preserves ticker, CUSIP, shares, market value, weight, cash classification, and issuer
+  composition date.
+- Live validation symbol: `WBIL`, returning more than 20 parseable issuer-native rows.
+- Registry count after promotion:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `144`
+  - providers still lacking native/live-backed support: `201`
+  - SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation:
+  - full ETF adapter unit suite: `188 passed`
+  - focused live WBI route: `1 passed, 147 deselected`
+  - live provider matrix: `1 passed`
+  - targeted ruff and `git diff --check`: passed
+- Feature commit: `9932807 feat(etf-holdings): add WBI native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T04:10Z
 
 - Promoted `brown_brothers_harriman` from recognition-only/SEC-backed support to native/live-backed support.

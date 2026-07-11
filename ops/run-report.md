@@ -2,6 +2,27 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - WBI native ETF holdings route
+
+### Summary
+
+- Promoted `wbi` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `WbiHoldingsAdapter` for the issuer's public ETF fund pages,
+  with explicit routes for the current WBI ETF lineup and requested-fund identity validation.
+- The adapter parses WBI's complete daily holdings table and preserves ticker, CUSIP, shares,
+  market value, weight, cash classification, and issuer as-of date.
+- Live validation symbol: `WBIL`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count:
+  - registered ETF provider keys: `345`
+  - native/live-backed provider integrations: `144`
+  - providers still lacking native/live-backed support: `201`
+
+### Validation
+
+- `cd backend && UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q` -> `188 passed`
+- `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k wbi --no-cov -q` -> `1 passed, 147 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - Alger native ETF holdings route
 
 ### Summary
