@@ -454,6 +454,55 @@ async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_brown_advisory_adapter_filters_issuer_dated_filepoint_holdings_export(monkeypatch):
+    adapter = get_holdings_adapter("brown_advisory")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://brownadvisory.filepoint.live/assets/data/"
+        "SEI_Brown_Tradedate_Holdings_07092026.txt"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "date|fund_ticker|security_group|security_type|security_cusip|"
+                        "security_sedol|security_isin|security_ticker|security_description|"
+                        "quantity|market_value|percent_of_net_assets"
+                    ),
+                    (
+                        "07/09/2026|BAFE|Stock - Common|Common Stock|037833100|2046251|"
+                        "US0378331005|AAPL|APPLE INC|1650|521763|4.51501"
+                    ),
+                    "07/09/2026|BAFE|Cash|Cash|||||Cash|1000|1000|0.01",
+                    (
+                        "07/09/2026|BASG|Stock - Common|Common Stock|67066G104|2379504|"
+                        "US67066G1040|NVDA|NVIDIA CORP|20|4000|1"
+                    ),
+                ]
+            ),
+            content_type="text/plain",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="BAFE", requested_date=date(2026, 7, 9))
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].isin == "US0378331005"
+    assert result.rows[0].weight == Decimal("0.0451501")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_dated_daily_holdings_export"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
 async def test_tiaa_adapter_resolves_nuveen_symbol_and_parses_holdings(monkeypatch):
     adapter = get_holdings_adapter("tiaa")
     assert adapter is not None
