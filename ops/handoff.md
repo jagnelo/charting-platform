@@ -5,6 +5,19 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-11T03:45Z
+
+- Promoted `founder` from recognition-only/SEC-backed support to native/live-backed support.
+- Added an isolated `FounderHoldingsAdapter` for Founder ETFs' public current full-holdings PDF.
+  It uses the document's text layer to preserve ticker, weight, founder attribution, cash rows, and
+  issuer composition date.
+- Live validation symbol: `FFF`, returning more than 90 parseable issuer-native rows.
+- Registry count after promotion: `345` registered, `148` native/live-backed, and `197` remaining.
+  SEC EDGAR remains fallback only and is not counted as native provider support.
+- Validation: full adapter unit suite `192 passed`; focused live Founder route `1 passed, 151
+  deselected`; provider matrix, targeted ruff, and `git diff --check` passed.
+- Feature commit: `8beba83 feat(etf-holdings): add Founder native holdings route`.
+
 ## Latest checkpoint - 2026-07-11T03:40Z
 
 - Promoted `polen` from recognition-only/SEC-backed support to native/live-backed support.

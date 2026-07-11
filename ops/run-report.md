@@ -2,6 +2,24 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-11 - Founder native ETF holdings route
+
+### Summary
+
+- Promoted `founder` from recognition-only/generated support to native/live-backed support.
+- Added a provider-specific `FounderHoldingsAdapter` for the public FFF current full-holdings
+  PDF. It parses the issuer document's complete ticker/weight table and preserves founder
+  attribution and cash classification.
+- Live validation symbol: `FFF`, returning more than 90 issuer-native holdings rows.
+- Current truthful provider-native count: `345` registered, `148` native/live-backed, and `197`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `192 passed`
+- focused live Founder route -> `1 passed, 151 deselected`
+- provider matrix, targeted ruff, and `git diff --check` -> passed
+
 ## 2026-07-11 - Polen native ETF holdings route
 
 ### Summary
