@@ -70,6 +70,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "oneascent",
     "first_eagle",
     "fm_investments",
+    "founder",
     "first_trust",
     "franklin",
     "future_fund",
@@ -257,6 +258,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "founder",
+            "FFF",
+            None,
+            {},
+            90,
         ),
         (
             "21shares",

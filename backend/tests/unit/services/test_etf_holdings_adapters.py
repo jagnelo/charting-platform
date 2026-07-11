@@ -880,6 +880,40 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
 
 
 @pytest.mark.asyncio
+async def test_founder_adapter_parses_complete_holdings_pdf_text():
+    adapter = get_holdings_adapter("founder")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_holdings_text(
+        "\n".join(
+            [
+                "Full Holdings",
+                "As of 2026-07-10",
+                "TICKER",
+                "NAME",
+                "FOUNDER(S)",
+                "WEIGHT",
+                "META",
+                "META",
+                "Mark Zuckerberg",
+                "6.84%",
+                "Cash&Other",
+                "Cash & Other",
+                "-0.23%",
+            ]
+        )
+    )
+
+    assert composition_date == date(2026, 7, 10)
+    assert len(rows) == 2
+    assert rows[0].symbol == "META"
+    assert rows[0].weight == Decimal("0.0684")
+    assert rows[0].extra_data["founder_names"] == "Mark Zuckerberg"
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
 async def test_polen_adapter_filters_issuer_multi_fund_export(monkeypatch):
     adapter = get_holdings_adapter("polen")
     assert adapter is not None

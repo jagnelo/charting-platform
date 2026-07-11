@@ -6384,6 +6384,127 @@ class PolenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class FounderHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Founders 100 ETF holdings from the issuer's current full-holdings PDF."""
+
+    HOLDINGS_URL = "https://assets.founderetfs.com/holdings/latest.pdf"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if normalized_symbol == "FFF" or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Founder ETFs publishes FFF's complete current holdings PDF on its public product page."
+                if normalized_symbol == "FFF"
+                else (
+                    "No public Founder ETF holdings PDF is configured for this symbol; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No public Founder ETF holdings PDF is configured for this symbol."
+                )
+            ),
+            source_url=self.HOLDINGS_URL if normalized_symbol == "FFF" else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != "FFF":
+            raise ValueError(f"No public Founder ETF holdings PDF is configured for {normalized_symbol}.")
+        resolved_source_url = source_url or self.HOLDINGS_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_pdf(response.content)
+        if not rows:
+            raise ValueError("Founder ETF full holdings PDF did not contain parseable positions.")
+        for index, row in enumerate(rows):
+            row.source_row_id = f"FFF:{composition_date or 'unknown'}:{index}"
+            row.extra_data = {**row.extra_data, "source": "founder_full_holdings_pdf"}
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text="\n".join(
+                [row.name or row.symbol or "" for row in rows]
+            ),
+            raw_json={"source_format": "pdf"},
+            source_url=str(response.url),
+            source_identifier="FFF",
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "issuer_current_full_holdings_pdf",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_pdf(raw_pdf: bytes) -> tuple[list[CanonicalHoldingRow], date | None]:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(raw_pdf)).pages)
+        return FounderHoldingsAdapter._parse_holdings_text(text)
+
+    @staticmethod
+    def _parse_holdings_text(text: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        date_match = re.search(r"As\s+of\s+(\d{4}-\d{2}-\d{2})", text)
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%Y-%m-%d").date() if date_match else None
+        )
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        rows: list[CanonicalHoldingRow] = []
+        index = 0
+        ticker_re = re.compile(r"(?:[A-Z][A-Z0-9]{0,7}|Cash&Other)$")
+        while index < len(lines):
+            ticker = lines[index]
+            if ticker in {"TICKER", "NAME", "FOUNDER(S)", "WEIGHT"} or not ticker_re.fullmatch(ticker):
+                index += 1
+                continue
+            if index + 2 >= len(lines):
+                break
+            name = lines[index + 1]
+            weight_index = index + 2
+            while weight_index < min(index + 5, len(lines)) and not lines[weight_index].endswith("%"):
+                weight_index += 1
+            if weight_index >= len(lines) or not lines[weight_index].endswith("%"):
+                index += 1
+                continue
+            is_cash = ticker == "Cash&Other"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    weight=_decimal(lines[weight_index]),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=str(len(rows) + 1),
+                    extra_data={
+                        "founder_names": None if is_cash else " ".join(lines[index + 2 : weight_index]),
+                    },
+                )
+            )
+            index = weight_index + 1
+        return rows, composition_date
+
+
 class VictoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch VictoryShares holdings from Victory Capital's public product API."""
 
@@ -25245,6 +25366,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Polen Capital public ETF daily holdings CSV exports may be subject to issuer terms.",
     ),
+    "founder": IssuerCsvAdapterConfig(
+        adapter_key="founder",
+        source_provider="founder",
+        source_access="issuer_current_full_holdings_pdf",
+        url_templates=("https://assets.founderetfs.com/holdings/latest.pdf",),
+        product_page_templates=("https://www.founderetfs.com/fff",),
+        live_tested_default_route=True,
+        terms_note="Founder ETFs public full-holdings PDFs may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -25328,6 +25458,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,
+        "founder": FounderHoldingsAdapter,
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
