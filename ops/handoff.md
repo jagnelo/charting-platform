@@ -18,6 +18,12 @@
   passed; targeted ruff and `git diff --check` passed.
 - Feature commit: `cba7e1c feat(etf-holdings): add AOT native holdings route`.
 
+## Source audit - 2026-07-12T05:40Z
+
+- `canary`: the official HBR product page is indexable and advertises a current holdings table,
+  but direct live retrieval from the backend environment returns HTTP `403`. The uncommitted
+  adapter attempt was removed rather than falsely promoting or counting Canary. Continue the queue.
+
 ## Latest checkpoint - 2026-07-12T04:40Z
 
 - Promoted `1251_capital` to native/live-backed support through an isolated

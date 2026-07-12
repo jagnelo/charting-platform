@@ -9568,3 +9568,9 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `155` native/live-backed, `190` remaining; SEC
   EDGAR remains fallback-only and is not counted.
 - Feature commit: `cba7e1c feat(etf-holdings): add AOT native holdings route`.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T05:40Z
+
+- `canary`: official HBR pages visibly publish a current holdings table, but direct issuer-site
+  retrieval from this backend environment returns HTTP `403`. The provider was not promoted;
+  the uncommitted implementation attempt was removed rather than leaving an unvalidated adapter.
