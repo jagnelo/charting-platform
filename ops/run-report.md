@@ -9605,3 +9605,10 @@ Append a short entry after each worker session.
   route plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `157` native/live-backed, `188` remaining; SEC
   EDGAR remains fallback-only.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T06:50Z
+
+- `alexis`: the official LEXI site publishes current full-holdings CSV metadata through its
+  first-party Wix payload, but direct backend retrieval of the advertised Wix media object and
+  its public URL variants returned HTTP `403`. No adapter was promoted without a backend-readable
+  issuer-native artifact. This is a provider-specific access block only; continue the queue.

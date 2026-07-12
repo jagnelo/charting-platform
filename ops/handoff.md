@@ -7,6 +7,13 @@
 
 ## Latest checkpoint - 2026-07-12T06:35Z
 
+## Source audit - 2026-07-12T06:50Z
+
+- `alexis`: the official LEXI site exposes current complete holdings metadata and a public Wix
+  media CSV object, but all discovered first-party static Wix media URL forms returned HTTP `403`
+  from this backend environment. Do not promote it until a backend-readable issuer-native route
+  is verified; continue the provider queue.
+
 - Promoted `abacus_global` from generated recognition-only support to native/live-backed support
   through an isolated `AbacusGlobalHoldingsAdapter`. It verifies the issuer product page and
   follows only its requested-fund “download full holdings” CSV link, retaining ticker, valid

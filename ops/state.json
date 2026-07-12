@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T06:35:00Z",
+    "last_handoff_at": "2026-07-12T06:50:00Z",
     "last_commit": "05f29a6",
     "git_ready_to_commit": true,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T06:50Z Alexis source audit: LEXI's official Wix site exposes current holdings CSV metadata, but every discovered official Wix media URL form returned HTTP 403 from the backend environment. Alexis remains unpromoted; continue the provider queue.",
         "2026-07-12T06:35Z Abacus Global native route: promoted abacus_global from generated recognition-only support to an isolated Abacus FCF product-page/linked-daily-CSV adapter. ABLG live validation passed. Full adapter unit suite (197), focused Abacus Global live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 157 native/live-backed, 188 remaining; SEC is fallback-only.",
         "2026-07-12T06:15Z 3Fourteen native route: promoted 3fourteen from generated recognition-only support to an isolated SMI 3Fourteen public-product-page adapter. FCTE live validation passed. Full adapter unit suite (196), focused 3Fourteen live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 156 native/live-backed, 189 remaining; SEC is fallback-only.",
         "2026-07-12T05:50Z 3EDGE source audit: public holdings widget rendered empty and only a dated quarterly PDF could be verified. It remains unpromoted; continue the provider queue.",
