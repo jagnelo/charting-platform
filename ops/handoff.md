@@ -17,6 +17,13 @@
   passed; targeted ruff and `git diff --check` passed.
 - Feature commit: `3035df8 feat(etf-holdings): add 1251 Capital native route`.
 
+## Source audit - 2026-07-12T04:50Z
+
+- `sofi`: the official `SFY` ETF page returns HTTP `403` to direct backend-style retrieval and
+  also returns HTTP `403` / a Cloudflare challenge to a standard headless browser. No
+  backend-readable official full-holdings artifact could be verified, so no adapter was promoted.
+  This is a provider-specific access block only; continue the queue.
+
 ## Latest checkpoint - 2026-07-12T04:10Z
 
 - Promoted `exchange_traded_concepts` from generated recognition-only support to a

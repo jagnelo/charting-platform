@@ -9529,3 +9529,12 @@ Append a short entry after each worker session.
   matrix, targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `154` native/live-backed, `191` remaining; SEC
   EDGAR remains fallback-only.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T04:50Z
+
+- `sofi`: the official `SFY` ETF product page returns HTTP `403` to a direct backend request.
+  A standard headless-browser request also returns HTTP `403` and is redirected into a
+  Cloudflare challenge.
+- No provider-native adapter was added or counted because an executable official full-holdings
+  route cannot currently be reached from this environment. This is a provider-specific block;
+  the global provider queue remains active.
