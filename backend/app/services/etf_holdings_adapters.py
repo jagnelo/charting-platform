@@ -9418,6 +9418,223 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch EntrepreneurShares ETF holdings from its issuer-embedded SS&C client."""
+
+    product_page_template = "https://entrepreneurshares.com/ershares-etfs/{symbol_lower}-etf/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if source_url else Decimal("0.5000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "EntrepreneurShares publishes complete ETF holdings through its public SS&C client."
+                if source_url
+                else "EntrepreneurShares needs an ETF symbol to resolve its public product page."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "entrepreneurshares.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        return self.product_page_template.format(symbol_lower=resolved_symbol) if resolved_symbol else None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError("Capital Impact holdings require an ETF symbol or public product page.")
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=page_headers,
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            full_holdings_url = self._extract_full_holdings_url(
+                product_response.text,
+                symbol=normalized_symbol,
+                page_url=str(product_response.url),
+            )
+            holdings_page_response = await client.get(
+                full_holdings_url,
+                headers=page_headers,
+                follow_redirects=True,
+            )
+            holdings_page_response.raise_for_status()
+            api_url, token, resource = self._extract_api_client(
+                holdings_page_response.text,
+                symbol=normalized_symbol,
+            )
+            api_response = await client.get(
+                api_url,
+                headers={
+                    **_holdings_request_headers(accept="application/json,*/*"),
+                    "Authorization": f"Bearer {token}",
+                    "Referer": str(holdings_page_response.url),
+                },
+                follow_redirects=True,
+            )
+            api_response.raise_for_status()
+        payload = api_response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Capital Impact SS&C holdings route returned no complete rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=api_response.text,
+            raw_json={"holdings": payload} if isinstance(payload, list) else {"payload": payload},
+            source_url=str(holdings_page_response.url),
+            source_identifier=resource,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "entrepreneurshares_public_ssnc_full_holdings_api",
+                "product_page_url": str(product_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_full_holdings_url(raw_html: str, *, symbol: str, page_url: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(
+                f"Capital Impact product page identity did not match requested ETF {symbol}."
+            )
+        match = re.search(
+            r'''src=["'](?P<url>[^"']*/full-holdings/[^"']+)["']''',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if match is None:
+            raise ValueError(f"Capital Impact product page did not expose full holdings for {symbol}.")
+        return urljoin(page_url, html.unescape(match.group("url")).strip())
+
+    @staticmethod
+    def _extract_api_client(raw_html: str, *, symbol: str) -> tuple[str, str, str]:
+        api_tag = next(
+            (
+                match
+                for match in re.finditer(r"<script\b(?P<attributes>[^>]*)>", raw_html, re.IGNORECASE)
+                if re.search(r'''\bid=["']api["']''', match.group("attributes"), re.IGNORECASE)
+            ),
+            None,
+        )
+        if api_tag is None:
+            raise ValueError(f"Capital Impact full holdings page did not expose an API client for {symbol}.")
+        attributes = api_tag.group("attributes")
+
+        def _attribute(name: str) -> str | None:
+            match = re.search(rf'''\b{re.escape(name)}=["'](?P<value>[^"']+)["']''', attributes, re.IGNORECASE)
+            return html.unescape(match.group("value")).strip() if match else None
+
+        token = _attribute("data-jwt")
+        base_url = _attribute("data-sub")
+        resource = _attribute("data-resource")
+        if not token or not base_url or not resource:
+            raise ValueError(f"Capital Impact full holdings API metadata was incomplete for {symbol}.")
+        if resource.upper() != symbol.upper():
+            raise ValueError(
+                f"Capital Impact full holdings API identity did not match requested ETF {symbol}."
+            )
+        return f"{base_url.rstrip('/')}/holding/{resource}/full", token, resource
+
+    @staticmethod
+    def _parse_holdings_payload(
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            fund_symbol = _clean(raw.get("fundsymbol"))
+            if fund_symbol and fund_symbol.upper() != symbol.upper():
+                raise ValueError(
+                    f"Capital Impact holdings API identity did not match requested ETF {symbol}."
+                )
+            name = _clean(raw.get("name"))
+            ticker = _clean(raw.get("holdingsymbol")) or _clean(raw.get("primaryidentifier"))
+            holding_type = _clean(raw.get("holdingtype"))
+            row_date = _clean(raw.get("asofdate"))
+            if row_date:
+                try:
+                    parsed = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            haystack = " ".join(part.lower() for part in (ticker, name, holding_type) if part)
+            is_cash = any(marker in haystack for marker in ("cash", "currency", "us dollar"))
+            is_fixed_income = any(marker in haystack for marker in ("bond", "note", "debt"))
+            cusip = _clean(raw.get("cusip"))
+            if not any([ticker, name, cusip, raw.get("marketvalue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_fixed_income else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=_clean(raw.get("isin")),
+                    sedol=_clean(raw.get("sedol")),
+                    weight=_decimal(raw.get("weight")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("marketvalue")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else ("fixed_income" if is_fixed_income else "equity"),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{symbol}:{index}:{cusip or ticker or name or 'holding'}"
+                    ),
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -26027,6 +26244,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cohen & Steers public ETF fund API data may be subject to issuer terms.",
     ),
+    "capital_impact": IssuerCsvAdapterConfig(
+        adapter_key="capital_impact",
+        source_provider="capital_impact",
+        source_access="issuer_public_ssnc_full_holdings_api",
+        product_page_templates=(
+            "https://entrepreneurshares.com/ershares-etfs/{symbol_lower}-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "EntrepreneurShares/Capital Impact public SS&C full-holdings API data may be "
+            "subject to issuer terms."
+        ),
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27700,6 +27930,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "shelton": SheltonHoldingsAdapter,
         "scharf": ScharfHoldingsAdapter,
         "cohen_steers": CohenSteersHoldingsAdapter,
+        "capital_impact": CapitalImpactHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

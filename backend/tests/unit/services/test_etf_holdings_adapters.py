@@ -7498,6 +7498,77 @@ def test_cohen_steers_adapter_parses_public_fund_payload():
     assert composition_date == date(2026, 7, 10)
 
 
+@pytest.mark.asyncio
+async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypatch):
+    adapter = get_holdings_adapter("capital_impact")
+    assert adapter is not None
+
+    product_html = '''
+    <h1>XOVR ETF</h1>
+    <iframe src="https://ershares.ssnc.cloud/full-holdings/xovr"></iframe>
+    '''
+    holdings_page_html = '''
+    <script id="api" data-jwt="issuer-token" data-sub="https://secure.alpsinc.com/MarketingAPI/api/v1/" data-resource="xovr"></script>
+    '''
+    holdings_payload = [
+        {
+            "fundsymbol": "XOVR",
+            "asofdate": "2026-07-10T05:00:00",
+            "cusip": "67066G104",
+            "name": "NVIDIA Corp.",
+            "holdingsymbol": "NVDA",
+            "weight": 0.0984,
+            "shares": 985189,
+            "marketvalue": 207835471.44,
+            "sedol": "2379504",
+            "isin": "US67066G1040",
+            "holdingtype": "Common Stock",
+        },
+        {
+            "fundsymbol": "XOVR",
+            "asofdate": "2026-07-10T05:00:00",
+            "name": "Cash Equivalent",
+            "primaryidentifier": "USD",
+            "weight": 0.0033,
+            "shares": 7004244.24,
+            "marketvalue": 7004244.24,
+            "holdingtype": "Cash Equivalent",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_html, content_type="text/html"),
+        FakeResponse(text=holdings_page_html, content_type="text/html"),
+        FakeResponse(text=json.dumps(holdings_payload), content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="XOVR")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://entrepreneurshares.com/ershares-etfs/xovr-etf/",
+        "https://ershares.ssnc.cloud/full-holdings/xovr",
+        "https://secure.alpsinc.com/MarketingAPI/api/v1/holding/xovr/full",
+    ]
+    assert FakeAsyncClient.requested[-1][1]["headers"]["Authorization"] == "Bearer issuer-token"
+    assert len(result.rows) == 2
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "NVDA"
+    assert equity_row.cusip == "67066G104"
+    assert equity_row.isin == "US67066G1040"
+    assert equity_row.sedol == "2379504"
+    assert equity_row.weight == Decimal("0.0984")
+    assert equity_row.shares == Decimal("985189")
+    assert equity_row.market_value == Decimal("207835471.44")
+    assert cash_row.symbol is None
+    assert cash_row.holding_type == "cash"
+    assert cash_row.row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "entrepreneurshares_public_ssnc_full_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
