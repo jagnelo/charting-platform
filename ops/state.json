@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-12T04:20:00Z",
-    "last_commit": "478123a",
-    "git_ready_to_commit": true,
+    "last_commit": "c907563",
+    "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-12 targeted ruff check for Exchange Traded Concepts native adapter)",
         "backend_tests": "passed ETF holdings Exchange Traded Concepts native-route validation (2026-07-12: full adapter unit suite 193 passed, focused live BLUC route passed, provider matrix passed, registry count is now 345 registered provider keys, 153 native/live-backed providers, and 192 remaining; exchange_traded_concepts_native=True).",
