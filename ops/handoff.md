@@ -20,6 +20,14 @@
   deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
 - Pending feature commit: Exchange Traded Concepts adapter plus tests and registry configuration.
 
+## Source audit - 2026-07-12T04:20Z
+
+- `tidal`: verified that Tidal Financial Group is a multi-brand ETF operating platform, not a
+  single issuer with one complete-holdings publication route. Its own materials describe support
+  for more than 90 issuers, and public client ETF pages publish holdings under their respective
+  brands. Do not create or count a generic Tidal fallback: each client issuer needs its own
+  provider-native route and live test.
+
 ## Latest checkpoint - 2026-07-12T02:35Z
 
 - Promoted `sei` from generated recognition-only support to a native/live-backed integration.

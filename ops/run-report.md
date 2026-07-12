@@ -9510,3 +9510,11 @@ Append a short entry after each worker session.
   passed, 156 deselected`), provider matrix, targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `153` native/live-backed, `192` remaining; SEC
   EDGAR remains fallback-only.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T04:20Z
+
+- `tidal`: Tidal Financial Group's public materials establish it as a multi-brand ETF operating
+  platform supporting many independent issuers, not as a single issuer that publishes a unified
+  complete-holdings route. Client funds expose holdings through their actual issuer brands.
+- No generic Tidal implementation was added or counted. Treat every client issuer as its own
+  provider-native integration target with its own source route and live validation.
