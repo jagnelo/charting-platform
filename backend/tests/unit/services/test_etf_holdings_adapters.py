@@ -7347,6 +7347,42 @@ def test_dakota_wealth_adapter_parses_issuer_holdings_table():
     assert composition_date == date(2026, 7, 13)
 
 
+def test_toews_adapter_parses_product_page_linked_holdings_csv():
+    adapter = get_holdings_adapter("toews")
+    assert adapter is not None
+    holdings_url = adapter._discover_holdings_csv(
+        '''
+        <h1>Toews Agility Shares Hedged Risk ETF (HRSK)</h1>
+        <a href="/wp-content/themes/cardinal-child/etf/download-2025.php?id=1383">Download All Holdings (.CSV)</a>
+        ''',
+        symbol="HRSK",
+        product_page_url="https://toewsetfs.com/hrsk/",
+    )
+    rows, composition_date = adapter._parse_holdings_csv(
+        """
+        Toews Agility Shares Hedged Risk ETF
+        Fund Holdings Data as of 07/10/2026
+        Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+        APPLE INC,037833100,AAPL US,3.63,315.32,3973,1252766.36,3.63
+        US DOLLAR FUTURE,USDF,USDF,0.37,1,128857.48,128857.48,0.37
+        S&P500 EMINI OPTN SEP27P,ESU7P 7450 INDEX,ESU7P 7450 INDEX,5.24,420.75,86,1809225,5.24
+        """,
+        symbol="HRSK",
+    )
+    assert holdings_url == (
+        "https://toewsetfs.com/wp-content/themes/cardinal-child/etf/download-2025.php?id=1383"
+    )
+    assert len(rows) == 3
+    assert rows[0].symbol == "AAPL"
+    assert rows[0].cusip == "037833100"
+    assert rows[0].weight == Decimal("0.0363")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert rows[2].symbol is None
+    assert rows[2].holding_type == "option"
+    assert composition_date == date(2026, 7, 10)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7406,6 +7442,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rational is not None
     assert type(rational).__name__ == "RationalHoldingsAdapter"
     assert rational.resolve_source_url(symbol="RPAR") == "https://www.rparetf.com/rpar"
+
+    toews = get_holdings_adapter("toews")
+    assert toews is not None
+    assert type(toews).__name__ == "ToewsHoldingsAdapter"
+    assert toews.resolve_source_url(symbol="HRSK") == "https://toewsetfs.com/hrsk/"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None

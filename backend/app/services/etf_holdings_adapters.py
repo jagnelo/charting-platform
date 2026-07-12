@@ -8621,6 +8621,217 @@ class DakotaWealthHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ToewsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Toews Agility Shares' linked complete daily holdings CSV."""
+
+    product_page_template = "https://toewsetfs.com/{symbol_lower}/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Toews publishes this ETF's complete current holdings CSV from its public fund page."
+                if source_url
+                else "Toews needs an ETF symbol to resolve its public fund page."
+            ),
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id")
+            or symbol.strip().upper()
+            or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "toewsetfs.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError("Toews holdings require an ETF symbol or public product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            holdings_url = self._discover_holdings_csv(
+                product_response.text,
+                symbol=normalized_symbol,
+                product_page_url=str(product_response.url),
+            )
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                    "Referer": str(product_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Toews holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "issuer_product_page_linked_holdings_csv",
+                "product_page_url": str(product_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "toews_product_page_linked_holdings_csv",
+                "product_page_url": str(product_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_csv(raw_html: str, *, symbol: str, product_page_url: str) -> str:
+        normalized_symbol = symbol.strip().upper()
+        if not re.search(rf"\b{re.escape(normalized_symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Toews product page identity did not match requested ETF {normalized_symbol}.")
+        link_match = re.search(
+            r'''href=["'](?P<url>[^"']*download-\d+\.php\?id=\d+[^"']*)["'][^>]*>\s*Download All Holdings''',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if link_match is None:
+            raise ValueError(f"Toews product page did not link a complete holdings CSV for {normalized_symbol}.")
+        return urljoin(product_page_url, html.unescape(link_match.group("url")).strip())
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        if not table_rows:
+            return [], None
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lower() for cell in row if _clean(cell)}
+                >= {"name", "security identifier", "symbol", "net assets %", "shares held", "market value"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+        date_text = " ".join(cell for row in table_rows[:header_index] for cell in row)
+        date_match = re.search(r"data\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", date_text, re.IGNORECASE)
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%m/%d/%Y").date() if date_match is not None else None
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(table_rows[header_index], row)
+            raw_symbol = _clean(_first(raw, ["Symbol"]))
+            holding_symbol, exchange = ToewsHoldingsAdapter._split_symbol(raw_symbol)
+            name = _clean(_first(raw, ["Name"]))
+            security_identifier = _clean(_first(raw, ["Security Identifier"]))
+            row_type, holding_type = ToewsHoldingsAdapter._classify_holding(
+                raw_symbol=raw_symbol,
+                name=name,
+                security_identifier=security_identifier,
+            )
+            if not any([raw_symbol, name, security_identifier, _first(raw, ["Market Value"])]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=holding_symbol if row_type == "security" else None,
+                    name=name,
+                    cusip=security_identifier if _looks_like_cusip(security_identifier) else None,
+                    weight=_decimal_percent_points(_first(raw, ["Net Assets %", "Market Value %"])),
+                    shares=_decimal(_first(raw, ["Shares Held"])),
+                    market_value=_decimal(_first(raw, ["Market Value"])),
+                    currency="USD" if row_type == "cash" else None,
+                    exchange=exchange,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}:{security_identifier or raw_symbol or name or 'holding'}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if key and _clean(value) is not None},
+                        "source_symbol": raw_symbol,
+                        "source_security_identifier": security_identifier,
+                        "source": "toews_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _split_symbol(raw_symbol: str | None) -> tuple[str | None, str | None]:
+        normalized = " ".join((_clean(raw_symbol) or "").split())
+        if not normalized:
+            return None, None
+        if normalized.endswith(" US") and re.fullmatch(r"[A-Z0-9. -]+ US", normalized):
+            return normalized[:-3].strip(), "US"
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", normalized):
+            return normalized, None
+        return None, None
+
+    @staticmethod
+    def _classify_holding(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        security_identifier: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name, security_identifier) if part)
+        if any(marker in text for marker in ("DOLLAR", "CASH", "SWEEP", "MONEY MARKET")):
+            return "cash", "cash"
+        if "OPTN" in text or re.search(r"\b[A-Z]{2,6}\d?[CP]\s+\d+", text):
+            return "security", "option"
+        if "ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if any(marker in text for marker in ("BOND", "NOTE", "TREASURY")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25198,6 +25409,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=("https://www.dakotaetfs.com/",), live_tested_default_route=True,
         terms_note="Dakota Wealth public ETF holdings tables may be subject to issuer terms.",
     ),
+    "toews": IssuerCsvAdapterConfig(
+        adapter_key="toews",
+        source_provider="toews",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=("https://toewsetfs.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Toews Agility Shares public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26866,6 +27085,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "alternative_access": AlternativeAccessHoldingsAdapter,
         "rational": RationalHoldingsAdapter,
         "dakota_wealth": DakotaWealthHoldingsAdapter,
+        "toews": ToewsHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

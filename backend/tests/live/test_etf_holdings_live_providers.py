@@ -15,6 +15,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "alternative_access",
     "rational",
     "dakota_wealth",
+    "toews",
     "acquirers",
     "acuitas",
     "aot",
@@ -1445,6 +1446,20 @@ async def test_live_rational_risk_parity_product_page_linked_holdings_workbook()
     )
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "xlsx"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_toews_product_page_linked_holdings_csv():
+    adapter = get_holdings_adapter("toews")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="HRSK")
+
+    _assert_live_holdings_result(result, adapter_key="toews", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "toews_product_page_linked_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "csv"
 
 
 
