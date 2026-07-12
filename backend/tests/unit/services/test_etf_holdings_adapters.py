@@ -6998,6 +6998,47 @@ Other issuer position    01/20/35   $ 10,000   $ 10,001
     assert sum(row.weight or Decimal("0") for row in rows) == Decimal("1")
 
 
+@pytest.mark.asyncio
+async def test_exchange_traded_concepts_adapter_parses_only_requested_bluemonte_payload(monkeypatch):
+    adapter = get_holdings_adapter("exchange_traded_concepts")
+    assert adapter is not None
+
+    raw_html = '''
+    <script>
+    ql.componentId="bluemonte-bluc-HoldingsComponent-1";
+    ql.titleText="Holdings as of 07/09/2026";
+    ql.finData=[
+      {figi:"BBG000KMT5K3",ticker:"SPYM",quantity:1536158,description:"STATE STREET SPDR PORTFOLIO S&P 500 ETF",market_value:"135,903,898.26",percent_of_nav:"40.08%"},
+      {figi:"BBG000HT2CB6",ticker:"VUG",quantity:1342106,description:"VANGUARD GROWTH ETF",market_value:"116,736,379.88",percent_of_nav:"34.43%"},
+      {ticker:"TBD",description:"TBD",quantity:0,market_value:"0",percent_of_nav:"0.00%"}
+    ];ql.btnLink="";
+    other.componentId="bluemonte-bval-HoldingsComponent-1";
+    other.finData=[{ticker:"SHOULD_NOT_APPEAR",description:"Other ETF",quantity:1,market_value:"1",percent_of_nav:"100%"}];other.btnLink="";
+    </script>
+    '''
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://bluemontefunds.com/bluc",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BLUC")
+
+    assert FakeAsyncClient.requested[0][0] == "https://bluemontefunds.com/bluc"
+    assert [row.symbol for row in result.rows] == ["SPYM", "VUG"]
+    assert result.rows[0].weight == Decimal("0.4008")
+    assert result.rows[0].shares == Decimal("1536158")
+    assert result.rows[0].market_value == Decimal("135903898.26")
+    assert result.rows[0].extra_data["figi"] == "BBG000KMT5K3"
+    assert result.legal_metadata["route_resolution"] == (
+        "exchange_traded_concepts_bluemonte_fund_page_payload"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7027,6 +7068,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rafferty is not None
     assert type(rafferty).__name__ == "RaffertyHoldingsAdapter"
     assert rafferty.resolve_source_url(symbol="COM") == "https://www.direxion.com/holdings/COM.csv"
+
+    exchange_traded_concepts = get_holdings_adapter("exchange_traded_concepts")
+    assert exchange_traded_concepts is not None
+    assert type(exchange_traded_concepts).__name__ == "ExchangeTradedConceptsHoldingsAdapter"
+    assert exchange_traded_concepts.resolve_source_url(symbol="BLUC") == "https://bluemontefunds.com/bluc"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None

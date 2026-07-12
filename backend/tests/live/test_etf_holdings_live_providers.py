@@ -63,6 +63,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "doubleline",
     "eldridge",
     "eventide",
+    "exchange_traded_concepts",
     "etf_architect",
     "faith_investor_services",
     "first_pacific",
@@ -1326,6 +1327,21 @@ async def test_live_rafferty_direxion_daily_holdings_export():
 
     _assert_live_holdings_result(result, adapter_key="rafferty", min_rows=5)
     assert result.legal_metadata["route_resolution"] == "rafferty_direxion_symbol_holdings_csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_exchange_traded_concepts_bluemonte_fund_page_payload():
+    adapter = get_holdings_adapter("exchange_traded_concepts")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="BLUC")
+
+    _assert_live_holdings_result(result, adapter_key="exchange_traded_concepts", min_rows=3)
+    assert result.legal_metadata["route_resolution"] == (
+        "exchange_traded_concepts_bluemonte_fund_page_payload"
+    )
+    assert any(row.extra_data.get("figi") for row in result.rows)
 
 
 @pytest.mark.asyncio

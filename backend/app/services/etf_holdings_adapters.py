@@ -7500,6 +7500,150 @@ class MillerValueHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Exchange Traded Concepts' first-party Bluemonte ETF page payload."""
+
+    product_page_template = "https://bluemontefunds.com/{symbol_lower}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Exchange Traded Concepts publishes current Bluemonte ETF holdings "
+                "in its public fund-page payload."
+            ),
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        if source_url and "bluemontefunds.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(f"Exchange Traded Concepts needs a fund page route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=self.source_request_headers(source_url=resolved_source_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = self._parse_embedded_holdings(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(
+                f"Exchange Traded Concepts page did not expose holdings rows for {symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_payload", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_payload",
+                "route_resolution": "exchange_traded_concepts_bluemonte_fund_page_payload",
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_fund_page_payload",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_embedded_holdings(cls, raw_html: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        component_id = f'bluemonte-{symbol.strip().lower()}-HoldingsComponent-1'
+        component_match = re.search(
+            rf'(?P<var>[A-Za-z_$][\w$]*)\.componentId="{re.escape(component_id)}";'
+            rf'(?P<body>.*?)(?P=var)\.btnLink=',
+            raw_html,
+            flags=re.DOTALL,
+        )
+        if component_match is None:
+            return []
+
+        variable_name = component_match.group("var")
+        data_match = re.search(
+            rf'{re.escape(variable_name)}\.finData=\[(?P<rows>.*?)\];',
+            component_match.group("body"),
+            flags=re.DOTALL,
+        )
+        if data_match is None:
+            return []
+
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_object in enumerate(
+            MillerValueHoldingsAdapter._split_js_objects(data_match.group("rows")),
+            start=1,
+        ):
+            parsed = MillerValueHoldingsAdapter._parse_js_object(raw_object)
+            ticker = _clean(parsed.get("ticker"))
+            name = _clean(parsed.get("description"))
+            if ticker is None and name is None:
+                continue
+            # Issuer pages can publish an explicit TBD placeholder before a fund is live.
+            if (ticker or "").upper() == "TBD" or (name or "").upper() == "TBD":
+                continue
+            holding_type = MillerValueHoldingsAdapter._holding_type(ticker=ticker, name=name)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=ticker.upper() if ticker and row_type == "security" else None,
+                    name=name,
+                    weight=_decimal(parsed.get("percent_of_nav")),
+                    shares=_decimal(parsed.get("quantity")),
+                    market_value=_decimal(parsed.get("market_value")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"exchange-traded-concepts-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in parsed.items()
+                        if key
+                        not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                        and _clean(value) is not None
+                    },
+                )
+            )
+        return rows
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -23993,6 +24137,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Invesco public product pages and holdings files may be subject to issuer terms.",
     ),
+    "exchange_traded_concepts": IssuerCsvAdapterConfig(
+        adapter_key="exchange_traded_concepts",
+        source_provider="exchange_traded_concepts",
+        source_access="issuer_public_bluemonte_server_rendered_holdings_payload",
+        product_page_templates=("https://bluemontefunds.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Exchange Traded Concepts' public Bluemonte ETF fund-page holdings payloads may "
+            "be subject to issuer terms."
+        ),
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -25642,6 +25797,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "doubleline": DoubleLineHoldingsAdapter,
         "eldridge": EldridgeHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
+        "exchange_traded_concepts": ExchangeTradedConceptsHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
