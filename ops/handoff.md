@@ -34,6 +34,13 @@
   than a current complete holdings feed. It remains unpromoted until a refreshable issuer-native
   route can be verified.
 
+## Source audit - 2026-07-12T17:45Z
+
+- `araq`: source research resolves the registered identity to Arax Investment Partners, a wealth
+  management firm rather than a distinct US ETF issuer. No provider-native ETF holdings route was
+  identified. It remains unpromoted; the recognition alias should not be read as proof of an ETF
+  issuer relationship.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an

@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T17:45Z Source audit: the araq registry identity resolves to Arax Investment Partners, a wealth-management firm rather than a distinct US ETF issuer. No native ETF holdings route was found; it remains unpromoted.",
         "2026-07-12T17:35Z Source audit: Albert D. Mason's official KNOW ETF page links historic fiscal holdings PDFs but no current complete holdings feed. It remains unpromoted until a refreshable issuer-native route is verifiable.",
         "2026-07-12T17:25Z Source audit: AG Financial Services Group's public surface is retirement/financial-services content, not a distinct US ETF issuer holdings route. It remains unpromoted and unrelated similarly named managers are not conflated with native support.",
         "2026-07-12T17:15Z Source audit: Aegon's official surfaces found for the registered identity are institutional or mutual-fund resources, with no distinct US ETF holdings route. It remains unpromoted; affiliate/unrelated issuer products are not treated as Aegon support.",

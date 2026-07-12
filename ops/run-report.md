@@ -28,6 +28,11 @@ Append a short entry after each worker session.
   current complete holdings feed. It remains unpromoted rather than treating an old report as a
   refreshable native route.
 
+## 2026-07-12 - Arax source audit
+
+- The `araq` registry identity resolves to Arax Investment Partners, a wealth manager rather than
+  a distinct US ETF issuer. No native ETF holdings route was found, so it remains unpromoted.
+
 ## 2026-07-12 - ACP Horizon native ETF holdings route
 
 ### Summary
