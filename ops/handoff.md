@@ -5,6 +5,21 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Source audit - 2026-07-12T01:40Z
+
+- Continued the queue without globally blocking the ETF-provider objective:
+  - `pacific_investments` / PIMCO: the public site advertises daily ETF portfolio disclosure and
+    its fund-explorer bundle exposes a first-party `/api/dashboard/{ticker}/fundDetails` route.
+    Both direct retrieval and same-origin headless-browser retrieval of the `BOND` route return
+    HTTP `403`, so there is no executable issuer-native route to promote at present.
+  - `morgan_stanley` / Eaton Vance: the public `EVHY` product page exposes issuer-native
+    product JSON and an XLS holdings endpoint. Product JSON is reachable, but the public XLS
+    download redirects to an issuer ingest origin that times out from this environment; the
+    browser page also returns `403` before its holdings widget initializes. It remains
+    unpromoted pending an executable full-holdings artifact.
+- These are individual provider findings only. They do not block the global `345`-provider
+  objective and SEC EDGAR remains fallback-only. Continue with the next unimplemented provider.
+
 ## Latest checkpoint - 2026-07-11T03:45Z
 
 ## Source audit - 2026-07-11T04:10Z

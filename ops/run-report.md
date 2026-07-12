@@ -9403,3 +9403,16 @@ Append a short entry after each worker session.
   issuer geographic-access-denied response rather than holdings.
 - Combined with the preceding WisdomTree and Thrivent `403`s, this is a repeated external
   source-access blocker. No unsupported provider was promoted and SEC stays fallback-only.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T01:40Z
+
+- PIMCO (`pacific_investments`): public ETF materials state that its ETFs disclose portfolio
+  holdings daily. Its public fund-explorer bundle exposes `/api/dashboard/{ticker}/fundDetails`,
+  but the verified `BOND` route returns HTTP `403` from both direct retrieval and a same-origin
+  headless browser. No primary adapter was promoted.
+- Morgan Stanley / Eaton Vance (`morgan_stanley`): the public EVHY product page exposes public
+  product JSON and a native XLS holdings endpoint. The JSON is reachable, but the holdings
+  endpoint redirects to an issuer ingest origin that times out in this environment, while its
+  browser holdings widget is blocked by HTTP `403`. No primary adapter was promoted.
+- These are queue-level provider findings, not grounds to block the overall 345-provider goal.
+  SEC EDGAR remains fallback-only and the strict count remains 148 native/live-backed providers.
