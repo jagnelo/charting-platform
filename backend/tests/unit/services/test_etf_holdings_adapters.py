@@ -7451,6 +7451,53 @@ def test_scharf_adapter_discovers_and_parses_current_holdings_csv():
     assert composition_date == date(2026, 7, 10)
 
 
+def test_cohen_steers_adapter_parses_public_fund_payload():
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    assert adapter._extract_fund_id(
+        '<section class="fund-block" data-id="15098" data-fund-type="etf" data-default-symbol="CSRE">',
+        symbol="CSRE",
+    ) == "15098"
+    rows, composition_date = adapter._parse_fund_payload(
+        {
+            "meta": {
+                "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+                "fullHoldings": [
+                    {
+                        "holdingName": "Acadia Realty Trust",
+                        "ticker": "AKR",
+                        "cusip": "004239109",
+                        "isin": "US0042391096",
+                        "sedol": "2566522",
+                        "securityType": "Common Stock",
+                        "accountWeight": "4.152700",
+                        "shares": "922081.0",
+                        "marketValue": "19594221.25",
+                        "asOfDate": "2026-07-10T00:00:00",
+                    },
+                    {
+                        "holdingName": "Cash & Other",
+                        "ticker": "CASH",
+                        "securityType": "Cash",
+                        "accountWeight": "0.500000",
+                        "shares": "1000",
+                        "marketValue": "1000",
+                        "asOfDate": "2026-07-10T00:00:00",
+                    },
+                ],
+            }
+        },
+        symbol="CSRE",
+    )
+    assert rows[0].symbol == "AKR"
+    assert rows[0].cusip == "004239109"
+    assert rows[0].isin == "US0042391096"
+    assert rows[0].weight == Decimal("0.041527")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 10)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

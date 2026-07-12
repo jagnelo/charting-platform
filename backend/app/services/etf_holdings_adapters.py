@@ -9252,6 +9252,172 @@ class ScharfHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete Cohen & Steers ETF holdings from its public fund API."""
+
+    fund_sitemap_url = "https://www.cohenandsteers.com/wp-sitemap-posts-funds-1.xml"
+    fund_url = "https://www.cohenandsteers.com/wp-admin/admin-ajax.php"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol else Decimal("0.5000"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Cohen & Steers publishes complete ETF holdings through its public fund API."
+                if normalized_symbol
+                else "Cohen & Steers needs an ETF symbol to resolve a public fund record."
+            ),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id"),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Cohen & Steers holdings require an ETF symbol.")
+        headers = _issuer_page_request_headers(accept="application/json,*/*")
+        fund_id = issuer_product_id or _identifier(identifiers or {}, "issuer_product_id", "fund_id")
+        if not fund_id:
+            fund_id = await self._resolve_fund_id(symbol=normalized_symbol, headers=headers)
+        response = await asyncio.to_thread(
+            requests.get,
+            self.fund_url,
+            params={"action": "load_fund", "id": fund_id},
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_fund_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=f"{self.fund_url}?action=load_fund&id={fund_id}",
+            source_identifier=str(fund_id),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "cohen_steers_public_fund_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _resolve_fund_id(self, *, symbol: str, headers: dict[str, str]) -> str:
+        sitemap_response = await asyncio.to_thread(
+            requests.get,
+            self.fund_sitemap_url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        )
+        sitemap_response.raise_for_status()
+        page_urls = re.findall(r"<loc>(?P<url>.*?)</loc>", sitemap_response.text, re.IGNORECASE)
+        if not page_urls:
+            raise ValueError("Cohen & Steers fund sitemap did not expose fund pages.")
+
+        def _fetch_page(url: str) -> tuple[str, str]:
+            response = requests.get(
+                html.unescape(url),
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            return str(response.url), response.text
+
+        pages = await asyncio.gather(*(asyncio.to_thread(_fetch_page, url) for url in page_urls))
+        for page_url, page_text in pages:
+            fund_id = self._extract_fund_id(page_text, symbol=symbol)
+            if fund_id:
+                return fund_id
+        raise ValueError(f"Cohen & Steers did not expose a public fund page for {symbol}.")
+
+    @staticmethod
+    def _extract_fund_id(raw_html: str, *, symbol: str) -> str | None:
+        for match in re.finditer(r"<section\b(?P<attributes>[^>]+)>", raw_html, re.IGNORECASE):
+            attributes = match.group("attributes")
+            if not re.search(r'data-fund-type=["\']etf["\']', attributes, re.IGNORECASE):
+                continue
+            symbol_match = re.search(r'data-default-symbol=["\'](?P<symbol>[^"\']+)["\']', attributes, re.IGNORECASE)
+            id_match = re.search(r'data-id=["\'](?P<id>\d+)["\']', attributes, re.IGNORECASE)
+            if symbol_match and id_match and symbol_match.group("symbol").strip().upper() == symbol.upper():
+                return id_match.group("id")
+        return None
+
+    @staticmethod
+    def _parse_fund_payload(payload: Any, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict):
+            return [], None
+        meta = payload.get("meta")
+        if not isinstance(meta, dict):
+            return [], None
+        share_classes = meta.get("shareClasses")
+        declared_symbols = {
+            _clean(item.get("characteristics", {}).get("symbol"))
+            for item in share_classes
+            if isinstance(item, dict) and isinstance(item.get("characteristics"), dict)
+        }
+        if symbol.upper() not in {item.upper() for item in declared_symbols if item}:
+            raise ValueError(f"Cohen & Steers fund API identity did not match requested ETF {symbol}.")
+        raw_holdings = meta.get("fullHoldings")
+        if not isinstance(raw_holdings, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date = None
+        for index, raw in enumerate(raw_holdings, start=1):
+            if not isinstance(raw, dict):
+                continue
+            name = _clean(raw.get("holdingName"))
+            ticker = _clean(raw.get("ticker"))
+            security_type = _clean(raw.get("securityType"))
+            row_date = _clean(raw.get("asOfDate"))
+            if row_date:
+                try:
+                    parsed = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            haystack = " ".join(part.lower() for part in (ticker, name, security_type) if part)
+            is_cash = any(marker in haystack for marker in ("cash", "currency", "us dollar"))
+            is_fixed_income = any(marker in haystack for marker in ("bond", "preferred", "note", "debt"))
+            if not any([ticker, name, raw.get("cusip"), raw.get("marketValue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_fixed_income else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=_clean(raw.get("cusip")) if _looks_like_cusip(_clean(raw.get("cusip"))) else None,
+                    isin=_clean(raw.get("isin")),
+                    sedol=_clean(raw.get("sedol")),
+                    weight=_decimal_percent_points(_clean(raw.get("accountWeight"))),
+                    shares=_decimal(_clean(raw.get("shares"))),
+                    market_value=_decimal(_clean(raw.get("marketValue"))),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else ("fixed_income" if is_fixed_income else "equity"),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{_clean(raw.get('cusip')) or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25854,6 +26020,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Scharf ETF public current holdings CSV files may be subject to issuer terms.",
     ),
+    "cohen_steers": IssuerCsvAdapterConfig(
+        adapter_key="cohen_steers",
+        source_provider="cohen_steers",
+        source_access="issuer_public_wordpress_fund_api",
+        live_tested_default_route=True,
+        terms_note="Cohen & Steers public ETF fund API data may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27526,6 +27699,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "wedbush": WedbushHoldingsAdapter,
         "shelton": SheltonHoldingsAdapter,
         "scharf": ScharfHoldingsAdapter,
+        "cohen_steers": CohenSteersHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

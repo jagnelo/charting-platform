@@ -19,6 +19,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "wedbush",
     "shelton",
     "scharf",
+    "cohen_steers",
     "acquirers",
     "acuitas",
     "aot",
@@ -1499,6 +1500,18 @@ async def test_live_scharf_product_page_linked_holdings_csv():
     assert result.legal_metadata["route_resolution"] == "scharf_product_page_linked_holdings_csv"
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_cohen_steers_public_fund_api():
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="CSRE")
+    _assert_live_holdings_result(result, adapter_key="cohen_steers", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "cohen_steers_public_fund_api"
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "json"
 
 
 
