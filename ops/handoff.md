@@ -45,6 +45,17 @@
   155 deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
 - Feature commit: `5158f48 feat(etf-holdings): add Rafferty native holdings route`.
 
+## In-progress source reconnaissance - 2026-07-12T03:45Z
+
+- `exchange_traded_concepts`: verified the public Bluemonte ETF page (`https://bluemontefunds.com/bluc`)
+  is backend-readable and contains complete first-party holdings payloads in the server-rendered
+  Nuxt state. Its own `Download As CSV` control generates `bluc-holdings-<date>.csv` directly
+  from that payload; it does not call a third-party holdings service.
+- The next implementation is an isolated Exchange Traded Concepts adapter that extracts the
+  issuer payload for the supported public brand pages, validates its ticker, and maps the
+  `description`, `ticker`, `figi`, `quantity`, `market_value`, and `percent_of_nav` fields.
+  Do not claim/promote it until the server-side parser and opt-in live route test pass.
+
 ## Latest checkpoint - 2026-07-12T02:05Z
 
 - Promoted `mirae_asset` from generated recognition-only support to a native/live-backed

@@ -9487,3 +9487,13 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `152` native/live-backed, `193` remaining; SEC
   EDGAR remains fallback-only.
 - Feature commit: `5158f48 feat(etf-holdings): add Rafferty native holdings route`.
+
+# ETF Holdings Provider Source Reconnaissance - 2026-07-12T03:45Z
+
+- `exchange_traded_concepts`: verified the public Bluemonte ETF issuer page is backend-readable
+  and exposes a complete first-party holdings payload in its server-rendered Nuxt state. The
+  public `Download As CSV` control generates its file locally from that exact payload rather
+  than contacting a third-party source.
+- Next step: implement an isolated server-side parser for the payload, validate the requested
+  ticker, map source FIGI/ticker/quantity/value/weight fields, and add static plus opt-in live
+  coverage before it can be counted as native/live-backed support.
