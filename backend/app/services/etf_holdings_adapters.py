@@ -10397,6 +10397,163 @@ class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class LibertyOneHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Liberty One ETF holdings through the issuer's page-scoped public API."""
+
+    product_page_urls = {
+        "SPCT": "https://www.libertyoneetf.com/funds/SPCT-Spectrum-ETF",
+        "EASY": "https://www.libertyoneetf.com/funds/EASY-Defensive-Dividend-Growth-ETF.html",
+        "LOTI": "https://www.libertyoneetf.com/funds/LOTI-Tactical-Income-ETF",
+    }
+    portfolio_name_fragments = {
+        "SPCT": "LIBERTY ONE SPECTRUM ETF",
+        "EASY": "LIBERTY ONE DEFENSIVE DIVIDEND GROWTH ETF",
+        "LOTI": "LIBERTY ONE TACTICAL INCOME ETF",
+    }
+    holdings_api_url = "https://filepoint.live/liberty_getholdings_cached4.php"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        return self.product_page_urls.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_product_page_url(symbol=normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"Liberty One's verified issuer-native holdings route does not include {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            portfolio_id = self._extract_portfolio_id(page_response.text, symbol=normalized_symbol)
+            holdings_response = await client.post(
+                self.holdings_api_url,
+                data={"fundID": portfolio_id},
+                headers={
+                    **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+
+        payload = holdings_response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Liberty One's issuer holdings API did not return a complete portfolio for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "json",
+                "product_page_url": str(page_response.url),
+                "portfolio_id": portfolio_id,
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=portfolio_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "liberty_one_product_page_scoped_holdings_api",
+                "product_page_url": str(page_response.url),
+                "portfolio_id": portfolio_id,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_portfolio_id(raw_html: str, *, symbol: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Liberty One product page identity did not match requested ETF {symbol}.")
+        match = re.search(r'''\bclass=["'][^"']*\bfundid\b[^"']*["'][^>]*\bdata-id=["'](?P<id>\d+)["']''', raw_html, re.IGNORECASE)
+        if match is None:
+            raise ValueError(f"Liberty One product page did not expose a holdings portfolio ID for {symbol}.")
+        return match.group("id")
+
+    @staticmethod
+    def _parse_holdings_payload(payload: Any, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            portfolio_name = _clean(raw.get("portfolioName") or raw.get("portoflioName"))
+            expected_name = LibertyOneHoldingsAdapter.portfolio_name_fragments[symbol]
+            if portfolio_name and expected_name not in portfolio_name.upper():
+                continue
+            as_of_date = _clean(raw.get("asOfDate"))
+            if as_of_date:
+                try:
+                    parsed_date = datetime.fromisoformat(as_of_date.replace("Z", "+00:00")).date()
+                    if composition_date is None or parsed_date > composition_date:
+                        composition_date = parsed_date
+                except ValueError:
+                    pass
+            raw_ticker = _clean(raw.get("securityTicker"))
+            ticker, exchange = LibertyOneHoldingsAdapter._split_ticker(raw_ticker)
+            identifier = _clean(raw.get("securityIdentifier"))
+            name = _clean(raw.get("securityDescriptionLong") or raw.get("securityDescriptionShort"))
+            segment = _clean(raw.get("segment"))
+            haystack = " ".join(part.upper() for part in (ticker, name, segment) if part)
+            is_cash = "CASH" in haystack or "MONEY MARKET" in haystack
+            is_fixed_income = any(token in haystack for token in ("BOND", "NOTE", "FIXED INCOME"))
+            if not any([ticker, identifier, name, raw.get("marketValueBase")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_fixed_income else ticker,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal(raw.get("marketValuePercent")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("marketValueBase")),
+                    currency=_clean(raw.get("tradingCurrency")),
+                    exchange=exchange,
+                    holding_type="cash" if is_cash else ("fixed_income" if is_fixed_income else "equity"),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _split_ticker(raw_ticker: str | None) -> tuple[str | None, str | None]:
+        if not raw_ticker:
+            return None, None
+        parts = raw_ticker.strip().upper().split()
+        return (parts[0] if parts else None, parts[1] if len(parts) > 1 else None)
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -28667,6 +28824,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Archer Investment public ETF holdings downloads may be subject to issuer terms.",
     ),
+    "818": IssuerCsvAdapterConfig(
+        adapter_key="818",
+        source_provider="liberty_one",
+        source_access="issuer_product_page_scoped_holdings_api",
+        product_page_templates=("https://www.libertyoneetf.com/funds/",),
+        live_tested_default_route=True,
+        terms_note="Liberty One public ETF holdings API data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -28735,6 +28900,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "acp_horizon": ACPHorizonHoldingsAdapter,
         "advent_capital": AdventCapitalHoldingsAdapter,
         "archer_investment": ArcherInvestmentHoldingsAdapter,
+        "818": LibertyOneHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,

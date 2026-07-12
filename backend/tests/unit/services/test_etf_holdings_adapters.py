@@ -7835,6 +7835,76 @@ async def test_archer_investment_adapter_discovers_and_parses_arwg_daily_holding
     assert result.legal_metadata["route_resolution"] == "archer_investment_product_page_linked_daily_holdings_csv"
 
 
+@pytest.mark.asyncio
+async def test_liberty_one_adapter_discovers_portfolio_id_and_parses_scoped_holdings(monkeypatch):
+    adapter = get_holdings_adapter("818")
+    assert adapter is not None
+
+    page_html = '<nav class="fund-page-navbar fundid" data-id="1256">SPCT Spectrum ETF</nav>'
+    payload = [
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioName": "Liberty One Spectrum ETF",
+            "securityIdentifier": "931142103",
+            "securityTicker": "WMT US",
+            "securityDescriptionLong": "Walmart, Inc.",
+            "shares": 10913,
+            "marketValueBase": 1242990.70,
+            "marketValuePercent": 0.018897388830,
+            "tradingCurrency": "USD",
+            "segment": "COMMON STOCKS",
+        },
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioName": "Liberty One Spectrum ETF",
+            "securityIdentifier": "31846V336",
+            "securityTicker": "FGXXX US",
+            "securityDescriptionShort": "Government Money Market Fund",
+            "shares": 100,
+            "marketValueBase": 100,
+            "marketValuePercent": 0.0001,
+            "tradingCurrency": "USD",
+            "segment": "MONEY MARKET",
+        },
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioName": "Liberty One Tactical Income ETF",
+            "securityIdentifier": "037833100",
+            "securityTicker": "AAPL US",
+            "securityDescriptionLong": "Apple Inc.",
+            "shares": 10,
+            "marketValueBase": 2000,
+            "marketValuePercent": 0.02,
+            "tradingCurrency": "USD",
+            "segment": "COMMON STOCKS",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html"),
+        FakeResponse(text=json.dumps(payload), content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SPCT")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.product_page_urls["SPCT"],
+        adapter.holdings_api_url,
+    ]
+    assert FakeAsyncClient.requested[1][1]["data"] == {"fundID": "1256"}
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "WMT"
+    assert equity_row.exchange == "US"
+    assert equity_row.cusip == "931142103"
+    assert equity_row.weight == Decimal("0.018897388830")
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert len(result.rows) == 2
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["portfolio_id"] == "1256"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
