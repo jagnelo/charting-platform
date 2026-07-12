@@ -5,6 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T16:15Z
+
+- Promoted `emles` from recognition-only support to native/live-backed support through an
+  isolated `EMLesHoldingsAdapter`. It validates the requested symbol against EMLes' public ETF
+  page, then retrieves only that fund's issuer-native full-holdings CSV from
+  `api.emles.com/download/holdings/{ticker}`.
+- The adapter covers EMLes' public fund lineup (`AMER`, `EOPS`, `LUXE`, `FEDX`, `REC`, and
+  `LIV`), preserves valid equity symbols/CUSIPs, values, shares, decimal-fraction weights, cash
+  rows, and the issuer-reported as-of date. The verified EOPS feed presently reports a cash-only
+  portfolio; that result is retained faithfully rather than manufactured into security rows.
+- Live validation symbol: `EOPS`, returning a current issuer-native CSV row.
+- Registry count: `345` registered provider keys, `170` native/live-backed integrations, and
+  `175` remaining. SEC EDGAR remains fallback-only.
+- Validation: full adapter unit suite `210 passed`; focused EMLes live route and provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Next concrete action: continue the unpromoted issuer queue with a direct source audit, recording
+  inaccessible or non-fund-specific routes as provider-specific evidence instead of promotion.
+
 ## Latest checkpoint - 2026-07-12T14:15Z
 
 - Promoted `convergence` from recognition-only support to native/live-backed support through an

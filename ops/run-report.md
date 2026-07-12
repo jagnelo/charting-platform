@@ -2,6 +2,27 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - EMLes native ETF holdings route
+
+### Summary
+
+- Promoted `emles` from recognition-only support to native/live-backed support.
+- Added an isolated `EMLesHoldingsAdapter` that verifies a requested ETF ticker on its public
+  EMLes product page and retrieves the matching full-holdings CSV from the issuer's direct
+  `api.emles.com/download/holdings/{ticker}` endpoint.
+- The adapter covers EMLes' published fund lineup, preserves symbols, valid CUSIPs, shares,
+  values, decimal-fraction weights, cash rows, and composition date. EOPS currently reports a
+  cash-only portfolio, which is correctly preserved as issuer-provided data.
+- Live validation symbol: `EOPS`, returning a current issuer-native row.
+- Current truthful provider-native count: `345` registered, `170` native/live-backed, `175`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `210 passed`
+- focused live EMLes route and provider matrix -> `2 passed, 171 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Dhandho native ETF holdings route
 
 ### Summary
