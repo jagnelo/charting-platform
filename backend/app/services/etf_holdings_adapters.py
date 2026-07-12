@@ -9927,6 +9927,50 @@ class ConvergenceHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class DhandhoHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch the Pabrai Wagons ETF's issuer-published complete holdings PDF."""
+
+    resources_url = "https://www.wagonsetf.com/ir"
+
+    async def fetch_latest(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        if symbol.strip().upper() != "WAGN":
+            raise ValueError("Dhandho's verified issuer-native holdings route currently supports WAGN.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page = await client.get(source_url or self.resources_url, headers=_issuer_page_request_headers(accept="text/html,*/*"), follow_redirects=True)
+            page.raise_for_status()
+            match = re.search(r'href=["\'](?P<url>[^"\']+\.pdf)["\'][^>]*>Complete Holdings\s*-\s*(?P<date>[^<]+)<', page.text, re.IGNORECASE)
+            if match is None:
+                raise ValueError("Pabrai Wagons did not expose a complete holdings PDF.")
+            pdf = await client.get(urljoin(str(page.url), html.unescape(match.group("url"))), headers=_holdings_request_headers(accept="application/pdf,*/*"), follow_redirects=True)
+            pdf.raise_for_status()
+        rows, composition_date = self._parse_holdings_pdf(pdf.content)
+        if not rows:
+            raise ValueError("Pabrai Wagons complete holdings PDF contained no parseable positions.")
+        return HoldingsFetchResult(rows=rows, raw_text="\n".join(row.name or "" for row in rows), raw_json={"source_format": "pdf"}, source_url=str(pdf.url), source_identifier="WAGN", legal_metadata={"source_access": self.config.source_access, "source_provider": self.source_provider, "adapter_key": self.adapter_key, "source_format": "pdf", "route_resolution": "issuer_resources_latest_complete_holdings_pdf", "composition_date": composition_date.isoformat() if composition_date else None, "as_of_date": composition_date.isoformat() if composition_date else None, "refresh_frequency": "periodic_issuer_report", "terms_note": self.config.terms_note})
+
+    @staticmethod
+    def _parse_holdings_pdf(raw_pdf: bytes) -> tuple[list[CanonicalHoldingRow], date | None]:
+        from pypdf import PdfReader  # noqa: PLC0415
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(raw_pdf)).pages)
+        return DhandhoHoldingsAdapter._parse_holdings_text(text)
+
+    @staticmethod
+    def _parse_holdings_text(text: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        date_match = re.search(r"Schedule of Investments\s+([A-Z][a-z]+ \d{1,2}, \d{4})", text)
+        composition_date = datetime.strptime(date_match.group(1), "%B %d, %Y").date() if date_match else None
+        row_re = re.compile(r"^(?P<name>(?!TOTAL |Total |Liabilities )[A-Za-z].*?)\s+(?P<shares>[\d,]+)\s+(?:\$\s*)?(?P<value>[\d,]+)$")
+        rows: list[CanonicalHoldingRow] = []
+        for line in (item.strip() for item in text.splitlines()):
+            match = row_re.match(line)
+            if match is None:
+                continue
+            name = match.group("name").strip()
+            is_cash = "money market" in name.lower() or "treasury obligations" in name.lower()
+            rows.append(CanonicalHoldingRow(symbol=None, name=name, shares=_decimal(match.group("shares")), market_value=_decimal(match.group("value")), holding_type="cash" if is_cash else "equity", row_type="cash" if is_cash else "security", source_row_id=f"WAGN:{len(rows) + 1}", extra_data={"source": "dhandho_complete_holdings_pdf"}))
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -28154,6 +28198,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="SEI public ETF daily holdings exports may be subject to issuer terms.",
     ),
+    "dhandho": IssuerCsvAdapterConfig(
+        adapter_key="dhandho",
+        source_provider="dhandho",
+        source_access="issuer_resources_complete_holdings_pdf",
+        product_page_templates=("https://www.wagonsetf.com/ir",),
+        live_tested_default_route=True,
+        terms_note="Pabrai Wagons ETF public complete holdings PDFs may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -28217,6 +28269,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "deepwater": DeepwaterHoldingsAdapter,
+        "dhandho": DhandhoHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,

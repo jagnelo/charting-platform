@@ -73,6 +73,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "deutsche_bank",
     "diamond_hill",
     "dimensional",
+    "dhandho",
     "direxion",
     "distillate",
     "doubleline",
@@ -223,6 +224,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             {},
             100,
         ),
+        ("dhandho", "WAGN", None, {}, 10),
         (
             "corgi",
             "FDRS",

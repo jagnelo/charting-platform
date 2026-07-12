@@ -7672,6 +7672,29 @@ async def test_convergence_adapter_fetches_page_linked_current_holdings_csv(monk
     assert result.legal_metadata["route_resolution"] == "convergence_product_page_linked_holdings_csv"
 
 
+def test_dhandho_adapter_parses_issuer_complete_holdings_pdf_text():
+    adapter = get_holdings_adapter("dhandho")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_holdings_text("""
+Pabrai Wagons ETF
+Schedule of Investments
+March 31, 2026 (Unaudited)
+Noble Corp. PLC      144,935      7,111,960
+First American Treasury Obligations Fund - Class X, 3.59% (c)     3,457,417      3,457,417
+TOTAL INVESTMENTS - 101.6% (Cost $132,461,354)      152,464,020
+""")
+
+    assert composition_date == date(2026, 3, 31)
+    assert [row.name for row in rows] == [
+        "Noble Corp. PLC",
+        "First American Treasury Obligations Fund - Class X, 3.59% (c)",
+    ]
+    assert rows[0].shares == Decimal("144935")
+    assert rows[0].market_value == Decimal("7111960")
+    assert rows[1].row_type == "cash"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
