@@ -9593,3 +9593,15 @@ Append a short entry after each worker session.
   plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `156` native/live-backed, `189` remaining; SEC
   EDGAR remains fallback-only.
+
+# ETF Holdings Provider Integration - 2026-07-12T06:35Z
+
+- Promoted `abacus_global` to native/live-backed support through a dedicated
+  `AbacusGlobalHoldingsAdapter`. The adapter validates the Abacus FCF product page, follows only
+  its requested-fund public full-holdings CSV link, and maps ticker, valid CUSIP, shares, market
+  value, percentage weight, cash rows, and the issuer-reported as-of date.
+- Live validation symbol: `ABLG`, returning more than 20 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`197 passed`), focused opt-in Abacus Global live
+  route plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `157` native/live-backed, `188` remaining; SEC
+  EDGAR remains fallback-only.

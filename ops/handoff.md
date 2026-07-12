@@ -5,6 +5,19 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T06:35Z
+
+- Promoted `abacus_global` from generated recognition-only support to native/live-backed support
+  through an isolated `AbacusGlobalHoldingsAdapter`. It verifies the issuer product page and
+  follows only its requested-fund “download full holdings” CSV link, retaining ticker, valid
+  CUSIP, shares, market value, percentage weight, cash rows, and the page's as-of date.
+- Live validation symbol: `ABLG`, returning more than 20 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `157` native/live-backed integrations, and
+  `188` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `197 passed`; focused Abacus Global live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Feature commit: `05f29a6 feat(etf-holdings): add Abacus Global native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T06:15Z
 
 - Promoted `3fourteen` from generated recognition-only support to native/live-backed support
