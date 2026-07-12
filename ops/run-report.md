@@ -21,6 +21,19 @@ Append a short entry after each worker session.
 - focused live Convergence route and provider matrix -> `2 passed, 169 deselected`
 - targeted ruff and `git diff --check` -> passed
 
+## 2026-07-12 - Priority issuer source audit
+
+### Summary
+
+- `neuberger_berman`: official ETF pages returned a Vercel security checkpoint (`429`) to normal
+  backend-style retrieval, so no native route was falsely promoted.
+- `sofi`: the official SFY ETF page returned `403` to normal backend-style retrieval, despite
+  browser/search visibility. No native route was falsely promoted.
+- `brookfield`: the discoverable US ETF associated with the name is ProShares-issued and tracks a
+  Brookfield index; no distinct US ETF issuer route was identified.
+- Current truthful provider-native count remains `345` registered, `168` native/live-backed,
+  `177` remaining.
+
 ## 2026-07-12 - Corgi native ETF holdings route
 
 ### Summary

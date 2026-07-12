@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T14:15:00Z",
+    "last_handoff_at": "2026-07-12T14:35:00Z",
     "last_commit": "17f437a",
     "git_ready_to_commit": true,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T14:35Z Priority-source audit: Neuberger's official ETF page returned a Vercel security checkpoint (HTTP 429) to a normal backend-style request; SoFi's official SFY page returned HTTP 403. Neither can be promoted until a backend-readable issuer-native route is independently verified. Brookfield's registered identity does not currently map to a distinct US ETF issuer: the discoverable TOLZ product is issued by ProShares and merely tracks a Brookfield index. These are queue findings, not native support; strict count remains 345 registered, 168 native/live-backed, 177 remaining.",
         "2026-07-12T14:15Z Convergence native route: promoted convergence through an isolated public product-page/linked-CSV adapter. CLSE live validation returned complete issuer-native rows; the adapter validates the requested ticker on the issuer page, preserves symbols, CUSIPs, values, weights, cash rows, long/short position side, and composition date. Full adapter unit suite (208), focused live CLSE route plus provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 168 native/live-backed, 177 remaining; SEC is fallback-only.",
         "2026-07-12T13:55Z Corgi native route: promoted corgi through an isolated public product-page/ticker-scoped holdings API adapter. FDRS live validation returned complete issuer-native rows; source verification also confirmed distinct Corgi payloads for CBIL and AMAA. The adapter preserves tradable tickers, valid CUSIPs, values, weights, cash/fixed-income/derivative classifications, and does not invent symbols from bond identifiers. Full adapter unit suite (207), focused live FDRS route plus provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 167 native/live-backed, 178 remaining; SEC is fallback-only.",
         "2026-07-12T13:25Z Cohanzick source audit: CrossingBridge's CUSD and SPC public product pages both embed the same unparameterized current-holdings JSON endpoint, and that endpoint returns CUSD rows even when discovered from SPC. Do not promote an adapter that could silently bind the wrong portfolio; continue the queue until a fund-identity-preserving native route is verified. SEC remains fallback-only.",

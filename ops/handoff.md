@@ -21,6 +21,20 @@
 - Next concrete action: continue the provider queue with a first-party source audit for the next
   unpromoted issuer, recording access-block evidence rather than promoting an unverified route.
 
+## Priority-source audit - 2026-07-12T14:35Z
+
+- `neuberger_berman`: official ETF pages are indexed and disclose complete holdings, but direct
+  backend-style retrieval of the official NBGX page returned a Vercel Security Checkpoint with
+  HTTP `429`. Do not promote it without a backend-readable first-party holdings route.
+- `sofi`: official ETF pages are indexed and publish holdings information, but direct
+  backend-style retrieval of the official SFY page returned HTTP `403`. Do not promote it
+  without a backend-readable first-party holdings route.
+- `brookfield`: the discoverable US product TOLZ is issued by ProShares and only tracks a
+  Brookfield index; no distinct US ETF issuer route was identified. Keep it unpromoted under the
+  US issuer objective.
+- These are provider-specific queue findings only. The strict native count remains `168/345`;
+  SEC EDGAR remains fallback-only.
+
 ## Latest checkpoint - 2026-07-12T13:55Z
 
 - Promoted `corgi` from recognition-only support to native/live-backed support through an
