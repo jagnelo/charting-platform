@@ -7630,6 +7630,48 @@ async def test_corgi_adapter_fetches_fund_specific_public_holdings(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-07-13"
 
 
+@pytest.mark.asyncio
+async def test_convergence_adapter_fetches_page_linked_current_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("convergence")
+    assert adapter is not None
+
+    page_html = '<p>Convergence Long/Short Equity ETF (CLSE)</p><a href="docs/CLSEHoldings.csv">Current Holdings Download</a>'
+    csv_text = "\n".join(
+        [
+            "Date,Ticker,Cusip,Name,Units,MarketValue,Percent",
+            "07/13/2026,Cash&Other,Cash&Other,Cash & Other,1000,1000,0.10%",
+            "07/13/2026,NVDA,67066G104,NVIDIA Corp,189600,39998016,5.35%",
+            "07/13/2026,BAD,999999999,Short Position,10,-1000,-0.10%",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://www.investcip.com/etfstrategies.html",
+        ),
+        FakeResponse(text=csv_text, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CLSE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.investcip.com/etfstrategies.html",
+        "https://www.investcip.com/docs/CLSEHoldings.csv",
+    ]
+    cash_row, equity_row, short_row = result.rows
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert equity_row.symbol == "NVDA"
+    assert equity_row.cusip == "67066G104"
+    assert equity_row.weight == Decimal("0.0535")
+    assert short_row.extra_data["position_side"] == "short"
+    assert short_row.weight == Decimal("-0.001")
+    assert result.legal_metadata["route_resolution"] == "convergence_product_page_linked_holdings_csv"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

@@ -9798,6 +9798,135 @@ class CorgiHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ConvergenceHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Convergence's current CLSE full-holdings CSV from its ETF page."""
+
+    product_page_url = "https://www.investcip.com/etfstrategies.html"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol == "CLSE" else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "Convergence publishes CLSE's complete current holdings CSV from its public ETF page."
+                if normalized_symbol == "CLSE"
+                else "Convergence is configured; its currently verified public holdings route is CLSE."
+            ),
+            source_url=self.product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != "CLSE":
+            raise ValueError("Convergence's verified public holdings route is currently limited to CLSE.")
+        page_url = source_url if source_url and "investcip.com" in source_url else self.product_page_url
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(page_url, headers=page_headers, follow_redirects=True)
+            page_response.raise_for_status()
+            csv_url = self._extract_holdings_csv_url(
+                page_response.text,
+                symbol=normalized_symbol,
+                page_url=str(page_response.url),
+            )
+            csv_response = await client.get(
+                csv_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            csv_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(csv_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError("Convergence holdings CSV returned no complete rows for CLSE.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=str(csv_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "convergence_product_page_linked_holdings_csv",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_holdings_csv_url(raw_html: str, *, symbol: str, page_url: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Convergence product page identity did not match requested ETF {symbol}.")
+        match = re.search(
+            rf'''href=["'](?P<url>[^"']*{re.escape(symbol)}Holdings\.csv)["']''',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if match is None:
+            raise ValueError(f"Convergence product page did not expose a complete CSV for {symbol}.")
+        return urljoin(page_url, html.unescape(match.group("url")).strip())
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            ticker = _clean(raw.get("Ticker"))
+            name = _clean(raw.get("Name"))
+            cusip = _clean(raw.get("Cusip"))
+            row_date = _clean(raw.get("Date"))
+            if row_date:
+                try:
+                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            haystack = " ".join(part.lower() for part in (ticker, name) if part)
+            is_cash = any(marker in haystack for marker in ("cash", "other assets", "liabilities"))
+            is_short = _decimal(raw.get("Percent")) is not None and _decimal(raw.get("Percent")) < 0
+            if not any([ticker, name, cusip, raw.get("MarketValue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(raw.get("Percent")),
+                    shares=_decimal(raw.get("Units")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                        "position_side": "short" if is_short else "long",
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -26428,6 +26557,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Corgi Funds public ETF holdings API data may be subject to issuer terms.",
     ),
+    "convergence": IssuerCsvAdapterConfig(
+        adapter_key="convergence",
+        source_provider="convergence",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=("https://www.investcip.com/etfstrategies.html",),
+        live_tested_default_route=True,
+        terms_note="Convergence public CLSE holdings CSV may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -28103,6 +28240,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cohen_steers": CohenSteersHoldingsAdapter,
         "capital_impact": CapitalImpactHoldingsAdapter,
         "corgi": CorgiHoldingsAdapter,
+        "convergence": ConvergenceHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
