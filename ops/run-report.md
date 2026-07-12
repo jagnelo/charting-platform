@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Convergence native ETF holdings route
+
+### Summary
+
+- Promoted `convergence` from recognition-only support to native/live-backed support.
+- Added an isolated `ConvergenceHoldingsAdapter` that validates CLSE on the issuer's public ETF
+  page, discovers the page-linked current holdings CSV, and parses only that issuer-native route.
+- The adapter preserves ticker, valid CUSIP, units, market value, decimal-fraction weights, cash
+  rows, composition date, and long/short position side. SEC is not a primary source.
+- Live validation symbol: `CLSE`, returning more than 100 issuer-native rows.
+- Current truthful provider-native count: `345` registered, `168` native/live-backed, `177`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `208 passed`
+- focused live Convergence route and provider matrix -> `2 passed, 169 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Corgi native ETF holdings route
 
 ### Summary

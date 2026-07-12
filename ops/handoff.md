@@ -5,6 +5,22 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T14:15Z
+
+- Promoted `convergence` from recognition-only support to native/live-backed support through an
+  isolated `ConvergenceHoldingsAdapter`. It validates the requested CLSE identity on
+  Convergence's public ETF page, discovers the page-linked current holdings CSV, and does not
+  use SEC as a primary source.
+- The adapter preserves market ticker, valid CUSIP, units, market value, decimal-fraction
+  weight, cash classification, long/short position side, and issuer composition date.
+- Live validation symbol: `CLSE`, returning more than 100 issuer-native rows.
+- Registry count: `345` registered provider keys, `168` native/live-backed integrations, and
+  `177` remaining.
+- Validation: full adapter unit suite `208 passed`; focused Convergence live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Next concrete action: continue the provider queue with a first-party source audit for the next
+  unpromoted issuer, recording access-block evidence rather than promoting an unverified route.
+
 ## Latest checkpoint - 2026-07-12T13:55Z
 
 - Promoted `corgi` from recognition-only support to native/live-backed support through an
