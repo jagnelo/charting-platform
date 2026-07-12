@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Artemis / ARS route access audit
+
+- Direct retrieval of the official AFOS page is blocked by Cloudflare in the backend environment.
+  Although search indexing exposes the source's holdings table, it cannot support a reliable live
+  integration. `artemis` remains unpromoted pending a reachable first-party route.
+
 ## 2026-07-12 - Arlington native ETF holdings route
 
 - Promoted `arlington` with an isolated AQEC issuer-linked daily holdings CSV adapter.

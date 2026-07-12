@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T14:30Z Source audit: ARS's official AFOS page returns a Cloudflare block to backend retrieval. Search-indexed holdings are not sufficient for a live-backed integration; artemis remains unpromoted pending a reachable first-party route.",
         "2026-07-12T14:25Z Source discovery: artemis maps to ARS Investment Partners' AFOS/ACEP ETFs. Official pages expose complete role-based holdings markup; implement a dedicated identity-preserving parser and static/live tests before promotion.",
         "2026-07-12T14:15Z Arlington native route: promoted arlington through an isolated AQEC issuer-linked daily holdings CSV adapter. Static suite 216 passed and focused live AQEC plus matrix passed. Strict count is 345 registered, 175 native/live-backed, 170 remaining; SEC is fallback-only.",
         "2026-07-12T14:05Z Source audit: Amun is a legacy 21Shares parent identity for European crypto ETPs, not a separate US ETF issuer. The US AMUN ticker belongs to abrdn; amun remains unpromoted to avoid duplicate/incorrect ownership mapping.",

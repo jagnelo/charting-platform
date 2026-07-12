@@ -18,6 +18,14 @@
 - Registry count: `345` registered, `174` native/live-backed, `171` remaining. Continue with
   the next unpromoted issuer source audit.
 
+## Source audit - 2026-07-12T14:30Z
+
+- Direct backend-style retrieval of `https://arsinvestetfs.com/afos/` returns a Cloudflare block
+  page rather than the issuer's rendered holdings. Search indexing confirms ARS publishes
+  complete holdings, but that is not sufficient for a live-backed adapter from this environment.
+- `artemis` remains unpromoted until a backend-readable ARS first-party route can be verified;
+  do not implement a parser against cached search content or substitute SEC as primary support.
+
 ## Latest checkpoint - 2026-07-12T14:15Z
 
 - Promoted `arlington` through an isolated AQEC public issuer-linked daily holdings CSV adapter.
