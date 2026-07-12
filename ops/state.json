@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T03:50:00Z",
+    "last_handoff_at": "2026-07-12T04:00:00Z",
     "last_commit": "e9e4b66",
     "git_ready_to_commit": true,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T04:00Z Source queue checkpoint: Shelton is the next viable route. Its public SEPI holdings page redirects to advisor.sheltoncap.com/sepi-holdings/, embeds a dated full current holdings table, and links to an issuer CSV with name, ticker, CUSIP, shares, market value, and percent market value. Implement a dedicated Shelton adapter by resolving https://advisor.sheltoncap.com/{symbol_lower}-holdings/, discovering the current CSV href rather than hardcoding its date, then add static and live tests. Count remains 162/345.",
         "2026-07-12T03:50Z Wedbush native route: promoted wedbush from generated recognition-only support to an isolated per-symbol current-holdings CSV adapter. TGLR live validation passed. Full adapter unit suite (202), focused Wedbush live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 162 native/live-backed, 183 remaining; SEC is fallback-only.",
         "2026-07-12T03:45Z Source queue checkpoint: Guinness Atkinson's official gafunds.com fund catalogue and ETF holdings resources return a Cloudflare managed challenge (HTTP 403) to direct backend-style requests, so it remains unpromoted. Wedbush is the next viable integration: its official TGLR page is backend-readable and links to https://wedbushfunds.com/latest-sod-holdings-tglr/, a full current CSV with ticker, SEDOL, shares, market value, percent weight, and as-of date. Implement a dedicated Wedbush adapter next, with static and live coverage; count remains 161/345.",
         "2026-07-12T03:40Z Toews native route: promoted toews from generated recognition-only support to an isolated product-page/linked-CSV adapter. HRSK live validation passed. The adapter preserves actual CUSIP/symbol data, classifies cash, option, fund, fixed-income, and equity rows, and discovers only the selected fund's full issuer CSV link. Full adapter unit suite (201), focused Toews live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 161 native/live-backed, 184 remaining; SEC is fallback-only.",

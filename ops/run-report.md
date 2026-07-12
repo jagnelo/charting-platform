@@ -9689,3 +9689,13 @@ Append a short entry after each worker session.
   provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `162` native/live-backed, `183` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T04:00Z
+
+- `shelton`: verified a backend-readable official current holdings route for `SEPI`. The public
+  `www.sheltoncap.com/sepi-holdings/` page redirects to the advisor host, which exposes a dated
+  full holdings table and a linked issuer CSV. The CSV contains Name, Ticker, CUSIP, Shares,
+  Market Value, and percent market value.
+- Next implementation: a dedicated Shelton adapter must discover the current dated CSV from the
+  selected public holdings page rather than hardcoding the observed filename, with static and
+  opt-in live `SEPI` tests before promotion.

@@ -4151,6 +4151,11 @@
 - Continue the remaining issuer queue. The Guinness Atkinson access block is recorded; select
   the next backend-readable official complete-holdings route and repeat isolated implementation,
   static tests, live test, and matrix validation.
+- Next concrete provider: `shelton`. `https://www.sheltoncap.com/sepi-holdings/` redirects to
+  the official advisor host and exposes a current full-holdings table plus a dated downloadable
+  CSV. Resolve `https://advisor.sheltoncap.com/{symbol_lower}-holdings/`, discover the linked
+  CSV dynamically, parse its Name/Ticker/CUSIP/Shares/Market Value/% Market Value schema, and
+  add static plus opt-in live `SEPI` coverage.
 
 ## 2026-07-12 - Dakota Wealth native ETF holdings route
 
