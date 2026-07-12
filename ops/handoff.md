@@ -35,6 +35,14 @@
 - These are provider-specific queue findings only. The strict native count remains `168/345`;
   SEC EDGAR remains fallback-only.
 
+## Source audit - 2026-07-12T14:50Z
+
+- `baird`: the official Baird surfaces located for the registered identity are mutual-fund
+  resources, not US ETF product or current-holdings routes. It remains unpromoted.
+- `wellington`: the official US surface exposes institutional, interval-fund, and hedge-fund
+  offerings, but no distinct US ETF issuer holdings route was identified. It remains unpromoted.
+- These classifications prevent false support claims; strict native count remains `168/345`.
+
 ## Latest checkpoint - 2026-07-12T13:55Z
 
 - Promoted `corgi` from recognition-only support to native/live-backed support through an

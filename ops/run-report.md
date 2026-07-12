@@ -34,6 +34,16 @@ Append a short entry after each worker session.
 - Current truthful provider-native count remains `345` registered, `168` native/live-backed,
   `177` remaining.
 
+## 2026-07-12 - Baird and Wellington source audit
+
+### Summary
+
+- The official Baird sources located for the registered identity are mutual-fund resources rather
+  than US ETF product or full-holdings routes.
+- Wellington's US surfaces expose institutional, interval-fund, and hedge-fund offerings, but no
+  distinct US ETF issuer holdings route was identified.
+- Neither was falsely promoted; current truthful native count remains `168/345`.
+
 ## 2026-07-12 - Corgi native ETF holdings route
 
 ### Summary
