@@ -9439,3 +9439,11 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `149` native/live-backed, `196` remaining; SEC
   EDGAR remains fallback-only.
 - Feature commit: `0ffdcc9 feat(etf-holdings): add Mirae Asset native holdings route`.
+
+# ETF Holdings Provider Scope Audit - 2026-07-12T02:15Z
+
+- BMO (`bmo`): public BMO ETF product, screener, and holdings surfaces reviewed are for the
+  Canadian-domiciled ETF platform. No distinct US-listed BMO ETF issuer full-holdings route was
+  identified. It was not promoted under the US ETF objective.
+- This is a provider queue classification only: it is not counted as native support, does not
+  reduce the remaining set, and does not block the global objective.

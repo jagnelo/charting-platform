@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T02:05:00Z",
+    "last_handoff_at": "2026-07-12T02:15:00Z",
     "last_commit": "0ffdcc9",
     "git_ready_to_commit": false,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T02:15Z Source audit: BMO's accessible ETF product, screener, and holdings surfaces are Canadian-domiciled and no distinct US-listed BMO issuer complete-holdings route was identified. It remains unpromoted under the US ETF scope; this is a queue classification only, not support or a goal blocker.",
         "2026-07-12T02:05Z Mirae Asset native route: promoted mirae_asset from generated recognition-only support to an isolated adapter using the official Global X US ETF issuer surface. QYLD live validation passed and legal metadata records the Global X issuer brand / Mirae Asset parent relationship. Full adapter unit suite (192), focused live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 149 native/live-backed, 196 remaining; SEC is fallback-only.",
         "2026-07-12T01:50Z Source audit: John Hancock/Manulife publishes a daily ETF creation-basket PDF, but both public canonical document path variants return HTTP 403 even with browser headers. It remains unpromoted. This is a per-provider queue result only; strict count remains 345 registered, 148 native/live-backed, and 197 remaining.",
         "2026-07-12T01:40Z Source audit: PIMCO's public fund-explorer exposes a first-party dashboard route but returns HTTP 403 both directly and from same-origin headless-browser execution. Morgan Stanley/Eaton Vance exposes product JSON plus an XLS holdings route for EVHY, but its download origin times out and browser initialization returns 403. Neither is promoted. These are provider-specific queue findings, not a global blocker: strict count remains 345 registered, 148 native/live-backed, 197 remaining, with SEC fallback-only.",

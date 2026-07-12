@@ -19,6 +19,14 @@
   152 deselected`; full provider-matrix gate, targeted ruff, and `git diff --check` passed.
 - Feature commit: `0ffdcc9 feat(etf-holdings): add Mirae Asset native holdings route`.
 
+## Source audit - 2026-07-12T02:15Z
+
+- `bmo`: the accessible BMO ETF product, screener, and holdings surfaces are Canadian-domiciled
+  (TSX / CAD platform) rather than a distinct US-listed issuer ETF route. No US issuer-native
+  complete-holdings artifact was found, so it is not promoted under the current US ETF scope.
+- This classification does not reduce the required provider queue or count as support. Continue
+  to the next unimplemented registered provider.
+
 ## Source audit - 2026-07-12T01:40Z
 
 - Continued the queue without globally blocking the ETF-provider objective:
