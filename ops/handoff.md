@@ -5,6 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T12:20Z
+
+- Promoted `scharf` from recognition-only support to native/live-backed support through an
+  isolated `ScharfHoldingsAdapter`. It resolves the requested public product page, discovers
+  only that fund's `TidalFG_Holdings_{symbol}.csv` link, filters the issuer export to the
+  requested account, and preserves ticker, valid CUSIP, shares, market value, percentage
+  weights, cash classification, and composition date.
+- Scharf's WordPress host rejects `httpx` with HTTP 403 while allowing the same public request
+  through `requests`; the adapter has a narrowly scoped issuer-local fallback for its product
+  page and linked CSV only. It is not a generic fallback and does not use SEC as primary data.
+- Live validation symbol: `KAT`, returning more than 20 issuer-native rows.
+- Registry count: `345` registered provider keys, `164` native/live-backed integrations, and
+  `181` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `204 passed`; focused Scharf live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Cohen & Steers was probed but returns HTTP 403 for its public ETF page under both direct and
+  browser-header HTTP retrieval. It remains unpromoted pending a backend-readable primary route.
+
 ## Latest checkpoint - 2026-07-12T06:35Z
 
 ## Latest checkpoint - 2026-07-12T07:10Z

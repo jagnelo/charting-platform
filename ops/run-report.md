@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Scharf native ETF holdings route
+
+### Summary
+
+- Promoted `scharf` from recognition-only support to native/live-backed support.
+- Added an isolated `ScharfHoldingsAdapter` for KAT's public product page and current linked
+  `TidalFG_Holdings_{symbol}.csv` export. It filters by fund account and retains the issuer's
+  ticker, CUSIP, quantity, market value, percent weight, cash rows, and as-of date.
+- Scharf's host blocks `httpx` but allows the identical public requests through `requests`, so
+  the adapter applies a strictly issuer-local HTTP 403 fallback for its page and CSV.
+- Live validation symbol: `KAT`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count: `345` registered, `164` native/live-backed, `181`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `204 passed`
+- focused live Scharf route and provider matrix -> `2 passed, 165 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-11 - Founder native ETF holdings route
 
 ### Summary
