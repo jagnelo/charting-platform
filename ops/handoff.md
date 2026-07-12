@@ -32,6 +32,19 @@
   154 deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
 - Feature commit: `23c93c1 feat(etf-holdings): add Ameriprise native holdings route`.
 
+## Latest checkpoint - 2026-07-12T03:30Z
+
+- Promoted `rafferty` from generated recognition-only support to native/live-backed support.
+  `RaffertyHoldingsAdapter` is an explicit provider implementation for Rafferty Asset
+  Management's Direxion-managed ETF suite. It uses the official per-symbol daily Direxion
+  holdings export and preserves the existing issuer-specific CSV parser and asset semantics.
+- Live validation symbol: `COM`, returning more than five issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `152` native/live-backed integrations, and
+  `193` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `192 passed`; focused Rafferty live route `1 passed,
+  155 deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
+- Feature commit: `5158f48 feat(etf-holdings): add Rafferty native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T02:05Z
 
 - Promoted `mirae_asset` from generated recognition-only support to a native/live-backed
