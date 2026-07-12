@@ -3161,6 +3161,53 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_1251_capital_adapter_uses_owned_fm_investments_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("1251_capital")
+    assert adapter is not None
+
+    api_url = "https://www.fminvest.com/api/v1/etfs/4/holdings"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "field_as_of_date": (
+                            '<time datetime="2026-07-13T12:00:00Z">07/13/2026</time>'
+                        ),
+                        "field_name": "United States Treasury Note/Bond 4.125% 06/30/2028",
+                        "field_symbol": "91282CQY0",
+                        "field_par_value": "481,947,000.00",
+                        "field_market_value": "$481,212,783.87",
+                        "field_weightings": "99.85%",
+                    }
+                ]
+            ),
+            content_type="application/json",
+            url=api_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="UTWO",
+        issuer_product_id="4",
+        source_url="https://www.fminvest.com/etfs/utwo-us-treasury-2-year-note-etf",
+    )
+
+    assert FakeAsyncClient.requested[0][0] == api_url
+    assert result.rows[0].cusip == "91282CQY0"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.legal_metadata["source_provider"] == "1251_capital"
+    assert result.legal_metadata["route_resolution"] == (
+        "1251_capital_fm_investments_holdings_api"
+    )
+    assert result.legal_metadata["issuer_relationship"] == (
+        "1251 Capital parent / F-M Investments ETF issuer"
+    )
+
+
+@pytest.mark.asyncio
 async def test_davis_adapter_parses_holdings_download_csv(monkeypatch):
     adapter = get_holdings_adapter("davis")
     assert adapter is not None

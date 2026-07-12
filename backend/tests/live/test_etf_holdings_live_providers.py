@@ -9,6 +9,7 @@ from app.services.etf_holdings_adapters import (
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
+    "1251_capital",
     "acquirers",
     "acuitas",
     "abrdn",
@@ -1314,6 +1315,21 @@ async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
 
     _assert_live_holdings_result(result, adapter_key="ameriprise", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "ameriprise_columbia_cusip_holdings_csv"
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_1251_capital_owned_fm_investments_holdings_api():
+    adapter = get_holdings_adapter("1251_capital")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="UTWO")
+
+    _assert_live_holdings_result(result, adapter_key="1251_capital", min_rows=2)
+    assert result.legal_metadata["route_resolution"] == (
+        "1251_capital_fm_investments_holdings_api"
+    )
     assert any(row.cusip for row in result.rows)
 
 

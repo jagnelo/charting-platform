@@ -21553,6 +21553,33 @@ class FMInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return bool(re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", value.strip().upper()))
 
 
+class OneTwoFiveOneCapitalHoldingsAdapter(FMInvestmentsHoldingsAdapter):
+    """Fetch 1251 Capital ETFs through its owned F/M Investments issuer API."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "1251_capital_fm_investments_holdings_api",
+            "issuer_relationship": "1251 Capital parent / F-M Investments ETF issuer",
+        }
+        return result
+
+
 class TRowePriceHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch T. Rowe Price ETF holdings from its public product GraphQL API."""
 
@@ -25024,6 +25051,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Davis ETFs public holdings download files may be subject to issuer terms.",
     ),
+    "1251_capital": IssuerCsvAdapterConfig(
+        adapter_key="1251_capital",
+        source_provider="1251_capital",
+        source_access="issuer_owned_fm_investments_drupal_holdings_json",
+        product_page_templates=(
+            "https://www.fminvest.com/etfs/{product_slug}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "1251 Capital's owned F/M Investments ETF issuer API data may be subject to issuer terms."
+        ),
+    ),
     "fm_investments": IssuerCsvAdapterConfig(
         adapter_key="fm_investments",
         source_provider="fm_investments",
@@ -25808,6 +25847,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "counterpoint": CounterpointHoldingsAdapter,
         "cullen": CullenHoldingsAdapter,
         "future_fund": FutureFundHoldingsAdapter,
+        "1251_capital": OneTwoFiveOneCapitalHoldingsAdapter,
         "fidelity": FidelityHoldingsAdapter,
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,
