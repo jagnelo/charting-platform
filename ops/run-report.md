@@ -9653,3 +9653,16 @@ Append a short entry after each worker session.
   provider matrix, targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `160` native/live-backed, `185` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Integration - 2026-07-12T03:40Z
+
+- Promoted `toews` to native/live-backed support through a dedicated `ToewsHoldingsAdapter`.
+- The adapter validates the requested public Toews ETF page, discovers the selected fund's full
+  CSV, and parses its issuer-specific `Security Identifier`, `Symbol`, `Net Assets %`, shares,
+  and market-value format. It preserves true CUSIPs and symbols and classifies cash, options,
+  funds, fixed income, and equities without inventing market identifiers.
+- Live validation symbol: `HRSK`.
+- Validation passed: full adapter unit suite (`201 passed`), focused opt-in Toews route plus
+  provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `161` native/live-backed, `184` remaining; SEC
+  EDGAR remains fallback-only and is not counted.

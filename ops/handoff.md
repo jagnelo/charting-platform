@@ -4104,7 +4104,32 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 160/345 native/live-backed, leaving 185 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. The following Toews checkpoint advances the current count to 161/345 native/live-backed, leaving 184 providers.
+
+## 2026-07-12 - Toews native ETF holdings route
+
+### Summary
+
+- Promoted `toews` from generated/recognition-only support to native/live-backed support.
+- Added an isolated `ToewsHoldingsAdapter` that requests a selected public Toews ETF page,
+  validates the selected fund, discovers its linked complete holdings CSV, and parses its
+  `Security Identifier` / `Symbol` / `Net Assets %` issuer-specific layout.
+- It preserves CUSIPs, real market symbols, shares, market value, weights, and the issuer's
+  as-of date while correctly classifying cash, option, fund, fixed-income, and equity rows.
+- Live validation symbol: `HRSK`.
+- Current truthful provider-native count is `161 / 345`, leaving `184` providers.
+
+### Validation
+
+- Full adapter unit suite: `201 passed`.
+- Focused opt-in Toews provider route and provider matrix: `2 passed`.
+- Targeted Ruff and `git diff --check`: passed.
+
+### Exact next step
+
+- Continue the remaining provider queue, researching each issuer's official complete-holdings
+  route before adding an isolated adapter. Keep SEC EDGAR fallback-only and do not promote any
+  issuer without both static coverage and a passing live route.
 
 ## 2026-07-12 - Dakota Wealth native ETF holdings route
 
