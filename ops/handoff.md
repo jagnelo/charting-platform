@@ -26,6 +26,14 @@
 - `artemis` remains unpromoted until a backend-readable ARS first-party route can be verified;
   do not implement a parser against cached search content or substitute SEC as primary support.
 
+## Source audit - 2026-07-12T18:00Z
+
+- `bcp_cc` is a former ownership vehicle for First Eagle Investment Management, not an operating
+  ETF issuer or a distinct holdings publisher. The only two associated US ETFs (`FEGE` and `FEOE`)
+  are already covered by the native/live-backed `first_eagle` adapter.
+- It remains unpromoted intentionally: adding a second BCP CC adapter would duplicate First Eagle
+  data and incorrectly imply that BCP CC operates a separate public holdings route.
+
 ## Latest checkpoint - 2026-07-12T14:15Z
 
 - Promoted `arlington` through an isolated AQEC public issuer-linked daily holdings CSV adapter.

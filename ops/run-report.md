@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - BCP CC issuer-identity audit
+
+- `bcp_cc` is not a standalone ETF holdings publisher. It was the ownership vehicle behind First
+  Eagle Investment Management, whose FEGE and FEOE ETFs are already retrieved through the native,
+  live-backed `first_eagle` integration.
+- No duplicate adapter was added: doing so would misrepresent an ownership identity as a separate
+  issuer route and could create duplicate snapshots.
+
 ## 2026-07-12 - Artemis / ARS route access audit
 
 - Direct retrieval of the official AFOS page is blocked by Cloudflare in the backend environment.

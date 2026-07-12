@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T18:00Z Source audit: bcp_cc is a former ownership vehicle for First Eagle, not an independent ETF holdings publisher. FEGE/FEOE are already covered by the native/live-backed first_eagle adapter; bcp_cc remains unpromoted to avoid duplicate/misleading issuer support.",
         "2026-07-12T14:30Z Source audit: ARS's official AFOS page returns a Cloudflare block to backend retrieval. Search-indexed holdings are not sufficient for a live-backed integration; artemis remains unpromoted pending a reachable first-party route.",
         "2026-07-12T14:25Z Source discovery: artemis maps to ARS Investment Partners' AFOS/ACEP ETFs. Official pages expose complete role-based holdings markup; implement a dedicated identity-preserving parser and static/live tests before promotion.",
         "2026-07-12T14:15Z Arlington native route: promoted arlington through an isolated AQEC issuer-linked daily holdings CSV adapter. Static suite 216 passed and focused live AQEC plus matrix passed. Strict count is 345 registered, 175 native/live-backed, 170 remaining; SEC is fallback-only.",
