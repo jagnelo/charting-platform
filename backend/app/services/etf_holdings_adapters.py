@@ -10278,6 +10278,125 @@ class AdventCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ArcherInvestmentHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Archer Growth ETF's current issuer-linked daily holdings CSV."""
+
+    product_page_url = "https://www.thearcherfunds.com/archer-growth-etf"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != "ARWG":
+            raise ValueError("Archer Investment's verified issuer-native holdings route currently supports ARWG.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                self.product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            csv_url = self._discover_holdings_csv(
+                page_response.text,
+                symbol=normalized_symbol,
+                page_url=str(page_response.url),
+            )
+            csv_response = await client.get(
+                csv_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            csv_response.raise_for_status()
+
+        rows, composition_date = self._parse_holdings_csv(csv_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError("Archer's issuer holdings CSV did not contain a complete ARWG portfolio.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={
+                "source_format": "issuer_product_page_linked_daily_holdings_csv",
+                "product_page_url": str(page_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(csv_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "archer_investment_product_page_linked_daily_holdings_csv",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_csv(raw_html: str, *, symbol: str, page_url: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Archer product page identity did not match requested ETF {symbol}.")
+        matches = re.finditer(r'''href=["'](?P<url>[^"']+\.csv(?:\?[^"']*)?)["']''', raw_html, re.IGNORECASE)
+        for match in matches:
+            candidate = html.unescape(match.group("url")).strip()
+            if "holding" in candidate.lower():
+                return urljoin(page_url, candidate)
+        raise ValueError(f"Archer product page did not link a complete holdings CSV for {symbol}.")
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(raw.get("Account")) or "").upper()
+            if account != symbol.upper():
+                continue
+            row_date = _clean(raw.get("Date"))
+            if row_date:
+                try:
+                    parsed_date = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed_date > composition_date:
+                        composition_date = parsed_date
+                except ValueError:
+                    pass
+            ticker = _clean(raw.get("StockTicker"))
+            cusip = _clean(raw.get("CUSIP"))
+            name = _clean(raw.get("SecurityName"))
+            money_market_flag = _clean(raw.get("MoneyMarketFlag"))
+            haystack = " ".join(part.lower() for part in (ticker, name, money_market_flag) if part)
+            is_cash = bool(money_market_flag) or "cash" in haystack or "money market" in haystack
+            if not any([ticker, cusip, name, raw.get("MarketValue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -28540,6 +28659,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Advent Capital public ETF daily holdings CSV exports may be subject to issuer terms.",
     ),
+    "archer_investment": IssuerCsvAdapterConfig(
+        adapter_key="archer_investment",
+        source_provider="archer_investment",
+        source_access="issuer_product_page_linked_daily_holdings_csv",
+        product_page_templates=("https://www.thearcherfunds.com/archer-growth-etf",),
+        live_tested_default_route=True,
+        terms_note="Archer Investment public ETF holdings downloads may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -28607,6 +28734,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "emles": EMLesHoldingsAdapter,
         "acp_horizon": ACPHorizonHoldingsAdapter,
         "advent_capital": AdventCapitalHoldingsAdapter,
+        "archer_investment": ArcherInvestmentHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,

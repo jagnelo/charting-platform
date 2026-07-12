@@ -7792,6 +7792,49 @@ async def test_advent_capital_adapter_parses_acvt_daily_holdings(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-07-13"
 
 
+@pytest.mark.asyncio
+async def test_archer_investment_adapter_discovers_and_parses_arwg_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("archer_investment")
+    assert adapter is not None
+
+    page_html = '''
+        <main>Archer Growth ETF ARWG</main>
+        <a href="/_files/ugd/2bb904_daily.csv?dn=071326%20Holdings%20Report%20with%20Cash.csv">
+          ETF Holdings
+        </a>
+    '''
+    csv_text = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag",
+            "07/13/2026,ARWG,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,",
+            "07/13/2026,ARWG,FGXXX,31846V336,Government Obligations Fund,250,1,250,2.5%,Y",
+            "07/13/2026,OTHER,AAPL,037833100,Apple Inc,10,200,2000,20%,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html"),
+        FakeResponse(text=csv_text, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ARWG")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.product_page_url,
+        "https://issuer.example/_files/ugd/2bb904_daily.csv?dn=071326%20Holdings%20Report%20with%20Cash.csv",
+    ]
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "NVDA"
+    assert equity_row.cusip == "67066G104"
+    assert equity_row.weight == Decimal("0.45")
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("0.025")
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["route_resolution"] == "archer_investment_product_page_linked_daily_holdings_csv"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

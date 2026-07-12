@@ -14,6 +14,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "abacus_global",
     "acp_horizon",
     "advent_capital",
+    "archer_investment",
     "alternative_access",
     "rational",
     "dakota_wealth",
@@ -231,6 +232,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("emles", "EOPS", None, {}, 1),
         ("acp_horizon", "HBTA", None, {}, 100),
         ("advent_capital", "ACVT", None, {}, 20),
+        ("archer_investment", "ARWG", None, {}, 20),
         (
             "corgi",
             "FDRS",
