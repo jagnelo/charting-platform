@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Corgi native ETF holdings route
+
+### Summary
+
+- Promoted `corgi` from recognition-only support to native/live-backed support.
+- Added an isolated `CorgiHoldingsAdapter` that validates the requested public fund page and
+  retrieves only that fund's holdings from Corgi's public ticker-scoped API.
+- The adapter preserves ticker, valid CUSIP, quantity, market value, percentage-point weight,
+  cash, fixed-income, and derivative classification without inventing tradable symbols from
+  bond identifiers.
+- Live validation symbol: `FDRS`, returning more than 20 issuer-native rows.
+- Current truthful provider-native count: `345` registered, `167` native/live-backed, `178`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `207 passed`
+- focused live Corgi route and provider matrix -> `2 passed, 168 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Cohanzick/CrossingBridge source audit
 
 ### Summary

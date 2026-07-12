@@ -5,6 +5,23 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T13:55Z
+
+- Promoted `corgi` from recognition-only support to native/live-backed support through an
+  isolated `CorgiHoldingsAdapter`. It validates the selected issuer product page, then uses
+  Corgi's public fund-specific holdings API for that exact ticker.
+- The adapter supports the issuer's broad catalogue through one documented per-fund route,
+  preserves ticker, valid CUSIP, quantities, values, percentage-point weights, cash,
+  fixed-income, and derivative classifications, and avoids inventing market tickers from bond
+  identifiers. SEC is not used as a primary route.
+- Live validation symbol: `FDRS`, returning more than 20 issuer-native rows. The same verified
+  source shape also returned distinct data for Corgi's fixed-income `CBIL` and leveraged `AMAA`
+  during source validation.
+- Registry count: `345` registered provider keys, `167` native/live-backed integrations, and
+  `178` remaining.
+- Validation: full adapter unit suite `207 passed`; focused Corgi live route and provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+
 ## Latest checkpoint - 2026-07-12T13:15Z
 
 - Promoted `capital_impact` from recognition-only support to native/live-backed support through
