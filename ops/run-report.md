@@ -9699,3 +9699,22 @@ Append a short entry after each worker session.
 - Next implementation: a dedicated Shelton adapter must discover the current dated CSV from the
   selected public holdings page rather than hardcoding the observed filename, with static and
   opt-in live `SEPI` tests before promotion.
+
+# ETF Holdings Provider Implementation Checkpoint - 2026-07-12T04:10Z
+
+- Added an uncommitted dedicated `SheltonHoldingsAdapter`, static parser test, and opt-in live
+  `SEPI` test. The adapter dynamically discovers the dated issuer CSV from the current public
+  holdings page and parses the source's Name/Ticker/CUSIP/Shares/Market Value/% Market Value schema.
+- Static validation passed: full adapter unit suite (`203 passed`), targeted Ruff, and diff check.
+- The required live route plus provider-matrix command could not start because the Codex usage
+  limit was reached. This is not an issuer failure; Shelton remains unpromoted at `162 / 345`.
+
+# ETF Holdings Provider Integration - 2026-07-12T04:25Z
+
+- Promoted `shelton` to native/live-backed support through a dedicated `SheltonHoldingsAdapter`.
+- It discovers the issuer's changing dated CSV from the selected public page, filters the selected
+  account, and parses Date, StockTicker, CUSIP, SecurityName, Shares, MarketValue, and Weightings.
+- Live validation symbol: `SEPI`; full adapter suite (`203 passed`), focused live route plus
+  provider matrix (`2 passed`), targeted Ruff, and `git diff --check` passed.
+- Strict count: `345` registered providers, `163` native/live-backed, `182` remaining; SEC
+  EDGAR remains fallback-only and is not counted.

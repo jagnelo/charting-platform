@@ -3,8 +3,9 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T04:00:00Z",
+    "last_handoff_at": "2026-07-12T04:25:00Z",
     "last_commit": "e9e4b66",
+    "last_commit": "766f8a9",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-12 targeted ruff check for Wedbush native adapter)",
@@ -18,6 +19,8 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T04:25Z Shelton native route: promoted shelton through an isolated public holdings-page/linked-current-CSV adapter. SEPI live validation passed after aligning the parser to the issuer's Date/Account/StockTicker/CUSIP/SecurityName/Shares/MarketValue/Weightings schema and preserving cash/options. Full adapter unit suite (203), focused Shelton live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 163 native/live-backed, 182 remaining; SEC is fallback-only.",
+        "2026-07-12T04:10Z Shelton implementation is uncommitted and must not be counted yet: dedicated Shelton adapter plus static/live tests are in the worktree. Full adapter unit suite passed (203) and targeted ruff/diff checks passed. Required live command was rejected solely because the Codex execution usage limit was reached. Run it after access resumes; only then commit and promote count from 162 to 163.",
         "2026-07-12T04:00Z Source queue checkpoint: Shelton is the next viable route. Its public SEPI holdings page redirects to advisor.sheltoncap.com/sepi-holdings/, embeds a dated full current holdings table, and links to an issuer CSV with name, ticker, CUSIP, shares, market value, and percent market value. Implement a dedicated Shelton adapter by resolving https://advisor.sheltoncap.com/{symbol_lower}-holdings/, discovering the current CSV href rather than hardcoding its date, then add static and live tests. Count remains 162/345.",
         "2026-07-12T03:50Z Wedbush native route: promoted wedbush from generated recognition-only support to an isolated per-symbol current-holdings CSV adapter. TGLR live validation passed. Full adapter unit suite (202), focused Wedbush live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 162 native/live-backed, 183 remaining; SEC is fallback-only.",
         "2026-07-12T03:45Z Source queue checkpoint: Guinness Atkinson's official gafunds.com fund catalogue and ETF holdings resources return a Cloudflare managed challenge (HTTP 403) to direct backend-style requests, so it remains unpromoted. Wedbush is the next viable integration: its official TGLR page is backend-readable and links to https://wedbushfunds.com/latest-sod-holdings-tglr/, a full current CSV with ticker, SEDOL, shares, market value, percent weight, and as-of date. Implement a dedicated Wedbush adapter next, with static and live coverage; count remains 161/345.",

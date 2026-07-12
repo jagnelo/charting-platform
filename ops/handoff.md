@@ -4157,6 +4157,22 @@
   CSV dynamically, parse its Name/Ticker/CUSIP/Shares/Market Value/% Market Value schema, and
   add static plus opt-in live `SEPI` coverage.
 
+## Shelton implementation checkpoint
+
+- An uncommitted `SheltonHoldingsAdapter` and static/live `SEPI` tests now exist in the worktree.
+  Static validation passed: full adapter unit suite (`203 passed`), targeted Ruff, and diff check.
+- Required next command after execution access resumes:
+  `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=/tmp/charting-uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k 'shelton or provider_matrix' --no-cov -q`.
+- The live command was rejected only because the Codex usage limit was reached. Do not count or
+  commit Shelton until it passes; then promote to `163/345` and create separate feature/ops commits.
+
+## 2026-07-12 - Shelton native ETF holdings route
+
+- `SheltonHoldingsAdapter` passed live `SEPI` validation after correction for the issuer's
+  actual dated CSV schema and BOM behavior. It is now promoted to `163/345`.
+- Validation: `203` adapter tests, focused Shelton route plus provider matrix (`2 passed`), Ruff,
+  and diff check. Feature commit: `766f8a9`.
+
 ## 2026-07-12 - Dakota Wealth native ETF holdings route
 
 ### Summary
