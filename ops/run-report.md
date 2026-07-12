@@ -23,6 +23,16 @@ Append a short entry after each worker session.
 - focused live EMLes route and provider matrix -> `2 passed, 171 deselected`
 - targeted ruff and `git diff --check` -> passed
 
+## 2026-07-12 - Absolute Investment Advisers source audit
+
+### Summary
+
+- The official ABEQ product page is backend-readable and confirms the fund identity, but only
+  publishes literature and marketing documents. It does not expose a current complete holdings
+  file, holdings API, or issuer-download route.
+- `absolute_investment_advisers` remains unpromoted. Third-party holdings pages are not used as
+  a substitute for the required issuer-native route.
+
 ## 2026-07-12 - Dhandho native ETF holdings route
 
 ### Summary

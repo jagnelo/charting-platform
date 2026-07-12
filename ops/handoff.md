@@ -23,6 +23,14 @@
 - Next concrete action: continue the unpromoted issuer queue with a direct source audit, recording
   inaccessible or non-fund-specific routes as provider-specific evidence instead of promotion.
 
+## Source audit - 2026-07-12T16:25Z
+
+- `absolute_investment_advisers`: the official ABEQ ETF page is backend-readable and confirms
+  the fund identity, but exposes only fund literature (fact sheet, prospectus, SAI, and marketing
+  PDF). It does not expose a complete current holdings artifact, a holdings API, or an issuer
+  download endpoint. It remains unpromoted; do not treat third-party fund listings as an
+  issuer-native fallback.
+
 ## Latest checkpoint - 2026-07-12T14:15Z
 
 - Promoted `convergence` from recognition-only support to native/live-backed support through an
