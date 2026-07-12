@@ -7644,6 +7644,204 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch AOT Invest ETFs' complete public product-page holdings tables."""
+
+    product_page_template = "https://aotetf.com/{symbol_lower}/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "AOT Invest publishes this ETF's complete current holdings table on its public "
+                "fund page."
+                if source_url
+                else "AOT Invest needs an ETF symbol to resolve its public holdings page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "aotetf.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError("AOT Invest holdings require an ETF symbol or public product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"AOT Invest page did not expose holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_holdings_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "aot_invest_public_product_page_holdings_table",
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return [], None
+        if not re.search(
+            rf"<h2[^>]*>\s*{re.escape(normalized_symbol)}\s*</h2>",
+            raw_html,
+            flags=re.IGNORECASE,
+        ):
+            raise ValueError(f"AOT Invest product page identity did not match requested ETF {normalized_symbol}.")
+
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "price",
+            "market value ($mm)",
+            "% of net assets",
+            "effective_date",
+        }
+        holdings_table = next(
+            (
+                table
+                for table in parser.tables
+                if any(
+                    required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)}
+                    for row in table[:20]
+                )
+            ),
+            None,
+        )
+        if holdings_table is None:
+            return [], None
+
+        header_index = next(
+            index
+            for index, row in enumerate(holdings_table[:20])
+            if required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)}
+        )
+        header = holdings_table[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw_row in enumerate(holdings_table[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            ticker = _clean(_first(raw, ["ticker"]))
+            name = _clean(_first(raw, ["name"]))
+            cusip = _clean(_first(raw, ["cusip"]))
+            effective_date = cls._parse_effective_date(_first(raw, ["effective_date"]))
+            if effective_date and (composition_date is None or effective_date > composition_date):
+                composition_date = effective_date
+            is_cash = (ticker or "").replace(" ", "").upper() in {"CASH&OTHER", "CASH"} or (
+                "cash" in (name or "").lower()
+            )
+            shares = _decimal(_first(raw, ["shares"]))
+            market_value_millions = _decimal(_first(raw, ["market value ($mm)"]))
+            market_value = (
+                market_value_millions * Decimal("1000000")
+                if market_value_millions is not None
+                else None
+            )
+            # AOT prints percentage points (for example, 10.11) without a percent sign.
+            weight = _decimal_percent_points(_first(raw, ["% of net assets"]))
+            if not any([ticker, name, cusip, shares, market_value, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{normalized_symbol}:{effective_date.isoformat() if effective_date else 'current'}:"
+                        f"{index}:{cusip or ticker or name or 'holding'}"
+                    ),
+                    extra_data={
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                        "effective_date": effective_date.isoformat() if effective_date else None,
+                        "market_value_unit": "millions_usd",
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_effective_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -24175,6 +24373,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "be subject to issuer terms."
         ),
     ),
+    "aot": IssuerCsvAdapterConfig(
+        adapter_key="aot",
+        source_provider="aot",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=("https://aotetf.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="AOT Invest public ETF holdings tables may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -25837,6 +26043,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "eldridge": EldridgeHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,
         "exchange_traded_concepts": ExchangeTradedConceptsHoldingsAdapter,
+        "aot": AotHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

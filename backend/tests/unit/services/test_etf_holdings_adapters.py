@@ -7086,6 +7086,46 @@ async def test_exchange_traded_concepts_adapter_parses_only_requested_bluemonte_
     )
 
 
+@pytest.mark.asyncio
+async def test_aot_adapter_parses_issuer_product_page_holdings_and_scales_millions(monkeypatch):
+    adapter = get_holdings_adapter("aot")
+    assert adapter is not None
+
+    raw_html = '''
+    <h2>AOTG</h2>
+    <table>
+      <tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th><th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td>51,886.00</td><td>202.78</td><td>10.52</td><td>10.11</td><td>07/10/2026</td></tr>
+      <tr><td>Cash&Other</td><td>Cash & Other</td><td></td><td>-2,927.16</td><td>1.00</td><td>0.00</td><td>0.00</td><td>07/10/2026</td></tr>
+    </table>
+    '''
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://aotetf.com/aotg/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AOTG")
+
+    assert FakeAsyncClient.requested[0][0] == "https://aotetf.com/aotg/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].shares == Decimal("51886.00")
+    assert result.rows[0].market_value == Decimal("10520000")
+    assert result.rows[0].weight == Decimal("0.1011")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == (
+        "aot_invest_public_product_page_holdings_table"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7120,6 +7160,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert exchange_traded_concepts is not None
     assert type(exchange_traded_concepts).__name__ == "ExchangeTradedConceptsHoldingsAdapter"
     assert exchange_traded_concepts.resolve_source_url(symbol="BLUC") == "https://bluemontefunds.com/bluc"
+
+    aot = get_holdings_adapter("aot")
+    assert aot is not None
+    assert type(aot).__name__ == "AotHoldingsAdapter"
+    assert aot.resolve_source_url(symbol="AOTG") == "https://aotetf.com/aotg/"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None

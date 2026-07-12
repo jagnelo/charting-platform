@@ -12,6 +12,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "1251_capital",
     "acquirers",
     "acuitas",
+    "aot",
     "abrdn",
     "adaptive_investments",
     "agf",
@@ -1358,6 +1359,21 @@ async def test_live_exchange_traded_concepts_bluemonte_fund_page_payload():
         "exchange_traded_concepts_bluemonte_fund_page_payload"
     )
     assert any(row.extra_data.get("figi") for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_aot_invest_public_product_page_holdings_table():
+    adapter = get_holdings_adapter("aot")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="AOTG")
+
+    _assert_live_holdings_result(result, adapter_key="aot", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "aot_invest_public_product_page_holdings_table"
+    )
+    assert all(row.extra_data.get("market_value_unit") == "millions_usd" for row in result.rows)
 
 
 @pytest.mark.asyncio
