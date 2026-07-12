@@ -21,6 +21,14 @@ Append a short entry after each worker session.
   `2 passed`; targeted ruff and `git diff --check` passed.
 - Current truthful count: `345` registered, `173` native/live-backed, `172` remaining.
 
+## 2026-07-12 - Affiliated Managers Group source audit
+
+- `affiliated_managers_group` is a parent-company registry identity rather than a single US ETF
+  issuer with a unified public holdings route. Its ETF products are issued under independent
+  affiliate brands, which require their own provider-native integrations.
+- It remains unpromoted to avoid claiming an AMG parent route can retrieve unrelated affiliate
+  portfolios.
+
 ## 2026-07-12 - Advent Capital native ETF holdings route
 
 - Promoted `advent_capital` with an isolated ACVT public daily holdings CSV adapter.

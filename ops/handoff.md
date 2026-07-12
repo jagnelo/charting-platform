@@ -68,6 +68,14 @@
   identified. It remains unpromoted; the recognition alias should not be read as proof of an ETF
   issuer relationship.
 
+## Source audit - 2026-07-12T13:55Z
+
+- `affiliated_managers_group`: AMG is a strategic parent of independent asset managers, not a
+  single US ETF issuer with a unified holdings route. Its ETF exposure comes through separately
+  branded affiliates (for example, Tweedy, Browne), each of which needs its own issuer-native
+  route. It remains unpromoted; do not misrepresent a parent-company identity as a universal
+  ETF holdings provider.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an
