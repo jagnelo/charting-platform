@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - AmeriLife source audit
+
+- `amerilife` is a parent/owner identity for Brookstone Capital Management's ETF products rather
+  than a single fund issuer route. The Brookstone-branded ETF lineup requires a dedicated
+  Brookstone native integration; AmeriLife remains unpromoted to avoid a misleading umbrella
+  implementation.
+
 ## 2026-07-12 - Liberty One native ETF holdings route
 
 - Promoted `818` (Liberty One Investment Management) with an isolated `SPCT`/`EASY`/`LOTI`

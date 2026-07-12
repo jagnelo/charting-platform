@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T14:00Z Source audit: AmeriLife is a parent/owner identity behind Brookstone Capital Management's ETF lineup. The correct implementation boundary is a Brookstone issuer-native route, not an AmeriLife umbrella adapter; amerilife remains unpromoted.",
         "2026-07-12T13:55Z Source audit: Affiliated Managers Group is a parent-company identity, not a single US ETF issuer with a unified holdings route. Its affiliates must be treated as independent provider integrations; affiliated_managers_group remains unpromoted.",
         "2026-07-12T13:49Z Liberty One native route: promoted 818 through an isolated product-page-scoped holdings API adapter for SPCT, EASY, and LOTI. The route discovers each issuer-declared portfolio ID and verifies returned portfolio identity before parsing rows. Static suite 215 passed and focused live SPCT plus matrix passed. Strict count is 345 registered, 174 native/live-backed, 171 remaining; SEC is fallback-only.",
         "2026-07-12T13:43Z Archer Investment native route: promoted archer_investment through an isolated ARWG public product-page-linked daily holdings CSV adapter. The route discovers the current dated issuer download, filters only ARWG rows, and preserves valid identifiers, cash classification, and composition date. Static suite 213 passed and focused live ARWG plus matrix passed. Strict count is 345 registered, 173 native/live-backed, 172 remaining; SEC is fallback-only.",

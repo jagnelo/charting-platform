@@ -18,6 +18,13 @@
 - Registry count: `345` registered, `174` native/live-backed, `171` remaining. Continue with
   the next unpromoted issuer source audit.
 
+## Source audit - 2026-07-12T14:00Z
+
+- `amerilife`: AmeriLife is the parent/owner behind Brookstone Capital Management. The ETFs
+  associated with this registry identity are Brookstone-branded (`BAMG`, `BAMV`, and related
+  funds), so their complete holdings must be integrated through a Brookstone issuer-native route
+  rather than an inaccurate AmeriLife umbrella adapter. It remains unpromoted.
+
 ## Latest checkpoint - 2026-07-12T13:43Z
 
 - Promoted `archer_investment` through an isolated `ArcherInvestmentHoldingsAdapter` for the
