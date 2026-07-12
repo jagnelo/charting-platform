@@ -9546,3 +9546,11 @@ Append a short entry after each worker session.
   audience-selection gate rather than the ETF product or detailed-holdings route.
 - No native adapter was added or counted without an executable official full-holdings route. This
   is a provider-specific access block; the global provider queue remains active.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T05:10Z
+
+- `russell_investments`: the official US ETF catalogue responds with a region-unavailable page
+  from this environment, and an inferred issuer product path returns HTTP `404`.
+- No native adapter was added or counted because no executable official product or full-holdings
+  route can be verified. This is a provider-specific access block; the global provider queue
+  remains active.

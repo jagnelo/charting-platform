@@ -3,8 +3,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T05:00:00Z",
-    "last_commit": "e125efc",
+    "last_handoff_at": "2026-07-12T05:10:00Z",
+    "last_commit": "df61f72",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-12 targeted ruff check for 1251 Capital native adapter)",
@@ -18,7 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
-        "2026-07-12T05:00Z Neuberger Berman source audit: direct NBCR product-page retrieval returns HTTP 429; a standard browser request returns HTTP 200 only after redirecting to the global audience gate, not the ETF page or detailed holdings download. No executable issuer-native route is available from this environment, so it remains unpromoted; this is provider-specific and does not block the global objective.",
+        "2026-07-12T05:10Z Russell Investments source audit: the official US ETF catalogue responds with a region-unavailable page from this environment, and a guessed product path returns HTTP 404. No executable first-party product or holdings route can be verified, so Russell remains unpromoted; this is provider-specific and does not block the global objective.",
         "2026-07-12T04:40Z 1251 Capital native route: promoted 1251_capital from generated recognition-only support to an isolated parent-brand adapter using its owned F/M Investments issuer API. UTWO live validation passed. Full adapter unit suite (194), focused live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 154 native/live-backed, 191 remaining; SEC is fallback-only.",
         "2026-07-12T04:10Z Exchange Traded Concepts native route: promoted exchange_traded_concepts from generated recognition-only support to an isolated adapter using public Bluemonte ETF server-rendered holdings payloads. BLUC live validation passed. Full adapter unit suite (193), focused live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 153 native/live-backed, 192 remaining; SEC is fallback-only.",
         "2026-07-12T03:30Z Rafferty native route: promoted rafferty from generated recognition-only support to an isolated adapter using Rafferty Asset Management's official Direxion per-symbol daily holdings CSV. COM live validation passed. Full adapter unit suite (192), focused live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 152 native/live-backed, 193 remaining; SEC is fallback-only.",

@@ -32,6 +32,13 @@
   issuer-native full-holdings route can be verified from this environment, so it remains
   unpromoted. Continue the queue.
 
+## Source audit - 2026-07-12T05:10Z
+
+- `russell_investments`: the official US ETF catalogue presents a region-unavailable page from
+  this environment; an inferred product path returned HTTP `404`. No executable first-party ETF
+  product or full-holdings route can be verified, so no adapter was promoted. This is a
+  provider-specific block only; continue the queue.
+
 ## Latest checkpoint - 2026-07-12T04:10Z
 
 - Promoted `exchange_traded_concepts` from generated recognition-only support to a
