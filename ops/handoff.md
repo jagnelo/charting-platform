@@ -4130,6 +4130,12 @@
 - Continue the remaining provider queue, researching each issuer's official complete-holdings
   route before adding an isolated adapter. Keep SEC EDGAR fallback-only and do not promote any
   issuer without both static coverage and a passing live route.
+- Next concrete provider: `wedbush`. Its official `TGLR` product page is backend-readable and
+  links to `/latest-sod-holdings-tglr/`, a current full CSV with ticker, SEDOL, shares, USD
+  market value, percent weight, and as-of date. Add a dedicated adapter plus static/live tests.
+- `guinness_atkinson` was retried against its official catalogue and resources, but the issuer's
+  Cloudflare managed challenge returns HTTP 403 to backend-style retrieval. It remains an access
+  block, not a promoted native implementation.
 
 ## 2026-07-12 - Dakota Wealth native ETF holdings route
 

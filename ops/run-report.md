@@ -9666,3 +9666,13 @@ Append a short entry after each worker session.
   provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `161` native/live-backed, `184` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T03:45Z
+
+- `guinness_atkinson`: official fund and resource pages return a Cloudflare managed challenge
+  (`403`) to direct backend-style retrieval. It remains unpromoted pending a reachable official
+  holdings route.
+- `wedbush`: official `https://wedbushfunds.com/funds/tglr/` is backend-readable and links to
+  `https://wedbushfunds.com/latest-sod-holdings-tglr/`. The route returned a complete current
+  CSV with fund identity, as-of date, ticker, SEDOL, shares, USD market value, and weight.
+- Next concrete implementation is a dedicated Wedbush adapter with static and opt-in live tests.
