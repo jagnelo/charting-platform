@@ -7,6 +7,20 @@
 
 ## Latest checkpoint - 2026-07-12T06:35Z
 
+## Latest checkpoint - 2026-07-12T07:10Z
+
+- Promoted `alternative_access` from generated recognition-only support to native/live-backed
+  support through an isolated `AlternativeAccessHoldingsAdapter`. It validates the declared ETF
+  ticker on Alternative Access's own fund page, follows only that page's full-holdings workbook
+  link, and preserves CUSIP/ISIN identifiers, quantities, market values, percentage weights,
+  cash rows, and the issuer-reported composition date without treating the issuer's ISIN-shaped
+  “Ticker” column as a market symbol.
+- Live validation symbol: `AAA`, returning more than 20 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `158` native/live-backed integrations, and
+  `187` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `198 passed`; focused Alternative Access live route and
+  provider matrix `2 passed`; targeted ruff and `git diff --check` passed.
+
 ## Source audit - 2026-07-12T06:50Z
 
 - `alexis`: the official LEXI site exposes current complete holdings metadata and a public Wix

@@ -9612,3 +9612,17 @@ Append a short entry after each worker session.
   first-party Wix payload, but direct backend retrieval of the advertised Wix media object and
   its public URL variants returned HTTP `403`. No adapter was promoted without a backend-readable
   issuer-native artifact. This is a provider-specific access block only; continue the queue.
+
+# ETF Holdings Provider Integration - 2026-07-12T07:10Z
+
+- Promoted `alternative_access` to native/live-backed support through a dedicated
+  `AlternativeAccessHoldingsAdapter`. It validates the requested ticker on the issuer's public
+  fund page, follows the page's explicit full-holdings XLSX download, and maps weight, name,
+  CUSIP, shares, market value, and cash rows. The issuer labels an ISIN-shaped identifier as a
+  ticker in this workbook, so the adapter correctly persists it as ISIN rather than a false
+  market symbol.
+- Live validation symbol: `AAA`, returning more than 20 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`198 passed`), focused opt-in Alternative Access
+  route plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `158` native/live-backed, `187` remaining; SEC
+  EDGAR remains fallback-only and is not counted.
