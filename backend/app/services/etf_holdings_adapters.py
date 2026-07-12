@@ -9635,6 +9635,169 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class CorgiHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Corgi's complete current ETF portfolio through its public fund API."""
+
+    product_page_template = "https://corgifunds.com/{symbol_lower}"
+    holdings_api_template = "https://corgifunds.com/api/data/holdings?ticker={symbol_upper}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if source_url else Decimal("0.5000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Corgi publishes complete current ETF holdings through its public fund API."
+                if source_url
+                else "Corgi needs an ETF symbol to resolve its public fund page."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "corgifunds.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        return self.product_page_template.format(symbol_lower=resolved_symbol) if resolved_symbol else None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError("Corgi holdings require an ETF symbol or public product page.")
+        api_url = self.holdings_api_template.format(symbol_upper=normalized_symbol)
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=page_headers,
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            self._validate_product_page(product_response.text, symbol=normalized_symbol)
+            holdings_response = await client.get(
+                api_url,
+                headers={
+                    **_holdings_request_headers(accept="application/json,*/*"),
+                    "Referer": str(product_response.url),
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+        payload = holdings_response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Corgi holdings API returned no complete rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"holdings": payload} if isinstance(payload, list) else {"payload": payload},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "corgi_public_fund_holdings_api",
+                "product_page_url": str(product_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str) -> None:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Corgi product page identity did not match requested ETF {symbol}.")
+
+    @staticmethod
+    def _parse_holdings_payload(
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            name = _clean(raw.get("security_name"))
+            ticker = _clean(raw.get("security_ticker"))
+            cusip = _clean(raw.get("security_cusip"))
+            row_date = _clean(raw.get("position_date"))
+            if row_date:
+                try:
+                    parsed = datetime.fromisoformat(row_date.replace("Z", "+00:00")).date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            haystack = " ".join(part.lower() for part in (ticker, name, cusip) if part)
+            is_cash = any(marker in haystack for marker in ("cash", "currency", "government obligations fund"))
+            is_fixed_income = any(marker in haystack for marker in ("treasury bill", "bond", "note", "debt"))
+            is_derivative = any(marker in haystack for marker in ("swap", "option", "future"))
+            ticker_is_identifier = bool(ticker and cusip and ticker.upper() == cusip.upper())
+            if not any([ticker, name, cusip, raw.get("market_value")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=(
+                        None
+                        if is_cash or is_fixed_income or is_derivative or ticker_is_identifier
+                        else (ticker.upper() if ticker else None)
+                    ),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal_percent_points(raw.get("weight_pct")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("market_value")),
+                    currency="USD" if is_cash else None,
+                    holding_type=(
+                        "cash"
+                        if is_cash
+                        else ("fixed_income" if is_fixed_income else ("derivative" if is_derivative else "equity"))
+                    ),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -26257,6 +26420,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subject to issuer terms."
         ),
     ),
+    "corgi": IssuerCsvAdapterConfig(
+        adapter_key="corgi",
+        source_provider="corgi",
+        source_access="issuer_public_fund_holdings_api",
+        product_page_templates=("https://corgifunds.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Corgi Funds public ETF holdings API data may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27931,6 +28102,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "scharf": ScharfHoldingsAdapter,
         "cohen_steers": CohenSteersHoldingsAdapter,
         "capital_impact": CapitalImpactHoldingsAdapter,
+        "corgi": CorgiHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

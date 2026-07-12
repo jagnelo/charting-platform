@@ -7569,6 +7569,67 @@ async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypa
     assert result.legal_metadata["composition_date"] == "2026-07-10"
 
 
+@pytest.mark.asyncio
+async def test_corgi_adapter_fetches_fund_specific_public_holdings(monkeypatch):
+    adapter = get_holdings_adapter("corgi")
+    assert adapter is not None
+
+    product_html = "<title>FDRS — Founder-Led ETF — Corgi Funds</title>"
+    holdings_payload = [
+        {
+            "position_date": "2026-07-13",
+            "security_name": "Meta Platforms Inc",
+            "security_cusip": "30303M102",
+            "security_ticker": "META",
+            "weight_pct": "11.3400",
+            "market_value": "10782980.73",
+            "shares": "16113.00000000",
+        },
+        {
+            "position_date": "2026-07-13",
+            "security_name": "United States Treasury Bill 10/01/2026",
+            "security_cusip": "912797SA6",
+            "security_ticker": "912797SA6",
+            "weight_pct": "7.1400",
+            "market_value": "1950042.63",
+            "shares": "1966000.00000000",
+        },
+        {
+            "position_date": "2026-07-13",
+            "security_name": "Cash & Other",
+            "security_cusip": "Cash&Other",
+            "security_ticker": "Cash&Other",
+            "weight_pct": "0.5000",
+            "market_value": "1000",
+            "shares": "1000",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_html, content_type="text/html"),
+        FakeResponse(text=json.dumps(holdings_payload), content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FDRS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://corgifunds.com/fdrs",
+        "https://corgifunds.com/api/data/holdings?ticker=FDRS",
+    ]
+    equity_row, bond_row, cash_row = result.rows
+    assert equity_row.symbol == "META"
+    assert equity_row.cusip == "30303M102"
+    assert equity_row.weight == Decimal("0.1134")
+    assert bond_row.symbol is None
+    assert bond_row.cusip == "912797SA6"
+    assert bond_row.holding_type == "fixed_income"
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "corgi_public_fund_holdings_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

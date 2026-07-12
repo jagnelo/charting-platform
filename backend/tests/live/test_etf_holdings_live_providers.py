@@ -61,6 +61,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "castleark",
     "capital_impact",
     "coinshares",
+    "corgi",
     "counterpoint",
     "cullen",
     "clearshares",
@@ -214,6 +215,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
+        (
+            "corgi",
+            "FDRS",
+            None,
+            {},
+            20,
+        ),
         (
             "capital_impact",
             "XOVR",
