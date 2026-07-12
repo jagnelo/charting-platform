@@ -21,6 +21,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "alger",
     "allspring",
     "american_century",
+    "ameriprise",
     "amplify",
     "angel_oak",
     "anfield",
@@ -1296,6 +1297,22 @@ async def test_live_sei_dated_daily_holdings_export():
 
     _assert_live_holdings_result(result, adapter_key="sei", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "issuer_dated_daily_holdings_export"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
+    adapter = get_holdings_adapter("ameriprise")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(
+        symbol="XCEM",
+        identifiers={"cusip": "19762B202"},
+    )
+
+    _assert_live_holdings_result(result, adapter_key="ameriprise", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "ameriprise_columbia_cusip_holdings_csv"
+    assert any(row.cusip for row in result.rows)
 
 
 @pytest.mark.asyncio

@@ -2845,6 +2845,67 @@ class MiraeAssetHoldingsAdapter(GlobalXHoldingsAdapter):
         return result
 
 
+class AmeripriseHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Columbia Threadneedle ETF holdings from Ameriprise's public CSV export.
+
+    Columbia Threadneedle Investments US is part of Ameriprise Financial. Its ETF
+    product pages publish a complete holdings CSV at a CUSIP-addressed endpoint,
+    which is more stable than attempting to infer a product-page slug from a
+    trading symbol. CUSIP is therefore the required primary route identifier.
+    """
+
+    HOLDINGS_EXPORT = (
+        "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+        "?fundGroupName=ETF&fileType=csv&cusip={cusip}"
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        cusip = _identifier(identifiers or {}, "cusip")
+        if not cusip:
+            return None
+        return self.HOLDINGS_EXPORT.format(cusip=cusip)
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
+        headers["Referer"] = "https://www.columbiathreadneedleus.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": "ameriprise_columbia_cusip_holdings_csv",
+        }
+        return result
+
+
 class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -24154,6 +24215,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Global X public product pages and holdings files."
         ),
     ),
+    "ameriprise": IssuerCsvAdapterConfig(
+        adapter_key="ameriprise",
+        source_provider="ameriprise",
+        source_access="issuer_public_columbia_threadneedle_cusip_holdings_csv",
+        url_templates=(
+            "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+            "?fundGroupName=ETF&fileType=csv&cusip={cusip}",
+        ),
+        required_identifiers=("cusip",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Ameriprise/Columbia Threadneedle public ETF holdings CSV exports may "
+            "be subject to issuer terms."
+        ),
+    ),
     "vaneck": IssuerCsvAdapterConfig(
         adapter_key="vaneck",
         source_provider="vaneck",
@@ -25473,6 +25549,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "alliancebernstein": AllianceBernsteinHoldingsAdapter,
         "allspring": AllspringHoldingsAdapter,
         "american_century": AmericanCenturyHoldingsAdapter,
+        "ameriprise": AmeripriseHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
         "akre": AkreHoldingsAdapter,

@@ -7011,6 +7011,18 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert type(mirae_asset).__name__ == "MiraeAssetHoldingsAdapter"
     assert mirae_asset.resolve_product_page_url(symbol="QYLD") == "https://www.globalxetfs.com/funds/qyld/"
 
+    ameriprise = get_holdings_adapter("ameriprise")
+    assert ameriprise is not None
+    assert type(ameriprise).__name__ == "AmeripriseHoldingsAdapter"
+    assert ameriprise.resolve_source_url(
+        symbol="XCEM",
+        identifiers={"cusip": "19762B202"},
+    ) == (
+        "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+        "?fundGroupName=ETF&fileType=csv&cusip=19762B202"
+    )
+    assert ameriprise.probe(symbol="XCEM", name="", identifiers={}).status == "needs_issuer_route"
+
     sei = get_holdings_adapter("sei")
     assert sei is not None
     assert type(sei).__name__ == "SeiHoldingsAdapter"
