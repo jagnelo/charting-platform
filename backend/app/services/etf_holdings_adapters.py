@@ -11533,6 +11533,7 @@ class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
         return rows, composition_date
 
+
     @staticmethod
     def _parse_trade_date(value: Any) -> date | None:
         text = _clean(value)
@@ -11553,6 +11554,37 @@ class DirexionHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if any(marker in text for marker in ("FUTURE", "OPTION", "SWAP", "TREASURY BILL")):
             return "derivative"
         return "security"
+
+
+class RaffertyHoldingsAdapter(DirexionHoldingsAdapter):
+    """Fetch Rafferty-managed Direxion ETF holdings from the public Direxion feed.
+
+    Rafferty Asset Management is the investment adviser for the Direxion ETF
+    suite. Its provider-specific route is therefore the same official daily
+    holdings export, while retaining an explicit adapter identity and audit
+    trail instead of falling into a generated recognition-only implementation.
+    """
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": "rafferty",
+            "route_resolution": "rafferty_direxion_symbol_holdings_csv",
+        }
+        return result
 
 
 class ThemesHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -24255,6 +24287,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Voya Investment Management public ETF holdings files may be subject to issuer terms.",
     ),
+    "rafferty": IssuerCsvAdapterConfig(
+        adapter_key="rafferty",
+        source_provider="rafferty",
+        source_access="issuer_public_direxion_symbol_holdings_csv",
+        url_templates=("https://www.direxion.com/holdings/{symbol_upper}.csv",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Rafferty Asset Management's Direxion ETF daily holdings exports may "
+            "be subject to issuer terms."
+        ),
+    ),
     "lazard": IssuerCsvAdapterConfig(
         adapter_key="lazard",
         source_provider="lazard",
@@ -25595,6 +25638,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dimensional": DimensionalHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
+        "rafferty": RaffertyHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,
         "eldridge": EldridgeHoldingsAdapter,
         "eventide": EventideHoldingsAdapter,

@@ -7023,6 +7023,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     )
     assert ameriprise.probe(symbol="XCEM", name="", identifiers={}).status == "needs_issuer_route"
 
+    rafferty = get_holdings_adapter("rafferty")
+    assert rafferty is not None
+    assert type(rafferty).__name__ == "RaffertyHoldingsAdapter"
+    assert rafferty.resolve_source_url(symbol="COM") == "https://www.direxion.com/holdings/COM.csv"
+
     sei = get_holdings_adapter("sei")
     assert sei is not None
     assert type(sei).__name__ == "SeiHoldingsAdapter"

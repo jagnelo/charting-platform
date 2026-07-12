@@ -121,6 +121,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "prudential",
     "procuream",
     "proshares",
+    "rafferty",
     "rayliant",
     "renaissance_capital",
     "roundhill",
@@ -1313,6 +1314,18 @@ async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
     _assert_live_holdings_result(result, adapter_key="ameriprise", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "ameriprise_columbia_cusip_holdings_csv"
     assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_rafferty_direxion_daily_holdings_export():
+    adapter = get_holdings_adapter("rafferty")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="COM")
+
+    _assert_live_holdings_result(result, adapter_key="rafferty", min_rows=5)
+    assert result.legal_metadata["route_resolution"] == "rafferty_direxion_symbol_holdings_csv"
 
 
 @pytest.mark.asyncio
