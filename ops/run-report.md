@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Advent Capital native ETF holdings route
+
+- Promoted `advent_capital` with an isolated ACVT public daily holdings CSV adapter.
+- It filters only ACVT rows and preserves CUSIP, shares, value, weight, and cash/fixed-income
+  classifications without inventing tradable symbols.
+- Validation: adapter unit suite `212 passed`; live ACVT route and provider matrix `2 passed`.
+- Current truthful count: `345` registered, `172` native/live-backed, `173` remaining.
+
 ## 2026-07-12 - ACP Horizon native ETF holdings route
 
 ### Summary

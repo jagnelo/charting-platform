@@ -5,6 +5,14 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T17:05Z
+
+- Promoted `advent_capital` through an isolated ACVT issuer-native daily holdings CSV adapter.
+- Live validation: `ACVT` returned more than 20 rows; the adapter strictly filters its issuer
+  `Account` column and retains fixed-income and cash classification without inventing symbols.
+- Registry count: `345` registered, `172` native/live-backed, `173` remaining. Full adapter unit
+  suite `212 passed`; focused live route plus provider matrix `2 passed`; targeted ruff passed.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an
