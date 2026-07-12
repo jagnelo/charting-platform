@@ -5478,6 +5478,30 @@ class BrownAdvisoryHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class SeiHoldingsAdapter(BrownAdvisoryHoldingsAdapter):
+    """Fetch SEI ETF holdings from its issuer-native dated FilePoint export."""
+
+    DAILY_HOLDINGS_TEMPLATE = (
+        "https://seietfs.filepoint.live/assets/data/"
+        "SEI_IMU_Tradedate_Holdings_{report_date}.txt"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=probe.confidence,
+            status=probe.status,
+            reason=(
+                "SEI publishes daily ETF holdings through its issuer-native FilePoint export."
+                if probe.status == "ready"
+                else "SEI holdings require an ETF symbol."
+            ),
+            source_url=probe.source_url,
+            issuer_product_id=probe.issuer_product_id,
+        )
+
+
 class TiaaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Nuveen/TIAA ETF holdings through the issuer's public product API."""
 
@@ -25419,6 +25443,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Founder ETFs public full-holdings PDFs may be subject to issuer terms.",
     ),
+    "sei": IssuerCsvAdapterConfig(
+        adapter_key="sei",
+        source_provider="sei",
+        source_access="issuer_dated_daily_holdings_filepoint_export",
+        product_page_templates=("https://seietfs.filepoint.live/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="SEI public ETF daily holdings exports may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -25503,6 +25535,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "first_eagle": FirstEagleHoldingsAdapter,
         "fm_investments": FMInvestmentsHoldingsAdapter,
         "founder": FounderHoldingsAdapter,
+        "sei": SeiHoldingsAdapter,
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,

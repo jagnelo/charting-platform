@@ -7011,6 +7011,16 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert type(mirae_asset).__name__ == "MiraeAssetHoldingsAdapter"
     assert mirae_asset.resolve_product_page_url(symbol="QYLD") == "https://www.globalxetfs.com/funds/qyld/"
 
+    sei = get_holdings_adapter("sei")
+    assert sei is not None
+    assert type(sei).__name__ == "SeiHoldingsAdapter"
+    probe = sei.probe(symbol="SEIS", name="SEI Select Small Cap ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == (
+        "https://seietfs.filepoint.live/assets/data/"
+        f"SEI_IMU_Tradedate_Holdings_{date.today():%m%d%Y}.txt"
+    )
+
     by_domain = infer_adapter_key(
         issuer=None,
         fund_family=None,

@@ -125,6 +125,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "roundhill",
     "running_oak",
     "schwab",
+    "sei",
     "simplify",
     "spdr",
     "spear",
@@ -1283,6 +1284,18 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_sei_dated_daily_holdings_export():
+    adapter = get_holdings_adapter("sei")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SEIS")
+
+    _assert_live_holdings_result(result, adapter_key="sei", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "issuer_dated_daily_holdings_export"
 
 
 @pytest.mark.asyncio
