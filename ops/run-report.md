@@ -2,6 +2,24 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - ACP Horizon native ETF holdings route
+
+### Summary
+
+- Promoted `acp_horizon` from recognition-only support to native/live-backed support.
+- Added an isolated `ACPHorizonHoldingsAdapter` for Horizon Funds' public multi-fund daily
+  holdings CSV. It filters only the requested issuer `Account` field, preserving ticker, CUSIP,
+  shares, market value, decimal-fraction weight, cash status, and as-of date.
+- Live validation symbol: `HBTA`, returning more than 100 issuer-native rows.
+- Current truthful provider-native count: `345` registered, `171` native/live-backed, `174`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `211 passed`
+- focused live ACP Horizon route and provider matrix -> `2 passed, 172 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - EMLes native ETF holdings route
 
 ### Summary

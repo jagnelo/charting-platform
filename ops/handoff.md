@@ -5,6 +5,22 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T16:45Z
+
+- Promoted `acp_horizon` from recognition-only support to native/live-backed support through an
+  isolated `ACPHorizonHoldingsAdapter`. It reads ACP Horizon's public multi-fund daily holdings
+  CSV and filters strictly by its issuer-provided `Account` ticker field.
+- The adapter preserves security symbols/CUSIPs, shares, values, decimal-fraction weights, cash
+  classification, and composition date. Strict account filtering prevents a requested Horizon ETF
+  from ever ingesting holdings belonging to another issuer fund.
+- Live validation symbol: `HBTA`, returning more than 100 issuer-native rows.
+- Registry count: `345` registered provider keys, `171` native/live-backed integrations, and
+  `174` remaining. SEC EDGAR remains fallback-only.
+- Validation: full adapter unit suite `211 passed`; focused ACP Horizon live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Next concrete action: continue the unpromoted issuer queue with a direct source audit, recording
+  inaccessible or non-fund-specific routes as provider-specific evidence instead of promotion.
+
 ## Latest checkpoint - 2026-07-12T16:15Z
 
 - Promoted `emles` from recognition-only support to native/live-backed support through an
