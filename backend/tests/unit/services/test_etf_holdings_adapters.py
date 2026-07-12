@@ -7383,6 +7383,29 @@ def test_toews_adapter_parses_product_page_linked_holdings_csv():
     assert composition_date == date(2026, 7, 10)
 
 
+def test_wedbush_adapter_parses_symbol_holdings_csv():
+    adapter = get_holdings_adapter("wedbush")
+    assert adapter is not None
+    rows, composition_date = adapter._parse_holdings_csv(
+        """
+        "Fund Name:","Wedbush LAFFER|TENGLER New Era Value ETF"
+        "Ticker Symbol:",TGLR
+        Holdings:,"As of 10-Jul-2026"
+        Ticker,Name,SEDOL,Shares,"Market Value",Weight
+        AAPL,"APPLE INC",2046251,"4,146","$1,307,316.72",3.4377
+        CASH,"US DOLLARS",,"2,000","$2,000.00",0.01
+        """,
+        symbol="TGLR",
+    )
+    assert len(rows) == 2
+    assert rows[0].symbol == "AAPL"
+    assert rows[0].sedol == "2046251"
+    assert rows[0].weight == Decimal("0.034377")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 10)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7447,6 +7470,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert toews is not None
     assert type(toews).__name__ == "ToewsHoldingsAdapter"
     assert toews.resolve_source_url(symbol="HRSK") == "https://toewsetfs.com/hrsk/"
+
+    wedbush = get_holdings_adapter("wedbush")
+    assert wedbush is not None
+    assert type(wedbush).__name__ == "WedbushHoldingsAdapter"
+    assert wedbush.resolve_source_url(symbol="TGLR") == "https://wedbushfunds.com/latest-sod-holdings-tglr/"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None

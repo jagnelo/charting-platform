@@ -8832,6 +8832,139 @@ class ToewsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Wedbush ETF current holdings through its public per-fund CSV route."""
+
+    holdings_url_template = "https://wedbushfunds.com/latest-sod-holdings-{symbol_lower}/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Wedbush publishes this ETF's complete current holdings CSV."
+                if source_url
+                else "Wedbush needs an ETF symbol to resolve its public holdings CSV."
+            ),
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id")
+            or symbol.strip().upper()
+            or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "wedbushfunds.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        return self.holdings_url_template.format(symbol_lower=resolved_symbol) if resolved_symbol else None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        holdings_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not holdings_url:
+            raise ValueError("Wedbush holdings require an ETF symbol or public holdings URL.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                    "Referer": f"https://wedbushfunds.com/funds/{normalized_symbol.lower()}/",
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Wedbush holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_symbol_holdings_csv", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "wedbush_symbol_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        if not table_rows:
+            return [], None
+        identity_text = " ".join(cell for row in table_rows[:4] for cell in row)
+        if not re.search(rf"\b{re.escape(symbol)}\b", identity_text, re.IGNORECASE):
+            raise ValueError(f"Wedbush holdings file identity did not match requested ETF {symbol}.")
+        date_match = re.search(r"as\s+of\s+(\d{1,2}-[A-Za-z]{3}-\d{4})", identity_text, re.IGNORECASE)
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%d-%b-%Y").date() if date_match is not None else None
+        )
+        header_index = next(
+            (index for index, row in enumerate(table_rows[:20]) if {cell.strip().lower() for cell in row if _clean(cell)} >= {"ticker", "name", "shares", "market value", "weight"}),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(table_rows[header_index], row)
+            ticker = _clean(_first(raw, ["Ticker"]))
+            name = _clean(_first(raw, ["Name"]))
+            sedol = _clean(_first(raw, ["SEDOL"]))
+            is_cash = "cash" in " ".join(part.lower() for part in (ticker, name) if part)
+            if not any([ticker, name, sedol, _first(raw, ["Market Value"])]):
+                continue
+            rows.append(CanonicalHoldingRow(
+                symbol=None if is_cash else (ticker.upper() if ticker else None),
+                name=name,
+                sedol=sedol,
+                shares=_decimal(_first(raw, ["Shares"])),
+                market_value=_decimal(_first(raw, ["Market Value"])),
+                weight=_decimal_percent_points(_first(raw, ["Weight"])),
+                currency="USD" if is_cash else None,
+                holding_type="cash" if is_cash else "equity",
+                row_type="cash" if is_cash else "security",
+                source_row_id=f"{symbol}:{index}:{sedol or ticker or name or 'holding'}",
+                extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
+            ))
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25417,6 +25550,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Toews Agility Shares public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "wedbush": IssuerCsvAdapterConfig(
+        adapter_key="wedbush",
+        source_provider="wedbush",
+        source_access="issuer_public_symbol_holdings_csv",
+        url_templates=("https://wedbushfunds.com/latest-sod-holdings-{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Wedbush Funds public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27086,6 +27227,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "rational": RationalHoldingsAdapter,
         "dakota_wealth": DakotaWealthHoldingsAdapter,
         "toews": ToewsHoldingsAdapter,
+        "wedbush": WedbushHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
