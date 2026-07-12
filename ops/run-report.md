@@ -44,6 +44,16 @@ Append a short entry after each worker session.
   distinct US ETF issuer holdings route was identified.
 - Neither was falsely promoted; current truthful native count remains `168/345`.
 
+## 2026-07-12 - Donoghue and provider-boundary audit
+
+### Summary
+
+- Donoghue Forlines' public DFTT ETF site returned `403` to backend retrieval, so no native
+  route was falsely promoted.
+- Confirmed that Astoria's ETF family is served by already-supported AXS, and Cboe Vest's ETF
+  family is served by already-supported First Trust/FT Vest. No duplicate adapters were added.
+- Current truthful native count remains `168/345`.
+
 ## 2026-07-12 - Corgi native ETF holdings route
 
 ### Summary

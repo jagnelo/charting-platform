@@ -43,6 +43,16 @@
   offerings, but no distinct US ETF issuer holdings route was identified. It remains unpromoted.
 - These classifications prevent false support claims; strict native count remains `168/345`.
 
+## Source audit - 2026-07-12T15:10Z
+
+- `donoghue_forlines`: the dedicated official ETF site for DFTT returned HTTP `403` to a normal
+  backend-style request. Do not promote it until an issuer-native route is backend-readable.
+- The apparent `astoria` ETF product family is administered by `axs`, whose public FilePoint
+  daily holdings CSV route is already native/live-backed. The Cboe Vest family is administered
+  through `first_trust`/FT Vest, also already native/live-backed. Avoid duplicate adapters that
+  would misstate the actual issuer boundary.
+- Strict native count remains `168/345`; SEC EDGAR remains fallback-only.
+
 ## Latest checkpoint - 2026-07-12T13:55Z
 
 - Promoted `corgi` from recognition-only support to native/live-backed support through an
