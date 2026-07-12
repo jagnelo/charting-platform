@@ -7842,6 +7842,194 @@ class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class ThreeFourteenHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch SMI 3Fourteen ETFs' current issuer-published holdings tables."""
+
+    product_page_template = "https://3fourteensmi.com/{symbol_lower}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "SMI 3Fourteen publishes this ETF's complete current holdings table on its "
+                "public fund page."
+                if source_url
+                else "SMI 3Fourteen needs an ETF symbol to resolve its public holdings page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "3fourteensmi.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError("SMI 3Fourteen holdings require an ETF symbol or public product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=symbol)
+        if not rows:
+            raise ValueError(f"SMI 3Fourteen page did not expose holdings rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_holdings_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or symbol.strip().upper(),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "smi_3fourteen_public_product_page_holdings_table",
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return [], None
+        if not re.search(
+            rf"<h1[^>]*>\s*{re.escape(normalized_symbol)}\s*</h1>",
+            raw_html,
+            flags=re.IGNORECASE,
+        ):
+            raise ValueError(
+                f"SMI 3Fourteen product page identity did not match requested ETF {normalized_symbol}."
+            )
+
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {
+            "description",
+            "ticker",
+            "weight (%)**",
+            "market value ($)",
+            "figi",
+            "shares held",
+        }
+        holdings_table = next(
+            (
+                table
+                for table in parser.tables
+                if any(
+                    required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)}
+                    for row in table[:20]
+                )
+            ),
+            None,
+        )
+        if holdings_table is None:
+            return [], None
+
+        header_index = next(
+            index
+            for index, row in enumerate(holdings_table[:20])
+            if required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)}
+        )
+        composition_date = cls._parse_composition_date(raw_html)
+        header = holdings_table[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(holdings_table[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            ticker = _clean(_first(raw, ["ticker"]))
+            name = _clean(_first(raw, ["description"]))
+            figi = _clean(_first(raw, ["figi"]))
+            shares = _decimal(_first(raw, ["shares held"]))
+            market_value = _decimal(_first(raw, ["market value ($)"]))
+            # SMI 3Fourteen prints percentage points (for example, 5.63) without a percent sign.
+            weight = _decimal_percent_points(_first(raw, ["weight (%)**"]))
+            is_cash = (ticker or "").replace(" ", "").upper() in {"CASH", "CASH&OTHER"} or (
+                "cash" in (name or "").lower()
+            )
+            if not any([ticker, name, figi, shares, market_value, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:"
+                        f"{index}:{figi or ticker or name or 'holding'}"
+                    ),
+                    extra_data={
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                        "figi": figi,
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_composition_date(raw_html: str) -> date | None:
+        match = re.search(r"As\s+of\s+(\d{2}/\d{2}/\d{4})", raw_html, flags=re.IGNORECASE)
+        if match is None:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -24381,6 +24569,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AOT Invest public ETF holdings tables may be subject to issuer terms.",
     ),
+    "3fourteen": IssuerCsvAdapterConfig(
+        adapter_key="3fourteen",
+        source_provider="3fourteen",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=("https://3fourteensmi.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="SMI 3Fourteen public ETF holdings tables may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26044,6 +26240,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "eventide": EventideHoldingsAdapter,
         "exchange_traded_concepts": ExchangeTradedConceptsHoldingsAdapter,
         "aot": AotHoldingsAdapter,
+        "3fourteen": ThreeFourteenHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

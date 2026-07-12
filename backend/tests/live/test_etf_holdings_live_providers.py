@@ -10,6 +10,7 @@ from app.services.etf_holdings_adapters import (
 LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
     "1251_capital",
+    "3fourteen",
     "acquirers",
     "acuitas",
     "aot",
@@ -1374,6 +1375,24 @@ async def test_live_aot_invest_public_product_page_holdings_table():
         "aot_invest_public_product_page_holdings_table"
     )
     assert all(row.extra_data.get("market_value_unit") == "millions_usd" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_3fourteen_public_product_page_holdings_table():
+    adapter = get_holdings_adapter("3fourteen")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="FCTE")
+
+    _assert_live_holdings_result(result, adapter_key="3fourteen", min_rows=15)
+    assert result.legal_metadata["route_resolution"] == (
+        "smi_3fourteen_public_product_page_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"]
+    security_rows = [row for row in result.rows if row.row_type == "security"]
+    assert security_rows
+    assert all(row.extra_data.get("figi") for row in security_rows)
 
 
 @pytest.mark.asyncio

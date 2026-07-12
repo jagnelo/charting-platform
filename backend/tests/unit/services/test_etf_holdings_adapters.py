@@ -7126,6 +7126,48 @@ async def test_aot_adapter_parses_issuer_product_page_holdings_and_scales_millio
     )
 
 
+@pytest.mark.asyncio
+async def test_3fourteen_adapter_parses_current_product_page_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("3fourteen")
+    assert adapter is not None
+
+    raw_html = '''
+    <h1>FCTE</h1>
+    <div id="holdings"><span>As of 07/09/2026</span>
+      <table>
+        <tr><th>Description</th><th>Ticker</th><th>Weight (%)**</th><th>Market Value ($)</th><th>FIGI</th><th>Shares Held</th></tr>
+        <tr><td>META PLATFORMS INC</td><td>META</td><td>5.63</td><td>13686700</td><td>BBG000MM2P62</td><td>21674</td></tr>
+        <tr><td>Cash & Other</td><td>CASH</td><td>0.10</td><td>243000</td><td></td><td>243000</td></tr>
+      </table>
+    </div>
+    '''
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://3fourteensmi.com/fcte",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FCTE")
+
+    assert FakeAsyncClient.requested[0][0] == "https://3fourteensmi.com/fcte"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "META"
+    assert result.rows[0].shares == Decimal("21674")
+    assert result.rows[0].market_value == Decimal("13686700")
+    assert result.rows[0].weight == Decimal("0.0563")
+    assert result.rows[0].extra_data["figi"] == "BBG000MM2P62"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-09"
+    assert result.legal_metadata["route_resolution"] == (
+        "smi_3fourteen_public_product_page_holdings_table"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7165,6 +7207,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert aot is not None
     assert type(aot).__name__ == "AotHoldingsAdapter"
     assert aot.resolve_source_url(symbol="AOTG") == "https://aotetf.com/aotg/"
+
+    threefourteen = get_holdings_adapter("3fourteen")
+    assert threefourteen is not None
+    assert type(threefourteen).__name__ == "ThreeFourteenHoldingsAdapter"
+    assert threefourteen.resolve_source_url(symbol="FCTE") == "https://3fourteensmi.com/fcte"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None
