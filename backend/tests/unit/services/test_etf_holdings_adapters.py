@@ -7763,6 +7763,35 @@ async def test_acp_horizon_adapter_filters_shared_daily_holdings_csv(monkeypatch
     assert result.legal_metadata["route_resolution"] == "acp_horizon_public_multi_fund_daily_holdings_csv"
 
 
+@pytest.mark.asyncio
+async def test_advent_capital_adapter_parses_acvt_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("advent_capital")
+    assert adapter is not None
+
+    csv_text = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings",
+            "07/13/2026,ACVT,,67080R300,Convertible Bond,25,180,4500,45%",
+            "07/13/2026,ACVT,CASH,CASH,Cash & Other,250,1,250,2.5%",
+            "07/13/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,180,1800,20%",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=csv_text, content_type="text/csv")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ACVT")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [adapter.holdings_url]
+    bond_row, cash_row = result.rows
+    assert bond_row.symbol is None
+    assert bond_row.cusip == "67080R300"
+    assert bond_row.holding_type == "fixed_income"
+    assert bond_row.weight == Decimal("0.45")
+    assert cash_row.row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
