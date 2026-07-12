@@ -5,6 +5,21 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T04:10Z
+
+- Promoted `exchange_traded_concepts` from generated recognition-only support to a
+  native/live-backed integration. `ExchangeTradedConceptsHoldingsAdapter` fetches the official
+  Bluemonte public ETF page and isolates the requested first-party holdings component from its
+  server-rendered Nuxt payload. It preserves FIGI, ticker, quantity, market value, and weight,
+  and rejects issuer placeholder/TBD rows.
+- Live validation symbol: `BLUC`, returning three parseable issuer-native holdings rows from the
+  current official payload.
+- Registry count: `345` registered provider keys, `153` native/live-backed integrations, and
+  `192` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `193 passed`; focused BLUC live route `1 passed, 156
+  deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
+- Pending feature commit: Exchange Traded Concepts adapter plus tests and registry configuration.
+
 ## Latest checkpoint - 2026-07-12T02:35Z
 
 - Promoted `sei` from generated recognition-only support to a native/live-backed integration.

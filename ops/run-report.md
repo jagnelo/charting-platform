@@ -9497,3 +9497,16 @@ Append a short entry after each worker session.
 - Next step: implement an isolated server-side parser for the payload, validate the requested
   ticker, map source FIGI/ticker/quantity/value/weight fields, and add static plus opt-in live
   coverage before it can be counted as native/live-backed support.
+
+# ETF Holdings Provider Integration - 2026-07-12T04:10Z
+
+- Promoted `exchange_traded_concepts` to native/live-backed support with an isolated
+  `ExchangeTradedConceptsHoldingsAdapter`. The adapter reads the official public Bluemonte ETF
+  page, selects only the requested fund's first-party server-rendered holdings component, and
+  maps its FIGI, ticker, quantity, market value, and percent-of-NAV fields. It deliberately
+  ignores issuer placeholder/TBD rows.
+- Live validation symbol: `BLUC`, returning three parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`193 passed`), focused opt-in live route (`1
+  passed, 156 deselected`), provider matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `153` native/live-backed, `192` remaining; SEC
+  EDGAR remains fallback-only.
