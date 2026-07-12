@@ -7732,6 +7732,37 @@ async def test_emles_adapter_fetches_identity_validated_full_holdings_csv(monkey
     assert result.legal_metadata["route_resolution"] == "emles_public_fund_page_full_holdings_download"
 
 
+@pytest.mark.asyncio
+async def test_acp_horizon_adapter_filters_shared_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("acp_horizon")
+    assert adapter is not None
+
+    csv_text = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "07/13/2026,HBTA,NVDA,67066G104,NVIDIA Corp,25,180,4500,45%,10000,100,1,",
+            "07/13/2026,HBTA,CASH,CASH,Cash and Cash Equivalents,250,1,250,2.5%,10000,100,1,Y",
+            "07/13/2026,BENJ,AAPL,037833100,Apple Inc,10,200,2000,20%,10000,100,1,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=csv_text, content_type="text/csv")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HBTA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [adapter.holdings_url]
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "NVDA"
+    assert equity_row.cusip == "67066G104"
+    assert equity_row.weight == Decimal("0.45")
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("0.025")
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["route_resolution"] == "acp_horizon_public_multi_fund_daily_holdings_csv"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

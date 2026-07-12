@@ -10103,6 +10103,96 @@ class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ACPHorizonHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch ACP Horizon's issuer-native multi-fund daily holdings CSV."""
+
+    holdings_url = (
+        "https://www.horizonmutualfunds.com/assets/data/"
+        "FilepointHorizonETFs.40H3.H3_ETF_Holdings.csv"
+    )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        csv_url = source_url if source_url and "horizonmutualfunds.com" in source_url else self.holdings_url
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                csv_url,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"ACP Horizon's issuer holdings CSV did not contain a complete portfolio for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "acp_horizon_public_multi_fund_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            if _clean(raw.get("Account")) != symbol:
+                continue
+            row_date = _clean(raw.get("Date"))
+            if row_date:
+                try:
+                    parsed_date = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed_date > composition_date:
+                        composition_date = parsed_date
+                except ValueError:
+                    pass
+            ticker = _clean(raw.get("StockTicker"))
+            cusip = _clean(raw.get("CUSIP"))
+            name = _clean(raw.get("SecurityName"))
+            cash_marker = _clean(raw.get("MoneyMarketFlag"))
+            haystack = " ".join(part.lower() for part in (ticker, name, cash_marker) if part)
+            is_cash = bool(cash_marker) or "cash" in haystack or "money market" in haystack
+            if not any([ticker, cusip, name, raw.get("MarketValue")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -28346,6 +28436,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="EMLes public ETF holdings downloads may be subject to issuer terms.",
     ),
+    "acp_horizon": IssuerCsvAdapterConfig(
+        adapter_key="acp_horizon",
+        source_provider="acp_horizon",
+        source_access="issuer_public_multi_fund_daily_holdings_csv",
+        url_templates=(
+            "https://www.horizonmutualfunds.com/assets/data/"
+            "FilepointHorizonETFs.40H3.H3_ETF_Holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note="Horizon Funds public ETF daily holdings CSV exports may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -28411,6 +28512,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "deepwater": DeepwaterHoldingsAdapter,
         "dhandho": DhandhoHoldingsAdapter,
         "emles": EMLesHoldingsAdapter,
+        "acp_horizon": ACPHorizonHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,

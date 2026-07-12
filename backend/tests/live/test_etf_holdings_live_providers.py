@@ -12,6 +12,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "1251_capital",
     "3fourteen",
     "abacus_global",
+    "acp_horizon",
     "alternative_access",
     "rational",
     "dakota_wealth",
@@ -227,6 +228,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         ("dhandho", "WAGN", None, {}, 10),
         ("emles", "EOPS", None, {}, 1),
+        ("acp_horizon", "HBTA", None, {}, 100),
         (
             "corgi",
             "FDRS",
