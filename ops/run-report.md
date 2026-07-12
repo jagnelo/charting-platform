@@ -9639,3 +9639,17 @@ Append a short entry after each worker session.
   provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `159` native/live-backed, `186` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Integration - 2026-07-12T03:30Z
+
+- Promoted `dakota_wealth` to native/live-backed support through a dedicated
+  `DakotaWealthHoldingsAdapter`.
+- The adapter validates the requested `DAK` product on Dakota's public ETF page and parses its
+  full current holdings table, including ticker, name, CUSIP, shares, market value, weight,
+  cash rows, and effective date. It converts the issuer's market-value-in-millions field to USD.
+- Dakota's host rejects the normal async client request shape with `403`; the isolated adapter
+  uses an issuer-specific browser-compatible `requests` fallback, which was live-validated.
+- Validation passed: full adapter unit suite (`200 passed`), focused opt-in Dakota route plus
+  provider matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `160` native/live-backed, `185` remaining; SEC
+  EDGAR remains fallback-only and is not counted.

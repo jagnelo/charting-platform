@@ -4104,7 +4104,34 @@
 
 ## Exact next step
 
-- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 110/345 native/live-backed, leaving 235 providers.
+- Continue replacing generated/thin ETF provider adapters with native provider integrations until the count reaches 345/345. Each promotion must include isolated implementation code, static parser/contract tests, and opt-in live provider tests. Current count is 160/345 native/live-backed, leaving 185 providers.
+
+## 2026-07-12 - Dakota Wealth native ETF holdings route
+
+### Summary
+
+- Promoted `dakota_wealth` from generated/recognition-only support to native/live-backed support.
+- Added an isolated `DakotaWealthHoldingsAdapter` that reads the issuer's public product page,
+  validates the selected fund, and parses its complete current holdings table.
+- It preserves ticker, name, CUSIP, shares, market value, percentage-point weights, cash rows,
+  and the issuer-reported effective date. Dollar values reported in millions are converted to USD.
+- The Dakota host serves `403` to the async HTTP client shape. The adapter therefore uses an
+  issuer-specific browser-compatible `requests` fallback only for this issuer; it is not a
+  generic provider fallback.
+- Live validation symbol: `DAK`.
+- Current truthful provider-native count is `160 / 345`, leaving `185` providers.
+
+### Validation
+
+- Full adapter unit suite: `200 passed`.
+- Focused opt-in Dakota provider route and provider matrix: passed.
+- Targeted Ruff and `git diff --check`: passed.
+
+### Exact next step
+
+- Continue the remaining provider queue, researching each issuer's official complete-holdings
+  route before adding an isolated adapter. Keep SEC EDGAR fallback-only and do not promote any
+  issuer without both static coverage and a passing live route.
 
 ## 2026-07-07 - CoinShares native ETF holdings route
 
