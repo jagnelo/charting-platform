@@ -7905,6 +7905,27 @@ async def test_liberty_one_adapter_discovers_portfolio_id_and_parses_scoped_hold
     assert result.legal_metadata["portfolio_id"] == "1256"
 
 
+@pytest.mark.asyncio
+async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("arlington")
+    assert adapter is not None
+    csv_text = "\n".join([
+        "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+        "07/13/2026,AQEC,AAPL,037833100,Apple Inc,37334,,11772156.88,1.99%,592295336.2",
+        "07/13/2026,AQEC,CASH,CASH,Cash,100,1,100,0.01%,592295336.2",
+        "07/13/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,180,1800,20%,10000",
+    ])
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=csv_text, content_type="text/csv")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    result = await adapter.fetch_latest(symbol="AQEC")
+    assert FakeAsyncClient.requested[0][0] == adapter.holdings_url
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.0199")
+    assert result.rows[1].row_type == "cash"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
