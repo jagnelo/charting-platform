@@ -14,6 +14,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "abacus_global",
     "alternative_access",
     "rational",
+    "dakota_wealth",
     "acquirers",
     "acuitas",
     "aot",
@@ -1444,6 +1445,8 @@ async def test_live_rational_risk_parity_product_page_linked_holdings_workbook()
     )
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "xlsx"
+
+
 
 
 @pytest.mark.asyncio

@@ -7326,6 +7326,27 @@ async def test_rational_adapter_uses_its_own_risk_parity_product_page(monkeypatc
     )
 
 
+def test_dakota_wealth_adapter_parses_issuer_holdings_table():
+    adapter = get_holdings_adapter("dakota_wealth")
+    assert adapter is not None
+    rows, composition_date = adapter._parse_product_page(
+        """
+        <h1>Dakota Active Equity ETF (DAK)</h1>
+        <table><thead><tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>SHARES</th><th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr></thead>
+        <tbody><tr><td>AMD</td><td>Advanced Micro Devices Inc</td><td>007903107</td><td>2,440</td><td>1.36</td><td>3.17</td><td>07/13/2026</td></tr>
+        <tr><td>CASH</td><td>Cash &amp; Other</td><td></td><td>10</td><td>0.01</td><td>0.02</td><td>07/13/2026</td></tr></tbody></table>
+        """,
+        symbol="DAK",
+    )
+    assert len(rows) == 2
+    assert rows[0].symbol == "AMD"
+    assert rows[0].market_value == Decimal("1360000")
+    assert rows[0].weight == Decimal("0.0317")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 13)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

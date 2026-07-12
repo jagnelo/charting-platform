@@ -8487,6 +8487,140 @@ class RationalHoldingsAdapter(AlternativeAccessHoldingsAdapter):
         return result
 
 
+class DakotaWealthHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse Dakota's public, server-rendered DAK fund-holdings table."""
+
+    product_page_url = "https://www.dakotaetfs.com/"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        del source_url
+        return {
+            **_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+            "User-Agent": "Mozilla/5.0 (compatible; ChartingPlatform/1.0)",
+        }
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        if source_url and "dakotaetfs.com" in source_url.lower():
+            return source_url.strip()
+        return self.product_page_url if symbol.strip() else None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError("Dakota Wealth holdings require an ETF symbol or public product page.")
+        headers = self.source_request_headers(source_url=resolved_source_url)
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            response_text = response.text
+            fetched_url = str(response.url)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # Dakota's WordPress host accepts the same public route through requests
+            # while rejecting httpx's TLS fingerprint.
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+            response_text = response.text
+            fetched_url = str(response.url)
+        rows, composition_date = self._parse_product_page(response_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Dakota Wealth page did not expose holdings rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response_text,
+            raw_json={"source_format": "issuer_product_page_holdings_table", "row_count": len(rows)},
+            source_url=fetched_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "dakota_wealth_public_product_page_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(raw_html: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Dakota Wealth page identity did not match requested ETF {symbol}.")
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        required_headers = {"ticker", "name", "cusip", "shares", "market value ($mm)", "% of net assets", "effective_date"}
+        holdings_table = next(
+            (table for table in parser.tables if any(required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)} for row in table[:10])),
+            None,
+        )
+        if holdings_table is None:
+            return [], None
+        header_index = next(index for index, row in enumerate(holdings_table[:10]) if required_headers <= {str(cell).strip().lower() for cell in row if _clean(cell)})
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw_row in enumerate(holdings_table[header_index + 1 :], start=1):
+            raw = _row_dict(holdings_table[header_index], raw_row)
+            ticker = _clean(_first(raw, ["ticker"]))
+            name = _clean(_first(raw, ["name"]))
+            cusip = _clean(_first(raw, ["cusip"]))
+            effective = _clean(_first(raw, ["effective_date"]))
+            try:
+                row_date = datetime.strptime(effective, "%m/%d/%Y").date() if effective else None
+            except ValueError:
+                row_date = None
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            is_cash = "cash" in (name or "").lower()
+            market_value_millions = _decimal(_first(raw, ["market value ($mm)"]))
+            if not any([ticker, name, cusip, market_value_millions]):
+                continue
+            rows.append(CanonicalHoldingRow(
+                symbol=None if is_cash else (ticker.upper() if ticker else None), name=name,
+                cusip=cusip if _looks_like_cusip(cusip) else None,
+                shares=_decimal(_first(raw, ["shares"])),
+                market_value=market_value_millions * Decimal("1000000") if market_value_millions is not None else None,
+                weight=_decimal_percent_points(_first(raw, ["% of net assets"])), currency="USD",
+                holding_type="cash" if is_cash else "equity", row_type="cash" if is_cash else "security",
+                source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                extra_data={**{key: value for key, value in raw.items() if key and _clean(value) is not None}, "market_value_unit": "millions_usd"},
+            ))
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25058,6 +25192,12 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Rational public risk-parity ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "dakota_wealth": IssuerCsvAdapterConfig(
+        adapter_key="dakota_wealth", source_provider="dakota_wealth",
+        source_access="issuer_public_product_page_complete_holdings_table",
+        product_page_templates=("https://www.dakotaetfs.com/",), live_tested_default_route=True,
+        terms_note="Dakota Wealth public ETF holdings tables may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26725,6 +26865,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "abacus_global": AbacusGlobalHoldingsAdapter,
         "alternative_access": AlternativeAccessHoldingsAdapter,
         "rational": RationalHoldingsAdapter,
+        "dakota_wealth": DakotaWealthHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
