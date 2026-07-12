@@ -9425,3 +9425,17 @@ Append a short entry after each worker session.
   No primary adapter was promoted.
 - This is a provider-specific queue finding only; SEC remains fallback-only and the global
   provider-integration objective remains active.
+
+# ETF Holdings Provider Integration - 2026-07-12T02:05Z
+
+- Promoted `mirae_asset` to native/live-backed support through a dedicated
+  `MiraeAssetHoldingsAdapter`. Mirae Asset Global Investments' US ETF range uses the official
+  Global X issuer holdings surface, which the adapter records explicitly as issuer-brand and
+  parent metadata instead of relying on generated recognition-only behavior.
+- Live validation symbol: `QYLD`; the public issuer product page discovery route returned a
+  parseable complete holdings file.
+- Validation passed: full adapter unit suite (`192 passed`), focused opt-in live route (`1
+  passed, 152 deselected`), provider matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `149` native/live-backed, `196` remaining; SEC
+  EDGAR remains fallback-only.
+- Feature commit: `0ffdcc9 feat(etf-holdings): add Mirae Asset native holdings route`.

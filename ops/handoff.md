@@ -5,6 +5,20 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T02:05Z
+
+- Promoted `mirae_asset` from generated recognition-only support to a native/live-backed
+  integration. Mirae Asset's US ETF business publishes this range through the official Global X
+  product and holdings surface, so the isolated `MiraeAssetHoldingsAdapter` deliberately owns
+  that issuer relationship rather than silently inheriting a generated fallback.
+- Live validation symbol: `QYLD`; the adapter discovers and parses the official Global X
+  holdings file and records its Global X issuer-brand / Mirae Asset parent metadata.
+- Registry count: `345` registered provider keys, `149` native/live-backed integrations, and
+  `196` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `192 passed`; focused live Mirae Asset route `1 passed,
+  152 deselected`; full provider-matrix gate, targeted ruff, and `git diff --check` passed.
+- Feature commit: `0ffdcc9 feat(etf-holdings): add Mirae Asset native holdings route`.
+
 ## Source audit - 2026-07-12T01:40Z
 
 - Continued the queue without globally blocking the ETF-provider objective:

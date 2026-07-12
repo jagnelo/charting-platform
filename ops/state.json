@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T01:50:00Z",
-    "last_commit": "8beba83",
+    "last_handoff_at": "2026-07-12T02:05:00Z",
+    "last_commit": "0ffdcc9",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-11 targeted ruff check for Founder native adapter)",
-        "backend_tests": "passed ETF holdings Founder native-route validation (2026-07-11: full adapter unit suite 192 passed, focused live FFF route passed, provider matrix passed, registry count is now 345 registered provider keys, 148 native/live-backed providers, and 197 remaining; founder_native=True).",
+        "backend_tests": "passed ETF holdings Mirae Asset native-route validation (2026-07-12: full adapter unit suite 192 passed, focused live QYLD route passed, provider matrix passed, registry count is now 345 registered provider keys, 149 native/live-backed providers, and 196 remaining; mirae_asset_native=True).",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T02:05Z Mirae Asset native route: promoted mirae_asset from generated recognition-only support to an isolated adapter using the official Global X US ETF issuer surface. QYLD live validation passed and legal metadata records the Global X issuer brand / Mirae Asset parent relationship. Full adapter unit suite (192), focused live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 149 native/live-backed, 196 remaining; SEC is fallback-only.",
         "2026-07-12T01:50Z Source audit: John Hancock/Manulife publishes a daily ETF creation-basket PDF, but both public canonical document path variants return HTTP 403 even with browser headers. It remains unpromoted. This is a per-provider queue result only; strict count remains 345 registered, 148 native/live-backed, and 197 remaining.",
         "2026-07-12T01:40Z Source audit: PIMCO's public fund-explorer exposes a first-party dashboard route but returns HTTP 403 both directly and from same-origin headless-browser execution. Morgan Stanley/Eaton Vance exposes product JSON plus an XLS holdings route for EVHY, but its download origin times out and browser initialization returns 403. Neither is promoted. These are provider-specific queue findings, not a global blocker: strict count remains 345 registered, 148 native/live-backed, 197 remaining, with SEC fallback-only.",
         "2026-07-11T04:25Z Blocked source audit: Cohen & Steers official ETF pages advertise a holdings download but return HTTP 403 to backend-style retrieval, and Praxis official ETF pages return the issuer's geographic-access-denied page instead of holdings data. Alongside the preceding WisdomTree and Thrivent 403 results, this is a repeated external source-access blocker across the priority issuer set. No issuer was falsely promoted and SEC remains fallback-only. Current truthful count remains 345 registered, 148 native/live-backed, and 197 remaining.",
