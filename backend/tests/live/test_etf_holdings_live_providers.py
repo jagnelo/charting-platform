@@ -11,6 +11,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
     "1251_capital",
     "3fourteen",
+    "abacus_global",
     "acquirers",
     "acuitas",
     "aot",
@@ -1393,6 +1394,22 @@ async def test_live_3fourteen_public_product_page_holdings_table():
     security_rows = [row for row in result.rows if row.row_type == "security"]
     assert security_rows
     assert all(row.extra_data.get("figi") for row in security_rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_abacus_global_product_page_linked_daily_holdings_csv():
+    adapter = get_holdings_adapter("abacus_global")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ABLG")
+
+    _assert_live_holdings_result(result, adapter_key="abacus_global", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "abacus_fcf_product_page_linked_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.source_url.endswith("/ABLG_allHoldings.csv")
 
 
 @pytest.mark.asyncio

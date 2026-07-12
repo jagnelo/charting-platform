@@ -8030,6 +8030,190 @@ class ThreeFourteenHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class AbacusGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Abacus FCF ETF daily holdings through each public fund-page CSV link."""
+
+    product_page_template = "https://abacusfcf.com/{symbol_lower}/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Abacus FCF links this ETF's complete current holdings CSV from its public "
+                "fund page."
+                if source_url
+                else "Abacus FCF needs an ETF symbol to resolve its public fund page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "abacusfcf.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError("Abacus FCF holdings require an ETF symbol or public product page.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            csv_url, composition_date = self._discover_csv_url(
+                product_response.text,
+                symbol=normalized_symbol,
+                product_page_url=str(product_response.url),
+            )
+            csv_response = await client.get(
+                csv_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(product_response.url),
+                },
+                follow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        rows = self._parse_holdings_csv(csv_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Abacus FCF holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={
+                "source_format": "issuer_product_page_linked_holdings_csv",
+                "product_page_url": str(product_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(csv_response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "abacus_fcf_product_page_linked_daily_holdings_csv",
+                "product_page_url": str(product_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _discover_csv_url(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+        product_page_url: str,
+    ) -> tuple[str, date | None]:
+        normalized_symbol = symbol.strip().upper()
+        if not re.search(rf"\b{re.escape(normalized_symbol)}\b", raw_html, flags=re.IGNORECASE):
+            raise ValueError(
+                f"Abacus FCF product page identity did not match requested ETF {normalized_symbol}."
+            )
+        expected_filename = f"{normalized_symbol}_allholdings.csv"
+        for match in re.finditer(r'''href=["'](?P<url>[^"']+)["']''', raw_html, flags=re.IGNORECASE):
+            href = html.unescape(match.group("url")).strip()
+            if expected_filename.lower() in href.lower():
+                return urljoin(product_page_url, href), cls._parse_composition_date(raw_html)
+        raise ValueError(f"Abacus FCF product page did not link a holdings CSV for {normalized_symbol}.")
+
+    @staticmethod
+    def _parse_composition_date(raw_html: str) -> date | None:
+        matches = re.findall(r"\(\s*as\s+of\s+(\d{2}/\d{2}/\d{4})\s*\)", raw_html, flags=re.IGNORECASE)
+        if not matches:
+            return None
+        try:
+            return datetime.strptime(matches[-1], "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        required_headers = {
+            "ticker",
+            "cusip",
+            "security description",
+            "shares",
+            "market value",
+            "% of net assets",
+        }
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        if not required_headers <= {str(key or "").strip().lower() for key in reader.fieldnames or []}:
+            return []
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(reader, start=1):
+            ticker = _clean(raw.get("Ticker"))
+            cusip = _clean(raw.get("CUSIP"))
+            name = _clean(raw.get("Security Description"))
+            is_cash = "cash" in (name or "").lower() or "mmda" in (name or "").lower()
+            if not any([ticker, cusip, name]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(raw.get("% of Net Assets")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if key and _clean(value) is not None},
+                        "source_ticker": ticker,
+                        "source_cusip": cusip,
+                        "source": "abacus_fcf_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -24577,6 +24761,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="SMI 3Fourteen public ETF holdings tables may be subject to issuer terms.",
     ),
+    "abacus_global": IssuerCsvAdapterConfig(
+        adapter_key="abacus_global",
+        source_provider="abacus_global",
+        source_access="issuer_public_product_page_linked_daily_holdings_csv",
+        product_page_templates=("https://abacusfcf.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Abacus FCF public ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26241,6 +26433,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "exchange_traded_concepts": ExchangeTradedConceptsHoldingsAdapter,
         "aot": AotHoldingsAdapter,
         "3fourteen": ThreeFourteenHoldingsAdapter,
+        "abacus_global": AbacusGlobalHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

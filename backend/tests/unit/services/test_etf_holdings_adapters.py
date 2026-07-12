@@ -7168,6 +7168,58 @@ async def test_3fourteen_adapter_parses_current_product_page_holdings_table(monk
     )
 
 
+@pytest.mark.asyncio
+async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkeypatch):
+    adapter = get_holdings_adapter("abacus_global")
+    assert adapter is not None
+
+    raw_html = '''
+    <h1>Abacus FCF International Leaders ETF (ABLG)</h1>
+    <h3>Top 10 Holdings <span>(as of 07/10/2026)</span></h3>
+    <a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv">
+      DOWNLOAD FULL HOLDINGS
+    </a>
+    '''
+    raw_csv = "\n".join(
+        [
+            "Ticker,CUSIP,Security Description,Shares,Market Value,% of Net Assets",
+            'ASML,N07059210,ASML Holding NV,487,"$878,669.75",5.25%',
+            'CASH,,Cash & Other,1000,"$1,000.00",0.10%',
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://abacusfcf.com/ablg/",
+        ),
+        FakeResponse(
+            text=raw_csv,
+            content_type="text/csv",
+            url="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ABLG")
+
+    assert FakeAsyncClient.requested[0][0] == "https://abacusfcf.com/ablg/"
+    assert FakeAsyncClient.requested[1][0].endswith("/ABLG_allHoldings.csv")
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ASML"
+    assert result.rows[0].cusip == "N07059210"
+    assert result.rows[0].shares == Decimal("487")
+    assert result.rows[0].market_value == Decimal("878669.75")
+    assert result.rows[0].weight == Decimal("0.0525")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == (
+        "abacus_fcf_product_page_linked_daily_holdings_csv"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7212,6 +7264,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert threefourteen is not None
     assert type(threefourteen).__name__ == "ThreeFourteenHoldingsAdapter"
     assert threefourteen.resolve_source_url(symbol="FCTE") == "https://3fourteensmi.com/fcte"
+
+    abacus_global = get_holdings_adapter("abacus_global")
+    assert abacus_global is not None
+    assert type(abacus_global).__name__ == "AbacusGlobalHoldingsAdapter"
+    assert abacus_global.resolve_source_url(symbol="ABLG") == "https://abacusfcf.com/ablg/"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None
