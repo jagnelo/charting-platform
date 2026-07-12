@@ -18,6 +18,20 @@
   deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
 - Feature commit: `58cab2a feat(etf-holdings): add SEI native holdings route`.
 
+## Latest checkpoint - 2026-07-12T03:15Z
+
+- Promoted `ameriprise` from generated recognition-only support to a native/live-backed
+  integration. `AmeripriseHoldingsAdapter` uses the official Ameriprise-owned Columbia
+  Threadneedle US CUSIP-addressed full-holdings CSV export rather than guessing product slugs
+  or using SEC as a primary source.
+- Live validation symbol: `XCEM`, CUSIP `19762B202`, returning 470 issuer-native holdings rows
+  with CUSIP/ISIN/SEDOL, quantity, market value, weight, currency, and asset-type fields.
+- Registry count: `345` registered provider keys, `151` native/live-backed integrations, and
+  `194` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `192 passed`; focused Ameriprise live route `1 passed,
+  154 deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
+- Feature commit: `23c93c1 feat(etf-holdings): add Ameriprise native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T02:05Z
 
 - Promoted `mirae_asset` from generated recognition-only support to a native/live-backed

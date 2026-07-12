@@ -9460,3 +9460,17 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `150` native/live-backed, `195` remaining; SEC
   EDGAR remains fallback-only.
 - Feature commit: `58cab2a feat(etf-holdings): add SEI native holdings route`.
+
+# ETF Holdings Provider Integration - 2026-07-12T03:15Z
+
+- Promoted `ameriprise` to native/live-backed support with an isolated
+  `AmeripriseHoldingsAdapter`. The adapter uses the official Columbia Threadneedle US
+  CUSIP-addressed full-holdings CSV export published under Ameriprise's ETF business, rather
+  than a generic discovery fallback or SEC as the primary route.
+- Live validation symbol: `XCEM`, CUSIP `19762B202`, returning 470 issuer-native rows with
+  CUSIP/ISIN/SEDOL, quantities, market values, weights, currencies, and asset classifications.
+- Validation passed: full adapter unit suite (`192 passed`), focused opt-in live route (`1
+  passed, 154 deselected`), provider matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `151` native/live-backed, `194` remaining; SEC
+  EDGAR remains fallback-only.
+- Feature commit: `23c93c1 feat(etf-holdings): add Ameriprise native holdings route`.
