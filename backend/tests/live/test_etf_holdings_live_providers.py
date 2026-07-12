@@ -17,6 +17,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "dakota_wealth",
     "toews",
     "wedbush",
+    "shelton",
     "acquirers",
     "acuitas",
     "aot",
@@ -1473,6 +1474,17 @@ async def test_live_wedbush_symbol_holdings_csv():
 
     _assert_live_holdings_result(result, adapter_key="wedbush", min_rows=20)
     assert result.legal_metadata["route_resolution"] == "wedbush_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_shelton_product_page_linked_holdings_csv():
+    adapter = get_holdings_adapter("shelton")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="SEPI")
+    _assert_live_holdings_result(result, adapter_key="shelton", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "shelton_product_page_linked_holdings_csv"
     assert result.legal_metadata["composition_date"]
 
 

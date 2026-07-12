@@ -7406,6 +7406,26 @@ def test_wedbush_adapter_parses_symbol_holdings_csv():
     assert composition_date == date(2026, 7, 10)
 
 
+def test_shelton_adapter_discovers_and_parses_current_holdings_csv():
+    adapter = get_holdings_adapter("shelton")
+    assert adapter is not None
+    assert adapter._discover_holdings_csv(
+        '<h1>SEPI Holdings</h1><a href="/wp-content/uploads/sepi-holdings/Holdings/Shelton_Web_Holdings_20260713.csv">Download</a>',
+        symbol="SEPI", page_url="https://advisor.sheltoncap.com/sepi-holdings/",
+    ) == "https://advisor.sheltoncap.com/wp-content/uploads/sepi-holdings/Holdings/Shelton_Web_Holdings_20260713.csv"
+    rows, composition_date = adapter._parse_holdings_csv(
+        """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings
+7/13/2026,SEPI,AAPL,037833100,Apple Inc,"29,737",315.32,"9,376,670.84",5.85
+7/13/2026,SEPI,CASH,CASH,Cash & Other,1000,1,"2,000.00",0.01
+""", symbol="SEPI")
+    assert rows[0].symbol == "AAPL"
+    assert rows[0].cusip == "037833100"
+    assert rows[0].weight == Decimal("0.0585")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 13)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

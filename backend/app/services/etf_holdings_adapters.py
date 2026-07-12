@@ -8965,6 +8965,79 @@ class WedbushHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class SheltonHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Shelton's dated current holdings CSV discovered from each fund page."""
+
+    holdings_page_template = "https://advisor.sheltoncap.com/{symbol_lower}-holdings/"
+
+    def resolve_source_url(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> str | None:
+        del identifiers
+        if source_url and "sheltoncap.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        return self.holdings_page_template.format(symbol_lower=resolved_symbol) if resolved_symbol else None
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        source_url = self.resolve_source_url(symbol=symbol, issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"), source_url=_identifier(identifiers, *self.source_url_aliases), identifiers=identifiers)
+        return HoldingsAdapterProbe(adapter_key=self.adapter_key, confidence=Decimal("0.9000"), status="ready" if source_url else "needs_issuer_route", reason="Shelton publishes this ETF's complete current holdings CSV from its public holdings page." if source_url else "Shelton needs an ETF symbol to resolve its public holdings page.", source_url=source_url, issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id") or symbol.strip().upper() or None)
+
+    async def fetch_latest(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        page_url = self.resolve_source_url(symbol=normalized_symbol, issuer_product_id=issuer_product_id, source_url=source_url, identifiers=identifiers)
+        if not page_url:
+            raise ValueError("Shelton holdings require an ETF symbol or public holdings page.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(page_url, headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"), follow_redirects=True)
+            page_response.raise_for_status()
+            csv_url = self._discover_holdings_csv(page_response.text, symbol=normalized_symbol, page_url=str(page_response.url))
+            csv_response = await client.get(csv_url, headers={**_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"), "Referer": str(page_response.url)}, follow_redirects=True)
+        csv_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(csv_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Shelton holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(rows=rows, raw_text=csv_response.text, raw_json={"source_format": "issuer_product_page_linked_holdings_csv", "product_page_url": str(page_response.url), "row_count": len(rows)}, source_url=str(csv_response.url), source_identifier=issuer_product_id or normalized_symbol, legal_metadata={"source_access": self.config.source_access, "source_provider": self.source_provider, "adapter_key": self.adapter_key, "source_format": "csv", "route_resolution": "shelton_product_page_linked_holdings_csv", "product_page_url": str(page_response.url), "composition_date": composition_date.isoformat() if composition_date else None, "as_of_date": composition_date.isoformat() if composition_date else None, "terms_note": self.config.terms_note})
+
+    @staticmethod
+    def _discover_holdings_csv(raw_html: str, *, symbol: str, page_url: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Shelton holdings page identity did not match requested ETF {symbol}.")
+        match = re.search(r'''href=["'](?P<url>[^"']*holdings/[^"']+\.csv)["']''', raw_html, re.IGNORECASE)
+        if match is None:
+            raise ValueError(f"Shelton holdings page did not link a complete CSV for {symbol}.")
+        return urljoin(page_url, html.unescape(match.group("url")).strip())
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        header_index = next((index for index, row in enumerate(table_rows[:20]) if {cell.strip().lstrip("\ufeff").lower() for cell in row if _clean(cell)} >= {"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"}), None)
+        if header_index is None:
+            return [], None
+        composition_date = None
+        rows: list[CanonicalHoldingRow] = []
+        header = [cell.lstrip("\ufeff") for cell in table_rows[header_index]]
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            account = _clean(_first(raw, ["Account"]))
+            if account and account.upper() != symbol.upper():
+                continue
+            ticker, name, cusip = (_clean(_first(raw, [key])) for key in ("StockTicker", "SecurityName", "CUSIP"))
+            row_date = _clean(_first(raw, ["Date"]))
+            if row_date:
+                try:
+                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            is_cash = "cash" in " ".join(part.lower() for part in (ticker, name) if part)
+            if not any([ticker, name, cusip, _first(raw, ["Market Value"])]):
+                continue
+            is_option = bool(re.search(r"\b\d{6}[CP]\d{8}\b", ticker or ""))
+            rows.append(CanonicalHoldingRow(symbol=None if is_cash or is_option else (ticker.upper() if ticker else None), name=name, cusip=cusip if _looks_like_cusip(cusip) else None, shares=_decimal(_first(raw, ["Shares"])), market_value=_decimal(_first(raw, ["MarketValue"])), weight=_decimal_percent_points(_first(raw, ["Weightings"])), currency="USD" if is_cash else None, holding_type="cash" if is_cash else ("option" if is_option else "equity"), row_type="cash" if is_cash else "security", source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}", extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None}))
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25558,6 +25631,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Wedbush Funds public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "shelton": IssuerCsvAdapterConfig(adapter_key="shelton", source_provider="shelton", source_access="issuer_public_product_page_linked_holdings_csv", product_page_templates=("https://advisor.sheltoncap.com/{symbol_lower}-holdings/",), live_tested_default_route=True, terms_note="Shelton Capital Management public ETF holdings CSV files may be subject to issuer terms."),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27228,6 +27302,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dakota_wealth": DakotaWealthHoldingsAdapter,
         "toews": ToewsHoldingsAdapter,
         "wedbush": WedbushHoldingsAdapter,
+        "shelton": SheltonHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,
