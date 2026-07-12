@@ -23,6 +23,14 @@
 - Next concrete action: continue the provider queue with a first-party source audit for the next
   unpromoted issuer, recording access-block evidence rather than promoting an unverified route.
 
+## Source audit - 2026-07-12T13:25Z
+
+- `cohanzick`: CrossingBridge's public CUSD and SPC ETF pages both embed the same unparameterized
+  `temp4.catapultmysite.com/adapter.php?file=etfholdings` JSON route. It returns the CUSD
+  portfolio even when discovered from the SPC page, so it cannot be used safely for the issuer's
+  full ETF lineup. Do not promote Cohanzick until an issuer-specific, fund-identity-preserving
+  native route is verified; continue the queue rather than using SEC as primary support.
+
 ## Latest checkpoint - 2026-07-12T12:45Z
 
 - Promoted `cohen_steers` from recognition-only support to native/live-backed support through

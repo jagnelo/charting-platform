@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Cohanzick/CrossingBridge source audit
+
+### Summary
+
+- Confirmed that CrossingBridge's CUSD and SPC pages both reference the same unparameterized
+  public holdings endpoint.
+- The endpoint returns CUSD holdings even when reached from the SPC ETF page. Promoting an
+  adapter from it would silently assign the wrong portfolio to SPC, so Cohanzick remains
+  unpromoted pending a native feed that preserves requested-fund identity.
+
 ## 2026-07-12 - Capital Impact native ETF holdings route
 
 ### Summary
