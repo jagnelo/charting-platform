@@ -9718,3 +9718,9 @@ Append a short entry after each worker session.
   provider matrix (`2 passed`), targeted Ruff, and `git diff --check` passed.
 - Strict count: `345` registered providers, `163` native/live-backed, `182` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T11:15Z
+
+- `jensen`: official JGRW page retrieval succeeds and advertises daily holdings, but its returned
+  document contains only iframe-resizer declarations, not the iframe source or a public complete
+  holdings route. No adapter was promoted; continue discovery or advance the provider queue.

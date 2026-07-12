@@ -4296,3 +4296,10 @@
 ### Next step
 
 - Continue replacing generated/thin ETF provider adapters with isolated native/live-backed issuer routes. The goal remains open: `239` registered providers still lack native/live-backed support.
+
+## 2026-07-12 - Jensen source audit
+
+- Jensen's official JGRW ETF page is backend-readable and declares daily holdings through an
+  iframe, but the returned document omits the iframe source and any complete holdings payload.
+- Do not promote Jensen until an executable issuer-native holdings route is discovered and passes
+  static and live tests. Continue the provider queue; SEC remains fallback-only.

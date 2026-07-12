@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T04:25:00Z",
+    "last_handoff_at": "2026-07-12T11:15:00Z",
     "last_commit": "e9e4b66",
     "last_commit": "766f8a9",
     "git_ready_to_commit": true,
@@ -19,6 +19,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T11:15Z Jensen source audit: its official JGRW ETF page is backend-readable and declares a daily holdings iframe, but the returned page omits the iframe source and only exposes iframe-resizer logic. No native adapter was added because the actual current holdings endpoint has not been verified; continue the queue rather than using SEC as primary support.",
         "2026-07-12T04:25Z Shelton native route: promoted shelton through an isolated public holdings-page/linked-current-CSV adapter. SEPI live validation passed after aligning the parser to the issuer's Date/Account/StockTicker/CUSIP/SecurityName/Shares/MarketValue/Weightings schema and preserving cash/options. Full adapter unit suite (203), focused Shelton live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 163 native/live-backed, 182 remaining; SEC is fallback-only.",
         "2026-07-12T04:10Z Shelton implementation is uncommitted and must not be counted yet: dedicated Shelton adapter plus static/live tests are in the worktree. Full adapter unit suite passed (203) and targeted ruff/diff checks passed. Required live command was rejected solely because the Codex execution usage limit was reached. Run it after access resumes; only then commit and promote count from 162 to 163.",
         "2026-07-12T04:00Z Source queue checkpoint: Shelton is the next viable route. Its public SEPI holdings page redirects to advisor.sheltoncap.com/sepi-holdings/, embeds a dated full current holdings table, and links to an issuer CSV with name, ticker, CUSIP, shares, market value, and percent market value. Implement a dedicated Shelton adapter by resolving https://advisor.sheltoncap.com/{symbol_lower}-holdings/, discovering the current CSV href rather than hardcoding its date, then add static and live tests. Count remains 162/345.",
