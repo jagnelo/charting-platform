@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T05:50Z 3EDGE source audit: public holdings widget rendered empty and only a dated quarterly PDF could be verified. It remains unpromoted; continue the provider queue.",
         "2026-07-12T05:40Z Canary Capital source audit: public HBR page is indexable but backend retrieval returned HTTP 403. An uncommitted adapter attempt was removed and Canary remains unpromoted; continue the provider queue.",
         "2026-07-12T05:30Z AOT native route: promoted aot from generated recognition-only support to an isolated AOT Invest public-product-page adapter. AOTG live validation passed. Full adapter unit suite (195), focused AOT live route, provider matrix, targeted ruff, and git diff --check passed. Strict count is 345 registered, 155 native/live-backed, 190 remaining; SEC is fallback-only.",
         "2026-07-12T05:10Z Russell Investments source audit: the official US ETF catalogue responds with a region-unavailable page from this environment, and a guessed product path returns HTTP 404. No executable first-party product or holdings route can be verified, so Russell remains unpromoted; this is provider-specific and does not block the global objective.",

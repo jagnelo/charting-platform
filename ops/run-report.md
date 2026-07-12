@@ -9574,3 +9574,9 @@ Append a short entry after each worker session.
 - `canary`: official HBR pages visibly publish a current holdings table, but direct issuer-site
   retrieval from this backend environment returns HTTP `403`. The provider was not promoted;
   the uncommitted implementation attempt was removed rather than leaving an unvalidated adapter.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T05:50Z
+
+- `3edge`: the public ETF product page advertises current holdings but its accessible widget
+  rendered without rows. The only verified issuer artifact was a dated quarterly holdings PDF,
+  which is insufficient for native current-holdings support. It was not promoted.

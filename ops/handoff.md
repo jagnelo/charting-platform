@@ -24,6 +24,12 @@
   but direct live retrieval from the backend environment returns HTTP `403`. The uncommitted
   adapter attempt was removed rather than falsely promoting or counting Canary. Continue the queue.
 
+## Source audit - 2026-07-12T05:50Z
+
+- `3edge`: public ETF pages advertise current holdings, but the accessible live widget rendered
+  without data. The verified first-party holdings artifact is a dated quarterly PDF only, so it
+  does not satisfy the current issuer-native feed standard. Do not promote; continue the queue.
+
 ## Latest checkpoint - 2026-07-12T04:40Z
 
 - Promoted `1251_capital` to native/live-backed support through an isolated
