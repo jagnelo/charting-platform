@@ -8387,7 +8387,7 @@ class AlternativeAccessHoldingsAdapter(IssuerCsvHoldingsAdapter):
             ticker = _clean(_first(raw, ["ticker"]))
             cusip = _clean(_first(raw, ["cusip"]))
             isin = ticker if _looks_like_isin(ticker) else None
-            is_cash = (name or "").strip().upper() == "CASH" or (cusip or "").upper() == "CASH"
+            is_cash = "cash" in (name or "").lower() or (cusip or "").upper() == "CASH"
             weight = _decimal(_first(raw, ["% of net assets"]))
             shares = _decimal(_first(raw, ["share held"]))
             market_value = _decimal(_first(raw, ["market value"]))
@@ -8416,6 +8416,75 @@ class AlternativeAccessHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows
+
+
+class RationalHoldingsAdapter(AlternativeAccessHoldingsAdapter):
+    """Fetch Rational's risk-parity ETF holdings from its own public fund pages."""
+
+    product_page_template = "https://www.rparetf.com/{symbol_lower}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Rational publishes this ETF's complete current holdings workbook from its "
+                "public risk-parity fund page."
+                if source_url
+                else "Rational needs an ETF symbol to resolve its public risk-parity fund page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "rparetf.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        if not resolved_symbol:
+            return None
+        return self.product_page_template.format(symbol_lower=resolved_symbol)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "rational_rpar_product_page_linked_holdings_xlsx",
+            "terms_note": self.config.terms_note,
+        }
+        return result
 
 
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -24981,6 +25050,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Alternative Access public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "rational": IssuerCsvAdapterConfig(
+        adapter_key="rational",
+        source_provider="rational",
+        source_access="issuer_public_risk_parity_product_page_linked_holdings_xlsx",
+        product_page_templates=("https://www.rparetf.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Rational public risk-parity ETF holdings workbooks may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26647,6 +26724,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "3fourteen": ThreeFourteenHoldingsAdapter,
         "abacus_global": AbacusGlobalHoldingsAdapter,
         "alternative_access": AlternativeAccessHoldingsAdapter,
+        "rational": RationalHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

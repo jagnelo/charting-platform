@@ -13,6 +13,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "3fourteen",
     "abacus_global",
     "alternative_access",
+    "rational",
     "acquirers",
     "acuitas",
     "aot",
@@ -1424,6 +1425,22 @@ async def test_live_alternative_access_product_page_linked_holdings_workbook():
     _assert_live_holdings_result(result, adapter_key="alternative_access", min_rows=20)
     assert result.legal_metadata["route_resolution"] == (
         "alternative_access_product_page_linked_holdings_xlsx"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "xlsx"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_rational_risk_parity_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("rational")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="RPAR")
+
+    _assert_live_holdings_result(result, adapter_key="rational", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "rational_rpar_product_page_linked_holdings_xlsx"
     )
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "xlsx"

@@ -7282,6 +7282,50 @@ async def test_alternative_access_adapter_follows_issuer_page_linked_holdings_wo
     )
 
 
+@pytest.mark.asyncio
+async def test_rational_adapter_uses_its_own_risk_parity_product_page(monkeypatch):
+    adapter = get_holdings_adapter("rational")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            ["ARIS ETF"],
+            ["% Of Net Assets", "Name", "Ticker", "CUSIP", "Share Held", "Market Value"],
+            ["12.91%", "Vanguard Total Stock Market ETF", "VTI", "922908769", "200637", "74775403.53"],
+            ["1.67%", "Cash & Other", "Cash&Other", "Cash&Other", "9701012.9", "9701012.9"],
+        ]
+    )
+    raw_html = '''
+    <table><tr><td>Ticker</td><td>RPAR</td></tr></table>
+    <p>Data as of 07/13/2026. Holdings are subject to change.</p>
+    <a href="https://www.rparetf.com/download-holding-usbanks?fund=rpar">Download Full Holdings</a>
+    '''
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=raw_html, content_type="text/html", url="https://www.rparetf.com/rpar"),
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url="https://www.rparetf.com/download-holding-usbanks?fund=rpar",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RPAR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.rparetf.com/rpar"
+    assert "download-holding-usbanks?fund=rpar" in FakeAsyncClient.requested[1][0]
+    assert result.rows[0].symbol == "VTI"
+    assert result.rows[0].cusip == "922908769"
+    assert result.rows[0].weight == Decimal("0.1291")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["route_resolution"] == (
+        "rational_rpar_product_page_linked_holdings_xlsx"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7336,6 +7380,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert alternative_access is not None
     assert type(alternative_access).__name__ == "AlternativeAccessHoldingsAdapter"
     assert alternative_access.resolve_source_url(symbol="AAA") == "https://www.aafetfs.com/"
+
+    rational = get_holdings_adapter("rational")
+    assert rational is not None
+    assert type(rational).__name__ == "RationalHoldingsAdapter"
+    assert rational.resolve_source_url(symbol="RPAR") == "https://www.rparetf.com/rpar"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None
