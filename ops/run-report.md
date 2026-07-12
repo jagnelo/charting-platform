@@ -9554,3 +9554,17 @@ Append a short entry after each worker session.
 - No native adapter was added or counted because no executable official product or full-holdings
   route can be verified. This is a provider-specific access block; the global provider queue
   remains active.
+
+# ETF Holdings Provider Integration - 2026-07-12T05:30Z
+
+- Promoted `aot` to native/live-backed support through a dedicated `AotHoldingsAdapter`.
+  It fetches AOT Invest's public ETF product pages, validates the requested fund heading, and
+  parses the issuer's complete current holdings table. It preserves ticker, CUSIP, shares,
+  market values, weights, cash rows, and effective date; AOT's market values are correctly
+  converted from millions of USD and unsigned percentage-point weights are normalized.
+- Live validation symbol: `AOTG`, returning more than 20 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`195 passed`), focused opt-in AOT route plus
+  provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `155` native/live-backed, `190` remaining; SEC
+  EDGAR remains fallback-only and is not counted.
+- Feature commit: `cba7e1c feat(etf-holdings): add AOT native holdings route`.

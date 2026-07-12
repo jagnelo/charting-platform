@@ -5,6 +5,19 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T05:30Z
+
+- Promoted `aot` to native/live-backed support through an isolated `AotHoldingsAdapter`.
+  It reads AOT Invest's own public ETF product-page holdings table, validates the requested
+  fund heading, and correctly normalizes the issuer's `$mm` market-value column and unsigned
+  percentage-point weights.
+- Live validation symbol: `AOTG`, returning more than 20 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `155` native/live-backed integrations, and
+  `190` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `195 passed`; focused AOT live route and provider matrix
+  passed; targeted ruff and `git diff --check` passed.
+- Feature commit: `cba7e1c feat(etf-holdings): add AOT native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T04:40Z
 
 - Promoted `1251_capital` to native/live-backed support through an isolated
