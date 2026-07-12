@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Dhandho native ETF holdings route
+
+### Summary
+
+- Promoted `dhandho` from recognition-only support to native/live-backed support.
+- Added an isolated `DhandhoHoldingsAdapter` for Pabrai Wagons ETF (`WAGN`), discovering the
+  issuer's latest complete-holdings PDF from its public investor-resources page.
+- The adapter preserves names, quantities, market values, cash classification, and composition
+  date. It explicitly records periodic issuer-report refresh instead of misrepresenting the
+  source as daily holdings data. SEC is not a primary source.
+- Live validation symbol: `WAGN`, returning more than 10 issuer-native rows.
+- Current truthful provider-native count: `345` registered, `169` native/live-backed, `176`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `209 passed`
+- focused live Dhandho route and provider matrix -> `2 passed, 170 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Convergence native ETF holdings route
 
 ### Summary

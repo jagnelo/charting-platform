@@ -21,6 +21,21 @@
 - Next concrete action: continue the provider queue with a first-party source audit for the next
   unpromoted issuer, recording access-block evidence rather than promoting an unverified route.
 
+## Latest checkpoint - 2026-07-12T15:30Z
+
+- Promoted `dhandho` from recognition-only support to native/live-backed support through an
+  isolated `DhandhoHoldingsAdapter` for the Pabrai Wagons ETF (`WAGN`). It discovers the latest
+  issuer-linked complete holdings PDF from the public investor-resources page and parses its
+  complete position list.
+- The route preserves issuer-provided security names, quantities, market values, cash
+  classification, and composition date. Its legal metadata explicitly records a periodic
+  issuer-report refresh rather than claiming daily coverage.
+- Live validation symbol: `WAGN`, returning more than 10 issuer-native rows.
+- Registry count: `345` registered provider keys, `169` native/live-backed integrations, and
+  `176` remaining.
+- Validation: full adapter unit suite `209 passed`; focused Dhandho live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+
 ## Priority-source audit - 2026-07-12T14:35Z
 
 - `neuberger_berman`: official ETF pages are indexed and disclose complete holdings, but direct
