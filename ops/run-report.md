@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Capital Impact native ETF holdings route
+
+### Summary
+
+- Promoted `capital_impact` from recognition-only support to native/live-backed support.
+- Added an isolated `CapitalImpactHoldingsAdapter` for EntrepreneurShares' XOVR public product
+  page, its declared full-holdings SS&C client, and the issuer-published API endpoint that the
+  client calls. The adapter does not use SEC as a primary source.
+- The route validates the requested ticker at the public page and API payload, then preserves
+  ticker, CUSIP, ISIN, SEDOL, quantity, value, decimal-fraction weight, cash rows, and as-of date.
+- Live validation symbol: `XOVR`, returning 34 issuer-native rows.
+- Current truthful provider-native count: `345` registered, `166` native/live-backed, `179`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `206 passed`
+- focused live Capital Impact route and provider matrix -> `2 passed, 167 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Cohen & Steers native ETF holdings route
 
 ### Summary

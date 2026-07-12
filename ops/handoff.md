@@ -5,6 +5,24 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T13:15Z
+
+- Promoted `capital_impact` from recognition-only support to native/live-backed support through
+  an isolated `CapitalImpactHoldingsAdapter`. It starts from EntrepreneurShares' requested-fund
+  product page, follows its declared `full-holdings` SS&C client, reads that page's short-lived
+  issuer-published API metadata, and calls only the documented full-holdings endpoint for the
+  requested resource.
+- The adapter validates the ticker at both the public product page and the issuer API response,
+  and preserves market ticker, CUSIP, ISIN, SEDOL, quantity, market value, decimal-fraction
+  weight, cash classification, and issuer as-of date. SEC is not used as a primary route.
+- Live validation symbol: `XOVR`, returning 34 issuer-native rows.
+- Registry count: `345` registered provider keys, `166` native/live-backed integrations, and
+  `179` remaining.
+- Validation: full adapter unit suite `206 passed`; focused Capital Impact live route and
+  provider matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Next concrete action: continue the provider queue with a first-party source audit for the next
+  unpromoted issuer, recording access-block evidence rather than promoting an unverified route.
+
 ## Latest checkpoint - 2026-07-12T12:45Z
 
 - Promoted `cohen_steers` from recognition-only support to native/live-backed support through
