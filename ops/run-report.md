@@ -22,6 +22,12 @@ Append a short entry after each worker session.
 - The public AG Financial Services Group surface is a retirement/financial-services site, not a
   distinct US ETF issuer with a complete holdings route. `ag_financial` remains unpromoted.
 
+## 2026-07-12 - Albert D. Mason source audit
+
+- The issuer's Fundamentals First `KNOW` ETF page publishes historic/fiscal holdings PDFs but no
+  current complete holdings feed. It remains unpromoted rather than treating an old report as a
+  refreshable native route.
+
 ## 2026-07-12 - ACP Horizon native ETF holdings route
 
 ### Summary

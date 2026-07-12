@@ -27,6 +27,13 @@
   route. It remains unpromoted; do not confuse the issuer-name registry entry with unrelated
   similarly named asset managers.
 
+## Source audit - 2026-07-12T17:35Z
+
+- `albert_mason`: the official Fundamentals First Fund page identifies the `KNOW` ETF and links
+  issuer-published fiscal holdings PDFs, but the listed artifacts are stale fiscal reports rather
+  than a current complete holdings feed. It remains unpromoted until a refreshable issuer-native
+  route can be verified.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an
