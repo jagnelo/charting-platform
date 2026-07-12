@@ -9038,6 +9038,220 @@ class SheltonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class ScharfHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Scharf ETF's full current holdings CSV linked from its public fund page."""
+
+    product_page_template = "https://scharfetfs.com/{symbol_lower}/"
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "scharfetfs.com" in source_url.lower():
+            return source_url.strip()
+        resolved_symbol = (issuer_product_id or symbol).strip().lower()
+        return self.product_page_template.format(symbol_lower=resolved_symbol) if resolved_symbol else None
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Scharf publishes this ETF's complete current holdings CSV from its public product page."
+                if source_url
+                else "Scharf needs an ETF symbol to resolve its public product page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not page_url:
+            raise ValueError("Scharf holdings require an ETF symbol or public product page.")
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            try:
+                page_response = await client.get(
+                    page_url,
+                    headers=page_headers,
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                resolved_page_url = str(page_response.url)
+                page_text = page_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                # Scharf's public WordPress host currently accepts this same page
+                # through requests while rejecting httpx's TLS fingerprint.
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    page_url,
+                    headers=page_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_page_url = str(fallback_response.url)
+                page_text = fallback_response.text
+            csv_url = self._discover_holdings_csv(
+                page_text,
+                symbol=normalized_symbol,
+                page_url=resolved_page_url,
+            )
+            csv_headers = {
+                **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                "Referer": resolved_page_url,
+            }
+            try:
+                csv_response = await client.get(
+                    csv_url,
+                    headers=csv_headers,
+                    follow_redirects=True,
+                )
+                csv_response.raise_for_status()
+                resolved_csv_url = str(csv_response.url)
+                csv_text = csv_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    csv_url,
+                    headers=csv_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_csv_url = str(fallback_response.url)
+                csv_text = fallback_response.text
+        rows, composition_date = self._parse_holdings_csv(csv_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Scharf holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_text,
+            raw_json={
+                "source_format": "issuer_product_page_linked_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "row_count": len(rows),
+            },
+            source_url=resolved_csv_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "scharf_product_page_linked_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_csv(raw_html: str, *, symbol: str, page_url: str) -> str:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Scharf holdings page identity did not match requested ETF {symbol}.")
+        match = re.search(
+            rf'''href=["'](?P<url>[^"']*TidalFG_Holdings_{re.escape(symbol)}\.csv)["']''',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if match is None:
+            raise ValueError(f"Scharf holdings page did not link a complete CSV for {symbol}.")
+        return urljoin(page_url, html.unescape(match.group("url")).strip())
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lstrip("\ufeff").lower() for cell in row if _clean(cell)}
+                >= {"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+        composition_date = None
+        rows: list[CanonicalHoldingRow] = []
+        header = [cell.lstrip("\ufeff") for cell in table_rows[header_index]]
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            account = _clean(_first(raw, ["Account"]))
+            if account and account.upper() != symbol.upper():
+                continue
+            ticker, name, cusip = (
+                _clean(_first(raw, [key])) for key in ("StockTicker", "SecurityName", "CUSIP")
+            )
+            row_date = _clean(_first(raw, ["Date"]))
+            if row_date:
+                try:
+                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            is_cash = "cash" in " ".join(part.lower() for part in (ticker, name) if part)
+            if not any([ticker, name, cusip, _first(raw, ["MarketValue"])]):
+                continue
+            is_option = bool(re.search(r"\b\d{6}[CP]\d{8}\b", ticker or ""))
+            raw_weight = _first(raw, ["Weightings"])
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_option else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=_decimal(_first(raw, ["MarketValue"])),
+                    weight=(
+                        _decimal(raw_weight)
+                        if raw_weight and "%" in raw_weight
+                        else _decimal_percent_points(raw_weight)
+                    ),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else ("option" if is_option else "equity"),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -25632,6 +25846,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         terms_note="Wedbush Funds public ETF holdings CSV files may be subject to issuer terms.",
     ),
     "shelton": IssuerCsvAdapterConfig(adapter_key="shelton", source_provider="shelton", source_access="issuer_public_product_page_linked_holdings_csv", product_page_templates=("https://advisor.sheltoncap.com/{symbol_lower}-holdings/",), live_tested_default_route=True, terms_note="Shelton Capital Management public ETF holdings CSV files may be subject to issuer terms."),
+    "scharf": IssuerCsvAdapterConfig(
+        adapter_key="scharf",
+        source_provider="scharf",
+        source_access="issuer_public_product_page_linked_holdings_csv",
+        product_page_templates=("https://scharfetfs.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Scharf ETF public current holdings CSV files may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -27303,6 +27525,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "toews": ToewsHoldingsAdapter,
         "wedbush": WedbushHoldingsAdapter,
         "shelton": SheltonHoldingsAdapter,
+        "scharf": ScharfHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

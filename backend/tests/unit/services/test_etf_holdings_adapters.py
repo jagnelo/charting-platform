@@ -7426,6 +7426,31 @@ def test_shelton_adapter_discovers_and_parses_current_holdings_csv():
     assert composition_date == date(2026, 7, 13)
 
 
+def test_scharf_adapter_discovers_and_parses_current_holdings_csv():
+    adapter = get_holdings_adapter("scharf")
+    assert adapter is not None
+    assert adapter._discover_holdings_csv(
+        '<h1>Scharf ETF (KAT)</h1><a href="/wp-content/uploads/data/TidalFG_Holdings_KAT.csv">Download all holdings</a>',
+        symbol="KAT",
+        page_url="https://scharfetfs.com/kat/",
+    ) == "https://scharfetfs.com/wp-content/uploads/data/TidalFG_Holdings_KAT.csv"
+    rows, composition_date = adapter._parse_holdings_csv(
+        """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings
+07/10/2026,KAT,AAPL,037833100,Apple Inc,81509,384.36,31328799.24,4.71%
+07/10/2026,KAT,CASH,CASH,Cash & Other,1000,1,2000,0.01%
+07/10/2026,OTHER,MSFT,594918104,Microsoft Corp,1,1,1,100%
+""",
+        symbol="KAT",
+    )
+    assert len(rows) == 2
+    assert rows[0].symbol == "AAPL"
+    assert rows[0].cusip == "037833100"
+    assert rows[0].weight == Decimal("0.0471")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 10)
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
