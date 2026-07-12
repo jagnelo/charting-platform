@@ -9447,3 +9447,16 @@ Append a short entry after each worker session.
   identified. It was not promoted under the US ETF objective.
 - This is a provider queue classification only: it is not counted as native support, does not
   reduce the remaining set, and does not block the global objective.
+
+# ETF Holdings Provider Integration - 2026-07-12T02:35Z
+
+- Promoted `sei` to native/live-backed support with an isolated `SeiHoldingsAdapter`. It uses
+  SEI's public dated FilePoint export, retries recent non-publishing days, and filters the
+  issuer-wide feed by requested ETF ticker while preserving identifiers, shares, market values,
+  weights, and cash rows.
+- Live validation symbol: `SEIS`, returning more than 100 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`192 passed`), focused opt-in live route (`1
+  passed, 153 deselected`), provider matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `150` native/live-backed, `195` remaining; SEC
+  EDGAR remains fallback-only.
+- Feature commit: `58cab2a feat(etf-holdings): add SEI native holdings route`.

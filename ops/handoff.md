@@ -5,6 +5,19 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T02:35Z
+
+- Promoted `sei` from generated recognition-only support to a native/live-backed integration.
+  `SeiHoldingsAdapter` uses SEI's documented public dated FilePoint export, retries recent
+  publishing days, filters the issuer-wide file to the requested ETF, and preserves identifiers,
+  quantities, market values, weights, and cash rows.
+- Live validation symbol: `SEIS`, returning more than 100 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `150` native/live-backed integrations, and
+  `195` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `192 passed`; focused SEI live route `1 passed, 153
+  deselected`; full provider matrix, targeted ruff, and `git diff --check` passed.
+- Feature commit: `58cab2a feat(etf-holdings): add SEI native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T02:05Z
 
 - Promoted `mirae_asset` from generated recognition-only support to a native/live-backed
