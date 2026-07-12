@@ -9518,3 +9518,14 @@ Append a short entry after each worker session.
   complete-holdings route. Client funds expose holdings through their actual issuer brands.
 - No generic Tidal implementation was added or counted. Treat every client issuer as its own
   provider-native integration target with its own source route and live validation.
+
+# ETF Holdings Provider Integration - 2026-07-12T04:40Z
+
+- Promoted `1251_capital` with a dedicated `OneTwoFiveOneCapitalHoldingsAdapter`. It follows the
+  parent company's owned F/M Investments issuer API and explicitly records that relationship,
+  rather than silently routing 1251 Capital ETFs through another provider identity.
+- Live validation symbol: `UTWO`, returning two complete issuer-native Treasury holdings rows.
+- Validation passed: full adapter unit suite (`194 passed`), focused opt-in live route, provider
+  matrix, targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `154` native/live-backed, `191` remaining; SEC
+  EDGAR remains fallback-only.

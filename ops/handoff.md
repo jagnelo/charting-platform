@@ -5,6 +5,18 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T04:40Z
+
+- Promoted `1251_capital` to native/live-backed support through an isolated
+  `OneTwoFiveOneCapitalHoldingsAdapter`. It uses 1251 Capital's owned F/M Investments issuer
+  API while preserving the parent-brand provider identity and relationship in route metadata.
+- Live validation symbol: `UTWO`, returning two issuer-native Treasury holdings rows.
+- Registry count: `345` registered provider keys, `154` native/live-backed integrations, and
+  `191` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `194 passed`; focused UTWO live route and provider matrix
+  passed; targeted ruff and `git diff --check` passed.
+- Feature commit: `3035df8 feat(etf-holdings): add 1251 Capital native route`.
+
 ## Latest checkpoint - 2026-07-12T04:10Z
 
 - Promoted `exchange_traded_concepts` from generated recognition-only support to a
