@@ -20,6 +20,15 @@
 - These are individual provider findings only. They do not block the global `345`-provider
   objective and SEC EDGAR remains fallback-only. Continue with the next unimplemented provider.
 
+## Source audit - 2026-07-12T01:50Z
+
+- `manulife` / John Hancock: issuer search surfaces a public daily creation-basket PDF for its
+  ETF line (including JHML), but direct retrieval of both published path variants returns HTTP
+  `403`, including with normal browser headers. It remains recognition-only until a
+  backend-readable issuer-native full-holdings artifact can be verified.
+- This is another per-provider queue result. Continue with the next unimplemented provider;
+  do not use it to block the overall objective or count SEC fallback as primary support.
+
 ## Latest checkpoint - 2026-07-11T03:45Z
 
 ## Source audit - 2026-07-11T04:10Z

@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-12T01:40:00Z",
+    "last_handoff_at": "2026-07-12T01:50:00Z",
     "last_commit": "8beba83",
     "git_ready_to_commit": false,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-12T01:50Z Source audit: John Hancock/Manulife publishes a daily ETF creation-basket PDF, but both public canonical document path variants return HTTP 403 even with browser headers. It remains unpromoted. This is a per-provider queue result only; strict count remains 345 registered, 148 native/live-backed, and 197 remaining.",
         "2026-07-12T01:40Z Source audit: PIMCO's public fund-explorer exposes a first-party dashboard route but returns HTTP 403 both directly and from same-origin headless-browser execution. Morgan Stanley/Eaton Vance exposes product JSON plus an XLS holdings route for EVHY, but its download origin times out and browser initialization returns 403. Neither is promoted. These are provider-specific queue findings, not a global blocker: strict count remains 345 registered, 148 native/live-backed, 197 remaining, with SEC fallback-only.",
         "2026-07-11T04:25Z Blocked source audit: Cohen & Steers official ETF pages advertise a holdings download but return HTTP 403 to backend-style retrieval, and Praxis official ETF pages return the issuer's geographic-access-denied page instead of holdings data. Alongside the preceding WisdomTree and Thrivent 403 results, this is a repeated external source-access blocker across the priority issuer set. No issuer was falsely promoted and SEC remains fallback-only. Current truthful count remains 345 registered, 148 native/live-backed, and 197 remaining.",
         "2026-07-11T04:10Z Source audit: official WisdomTree ETF pages advertise daily holdings and official Thrivent ETF pages advertise a daily holdings download, but direct backend-style retrieval of representative issuer pages returns HTTP 403 for both (including Thrivent's alternate fp host) even with normal browser headers. Neither provider was falsely promoted. Current truthful count remains 345 registered, 148 native/live-backed, and 197 remaining; SEC EDGAR remains fallback only.",

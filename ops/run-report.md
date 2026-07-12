@@ -9416,3 +9416,12 @@ Append a short entry after each worker session.
   browser holdings widget is blocked by HTTP `403`. No primary adapter was promoted.
 - These are queue-level provider findings, not grounds to block the overall 345-provider goal.
   SEC EDGAR remains fallback-only and the strict count remains 148 native/live-backed providers.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T01:50Z
+
+- John Hancock / Manulife (`manulife`): public issuer search surfaces a current ETF
+  creation-basket PDF, including JHML rows and full basket fields. Direct retrieval of both
+  canonical document-path variants returns HTTP `403`, including with standard browser headers.
+  No primary adapter was promoted.
+- This is a provider-specific queue finding only; SEC remains fallback-only and the global
+  provider-integration objective remains active.
