@@ -9580,3 +9580,16 @@ Append a short entry after each worker session.
 - `3edge`: the public ETF product page advertises current holdings but its accessible widget
   rendered without rows. The only verified issuer artifact was a dated quarterly holdings PDF,
   which is insufficient for native current-holdings support. It was not promoted.
+
+# ETF Holdings Provider Integration - 2026-07-12T06:15Z
+
+- Promoted `3fourteen` to native/live-backed support through a dedicated
+  `ThreeFourteenHoldingsAdapter`. It consumes SMI 3Fourteen's own public server-rendered product
+  pages, validates the requested fund heading, finds only the complete current holdings table,
+  and maps ticker, FIGI, shares, market value, percentage-point weight, cash rows, and the
+  issuer-reported composition date.
+- Live validation symbol: `FCTE`, returning more than 15 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`196 passed`), focused opt-in 3Fourteen live route
+  plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `156` native/live-backed, `189` remaining; SEC
+  EDGAR remains fallback-only.

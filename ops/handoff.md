@@ -5,6 +5,20 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T06:15Z
+
+- Promoted `3fourteen` from generated recognition-only support to native/live-backed support
+  through an isolated `ThreeFourteenHoldingsAdapter`. It reads SMI 3Fourteen's own current
+  server-rendered product-page table, validates the requested fund heading, and maps ticker,
+  FIGI, shares, market value, percentage-point weight, cash rows, and the issuer-reported
+  composition date.
+- Live validation symbol: `FCTE`, returning more than 15 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `156` native/live-backed integrations, and
+  `189` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `196 passed`; focused 3Fourteen live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+- Feature commit: `57b552f feat(etf-holdings): add 3Fourteen native holdings route`.
+
 ## Latest checkpoint - 2026-07-12T05:30Z
 
 - Promoted `aot` to native/live-backed support through an isolated `AotHoldingsAdapter`.
