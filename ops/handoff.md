@@ -4137,6 +4137,21 @@
   Cloudflare managed challenge returns HTTP 403 to backend-style retrieval. It remains an access
   block, not a promoted native implementation.
 
+## 2026-07-12 - Wedbush native ETF holdings route
+
+- Promoted `wedbush` through a dedicated `WedbushHoldingsAdapter` that uses the official
+  per-symbol current-holdings CSV path and validates the requested fund identity/as-of date.
+- It preserves ticker, SEDOL, shares, USD market value, percent weight, and cash rows.
+- Live validation: `TGLR`; full adapter suite `202 passed`; focused live route plus matrix
+  `2 passed`; lint and diff checks passed.
+- Current truthful count: `162 / 345` native/live-backed; `183` remaining.
+
+### Exact next step
+
+- Continue the remaining issuer queue. The Guinness Atkinson access block is recorded; select
+  the next backend-readable official complete-holdings route and repeat isolated implementation,
+  static tests, live test, and matrix validation.
+
 ## 2026-07-12 - Dakota Wealth native ETF holdings route
 
 ### Summary

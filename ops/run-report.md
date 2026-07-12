@@ -9676,3 +9676,16 @@ Append a short entry after each worker session.
   `https://wedbushfunds.com/latest-sod-holdings-tglr/`. The route returned a complete current
   CSV with fund identity, as-of date, ticker, SEDOL, shares, USD market value, and weight.
 - Next concrete implementation is a dedicated Wedbush adapter with static and opt-in live tests.
+
+# ETF Holdings Provider Integration - 2026-07-12T03:50Z
+
+- Promoted `wedbush` to native/live-backed support through a dedicated
+  `WedbushHoldingsAdapter`.
+- The adapter uses Wedbush's official per-symbol current-holdings CSV route, validates the
+  selected ETF identity, and parses ticker, SEDOL, shares, USD market value, percent weight,
+  cash rows, and the issuer's as-of date.
+- Live validation symbol: `TGLR`.
+- Validation passed: full adapter unit suite (`202 passed`), focused opt-in Wedbush route plus
+  provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `162` native/live-backed, `183` remaining; SEC
+  EDGAR remains fallback-only and is not counted.
