@@ -9,6 +9,18 @@
 
 ## Latest checkpoint - 2026-07-12T07:10Z
 
+## Latest checkpoint - 2026-07-12T07:30Z
+
+- Promoted `rational` from generated recognition-only support to native/live-backed support
+  through an isolated `RationalHoldingsAdapter`. It resolves Rational's requested risk-parity ETF
+  page, validates the declared ticker, follows its current full-holdings workbook link, and maps
+  real market symbols, CUSIPs/ISINs, quantities, values, percentage weights, and cash rows.
+- Live validation symbol: `RPAR`, returning more than 20 issuer-native holdings rows.
+- Registry count: `345` registered provider keys, `159` native/live-backed integrations, and
+  `186` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `199 passed`; focused Rational live route and provider
+  matrix `2 passed`; targeted ruff and `git diff --check` passed.
+
 - Promoted `alternative_access` from generated recognition-only support to native/live-backed
   support through an isolated `AlternativeAccessHoldingsAdapter`. It validates the declared ETF
   ticker on Alternative Access's own fund page, follows only that page's full-holdings workbook

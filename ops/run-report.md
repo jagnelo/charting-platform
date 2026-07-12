@@ -9626,3 +9626,16 @@ Append a short entry after each worker session.
   route plus provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
 - Strict count: `345` registered providers, `158` native/live-backed, `187` remaining; SEC
   EDGAR remains fallback-only and is not counted.
+
+# ETF Holdings Provider Integration - 2026-07-12T07:30Z
+
+- Promoted `rational` to native/live-backed support through a dedicated
+  `RationalHoldingsAdapter`. It reads the issuer's own risk-parity ETF product page, validates
+  the requested ticker, and follows its explicit current full-holdings XLSX download. The
+  adapter preserves issuer identifiers, real symbols where provided, quantities, values, weights,
+  and cash rows.
+- Live validation symbol: `RPAR`, returning more than 20 parseable issuer-native holdings rows.
+- Validation passed: full adapter unit suite (`199 passed`), focused opt-in Rational route plus
+  provider matrix (`2 passed`), targeted ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `159` native/live-backed, `186` remaining; SEC
+  EDGAR remains fallback-only and is not counted.
