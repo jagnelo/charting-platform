@@ -20,6 +20,13 @@
   identified for the registered identity. It remains unpromoted; do not conflate affiliated or
   unrelated issuer products with Aegon native support.
 
+## Source audit - 2026-07-12T17:25Z
+
+- `ag_financial`: the public AG Financial Services Group surfaces found are retirement and
+  financial-services resources, not a distinct US ETF issuer or complete holdings distribution
+  route. It remains unpromoted; do not confuse the issuer-name registry entry with unrelated
+  similarly named asset managers.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an

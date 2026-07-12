@@ -17,6 +17,11 @@ Append a short entry after each worker session.
 - `aegon` remains unpromoted rather than being conflated with an affiliate or an unrelated ETF
   issuer.
 
+## 2026-07-12 - AG Financial Services source audit
+
+- The public AG Financial Services Group surface is a retirement/financial-services site, not a
+  distinct US ETF issuer with a complete holdings route. `ag_financial` remains unpromoted.
+
 ## 2026-07-12 - ACP Horizon native ETF holdings route
 
 ### Summary
