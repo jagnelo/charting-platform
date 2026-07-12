@@ -10,6 +10,13 @@ Append a short entry after each worker session.
 - Validation: adapter unit suite `212 passed`; live ACVT route and provider matrix `2 passed`.
 - Current truthful count: `345` registered, `172` native/live-backed, `173` remaining.
 
+## 2026-07-12 - Aegon source audit
+
+- Official Aegon surfaces found for the registered identity are institutional or mutual-fund
+  resources; no distinct US ETF product/complete-holdings route was identified.
+- `aegon` remains unpromoted rather than being conflated with an affiliate or an unrelated ETF
+  issuer.
+
 ## 2026-07-12 - ACP Horizon native ETF holdings route
 
 ### Summary

@@ -13,6 +13,13 @@
 - Registry count: `345` registered, `172` native/live-backed, `173` remaining. Full adapter unit
   suite `212 passed`; focused live route plus provider matrix `2 passed`; targeted ruff passed.
 
+## Source audit - 2026-07-12T17:15Z
+
+- `aegon`: official reachable Aegon Asset Management surfaces are institutional and mutual-fund
+  resources. No distinct US ETF product family or issuer-native complete holdings route could be
+  identified for the registered identity. It remains unpromoted; do not conflate affiliated or
+  unrelated issuer products with Aegon native support.
+
 ## Latest checkpoint - 2026-07-12T16:45Z
 
 - Promoted `acp_horizon` from recognition-only support to native/live-backed support through an
