@@ -7006,6 +7006,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert vaneck["supports_product_page_discovery"] is True
     assert any("product_url" in item["route_identifiers"] for item in catalog if item["adapter_key"] == "global_x")
 
+    mirae_asset = get_holdings_adapter("mirae_asset")
+    assert mirae_asset is not None
+    assert type(mirae_asset).__name__ == "MiraeAssetHoldingsAdapter"
+    assert mirae_asset.resolve_product_page_url(symbol="QYLD") == "https://www.globalxetfs.com/funds/qyld/"
+
     by_domain = infer_adapter_key(
         issuer=None,
         fund_family=None,

@@ -75,6 +75,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "franklin",
     "future_fund",
     "global_x",
+    "mirae_asset",
     "groupe_bpce",
     "gqg",
     "gamco",
@@ -1260,6 +1261,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
     [
         (
             "global_x",
+            "QYLD",
+            {},
+        ),
+        (
+            "mirae_asset",
             "QYLD",
             {},
         ),

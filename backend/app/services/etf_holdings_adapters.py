@@ -2814,6 +2814,37 @@ class GlobalXHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class MiraeAssetHoldingsAdapter(GlobalXHoldingsAdapter):
+    """Fetch Mirae Asset's US ETF holdings from its Global X issuer platform.
+
+    Mirae Asset Global Investments distributes its US ETF range under the
+    Global X brand. Keep this as a separate adapter identity so profiles
+    mastered as Mirae Asset do not silently fall through recognition-only
+    support while retaining the issuer's canonical public holdings route.
+    """
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "issuer_brand": "global_x",
+            "issuer_parent": "mirae_asset_global_investments",
+        }
+        return result
+
+
 class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -24086,6 +24117,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Global X public product pages and holdings files may be subject to issuer terms.",
     ),
+    "mirae_asset": IssuerCsvAdapterConfig(
+        adapter_key="mirae_asset",
+        source_provider="mirae_asset",
+        source_access="issuer_public_global_x_product_page_holdings_file",
+        product_page_templates=(
+            "https://www.globalxetfs.com/funds/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Mirae Asset Global Investments' US ETF range is published through the "
+            "Global X public product pages and holdings files."
+        ),
+    ),
     "vaneck": IssuerCsvAdapterConfig(
         adapter_key="vaneck",
         source_provider="vaneck",
@@ -25462,6 +25506,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "first_trust": FirstTrustHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
+        "mirae_asset": MiraeAssetHoldingsAdapter,
         "groupe_bpce": NatixisHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
