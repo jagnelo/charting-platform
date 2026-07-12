@@ -9971,6 +9971,138 @@ class DhandhoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch EMLes' fund-specific full-holdings CSV from its public ETF pages."""
+
+    product_page_urls = {
+        "AMER": "https://emles.com/etf/emles-made-in-america/",
+        "EOPS": "https://emles.com/etf/emles-alpha-opportunities-etf/",
+        "LUXE": "https://emles.com/etf/emles-luxury-goods/",
+        "FEDX": "https://emles.com/etf/emles-federal-contractors/",
+        "REC": "https://emles.com/etf/emles-real-estate-credit/",
+        "LIV": "https://emles.com/etf/emles-home-etf/",
+    }
+    holdings_url_template = "https://api.emles.com/download/holdings/{symbol}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol in self.product_page_urls else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "EMLes publishes this fund's complete holdings CSV from its public ETF page."
+                if normalized_symbol in self.product_page_urls
+                else "EMLes is configured; its verified public holdings routes cover its listed ETF lineup."
+            ),
+            source_url=self.product_page_urls.get(normalized_symbol),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.product_page_urls.get(normalized_symbol)
+        if product_page_url is None:
+            raise ValueError(f"EMLes has no verified public holdings route for {normalized_symbol}.")
+        if source_url and "emles.com" in source_url.lower():
+            product_page_url = source_url
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            self._validate_product_page(page_response.text, symbol=normalized_symbol)
+            holdings_response = await client.get(
+                self.holdings_url_template.format(symbol=normalized_symbol),
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"EMLes full holdings CSV returned no parseable rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "emles_public_fund_page_full_holdings_download",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str) -> None:
+        if re.search(
+            rf'<(?:as-of-date|top-holdings)\s+ticker=["\']{re.escape(symbol)}["\']',
+            raw_html,
+            re.IGNORECASE,
+        ) is None:
+            raise ValueError(f"EMLes product page identity did not match requested ETF {symbol}.")
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            row_date = _clean(raw.get("as_of_date") or raw.get("run_date"))
+            if row_date:
+                try:
+                    parsed_date = date.fromisoformat(row_date)
+                    if composition_date is None or parsed_date > composition_date:
+                        composition_date = parsed_date
+                except ValueError:
+                    pass
+            name = _clean(raw.get("name"))
+            ticker = _clean(raw.get("ticker"))
+            identifier = _clean(raw.get("identifier"))
+            haystack = " ".join(part.lower() for part in (ticker, name) if part)
+            is_cash = "cash" in haystack or "cash equivalent" in haystack
+            if not any([ticker, name, identifier, raw.get("market_value")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal_percent_points(raw.get("weight")),
+                    shares=_decimal(raw.get("shares_held")),
+                    market_value=_decimal(raw.get("market_value")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -28206,6 +28338,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Pabrai Wagons ETF public complete holdings PDFs may be subject to issuer terms.",
     ),
+    "emles": IssuerCsvAdapterConfig(
+        adapter_key="emles",
+        source_provider="emles",
+        source_access="issuer_public_fund_page_full_holdings_csv",
+        product_page_templates=("https://emles.com/etf/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="EMLes public ETF holdings downloads may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -28270,6 +28410,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "defiance": DefianceHoldingsAdapter,
         "deepwater": DeepwaterHoldingsAdapter,
         "dhandho": DhandhoHoldingsAdapter,
+        "emles": EMLesHoldingsAdapter,
         "deutsche_bank": DeutscheBankHoldingsAdapter,
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,

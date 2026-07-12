@@ -74,6 +74,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "diamond_hill",
     "dimensional",
     "dhandho",
+    "emles",
     "direxion",
     "distillate",
     "doubleline",
@@ -225,6 +226,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         ("dhandho", "WAGN", None, {}, 10),
+        ("emles", "EOPS", None, {}, 1),
         (
             "corgi",
             "FDRS",

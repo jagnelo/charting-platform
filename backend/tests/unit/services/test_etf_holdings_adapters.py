@@ -7695,6 +7695,43 @@ TOTAL INVESTMENTS - 101.6% (Cost $132,461,354)      152,464,020
     assert rows[1].row_type == "cash"
 
 
+@pytest.mark.asyncio
+async def test_emles_adapter_fetches_identity_validated_full_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("emles")
+    assert adapter is not None
+
+    product_html = '<as-of-date ticker="EOPS"></as-of-date><top-holdings ticker="EOPS"></top-holdings>'
+    csv_text = "\n".join(
+        [
+            "run_date,as_of_date,name,ticker,identifier,shares_held,market_value,weight",
+            "2026-07-13,2026-07-13,Cash and Cash Equivalents,,,1000,1000.00,10",
+            "2026-07-13,2026-07-13,NVIDIA Corp,NVDA,67066G104,25,4500.00,45",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_html, content_type="text/html"),
+        FakeResponse(text=csv_text, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EOPS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://emles.com/etf/emles-alpha-opportunities-etf/",
+        "https://api.emles.com/download/holdings/EOPS",
+    ]
+    cash_row, equity_row = result.rows
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("0.10")
+    assert equity_row.symbol == "NVDA"
+    assert equity_row.cusip == "67066G104"
+    assert equity_row.weight == Decimal("0.45")
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+    assert result.legal_metadata["route_resolution"] == "emles_public_fund_page_full_holdings_download"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
