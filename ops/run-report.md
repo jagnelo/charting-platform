@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Archer Investment native ETF holdings route
+
+- Promoted `archer_investment` with an isolated ARWG issuer-product-page-linked daily holdings
+  CSV adapter. It discovers the current dated download from Archer's public page rather than
+  retaining a stale file URL, filters only the requested `ARWG` account, and preserves CUSIP,
+  shares, value, weight, cash classification, and composition date.
+- Validation: adapter unit suite `213 passed`; focused live ARWG route and provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `173` native/live-backed, `172` remaining.
+
 ## 2026-07-12 - Advent Capital native ETF holdings route
 
 - Promoted `advent_capital` with an isolated ACVT public daily holdings CSV adapter.

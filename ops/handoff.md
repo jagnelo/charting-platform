@@ -5,6 +5,20 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T13:43Z
+
+- Promoted `archer_investment` through an isolated `ArcherInvestmentHoldingsAdapter` for the
+  Archer Growth ETF (`ARWG`). The adapter discovers the current dated issuer CSV from Archer's
+  public product page instead of hard-coding a stale download link, then strictly filters the
+  returned account rows to `ARWG`.
+- It preserves ticker, valid CUSIP, shares, market value, decimal-fraction weight, issuer as-of
+  date, and classifies the issuer's money-market row as cash without exposing it as a tradable
+  instrument. SEC EDGAR is not used as the primary route.
+- Validation: adapter unit suite `213 passed`; focused live ARWG route plus provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Registry count: `345` registered, `173` native/live-backed, `172` remaining. Continue with
+  the next unpromoted issuer source audit.
+
 ## Latest checkpoint - 2026-07-12T17:05Z
 
 - Promoted `advent_capital` through an isolated ACVT issuer-native daily holdings CSV adapter.
