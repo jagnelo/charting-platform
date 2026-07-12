@@ -9538,3 +9538,11 @@ Append a short entry after each worker session.
 - No provider-native adapter was added or counted because an executable official full-holdings
   route cannot currently be reached from this environment. This is a provider-specific block;
   the global provider queue remains active.
+
+# ETF Holdings Provider Source Audit - 2026-07-12T05:00Z
+
+- `neuberger_berman`: the official `NBCR` ETF page returns HTTP `429` to direct retrieval. A
+  standard browser request returns HTTP `200` only after it redirects to the global
+  audience-selection gate rather than the ETF product or detailed-holdings route.
+- No native adapter was added or counted without an executable official full-holdings route. This
+  is a provider-specific access block; the global provider queue remains active.

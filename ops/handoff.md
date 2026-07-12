@@ -24,6 +24,14 @@
   backend-readable official full-holdings artifact could be verified, so no adapter was promoted.
   This is a provider-specific access block only; continue the queue.
 
+## Source audit - 2026-07-12T05:00Z
+
+- `neuberger_berman`: its official `NBCR` ETF page returns HTTP `429` to a direct retrieval.
+  A standard browser request returns HTTP `200` only after redirecting to Neuberger's global
+  audience-selection gate, not to the ETF page or detailed-holdings control. No executable
+  issuer-native full-holdings route can be verified from this environment, so it remains
+  unpromoted. Continue the queue.
+
 ## Latest checkpoint - 2026-07-12T04:10Z
 
 - Promoted `exchange_traded_concepts` from generated recognition-only support to a
