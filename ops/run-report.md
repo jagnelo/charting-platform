@@ -9,6 +9,13 @@ Append a short entry after each worker session.
   `2 passed`; targeted ruff and `git diff --check` passed.
 - Current truthful count: `345` registered, `175` native/live-backed, `170` remaining.
 
+## 2026-07-12 - Artemis / ARS source discovery
+
+- The `artemis` registry key maps to ARS Investment Partners' `AFOS` and `ACEP` ETF pages.
+  Both use backend-readable issuer pages with complete current holdings in role-based markup.
+- No promotion yet: a dedicated parser must preserve the page's fund identity and holdings fields
+  before static and live validation can make this a truthful native route.
+
 ## 2026-07-12 - AmeriLife source audit
 
 - `amerilife` is a parent/owner identity for Brookstone Capital Management's ETF products rather

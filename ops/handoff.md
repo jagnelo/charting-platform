@@ -26,6 +26,15 @@
   plus provider matrix `2 passed`.
 - Registry count: `345` registered, `175` native/live-backed, `170` remaining.
 
+## Source discovery - 2026-07-12T14:25Z
+
+- `artemis` maps to ARS Investment Partners' two US ETFs, `AFOS` and `ACEP`. The official ARS
+  product pages are backend-readable and contain complete current holdings as server-rendered
+  role-based markup (ticker, name, CUSIP, shares, value, weight, and effective date).
+- Next concrete action: implement an isolated ARS adapter that parses this role-based holdings
+  markup, validates it against the requested fund identity, then add static and live coverage for
+  AFOS before promoting the provider.
+
 ## Source audit - 2026-07-12T14:00Z
 
 - `amerilife`: AmeriLife is the parent/owner behind Brookstone Capital Management. The ETFs
