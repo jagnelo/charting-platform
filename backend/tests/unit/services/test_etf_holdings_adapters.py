@@ -7220,6 +7220,68 @@ async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkey
     )
 
 
+@pytest.mark.asyncio
+async def test_alternative_access_adapter_follows_issuer_page_linked_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("alternative_access")
+    assert adapter is not None
+
+    workbook = _xlsx_workbook(
+        [
+            ["Altac | AAA | ETF Holdings "],
+            ["% Of Net Assets", "Name", "Ticker", "CUSIP", "Share Held", "Market Value"],
+            ["6.80%", "CASH", "", "CASH", "3058488.28", "3058488.28"],
+            [
+                "4.52%",
+                "FCBSL 2024-4A A V/R 01/15/38",
+                "US34966VAA08",
+                "34966VAA0",
+                "2000000",
+                "2029989.1",
+            ],
+        ]
+    )
+    raw_html = '''
+    <table><tr><td>Ticker</td><td>AAA</td></tr></table>
+    <p>Data as of 07/10/2026. Holdings are subject to change.</p>
+    <a href="https://www.aafetfs.com/download-holding-usbanks?fund=aaf-first-priority-clo-bond-etf-from-alternative-access-funds">
+      DOWNLOAD FULL HOLDINGS
+    </a>
+    '''
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://www.aafetfs.com/",
+        ),
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url="https://www.aafetfs.com/download-holding-usbanks?fund=aaf-first-priority-clo-bond-etf-from-alternative-access-funds",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AAA")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.aafetfs.com/"
+    assert "download-holding-usbanks" in FakeAsyncClient.requested[1][0]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].weight == Decimal("0.068")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip == "34966VAA0"
+    assert result.rows[1].isin == "US34966VAA08"
+    assert result.rows[1].shares == Decimal("2000000")
+    assert result.rows[1].market_value == Decimal("2029989.1")
+    assert result.rows[1].weight == Decimal("0.0452")
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == (
+        "alternative_access_product_page_linked_holdings_xlsx"
+    )
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")
@@ -7269,6 +7331,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert abacus_global is not None
     assert type(abacus_global).__name__ == "AbacusGlobalHoldingsAdapter"
     assert abacus_global.resolve_source_url(symbol="ABLG") == "https://abacusfcf.com/ablg/"
+
+    alternative_access = get_holdings_adapter("alternative_access")
+    assert alternative_access is not None
+    assert type(alternative_access).__name__ == "AlternativeAccessHoldingsAdapter"
+    assert alternative_access.resolve_source_url(symbol="AAA") == "https://www.aafetfs.com/"
 
     sei = get_holdings_adapter("sei")
     assert sei is not None

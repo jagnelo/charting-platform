@@ -8214,6 +8214,210 @@ class AbacusGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class AlternativeAccessHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Alternative Access ETF holdings through the issuer's fund-page XLSX link."""
+
+    product_page_template = "https://www.aafetfs.com/"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        issuer_product_id = _identifier(identifiers, "issuer_product_id", "product_id")
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Alternative Access publishes this ETF's complete current holdings workbook "
+                "from its public fund page."
+                if source_url
+                else "Alternative Access needs an ETF symbol to resolve its public fund page."
+            ),
+            source_url=source_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper() or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        if source_url and "aafetfs.com" in source_url.lower():
+            return source_url.strip()
+        return self.product_page_template if symbol.strip() else None
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            raise ValueError("Alternative Access holdings require an ETF symbol or public product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            workbook_url, composition_date = self._discover_holdings_workbook(
+                product_response.text,
+                symbol=normalized_symbol,
+                product_page_url=str(product_response.url),
+            )
+            workbook_response = await client.get(
+                workbook_url,
+                headers={
+                    **_issuer_page_request_headers(
+                        accept=(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                            "application/octet-stream,*/*"
+                        )
+                    ),
+                    "Referer": str(product_response.url),
+                },
+                follow_redirects=True,
+            )
+        workbook_response.raise_for_status()
+        workbook_rows = parse_xlsx_table(workbook_response.content)
+        rows = self._parse_holdings_workbook(workbook_rows, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Alternative Access holdings workbook returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "issuer_product_page_linked_holdings_xlsx",
+                "product_page_url": str(product_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(workbook_response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "alternative_access_product_page_linked_holdings_xlsx",
+                "product_page_url": str(product_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _discover_holdings_workbook(
+        raw_html: str,
+        *,
+        symbol: str,
+        product_page_url: str,
+    ) -> tuple[str, date | None]:
+        normalized_symbol = symbol.strip().upper()
+        if not re.search(rf"\bTicker\s*</td>\s*<td>\s*{re.escape(normalized_symbol)}\s*</td>", raw_html, re.I):
+            raise ValueError(
+                f"Alternative Access product page identity did not match requested ETF {normalized_symbol}."
+            )
+        link_match = re.search(
+            r'''href=["'](?P<url>[^"']*download-holding[^"']+)["'][^>]*>\s*DOWNLOAD\s+FULL\s+HOLDINGS''',
+            raw_html,
+            re.IGNORECASE,
+        )
+        if link_match is None:
+            raise ValueError(
+                f"Alternative Access product page did not link a full holdings workbook for {normalized_symbol}."
+            )
+        date_match = re.search(r"Data\s+as\s+of\s+(\d{2}/\d{2}/\d{4})", raw_html, re.IGNORECASE)
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%m/%d/%Y").date()
+            if date_match is not None
+            else None
+        )
+        return urljoin(product_page_url, html.unescape(link_match.group("url")).strip()), composition_date
+
+    @staticmethod
+    def _parse_holdings_workbook(
+        workbook_rows: list[list[Any]],
+        *,
+        symbol: str,
+    ) -> list[CanonicalHoldingRow]:
+        required_headers = {
+            "% of net assets",
+            "name",
+            "ticker",
+            "cusip",
+            "share held",
+            "market value",
+        }
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if required_headers <= {str(value).strip().lower() for value in row if _clean(value)}
+            ),
+            None,
+        )
+        if header_index is None:
+            return []
+        header = workbook_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(_first(raw, ["name"]))
+            ticker = _clean(_first(raw, ["ticker"]))
+            cusip = _clean(_first(raw, ["cusip"]))
+            isin = ticker if _looks_like_isin(ticker) else None
+            is_cash = (name or "").strip().upper() == "CASH" or (cusip or "").upper() == "CASH"
+            weight = _decimal(_first(raw, ["% of net assets"]))
+            shares = _decimal(_first(raw, ["share held"]))
+            market_value = _decimal(_first(raw, ["market value"]))
+            if not any([name, ticker, cusip, weight, shares, market_value]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or isin else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    holding_type="cash" if is_cash else "fixed_income",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if key and _clean(value) is not None},
+                        "source_ticker": ticker,
+                        "source_cusip": cusip,
+                        "source_isin": isin,
+                        "source": "alternative_access_holdings_workbook",
+                    },
+                )
+            )
+        return rows
+
+
 class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Adaptive Investments' public ADPV Nuxt ETF holdings payload."""
 
@@ -24769,6 +24973,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Abacus FCF public ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "alternative_access": IssuerCsvAdapterConfig(
+        adapter_key="alternative_access",
+        source_provider="alternative_access",
+        source_access="issuer_public_product_page_linked_holdings_xlsx",
+        product_page_templates=("https://www.aafetfs.com/",),
+        live_tested_default_route=True,
+        terms_note="Alternative Access public ETF holdings workbooks may be subject to issuer terms.",
+    ),
     "innovator": IssuerCsvAdapterConfig(
         adapter_key="innovator",
         source_provider="innovator",
@@ -26434,6 +26646,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "aot": AotHoldingsAdapter,
         "3fourteen": ThreeFourteenHoldingsAdapter,
         "abacus_global": AbacusGlobalHoldingsAdapter,
+        "alternative_access": AlternativeAccessHoldingsAdapter,
         "etf_architect": ETFArchitectHoldingsAdapter,
         "faith_investor_services": FaithInvestorServicesHoldingsAdapter,
         "first_pacific": FirstPacificHoldingsAdapter,

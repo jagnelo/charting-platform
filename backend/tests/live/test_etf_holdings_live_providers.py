@@ -12,6 +12,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "1251_capital",
     "3fourteen",
     "abacus_global",
+    "alternative_access",
     "acquirers",
     "acuitas",
     "aot",
@@ -1410,6 +1411,22 @@ async def test_live_abacus_global_product_page_linked_daily_holdings_csv():
     )
     assert result.legal_metadata["composition_date"]
     assert result.source_url.endswith("/ABLG_allHoldings.csv")
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_alternative_access_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("alternative_access")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="AAA")
+
+    _assert_live_holdings_result(result, adapter_key="alternative_access", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "alternative_access_product_page_linked_holdings_xlsx"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "xlsx"
 
 
 @pytest.mark.asyncio
