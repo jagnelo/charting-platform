@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Arlington native ETF holdings route
+
+- Promoted `arlington` with an isolated AQEC issuer-linked daily holdings CSV adapter.
+- Validation: adapter unit suite `216 passed`; focused live AQEC route and provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `175` native/live-backed, `170` remaining.
+
 ## 2026-07-12 - AmeriLife source audit
 
 - `amerilife` is a parent/owner identity for Brookstone Capital Management's ETF products rather

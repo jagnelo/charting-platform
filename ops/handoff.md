@@ -18,6 +18,14 @@
 - Registry count: `345` registered, `174` native/live-backed, `171` remaining. Continue with
   the next unpromoted issuer source audit.
 
+## Latest checkpoint - 2026-07-12T14:15Z
+
+- Promoted `arlington` through an isolated AQEC public issuer-linked daily holdings CSV adapter.
+  It filters account rows to AQEC, preserves valid CUSIPs, shares, values, and weights, and
+  classifies cash without making it tradable. Static suite `216 passed`; focused AQEC live route
+  plus provider matrix `2 passed`.
+- Registry count: `345` registered, `175` native/live-backed, `170` remaining.
+
 ## Source audit - 2026-07-12T14:00Z
 
 - `amerilife`: AmeriLife is the parent/owner behind Brookstone Capital Management. The ETFs
