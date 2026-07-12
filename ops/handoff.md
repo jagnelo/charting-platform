@@ -5,6 +5,21 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T12:45Z
+
+- Promoted `cohen_steers` from recognition-only support to native/live-backed support through
+  an isolated `CohenSteersHoldingsAdapter`. It reads the issuer's public fund sitemap, resolves
+  a requested ETF by the page-declared symbol, obtains the matching public fund API record, and
+  parses its complete `fullHoldings` payload.
+- The adapter validates the issuer's ETF identity and preserves ticker, CUSIP, ISIN, SEDOL,
+  shares, market value, percentage-point weight, cash, fixed-income classification, and as-of
+  date. It uses only Cohen & Steers endpoints, not SEC as a primary route.
+- Live validation symbol: `CSRE`, returning more than 20 issuer-native rows.
+- Registry count: `345` registered provider keys, `165` native/live-backed integrations, and
+  `180` remaining. SEC EDGAR remains fallback-only and is not counted.
+- Validation: full adapter unit suite `205 passed`; focused Cohen & Steers live route and
+  provider matrix `2 passed`; targeted ruff and `git diff --check` passed.
+
 ## Latest checkpoint - 2026-07-12T12:20Z
 
 - Promoted `scharf` from recognition-only support to native/live-backed support through an

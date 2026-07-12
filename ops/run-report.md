@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Cohen & Steers native ETF holdings route
+
+### Summary
+
+- Promoted `cohen_steers` from recognition-only support to native/live-backed support.
+- Added an isolated `CohenSteersHoldingsAdapter` that resolves public ETF fund pages from the
+  issuer's sitemap, validates the declared ticker, and consumes the issuer's complete
+  `fullHoldings` JSON payload.
+- The adapter preserves ticker, CUSIP, ISIN, SEDOL, quantity, value, percentage weight,
+  security classification, cash rows, and composition date.
+- Live validation symbol: `CSRE`, returning more than 20 issuer-native holdings rows.
+- Current truthful provider-native count: `345` registered, `165` native/live-backed, `180`
+  remaining.
+
+### Validation
+
+- adapter unit suite -> `205 passed`
+- focused live Cohen & Steers route and provider matrix -> `2 passed, 166 deselected`
+- targeted ruff and `git diff --check` -> passed
+
 ## 2026-07-12 - Scharf native ETF holdings route
 
 ### Summary
