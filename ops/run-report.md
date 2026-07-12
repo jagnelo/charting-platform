@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-12 - Liberty One native ETF holdings route
+
+- Promoted `818` (Liberty One Investment Management) with an isolated `SPCT`/`EASY`/`LOTI`
+  product-page-scoped holdings API adapter. It discovers each issuer-declared portfolio ID and
+  rejects holdings whose returned portfolio identity belongs to a different Liberty One ETF.
+- Validation: adapter unit suite `215 passed`; focused live SPCT route and provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `174` native/live-backed, `171` remaining.
+
 ## 2026-07-12 - Archer Investment native ETF holdings route
 
 - Promoted `archer_investment` with an isolated ARWG issuer-product-page-linked daily holdings

@@ -5,6 +5,19 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-12T13:49Z
+
+- Promoted `818` (Liberty One Investment Management) through an isolated
+  `LibertyOneHoldingsAdapter` for `SPCT`, `EASY`, and `LOTI`. The adapter discovers each fund's
+  current portfolio ID from its public issuer page and calls only that ID's public holdings API.
+- It verifies returned portfolio-name identity against the selected ETF before retaining rows,
+  preserves market ticker/CUSIP/shares/value/weight/currency/as-of date, and classifies money
+  market rows as cash. SEC EDGAR is not used as the primary route.
+- Validation: adapter unit suite `215 passed`; focused live SPCT route plus provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Registry count: `345` registered, `174` native/live-backed, `171` remaining. Continue with
+  the next unpromoted issuer source audit.
+
 ## Latest checkpoint - 2026-07-12T13:43Z
 
 - Promoted `archer_investment` through an isolated `ArcherInvestmentHoldingsAdapter` for the
