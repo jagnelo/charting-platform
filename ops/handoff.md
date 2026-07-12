@@ -25,6 +25,13 @@
   funds), so their complete holdings must be integrated through a Brookstone issuer-native route
   rather than an inaccurate AmeriLife umbrella adapter. It remains unpromoted.
 
+## Source audit - 2026-07-12T14:05Z
+
+- `amun`: Amun Holdings/Amun AG is a legacy parent identity for 21Shares' European crypto ETP
+  business, not a separate US ETF issuer. The apparent US `AMUN` ticker is an abrdn fund and is
+  already covered through the `abrdn` integration. Keep the 21Shares route as the issuer-native
+  implementation; `amun` remains unpromoted to avoid duplicate or incorrect ownership mapping.
+
 ## Latest checkpoint - 2026-07-12T13:43Z
 
 - Promoted `archer_investment` through an isolated `ArcherInvestmentHoldingsAdapter` for the

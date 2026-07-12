@@ -9,6 +9,12 @@ Append a short entry after each worker session.
   Brookstone native integration; AmeriLife remains unpromoted to avoid a misleading umbrella
   implementation.
 
+## 2026-07-12 - Amun source audit
+
+- `amun` is a legacy 21Shares parent identity associated with European crypto ETPs, not a
+  distinct US ETF issuer. The similarly named US `AMUN` ETF belongs to abrdn, whose route is
+  already native/live-backed. No duplicate Amun adapter was added.
+
 ## 2026-07-12 - Liberty One native ETF holdings route
 
 - Promoted `818` (Liberty One Investment Management) with an isolated `SPCT`/`EASY`/`LOTI`
