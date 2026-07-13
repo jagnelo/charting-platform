@@ -297,6 +297,63 @@ async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_ref
 
 
 @pytest.mark.asyncio
+async def test_neuberger_berman_adapter_discovers_official_detailed_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("neuberger_berman")
+    assert adapter is not None
+
+    product_page_url = "https://www.nb.com/products/etfs/core-equity-etf"
+    detailed_holdings_url = (
+        "https://www.nb.com/api/marketing/downloadetfdetailedholdingsxls?compositecode=4022"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<?xml version="1.0"?><urlset><url><loc>'
+                f"{product_page_url}"
+                "</loc></url></urlset>"
+            ),
+            content_type="application/xml",
+            url="https://www.nb.com/sitemap-products.xml",
+        ),
+        FakeResponse(
+            text=(
+                '<script>window.__STATE__={"productPageInfo":{"symbol":"NBCR"},'
+                '"Composite Code":{"value":"4022"}};</script>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            content=_xlsx_workbook(
+                [
+                    ["Ticker", "Holding Name", "Weight (%)", "Shares", "Market Value"],
+                    ["MSFT", "Microsoft Corp", "5.20", "100", "50000"],
+                    ["AAPL", "Apple Inc", "4.80", "80", "40000"],
+                ]
+            ),
+            content_type="application/vnd.ms-excel",
+            url=detailed_holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NBCR")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.nb.com/sitemap-products.xml",
+        product_page_url,
+        detailed_holdings_url,
+    ]
+    assert [row.symbol for row in result.rows] == ["MSFT", "AAPL"]
+    assert result.rows[0].weight == Decimal("0.052")
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_sitemap_detailed_holdings_xlsx"
+    )
+    assert result.legal_metadata["source_format"] == "xlsx"
+
+
+@pytest.mark.asyncio
 async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millions(monkeypatch):
     adapter = get_holdings_adapter("astoria")
     assert adapter is not None

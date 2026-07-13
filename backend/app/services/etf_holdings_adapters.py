@@ -27943,6 +27943,139 @@ class RenaissanceCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return result
 
 
+class NeubergerBermanHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch full ETF holdings from Neuberger Berman's public ETF catalogue.
+
+    Product pages require the public US-individual audience selection.  Once
+    selected, each page exposes a Composite Code used by Neuberger's official
+    detailed-holdings workbook endpoint.
+    """
+
+    PRODUCT_SITEMAP_URL = "https://www.nb.com/sitemap-products.xml"
+    DETAIL_HOLDINGS_URL = (
+        "https://www.nb.com/api/marketing/downloadetfdetailedholdingsxls?compositecode={composite_code}"
+    )
+    _US_INDIVIDUAL_AUDIENCE = "68EAB3DC6E4C4A4FA50FBB349F6DB989|US|en"
+
+    def __init__(self, config: IssuerCsvAdapterConfig) -> None:
+        super().__init__(config)
+        self._discovered_source_urls: dict[str, str] = {}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.8500"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Neuberger Berman's public ETF product catalogue exposes the official "
+                "detailed-holdings workbook for each listed ETF."
+                if normalized_symbol
+                else "Neuberger Berman holdings require an ETF symbol."
+            ),
+            issuer_product_id=normalized_symbol or None,
+            source_url=self._discovered_source_urls.get(normalized_symbol),
+            required_identifiers=[] if normalized_symbol else ["symbol"],
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(
+                accept=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                    "application/vnd.ms-excel,application/octet-stream,*/*"
+                )
+            ),
+            "Cookie": (
+                "sc_site=neuberger; "
+                f"audience={self._US_INDIVIDUAL_AUDIENCE}; NEXT_LOCALE=en"
+            ),
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Neuberger Berman holdings require an ETF symbol.")
+
+        resolved_source_url = source_url or self._discovered_source_urls.get(normalized_symbol)
+        if not resolved_source_url:
+            resolved_source_url = await self._discover_detailed_holdings_url(normalized_symbol)
+            self._discovered_source_urls[normalized_symbol] = resolved_source_url
+
+        result = await PublicCsvHoldingsAdapter.fetch_latest(
+            self,
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id or normalized_symbol,
+            source_url=resolved_source_url,
+            identifiers=identifiers,
+        )
+        if not result.rows:
+            raise ValueError(
+                f"Neuberger Berman's detailed holdings workbook returned no holdings for {normalized_symbol}."
+            )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "issuer_product_sitemap_detailed_holdings_xlsx",
+            "terms_note": self.config.terms_note,
+        }
+        return result
+
+    async def _discover_detailed_holdings_url(self, symbol: str) -> str:
+        headers = self.source_request_headers(source_url=self.PRODUCT_SITEMAP_URL)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            sitemap_response = await client.get(
+                self.PRODUCT_SITEMAP_URL,
+                headers=headers,
+                follow_redirects=True,
+            )
+            sitemap_response.raise_for_status()
+            product_pages = re.findall(
+                r"<loc>\s*(https://www\.nb\.com/products/etfs/[^<]+)\s*</loc>",
+                sitemap_response.text,
+                re.IGNORECASE,
+            )
+            for product_page_url in product_pages:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                page_html = page_response.text
+                page_symbol_match = re.search(
+                    r'"productPageInfo"\s*:\s*\{[^}]*"symbol"\s*:\s*"([^"]+)"',
+                    page_html,
+                    re.IGNORECASE,
+                )
+                if not page_symbol_match or page_symbol_match.group(1).strip().upper() != symbol:
+                    continue
+                composite_code_match = re.search(
+                    r'"Composite Code"\s*:\s*\{\s*"value"\s*:\s*"([^"]+)"',
+                    page_html,
+                    re.IGNORECASE,
+                )
+                if not composite_code_match:
+                    raise ValueError(
+                        f"Neuberger Berman product page for {symbol} did not expose a Composite Code."
+                    )
+                return self.DETAIL_HOLDINGS_URL.format(
+                    composite_code=composite_code_match.group(1).strip()
+                )
+        raise ValueError(
+            f"Neuberger Berman's public ETF catalogue did not contain {symbol}."
+        )
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -27976,6 +28109,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         ),
         live_tested_default_route=True,
         terms_note="Invesco public product pages and holdings files may be subject to issuer terms.",
+    ),
+    "neuberger_berman": IssuerCsvAdapterConfig(
+        adapter_key="neuberger_berman",
+        source_provider="neuberger_berman",
+        source_access="issuer_public_product_sitemap_detailed_holdings_xlsx",
+        live_tested_default_route=True,
+        terms_note=(
+            "Neuberger Berman public ETF product pages and detailed holdings workbooks "
+            "may be subject to issuer terms."
+        ),
     ),
     "exchange_traded_concepts": IssuerCsvAdapterConfig(
         adapter_key="exchange_traded_concepts",
@@ -29958,6 +30101,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "miller_value": MillerValueHoldingsAdapter,
         "motley_fool": MotleyFoolHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
+        "neuberger_berman": NeubergerBermanHoldingsAdapter,
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,
         "ocean_park": OceanParkHoldingsAdapter,
