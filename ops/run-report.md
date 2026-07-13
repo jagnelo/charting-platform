@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Hypatia native ETF holdings route
+
+- Promoted `hypatia` through an isolated `HypatiaHoldingsAdapter` for `WCEO`. It posts only the
+  issuer-declared fund ID to Hypatia's public FilePoint holdings endpoint, retains native ticker,
+  CUSIP, shares, market value, weight, and currency fields, and treats issuer-reported currency
+  balances as cash rather than tradable securities.
+- Validation: full adapter unit suite `221 passed`; focused live WCEO route, strict live-provider
+  coverage invariant, and provider matrix `3 passed`; targeted Ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `181` native/live-backed, `164` remaining.
+
 ## 2026-07-13 - Native provider factory integrity
 
 - Prevented generated recognition-only adapters from being marked native/live-backed: the factory

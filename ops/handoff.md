@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Latest checkpoint - 2026-07-13T19:05Z
+
+- Promoted `hypatia` through an isolated `HypatiaHoldingsAdapter` for the Hypatia Women CEO ETF
+  (`WCEO`). The adapter uses the fund ID declared by Hypatia's own product page to request the
+  issuer's FilePoint JSON holdings feed, preserves ticker/CUSIP/shares/value/weight/currency data,
+  and classifies currency balances as non-tradable cash.
+- Validation: full adapter unit suite `221 passed`; focused real WCEO route plus the strict
+  live-test coverage invariant and provider matrix `3 passed`; targeted Ruff and
+  `git diff --check` passed. Registry count: `345` registered, `181` native/live-backed,
+  `164` remaining. SEC EDGAR remains fallback-only.
+- Next action: continue first-party source discovery for unpromoted material issuers, starting
+  with the remaining priority access blockers and reachable long-tail providers.
+
 ## Latest checkpoint - 2026-07-13T18:37Z
 
 - Hardened the native-provider boundary: `_issuer_adapter_from_config` now rejects any provider
