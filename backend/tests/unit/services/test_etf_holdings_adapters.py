@@ -266,6 +266,7 @@ async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_ref
         FakeResponse(
             text="\n".join(
                 [
+                    '<script>console.log("Found holdings data for date: 20260710");</script>',
                     '"Ticker","Company Name","% of Net Assets","Security Identifier","Quantity"',
                     '"700 HK","Tencent Holdings Ltd.","7.70%","BMMV2K8","49,089"',
                     '"BABA","Alibaba Group Holding Ltd ADR","3.00%","BK6YZP5","2,000"',

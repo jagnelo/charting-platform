@@ -3781,8 +3781,13 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @classmethod
     def _parse_holdings_csv(cls, raw_csv: str, fund_symbol: str) -> list[CanonicalHoldingRow]:
+        # Rayliant currently prepends browser diagnostic script tags before the
+        # otherwise standard CSV payload. Start at the actual header row.
+        header_match = re.search(r'"?Ticker"?,"?Company Name"?,', raw_csv)
+        if not header_match:
+            return []
         rows: list[CanonicalHoldingRow] = []
-        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv[header_match.start() :].strip())), start=1):
             source_ticker = _clean(item.get("Ticker"))
             name = _clean(item.get("Company Name"))
             identifier = _clean(item.get("Security Identifier"))
