@@ -2,6 +2,97 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Guinness Atkinson issuer-route audit
+
+- Direct backend requests to the official `ADIV` product page, ETF catalogue, resources page,
+  WordPress API, sitemap, and uploads root all return the same Cloudflare `403` challenge.
+  No complete issuer-native artifact can be fetched or live-tested from this environment, so
+  `guinness_atkinson` remains fallback-only rather than receiving a misleading adapter.
+
+## 2026-07-13 - RiverNorth native ETF holdings route
+
+- Promoted `river_north` through an isolated redirect-aware adapter for `FLDZ`. It begins at the
+  official RiverNorth product URL, verifies that it resolves specifically to the matching
+  TrueShares ETF page, then discovers and parses the issuer-distributed public holdings CSV.
+  This retains an identity-specific RiverNorth integration rather than a generic alias or SEC
+  primary route.
+- Validation: focused static route/parser tests `2 passed`; real opt-in FLDZ route plus provider
+  matrix and concrete-live-route invariant `3 passed`; full adapter unit suite `226 passed`;
+  targeted Ruff and diff check passed. Current truthful count: `345` registered, `183` native,
+  `162` fallback-only.
+
+## 2026-07-13 - Alpha Architect native transport repair
+
+- QVAL is a real first-party complete-holdings route. The issuer's edge rejects `httpx` but accepts
+  `requests` with the same browser headers, so the isolated adapter now retries only this provider
+  through `requests` after an HTTP `403`.
+- Restored `etf_architect` to native/live-backed status and added a static fallback regression plus
+  the existing opt-in live QVAL test. Current truthful count: `345` registered, `182` native,
+  `163` fallback-only.
+- Validation: full adapter suite `225 passed`; focused static fallback regression `2 passed`;
+  real QVAL route `1 passed`; strict provider matrix and concrete-route invariant `2 passed`;
+  targeted Ruff and diff checks passed.
+
+## 2026-07-13 - WisdomTree current-route retry
+
+- Retried the current official US DXJ product URL and public holdings-query variants through
+  browser-header `requests`; each remains a `403` issuer bot-protection response. WisdomTree
+  remains fallback-only rather than being represented as a working native route.
+
+## 2026-07-13 - ETF Architect live-route correction
+
+- The live `QVAL` route returns HTTP `403` from Alpha Architect's current public product page,
+  including browser-like headers; its first-party WordPress endpoint is also blocked. Search
+  indexing is not a backend-ingestable source.
+- Demoted `etf_architect` from native/live-backed support while retaining the provider-specific
+  parser and static regression for future re-promotion. Current truthful count: `345` registered,
+  `181` native/live-backed, `164` fallback-only.
+
+## 2026-07-13 - Aptus live-route correction
+
+- A bounded real-provider sweep found Aptus `DRSK` returning HTTP `403`. Its public product,
+  WordPress API, AMP, and alternate-output routes all return the same bot-protection response.
+  No complete issuer-native fallback artifact is currently executable.
+- Removed `aptus` from native/live-backed support rather than advertising a broken integration;
+  retained its isolated parser and static regression for future re-promotion.
+- Validation: full adapter suite `224 passed`; opt-in live provider matrix and concrete-route
+  manifest invariant `2 passed`; targeted Ruff passed. Current truthful count: `345` registered,
+  `182` native/live-backed, `163` remaining.
+
+## 2026-07-13 - Priority native-route access audit
+
+- Retried the unresolved material providers using their current official public pages and
+  browser-like backend requests. WisdomTree DXJ and SoFi SFY return bot-protection HTTP `403`.
+  Thrivent offers top-holdings/periodic documents but no complete current issuer-native holdings
+  artifact.
+- These remain fallback-only and are not counted as native support. Search-indexed summaries are
+  not a usable ingestion implementation. The reachable provider queue continues.
+
+## 2026-07-13 - Hull Tactical Funds native ETF holdings route
+
+- Promoted `hull` through an isolated `HullHoldingsAdapter` for `HTUS`. The adapter first
+  verifies Hull's public HTUS product page, then parses the issuer's full current holdings CSV.
+  It keeps native ticker/CUSIP/shares/value/weight data while classifying issuer currencies and
+  sweep balances as cash, index futures as futures, SPXW contracts as options, and Treasury bills
+  as fixed income rather than materializing them as ordinary tradable instruments.
+- Validation: static parser regression `1 passed`; opt-in live HTUS issuer route `1 passed`;
+  full adapter unit suite `224 passed`; strict provider matrix and concrete-live-route invariant
+  `2 passed`; targeted Ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `183` native/live-backed, `162` remaining.
+
+## 2026-07-13 - WisdomTree and Jensen native-route access audit
+
+- Revalidated WisdomTree's current official DXJ product URLs and a browser-like direct request
+  profile. Each returned the issuer's Cloudflare `403` challenge. An older media-style holdings
+  path instead returned a Next.js `404` shell, so it is not a usable complete-holdings artifact.
+- Jensen's public JGRW ETF page is described in search indexing as having a daily holdings iframe,
+  but direct backend retrieval now returns `403` and does not expose the iframe source. Neither
+  provider was promoted. SEC EDGAR remains fallback-only.
+- Current truthful count remains `345` registered, `182` native/live-backed, and `163` remaining.
+- Validation: `RUN_LIVE_ETF_HOLDINGS_TESTS=1` provider matrix and concrete-live-route manifest
+  invariant both passed (`2 passed`). This checks mapping completeness, not current network health
+  for every provider; the complete live sweep remains pending.
+
 ## 2026-07-13 - Neuberger Berman native ETF holdings route
 
 - Promoted `neuberger_berman` through an isolated official product-sitemap route. The adapter

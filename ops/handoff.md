@@ -1,5 +1,120 @@
 # Active Handoff
 
+## Guinness Atkinson source audit - 2026-07-13T21:25Z
+
+- Retried the issuer's official `ADIV` product page, ETF catalogue, fund-resources page,
+  WordPress API, sitemap, and uploads root with browser-like backend requests. Every endpoint
+  returns the same Cloudflare `403` challenge, so no complete machine-readable issuer-native
+  holdings artifact is currently executable.
+- `guinness_atkinson` remains fallback-only and uncounted. Do not replace this with an SEC or
+  third-party primary route. Continue the reachable issuer queue, returning to Guinness Atkinson
+  when its official delivery path becomes backend-readable.
+
+## RiverNorth native ETF holdings route - 2026-07-13T21:21Z
+
+- Promoted `river_north` through its own redirect-aware native adapter. RiverNorth's public
+  `FLDZ` product page is verified to resolve to its official TrueShares distribution page; the
+  adapter validates that exact destination before discovering and parsing the fund-specific public
+  holdings CSV. This is not a generic or SEC route.
+- Validation: focused static parser/redirect regression `2 passed`; real opt-in FLDZ route plus
+  the live-provider matrix and concrete-route invariant `3 passed`; complete adapter unit suite
+  `226 passed`; targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `183` native/live-backed, and `162` fallback-only.
+  Continue source discovery with a remaining issuer that exposes a reachable complete holdings
+  artifact; keep WisdomTree, SoFi, Thrivent, and Aptus demoted until their issuer routes work.
+
+## Alpha Architect transport repair - 2026-07-13T22:40Z
+
+- The `QVAL` issuer product page returns HTTP `403` to `httpx`, but succeeds through `requests`
+  with the same browser-like headers. This is an issuer-side TLS-fingerprint difference, not an
+  absent holdings route.
+- `ETFArchitectHoldingsAdapter` now retries only its own page request through `requests` after an
+  `httpx` 403, preserving the existing first-party product-page table parser. It is restored to
+  native/live-backed status with a static regression for the fallback and a real opt-in QVAL test.
+- Validation: full adapter unit suite `225 passed`; focused static transport regression `2 passed`;
+  focused real opt-in QVAL route `1 passed`; manifest and concrete-route invariant `2 passed`;
+  targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `182` native/live-backed, and `163` fallback-only.
+
+## Priority-source retry - 2026-07-13T22:50Z
+
+- Retried WisdomTree's current official US DXJ path, `https://www.wisdomtree.com/us/products/equity/dxj`,
+  plus the publicly suggested holdings-query variants through `requests` with browser-like headers.
+  All responses remain issuer-side `403` bot-protection pages.
+- WisdomTree therefore remains fallback-only. The same provider-local transport repair that works
+  for Alpha Architect does not work here, and no complete executable first-party holdings artifact
+  has been found in this pass.
+
+## Live-route correction - 2026-07-13T22:25Z
+
+- The real opt-in `QVAL` test confirmed Alpha Architect / ETF Architect's current issuer product
+  page returns HTTP `403`. Browser-like headers do not change the result, and the first-party
+  WordPress endpoint is also blocked. Search-indexed holdings are not an executable ingestion
+  route.
+- `etf_architect` has been demoted from the native/live-backed manifest. Its isolated adapter and
+  parser regression remain in place for re-promotion if the issuer provides an executable complete
+  first-party route.
+- Current strict state is `345` registered, `181` native/live-backed, and `164` fallback-only.
+  Next action: run the manifest validation after this correction, then continue the bounded queue.
+
+## Live-route correction - 2026-07-13T22:05Z
+
+- The bounded live-provider sweep found that Aptus's `DRSK` product page now returns HTTP `403`.
+  The official product page, WordPress API, AMP, and alternate-output forms all returned the
+  same access block; no complete issuer-native fallback artifact was found.
+- `aptus` has been removed from the native/live-backed manifest and count rather than leaving a
+  broken route represented as supported. Its dedicated adapter and static parser regression remain
+  available for re-promotion when the issuer route becomes executable.
+- Validation: full adapter unit suite `224 passed`; live provider matrix plus concrete-live-route
+  invariant `2 passed`; targeted Ruff passed. Truthful state is `345` registered, `182` native,
+  `163` fallback-only.
+
+## Source audit - 2026-07-13T21:45Z
+
+- Retried remaining priority issuers before continuing the general provider queue:
+  `wisdomtree` DXJ and `sofi` SFY return bot-protection HTTP `403` responses even with
+  browser-like backend headers. `thrivent` currently exposes top-holdings/periodic documents,
+  but no complete current issuer-native holdings artifact.
+- None are promoted or counted as supported. Search-indexed summaries are not executable
+  ingestion routes, and SEC EDGAR remains fallback-only.
+- The complete native-provider live sweep remains a required gate. Its runner needs to be
+  resumed in bounded segments because this execution environment terminates the long command
+  before pytest writes its final failure summary.
+
+## Latest checkpoint - 2026-07-13T21:30Z
+
+- Promoted `hull` through an isolated `HullHoldingsAdapter` for `HTUS`. The adapter verifies
+  Hull Tactical Funds' public HTUS product page before fetching the issuer's complete current
+  holdings CSV; it retains the native as-of date, CUSIPs, weights, shares, values, currency and
+  long/short data, and explicitly keeps currencies, sweep balances, futures, options and Treasury
+  bills non-tradable.
+- Validation: full adapter unit suite `224 passed`; focused opt-in live HTUS route `1 passed`;
+  strict live-provider coverage invariant and provider matrix `2 passed`; targeted Ruff and
+  `git diff --check` passed. Hull has both static parsing coverage and an explicit live route
+  mapping; SEC is not its primary route.
+- Current truthful state: `345` registered providers, `183` native/live-backed, and `162`
+  fallback-only. Continue the remaining issuer queue, retaining WisdomTree, SoFi, Thrivent, and
+  Jensen as separately documented access-blocked source investigations.
+
+## Source audit - 2026-07-13T21:00Z
+
+- Revalidated the highest-priority unresolved route, WisdomTree, against both current public DXJ
+  product URLs and a browser-like request profile. Every request returned the issuer's Cloudflare
+  challenge (`403`); an older media-style download path returned a Next.js `404` shell. No
+  complete backend-reachable issuer-native holdings artifact was found, so `wisdomtree` remains
+  fallback-only and must not be promoted through SEC EDGAR.
+- Rechecked Jensen's current official JGRW ETF surface. Search indexing confirms that the page
+  advertises a daily holdings iframe, but direct backend retrieval now returns `403`; the actual
+  iframe source remains unavailable. `jensen` likewise remains fallback-only until a complete
+  issuer-native route can be verified and live tested.
+- Current truthful state is unchanged: `345` registered providers, `182` native/live-backed,
+  `163` fallback-only. Continue the queue with another reachable unpromoted issuer after retaining
+  these source-access findings.
+- Re-ran the live-provider matrix and the concrete-live-route manifest invariant with
+  `RUN_LIVE_ETF_HOLDINGS_TESTS=1`: `2 passed`. This proves every currently promoted provider has
+  an explicit native class and a corresponding live-test case. It does not replace the still-pending
+  full network sweep of all issuer routes.
+
 ## Latest checkpoint - 2026-07-13T20:25Z
 
 - Promoted `neuberger_berman` through an isolated `NeubergerBermanHoldingsAdapter`. It reads
