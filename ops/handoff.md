@@ -5,6 +5,25 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-13T17:05Z
+
+- Promoted `eagle_capital` through an isolated `EagleCapitalHoldingsAdapter` for the Eagle
+  Capital Select Equity ETF (`EAGL`). The adapter calls the issuer-operated daily
+  creation-basket JSON endpoint that is linked directly from Eagle's own daily-holdings page,
+  validates the response fund identity, normalizes provider tickers (for example `AMZN US`),
+  preserves CUSIPs, shares, weights, and the basket date, and keeps non-security cash rows
+  non-tradable. SEC EDGAR is not the primary route.
+- Validation: full adapter unit suite `217 passed`; focused live EAGL route plus the strict
+  live-test coverage invariant and provider matrix `3 passed`; targeted Ruff and
+  `git diff --check` passed. Registry count: `345` registered, `177` native/live-backed,
+  `168` remaining.
+- Source audits: `canary` publishes current holdings on official product pages, but the
+  canonical endpoint returns Cloudflare `403` to backend retrieval; it remains unpromoted.
+  `truemark` does not resolve to a US ETF issuer or an ETF holdings publisher and remains an
+  intentionally unpromoted registry identity.
+- Next action: continue the unpromoted issuer queue, prioritizing reachable issuer-native routes
+  while preserving the separate audits for access-blocked or non-issuer identities.
+
 ## Latest checkpoint - 2026-07-13T00:10Z
 
 - Priority-source retry: WisdomTree's current canonical US product URLs, including DXJ, remain

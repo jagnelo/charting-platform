@@ -2,6 +2,25 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Eagle Capital native ETF holdings route
+
+- Promoted `eagle_capital` with an isolated `EagleCapitalHoldingsAdapter` for `EAGL`. It uses
+  Eagle's issuer-operated daily creation-basket JSON endpoint, which is directly linked from
+  the official daily-holdings page. The implementation validates `EAGL` identity, normalizes
+  source tickers, preserves CUSIPs/shares/weights/as-of date, and does not materialize cash as a
+  tradable instrument.
+- Validation: full adapter unit suite `217 passed`; focused live EAGL route plus live-test
+  coverage invariant and provider matrix `3 passed`; targeted Ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `177` native/live-backed, `168` remaining.
+
+## 2026-07-13 - Canary and TruMark source audits
+
+- Canary's official product pages publicly display current holdings, but canonical direct page
+  retrieval is Cloudflare-blocked (`403`) from the backend environment. It remains unpromoted
+  until an executable issuer-native route can pass a live test.
+- `truemark` does not identify a US ETF issuer or a distinct ETF holdings publisher, so no
+  misleading adapter was added.
+
 ## 2026-07-13 - WisdomTree priority route retry
 
 - Retried WisdomTree's current canonical public DXJ routes with browser-like direct requests.
