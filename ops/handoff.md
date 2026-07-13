@@ -4677,3 +4677,8 @@
   access block to this backend environment, Dana's official ETF pages return a Cloudflare block,
   and Goose Hollow's public site returns ModSecurity `406`. None were promoted; a generic or SEC
   fallback must not be misrepresented as native provider support.
+- 2026-07-13: promoted `thor` through an isolated `ThorHoldingsAdapter`. It derives the
+  page-specific Filepoint feed ID from THOR's public THIR product page, verifies the page and
+  payload identities, and parses full dated holdings including identifiers, weights, currency,
+  cash, and derivatives. Static and opt-in live tests passed. Strict provider count: `345`
+  registered, `179` native/live-backed, `166` remaining; SEC EDGAR remains fallback-only.

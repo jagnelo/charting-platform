@@ -10131,3 +10131,13 @@ Append a short entry after each worker session.
 - `goose_hollow`: official site returns ModSecurity `406` to direct backend retrieval.
 - None were promoted. These are provider-source accessibility blockers; SEC EDGAR remains a
   fallback only and does not satisfy the native provider integration goal.
+# ETF Holdings Provider Integration - 2026-07-13T17:59Z
+
+- Promoted `thor` to native/live-backed support through a dedicated `ThorHoldingsAdapter` for
+  THIR. The adapter reads the public THOR product page's feed ID, posts only that ID to the same
+  Filepoint holdings endpoint used by the page, identity-validates page and response payloads,
+  and parses dated identifiers, weights, values, currency, cash, fixed-income, and derivative rows.
+- Validation passed: full adapter unit suite (`219 passed`), focused real THIR route, concrete
+  live-route coverage invariant, and provider matrix (`3 passed`), targeted Ruff, and diff check.
+- Strict count: `345` registered providers, `179` native/live-backed, `166` remaining. SEC
+  EDGAR remains fallback-only and is not counted as primary provider support.

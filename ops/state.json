@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T17:17:37Z",
-    "last_commit": "e5d5df4",
+    "last_handoff_at": "2026-07-13T17:59:03Z",
+    "last_commit": "f577d6a",
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-13 targeted Ruff check for Core Alternative native adapter and live-test coverage manifest)",
-        "backend_tests": "passed Core Alternative static and live issuer-route validation (2026-07-13: full adapter unit suite 218 passed; focused live CCOR route, manifest invariant, and provider matrix 3 passed; registry is 345 registered provider keys, 178 native/live-backed providers, and 167 remaining).",
+        "backend_lint": "passed (2026-07-13 targeted Ruff check for THOR native adapter and live-test coverage manifest)",
+        "backend_tests": "passed THOR static and live issuer-route validation (2026-07-13: full adapter unit suite 219 passed; focused live THIR route, manifest invariant, and provider matrix 3 passed; registry is 345 registered provider keys, 179 native/live-backed providers, and 166 remaining).",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T17:59Z THOR native route: promoted thor through an isolated THIR public product-page-scoped Filepoint holdings adapter. Full adapter unit suite 219 passed; focused live THIR route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 179 native/live-backed, and 166 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T17:17Z Source audit: Praxis official holdings pages are geographically blocked, Dana official ETF pages are Cloudflare-blocked, and Goose Hollow returns ModSecurity 406 to direct backend retrieval. None were promoted or counted as native support; SEC EDGAR remains fallback-only.",
         "2026-07-13T17:13Z Core Alternative native route: promoted core_alternative through an isolated CCOR dated daily holdings CSV adapter. Full adapter unit suite 218 passed; focused live CCOR route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 178 native/live-backed, and 167 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T17:05Z Eagle Capital native route: promoted eagle_capital through an isolated EAGL daily creation-basket JSON adapter. Full adapter unit suite 217 passed; focused live EAGL route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 177 native/live-backed, and 168 remaining. Canary is Cloudflare-blocked; truemark is not a US ETF issuer.",
