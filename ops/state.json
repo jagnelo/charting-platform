@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T00:45Z Priority-source retry: current WisdomTree DXJ product URLs return Cloudflare 403 under browser-like direct requests; an obsolete media-style holdings guess was invalid. Search indexing confirms a public holdings surface, but no backend-reachable complete issuer-native endpoint was found. WisdomTree remains unpromoted; SEC is fallback-only.",
         "2026-07-13T00:35Z Added a programmatic invariant requiring every LIVE_BACKED_ISSUER_ADAPTERS member to map to a concrete issuer-route live test. It caught the missing Dakota Wealth mapping, which is now covered by an opt-in live DAK product-page test. Manifest, provider matrix, focused live Dakota route, full adapter unit suite, lint, and diff checks passed.",
         "2026-07-13T00:10Z Build native route: promoted build through an isolated BFIX issuer-product-page holdings adapter. Full adapter unit suite 216 passed; focused live BFIX plus provider matrix passed. Strict count is 345 registered, 176 native/live-backed, 169 remaining; SEC is fallback-only.",
         "2026-07-12T18:10Z Source audit: belpointe maps to Belpointe OZ (OZ), a publicly traded qualified-opportunity-zone real-estate vehicle, not a US ETF issuer. Its manager's 13F is not ETF composition data; it remains unpromoted.",

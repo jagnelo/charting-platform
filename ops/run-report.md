@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - WisdomTree priority route retry
+
+- Retried WisdomTree's current canonical public DXJ routes with browser-like direct requests.
+  Both product URLs returned Cloudflare `403`; an older media-style holdings path was also not a
+  valid current artifact.
+- Search indexing confirms that public pages expose a holdings surface, but this is insufficient
+  for a reliable backend integration. `wisdomtree` remains unpromoted pending a reachable official
+  complete-holdings route; SEC is not substituted as primary support.
+
 ## 2026-07-13 - ETF provider live-test coverage manifest
 
 - Added a programmatic live-test coverage invariant: the concrete issuer-route tests derived

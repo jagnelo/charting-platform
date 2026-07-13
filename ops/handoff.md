@@ -7,6 +7,12 @@
 
 ## Latest checkpoint - 2026-07-13T00:10Z
 
+- Priority-source retry: WisdomTree's current canonical US product URLs, including DXJ, remain
+  blocked by Cloudflare (`403`) under browser-like direct backend requests. Public search indexing
+  confirms the pages publish a holdings surface, but no backend-reachable complete issuer-native
+  endpoint was found in this retry. Keep `wisdomtree` unpromoted and continue the remaining
+  priority issuer queue rather than routing it through SEC as primary support.
+
 - Added a live-test coverage manifest invariant. It derives provider coverage from the shared
   parameterized live tests and explicit annotations on bespoke issuer tests, then requires that
   set to exactly equal `LIVE_BACKED_ISSUER_ADAPTERS`. The invariant caught an omitted Dakota
