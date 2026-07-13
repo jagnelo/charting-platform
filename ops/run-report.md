@@ -11,6 +11,14 @@ Append a short entry after each worker session.
   `222 passed`; targeted Ruff and `git diff --check` passed.
 - Current truthful count: `345` registered, `180` native/live-backed, `165` remaining.
 
+## 2026-07-13 - PIMCO native-route audit
+
+- Confirmed through PIMCO's official US ETF catalogue and disclosure materials that daily
+  portfolio-holdings disclosure is intended, but current discoverable MINT product URL patterns
+  return a generic `404` shell and reveal no backend-retrievable complete holdings artifact.
+- `pacific_investments` remains fallback-only pending an executable issuer-native route; no generic
+  or SEC-backed route was mislabeled as native support.
+
 ## 2026-07-13 - Infrastructure Capital native ETF holdings route
 
 - Promoted `infrastructure_capital` through an isolated public ICAP full-holdings XLS adapter.

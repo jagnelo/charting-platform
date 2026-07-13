@@ -15,6 +15,15 @@
 - Next action: continue first-party source discovery for material unpromoted issuers, beginning
   with PIMCO while retaining the documented priority access blockers.
 
+## Source audit - 2026-07-13T18:40Z
+
+- PIMCO's official US ETF catalogue and ETF Trust disclosure policy confirm daily portfolio
+  holdings disclosure. However, the presently discoverable MINT product URL patterns return the
+  issuer's generic HTTP `404` shell, not a fund-specific holdings payload, download, or executable
+  API route. The catalogue itself does not disclose a callable complete-holdings endpoint.
+- `pacific_investments` remains unpromoted. Do not substitute SEC as native support; continue
+  source discovery or move to the next reachable issuer while retaining this audit finding.
+
 ## Latest checkpoint - 2026-07-13T18:23Z
 
 - Promoted `infrastructure_capital` through an isolated `InfrastructureCapitalHoldingsAdapter`
