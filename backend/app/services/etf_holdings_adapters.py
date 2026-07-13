@@ -26979,6 +26979,148 @@ class SprottHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class CoreAlternativeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Core Alternative Capital's daily CCOR holdings CSV files."""
+
+    FUND_SYMBOL = "CCOR"
+    holdings_url_template = (
+        "https://www.corealtfunds.com/assets/data/"
+        "FilepointCoreAltCap.KX.KX_Holdings_{date_code}.csv"
+    )
+    max_lookback_days = 15
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if normalized_symbol == self.FUND_SYMBOL else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "Core Alternative Capital publishes CCOR's complete daily holdings CSV."
+                if normalized_symbol == self.FUND_SYMBOL
+                else "Core Alternative Capital's public daily holdings route currently covers CCOR only."
+            ),
+            source_url=self.holdings_url_template,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if normalized_symbol != self.FUND_SYMBOL:
+            raise ValueError("Core Alternative Capital's public daily holdings route currently supports CCOR only.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            for offset in range(self.max_lookback_days):
+                candidate_date = date.today() - timedelta(days=offset)
+                candidate_url = self.holdings_url_template.format(
+                    date_code=candidate_date.strftime("%m%d%Y")
+                )
+                response = await client.get(
+                    candidate_url,
+                    headers=_holdings_request_headers(accept="text/csv,application/csv,*/*"),
+                    follow_redirects=True,
+                )
+                if response.status_code == 404:
+                    continue
+                response.raise_for_status()
+                rows, composition_date = self._parse_daily_holdings(response.text, symbol=normalized_symbol)
+                if not rows:
+                    raise ValueError(
+                        "Core Alternative Capital daily holdings CSV returned no CCOR holdings."
+                    )
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=response.text,
+                    source_url=str(response.url),
+                    source_identifier=normalized_symbol,
+                    legal_metadata={
+                        "source_access": self.config.source_access,
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "csv",
+                        "route_resolution": "core_alternative_dated_daily_holdings_csv",
+                        "source_quality": "issuer_reported_daily_holdings",
+                        "snapshot_provenance": "issuer_native_daily_holdings_csv",
+                        "composition_date": composition_date.isoformat() if composition_date else None,
+                        "as_of_date": composition_date.isoformat() if composition_date else None,
+                        "terms_note": self.config.terms_note,
+                    },
+                )
+        raise ValueError(
+            "Core Alternative Capital did not publish a CCOR daily holdings file within the last "
+            f"{self.max_lookback_days} days."
+        )
+
+    @classmethod
+    def _parse_daily_holdings(
+        cls,
+        text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(text))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(reader, start=1):
+            account = _clean(item.get("Account"))
+            if account and account.upper() != symbol:
+                continue
+            row_date = cls._parse_as_of_date(item.get("Date"))
+            composition_date = composition_date or row_date
+            ticker = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            cusip = _clean(item.get("CUSIP"))
+            shares = _decimal(item.get("Shares"))
+            market_value = _decimal(item.get("MarketValue"))
+            # The issuer emits percentage-suffixed values (for example, "2.95%").
+            # _decimal already converts those to the canonical fractional weight.
+            weight = _decimal(item.get("Weightings"))
+            is_cash = (ticker or "").upper() in {"CASH", "USD"} or bool(
+                _clean(item.get("MoneyMarketFlag"))
+            )
+            if not any([ticker, name, cusip, shares, market_value, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{symbol}:{row_date.isoformat() if row_date else 'current'}:"
+                        f"{index}:{cusip or ticker or name or 'holding'}"
+                    ),
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class EagleCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Eagle Capital's daily EAGL creation-basket holdings JSON."""
 
@@ -27832,6 +27974,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         ),
         live_tested_default_route=True,
         terms_note="Eagle Capital public daily creation-basket holdings data may be subject to issuer terms.",
+    ),
+    "core_alternative": IssuerCsvAdapterConfig(
+        adapter_key="core_alternative",
+        source_provider="core_alternative",
+        source_access="issuer_public_dated_daily_holdings_csv",
+        url_templates=(
+            "https://www.corealtfunds.com/assets/data/"
+            "FilepointCoreAltCap.KX.KX_Holdings_{date_code}.csv",
+        ),
+        product_page_templates=(
+            "https://www.corealtfunds.com/CCOR-full-holdings.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="Core Alternative Capital public daily holdings CSV files may be subject to issuer terms.",
     ),
     "capital_group": IssuerCsvAdapterConfig(
         adapter_key="capital_group",
@@ -29204,6 +29360,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "deepwater": DeepwaterHoldingsAdapter,
         "dhandho": DhandhoHoldingsAdapter,
         "eagle_capital": EagleCapitalHoldingsAdapter,
+        "core_alternative": CoreAlternativeHoldingsAdapter,
         "emles": EMLesHoldingsAdapter,
         "acp_horizon": ACPHorizonHoldingsAdapter,
         "advent_capital": AdventCapitalHoldingsAdapter,

@@ -7965,6 +7965,60 @@ async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_core_alternative_adapter_retries_daily_ccor_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("core_alternative")
+    assert adapter is not None
+    csv_text = "\n".join([
+        (
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+            "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag"
+        ),
+        (
+            "07/10/2026,CCOR,AAPL,037833100,Apple Inc,2567,315.32,809426.44,2.95%,"
+            "27431897.76,1060002,106,"
+        ),
+        (
+            "07/10/2026,CCOR,CASH,CASH,Cash,100,1,100,0.01%,27431897.76,1060002,106,1"
+        ),
+        (
+            "07/10/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,180,1800,20%,10000,100,1,"
+        ),
+    ])
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="not found", content_type="text/html", status_code=404),
+        FakeResponse(text=csv_text, content_type="text/csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    MockDate.today_value = date(2026, 7, 11)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+
+    result = await adapter.fetch_latest(symbol="CCOR")
+
+    requested_urls = [request[0] for request in FakeAsyncClient.requested]
+    assert requested_urls == [
+        (
+            "https://www.corealtfunds.com/assets/data/"
+            "FilepointCoreAltCap.KX.KX_Holdings_07112026.csv"
+        ),
+        (
+            "https://www.corealtfunds.com/assets/data/"
+            "FilepointCoreAltCap.KX.KX_Holdings_07102026.csv"
+        ),
+    ]
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "AAPL"
+    assert equity_row.cusip == "037833100"
+    assert equity_row.weight == Decimal("0.0295")
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == (
+        "core_alternative_dated_daily_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eagle_capital_adapter_parses_daily_creation_basket_json(monkeypatch):
     adapter = get_holdings_adapter("eagle_capital")
     assert adapter is not None

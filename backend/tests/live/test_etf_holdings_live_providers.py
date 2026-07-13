@@ -80,6 +80,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "diamond_hill",
     "dimensional",
     "dhandho",
+    "core_alternative",
     "eagle_capital",
     "emles",
     "direxion",
@@ -1562,6 +1563,23 @@ async def test_live_eagle_capital_daily_creation_basket_json():
 
     _assert_live_holdings_result(result, adapter_key="eagle_capital", min_rows=20)
     assert result.legal_metadata["route_resolution"] == "eagle_capital_daily_holdings_json"
+    assert result.legal_metadata["composition_date"]
+    assert result.rows[0].cusip
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("core_alternative")
+async def test_live_core_alternative_dated_daily_holdings_csv():
+    adapter = get_holdings_adapter("core_alternative")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="CCOR")
+
+    _assert_live_holdings_result(result, adapter_key="core_alternative", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "core_alternative_dated_daily_holdings_csv"
+    )
     assert result.legal_metadata["composition_date"]
     assert result.rows[0].cusip
 
