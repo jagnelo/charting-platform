@@ -10,6 +10,12 @@ Append a short entry after each worker session.
 - No duplicate adapter was added: doing so would misrepresent an ownership identity as a separate
   issuer route and could create duplicate snapshots.
 
+## 2026-07-12 - Belpointe issuer-identity audit
+
+- `belpointe` maps to Belpointe OZ (`OZ`), a qualified-opportunity-zone real-estate vehicle, not
+  an ETF issuer. Its manager's 13F reports are not ETF composition data.
+- No adapter was added because the registered identity does not own a US ETF holdings source.
+
 ## 2026-07-12 - Artemis / ARS route access audit
 
 - Direct retrieval of the official AFOS page is blocked by Cloudflare in the backend environment.

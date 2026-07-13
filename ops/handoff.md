@@ -34,6 +34,14 @@
 - It remains unpromoted intentionally: adding a second BCP CC adapter would duplicate First Eagle
   data and incorrectly imply that BCP CC operates a separate public holdings route.
 
+## Source audit - 2026-07-12T18:10Z
+
+- `belpointe` resolves to Belpointe OZ (`OZ`), a publicly traded qualified-opportunity-zone real
+  estate vehicle, not a US ETF issuer. Belpointe Asset Management's reported 13F portfolio is
+  likewise not an ETF composition feed.
+- It remains unpromoted: neither identity provides a distinct US ETF product universe or an
+  issuer-native ETF holdings route to integrate.
+
 ## Latest checkpoint - 2026-07-12T14:15Z
 
 - Promoted `arlington` through an isolated AQEC public issuer-linked daily holdings CSV adapter.
