@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Neuberger Berman native ETF holdings route
+
+- Promoted `neuberger_berman` through an isolated official product-sitemap route. The adapter
+  finds the requested ETF page, verifies its declared ticker, extracts Neuberger's Composite Code,
+  and downloads the issuer's detailed-holdings workbook. SEC is not the primary route.
+- Validation: focused static regression `1 passed`; focused opt-in live NBCR route `1 passed`;
+  strict live-provider coverage invariant and provider matrix `2 passed`; targeted Ruff and
+  `git diff --check` passed.
+- Current truthful count: `345` registered, `182` native/live-backed, `163` remaining.
+
 ## 2026-07-13 - Rayliant live payload regression repair
 
 - Repaired the isolated Rayliant `CNQQ` adapter after the issuer began prefixing its valid CSV

@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T20:00:00Z",
-    "last_commit": "7f5ecc2",
+    "last_handoff_at": "2026-07-13T20:25:00Z",
+    "last_commit": "5b30460",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-13 targeted Ruff check for the Rayliant parser repair)",
-        "backend_tests": "passed focused Rayliant static and issuer-live validation (2026-07-13: 1 static and 1 opt-in live test passed after handling the issuer's diagnostic script prefix). A full live-provider sweep is in progress; the structural test contract remains 345 registered provider keys, 181 native/live-backed providers, and 164 remaining.",
+        "backend_lint": "passed (2026-07-13 targeted Ruff check for the Neuberger Berman native adapter and focused tests)",
+        "backend_tests": "passed focused Neuberger Berman static and issuer-live validation (2026-07-13: 1 static and 1 opt-in live NBCR test), plus the strict live-provider coverage invariant and provider matrix. A full live-provider sweep remains required; the structural test contract is now 345 registered provider keys, 182 native/live-backed providers, and 163 remaining.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T20:25Z Neuberger Berman native route: promoted neuberger_berman through an isolated product-sitemap adapter. It uses the issuer's public US-individual audience selection, finds the requested ETF page in the official ETF catalogue, verifies its declared ticker, extracts the issuer's Composite Code, then downloads the official detailed-holdings workbook. Focused static and opt-in live NBCR tests passed, as did the strict live-provider coverage invariant, provider matrix, Ruff, and diff check. Strict count is 345 registered, 182 native/live-backed, and 163 remaining; SEC EDGAR remains fallback-only.",
         "2026-07-13T20:00Z Rayliant live-regression repair: CNQQ's public download now prepends diagnostic script tags directly before the CSV header, causing csv.DictReader to treat a script as the header and silently produce zero holdings. RayliantHoldingsAdapter now finds the real Ticker/Company Name CSV header before parsing. Static regression and opt-in live CNQQ test passed. The full live-provider sweep advanced past Rayliant; it remains the required gate for current issuer-site compatibility.",
         "2026-07-13T19:05Z Hypatia native route: promoted hypatia through an isolated WCEO public fund-scoped FilePoint holdings JSON adapter. It uses the issuer page's declared fund id, preserves ticker/CUSIP/shares/value/weight/currency data, and classifies issuer currency balances as non-tradable cash. Full adapter unit suite 221 passed; focused live WCEO route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 181 native/live-backed, and 164 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T18:40Z PIMCO source audit: the official US ETF catalogue and disclosure policy confirm daily portfolio-holdings disclosure, but discovered MINT product URL patterns currently return PIMCO's generic HTTP 404 shell and expose no fund-specific complete holdings artifact or executable API route. pacific_investments remains unpromoted; SEC EDGAR remains fallback-only while native route discovery continues.",

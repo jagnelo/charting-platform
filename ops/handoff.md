@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Latest checkpoint - 2026-07-13T20:25Z
+
+- Promoted `neuberger_berman` through an isolated `NeubergerBermanHoldingsAdapter`. It reads
+  Neuberger's public ETF product sitemap, loads the matching audience-selected product page,
+  verifies the declared ticker, extracts the issuer's Composite Code, and downloads the issuer's
+  official detailed-holdings XLSX workbook. This is a native issuer route, not a generic URL or
+  SEC-primary fallback.
+- Validation: focused static regression and real opt-in NBCR route each passed; strict
+  live-provider coverage invariant and provider matrix passed; targeted Ruff and `git diff --check`
+  passed. Feature commit: `5b30460`.
+- Current truthful state: `345` registered providers, `182` native/live-backed, `163` fallback-only.
+  The priority set remains incomplete: WisdomTree, SoFi, and Thrivent remain source-access blockers.
+
 ## Latest checkpoint - 2026-07-13T20:00Z
 
 - Repaired Rayliant's live `CNQQ` route. Its public download prepends diagnostic script tags
