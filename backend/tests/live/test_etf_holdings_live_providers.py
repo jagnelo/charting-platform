@@ -26,6 +26,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "scharf",
     "cohen_steers",
     "acquirers",
+    "infrastructure_capital",
     "acuitas",
     "aot",
     "abrdn",
@@ -1582,6 +1583,22 @@ async def test_live_core_alternative_dated_daily_holdings_csv():
         "core_alternative_dated_daily_holdings_csv"
     )
     assert result.legal_metadata["composition_date"]
+    assert result.rows[0].cusip
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("infrastructure_capital")
+async def test_live_infrastructure_capital_symbol_holdings_workbook():
+    adapter = get_holdings_adapter("infrastructure_capital")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ICAP")
+
+    _assert_live_holdings_result(result, adapter_key="infrastructure_capital", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "infrastructure_capital_symbol_holdings_xls"
+    )
     assert result.rows[0].cusip
 
 

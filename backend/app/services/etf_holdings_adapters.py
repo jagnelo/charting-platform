@@ -11350,6 +11350,107 @@ class AcquirersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return result
 
 
+class InfrastructureCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Infrastructure Capital ETF holdings from its public full-holdings workbook."""
+
+    product_page_template = "https://www.infracapfund.com/{symbol_upper}"
+    holdings_url_template = (
+        "https://www.infracapfund.com/download-holdings-usbanks.php?fund={symbol_upper}"
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del identifiers
+        if source_url and "infracapfund.com" in source_url.lower():
+            return source_url.strip()
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if not normalized_symbol:
+            return None
+        return self.holdings_url_template.format(symbol_upper=normalized_symbol)
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        return {
+            **_holdings_request_headers(accept="application/vnd.ms-excel,*/*"),
+            "Referer": self.product_page_template.format(symbol_upper="ICAP"),
+        }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        holdings_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not holdings_url:
+            raise ValueError("Infrastructure Capital needs an ETF symbol for its holdings workbook.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=holdings_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        raw_workbook = getattr(response, "content", response.text.encode())
+        if not isinstance(raw_workbook, bytes):
+            raw_workbook = str(raw_workbook).encode()
+        rows, workbook_rows = self._parse_holdings_workbook(raw_workbook)
+        if not rows:
+            raise ValueError(
+                f"Infrastructure Capital holdings workbook returned no parseable rows for {symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xls", "workbook_rows": workbook_rows},
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=(issuer_product_id or symbol).strip().upper(),
+            legal_metadata={
+                "route_resolution": "infrastructure_capital_symbol_holdings_xls",
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xls",
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "issuer_native_symbol_holdings_xls",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_workbook(raw_workbook: bytes) -> tuple[list[CanonicalHoldingRow], list[list[str]]]:
+        """Read ICA's legacy XLS export, which has recoverable OLE stream duplication."""
+
+        import xlrd  # noqa: PLC0415
+
+        workbook = xlrd.open_workbook(
+            file_contents=raw_workbook,
+            ignore_workbook_corruption=True,
+        )
+        for sheet in workbook.sheets():
+            table_rows = [
+                ["" if value is None else str(value).strip() for value in sheet.row_values(index)]
+                for index in range(sheet.nrows)
+            ]
+            rows = parse_holdings_table(table_rows)
+            if rows:
+                return rows, table_rows
+        return [], []
+
+
 class AlpsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch ALPS ETF holdings through the public product-page API proxy."""
 
@@ -28341,6 +28442,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Acquirers Funds public holdings workbooks may be subject to issuer terms.",
     ),
+    "infrastructure_capital": IssuerCsvAdapterConfig(
+        adapter_key="infrastructure_capital",
+        source_provider="infrastructure_capital",
+        source_access="issuer_public_symbol_full_holdings_xls",
+        url_templates=(
+            "https://www.infracapfund.com/download-holdings-usbanks.php?fund={symbol_upper}",
+        ),
+        product_page_templates=("https://www.infracapfund.com/{symbol_upper}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Infrastructure Capital public ETF full-holdings workbooks may be subject to issuer terms."
+        ),
+    ),
     "clearshares": IssuerCsvAdapterConfig(
         adapter_key="clearshares",
         source_provider="clearshares",
@@ -29499,6 +29613,7 @@ for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "acquirers": AcquirersHoldingsAdapter,
+        "infrastructure_capital": InfrastructureCapitalHoldingsAdapter,
         "acuitas": AcuitasHoldingsAdapter,
         "alger": AlgerHoldingsAdapter,
         "advisor_shares": AdvisorSharesHoldingsAdapter,

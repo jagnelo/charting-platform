@@ -4910,6 +4910,61 @@ async def test_acquirers_adapter_fetches_native_holdings_workbook(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_infrastructure_capital_adapter_fetches_symbol_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("infrastructure_capital")
+    assert adapter is not None
+    xls_payload = b"\xd0\xcf\x11\xe0infrastructure-capital-xls"
+
+    def fake_parse_xls(raw_workbook):
+        assert raw_workbook == xls_payload
+        return (
+            [
+                SimpleNamespace(
+                    symbol="AVGO",
+                    name="Broadcom Inc",
+                    cusip="11135F101",
+                    isin=None,
+                    sedol=None,
+                    weight=Decimal("0.0518"),
+                    shares=Decimal("100"),
+                    market_value=Decimal("20000"),
+                    currency=None,
+                    country=None,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=None,
+                    extra_data={},
+                )
+            ],
+            [["% of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"]],
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(content=xls_payload, content_type="application/vnd.ms-excel"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.InfrastructureCapitalHoldingsAdapter._parse_holdings_workbook",
+        staticmethod(fake_parse_xls),
+    )
+
+    result = await adapter.fetch_latest(symbol="ICAP", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.infracapfund.com/download-holdings-usbanks.php?fund=ICAP"
+    )
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://www.infracapfund.com/ICAP"
+    assert result.rows[0].symbol == "AVGO"
+    assert result.rows[0].cusip == "11135F101"
+    assert result.legal_metadata["route_resolution"] == (
+        "infrastructure_capital_symbol_holdings_xls"
+    )
+    assert result.legal_metadata["source_provider"] == "infrastructure_capital"
+    assert result.legal_metadata["source_format"] == "xls"
+
+
+@pytest.mark.asyncio
 async def test_clearshares_adapter_fetches_native_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("clearshares")
     assert adapter is not None
