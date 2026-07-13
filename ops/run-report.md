@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Infrastructure Capital native ETF holdings route
+
+- Promoted `infrastructure_capital` through an isolated public ICAP full-holdings XLS adapter.
+  It calls the issuer's symbol-scoped endpoint, retains native ticker/CUSIP/shares/market-value/
+  weight fields, and records the provider-specific route and provenance.
+- Infrastructure Capital's workbook contains recoverable OLE stream duplication. The adapter uses
+  a narrowly scoped corruption-tolerant `xlrd` reader rather than broadening shared parsing rules.
+- Validation: full adapter unit suite `220 passed`; focused live ICAP route plus live-test coverage
+  invariant and provider matrix `3 passed`; targeted Ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `180` native/live-backed, `165` remaining.
+
 ## 2026-07-13 - Eagle Capital native ETF holdings route
 
 - Promoted `eagle_capital` with an isolated `EagleCapitalHoldingsAdapter` for `EAGL`. It uses

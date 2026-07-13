@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T17:59:03Z",
-    "last_commit": "f577d6a",
+    "last_handoff_at": "2026-07-13T18:23:22Z",
+    "last_commit": "7cf0ce5",
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-13 targeted Ruff check for THOR native adapter and live-test coverage manifest)",
-        "backend_tests": "passed THOR static and live issuer-route validation (2026-07-13: full adapter unit suite 219 passed; focused live THIR route, manifest invariant, and provider matrix 3 passed; registry is 345 registered provider keys, 179 native/live-backed providers, and 166 remaining).",
+        "backend_lint": "passed (2026-07-13 targeted Ruff check for Infrastructure Capital native adapter and live-test coverage manifest)",
+        "backend_tests": "passed Infrastructure Capital static and live issuer-route validation (2026-07-13: full adapter unit suite 220 passed; focused live ICAP route, manifest invariant, and provider matrix 3 passed; registry is 345 registered provider keys, 180 native/live-backed providers, and 165 remaining).",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T18:23Z Infrastructure Capital native route: promoted infrastructure_capital through an isolated ICAP public full-holdings XLS adapter. The issuer workbook has recoverable OLE stream duplication, so this adapter uses xlrd's corruption-tolerant reader only for Infrastructure Capital; it preserves parsed ticker, CUSIP, shares, values, and weights. Full adapter unit suite 220 passed; focused live ICAP route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 180 native/live-backed, and 165 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T17:59Z THOR native route: promoted thor through an isolated THIR public product-page-scoped Filepoint holdings adapter. Full adapter unit suite 219 passed; focused live THIR route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 179 native/live-backed, and 166 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T17:17Z Source audit: Praxis official holdings pages are geographically blocked, Dana official ETF pages are Cloudflare-blocked, and Goose Hollow returns ModSecurity 406 to direct backend retrieval. None were promoted or counted as native support; SEC EDGAR remains fallback-only.",
         "2026-07-13T17:13Z Core Alternative native route: promoted core_alternative through an isolated CCOR dated daily holdings CSV adapter. Full adapter unit suite 218 passed; focused live CCOR route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 178 native/live-backed, and 167 remaining. SEC EDGAR remains fallback-only.",

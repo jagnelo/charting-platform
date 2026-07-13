@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Latest checkpoint - 2026-07-13T18:23Z
+
+- Promoted `infrastructure_capital` through an isolated `InfrastructureCapitalHoldingsAdapter`
+  for the Infrastructure Capital Equity Income ETF (`ICAP`). The adapter uses the issuer's own
+  product-page-linked full-holdings workbook endpoint, preserves native ticker/CUSIP/shares/value/
+  weight data, and records issuer-native provenance. SEC EDGAR is not the primary route.
+- The issuer's legacy XLS has recoverable OLE stream duplication. The adapter deliberately uses
+  `xlrd` corruption-tolerant reading only for this provider instead of weakening the shared parser.
+- Validation: full adapter unit suite `220 passed`; focused live ICAP route plus the strict
+  live-test coverage invariant and provider matrix `3 passed`; targeted Ruff and
+  `git diff --check` passed. Registry count: `345` registered, `180` native/live-backed,
+  `165` remaining.
+- Feature commit: `7cf0ce5` (`feat(etf-holdings): add Infrastructure Capital native route`).
+- Next action: continue the unpromoted issuer queue, prioritizing verifiable first-party holdings
+  routes while retaining access-blocked and non-issuer audit findings.
+
 ## Current task
 
 - ID: etf-holdings-constituents
