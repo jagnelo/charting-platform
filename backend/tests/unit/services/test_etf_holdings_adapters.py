@@ -3660,6 +3660,44 @@ async def test_cambiar_adapter_fetches_product_page_linked_workbook(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_build_adapter_fetches_issuer_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("build")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <html><body>
+              <h2>BFIX</h2><h2>Holdings</h2><p>As of: 2026-07-10</p>
+              <table>
+                <tr><th>Ticker</th><th>CUSIP</th><th>Name</th><th>Market Value</th><th>Weight</th></tr>
+                <tr><td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td>-$397,268.73</td><td>-3.17%</td></tr>
+                <tr><td>FGXXX</td><td>31846V336</td><td>First American Government Obligations Fund</td><td>$663,649.37</td><td>5.30%</td></tr>
+              </table>
+            </body></html>
+            """,
+            content_type="text/html",
+            url="https://getbuilding.com/etfs/bfix/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BFIX")
+
+    assert FakeAsyncClient.requested[0][0] == "https://getbuilding.com/etfs/bfix/"
+    assert len(result.rows) == 2
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].weight == Decimal("-0.0317")
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].cusip == "31846V336"
+    assert result.rows[1].market_value == Decimal("663649.37")
+    assert result.rows[1].weight == Decimal("0.053")
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_complete_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
 async def test_bitwise_adapter_parses_product_page_embedded_holdings(monkeypatch):
     adapter = get_holdings_adapter("bitwise")
     assert adapter is not None

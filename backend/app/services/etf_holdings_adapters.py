@@ -17891,6 +17891,94 @@ class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class BuildHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Build Asset Management's issuer-rendered ETF holdings table."""
+
+    PRODUCT_URLS = {
+        "BFIX": "https://getbuilding.com/etfs/bfix/",
+    }
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        return self.PRODUCT_URLS.get(symbol.strip().upper()) or super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = source_url or self.resolve_product_page_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers or {},
+        )
+        if not product_page_url:
+            raise ValueError(f"Build needs a configured issuer product page for {normalized_symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Build product page did not expose complete holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_holdings_table"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_complete_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(f"Build product page identity did not match requested ETF {symbol}.")
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers={"ticker", "cusip", "name", "market value", "weight"},
+        )
+        composition_match = re.search(
+            r"Holdings\s*</[^>]+>\s*.*?As\s+of:\s*(\d{4}-\d{2}-\d{2})",
+            raw_html,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        composition_date = (
+            date.fromisoformat(composition_match.group(1)) if composition_match else None
+        )
+        return rows, composition_date
+
+
 class BitwiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_product_page_url(
         self,
@@ -27317,6 +27405,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Applied Finance public ETF product pages may be subject to issuer terms.",
     ),
+    "build": IssuerCsvAdapterConfig(
+        adapter_key="build",
+        source_provider="build",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=(
+            "https://getbuilding.com/etfs/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Build Asset Management public ETF holdings pages may be subject to issuer terms.",
+    ),
     "bitwise": IssuerCsvAdapterConfig(
         adapter_key="bitwise",
         source_provider="bitwise",
@@ -28917,6 +29015,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "axs": AxsHoldingsAdapter,
         "bahl_gaynor": BahlGaynorHoldingsAdapter,
         "baron": BaronHoldingsAdapter,
+        "build": BuildHoldingsAdapter,
         "bitwise": BitwiseHoldingsAdapter,
         "bny_mellon": BnyMellonHoldingsAdapter,
         "bondbloxx": BondBloxxHoldingsAdapter,
