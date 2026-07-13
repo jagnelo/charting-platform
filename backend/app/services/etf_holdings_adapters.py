@@ -4938,19 +4938,41 @@ class ImpaxHoldingsAdapter(IssuerCsvHoldingsAdapter):
         *,
         symbol: str,
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
-        product_symbol = re.search(
-            r'componentId="[^"]+-([A-Za-z0-9]+)-HoldingsComponent-', payload
+        component_match = re.search(
+            r'(?P<variable>[A-Za-z][A-Za-z0-9_]*)\.componentId="(?:[^"]*-)?'
+            r'(?P<symbol>[A-Za-z0-9]+)-HoldingsComponent-',
+            payload,
         )
-        if product_symbol is None or product_symbol.group(1).upper() != symbol:
+        if component_match is None or component_match.group("symbol").upper() != symbol:
             raise ValueError(f"Impax product page identity did not match requested ETF {symbol}.")
+        component_variable = component_match.group("variable")
 
-        date_match = re.search(r'dg\.date="(\d{2})\\u002F(\d{2})\\u002F(\d{4})"', payload)
+        date_match = re.search(
+            rf'{re.escape(component_variable)}\.date="(\d{{2}})\\u002F'
+            r'(\d{2})\\u002F(\d{4})"',
+            payload,
+        )
+        if date_match is None:
+            date_reference_match = re.search(
+                rf'{re.escape(component_variable)}\.date=(?P<reference>[A-Za-z][A-Za-z0-9_]*);',
+                payload,
+            )
+            if date_reference_match is not None:
+                date_match = re.search(
+                    rf'{re.escape(date_reference_match.group("reference"))}="(\d{{2}})\\u002F'
+                    r'(\d{2})\\u002F(\d{4})"',
+                    payload,
+                )
         composition_date = (
             datetime.strptime("/".join(date_match.groups()), "%m/%d/%Y").date()
             if date_match
             else None
         )
-        dataset_match = re.search(r"dg\.finData=\[(.*?)\];dg\.btnLink=", payload)
+        dataset_match = re.search(
+            rf"{re.escape(component_variable)}\.finData=\[(.*?)\];"
+            rf"{re.escape(component_variable)}\.",
+            payload,
+        )
         if dataset_match is None:
             return [], composition_date
 

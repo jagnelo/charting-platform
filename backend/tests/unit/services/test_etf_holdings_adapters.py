@@ -787,6 +787,33 @@ async def test_impax_adapter_parses_issuer_server_rendered_holdings_dataset(monk
     assert result.legal_metadata["composition_date"] == "2026-07-09"
 
 
+def test_impax_adapter_parses_current_nuxt_holdings_component_payload():
+    adapter = get_holdings_adapter("impax")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_product_page(
+        "".join(
+            [
+                'aK="07\\u002F10\\u002F2026";',
+                'dh.componentId="bldximpax-bldx-BLDX-HoldingsComponent-1";',
+                'dh.finData=[',
+                '{figi:"BBG000TRJ294",ticker:"AWK",quantity:44524,description:',
+                '"AMERICAN WATER WORKS CO INC",market_value:"5,818,841.56",',
+                'percent_of_nav:"4.90%"}',
+                '];dh.downloadCSVButton=true;dh.date=aK;',
+            ]
+        ),
+        symbol="BLDX",
+    )
+
+    assert composition_date == date(2026, 7, 10)
+    assert len(rows) == 1
+    assert rows[0].symbol == "AWK"
+    assert rows[0].shares == Decimal("44524")
+    assert rows[0].market_value == Decimal("5818841.56")
+    assert rows[0].weight == Decimal("0.049")
+
+
 @pytest.mark.asyncio
 async def test_bbh_adapter_parses_complete_daily_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("brown_brothers_harriman")
