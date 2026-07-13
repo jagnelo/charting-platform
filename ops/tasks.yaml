@@ -11,6 +11,7 @@ tasks:
     definition_of_done:
       - Every registered issuer has an isolated provider-specific holdings implementation
       - Every provider has static and opt-in live coverage for a concrete issuer route
+      - The live test suite programmatically asserts that every native/live-backed provider has a concrete issuer-route test
       - SEC EDGAR is only a fallback path
       - Handoff and validation evidence are current
     validation:

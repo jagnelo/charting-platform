@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - ETF provider live-test coverage manifest
+
+- Added a programmatic live-test coverage invariant: the concrete issuer-route tests derived
+  from shared parameterized cases and bespoke test annotations must exactly equal
+  `LIVE_BACKED_ISSUER_ADAPTERS`.
+- The guard immediately caught `dakota_wealth` as a provider marked live-backed without a
+  dedicated live test mapping. Added the official `DAK` product-page holdings test.
+- Validation: manifest invariant plus provider matrix `2 passed`; focused live Dakota route plus
+  provider matrix `2 passed`; full adapter unit suite `216 passed`; targeted Ruff and
+  `git diff --check` passed.
+
 ## 2026-07-13 - Build native ETF holdings route
 
 - Promoted `build` with an isolated BFIX issuer-product-page holdings adapter. It validates the

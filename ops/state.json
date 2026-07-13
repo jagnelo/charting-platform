@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T00:10:00Z",
-    "last_commit": "bc3e326",
+    "last_handoff_at": "2026-07-13T00:35:00Z",
+    "last_commit": "bb94348",
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-12 targeted ruff check for Arlington native adapter)",
-        "backend_tests": "passed ETF holdings Arlington native-route validation (2026-07-12: full adapter unit suite 216 passed, focused live AQEC route and provider matrix passed, registry count is now 345 registered provider keys, 175 native/live-backed providers, and 170 remaining; arlington_native=True).",
+        "backend_lint": "passed (2026-07-13 targeted ruff check for ETF provider live-test coverage manifest)",
+        "backend_tests": "passed ETF holdings provider live-test coverage manifest and Dakota Wealth live-route validation (2026-07-13: manifest invariant plus provider matrix 2 passed, focused live Dakota route plus provider matrix 2 passed, full adapter unit suite 216 passed; registry remains 345 registered provider keys, 176 native/live-backed providers, and 169 remaining).",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T00:35Z Added a programmatic invariant requiring every LIVE_BACKED_ISSUER_ADAPTERS member to map to a concrete issuer-route live test. It caught the missing Dakota Wealth mapping, which is now covered by an opt-in live DAK product-page test. Manifest, provider matrix, focused live Dakota route, full adapter unit suite, lint, and diff checks passed.",
         "2026-07-13T00:10Z Build native route: promoted build through an isolated BFIX issuer-product-page holdings adapter. Full adapter unit suite 216 passed; focused live BFIX plus provider matrix passed. Strict count is 345 registered, 176 native/live-backed, 169 remaining; SEC is fallback-only.",
         "2026-07-12T18:10Z Source audit: belpointe maps to Belpointe OZ (OZ), a publicly traded qualified-opportunity-zone real-estate vehicle, not a US ETF issuer. Its manager's 13F is not ETF composition data; it remains unpromoted.",
         "2026-07-12T18:00Z Source audit: bcp_cc is a former ownership vehicle for First Eagle, not an independent ETF holdings publisher. FEGE/FEOE are already covered by the native/live-backed first_eagle adapter; bcp_cc remains unpromoted to avoid duplicate/misleading issuer support.",

@@ -7,6 +7,14 @@
 
 ## Latest checkpoint - 2026-07-13T00:10Z
 
+- Added a live-test coverage manifest invariant. It derives provider coverage from the shared
+  parameterized live tests and explicit annotations on bespoke issuer tests, then requires that
+  set to exactly equal `LIVE_BACKED_ISSUER_ADAPTERS`. The invariant caught an omitted Dakota
+  Wealth mapping; a dedicated live `DAK` product-page holdings test now covers it.
+- Validation: coverage invariant and provider matrix `2 passed`; focused live Dakota route plus
+  provider matrix `2 passed`; full adapter unit suite `216 passed`; targeted Ruff and
+  `git diff --check` passed. Feature/test commit: `bb94348`.
+
 - Promoted `build` through an isolated `BuildHoldingsAdapter` for the Build Bond Innovation ETF
   (`BFIX`). It validates the issuer product page, parses the complete current issuer-rendered
   holdings table, and retains CUSIPs, values, weights, and the issuer as-of date directly from
