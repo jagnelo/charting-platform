@@ -14215,21 +14215,15 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not product_page_url:
             raise ValueError(f"{self.adapter_key} needs an ETF Architect fund page for {symbol}.")
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                product_page_url,
-                headers=_issuer_page_request_headers(accept="text/html,*/*"),
-                follow_redirects=True,
-            )
-        response.raise_for_status()
-        rows, composition_date = self._parse_product_page(response.text)
+        resolved_page_url, raw_html = await self._fetch_product_page(product_page_url)
+        rows, composition_date = self._parse_product_page(raw_html)
         if not rows:
             raise ValueError(f"{self.adapter_key} returned no parseable holdings rows for {symbol}.")
         return HoldingsFetchResult(
-            source_url=str(getattr(response, "url", product_page_url)),
+            source_url=resolved_page_url,
             source_identifier=issuer_product_id or symbol.strip().upper(),
             rows=rows,
-            raw_text=response.text,
+            raw_text=raw_html,
             raw_json=None,
             legal_metadata={
                 "source_access": self.config.source_access,
@@ -14242,6 +14236,37 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @staticmethod
+    async def _fetch_product_page(product_page_url: str) -> tuple[str, str]:
+        """Fetch the issuer page with its narrowly required public transport fallback."""
+
+        headers = _issuer_page_request_headers(accept="text/html,*/*")
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(
+                    product_page_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            return str(getattr(response, "url", product_page_url)), response.text
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+
+        # Alpha Architect accepts the same public issuer-page request through
+        # requests but rejects httpx's TLS fingerprint. This stays local to the
+        # provider instead of becoming a generic fallback for all issuers.
+        response = await asyncio.to_thread(
+            requests.get,
+            product_page_url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return str(getattr(response, "url", product_page_url)), response.text
 
     @classmethod
     def _parse_product_page(cls, raw_html: str) -> tuple[list[CanonicalHoldingRow], date | None]:
@@ -17151,6 +17176,84 @@ class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "FUND" in text or "ETF" in text:
             return "security", "fund"
         return "security", "equity"
+
+
+class RiverNorthHoldingsAdapter(TrueSharesHoldingsAdapter):
+    """Fetch RiverNorth ETF holdings through its verified TrueShares product redirect."""
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        return f"https://www.rivernorth.com/investments/{symbol.strip().lower()}/"
+
+    async def _discover_source_url_from_product_page(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        product_page_url = self.resolve_product_page_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
+        if not product_page_url:
+            return None
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+
+        destination = urlparse(str(response.url))
+        expected_path = f"/etf/{symbol.strip().lower()}"
+        if destination.netloc != "www.true-shares.com" or destination.path.rstrip("/") != expected_path:
+            raise ValueError(
+                "RiverNorth product page did not resolve to the expected TrueShares ETF page "
+                f"for {symbol}."
+            )
+        return TappAlphaHoldingsAdapter._discover_google_csv_export(
+            response.text,
+            base_url=str(response.url),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if result.legal_metadata is not None:
+            result.legal_metadata.update(
+                {
+                    "route_resolution": "rivernorth_product_redirect_to_trueshares_holdings_csv",
+                    "snapshot_provenance": "issuer_native_distribution_holdings_csv",
+                }
+            )
+        return result
 
 
 class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -28076,6 +28179,178 @@ class NeubergerBermanHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
 
+class HullHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hull Tactical Funds' complete current ETF holdings export.
+
+    Hull publishes one complete CSV for its Tactical US ETF.  The product page
+    is fetched first to verify the requested fund identity; the CSV itself
+    contains currencies, futures, options and Treasury bills alongside ETF
+    positions, so it is parsed here instead of through the generic CSV path.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "HTUS": "https://www.hulltacticalfunds.com/htus/holdings/",
+    }
+    HOLDINGS_CSV_URL = "https://www.hulltacticalfunds.com/holdings.csv"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        return self.PRODUCT_PAGE_URLS.get(symbol.strip().upper())
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_product_page_url(symbol=normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"Hull Tactical Funds does not publish a configured holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            if not re.search(rf"\b{re.escape(normalized_symbol)}\b", page_response.text, re.IGNORECASE):
+                raise ValueError(
+                    f"Hull Tactical Funds product page identity did not match requested ETF {normalized_symbol}."
+                )
+            csv_response = await client.get(
+                self.HOLDINGS_CSV_URL,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            csv_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Hull Tactical Funds did not return complete holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={"source_format": "csv", "product_page_url": str(page_response.url)},
+            source_url=str(csv_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_verified_complete_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv))
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(reader, start=1):
+            if not isinstance(item, dict):
+                continue
+            portfolio_name = _clean(item.get("portfolioName") or item.get("portoflioName"))
+            if not portfolio_name or "HULL TACTICAL" not in portfolio_name.upper():
+                continue
+            row_date = HullHoldingsAdapter._parse_as_of_date(item.get("asOfDate"))
+            if composition_date is None:
+                composition_date = row_date
+            raw_ticker = _clean(item.get("securityTicker"))
+            name = _clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort"))
+            holding_type = HullHoldingsAdapter._holding_type(item=item, name=name, ticker=raw_ticker)
+            tradable_symbol = HullHoldingsAdapter._tradable_symbol(
+                ticker=raw_ticker,
+                holding_type=holding_type,
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=tradable_symbol,
+                    name=name or raw_ticker,
+                    cusip=HullHoldingsAdapter._cusip(item.get("securityIdentifier")),
+                    weight=_decimal(item.get("netAssetsPercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency")),
+                    country=_clean(item.get("country")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"hull-{symbol}-{index}",
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _cusip(value: Any) -> str | None:
+        candidate = _clean(value)
+        return candidate if candidate and re.fullmatch(r"[0-9A-Z]{9}", candidate) else None
+
+    @staticmethod
+    def _holding_type(*, item: dict[str, Any], name: str | None, ticker: str | None) -> str:
+        segment = (_clean(item.get("segment")) or "").upper()
+        category = (_clean(item.get("category")) or "").upper()
+        text = " ".join(part.upper() for part in (name, ticker, segment, category) if part)
+        if "CURRENCY" in segment or "DOLLAR" in text or "SWEEP" in text:
+            return "cash"
+        if "FUTURE" in segment or "FUTURE" in text:
+            return "future"
+        if "OPTION" in segment or "OPTION" in text:
+            return "option"
+        if "GOVERNMENT" in segment or "TREASURY" in text:
+            return "fixed_income"
+        if "EXCHANGE-TRADED FUND" in segment:
+            return "fund"
+        if "EQUITY" in category:
+            return "equity"
+        return "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund", "security"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -28119,6 +28394,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Neuberger Berman public ETF product pages and detailed holdings workbooks "
             "may be subject to issuer terms."
         ),
+    ),
+    "hull": IssuerCsvAdapterConfig(
+        adapter_key="hull",
+        source_provider="hull",
+        source_access="issuer_product_page_verified_complete_holdings_csv",
+        product_page_templates=("https://www.hulltacticalfunds.com/{symbol_lower}/holdings/",),
+        live_tested_default_route=True,
+        terms_note="Hull Tactical Funds public ETF holdings exports may be subject to issuer terms.",
     ),
     "exchange_traded_concepts": IssuerCsvAdapterConfig(
         adapter_key="exchange_traded_concepts",
@@ -28829,11 +29112,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "aptus": IssuerCsvAdapterConfig(
         adapter_key="aptus",
         source_provider="aptus",
-        source_access="issuer_public_product_page_holdings_table",
+        source_access="issuer_public_product_page_holdings_table_currently_blocked",
         product_page_templates=(
             "https://aptusetfs.com/{symbol_lower}/",
         ),
-        live_tested_default_route=True,
+        # Aptus currently serves a bot-protection 403 for every public product and
+        # WordPress route tried by the backend. Keep the dedicated parser ready,
+        # but do not report it as a working native integration until a live route
+        # is again executable.
+        live_tested_default_route=False,
         terms_note="Aptus public ETF product pages may be subject to issuer terms.",
     ),
     "proshares": IssuerCsvAdapterConfig(
@@ -29649,6 +29936,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TrueShares public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "river_north": IssuerCsvAdapterConfig(
+        adapter_key="river_north",
+        source_provider="river_north",
+        source_access="issuer_product_page_redirect_to_distribution_holdings_csv",
+        product_page_templates=(
+            "https://www.rivernorth.com/investments/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "RiverNorth ETF product pages redirect to their official TrueShares "
+            "distribution pages and public holdings CSV exports."
+        ),
+    ),
     "timothy_plan": IssuerCsvAdapterConfig(
         adapter_key="timothy_plan",
         source_provider="timothy_plan",
@@ -30102,6 +30402,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "motley_fool": MotleyFoolHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
         "neuberger_berman": NeubergerBermanHoldingsAdapter,
+        "hull": HullHoldingsAdapter,
         "new_york_life": NewYorkLifeHoldingsAdapter,
         "northern_trust": NorthernTrustHoldingsAdapter,
         "ocean_park": OceanParkHoldingsAdapter,
@@ -30132,6 +30433,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "t_rowe_price": TRowePriceHoldingsAdapter,
         "tuttle": TuttleHoldingsAdapter,
         "true_shares": TrueSharesHoldingsAdapter,
+        "river_north": RiverNorthHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,
         "themes": ThemesHoldingsAdapter,

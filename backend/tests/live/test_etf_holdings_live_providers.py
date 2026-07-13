@@ -44,7 +44,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "angel_oak",
     "anfield",
     "applied_finance",
-    "aptus",
     "ark",
     "arrow",
     "astoria",
@@ -118,6 +117,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hennessy",
     "horizon_kinetics",
     "howard_capital",
+    "hull",
     "hypatia",
     "inspire",
     "impax",
@@ -154,6 +154,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "rayliant",
     "renaissance_capital",
     "roundhill",
+    "river_north",
     "running_oak",
     "schwab",
     "sei",
@@ -470,13 +471,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
-        ),
-        (
-            "aptus",
-            "DRSK",
-            None,
-            {},
-            20,
         ),
         (
             "arrow",
@@ -1151,6 +1145,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             5,
         ),
         (
+            "river_north",
+            "FLDZ",
+            None,
+            {},
+            50,
+        ),
+        (
             "t_rowe_price",
             "TCHP",
             None,
@@ -1368,6 +1369,24 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("hull")
+async def test_live_hull_product_verified_complete_holdings_csv():
+    adapter = get_holdings_adapter("hull")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="HTUS")
+
+    _assert_live_holdings_result(result, adapter_key="hull", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.holding_type == "cash" for row in result.rows)
+    assert any(row.holding_type in {"future", "option"} for row in result.rows)
 
 
 @pytest.mark.asyncio

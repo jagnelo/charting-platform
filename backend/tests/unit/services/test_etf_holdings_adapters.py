@@ -8,6 +8,7 @@ from io import BytesIO
 from types import SimpleNamespace
 from xml.sax.saxutils import escape
 
+import httpx
 import pytest
 
 from app.services.etf_holdings_adapters import (
@@ -351,6 +352,78 @@ async def test_neuberger_berman_adapter_discovers_official_detailed_holdings_wor
         "issuer_product_sitemap_detailed_holdings_xlsx"
     )
     assert result.legal_metadata["source_format"] == "xlsx"
+
+
+@pytest.mark.asyncio
+async def test_hull_adapter_verifies_product_page_and_classifies_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("hull")
+    assert adapter is not None
+
+    product_page_url = "https://www.hulltacticalfunds.com/htus/holdings/"
+    csv_url = "https://www.hulltacticalfunds.com/holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><title>HTUS Holdings | Hull Tactical US ETF</title></html>",
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    (
+                        "asOfDate,portfolioName,securityIdentifier,securityTicker,"
+                        "securityDescriptionLong,shares,marketValueBase,tradingCurrency,"
+                        "country,segment,category,netAssetsPercent"
+                    ),
+                    (
+                        "2026-07-10T00:00:00,Hull Tactical US ETF,USD,USD,US DOLLARS,"
+                        "-1000,-1000,USD,US,CURRENCY,CURRENCY,-0.01"
+                    ),
+                    (
+                        "2026-07-10T00:00:00,Hull Tactical US ETF,78462F103,SPY US,"
+                        "State Street SPDR S&P 500 ETF Trust,100,75000,USD,US,"
+                        "EXCHANGE-TRADED FUNDS,EQUITY,0.75"
+                    ),
+                    (
+                        "2026-07-10T00:00:00,Hull Tactical US ETF,UXN6 IND,UXN6 INDEX,"
+                        "CBOE VIX FUTURE JUL26,10,0,USD,US,FUTURES,EQUITY INDEX,0"
+                    ),
+                    (
+                        "2026-07-10T00:00:00,Hull Tactical US ETF,SPXWP7040 07/17/2026,"
+                        "SPXW 260717P07040000,S&P 500 INDEX OPTION,20,3050,USD,US,"
+                        "OPTIONS,INDEX OPTION,0.00003"
+                    ),
+                    (
+                        "2026-07-10T00:00:00,Hull Tactical US ETF,912797SK4,,"
+                        "United States Treasury Bill 0% Due 10/29/2026,5000000,4942804,"
+                        "USD,US,U.S. GOVERNMENT & AGENCIES,U.S. TREASURY BILLS,0.03"
+                    ),
+                ]
+            ),
+            url=csv_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HTUS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url, csv_url]
+    assert len(result.rows) == 5
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].symbol == "SPY"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[1].cusip == "78462F103"
+    assert result.rows[2].holding_type == "future"
+    assert result.rows[2].symbol is None
+    assert result.rows[3].holding_type == "option"
+    assert result.rows[4].holding_type == "fixed_income"
+    assert result.rows[4].symbol is None
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_complete_holdings_csv"
+    )
 
 
 @pytest.mark.asyncio
@@ -3172,6 +3245,49 @@ async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_river_north_adapter_validates_redirect_to_trueshares_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("river_north")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=river-north-fldz&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<a href="{holdings_url}">Download Holdings CSV</a>',
+            content_type="text/html",
+            url="https://www.true-shares.com/etf/fldz",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "7/10/2026,FLDZ,EME,29084Q100,EMCOR Group Inc,10,600,6000,1.2,500000",
+                    "7/10/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FLDZ", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.rivernorth.com/investments/fldz/"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "EME"
+    assert result.rows[0].cusip == "29084Q100"
+    assert result.rows[0].weight == Decimal("0.012")
+    assert result.legal_metadata["source_provider"] == "river_north"
+    assert result.legal_metadata["route_resolution"] == "rivernorth_product_redirect_to_trueshares_holdings_csv"
+    assert result.legal_metadata["snapshot_provenance"] == "issuer_native_distribution_holdings_csv"
+
+
+@pytest.mark.asyncio
 async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("fm_investments")
     assert adapter is not None
@@ -4195,6 +4311,47 @@ async def test_etf_architect_adapter_parses_alpha_architect_holdings_table(monke
         "issuer_product_page_wpdatatables_holdings_table"
     )
     assert result.legal_metadata["composition_date"] == "2026-06-17"
+
+
+@pytest.mark.asyncio
+async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
+    adapter = get_holdings_adapter("etf_architect")
+    assert adapter is not None
+
+    holdings_html = """
+    <table><thead><tr>
+      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+      <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
+    </tr></thead><tbody><tr>
+      <td>ADT</td><td>ADT Inc</td><td>00090Q103</td><td>1,717,080</td>
+      <td>6.83</td><td>11.73</td><td>2.14</td>
+    </tr></tbody></table>
+    """
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        ForbiddenResponse(url="https://funds.alphaarchitect.com/qval/"),
+    ]
+    requests_called: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requests_called.append(url)
+        return FakeResponse(text=holdings_html, content_type="text/html", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
+
+    assert requests_called == ["https://funds.alphaarchitect.com/qval/"]
+    assert result.rows[0].symbol == "ADT"
+    assert result.rows[0].weight == Decimal("0.0214")
 
 
 @pytest.mark.asyncio
@@ -8459,8 +8616,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["applied_finance"]["support_route_types"]
     assert adapters["alliancebernstein"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["alliancebernstein"]["support_route_types"]
-    assert adapters["aptus"]["live_tested_default_route"] is True
-    assert "issuer_native_live_route" in adapters["aptus"]["support_route_types"]
+    assert adapters["aptus"]["live_tested_default_route"] is False
+    assert "issuer_native_live_route" not in adapters["aptus"]["support_route_types"]
     assert adapters["arrow"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["arrow"]["support_route_types"]
     assert adapters["teucrium"]["live_tested_default_route"] is True
@@ -8521,6 +8678,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["yorkville"]["support_route_types"]
     assert adapters["true_shares"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["true_shares"]["support_route_types"]
+    assert adapters["river_north"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["river_north"]["support_route_types"]
     assert adapters["t_rowe_price"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["t_rowe_price"]["support_route_types"]
     assert adapters["fm_investments"]["live_tested_default_route"] is True
