@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Native provider factory integrity
+
+- Prevented generated recognition-only adapters from being marked native/live-backed: the factory
+  now fails fast if a live-backed provider lacks an explicit adapter class, and the static suite
+  verifies that condition for every marked provider.
+- Validation: full adapter unit suite plus strict live-provider manifest and provider matrix
+  `222 passed`; targeted Ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `180` native/live-backed, `165` remaining.
+
 ## 2026-07-13 - Infrastructure Capital native ETF holdings route
 
 - Promoted `infrastructure_capital` through an isolated public ICAP full-holdings XLS adapter.

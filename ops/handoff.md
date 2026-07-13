@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Latest checkpoint - 2026-07-13T18:37Z
+
+- Hardened the native-provider boundary: `_issuer_adapter_from_config` now rejects any provider
+  marked `live_tested_default_route` unless it has an explicit adapter class in the factory map.
+  This prevents a generated `RecognitionOnlyHoldingsAdapter` from ever being counted as native
+  support.
+- The static adapter test now explicitly rejects generated recognition-only classes for every
+  native/live-backed provider. The existing live manifest continues to require a concrete
+  issuer-route live test for the same set.
+- Validation: full adapter unit suite plus strict live-provider coverage invariant and provider
+  matrix `222 passed`; targeted Ruff and `git diff --check` passed. Registry count remains
+  `345` registered, `180` native/live-backed, and `165` remaining.
+- Next action: continue first-party source discovery for material unpromoted issuers, beginning
+  with PIMCO while retaining the documented priority access blockers.
+
 ## Latest checkpoint - 2026-07-13T18:23Z
 
 - Promoted `infrastructure_capital` through an isolated `InfrastructureCapitalHoldingsAdapter`
