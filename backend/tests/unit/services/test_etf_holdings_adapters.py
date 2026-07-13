@@ -7964,6 +7964,59 @@ async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
     assert result.rows[1].row_type == "cash"
 
 
+@pytest.mark.asyncio
+async def test_eagle_capital_adapter_parses_daily_creation_basket_json(monkeypatch):
+    adapter = get_holdings_adapter("eagle_capital")
+    assert adapter is not None
+    payload = {
+        "basketEvaluationDate": "2026-07-10",
+        "holdings": [
+            {
+                "Security Description": "AMAZON COM INC USD 0.01",
+                "Alternative Ticker": "AMZN US",
+                "CUSIP": "023135106",
+                "Basket Quantity": "1372552",
+                "Constituent Weight (Base)": "0.07693016666",
+                "ETF Trading Ticker": "EAGL",
+            },
+            {
+                "Security Description": "BLACKROCK TREASURY TRUST INSTL 62",
+                "Alternative Ticker": "",
+                "CUSIP": "",
+                "Basket Quantity": "0",
+                "Constituent Weight (Base)": "0",
+                "ETF Trading Ticker": "EAGL",
+            },
+            {
+                "Security Description": "OTHER FUND SECURITY",
+                "Alternative Ticker": "OTHER US",
+                "CUSIP": "111111111",
+                "Basket Quantity": "1",
+                "Constituent Weight (Base)": "1",
+                "ETF Trading Ticker": "OTHER",
+            },
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(payload), content_type="application/json")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EAGL")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.holdings_url
+    equity_row, cash_row = result.rows
+    assert equity_row.symbol == "AMZN"
+    assert equity_row.cusip == "023135106"
+    assert equity_row.weight == Decimal("0.07693016666")
+    assert equity_row.shares == Decimal("1372552")
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == "eagle_capital_daily_holdings_json"
+
+
 def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     catalog = holdings_adapter_catalog()
     vaneck = next(item for item in catalog if item["adapter_key"] == "vaneck")

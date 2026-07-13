@@ -26979,6 +26979,154 @@ class SprottHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class EagleCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Eagle Capital's daily EAGL creation-basket holdings JSON."""
+
+    FUND_SYMBOL = "EAGL"
+    holdings_url = "https://emward-middleware-fea5fd912200.herokuapp.com/daily-holdings"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol == self.FUND_SYMBOL:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9500"),
+                status="ready",
+                reason="Eagle Capital publishes EAGL's complete daily creation-basket holdings JSON.",
+                source_url=self.holdings_url,
+                issuer_product_id=normalized_symbol,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "Eagle Capital has a public daily holdings endpoint; it currently covers EAGL "
+                "only and validates the requested fund during retrieval."
+            ),
+            source_url=self.holdings_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if normalized_symbol != self.FUND_SYMBOL:
+            raise ValueError(
+                "Eagle Capital's public daily holdings endpoint currently supports EAGL only."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.holdings_url,
+                headers=_issuer_page_request_headers(accept="application/json,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_daily_holdings(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError("Eagle Capital daily holdings endpoint returned no EAGL holdings.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload if isinstance(payload, dict) else None,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "eagle_capital_daily_holdings_json",
+                "source_quality": "issuer_reported_daily_creation_basket",
+                "snapshot_provenance": "issuer_native_daily_holdings_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_daily_holdings(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict):
+            return [], None
+        holdings = payload.get("holdings")
+        if not isinstance(holdings, list):
+            return [], None
+
+        composition_date = cls._parse_as_of_date(payload.get("basketEvaluationDate"))
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(holdings, start=1):
+            if not isinstance(item, dict):
+                continue
+            source_symbol = _clean(item.get("ETF Trading Ticker"))
+            if source_symbol and source_symbol.upper() != symbol:
+                continue
+            ticker = cls._normalize_source_ticker(item.get("Alternative Ticker"))
+            name = _clean(item.get("Security Description"))
+            cusip = _clean(item.get("CUSIP"))
+            shares = _decimal(item.get("Basket Quantity"))
+            weight = _decimal(item.get("Constituent Weight (Base)"))
+            is_cash = not ticker and (
+                not cusip
+                or (name or "").strip().lower() in {"cash", "cash & other", "us cash"}
+                or weight == Decimal("0")
+            )
+            if not any([ticker, name, cusip, shares, weight]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=weight,
+                    shares=shares,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{symbol}:{composition_date.isoformat() if composition_date else 'current'}:"
+                        f"{index}:{cusip or ticker or name or 'holding'}"
+                    ),
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _normalize_source_ticker(value: Any) -> str | None:
+        ticker = _clean(value)
+        if not ticker:
+            return None
+        return ticker.upper().split()[0]
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+
 class WorldGoldCouncilHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse SPDR Gold trust public archive data as a single commodity holding."""
 
@@ -27671,6 +27819,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
+    ),
+    "eagle_capital": IssuerCsvAdapterConfig(
+        adapter_key="eagle_capital",
+        source_provider="eagle_capital",
+        source_access="issuer_public_daily_creation_basket_json",
+        url_templates=(
+            "https://emward-middleware-fea5fd912200.herokuapp.com/daily-holdings",
+        ),
+        product_page_templates=(
+            "https://www.eaglecap.com/eagl-etf-daily-holdings",
+        ),
+        live_tested_default_route=True,
+        terms_note="Eagle Capital public daily creation-basket holdings data may be subject to issuer terms.",
     ),
     "capital_group": IssuerCsvAdapterConfig(
         adapter_key="capital_group",
@@ -29042,6 +29203,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "defiance": DefianceHoldingsAdapter,
         "deepwater": DeepwaterHoldingsAdapter,
         "dhandho": DhandhoHoldingsAdapter,
+        "eagle_capital": EagleCapitalHoldingsAdapter,
         "emles": EMLesHoldingsAdapter,
         "acp_horizon": ACPHorizonHoldingsAdapter,
         "advent_capital": AdventCapitalHoldingsAdapter,

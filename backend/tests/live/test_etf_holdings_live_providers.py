@@ -80,6 +80,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "diamond_hill",
     "dimensional",
     "dhandho",
+    "eagle_capital",
     "emles",
     "direxion",
     "distillate",
@@ -1548,6 +1549,21 @@ async def test_live_dakota_wealth_public_product_page_holdings_table():
     )
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "html"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("eagle_capital")
+async def test_live_eagle_capital_daily_creation_basket_json():
+    adapter = get_holdings_adapter("eagle_capital")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="EAGL")
+
+    _assert_live_holdings_result(result, adapter_key="eagle_capital", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "eagle_capital_daily_holdings_json"
+    assert result.legal_metadata["composition_date"]
+    assert result.rows[0].cusip
 
 
 @pytest.mark.asyncio
