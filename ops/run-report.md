@@ -26,6 +26,14 @@ Append a short entry after each worker session.
 - The full remaining operational priority set has now been retried: WisdomTree, Neuberger Berman,
   SoFi, and Thrivent are access blockers rather than candidates for unverified promotion.
 
+## 2026-07-13 - Tidal issuer-identity audit
+
+- `tidal` represents the ETF platform/administrator, while its products' daily holdings are
+  published by distinct fund brands and subadvisers. A generic Tidal integration would risk
+  retrieving the wrong family or hiding issuer-specific terms and schemas.
+- It remains unpromoted intentionally; existing and future fund-brand adapters are the correct
+  native integration boundary.
+
 ## 2026-07-13 - ETF provider live-test coverage manifest
 
 - Added a programmatic live-test coverage invariant: the concrete issuer-route tests derived

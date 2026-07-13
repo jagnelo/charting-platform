@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T01:20Z Source audit: tidal is an ETF platform/administrator identity, not a unified issuer-controlled holdings publisher. Individual fund brands and subadvisers must retain separate native integrations; tidal remains unpromoted to avoid cross-family routing.",
         "2026-07-13T01:10Z Priority-source retry: Thrivent's primary and fp ETF product domains both returned 403 under browser-like direct requests before complete holdings could be discovered. The remaining operational priority gaps (WisdomTree, Neuberger Berman, SoFi, Thrivent) have all been retried and are source-access blockers, not generic-adapter omissions.",
         "2026-07-13T01:00Z Priority-source retries: current Neuberger NBCR/NBOS product pages returned 429 before their detailed-holdings download could be discovered; SoFi SFY/THTA product pages returned a 403 challenge response without a usable issuer holdings endpoint. Both remain unpromoted; SEC remains fallback-only. Next priority retry is Thrivent.",
         "2026-07-13T00:45Z Priority-source retry: current WisdomTree DXJ product URLs return Cloudflare 403 under browser-like direct requests; an obsolete media-style holdings guess was invalid. Search indexing confirms a public holdings surface, but no backend-reachable complete issuer-native endpoint was found. WisdomTree remains unpromoted; SEC is fallback-only.",

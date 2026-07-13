@@ -21,6 +21,10 @@
   (`403`) before complete holdings can be retrieved. All four remaining operational priority gaps
   (WisdomTree, Neuberger Berman, SoFi, and Thrivent) have now been retried and are source-access
   blockers, not unimplemented generic adapters.
+- Source audit: `tidal` is an ETF platform/administrator identity, not a unified issuer-controlled
+  holdings publisher. Its funds' daily holdings are published under their individual brands (for
+  example YieldMax and other subadvisers), which must retain their own native integrations. Do not
+  add a generic Tidal adapter that could bind the wrong fund family.
 
 - Added a live-test coverage manifest invariant. It derives provider coverage from the shared
   parameterized live tests and explicit annotations on bespoke issuer tests, then requires that
