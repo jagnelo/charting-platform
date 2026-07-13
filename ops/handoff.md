@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Latest checkpoint - 2026-07-13T20:00Z
+
+- Repaired Rayliant's live `CNQQ` route. Its public download prepends diagnostic script tags
+  immediately before the actual CSV header, which made the previous parser silently return zero
+  holdings. `RayliantHoldingsAdapter` now locates the real CSV header before parsing.
+- Validation: focused static regression and real opt-in issuer route each passed; targeted Ruff
+  and `git diff --check` passed. The full opt-in live-provider sweep was resumed and advanced past
+  Rayliant; it remains the gate for detecting issuer-side format drift across all native routes.
+- Current truthful state: `345` registered providers, `181` native/live-backed, `164` fallback-only.
+  The priority set is still incomplete: WisdomTree, Neuberger Berman, SoFi, and Thrivent remain
+  source-access blockers rather than native integrations.
+
 ## Latest checkpoint - 2026-07-13T19:05Z
 
 - Promoted `hypatia` through an isolated `HypatiaHoldingsAdapter` for the Hypatia Women CEO ETF

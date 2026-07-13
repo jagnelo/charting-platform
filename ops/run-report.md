@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Rayliant live payload regression repair
+
+- Repaired the isolated Rayliant `CNQQ` adapter after the issuer began prefixing its valid CSV
+  with diagnostic script tags on the same line as the `Ticker` header. The parser now finds the
+  actual header before constructing CSV rows, without relaxing the provider's identity checks.
+- Validation: focused static regression `1 passed`; focused opt-in live CNQQ route `1 passed`;
+  targeted Ruff and `git diff --check` passed. A full live-provider sweep was resumed and advanced
+  past Rayliant; it remains in progress as the issuer-compatibility gate.
+- Current truthful count: `345` registered, `181` native/live-backed, `164` remaining.
+
 ## 2026-07-13 - Hypatia native ETF holdings route
 
 - Promoted `hypatia` through an isolated `HypatiaHoldingsAdapter` for `WCEO`. It posts only the
