@@ -4673,3 +4673,7 @@
   ticker, CUSIP, shares, market value, percentage weight, composition date, and cash rows.
   Static parser/retry coverage plus an opt-in live CCOR route test passed. Strict provider count:
   `345` registered, `178` native/live-backed, `167` remaining; SEC EDGAR remains fallback-only.
+- 2026-07-13 source audit: Praxis's official PRXV holdings URL returns its explicit geographic
+  access block to this backend environment, Dana's official ETF pages return a Cloudflare block,
+  and Goose Hollow's public site returns ModSecurity `406`. None were promoted; a generic or SEC
+  fallback must not be misrepresented as native provider support.

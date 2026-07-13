@@ -10124,3 +10124,10 @@ Append a short entry after each worker session.
   check.
 - Strict count: `345` registered providers, `178` native/live-backed, `167` remaining. SEC
   EDGAR remains fallback-only and is not counted as primary provider support.
+# ETF Holdings Provider Source Audit - 2026-07-13T17:17Z
+
+- `praxis`: official PRXV holdings page returns the issuer's explicit geographic-access block.
+- `dana`: official ETF product page returns a Cloudflare block.
+- `goose_hollow`: official site returns ModSecurity `406` to direct backend retrieval.
+- None were promoted. These are provider-source accessibility blockers; SEC EDGAR remains a
+  fallback only and does not satisfy the native provider integration goal.

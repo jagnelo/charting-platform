@@ -3,7 +3,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T17:13:25Z",
+    "last_handoff_at": "2026-07-13T17:17:37Z",
     "last_commit": "e5d5df4",
     "git_ready_to_commit": true,
     "validation": {
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-13T17:17Z Source audit: Praxis official holdings pages are geographically blocked, Dana official ETF pages are Cloudflare-blocked, and Goose Hollow returns ModSecurity 406 to direct backend retrieval. None were promoted or counted as native support; SEC EDGAR remains fallback-only.",
         "2026-07-13T17:13Z Core Alternative native route: promoted core_alternative through an isolated CCOR dated daily holdings CSV adapter. Full adapter unit suite 218 passed; focused live CCOR route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 178 native/live-backed, and 167 remaining. SEC EDGAR remains fallback-only.",
         "2026-07-13T17:05Z Eagle Capital native route: promoted eagle_capital through an isolated EAGL daily creation-basket JSON adapter. Full adapter unit suite 217 passed; focused live EAGL route, strict live-provider coverage invariant, and provider matrix 3 passed. Strict count is 345 registered, 177 native/live-backed, and 168 remaining. Canary is Cloudflare-blocked; truemark is not a US ETF issuer.",
         "2026-07-13T01:20Z Source audit: tidal is an ETF platform/administrator identity, not a unified issuer-controlled holdings publisher. Individual fund brands and subadvisers must retain separate native integrations; tidal remains unpromoted to avoid cross-family routing.",
