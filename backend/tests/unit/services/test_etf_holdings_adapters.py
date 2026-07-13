@@ -7965,6 +7965,71 @@ async def test_arlington_adapter_parses_aqec_daily_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_thor_adapter_uses_product_page_scoped_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("thor")
+    assert adapter is not None
+    product_page = '<body data-ticker="THIR" data-datafeed-id="1469"></body>'
+    payload = [
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioNumber": "1469",
+            "portfolioName": "THOR Index Rotation ETF",
+            "securityIdentifier": "USD",
+            "securityTicker": "USD",
+            "securityDescriptionShort": "US DOLLARS",
+            "shares": 74407.36,
+            "marketValueBase": 74407.36,
+            "marketValuePercent": 0.000348755447,
+            "tradingCurrency": "USD",
+            "segment": "CURRENCY",
+        },
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioNumber": "1469",
+            "portfolioName": "THOR Index Rotation ETF",
+            "securityIdentifier": "78462F103",
+            "securityTicker": "SPY US",
+            "securityDescriptionShort": "SS S&P 500 ET-US",
+            "shares": 93471,
+            "marketValueBase": 70565931.45,
+            "marketValuePercent": 0.3301,
+            "tradingCurrency": "USD",
+            "segment": "EQUITY",
+        },
+        {
+            "asOfDate": "2026-07-10T00:00:00",
+            "portfolioNumber": "other",
+            "portfolioName": "Other ETF",
+            "securityIdentifier": "037833100",
+            "securityTicker": "AAPL US",
+            "marketValueBase": 1,
+            "marketValuePercent": 1,
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=adapter.product_page_urls["THIR"]),
+        FakeResponse(text=json.dumps(payload), content_type="application/json", url=adapter.holdings_api_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="THIR")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.product_page_urls["THIR"]
+    assert FakeAsyncClient.requested[1][0] == adapter.holdings_api_url
+    assert FakeAsyncClient.requested[1][1]["data"] == {"fundID": "1469"}
+    cash_row, equity_row = result.rows
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert equity_row.symbol == "SPY"
+    assert equity_row.exchange == "US"
+    assert equity_row.cusip == "78462F103"
+    assert equity_row.weight == Decimal("0.3301")
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.legal_metadata["route_resolution"] == "thor_product_page_scoped_holdings_api"
+
+
+@pytest.mark.asyncio
 async def test_core_alternative_adapter_retries_daily_ccor_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("core_alternative")
     assert adapter is not None

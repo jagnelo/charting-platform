@@ -26979,6 +26979,187 @@ class SprottHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class ThorHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch THOR ETF holdings through the public page-scoped Filepoint feed."""
+
+    product_page_urls = {
+        "THIR": "https://www.thorfunds.com/etfs/thir/index.html",
+    }
+    portfolio_name_fragments = {
+        "THIR": "THOR INDEX ROTATION ETF",
+    }
+    holdings_api_url = "https://filepoint.live/thor_getholdings_cached4.php"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.product_page_urls.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "THOR publishes this ETF's complete holdings through its public product-page feed."
+                if product_page_url
+                else "THOR's verified public holdings route currently covers THIR only."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.product_page_urls.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"THOR's verified issuer-native holdings route does not include {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            portfolio_id = self._extract_portfolio_id(page_response.text, symbol=normalized_symbol)
+            holdings_response = await client.post(
+                self.holdings_api_url,
+                data={"fundID": portfolio_id},
+                headers={
+                    **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+
+        payload = holdings_response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"THOR's issuer holdings API did not return a complete portfolio for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "json",
+                "product_page_url": str(page_response.url),
+                "portfolio_id": portfolio_id,
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=portfolio_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "thor_product_page_scoped_holdings_api",
+                "product_page_url": str(page_response.url),
+                "portfolio_id": portfolio_id,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_daily_holdings_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_portfolio_id(raw_html: str, *, symbol: str) -> str:
+        ticker_match = re.search(
+            r'''\bdata-ticker=["'](?P<ticker>[^"']+)["']''', raw_html, re.IGNORECASE
+        )
+        if ticker_match is None or ticker_match.group("ticker").strip().upper() != symbol:
+            raise ValueError(f"THOR product page identity did not match requested ETF {symbol}.")
+        portfolio_match = re.search(
+            r'''\bdata-datafeed-id=["'](?P<id>\d+)["']''', raw_html, re.IGNORECASE
+        )
+        if portfolio_match is None:
+            raise ValueError(f"THOR product page did not expose a holdings feed ID for {symbol}.")
+        return portfolio_match.group("id")
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        expected_name = cls.portfolio_name_fragments[symbol]
+        for index, raw in enumerate(payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            portfolio_name = _clean(raw.get("portfolioName") or raw.get("portoflioName"))
+            if portfolio_name and expected_name not in portfolio_name.upper():
+                continue
+            as_of_date = cls._parse_as_of_date(raw.get("asOfDate"))
+            if as_of_date and (composition_date is None or as_of_date > composition_date):
+                composition_date = as_of_date
+            ticker, exchange = cls._split_ticker(_clean(raw.get("securityTicker")))
+            identifier = _clean(raw.get("securityIdentifier"))
+            name = _clean(raw.get("securityDescriptionLong") or raw.get("securityDescriptionShort"))
+            segment = _clean(raw.get("segment") or raw.get("category"))
+            haystack = " ".join(part.upper() for part in (ticker, name, segment) if part)
+            is_cash = any(token in haystack for token in ("CASH", "CURRENCY", "MONEY MARKET"))
+            is_fixed_income = any(token in haystack for token in ("BOND", "NOTE", "FIXED INCOME"))
+            is_derivative = any(token in haystack for token in ("FUTURE", "OPTION", "SWAP"))
+            if not any([ticker, identifier, name, raw.get("marketValueBase")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_fixed_income or is_derivative else ticker,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal(raw.get("marketValuePercent")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("marketValueBase")),
+                    currency=_clean(raw.get("tradingCurrency")),
+                    exchange=exchange,
+                    holding_type=(
+                        "cash"
+                        if is_cash
+                        else ("fixed_income" if is_fixed_income else ("derivative" if is_derivative else "equity"))
+                    ),
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{identifier or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _split_ticker(raw_ticker: str | None) -> tuple[str | None, str | None]:
+        if not raw_ticker:
+            return None, None
+        parts = raw_ticker.strip().upper().split()
+        return (parts[0] if parts else None, parts[1] if len(parts) > 1 else None)
+
+
 class CoreAlternativeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Core Alternative Capital's daily CCOR holdings CSV files."""
 
@@ -29107,6 +29288,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TCW public fixed-income ETF holdings PDFs may be subject to issuer terms.",
     ),
+    "thor": IssuerCsvAdapterConfig(
+        adapter_key="thor",
+        source_provider="thor",
+        source_access="issuer_public_product_page_scoped_holdings_api",
+        url_templates=("https://filepoint.live/thor_getholdings_cached4.php",),
+        product_page_templates=("https://www.thorfunds.com/etfs/thir/index.html",),
+        live_tested_default_route=True,
+        terms_note="THOR public ETF product pages and Filepoint holdings API may be subject to issuer terms.",
+    ),
     "first_pacific": IssuerCsvAdapterConfig(
         adapter_key="first_pacific",
         source_provider="first_pacific",
@@ -29361,6 +29551,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dhandho": DhandhoHoldingsAdapter,
         "eagle_capital": EagleCapitalHoldingsAdapter,
         "core_alternative": CoreAlternativeHoldingsAdapter,
+        "thor": ThorHoldingsAdapter,
         "emles": EMLesHoldingsAdapter,
         "acp_horizon": ACPHorizonHoldingsAdapter,
         "advent_capital": AdventCapitalHoldingsAdapter,

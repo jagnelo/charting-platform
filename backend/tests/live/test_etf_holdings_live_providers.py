@@ -164,6 +164,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "tapp",
     "tiaa",
     "tcw",
+    "thor",
     "tortoise",
     "texas_capital",
     "tuttle",
@@ -1582,6 +1583,21 @@ async def test_live_core_alternative_dated_daily_holdings_csv():
     )
     assert result.legal_metadata["composition_date"]
     assert result.rows[0].cusip
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("thor")
+async def test_live_thor_product_page_scoped_holdings_api():
+    adapter = get_holdings_adapter("thor")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="THIR")
+
+    _assert_live_holdings_result(result, adapter_key="thor", min_rows=2)
+    assert result.legal_metadata["route_resolution"] == "thor_product_page_scoped_holdings_api"
+    assert result.legal_metadata["composition_date"]
+    assert result.rows[1].cusip == "78462F103"
 
 
 @pytest.mark.asyncio
