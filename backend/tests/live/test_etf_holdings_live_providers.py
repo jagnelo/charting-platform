@@ -118,6 +118,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hennessy",
     "horizon_kinetics",
     "howard_capital",
+    "hypatia",
     "inspire",
     "impax",
     "innovator",
@@ -1418,6 +1419,22 @@ async def test_live_rafferty_direxion_daily_holdings_export():
 
     _assert_live_holdings_result(result, adapter_key="rafferty", min_rows=5)
     assert result.legal_metadata["route_resolution"] == "rafferty_direxion_symbol_holdings_csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("hypatia")
+async def test_live_hypatia_public_fund_scoped_holdings_api():
+    adapter = get_holdings_adapter("hypatia")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="WCEO")
+
+    _assert_live_holdings_result(result, adapter_key="hypatia", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "hypatia_public_fund_scoped_holdings_api"
+    )
+    assert any(row.cusip for row in result.rows)
 
 
 @pytest.mark.asyncio

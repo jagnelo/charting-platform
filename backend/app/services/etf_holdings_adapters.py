@@ -19868,6 +19868,180 @@ class OceanParkHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "fund"
 
 
+class HypatiaHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hypatia ETF holdings from its public fund-scoped FilePoint API."""
+
+    holdings_endpoint = "https://filepoint.live/hypatia_getholdings_cached4.php"
+    product_pages = {
+        "WCEO": "https://wceoetf.com/",
+    }
+    fund_ids = {
+        "WCEO": "1473",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund_id = (
+            _identifier(identifiers, "issuer_product_id", "hypatia_fund_id")
+            or self.fund_ids.get(normalized_symbol)
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if fund_id else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "Hypatia publishes this ETF's complete current holdings through its public fund API."
+                if fund_id
+                else "Hypatia's verified public holdings route currently covers WCEO only."
+            ),
+            source_url=self.product_pages.get(normalized_symbol),
+            issuer_product_id=fund_id,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url
+        normalized_symbol = symbol.strip().upper()
+        fund_id = (
+            _clean(issuer_product_id)
+            or _identifier(identifiers or {}, "issuer_product_id", "hypatia_fund_id")
+            or self.fund_ids.get(normalized_symbol)
+        )
+        product_page_url = self.product_pages.get(normalized_symbol)
+        if not fund_id or not product_page_url:
+            raise ValueError(
+                f"Hypatia's verified issuer-native holdings route does not include {normalized_symbol}."
+            )
+
+        headers = _issuer_page_request_headers(
+            accept="application/json, text/javascript, */*; q=0.01"
+        )
+        headers.update(
+            {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Origin": "https://wceoetf.com",
+                "Referer": product_page_url,
+                "X-Requested-With": "XMLHttpRequest",
+            }
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                self.holdings_endpoint,
+                data={"fundID": fund_id},
+                headers=headers,
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_hypatia_rows(payload)
+        if not rows:
+            raise ValueError(
+                f"Hypatia's issuer holdings API did not return a complete portfolio for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"rows": payload} if isinstance(payload, list) else None,
+            source_url=str(getattr(response, "url", self.holdings_endpoint)),
+            source_identifier=fund_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "hypatia_public_fund_scoped_holdings_api",
+                "fund_id": fund_id,
+                "product_page_url": product_page_url,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_daily_holdings_api",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_hypatia_rows(
+        cls, payload: Any
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, list):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: list[date] = []
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            composition_date = cls._parse_date(item.get("asOfDate"))
+            if composition_date:
+                composition_dates.append(composition_date)
+            segment = _clean(item.get("segment"))
+            category = _clean(item.get("category"))
+            raw_symbol = _clean(item.get("securityTicker"))
+            row_type, holding_type = cls._classify_row(
+                raw_symbol=raw_symbol,
+                name=_clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort")),
+                segment=segment,
+                category=category,
+            )
+            identifier = _clean(item.get("securityIdentifier"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._clean_symbol(raw_symbol) if row_type == "security" else None,
+                    name=_clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort")),
+                    cusip=identifier if _looks_like_cusip(identifier) else None,
+                    weight=_decimal(item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency") or item.get("incomeCurrency")),
+                    country=_clean(item.get("country")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows, max(composition_dates) if composition_dates else None
+
+    @staticmethod
+    def _clean_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        return text.split()[0].strip().upper() if text else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        segment: str | None,
+        category: str | None,
+    ) -> tuple[str, str]:
+        haystack = " ".join(
+            value.upper() for value in (raw_symbol, name, segment, category) if value
+        )
+        if any(marker in haystack for marker in ("CASH", "CURRENCY", "US DOLLARS")):
+            return "cash", "cash"
+        return "security", "equity"
+
+
 class SimplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     product_index_url = "https://www.simplify.us/etfs"
 
@@ -29411,6 +29585,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="THOR public ETF product pages and Filepoint holdings API may be subject to issuer terms.",
     ),
+    "hypatia": IssuerCsvAdapterConfig(
+        adapter_key="hypatia",
+        source_provider="hypatia",
+        source_access="issuer_public_fund_scoped_holdings_api",
+        url_templates=("https://filepoint.live/hypatia_getholdings_cached4.php",),
+        product_page_templates=("https://wceoetf.com/",),
+        live_tested_default_route=True,
+        terms_note="Hypatia public ETF holdings API data may be subject to issuer terms.",
+    ),
     "first_pacific": IssuerCsvAdapterConfig(
         adapter_key="first_pacific",
         source_provider="first_pacific",
@@ -29727,6 +29910,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "hashdex": HashdexHoldingsAdapter,
         "harbor": HarborHoldingsAdapter,
         "hennessy": HennessyHoldingsAdapter,
+        "hypatia": HypatiaHoldingsAdapter,
         "horizon_kinetics": HorizonKineticsHoldingsAdapter,
         "hedgeye": HedgeyeHoldingsAdapter,
         "howard_capital": HowardCapitalHoldingsAdapter,

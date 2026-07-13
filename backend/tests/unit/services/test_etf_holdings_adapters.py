@@ -8619,6 +8619,65 @@ def test_registered_holdings_adapters_are_provider_specific():
 
 
 @pytest.mark.asyncio
+async def test_hypatia_adapter_fetches_fund_scoped_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("hypatia")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "asOfDate": "2026-07-10T00:00:00",
+                        "securityIdentifier": "876030107",
+                        "securityTicker": "TPR US",
+                        "securityDescriptionLong": "Tapestry, Inc.",
+                        "shares": 374,
+                        "marketValueBase": 52633.02,
+                        "marketValuePercent": 0.005242773668,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "COMMON STOCKS",
+                    },
+                    {
+                        "asOfDate": "2026-07-10T00:00:00",
+                        "securityIdentifier": "USD",
+                        "securityTicker": "USD",
+                        "securityDescriptionLong": "US DOLLARS",
+                        "shares": -30200.1,
+                        "marketValueBase": -30200.1,
+                        "marketValuePercent": -0.003008231127,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "CURRENCY",
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://filepoint.live/hypatia_getholdings_cached4.php",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="WCEO")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://filepoint.live/hypatia_getholdings_cached4.php"
+    )
+    assert FakeAsyncClient.requested[0][1]["data"] == {"fundID": "1473"}
+    assert result.legal_metadata["route_resolution"] == (
+        "hypatia_public_fund_scoped_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+    assert result.rows[0].symbol == "TPR"
+    assert result.rows[0].cusip == "876030107"
+    assert result.rows[0].weight == Decimal("0.005242773668")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
 async def test_sprott_adapter_discovers_product_page_from_public_sitemap(monkeypatch):
     adapter = get_holdings_adapter("sprott")
     assert adapter is not None
