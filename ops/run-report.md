@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-13 - Build native ETF holdings route
+
+- Promoted `build` with an isolated BFIX issuer-product-page holdings adapter. It validates the
+  ETF identity, parses the complete public table, and preserves CUSIPs, market values, weights,
+  cash rows, and the issuer-reported as-of date.
+- Validation: adapter unit suite `216 passed`; focused live BFIX route plus provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Current truthful count: `345` registered, `176` native/live-backed, `169` remaining.
+
 ## 2026-07-12 - BCP CC issuer-identity audit
 
 - `bcp_cc` is not a standalone ETF holdings publisher. It was the ownership vehicle behind First

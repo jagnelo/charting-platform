@@ -5,6 +5,17 @@
 - ID: etf-holdings-constituents
 - Title: Implement free-source-first ETF holdings / constituents subsystem.
 
+## Latest checkpoint - 2026-07-13T00:10Z
+
+- Promoted `build` through an isolated `BuildHoldingsAdapter` for the Build Bond Innovation ETF
+  (`BFIX`). It validates the issuer product page, parses the complete current issuer-rendered
+  holdings table, and retains CUSIPs, values, weights, and the issuer as-of date directly from
+  Build's public route. SEC EDGAR is not the primary route.
+- Validation: adapter unit suite `216 passed`; focused live BFIX route plus provider matrix
+  `2 passed`; targeted ruff and `git diff --check` passed.
+- Registry count: `345` registered, `176` native/live-backed, `169` remaining. Continue with the
+  next unpromoted issuer source audit.
+
 ## Latest checkpoint - 2026-07-12T13:49Z
 
 - Promoted `818` (Liberty One Investment Management) through an isolated
