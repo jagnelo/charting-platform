@@ -10111,3 +10111,16 @@ Append a short entry after each worker session.
 - `jensen`: official JGRW page retrieval succeeds and advertises daily holdings, but its returned
   document contains only iframe-resizer declarations, not the iframe source or a public complete
   holdings route. No adapter was promoted; continue discovery or advance the provider queue.
+# ETF Holdings Provider Integration - 2026-07-13T17:13Z
+
+- Promoted `core_alternative` to native/live-backed support through a dedicated
+  `CoreAlternativeHoldingsAdapter` for CCOR.
+- The adapter follows the dated daily CSV route embedded in Core Alternative Capital's own
+  public CCOR holdings JavaScript, searches only the same bounded recent window used by that
+  page, verifies the `CCOR` account, and parses ticker, CUSIP, shares, market value, weight,
+  composition date, and cash rows.
+- Validation passed: full adapter unit suite (`218 passed`), focused live CCOR route, concrete
+  live-route coverage invariant, and provider matrix (`3 passed`), targeted Ruff, and diff
+  check.
+- Strict count: `345` registered providers, `178` native/live-backed, `167` remaining. SEC
+  EDGAR remains fallback-only and is not counted as primary provider support.

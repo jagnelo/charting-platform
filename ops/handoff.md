@@ -4667,3 +4667,9 @@
   iframe, but the returned document omits the iframe source and any complete holdings payload.
 - Do not promote Jensen until an executable issuer-native holdings route is discovered and passes
   static and live tests. Continue the provider queue; SEC remains fallback-only.
+- 2026-07-13: promoted `core_alternative` through an isolated `CoreAlternativeHoldingsAdapter`.
+  It uses Core Alternative Capital's own CCOR page-discovered dated daily holdings CSV route,
+  retries the issuer's same 15-day business-day window, validates the CCOR account, and parses
+  ticker, CUSIP, shares, market value, percentage weight, composition date, and cash rows.
+  Static parser/retry coverage plus an opt-in live CCOR route test passed. Strict provider count:
+  `345` registered, `178` native/live-backed, `167` remaining; SEC EDGAR remains fallback-only.
