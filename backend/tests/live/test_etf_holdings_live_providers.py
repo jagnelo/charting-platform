@@ -190,6 +190,16 @@ SEC_BACKED_SAMPLE_ADAPTERS = {
     "wisdomtree",
 }
 
+
+def _covers_live_provider(adapter_key: str):
+    """Mark a bespoke live test as the concrete route for one native provider."""
+
+    def decorate(test):
+        test._live_provider_adapter_key = adapter_key
+        return test
+
+    return decorate
+
 pytestmark = [
     pytest.mark.live,
     pytest.mark.skipif(
@@ -1349,6 +1359,7 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("sei")
 async def test_live_sei_dated_daily_holdings_export():
     adapter = get_holdings_adapter("sei")
     assert adapter is not None
@@ -1361,6 +1372,7 @@ async def test_live_sei_dated_daily_holdings_export():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("ameriprise")
 async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
     adapter = get_holdings_adapter("ameriprise")
     assert adapter is not None
@@ -1377,6 +1389,7 @@ async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("1251_capital")
 async def test_live_1251_capital_owned_fm_investments_holdings_api():
     adapter = get_holdings_adapter("1251_capital")
     assert adapter is not None
@@ -1392,6 +1405,7 @@ async def test_live_1251_capital_owned_fm_investments_holdings_api():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("rafferty")
 async def test_live_rafferty_direxion_daily_holdings_export():
     adapter = get_holdings_adapter("rafferty")
     assert adapter is not None
@@ -1404,6 +1418,7 @@ async def test_live_rafferty_direxion_daily_holdings_export():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("exchange_traded_concepts")
 async def test_live_exchange_traded_concepts_bluemonte_fund_page_payload():
     adapter = get_holdings_adapter("exchange_traded_concepts")
     assert adapter is not None
@@ -1419,6 +1434,7 @@ async def test_live_exchange_traded_concepts_bluemonte_fund_page_payload():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("aot")
 async def test_live_aot_invest_public_product_page_holdings_table():
     adapter = get_holdings_adapter("aot")
     assert adapter is not None
@@ -1434,6 +1450,7 @@ async def test_live_aot_invest_public_product_page_holdings_table():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("3fourteen")
 async def test_live_3fourteen_public_product_page_holdings_table():
     adapter = get_holdings_adapter("3fourteen")
     assert adapter is not None
@@ -1452,6 +1469,7 @@ async def test_live_3fourteen_public_product_page_holdings_table():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("abacus_global")
 async def test_live_abacus_global_product_page_linked_daily_holdings_csv():
     adapter = get_holdings_adapter("abacus_global")
     assert adapter is not None
@@ -1468,6 +1486,7 @@ async def test_live_abacus_global_product_page_linked_daily_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("alternative_access")
 async def test_live_alternative_access_product_page_linked_holdings_workbook():
     adapter = get_holdings_adapter("alternative_access")
     assert adapter is not None
@@ -1484,6 +1503,7 @@ async def test_live_alternative_access_product_page_linked_holdings_workbook():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("rational")
 async def test_live_rational_risk_parity_product_page_linked_holdings_workbook():
     adapter = get_holdings_adapter("rational")
     assert adapter is not None
@@ -1500,6 +1520,7 @@ async def test_live_rational_risk_parity_product_page_linked_holdings_workbook()
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("toews")
 async def test_live_toews_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("toews")
     assert adapter is not None
@@ -1514,6 +1535,24 @@ async def test_live_toews_product_page_linked_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("dakota_wealth")
+async def test_live_dakota_wealth_public_product_page_holdings_table():
+    adapter = get_holdings_adapter("dakota_wealth")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="DAK")
+
+    _assert_live_holdings_result(result, adapter_key="dakota_wealth", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "dakota_wealth_public_product_page_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "html"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("wedbush")
 async def test_live_wedbush_symbol_holdings_csv():
     adapter = get_holdings_adapter("wedbush")
     assert adapter is not None
@@ -1527,6 +1566,7 @@ async def test_live_wedbush_symbol_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("shelton")
 async def test_live_shelton_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("shelton")
     assert adapter is not None
@@ -1538,6 +1578,7 @@ async def test_live_shelton_product_page_linked_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("scharf")
 async def test_live_scharf_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("scharf")
     assert adapter is not None
@@ -1550,6 +1591,7 @@ async def test_live_scharf_product_page_linked_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("cohen_steers")
 async def test_live_cohen_steers_public_fund_api():
     adapter = get_holdings_adapter("cohen_steers")
     assert adapter is not None
@@ -1564,6 +1606,7 @@ async def test_live_cohen_steers_public_fund_api():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("eldridge")
 async def test_live_eldridge_combined_daily_holdings_file_filters_requested_etf():
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -1574,6 +1617,36 @@ async def test_live_eldridge_combined_daily_holdings_file_filters_requested_etf(
     assert result.legal_metadata["route_resolution"] == "issuer_combined_daily_holdings_csv"
     assert result.legal_metadata["composition_date"]
     assert all(row.extra_data.get("Account") == "CLOX" for row in result.rows)
+
+
+def _parametrized_live_provider_keys(*tests) -> set[str]:
+    keys: set[str] = set()
+    for test in tests:
+        for mark in getattr(test, "pytestmark", []):
+            if mark.name != "parametrize" or len(mark.args) < 2:
+                continue
+            for case in mark.args[1]:
+                if isinstance(case, tuple) and case and isinstance(case[0], str):
+                    keys.add(case[0])
+    return keys
+
+
+def test_live_backed_providers_each_have_a_concrete_live_route_test():
+    """Keep a provider from being marked native/live-backed without a live test route."""
+
+    parametrized = _parametrized_live_provider_keys(
+        test_live_issuer_direct_holdings_routes_return_parseable_rows,
+        test_live_issuer_product_pages_discover_parseable_holdings_files,
+    )
+    bespoke = {
+        adapter_key
+        for value in globals().values()
+        if callable(value)
+        and isinstance(
+            adapter_key := getattr(value, "_live_provider_adapter_key", None), str
+        )
+    }
+    assert parametrized | bespoke == LIVE_BACKED_ISSUER_ADAPTERS
 
 
 @pytest.mark.asyncio
