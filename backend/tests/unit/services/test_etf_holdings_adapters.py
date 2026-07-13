@@ -8609,11 +8609,13 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
 
 def test_registered_holdings_adapters_are_provider_specific():
     assert "configured_csv_url" not in registered_adapter_keys()
-    for adapter_key in ISSUER_ADAPTER_CONFIGS:
+    for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter) is not IssuerCsvHoldingsAdapter
         assert type(adapter) is not PublicCsvHoldingsAdapter
+        if config.live_tested_default_route:
+            assert not type(adapter).__name__.endswith("RecognitionOnlyHoldingsAdapter")
 
 
 @pytest.mark.asyncio

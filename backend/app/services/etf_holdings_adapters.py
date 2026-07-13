@@ -29796,6 +29796,11 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
     }
     adapter_type = adapter_types.get(config.adapter_key)
     if adapter_type is None:
+        if config.live_tested_default_route:
+            raise ValueError(
+                "A native/live-backed ETF holdings provider must declare an explicit "
+                f"adapter class: {config.adapter_key}"
+            )
         adapter_type = type(
             "".join(part.title() for part in config.adapter_key.split("_"))
             + "RecognitionOnlyHoldingsAdapter",
