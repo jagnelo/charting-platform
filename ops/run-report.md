@@ -11,6 +11,21 @@ Append a short entry after each worker session.
   for a reliable backend integration. `wisdomtree` remains unpromoted pending a reachable official
   complete-holdings route; SEC is not substituted as primary support.
 
+## 2026-07-13 - Neuberger Berman and SoFi priority route retries
+
+- Neuberger's current NBCR/NBOS ETF pages return a Vercel security checkpoint (`429`) before the
+  advertised detailed-holdings download can be discovered. SoFi's SFY and THTA ETF pages return
+  a challenge response (`403`) under browser-like direct requests, without an accessible issuer
+  holdings endpoint in the response.
+- Neither issuer is promoted. The next priority issuer to retry is Thrivent; SEC stays fallback-only.
+
+## 2026-07-13 - Thrivent priority route retry
+
+- Both Thrivent's primary ETF domain and the `fp.thriventfunds.com` product surface returned
+  `403` under browser-like direct requests, before a full holdings artifact could be discovered.
+- The full remaining operational priority set has now been retried: WisdomTree, Neuberger Berman,
+  SoFi, and Thrivent are access blockers rather than candidates for unverified promotion.
+
 ## 2026-07-13 - ETF provider live-test coverage manifest
 
 - Added a programmatic live-test coverage invariant: the concrete issuer-route tests derived

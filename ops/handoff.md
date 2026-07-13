@@ -12,6 +12,15 @@
   confirms the pages publish a holdings surface, but no backend-reachable complete issuer-native
   endpoint was found in this retry. Keep `wisdomtree` unpromoted and continue the remaining
   priority issuer queue rather than routing it through SEC as primary support.
+- Priority-source retry: Neuberger Berman's current NBCR/NBOS canonical ETF pages return a
+  Vercel security checkpoint (`429`) before the issuer's advertised detailed-holdings download
+  can be discovered. SoFi's SFY/THTA public ETF pages return a challenge response (`403`) and
+  expose no usable holdings endpoint in the response. Both remain unpromoted pending a reachable
+  official complete-holdings route; SEC remains fallback-only.
+- Priority-source retry: both Thrivent's primary and `fp` ETF domains return a challenge response
+  (`403`) before complete holdings can be retrieved. All four remaining operational priority gaps
+  (WisdomTree, Neuberger Berman, SoFi, and Thrivent) have now been retried and are source-access
+  blockers, not unimplemented generic adapters.
 
 - Added a live-test coverage manifest invariant. It derives provider coverage from the shared
   parameterized live tests and explicit annotations on bespoke issuer tests, then requires that
