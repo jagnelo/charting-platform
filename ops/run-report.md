@@ -10448,3 +10448,12 @@ Append a short entry after each worker session.
   live-route coverage invariant, and provider matrix (`3 passed`), targeted Ruff, and diff check.
 - Strict count: `345` registered providers, `179` native/live-backed, `166` remaining. SEC
   EDGAR remains fallback-only and is not counted as primary provider support.
+
+# ETF Holdings Provider Source Audit - 2026-07-14T23:30Z
+
+- `absolute_investment_advisers`: the official ABEQ product page is backend-readable but exposes
+  strategy material, factsheets, and prospectuses only. Its approximate 20-holding strategy
+  description is not a current complete portfolio, and no issuer-native holdings download or
+  fund-scoped API was found.
+- No provider was promoted. Strict state remains `345` registered providers, `194`
+  native/live-backed, and `151` fallback-only; SEC EDGAR remains fallback-only.

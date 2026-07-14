@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Absolute Investment Advisers source audit - 2026-07-14T23:30Z
+
+- The official ABEQ product page is backend-readable, but exposes only strategy material,
+  factsheets, prospectuses, and a statement that it targets approximately 20 holdings. It does
+  not expose a complete current portfolio, holdings download, or fund-scoped API. The provider
+  remains fallback-only; do not substitute the strategy description or a third-party holdings
+  list for a native issuer feed.
+- Strict coverage remains `194/345` native/live-backed. Next discovery target should be an
+  unresolved issuer with a complete executable first-party artifact.
+
 ## WisdomTree, Thrivent, Manulife, Morgan Stanley, and BMO source audit - 2026-07-14T23:20Z
 
 - WisdomTree's official `DXJ` product page confirms a complete "View all holdings" experience,
