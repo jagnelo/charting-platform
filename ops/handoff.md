@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Thornburg and Brookfield native-source audit - 2026-07-14T22:45Z
+
+- Thornburg's public `tb-visitor-role-lang=us` / `tb-visitor-role=financial-professional`
+  selection exposes its ETF catalogue and confirms daily portfolio disclosure, but the
+  backend-readable ETF search and document pages currently expose only commentary, fact sheets,
+  prospectuses, and shareholder reports. No complete current portfolio file or fund-scoped
+  issuer API was discovered. `thornburg` remains fallback-only; do not promote a periodic
+  regulatory report as a native current-holdings route.
+- The `brookfield` recognition key was re-audited. Public search results identify Brookfield as
+  a constituent and manager, but not as the sponsor of a distinct US-listed ETF product with an
+  issuer-owned current-holdings route. Its registered identity needs a concrete ETF product
+  mapping before it can have a truthful provider-native adapter; it remains fallback-only.
+- The strict provider invariant remains unchanged at `194/345` native/live-backed. Continue
+  discovery from an unresolved issuer with an executable fund-level public holdings artifact.
+
 ## 3EDGE native ETF holdings route - 2026-07-14T18:25Z
 
 - Promoted `3edge` through a dedicated `ThreeEdgeHoldingsAdapter` for the issuer's own dated
