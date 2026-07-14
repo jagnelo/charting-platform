@@ -29511,6 +29511,212 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class QuantifyChaosHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Quantify Funds' issuer-linked daily holdings CSV files.
+
+    Quantify publishes a complete, ticker-scoped CSV from each ETF's public
+    product page. The page link is verified before the file is parsed so a
+    stale or unrelated WordPress asset cannot be accepted as fund holdings.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "BTGD": "https://quantifyfunds.com/stackedbitcoingoldetf/btgd/",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.6000"),
+            status="ready" if product_page_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Quantify Funds publishes this ETF's complete daily holdings CSV on its public product page."
+                if product_page_url
+                else (
+                    "No verified Quantify Funds issuer route is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified Quantify Funds issuer route is configured for this ETF symbol."
+                )
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol if product_page_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"Quantify Funds does not publish a configured complete holdings route for {normalized_symbol}."
+            )
+
+        page_text, resolved_product_page_url = await self._fetch_text(
+            product_page_url,
+            headers=_issuer_page_request_headers(accept="text/html,*/*"),
+        )
+        holdings_url = self._extract_holdings_url(
+            page_text,
+            symbol=normalized_symbol,
+            product_page_url=resolved_product_page_url,
+        )
+        raw_csv, resolved_holdings_url = await self._fetch_text(
+            holdings_url,
+            headers={
+                **_holdings_request_headers(accept="text/csv,*/*"),
+                "Referer": resolved_product_page_url,
+            },
+        )
+        rows, composition_date = self._parse_holdings_csv(
+            raw_csv,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Quantify Funds did not return complete holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_csv,
+            source_url=resolved_holdings_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_verified_daily_holdings_csv",
+                "product_page_url": resolved_product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    async def _fetch_text(url: str, *, headers: dict[str, str]) -> tuple[str, str]:
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response.text, str(response.url)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        # Quantify's public WordPress pages accept requests while rejecting
+        # httpx's TLS fingerprint. This is restricted to its verified native
+        # product-page and linked holdings-file route.
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response.text, str(response.url)
+
+    @staticmethod
+    def _extract_holdings_url(raw_html: str, *, symbol: str, product_page_url: str) -> str:
+        normalized_page = re.sub(r"\s+", " ", html.unescape(raw_html)).lower()
+        if symbol.lower() not in normalized_page:
+            raise ValueError(f"Quantify Funds product page identity did not match requested ETF {symbol}.")
+        pattern = re.compile(
+            rf"https?://[^\"'\s<>]*TidalFG_Holdings_{re.escape(symbol)}\.csv(?:\?[^\"'\s<>]*)?",
+            re.IGNORECASE,
+        )
+        match = pattern.search(html.unescape(raw_html))
+        if not match:
+            raise ValueError(f"Quantify Funds product page did not expose a complete holdings CSV for {symbol}.")
+        holdings_url = match.group(0)
+        if not holdings_url.lower().startswith("https://quantifyfunds.com/"):
+            raise ValueError(f"Quantify Funds product page exposed an untrusted holdings URL for {symbol}.")
+        return holdings_url
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        requested_symbol = symbol.strip().upper()
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(item.get("Account")) or "").upper()
+            if account != requested_symbol:
+                continue
+            row_date = QuantifyChaosHoldingsAdapter._parse_date(item.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            holding_type, row_type = QuantifyChaosHoldingsAdapter._classify_holding(
+                ticker=raw_symbol,
+                name=name,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=QuantifyChaosHoldingsAdapter._tradable_symbol(
+                        ticker=raw_symbol,
+                        holding_type=holding_type,
+                    ),
+                    name=name or raw_symbol,
+                    cusip=(
+                        _clean(item.get("CUSIP"))
+                        if _looks_like_cusip(_clean(item.get("CUSIP")))
+                        else None
+                    ),
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"quantify-{requested_symbol}-{position}",
+                    extra_data={key: value for key, value in item.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _classify_holding(*, ticker: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (ticker, name) if part)
+        if any(marker in text for marker in ("CASH", "CASH&OTHER", "CASH & OTHER")):
+            return "cash", "cash"
+        if " FUT" in f" {text}" or " COMDTY" in text or " CURNCY" in text:
+            return "future", "security"
+        if "OPTION" in text or re.search(r"\b\d{6}[CP]\d{8}\b", text):
+            return "option", "security"
+        if " ETF" in text or "FUND" in text or "TRUST" in text:
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Optimize's full OPTZ portfolio through its issuer-linked XLS export."""
 
@@ -31975,6 +32181,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="PeakShares public ETF application holdings data may be subject to issuer terms.",
     ),
+    "quantify_chaos": IssuerCsvAdapterConfig(
+        adapter_key="quantify_chaos",
+        source_provider="quantify_funds",
+        source_access="issuer_product_page_verified_daily_holdings_csv",
+        product_page_templates=("https://quantifyfunds.com/stackedbitcoingoldetf/btgd/",),
+        live_tested_default_route=True,
+        terms_note="Quantify Funds public ETF daily holdings CSV files may be subject to issuer terms.",
+    ),
     "summit_global": IssuerCsvAdapterConfig(
         adapter_key="summit_global",
         source_provider="summit_global",
@@ -32048,6 +32262,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "capital_group": CapitalGroupHoldingsAdapter,
         "cary_street": CaryStreetHoldingsAdapter,
         "peakshares": PeakSharesHoldingsAdapter,
+        "quantify_chaos": QuantifyChaosHoldingsAdapter,
         "summit_global": SummitGlobalHoldingsAdapter,
         "regan": ReganHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,

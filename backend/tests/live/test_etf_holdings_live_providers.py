@@ -70,6 +70,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "capital_group",
     "cary_street",
     "peakshares",
+    "quantify_chaos",
     "summit_global",
     "regan",
     "castleark",
@@ -1398,6 +1399,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "quantify_chaos",
+            "BTGD",
+            None,
+            {},
+            5,
         ),
     ],
 )

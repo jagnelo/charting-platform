@@ -726,6 +726,61 @@ async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_h
 
 
 @pytest.mark.asyncio
+async def test_quantify_chaos_adapter_verifies_product_page_and_parses_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("quantify_chaos")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><body><h1>BTGD - Quantify Funds</h1>"
+                '<a href="https://quantifyfunds.com/wp-content/uploads/data/'
+                'TidalFG_Holdings_BTGD.csv">Download All Holdings</a></body></html>'
+            ),
+            content_type="text/html",
+            url="https://quantifyfunds.com/stackedbitcoingoldetf/btgd/",
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n"
+                "07/14/2026,BTGD,GCQ6 Comdty,GCQ6 COMDTY,GOLD 100 OZ FUTR Aug26,93,4005.7,37253010,93.02%\n"
+                "07/14/2026,BTGD,FGXXX,31846V336,First American Government Obligations Fund,19692554,100,19692554.38,49.17%\n"
+                "07/14/2026,BTGD,Cash&Other,Cash&Other,Cash & Other,10154679,1,10154679.4,25.36%\n"
+                "07/14/2026,BTGD,BITO,74347G440,ProShares Bitcoin ETF,590062,8.44,4980123.28,12.43%\n"
+                "07/14/2026,OTHER,WRONG,000000000,Sibling fund row,1,1,1,1%\n"
+            ),
+            content_type="text/csv",
+            url="https://quantifyfunds.com/wp-content/uploads/data/TidalFG_Holdings_BTGD.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BTGD", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://quantifyfunds.com/stackedbitcoingoldetf/btgd/"
+    assert FakeAsyncClient.requested[1][0] == (
+        "https://quantifyfunds.com/wp-content/uploads/data/TidalFG_Holdings_BTGD.csv"
+    )
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == (
+        "https://quantifyfunds.com/stackedbitcoingoldetf/btgd/"
+    )
+    assert len(result.rows) == 4
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "future"
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].cusip == "31846V336"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[3].symbol == "BITO"
+    assert result.rows[3].weight == Decimal("0.1243")
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_summit_global_adapter_parses_only_issuer_disclosed_tracking_basket(monkeypatch):
     adapter = get_holdings_adapter("summit_global")
     assert adapter is not None
