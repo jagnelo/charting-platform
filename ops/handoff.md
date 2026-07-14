@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Kingsbarn native holdings route - 2026-07-15T00:48Z
+
+- Promoted `kingsbarn` through an isolated `KingsbarnHoldingsAdapter` for `DVDN`.
+  It validates the public administrator-hosted fund identity before parsing the complete
+  issuer-published `Constituents` table, preserving ticker, CUSIP, shares, market value,
+  percentage weight, date, and cash rows.
+- Static coverage verifies the page identity, exact table schema, percent conversion, cash
+  classification, and source date. Validation passed: targeted Ruff, the full adapter unit
+  suite (`240 passed`), plus the live `DVDN` route and strict manifest checks (`3 passed`).
+- Strict coverage is now `198/345` native/live-backed, leaving `147` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary support.
+
 ## Quantify Funds native holdings route - 2026-07-15T00:30Z
 
 - Promoted `quantify_chaos` through an isolated `QuantifyChaosHoldingsAdapter` for `BTGD`.

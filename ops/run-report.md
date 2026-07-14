@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Kingsbarn - 2026-07-15T00:48Z
+
+- Promoted `kingsbarn` through an isolated `KingsbarnHoldingsAdapter` for the issuer's public
+  administrator-hosted `DVDN` fund page. The adapter identity-validates the selected fund before
+  consuming its complete current constituents table, retaining tickers, CUSIPs, shares, values,
+  weights, dates, and cash rows.
+- Validation passed: targeted Ruff; all `240` adapter unit tests; and the live DVDN route plus
+  strict provider-matrix and concrete-live-route checks (`3 passed`). Strict coverage is now
+  `345` registered providers, `198` native/live-backed, and `147` fallback-only.
+
 # ETF Holdings Provider Integration - 3EDGE - 2026-07-14T18:25Z
 
 - Added `ThreeEdgeHoldingsAdapter` for 3EDGE's issuer-hosted, dated daily holdings text export.
