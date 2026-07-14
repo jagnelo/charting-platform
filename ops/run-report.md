@@ -2,6 +2,28 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Water Island / AltShares - 2026-07-14T16:58Z
+
+- Promoted `water_island` through a dedicated `WaterIslandHoldingsAdapter`, with public
+  AltShares product-page validation plus the issuer-hosted periodic Portfolio of Investments PDF
+  for ARB and EVNT.
+- Parser coverage verifies long positions, cash, sold-short rows, values, shares, weights, and
+  as-of date. The live ARB route plus the strict live-provider manifest invariant passed.
+- Source metadata identifies this accurately as `periodic_issuer_report`, not daily holdings.
+  Strict coverage is `345` registered, `190` native/live-backed, and `155` fallback-only.
+
+# ETF Holdings Provider Source Audit - PIMCO - 2026-07-14T16:46Z
+
+- Re-audited PIMCO's current BOND product application. Its issuer-owned client configuration
+  targets `fund-ui.pimco.com/fund-detail-api`, but exposes only a `topTenHoldings` export rather
+  than a complete current portfolio export.
+- The direct API requires a client role unavailable to this backend path: anonymous calls return
+  `401`; the role values used by the public page return issuer-side `500` responses. This does
+  not meet the full-holdings contract, so `pacific_investments` remains fallback-only and no
+  adapter was falsely promoted. SEC EDGAR remains fallback-only.
+- Strict coverage state remains `345` registered providers, `189` native/live-backed, and `156`
+  fallback-only. No repository code changed in this source audit.
+
 # ETF Holdings Provider Integration - Regan Capital - 2026-07-14T16:44Z
 
 - Promoted `regan` through `ReganHoldingsAdapter`, with isolated current-holdings routes for

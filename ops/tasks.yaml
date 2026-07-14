@@ -20,12 +20,16 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 185 native/live-backed providers out of 345; 160 remain.
-      - Current priority blockers: WisdomTree, SoFi, and Aptus return bot-protection HTTP 403 responses
+      - Current truthful count: 190 native/live-backed providers out of 345; 155 remain.
+      - Current priority blockers: WisdomTree and SoFi return bot-protection HTTP 403 responses
         to browser-header backend requests. Thrivent currently exposes documents/top holdings but
-        no complete current issuer-native holdings artifact. Do not promote any of them until a
-        reachable complete issuer-native route passes a live test. Neuberger Berman is supported
-        through its official sitemap and detailed-holdings workbook route.
+        no complete current issuer-native holdings artifact. PIMCO's public fund client exposes
+        only a top-ten export and its direct API requires an unavailable authenticated role.
+        Do not promote any of them until a reachable complete issuer-native route passes a live
+        test. Neuberger Berman is supported through its official sitemap and detailed-holdings
+        workbook route. Water Island is supported through AltShares' complete periodic
+        portfolio-of-investments report for ARB and EVNT; its periodic disclosure cadence is
+        explicit metadata, not a claim of daily coverage.
   - id: strategy-lab
     title: Expand Strategy Lab across the remaining roadmap gaps
     status: in_progress

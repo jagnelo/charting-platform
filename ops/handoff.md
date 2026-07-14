@@ -1,5 +1,32 @@
 # Active Handoff
 
+## Water Island native ETF holdings routes - 2026-07-14T16:58Z
+
+- Promoted `water_island` through an isolated `WaterIslandHoldingsAdapter` using AltShares'
+  issuer-hosted periodic Portfolio of Investments report for ARB and EVNT. The parser preserves
+  long and short positions, cash rows, shares, market values, calculated weights, and the report
+  as-of date.
+- The adapter verifies the specific ETF product page before using the issuer report and records
+  `refresh_frequency=periodic_issuer_report`; it does not present the report as daily holdings.
+- Focused static parser test, Ruff, the opt-in live ARB route, and the strict provider manifest
+  invariant passed. Strict coverage is now `345` registered, `190` native/live-backed, and `155`
+  fallback-only.
+
+## PIMCO native-source audit - 2026-07-14T16:46Z
+
+- Re-audited `pacific_investments` against PIMCO's current BOND product application rather than
+  relying on stale URL guesses. The issuer's own client config points at
+  `https://fund-ui.pimco.com/fund-detail-api`; its public application exposes a
+  `topTenHoldings` JSON/export route but not a complete current holdings export.
+- Direct API requests require a role context: no role returns `401`, while the role values used by
+  the public page return issuer-side `500` responses from a backend request. A top-ten list is
+  not sufficient for this subsystem's full-constituent contract, so `pacific_investments` remains
+  fallback-only and uncounted. SEC EDGAR was not substituted as native support.
+- The strict state remains `345` registered, `189` native/live-backed, and `156` fallback-only.
+  The next source-discovery pass should target another unpromoted issuer with a complete,
+  backend-readable first-party artifact; do not repeat PIMCO API probing without a new public
+  issuer route.
+
 ## Regan native ETF holdings routes - 2026-07-14T16:44Z
 
 - Promoted `regan` through an isolated `ReganHoldingsAdapter` for the issuer's two US ETFs:

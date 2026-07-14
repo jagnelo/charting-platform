@@ -3,8 +3,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-14T16:44:00Z",
-    "last_commit": "a458a12",
+    "last_handoff_at": "2026-07-14T16:58:00Z",
+    "last_commit": "987ea3a",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-14 targeted Ruff check for the Regan adapter, parser regression, and live-provider manifest)",
@@ -18,6 +18,8 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-14T16:58Z Water Island native route: WaterIslandHoldingsAdapter validates ARB/EVNT product pages then parses AltShares' issuer-hosted periodic Portfolio of Investments report. It preserves long and short positions, cash, shares, values, calculated weights, and as-of date, while explicitly recording periodic_issuer_report frequency. Focused parser, opt-in live ARB route, strict provider manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 190 native/live-backed, and 155 fallback-only.",
+        "2026-07-14T16:46Z PIMCO source audit: the official BOND product client points to fund-ui.pimco.com/fund-detail-api. Its public application exposes only a top-ten holdings export; direct API requests require an unavailable role context (401 without a role, 500 with the public-page role values). That is not a complete current constituent artifact, so pacific_investments remains fallback-only and uncounted. Strict state remains 345 registered, 189 native/live-backed, and 156 fallback-only.",
         "2026-07-14T16:44Z Regan native routes: ReganHoldingsAdapter validates the selected MBSF or MBSX issuer product page and its exact linked current-holdings CSV before parsing. This prevents the floating-rate MBSF feed from being accidentally used for fixed-rate MBSX. The parser preserves CUSIPs, weights, shares, market values, currency, and as-of date; mortgage-backed positions stay non-tickered fixed-income rows, and the BBH sweep balance is cash. Focused parser, full 231-test adapter suite, opt-in live MBSF route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict state is 345 registered, 189 native/live-backed, and 156 fallback-only. Implementation was committed as a458a12.",
         "2026-07-14T16:16Z Summit Global native route: SummitGlobalHoldingsAdapter validates the issuer's public SGLC product page and parses its complete current tracking-basket grid. Because SGLC is semi-transparent, metadata explicitly records disclosure_type=tracking_basket instead of misrepresenting the portfolio as actual holdings. The parser preserves blank source cells, identifiers, shares, weights, values, currency, cash classification, and as-of date. Focused parser, full 230-test adapter suite, opt-in live SGLC route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict state is 345 registered, 188 native/live-backed, and 157 fallback-only. Implementation was committed as ddbb91d.",
         "2026-07-14T16:04Z Cary Street native route: CaryStreetHoldingsAdapter validates Fairlead's public TACK product page then invokes the exact fund-scoped FilePoint JSON route used by its browser application. It filters portfolio id 1342, preserves ticker/CUSIP/shares/value/weight/currency/country/as-of data, and classifies the BBH sweep as cash. Static parser/catalog checks (3), full adapter suite (229), opt-in live TACK plus provider matrix and concrete-route invariant (3), Ruff, and diff checks passed. Strict state is 345 registered, 187 native/live-backed, and 158 fallback-only. Cary Street changes are uncommitted; Aptus code and its operational checkpoint were committed/pushed as 2dddc0a/da07c49.",
