@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Optimize Financial native ETF holdings route - 2026-07-14T18:00Z
+
+- Promoted `optimize` through an isolated `OptimizeHoldingsAdapter` for OPTZ. It verifies the
+  issuer's OPTZ product page and exact `fund=optz` full-holdings link before downloading and
+  parsing the official legacy XLS export, preserving ticker, CUSIP, weight, shares, market value,
+  and the issuer's as-of date.
+- The issuer's public XLS contains duplicated OLE stream references. The shared legacy-XLS parser
+  now attempts normal pandas/XLRD parsing first, then explicitly retries with xlrd's supported
+  corruption-tolerant mode. That recovery was validated against the live issuer workbook; it is
+  not an Optimize-specific raw-binary workaround.
+- Static adapter coverage, full adapter suite (`235 passed`), the opt-in live OPTZ route, strict
+  provider manifest invariant, Ruff, and diff checks passed. Strict coverage is now `193/345`
+  native/live-backed, with `152` fallback-only. Continue the queue with an unresolved provider
+  exposing a complete first-party holdings artifact; SEC EDGAR remains fallback-only.
+
 ## Cultivar native ETF holdings route - 2026-07-14T17:16Z
 
 - Promoted `cultivar` through a dedicated adapter for its official CVAR current fund-page table.
