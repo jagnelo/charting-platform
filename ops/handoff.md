@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Quantify Funds native holdings route - 2026-07-15T00:30Z
+
+- Promoted `quantify_chaos` through an isolated `QuantifyChaosHoldingsAdapter` for `BTGD`.
+  It verifies the public issuer product page before following its explicit complete daily CSV
+  link, filters the fund account, and preserves the issuer's date, CUSIP, shares, value,
+  percent weight, futures, funds, and cash rows.
+- Quantify blocks httpx's TLS fingerprint with HTTP 403 but permits the same issuer-native
+  public route through `requests`; the narrowly scoped fallback is limited to the verified
+  product page and its linked CSV. Static coverage verifies the link, fund isolation, asset
+  classification, and data preservation. Validation passed: targeted Ruff, full adapter unit
+  suite (`239 passed`), plus the live `BTGD` route and manifest checks (`3 passed`).
+- Strict coverage is now `197/345` native/live-backed, leaving `148` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary support.
+
 ## PeakShares native holdings route - 2026-07-15T00:00Z
 
 - Promoted `peakshares` through an isolated `PeakSharesHoldingsAdapter` for `PSTR` and `PRMR`.

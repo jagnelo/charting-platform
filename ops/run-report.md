@@ -10479,3 +10479,15 @@ Append a short entry after each worker session.
   the strict provider-matrix and concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `196` native/live-backed, `149` fallback-only. SEC
   EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Integration - 2026-07-15T00:30Z
+
+- Promoted `quantify_chaos` through a dedicated `QuantifyChaosHoldingsAdapter` for `BTGD`.
+  It verifies the issuer page's explicit full-holdings CSV link, filters the account-scoped rows,
+  and preserves dates, identifiers, values, weights, futures, funds, and cash classifications.
+- Quantify's public WordPress route returns HTTP 403 only to httpx. The adapter uses a narrowly
+  scoped `requests` retry for its verified product page and linked CSV, not a generic fallback.
+- Validation passed: targeted Ruff; full adapter unit suite (`239 passed`); and live `BTGD` plus
+  strict provider-matrix and concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `197` native/live-backed, `148` fallback-only. SEC
+  EDGAR remains fallback-only and does not count as primary provider support.
