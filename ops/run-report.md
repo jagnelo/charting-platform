@@ -2,6 +2,19 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Aptus - 2026-07-14T15:31Z
+
+- Promoted `aptus` through a dedicated `AptusHoldingsAdapter` that uses the issuer's public
+  WordPress pages API instead of the Cloudflare-protected product-page HTML. The API exposes the
+  issuer's complete current holdings table for a symbol-specific page.
+- DRSK real-route validation returned 33 current holdings. The adapter preserves ticker, CUSIP,
+  name, shares, market value, weight, and effective date from that table.
+- Validation passed: focused parser tests (`2 passed`), complete adapter unit suite (`228 passed`),
+  opt-in DRSK live route plus registry matrix and concrete-route invariant (`3 passed`), targeted
+  Ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `186` native/live-backed, `159` fallback-only. SEC
+  EDGAR remains fallback-only and is not counted.
+
 ## 2026-07-14 - Tremblant native ETF holdings route
 
 - Promoted `tremblant` through a dedicated TOGA adapter. It validates the issuer product page and

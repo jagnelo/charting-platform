@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-14T11:55:00Z",
+    "last_handoff_at": "2026-07-14T15:31:00Z",
     "last_commit": "a75d53c",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-13 targeted Ruff check for the RiverNorth native adapter and focused tests)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-14: 228 passed), focused static and opt-in live Cohanzick CUSD and Tremblant TOGA routes (2 static, 4 live including parametrized routes), plus the strict live-provider coverage invariant and provider matrix (2 passed). The invariant proves all 185 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-14 targeted Ruff check for the Aptus native adapter, parser regression, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-14: 228 passed), Aptus parser regression, and opt-in live Aptus DRSK route plus strict provider matrix and concrete-live-route invariant (3 passed). The invariant proves all 186 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-14T15:31Z Aptus native route: Aptus's browser-facing product pages remain Cloudflare-protected for httpx, but its issuer-owned WordPress pages API is public and returns the same complete current holdings table. AptusHoldingsAdapter now fetches that API directly, parses DRSK's ticker/CUSIP/name/shares/value/weight/effective-date fields, and is covered by a static regression plus a real opt-in DRSK route. Full 228-test adapter suite, live route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict state is 345 registered, 186 native/live-backed, and 159 fallback-only. Changes are uncommitted.",
         "2026-07-14T11:55Z Kingsview/Russell source audit: Monarch Funds' official resources/app points MVFD to fundID 1456, but its public FilePoint JSON returns authorization denied and the linked CSV is a non-holdings 35-byte binary payload. Russell's US ETF catalogue returns a regional-attestation page and no complete backend-reachable RUSC artifact was discovered. Both remain fallback-only and uncounted; SEC is not promoted as primary support. The live manifest invariant was re-audited: every LIVE_BACKED issuer must have an explicit parametrized or bespoke live route test. Strict state remains 345 registered, 185 native/live-backed, 160 fallback-only. The previous Cohanzick/Tremblant work is committed and pushed as 7bda19a/a75d53c.",
         "2026-07-14T11:15Z Tremblant native route: promoted tremblant through an isolated TOGA product-page/application-script-verified FilePoint CSV adapter. It filters only TOGA rows and locally normalizes issuer percent-suffixed weights. Static/parser, full 228-test adapter suite, real TOGA route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict count is 345 registered, 185 native/live-backed, and 160 fallback-only. Changes were committed and pushed as 7bda19a/a75d53c.",
         "2026-07-14T11:06Z Cohanzick native route: promoted cohanzick through an isolated CUSD-only adapter. The official CrossingBridge CUSD page is validated before its unparameterized public Catapult holdings JSON is fetched, preventing legacy SPC page discovery from silently ingesting CUSD rows. Static parser test, full 227-test adapter suite, real CUSD route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict count is 345 registered, 184 native/live-backed, and 161 fallback-only. Changes are uncommitted.",

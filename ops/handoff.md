@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Aptus native ETF holdings route - 2026-07-14T15:31Z
+
+- Promoted `aptus` through an isolated `AptusHoldingsAdapter` route that calls Aptus's public
+  WordPress page API (`/wp-json/wp/v2/pages?slug={symbol}`) rather than its Cloudflare-protected
+  product-page HTML. The API returns the issuer's own complete server-rendered holdings table.
+- The adapter parses the current `DRSK` table, preserving ticker/CUSIP/name, shares, market value,
+  weight, and effective date. It does not use SEC or a generic issuer route as primary support.
+- Validation: real DRSK fetch returned 33 current rows; focused parser tests `2 passed`; full
+  adapter unit suite `228 passed`; opt-in Aptus live route plus strict provider matrix and
+  concrete-live-route invariant `3 passed`; targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `186` native/live-backed, and `159` fallback-only.
+  Aptus implementation changes remain uncommitted. Continue finding executable first-party routes
+  for remaining priority issuers; WisdomTree is currently Cloudflare-blocked, while BMO's public
+  tool is not a BMO-only issuer holdings feed.
+
 ## Kingsview and Russell source audit - 2026-07-14T11:55Z
 
 - Kingsview's official Monarch Funds resources page publishes fund-scoped FilePoint references
