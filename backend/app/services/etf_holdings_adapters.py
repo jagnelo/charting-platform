@@ -10209,6 +10209,181 @@ class DhandhoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch AltShares' issuer-published periodic portfolio-of-investments report."""
+
+    PRODUCT_PAGE_URLS = {
+        "ARB": "https://www.altsharesetfs.com/arb",
+        "EVNT": "https://www.altsharesetfs.com/evnt",
+    }
+    FUND_NAMES = {
+        "ARB": "AltShares Merger Arbitrage ETF",
+        "EVNT": "AltShares Event-Driven ETF",
+    }
+    HOLDINGS_URL = "https://altshares.s3.amazonaws.com/filings/Quarterly_Holdings-Fiscal_Q3.pdf"
+    _POSITION_RE = re.compile(
+        r"(?P<name>[A-Z][^\n$]*?)\s{2,}(?P<shares>\(?[\d,]+\)?)\s+(?:\$\s*)?"
+        r"(?P<value>\(?[\d,]+\)?)\s*(?=$|[A-Z])"
+    )
+    _CATEGORY_PREFIX_RE = re.compile(
+        r"^(?:[A-Za-z&/\- ]+\s+-\s+\(?-?\d+(?:\.\d+)?%\)?(?:\s+\(Continued\))?\s*)+"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if product_page_url else Decimal("0.5000"),
+            status="ready" if product_page_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "AltShares publishes this ETF's complete periodic portfolio-of-investments report."
+                if product_page_url
+                else "No verified AltShares ETF portfolio-report route is configured for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "No verified AltShares ETF portfolio-report route is configured for this symbol."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        fund_name = self.FUND_NAMES.get(normalized_symbol)
+        if product_page_url is None or fund_name is None:
+            raise ValueError(
+                f"No verified AltShares ETF portfolio-report route is configured for {normalized_symbol}."
+            )
+        report_url = source_url if source_url and "altshares.s3.amazonaws.com" in source_url else self.HOLDINGS_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_page.raise_for_status()
+            if normalized_symbol not in product_page.text.upper():
+                raise ValueError(f"AltShares product page identity did not match requested ETF {normalized_symbol}.")
+            report = await client.get(
+                report_url,
+                headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                follow_redirects=True,
+            )
+            report.raise_for_status()
+        rows, composition_date = self._parse_holdings_pdf(report.content, fund_name=fund_name)
+        if not rows:
+            raise ValueError(f"AltShares portfolio report contained no parseable positions for {normalized_symbol}.")
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'unknown'}:"
+                f"{index}:{row.name or 'holding'}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "altshares_periodic_portfolio_of_investments_pdf",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text="\n".join(row.name or "" for row in rows),
+            raw_json={"source_format": "pdf", "fund_name": fund_name, "row_count": len(rows)},
+            source_url=str(report.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "altshares_periodic_complete_portfolio_report",
+                "product_page_url": str(product_page.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "refresh_frequency": "periodic_issuer_report",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_pdf(
+        cls,
+        raw_pdf: bytes,
+        *,
+        fund_name: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        text = "\n".join(
+            page.extract_text() or ""
+            for page in PdfReader(BytesIO(raw_pdf)).pages
+            if fund_name.lower() in (page.extract_text() or "").lower()
+        )
+        return cls._parse_holdings_text(text, fund_name=fund_name)
+
+    @classmethod
+    def _parse_holdings_text(
+        cls,
+        text: str,
+        *,
+        fund_name: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        date_match = re.search(
+            rf"{re.escape(fund_name)}\s+Portfolio of Investments\s+([A-Z][a-z]+ \d{{1,2}}, \d{{4}})",
+            text,
+        )
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%B %d, %Y").date()
+            if date_match
+            else None
+        )
+        net_assets_matches = re.findall(r"NET ASSETS\s*-\s*100\.00%\s*\$?\s*([\d,]+)", text)
+        net_assets = _decimal(net_assets_matches[0]) if net_assets_matches else None
+        rows: list[CanonicalHoldingRow] = []
+        is_short_section = False
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if "SCHEDULE OF SECURITIES SOLD SHORT" in line.upper():
+                is_short_section = True
+                continue
+            if line.upper().startswith(("TOTAL ", "NET ASSETS", "PORTFOLIO FOOTNOTES")):
+                continue
+            for match in cls._POSITION_RE.finditer(line):
+                raw_name = cls._CATEGORY_PREFIX_RE.sub("", match.group("name")).strip()
+                name = raw_name
+                name = re.sub(r"^Money Market Funds\s+", "", name, flags=re.IGNORECASE)
+                name = re.sub(r"\([a-z]\)$", "", name).strip()
+                shares = _decimal(match.group("shares"))
+                market_value = _decimal(match.group("value"))
+                if not name or shares is None or market_value is None:
+                    continue
+                is_cash = "money market" in raw_name.lower() or "cash" in raw_name.lower()
+                is_short = is_short_section or shares < 0 or market_value < 0
+                rows.append(
+                    CanonicalHoldingRow(
+                        name=name,
+                        shares=shares,
+                        market_value=market_value,
+                        weight=(market_value / net_assets if net_assets else None),
+                        currency="USD",
+                        holding_type="cash" if is_cash else "equity",
+                        row_type="cash" if is_cash else "security",
+                        extra_data={"position_side": "short" if is_short else "long"},
+                    )
+                )
+        return rows, composition_date
+
+
 class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch EMLes' fund-specific full-holdings CSV from its public ETF pages."""
 
@@ -30972,6 +31147,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Pabrai Wagons ETF public complete holdings PDFs may be subject to issuer terms.",
     ),
+    "water_island": IssuerCsvAdapterConfig(
+        adapter_key="water_island",
+        source_provider="water_island",
+        source_access="issuer_periodic_complete_portfolio_report_pdf",
+        url_templates=("https://altshares.s3.amazonaws.com/filings/Quarterly_Holdings-Fiscal_Q3.pdf",),
+        product_page_templates=("https://www.altsharesetfs.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="AltShares public portfolio-of-investments reports may be subject to issuer terms.",
+    ),
     "emles": IssuerCsvAdapterConfig(
         adapter_key="emles",
         source_provider="emles",
@@ -31126,6 +31310,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "diamond_hill": DiamondHillHoldingsAdapter,
         "dimensional": DimensionalHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
+        "water_island": WaterIslandHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "rafferty": RaffertyHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,

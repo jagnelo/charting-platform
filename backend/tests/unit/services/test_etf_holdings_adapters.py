@@ -131,6 +131,34 @@ class FakeAsyncClient:
         return type(self).queue.pop(0)
 
 
+def test_water_island_parser_preserves_periodic_long_and_short_positions():
+    adapter = get_holdings_adapter("water_island")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_holdings_text(
+        """
+        AltShares Merger Arbitrage ETF Portfolio of Investments February 28, 2026 (unaudited)
+        COMMON STOCKS - 98.07% Advertising - 1.01% Clear Channel Outdoor Holdings, Inc.(a)   434,198  $ 1,042,075
+        Money Market Funds Morgan Stanley Institutional Liquidity Fund - Government Portfolio   886,309  $ 886,309
+        NET ASSETS - 100.00%          $ 103,389,496
+        SCHEDULE OF SECURITIES SOLD SHORT
+        Allegiant Travel Co.   (11,873) $ (1,212,827)
+        """,
+        fund_name="AltShares Merger Arbitrage ETF",
+    )
+
+    assert composition_date == date(2026, 2, 28)
+    assert [row.name for row in rows] == [
+        "Clear Channel Outdoor Holdings, Inc.",
+        "Morgan Stanley Institutional Liquidity Fund - Government Portfolio",
+        "Allegiant Travel Co.",
+    ]
+    assert rows[0].weight == Decimal("1042075") / Decimal("103389496")
+    assert rows[1].row_type == "cash"
+    assert rows[2].shares == Decimal("-11873")
+    assert rows[2].extra_data["position_side"] == "short"
+
+
 @pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
