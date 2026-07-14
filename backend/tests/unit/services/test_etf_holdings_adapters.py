@@ -6165,12 +6165,18 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     </html>
     """
     FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [FakeResponse(text=html, content_type="text/html")]
+    payload = {"content": {"rendered": html}}
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps([payload]), content_type="application/json")
+    ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter.fetch_latest(symbol="DRSK")
 
-    assert FakeAsyncClient.requested[0][0] == "https://aptusetfs.com/drsk/"
+    assert (
+        FakeAsyncClient.requested[0][0]
+        == "https://aptusetfs.com/wp-json/wp/v2/pages?slug=drsk"
+    )
     assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://aptusetfs.com/"
     assert len(result.rows) == 1
     row = result.rows[0]
@@ -6182,7 +6188,7 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     assert row.market_value == Decimal("155731346.10")
     assert result.legal_metadata["source_provider"] == "aptus"
     assert result.legal_metadata["source_format"] == "html"
-    assert result.legal_metadata["route_resolution"] == "issuer_product_page_holdings_table"
+    assert result.legal_metadata["route_resolution"] == "issuer_wordpress_api_holdings_table"
     assert result.legal_metadata["composition_date"] == "2026-06-25"
 
 
@@ -8729,8 +8735,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["applied_finance"]["support_route_types"]
     assert adapters["alliancebernstein"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["alliancebernstein"]["support_route_types"]
-    assert adapters["aptus"]["live_tested_default_route"] is False
-    assert "issuer_native_live_route" not in adapters["aptus"]["support_route_types"]
+    assert adapters["aptus"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["aptus"]["support_route_types"]
     assert adapters["arrow"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["arrow"]["support_route_types"]
     assert adapters["teucrium"]["live_tested_default_route"] is True

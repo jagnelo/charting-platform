@@ -11891,7 +11891,7 @@ class ClearSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Parse Aptus ETF holdings from server-rendered product pages."""
+    """Parse Aptus ETF holdings through the issuer's public WordPress API."""
 
     def resolve_product_page_url(
         self,
@@ -11920,31 +11920,45 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        product_page_url = source_url or self.resolve_product_page_url(
+        slug = (issuer_product_id or symbol).strip().lower()
+        if not slug:
+            raise ValueError("Aptus needs an ETF symbol for its holdings API.")
+        api_url = (
+            source_url
+            if source_url and "/wp-json/wp/v2/pages" in source_url
+            else f"https://aptusetfs.com/wp-json/wp/v2/pages?slug={slug}"
+        )
+        product_page_url = self.resolve_product_page_url(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
             identifiers=identifiers,
         )
-        if not product_page_url:
-            raise ValueError(f"Aptus needs a product page URL for {symbol}.")
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
-                product_page_url,
+                api_url,
                 headers={
-                    **_issuer_page_request_headers(accept="text/html,*/*"),
+                    **_holdings_request_headers(accept="application/json"),
                     "Referer": "https://aptusetfs.com/",
                 },
                 follow_redirects=True,
             )
         response.raise_for_status()
-        rows, composition_date = self._parse_product_page(response.text)
+        payload = response.json()
+        page = payload[0] if isinstance(payload, list) and payload else payload
+        if not isinstance(page, dict):
+            raise ValueError(f"Aptus holdings API returned no page for {symbol}.")
+        content = page.get("content")
+        raw_html = content.get("rendered") if isinstance(content, dict) else None
+        if not isinstance(raw_html, str):
+            raise ValueError(f"Aptus holdings API returned no holdings markup for {symbol}.")
+        rows, composition_date = self._parse_product_page(raw_html)
         if not rows:
-            raise ValueError(f"Aptus product page did not expose parseable holdings for {symbol}.")
+            raise ValueError(f"Aptus holdings API did not expose parseable holdings for {symbol}.")
         return HoldingsFetchResult(
             rows=rows,
-            raw_text=response.text,
-            raw_json=None,
+            raw_text=raw_html,
+            raw_json=page,
             source_url=str(response.url),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata={
@@ -11952,7 +11966,7 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
-                "route_resolution": "issuer_product_page_holdings_table",
+                "route_resolution": "issuer_wordpress_api_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "product_page_url": product_page_url,
@@ -29339,15 +29353,11 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "aptus": IssuerCsvAdapterConfig(
         adapter_key="aptus",
         source_provider="aptus",
-        source_access="issuer_public_product_page_holdings_table_currently_blocked",
+        source_access="issuer_public_wordpress_api_holdings_table",
         product_page_templates=(
             "https://aptusetfs.com/{symbol_lower}/",
         ),
-        # Aptus currently serves a bot-protection 403 for every public product and
-        # WordPress route tried by the backend. Keep the dedicated parser ready,
-        # but do not report it as a working native integration until a live route
-        # is again executable.
-        live_tested_default_route=False,
+        live_tested_default_route=True,
         terms_note="Aptus public ETF product pages may be subject to issuer terms.",
     ),
     "proshares": IssuerCsvAdapterConfig(
