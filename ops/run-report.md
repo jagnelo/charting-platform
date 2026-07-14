@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - 3EDGE - 2026-07-14T18:25Z
+
+- Added `ThreeEdgeHoldingsAdapter` for 3EDGE's issuer-hosted, dated daily holdings text export.
+  The dedicated route retries recent market dates and filters the shared export by fund ticker,
+  preserving cash classification, identifiers, shares, values, weights, and as-of date.
+- Static fixture, all `236` adapter unit tests (with `--no-cov`), the real EDGU route, strict
+  manifest invariant, Ruff, and diff checks passed. Strict coverage is `194/345`
+  native/live-backed.
+
 # ETF Holdings Provider Integration - Cultivar - 2026-07-14T17:16Z
 
 - Added a native CVAR adapter for Cultivar's official current fund-page holdings table.

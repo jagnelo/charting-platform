@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 3EDGE native ETF holdings route - 2026-07-14T18:25Z
+
+- Promoted `3edge` through a dedicated `ThreeEdgeHoldingsAdapter` for the issuer's own dated
+  daily holdings text exports. The official ETF application itself discovers
+  `SEI_3EDGE_Tradedate_Holdings_MMDDYYYY.txt`; the adapter retries recent market days and filters
+  the multi-fund file strictly by the requested fund ticker.
+- Static parsing verifies cash classification plus ticker, CUSIP, ISIN, SEDOL, shares, value,
+  weight, as-of date, and sibling-fund isolation. The real EDGU route returned 16 current rows;
+  the live expectation is therefore an evidence-based minimum of 10 rather than an invented
+  larger portfolio size.
+- Validation passed: complete adapter suite (`236 passed` with `--no-cov`), opt-in EDGU route,
+  strict provider matrix, concrete-live-route invariant, Ruff, and diff check. Strict coverage
+  is now `194/345` native/live-backed, with `151` fallback-only. Continue the unresolved queue
+  with another issuer exposing a complete first-party artifact; SEC EDGAR remains fallback-only.
+
 ## Optimize Financial native ETF holdings route - 2026-07-14T18:00Z
 
 - Promoted `optimize` through an isolated `OptimizeHoldingsAdapter` for OPTZ. It verifies the

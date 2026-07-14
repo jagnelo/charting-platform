@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 193 native/live-backed providers out of 345; 152 remain.
+      - Current truthful count: 194 native/live-backed providers out of 345; 151 remain.
       - Current priority blockers: WisdomTree and SoFi return bot-protection HTTP 403 responses
         to browser-header backend requests. Thrivent currently exposes documents/top holdings but
         no complete current issuer-native holdings artifact. PIMCO's public fund client exposes
@@ -33,7 +33,8 @@ tasks:
         its issuer-owned current product-page table, filtered by the report's fund account.
         Optimize Financial is supported through OPTZ's issuer-verified full-holdings legacy XLS
         export. The shared legacy-XLS parser now recovers issuer workbooks with duplicated OLE
-        stream references using xlrd's explicit corruption-tolerant mode.
+        stream references using xlrd's explicit corruption-tolerant mode. 3EDGE is supported
+        through its own dated, fund-scoped daily holdings text export for EDGF/EDGU/EDGH/EDGI.
   - id: strategy-lab
     title: Expand Strategy Lab across the remaining roadmap gaps
     status: in_progress
