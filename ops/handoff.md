@@ -1,5 +1,23 @@
 # Active Handoff
 
+## Summit Global native ETF tracking-basket route - 2026-07-14T16:16Z
+
+- Promoted `summit_global` through an isolated `SummitGlobalHoldingsAdapter` for `SGLC`.
+  It reads the issuer's public, identity-checked SGLC product page and parses its complete current
+  six-column tracking-basket grid. The adapter intentionally records `disclosure_type` as
+  `tracking_basket`: SGLC is semi-transparent, so this must not be represented as a confidential
+  actual-portfolio disclosure.
+- The live route preserved symbols, CUSIPs, shares, weights, market values, currency, cash-row
+  classification, and the issuer's as-of date. Its parser keeps blank source cells so an absent
+  CUSIP cannot misalign the following rows, and normalizes issuer-style `BRK/B` to `BRK-B`.
+- Validation: focused static parser test passed; full adapter unit suite `230 passed`; opt-in
+  live SGLC route plus strict provider matrix and concrete-live-route invariant `3 passed`;
+  targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `188` native/live-backed, and `157` fallback-only.
+  Implementation commit: `ddbb91d` (`feat(etf-holdings): add Summit Global tracking basket route`).
+  Continue source discovery with the next unresolved issuer;
+  do not count SEC EDGAR as primary support.
+
 ## Cary Street native ETF holdings route - 2026-07-14T16:04Z
 
 - Promoted `cary_street` through an isolated `CaryStreetHoldingsAdapter` for Fairlead's `TACK`.

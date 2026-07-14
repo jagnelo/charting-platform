@@ -2,6 +2,21 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Summit Global - 2026-07-14T16:16Z
+
+- Promoted `summit_global` through `SummitGlobalHoldingsAdapter`, a dedicated `SGLC` public
+  product-page parser. Summit discloses a complete current *tracking basket* for this
+  semi-transparent ETF; the adapter retains that exact disclosure type instead of claiming it is
+  the confidential actual portfolio.
+- The route verifies the requested issuer/fund identity, parses the fixed six-column grid, keeps
+  placeholder cells to avoid column drift, preserves identifiers/shares/weights/values, and
+  classifies cash rows as non-tradable.
+- Validation passed: focused parser check, complete adapter unit suite (`230 passed`), opt-in
+  live SGLC route plus registry matrix and concrete-route invariant (`3 passed`), targeted Ruff,
+  and `git diff --check`.
+- Strict count: `345` registered providers, `188` native/live-backed, `157` fallback-only. SEC
+  EDGAR remains fallback-only and is not counted.
+
 # ETF Holdings Provider Integration - Cary Street - 2026-07-14T16:04Z
 
 - Promoted `cary_street` through `CaryStreetHoldingsAdapter`, a dedicated Fairlead `TACK`
