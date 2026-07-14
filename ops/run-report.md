@@ -2,6 +2,20 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Regan Capital - 2026-07-14T16:44Z
+
+- Promoted `regan` through `ReganHoldingsAdapter`, with isolated current-holdings routes for
+  `MBSF` and `MBSX`. The adapter first verifies the selected public fund page and its exact linked
+  CSV endpoint, then parses the matching fund-scoped daily portfolio.
+- Fixed-income rows remain non-tickered rather than being falsely materialized from CUSIP-like
+  identifiers. The parser preserves CUSIPs, weights, shares, market values, currency, and as-of
+  date, and correctly marks the BBH sweep vehicle as cash.
+- Validation passed: focused parser, full adapter unit suite (`231 passed`), opt-in real MBSF
+  route plus registry matrix and concrete-live-route invariant (`3 passed`), targeted Ruff, and
+  `git diff --check`.
+- Strict count: `345` registered providers, `189` native/live-backed, `156` fallback-only. SEC
+  EDGAR remains fallback-only and is not counted.
+
 # ETF Holdings Provider Integration - Summit Global - 2026-07-14T16:16Z
 
 - Promoted `summit_global` through `SummitGlobalHoldingsAdapter`, a dedicated `SGLC` public

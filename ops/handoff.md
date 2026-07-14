@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Regan native ETF holdings routes - 2026-07-14T16:44Z
+
+- Promoted `regan` through an isolated `ReganHoldingsAdapter` for the issuer's two US ETFs:
+  `MBSF` and `MBSX`. It validates the selected issuer product page and its exact current-holdings
+  link before fetching a fund-scoped CSV route, preventing the floating-rate `MBSF` feed from
+  being ingested for the fixed-rate `MBSX` fund.
+- The parser preserves issuer CUSIPs, net-assets weights, shares, market values, currency, and
+  as-of date. It deliberately treats the mortgage-backed instruments as non-tickered
+  `fixed_income` rows and classifies the BBH sweep balance as non-tradable cash.
+- Validation: focused parser test passed; full adapter unit suite `231 passed`; opt-in real MBSF
+  route plus strict provider matrix and concrete-live-route invariant `3 passed`; targeted Ruff
+  and `git diff --check` passed.
+- Current strict state is `345` registered, `189` native/live-backed, and `156` fallback-only.
+  Implementation commit: `a458a12` (`feat(etf-holdings): add Regan native holdings routes`).
+  Continue the queue with another unresolved issuer-owned complete
+  holdings artifact; SEC EDGAR is fallback-only and uncounted.
+
 ## Summit Global native ETF tracking-basket route - 2026-07-14T16:16Z
 
 - Promoted `summit_global` through an isolated `SummitGlobalHoldingsAdapter` for `SGLC`.
