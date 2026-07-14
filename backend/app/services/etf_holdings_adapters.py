@@ -10531,6 +10531,29 @@ class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return [], None
 
 
+class CultivarHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch the complete current CVAR table published on Cultivar's fund page."""
+
+    FUND_PAGE_URL = "https://cultivarfunds.com/funds/"
+
+    async def fetch_latest(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        if symbol.strip().upper() != "CVAR":
+            raise ValueError(f"No verified Cultivar current-holdings route is configured for {symbol.strip().upper()}.")
+        page_url = source_url or self.FUND_PAGE_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(page_url, headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"), follow_redirects=True)
+        response.raise_for_status()
+        rows = parse_html_holdings_table_by_headers(response.text, required_headers={"ticker", "security description", "% of fund", "cusip", "shares", "market value"})
+        if not rows:
+            raise ValueError("Cultivar fund page contained no parseable current holdings rows.")
+        date_match = re.search(r"Fund Holdings as of\s+(\d{2}/\d{2}/\d{4})", response.text, re.IGNORECASE)
+        composition_date = datetime.strptime(date_match.group(1), "%m/%d/%Y").date() if date_match else None
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"CVAR:{composition_date or 'unknown'}:{index}"
+        return HoldingsFetchResult(rows=rows, raw_text=response.text, raw_json={"source_format": "html_table", "row_count": len(rows)}, source_url=str(response.url), source_identifier="CVAR", legal_metadata={"source_access": self.config.source_access, "source_provider": self.source_provider, "adapter_key": self.adapter_key, "source_format": "html_table", "route_resolution": "cultivar_current_fund_page_holdings_table", "composition_date": composition_date.isoformat() if composition_date else None, "as_of_date": composition_date.isoformat() if composition_date else None, "terms_note": self.config.terms_note})
+
+
 class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch EMLes' fund-specific full-holdings CSV from its public ETF pages."""
 
@@ -31311,6 +31334,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Canary Capital public ETF holdings tables may be subject to issuer terms.",
     ),
+    "cultivar": IssuerCsvAdapterConfig(
+        adapter_key="cultivar", source_provider="cultivar",
+        source_access="issuer_current_fund_page_holdings_table",
+        product_page_templates=("https://cultivarfunds.com/funds/",),
+        live_tested_default_route=True,
+        terms_note="Cultivar public ETF fund-page holdings tables may be subject to issuer terms.",
+    ),
     "emles": IssuerCsvAdapterConfig(
         adapter_key="emles",
         source_provider="emles",
@@ -31467,6 +31497,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "direxion": DirexionHoldingsAdapter,
         "water_island": WaterIslandHoldingsAdapter,
         "canary": CanaryHoldingsAdapter,
+        "cultivar": CultivarHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "rafferty": RaffertyHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,

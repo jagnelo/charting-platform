@@ -184,6 +184,18 @@ def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     assert rows[1].row_type == "cash"
 
 
+def test_cultivar_current_holdings_table_is_canonicalized():
+    rows = parse_html_holdings_table_by_headers(
+        """<table><tr><th>Ticker</th><th>Security Description</th><th>% of Fund</th><th>CUSIP</th><th>Shares</th><th>Market Value</th></tr>
+        <tr><td>MKTX</td><td>MarketAxess Holdings Inc.</td><td>3.11%</td><td>57060D108</td><td>11,005</td><td>$1,269,646.85</td></tr></table>""",
+        required_headers={"ticker", "security description", "% of fund", "cusip", "shares", "market value"},
+    )
+    assert len(rows) == 1
+    assert rows[0].symbol == "MKTX"
+    assert rows[0].weight == Decimal("0.0311")
+    assert rows[0].cusip == "57060D108"
+
+
 @pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
