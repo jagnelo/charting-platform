@@ -2494,6 +2494,79 @@ async def test_castleark_adapter_fetches_recent_daily_holdings_text(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_3edge_adapter_fetches_recent_fund_scoped_daily_holdings_text(monkeypatch):
+    adapter = get_holdings_adapter("3edge")
+    assert adapter is not None
+
+    holdings_text = "\n".join(
+        [
+            (
+                "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
+                "security_type|security_number|security_cusip|security_sedol|"
+                "security_isin|security_ticker|security_description|quantity|"
+                "market_value|notional_value|percent_of_market_value|percent_of_net_assets"
+            ),
+            (
+                "07/13/2026|4881|3EDGE Dynamic US Equity ETF|00791R822|EDGU|Cash|||||||"
+                "Cash|-120.00|-120.00||-0.01|-0.01"
+            ),
+            (
+                "07/13/2026|4881|3EDGE Dynamic US Equity ETF|00791R822|EDGU|Stock - Common||"
+                "037833100|037833100|2046251|US0378331005|AAPL|APPLE INC|100.00|21000.00||"
+                "2.10|2.10"
+            ),
+            (
+                "07/13/2026|4880|3EDGE Dynamic Fixed Income ETF|00791R830|EDGF|Stock - Common||"
+                "594918104|594918104|2588173|US5949181045|MSFT|MICROSOFT CORP|100.00|50000.00||"
+                "5.00|5.00"
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="not found", content_type="text/html", status_code=404),
+        FakeResponse(
+            text=holdings_text,
+            content_type="text/plain",
+            url=(
+                "https://www.3edgeetfs.com/assets/data/"
+                "SEI_3EDGE_Tradedate_Holdings_07132026.txt"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    MockDate.today_value = date(2026, 7, 14)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+
+    result = await adapter.fetch_latest(symbol="EDGU")
+
+    requested_urls = [request[0] for request in FakeAsyncClient.requested]
+    assert requested_urls == [
+        "https://www.3edgeetfs.com/assets/data/SEI_3EDGE_Tradedate_Holdings_07142026.txt",
+        "https://www.3edgeetfs.com/assets/data/SEI_3EDGE_Tradedate_Holdings_07132026.txt",
+    ]
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://www.3edgeetfs.com/"
+    assert len(result.rows) == 2
+    cash_row = result.rows[0]
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("-0.0001")
+    equity_row = result.rows[1]
+    assert equity_row.symbol == "AAPL"
+    assert equity_row.name == "APPLE INC"
+    assert equity_row.cusip == "037833100"
+    assert equity_row.isin == "US0378331005"
+    assert equity_row.sedol == "2046251"
+    assert equity_row.shares == Decimal("100.00")
+    assert equity_row.market_value == Decimal("21000.00")
+    assert equity_row.weight == Decimal("0.0210")
+    assert result.source_url.endswith("SEI_3EDGE_Tradedate_Holdings_07132026.txt")
+    assert result.legal_metadata["source_provider"] == "3edge"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_daily_holdings_text"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_renaissance_capital_adapter_fetches_public_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("renaissance_capital")
     assert adapter is not None
@@ -9083,6 +9156,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["beyond_investing"]["support_route_types"]
     assert adapters["castleark"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["castleark"]["support_route_types"]
+    assert adapters["3edge"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["3edge"]["support_route_types"]
     assert adapters["baron"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["baron"]["support_route_types"]
     assert adapters["brandes"]["live_tested_default_route"] is True
@@ -9180,7 +9255,6 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert adapters["lazard"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["lazard"]["support_route_types"]
     for adapter_key in [
-        "3edge",
         "stone_ridge",
     ]:
         assert adapter_key in adapters
@@ -9225,7 +9299,7 @@ def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
 
 @pytest.mark.asyncio
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
-    adapter = get_holdings_adapter("3edge")
+    adapter = get_holdings_adapter("stone_ridge")
     assert adapter is not None
 
     async def fake_discover_holdings_filings(**kwargs):

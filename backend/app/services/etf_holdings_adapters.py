@@ -23946,14 +23946,18 @@ class CastleArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 resolved_source_url = str(candidate_response.url)
                 break
         if response is None or resolved_source_url is None:
-            raise ValueError(f"CastleArk holdings file was unavailable for {requested_symbol}.")
+            raise ValueError(
+                f"{self.source_provider} holdings file was unavailable for {requested_symbol}."
+            )
 
         rows, composition_date = self._parse_holdings_text(
             response.text,
             requested_symbol=requested_symbol,
         )
         if not rows:
-            raise ValueError(f"CastleArk holdings file did not expose rows for {requested_symbol}.")
+            raise ValueError(
+                f"{self.source_provider} holdings file did not expose rows for {requested_symbol}."
+            )
 
         return HoldingsFetchResult(
             rows=rows,
@@ -24079,6 +24083,46 @@ class CastleArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "BOND" in text or "FIXED" in text or "TREASURY" in text:
             return "security", "fixed_income"
         return "security", "equity"
+
+
+class ThreeEdgeHoldingsAdapter(CastleArkHoldingsAdapter):
+    """Fetch 3EDGE ETF holdings from its own dated daily holdings files.
+
+    3EDGE's public ETF application discovers these files itself and filters the
+    multi-fund export by ``fund_ticker``. The file schema matches an SEI
+    export, but the route, fund catalogue, and request context are issuer-specific.
+    """
+
+    HOLDINGS_URL_TEMPLATE = (
+        "https://www.3edgeetfs.com/assets/data/"
+        "SEI_3EDGE_Tradedate_Holdings_{date_mmddyyyy}.txt"
+    )
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "EDGF": "https://www.3edgeetfs.com/3edge-dynamic-fixed-income-etf",
+        "EDGU": "https://www.3edgeetfs.com/3edge-dynamic-us-equity-etf",
+        "EDGH": "https://www.3edgeetfs.com/3edge-dynamic-hedged-equity-etf",
+        "EDGI": "https://www.3edgeetfs.com/3edge-dynamic-international-equity-etf",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if probe.source_url else Decimal("0.6000"),
+            status=probe.status,
+            reason=(
+                "3EDGE publishes complete daily ETF holdings in a fund-scoped issuer text feed."
+                if probe.source_url
+                else "3EDGE is recognized; a configured ETF ticker is required for its daily holdings feed."
+            ),
+            source_url=probe.source_url,
+            issuer_product_id=probe.issuer_product_id,
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/plain,text/csv,*/*")
+        headers["Referer"] = "https://www.3edgeetfs.com/"
+        return headers
 
 
 class BrookmontHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -31540,6 +31584,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         url_templates=("https://docs.google.com/spreadsheets/export?id=1WO0jYItwXyUcv7GJwV4GKZ0bj6hzKpUeR1h0zaecdv0&exportFormat=csv",),
         live_tested_default_route=True, terms_note="Arlington public ETF holdings CSV may be subject to issuer terms.",
     ),
+    "3edge": IssuerCsvAdapterConfig(
+        adapter_key="3edge",
+        source_provider="3edge",
+        source_access="issuer_public_daily_fund_scoped_holdings_text",
+        product_page_templates=(
+            "https://www.3edgeetfs.com/3edge-dynamic-us-equity-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note="3EDGE public ETF holdings text files may be subject to issuer terms.",
+    ),
     "cary_street": IssuerCsvAdapterConfig(
         adapter_key="cary_street",
         source_provider="cary_street",
@@ -31623,6 +31677,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "summit_global": SummitGlobalHoldingsAdapter,
         "regan": ReganHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,
+        "3edge": ThreeEdgeHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,

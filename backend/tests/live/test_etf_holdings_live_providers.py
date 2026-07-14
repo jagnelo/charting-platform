@@ -72,6 +72,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "summit_global",
     "regan",
     "castleark",
+    "3edge",
     "capital_impact",
     "coinshares",
     "corgi",
@@ -681,6 +682,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "3edge",
+            "EDGU",
+            None,
+            {},
+            10,
         ),
         (
             "coinshares",
