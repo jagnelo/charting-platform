@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Cary Street native ETF holdings route - 2026-07-14T16:04Z
+
+- Promoted `cary_street` through an isolated `CaryStreetHoldingsAdapter` for Fairlead's `TACK`.
+  The adapter first validates the issuer's public Fairlead product page, then calls the exact
+  fund-scoped FilePoint JSON route used by that page's own holdings application. It filters by
+  Fairlead's portfolio id (`1342`) before parsing, so a sibling payload cannot be silently
+  ingested as TACK.
+- The real TACK route returned the complete current portfolio, including fund holdings and a
+  correctly classified non-tradable sweep balance. The route preserves ticker, CUSIP, shares,
+  market value, weight, currency, country, and as-of date.
+- Validation: focused static parser/catalog checks `3 passed`; full adapter unit suite
+  `229 passed`; opt-in live TACK route plus strict provider matrix and concrete-live-route
+  invariant `3 passed`; targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `187` native/live-backed, and `158` fallback-only.
+  The Cary Street changes are uncommitted. `aptus` was committed and pushed as `2dddc0a` with
+  operational checkpoint `da07c49`.
+
 ## Aptus native ETF holdings route - 2026-07-14T15:31Z
 
 - Promoted `aptus` through an isolated `AptusHoldingsAdapter` route that calls Aptus's public
@@ -10,8 +27,9 @@
 - Validation: real DRSK fetch returned 33 current rows; focused parser tests `2 passed`; full
   adapter unit suite `228 passed`; opt-in Aptus live route plus strict provider matrix and
   concrete-live-route invariant `3 passed`; targeted Ruff and `git diff --check` passed.
-- Current strict state is `345` registered, `186` native/live-backed, and `159` fallback-only.
-  Aptus implementation changes remain uncommitted. Continue finding executable first-party routes
+- Current strict state at that checkpoint was `345` registered, `186` native/live-backed, and
+  `159` fallback-only. Aptus implementation was committed and pushed as `2dddc0a` with
+  operational checkpoint `da07c49`. Continue finding executable first-party routes
   for remaining priority issuers; WisdomTree is currently Cloudflare-blocked, while BMO's public
   tool is not a BMO-only issuer holdings feed.
 

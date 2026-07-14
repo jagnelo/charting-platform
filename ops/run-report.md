@@ -2,6 +2,21 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Cary Street - 2026-07-14T16:04Z
+
+- Promoted `cary_street` through `CaryStreetHoldingsAdapter`, a dedicated Fairlead `TACK`
+  integration. It verifies Fairlead's official product page before calling the fund-scoped
+  holdings JSON endpoint declared by that page's own application, then filters by portfolio id
+  `1342` to prevent cross-fund ingestion.
+- Live TACK data returned the current complete portfolio. The adapter preserves tradable ETF
+  symbols, CUSIPs, shares, values, weights, currencies, countries, and the as-of date, while
+  keeping the BBH sweep vehicle non-tradable cash.
+- Validation passed: focused static parser/catalog checks (`3 passed`), full adapter unit suite
+  (`229 passed`), opt-in live TACK route plus registry matrix and concrete-route invariant
+  (`3 passed`), targeted Ruff, and `git diff --check`.
+- Strict count: `345` registered providers, `187` native/live-backed, `158` fallback-only. SEC
+  EDGAR remains fallback-only and is not counted.
+
 # ETF Holdings Provider Integration - Aptus - 2026-07-14T15:31Z
 
 - Promoted `aptus` through a dedicated `AptusHoldingsAdapter` that uses the issuer's public
