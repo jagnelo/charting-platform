@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Canary Capital - 2026-07-14T17:10Z
+
+- Promoted `canary` through a dedicated current-product-page holdings-table adapter. The shared
+  issuer table is filtered by its `Account` fund identifier before canonical parsing, retaining
+  the selected ETF's symbols, quantities, values, weights, cash rows, and as-of date only.
+- Canary returned `403` to the async client but `200` through the verified standard synchronous
+  transport, so a narrow 403 fallback is part of the native adapter. Static parser, all 233
+  adapter unit tests, live HBR route, strict manifest invariant, Ruff, and diff checks passed.
+- Strict coverage is `345` registered, `191` native/live-backed, and `154` fallback-only.
+
 # ETF Holdings Provider Integration - Water Island / AltShares - 2026-07-14T16:58Z
 
 - Promoted `water_island` through a dedicated `WaterIslandHoldingsAdapter`, with public

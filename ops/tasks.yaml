@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 190 native/live-backed providers out of 345; 155 remain.
+      - Current truthful count: 191 native/live-backed providers out of 345; 154 remain.
       - Current priority blockers: WisdomTree and SoFi return bot-protection HTTP 403 responses
         to browser-header backend requests. Thrivent currently exposes documents/top holdings but
         no complete current issuer-native holdings artifact. PIMCO's public fund client exposes
@@ -29,7 +29,8 @@ tasks:
         test. Neuberger Berman is supported through its official sitemap and detailed-holdings
         workbook route. Water Island is supported through AltShares' complete periodic
         portfolio-of-investments report for ARB and EVNT; its periodic disclosure cadence is
-        explicit metadata, not a claim of daily coverage.
+        explicit metadata, not a claim of daily coverage. Canary Capital is supported through
+        its issuer-owned current product-page table, filtered by the report's fund account.
   - id: strategy-lab
     title: Expand Strategy Lab across the remaining roadmap gaps
     status: in_progress

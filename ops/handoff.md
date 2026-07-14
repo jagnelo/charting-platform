@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Canary Capital native ETF holdings route - 2026-07-14T17:10Z
+
+- Promoted `canary` through an isolated `CanaryHoldingsAdapter`. Canary's issuer product pages
+  publish a shared current holdings table with a fund `Account` column; the adapter filters it
+  to the requested ETF, preserving symbols, quantities, values, weights, cash rows, and as-of
+  date without leaking another Canary ETF's holdings.
+- The async request path received a reproducible `403`, while the public page returned `200`
+  through the standard synchronous transport. The adapter therefore has a scoped verified 403
+  fallback, rather than treating the public source as unavailable.
+- Static parser coverage, complete adapter suite (`233 passed`), opt-in live HBR route, strict
+  provider manifest invariant, Ruff, and diff checks passed. Strict coverage is now `345`
+  registered, `191` native/live-backed, and `154` fallback-only.
+
 ## Water Island native ETF holdings routes - 2026-07-14T16:58Z
 
 - Promoted `water_island` through an isolated `WaterIslandHoldingsAdapter` using AltShares'
