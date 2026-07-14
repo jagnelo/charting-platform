@@ -1,5 +1,28 @@
 # Active Handoff
 
+## Kingsview and Russell source audit - 2026-07-14T11:55Z
+
+- Kingsview's official Monarch Funds resources page publishes fund-scoped FilePoint references
+  for its ETFs, including MVFD (`fundID=1456`). Its client application confirms the intended
+  source is the first-party page's `monarch_getholdings_cached.php` JSON call. Direct public
+  backend-style requests to that endpoint currently return `{"message":"Authorization has been
+  denied for this request."}`; the linked CSV download is likewise only a 35-byte binary payload,
+  not holdings data. `kingsview` remains fallback-only and must not be promoted until that official
+  complete route is executable.
+- Russell Investments' public ETF catalogue returned a regional-attestation/content-unavailable
+  page to backend-style retrieval, and the expected RUSC product URL was a 404. SEC search results
+  confirm the issuer says it disseminates daily holdings on its website, but no complete,
+  backend-reachable issuer-native artifact was discovered. `russell_investments` remains
+  fallback-only; SEC is not a primary substitute.
+- The native coverage invariant was re-audited: the live provider matrix requires
+  `config.live_tested_default_route` to exactly match `LIVE_BACKED_ISSUER_ADAPTERS`, and
+  `test_live_backed_providers_each_have_a_concrete_live_route_test` asserts every promoted key
+  has an explicit parametrized or bespoke live route test.
+- Current strict state is still `345` registered, `185` native/live-backed, and `160`
+  fallback-only. Cohanzick/Tremblant were committed and pushed as `7bda19a` and `a75d53c`; the
+  worktree was clean before this documentation checkpoint. Continue with a remaining issuer that
+  has a complete executable first-party holdings artifact.
+
 ## Tremblant native ETF holdings route - 2026-07-14T11:15Z
 
 - Promoted `tremblant` through an isolated TOGA-only adapter. It verifies the official Tremblant
@@ -10,7 +33,7 @@
   unit suite `228 passed`; strict provider matrix and concrete-live-route invariant `2 passed`;
   targeted Ruff and `git diff --check` passed.
 - Current strict state is `345` registered, `185` native/live-backed, and `160` fallback-only.
-  Cohanzick and Tremblant changes are uncommitted. Continue the issuer queue with the next
+  Cohanzick and Tremblant changes were committed and pushed. Continue the issuer queue with the next
   reachable unresolved provider; Westwood is currently HTTP `403`, while Vert currently exposes
   only periodic holdings documents rather than a complete refreshable current holdings artifact.
 

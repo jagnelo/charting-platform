@@ -10213,6 +10213,21 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `160` native/live-backed, `185` remaining; SEC
   EDGAR remains fallback-only and is not counted.
 
+# ETF Holdings Provider Source Audit - 2026-07-14T11:55Z
+
+- `kingsview`: Monarch Funds' own resources page and application script identify a fund-scoped
+  FilePoint API for current holdings (`monarch_getholdings_cached.php`, MVFD `fundID=1456`). The
+  currently public backend request returns an explicit authorization-denied JSON payload; its
+  linked CSV download is only a 35-byte non-holdings binary payload. No native adapter was added.
+- `russell_investments`: direct access to the official US ETF catalogue currently resolves to a
+  regional-attestation/content-unavailable page, and no complete backend-readable issuer-native
+  RUSC artifact was discovered. No SEC or third-party route was substituted as primary support.
+- The promoted-provider live-test invariant was re-audited. It requires exact correspondence
+  between registry `live_tested_default_route` flags and `LIVE_BACKED_ISSUER_ADAPTERS`, then
+  verifies each promoted provider has an explicit parametrized or bespoke live-route test.
+- Count remains `345` registered, `185` native/live-backed, and `160` fallback-only. The prior
+  Cohanzick/Tremblant implementation commits are now pushed (`7bda19a`, `a75d53c`).
+
 # ETF Holdings Provider Integration - 2026-07-12T03:40Z
 
 - Promoted `toews` to native/live-backed support through a dedicated `ToewsHoldingsAdapter`.
