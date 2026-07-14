@@ -29304,6 +29304,213 @@ class CaryStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch PeakShares ETF portfolios from the issuer's public fund application.
+
+    PeakShares' product pages declare a numeric fund identifier. Its own browser
+    application posts that identifier to a fund-scoped FilePoint endpoint for the
+    complete current holdings collection. This adapter validates the product page
+    and response fund identity before accepting the payload.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "PSTR": "https://www.peaksharesfunds.com/PSTR.html",
+        "PRMR": "https://www.peaksharesfunds.com/PRMR.html",
+    }
+    FUND_IDS = {
+        "PSTR": "1477",
+        "PRMR": "1453",
+    }
+    HOLDINGS_URL = "https://filepoint.live/peakshares_getholdings_cached4.php"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.6000"),
+            status="ready" if product_page_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "PeakShares publishes this ETF's complete current holdings through its public fund application."
+                if product_page_url
+                else (
+                    "No verified PeakShares issuer route is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified PeakShares issuer route is configured for this ETF symbol."
+                )
+            ),
+            source_url=product_page_url,
+            issuer_product_id=self.FUND_IDS.get(normalized_symbol),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        fund_id = self.FUND_IDS.get(normalized_symbol)
+        if not product_page_url or not fund_id:
+            raise ValueError(
+                f"PeakShares does not publish a configured complete holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            self._validate_product_page(
+                page_response.text,
+                symbol=normalized_symbol,
+                fund_id=fund_id,
+            )
+            holdings_response = await client.post(
+                self.HOLDINGS_URL,
+                data={"fundID": fund_id},
+                headers={
+                    **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                    "Origin": "https://www.peaksharesfunds.com",
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        payload = holdings_response.json()
+        if not isinstance(payload, list):
+            raise ValueError(
+                f"PeakShares holdings payload for {normalized_symbol} was not a row collection."
+            )
+        rows, composition_date = self._parse_holdings_payload(
+            payload,
+            symbol=normalized_symbol,
+            fund_id=fund_id,
+        )
+        if not rows:
+            raise ValueError(f"PeakShares did not return complete holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"rows": payload, "product_page_url": str(page_response.url)},
+            source_url=str(holdings_response.url),
+            source_identifier=fund_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_product_page_verified_fund_scoped_holdings_json",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str, fund_id: str) -> None:
+        normalized_page = re.sub(r"\s+", " ", html.unescape(raw_html)).lower()
+        if symbol.lower() not in normalized_page:
+            raise ValueError(f"PeakShares product page identity did not match requested ETF {symbol}.")
+        if f"holdingscsv-{fund_id}" not in normalized_page:
+            raise ValueError(
+                f"PeakShares product page did not declare the configured fund ID for {symbol}."
+            )
+
+    @staticmethod
+    def _parse_holdings_payload(
+        payload: list[Any],
+        *,
+        symbol: str,
+        fund_id: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            portfolio_id = _clean(item.get("portfolioNumber"))
+            if portfolio_id != fund_id:
+                continue
+            row_date = PeakSharesHoldingsAdapter._parse_as_of_date(item.get("asOfDate"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_ticker = _clean(item.get("securityTicker"))
+            name = _clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort"))
+            holding_type = PeakSharesHoldingsAdapter._holding_type(item=item, name=name, ticker=raw_ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=PeakSharesHoldingsAdapter._tradable_symbol(
+                        ticker=raw_ticker,
+                        holding_type=holding_type,
+                    ),
+                    name=name or raw_ticker,
+                    cusip=PeakSharesHoldingsAdapter._cusip(item.get("securityIdentifier")),
+                    weight=_decimal(item.get("netAssetsPercent") or item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency")),
+                    country=_clean(item.get("country")),
+                    holding_type=holding_type,
+                    row_type="cash" if holding_type == "cash" else "security",
+                    source_row_id=f"peakshares-{symbol}-{index}",
+                    extra_data={key: value for key, value in item.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _cusip(value: Any) -> str | None:
+        candidate = _clean(value)
+        return candidate if candidate and re.fullmatch(r"[0-9A-Z]{9}", candidate) else None
+
+    @staticmethod
+    def _holding_type(*, item: dict[str, Any], name: str | None, ticker: str | None) -> str:
+        segment = (_clean(item.get("segment")) or "").upper()
+        category = (_clean(item.get("category")) or "").upper()
+        text = " ".join(part.upper() for part in (name, ticker, segment, category) if part)
+        if any(token in text for token in ("CASH", "CURRENCY", "RECEIVABLE", "PAYABLE")):
+            return "cash"
+        if "FUTURE" in text:
+            return "future"
+        if "OPTION" in text:
+            return "option"
+        if "EXCHANGE-TRADED FUND" in text or " ETF" in text:
+            return "fund"
+        if "BOND" in text or "FIXED INCOME" in text:
+            return "fixed_income"
+        if "EQUITY" in text or "COMMON STOCK" in text:
+            return "equity"
+        return "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund", "security"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Optimize's full OPTZ portfolio through its issuer-linked XLS export."""
 
@@ -31760,6 +31967,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Fairlead/Cary Street public ETF holdings data may be subject to issuer terms.",
     ),
+    "peakshares": IssuerCsvAdapterConfig(
+        adapter_key="peakshares",
+        source_provider="peakshares",
+        source_access="issuer_product_page_verified_fund_scoped_holdings_json",
+        product_page_templates=("https://www.peaksharesfunds.com/PSTR.html",),
+        live_tested_default_route=True,
+        terms_note="PeakShares public ETF application holdings data may be subject to issuer terms.",
+    ),
     "summit_global": IssuerCsvAdapterConfig(
         adapter_key="summit_global",
         source_provider="summit_global",
@@ -31832,6 +32047,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "calamos": CalamosHoldingsAdapter,
         "capital_group": CapitalGroupHoldingsAdapter,
         "cary_street": CaryStreetHoldingsAdapter,
+        "peakshares": PeakSharesHoldingsAdapter,
         "summit_global": SummitGlobalHoldingsAdapter,
         "regan": ReganHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,

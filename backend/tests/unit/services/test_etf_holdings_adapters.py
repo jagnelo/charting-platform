@@ -627,6 +627,105 @@ async def test_cary_street_adapter_verifies_fairlead_page_and_parses_fund_scoped
 
 
 @pytest.mark.asyncio
+async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("peakshares")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><body><h1>PeakShares Sector Rotation ETF (PSTR)</h1>"
+                '<a id="holdingscsv-1477">Download Full Holdings</a></body></html>'
+            ),
+            content_type="text/html",
+            url="https://www.peaksharesfunds.com/PSTR.html",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1477",
+                        "portfolioName": "PeakShares Sector Rotation ETF",
+                        "securityIdentifier": "81369Y886",
+                        "securityTicker": "XLU US",
+                        "securityDescriptionLong": "State Street Utilities Select Sector SPDR ETF",
+                        "shares": 791815,
+                        "marketValueBase": 36281600.50,
+                        "netAssetsPercent": 0.1219,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "EXCHANGE-TRADED FUND",
+                        "category": "EQUITY",
+                    },
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1477",
+                        "portfolioName": "PeakShares Sector Rotation ETF",
+                        "securityIdentifier": "XOM C150 12/18/2026",
+                        "securityTicker": "XOM 261218C00150000",
+                        "securityDescriptionLong": "Exxon Mobil Corporation 12/18/2026 150 Call",
+                        "shares": -2,
+                        "marketValueBase": -1796,
+                        "netAssetsPercent": -0.000028282549,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "OPTIONS",
+                        "category": "EQUITY OPTION",
+                    },
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1477",
+                        "portfolioName": "PeakShares Sector Rotation ETF",
+                        "securityIdentifier": "CASH",
+                        "securityTicker": "CASH",
+                        "securityDescriptionLong": "US Dollar",
+                        "shares": 100,
+                        "marketValueBase": 100,
+                        "netAssetsPercent": 0.0001,
+                        "tradingCurrency": "USD",
+                        "segment": "CURRENCY",
+                    },
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1453",
+                        "portfolioName": "PeakShares RMR Prime Equity ETF",
+                        "securityTicker": "WRONG",
+                        "securityDescriptionLong": "Sibling fund row",
+                        "netAssetsPercent": 1,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://filepoint.live/peakshares_getholdings_cached4.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PSTR", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.peaksharesfunds.com/PSTR.html"
+    assert FakeAsyncClient.requested[1][0] == "https://filepoint.live/peakshares_getholdings_cached4.php"
+    assert FakeAsyncClient.requested[1][1]["data"] == {"fundID": "1477"}
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == (
+        "https://www.peaksharesfunds.com/PSTR.html"
+    )
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "XLU"
+    assert result.rows[0].cusip == "81369Y886"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "option"
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "peakshares"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_fund_scoped_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_summit_global_adapter_parses_only_issuer_disclosed_tracking_basket(monkeypatch):
     adapter = get_holdings_adapter("summit_global")
     assert adapter is not None
