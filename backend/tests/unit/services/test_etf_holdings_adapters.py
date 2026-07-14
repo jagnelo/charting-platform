@@ -13,6 +13,7 @@ import pytest
 
 from app.services.etf_holdings_adapters import (
     ISSUER_ADAPTER_CONFIGS,
+    CanonicalHoldingRow,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
     PublicCsvHoldingsAdapter,
@@ -194,6 +195,59 @@ def test_cultivar_current_holdings_table_is_canonicalized():
     assert rows[0].symbol == "MKTX"
     assert rows[0].weight == Decimal("0.0311")
     assert rows[0].cusip == "57060D108"
+
+
+@pytest.mark.asyncio
+async def test_optimize_adapter_verifies_optz_page_and_parses_issuer_xls(monkeypatch):
+    adapter = get_holdings_adapter("optimize")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <h1>Optimize Strategy Index ETF (OPTZ)</h1>
+            <p>Data as of 07/14/2026.</p>
+            <a href=\"/download-holdings-usbanks.php?fund=optz\">Download full holdings</a>
+            """,
+            content_type="text/html",
+            url="https://www.optzfund.com/optz",
+        ),
+        FakeResponse(
+            content=b"legacy-workbook",
+            content_type="application/vnd.ms-excel",
+            url="https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_holdings_xls",
+        lambda _content: (
+            [
+                CanonicalHoldingRow(
+                    symbol="PENG",
+                    name="Penguin Solutions Inc.",
+                    cusip="706915107",
+                    weight=Decimal("0.0442"),
+                    shares=Decimal("154002"),
+                    market_value=Decimal("11890494.42"),
+                )
+            ],
+            [["% of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"]],
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="OPTZ")
+
+    assert [row.symbol for row in result.rows] == ["PENG"]
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_fund_scoped_full_holdings_xls"
+    )
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://www.optzfund.com/optz",
+        "https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",
+    ]
 
 
 @pytest.mark.asyncio

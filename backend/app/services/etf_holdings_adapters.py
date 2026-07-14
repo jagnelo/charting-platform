@@ -804,7 +804,24 @@ def parse_holdings_xls(raw_workbook: bytes) -> tuple[list[CanonicalHoldingRow], 
 
     import pandas as pd  # noqa: PLC0415
 
-    frames = pd.read_excel(BytesIO(raw_workbook), sheet_name=None, header=None, dtype=str)
+    try:
+        frames = pd.read_excel(BytesIO(raw_workbook), sheet_name=None, header=None, dtype=str)
+    except Exception:  # noqa: BLE001
+        # Some issuer-generated BIFF8 files contain duplicated OLE stream
+        # references.  xlrd can safely recover their worksheet data when this
+        # explicit corruption-tolerant mode is enabled.
+        import xlrd  # noqa: PLC0415
+
+        workbook = xlrd.open_workbook(
+            file_contents=raw_workbook,
+            ignore_workbook_corruption=True,
+        )
+        frames = {
+            worksheet.name: pd.DataFrame(
+                [worksheet.row_values(index) for index in range(worksheet.nrows)]
+            )
+            for worksheet in workbook.sheets()
+        }
     fallback_rows: list[list[str]] = []
     for frame in frames.values():
         table_rows = [
@@ -29095,6 +29112,131 @@ class CaryStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Optimize's full OPTZ portfolio through its issuer-linked XLS export."""
+
+    PRODUCT_PAGE_URLS = {
+        "OPTZ": "https://www.optzfund.com/optz",
+    }
+    HOLDINGS_URLS = {
+        "OPTZ": "https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "Optimize publishes this ETF's complete current portfolio through its "
+                "fund-scoped issuer XLS export."
+                if product_page_url
+                else "Optimize is recognized; a configured fund-scoped holdings route is required."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        holdings_url = self.HOLDINGS_URLS.get(normalized_symbol)
+        if not product_page_url or not holdings_url:
+            raise ValueError(
+                f"Optimize does not publish a configured complete holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            self._validate_product_page(
+                page_response.text,
+                symbol=normalized_symbol,
+                holdings_url=holdings_url,
+            )
+            workbook_response = await client.get(
+                holdings_url,
+                headers={
+                    **_issuer_page_request_headers(
+                        accept="application/vnd.ms-excel,application/octet-stream,*/*",
+                    ),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        workbook_response.raise_for_status()
+        rows, workbook_rows = parse_holdings_xls(workbook_response.content)
+        if not rows:
+            raise ValueError(
+                f"Optimize holdings export returned no parseable complete rows for {normalized_symbol}."
+            )
+        composition_date = self._extract_composition_date(page_response.text)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "xls",
+                "product_page_url": str(page_response.url),
+                "workbook_rows": workbook_rows,
+            },
+            source_url=str(workbook_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xls",
+                "route_resolution": "issuer_product_page_verified_fund_scoped_full_holdings_xls",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str, holdings_url: str) -> None:
+        normalized_page = re.sub(r"\s+", " ", html.unescape(raw_html)).lower()
+        if symbol.lower() not in normalized_page or "optimize strategy index etf" not in normalized_page:
+            raise ValueError(f"Optimize product page identity did not match requested ETF {symbol}.")
+        expected_path = urlparse(holdings_url).path
+        if expected_path.lower() not in normalized_page:
+            raise ValueError(f"Optimize product page did not link the configured holdings export for {symbol}.")
+        expected_fund_match = re.search(r"(?:^|&)fund=([^&]+)", urlparse(holdings_url).query)
+        expected_fund = _clean(expected_fund_match.group(1) if expected_fund_match else None)
+        if expected_fund and f"fund={expected_fund.lower()}" not in normalized_page:
+            raise ValueError(f"Optimize product page did not scope the holdings export to {symbol}.")
+
+    @staticmethod
+    def _extract_composition_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"Data\s+as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})",
+            html.unescape(raw_html),
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -31341,6 +31483,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cultivar public ETF fund-page holdings tables may be subject to issuer terms.",
     ),
+    "optimize": IssuerCsvAdapterConfig(
+        adapter_key="optimize",
+        source_provider="optimize",
+        source_access="issuer_product_page_verified_fund_scoped_full_holdings_xls",
+        url_templates=("https://www.optzfund.com/download-holdings-usbanks.php?fund=optz",),
+        product_page_templates=("https://www.optzfund.com/optz",),
+        live_tested_default_route=True,
+        terms_note="Optimize Financial public ETF full-holdings XLS exports may be subject to issuer terms.",
+    ),
     "emles": IssuerCsvAdapterConfig(
         adapter_key="emles",
         source_provider="emles",
@@ -31498,6 +31649,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "water_island": WaterIslandHoldingsAdapter,
         "canary": CanaryHoldingsAdapter,
         "cultivar": CultivarHoldingsAdapter,
+        "optimize": OptimizeHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "rafferty": RaffertyHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,
