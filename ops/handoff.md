@@ -1,5 +1,22 @@
 # Active Handoff
 
+## WisdomTree, Thrivent, Manulife, Morgan Stanley, and BMO source audit - 2026-07-14T23:20Z
+
+- WisdomTree's official `DXJ` product page confirms a complete "View all holdings" experience,
+  but direct backend retrieval of that page returns HTTP 403 even with a browser-equivalent
+  request profile. It remains fallback-only until the issuer exposes an executable public route.
+- Thrivent's public ETF pages advertise a daily-holdings download, but both its public and
+  financial-professional domains return HTTP 403 to the backend profile. It remains
+  fallback-only rather than being promoted based on search-indexed content.
+- Manulife/John Hancock publishes a current multi-fund basket PDF, but the official basket
+  asset itself returns HTTP 403 to direct and browser-equivalent requests. Do not parse a
+  cached/search-indexed copy as a native source.
+- `morgan_stanley` resolves to Parametric's SMA operation rather than an ETF sponsor with a
+  fund-level portfolio feed, and `bmo` resolves to BMO's Canadian ETF business rather than a
+  US-listed issuer route. Neither should be falsely promoted without an actual US ETF mapping.
+- Strict coverage remains `194/345` native/live-backed. Continue from an unresolved issuer
+  with an executable complete first-party holdings artifact; SEC remains fallback-only.
+
 ## Thornburg and Brookfield native-source audit - 2026-07-14T22:45Z
 
 - Thornburg's public `tb-visitor-role-lang=us` / `tb-visitor-role=financial-professional`

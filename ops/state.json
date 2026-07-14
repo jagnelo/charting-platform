@@ -3,8 +3,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-14T18:25:00Z",
-    "last_commit": "bc56b27",
+    "last_handoff_at": "2026-07-14T23:20:00Z",
+    "last_commit": "e36ddf4",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-14 targeted Ruff check for the 3EDGE adapter, static fixture, and live-provider manifest)",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-14T23:20Z Source audit: WisdomTree's official DXJ product page, Thrivent's public and financial-professional ETF pages, and John Hancock's official multi-fund basket document are all publicly discoverable but return HTTP 403 to direct browser-equivalent backend retrieval. Morgan Stanley/Parametric is an SMA manager rather than a US ETF issuer, and BMO maps to its Canadian ETF business rather than a US-listed issuer route. None were promoted; strict state remains 345 registered, 194 native/live-backed, and 151 fallback-only.",
         "2026-07-14T18:25Z 3EDGE native route: ThreeEdgeHoldingsAdapter uses the issuer's dated daily SEI_3EDGE text export and filters its multi-fund feed by requested ticker, with separate 3EDGE routing, page catalogue, and headers. Static parser coverage and the real EDGU route passed; EDGU returned 16 rows, so its live minimum is 10. Full 236-test adapter suite (with --no-cov), strict provider matrix/concrete-route invariant (3 selected), Ruff, and diff checks passed. Strict state is 345 registered, 194 native/live-backed, and 151 fallback-only.",
         "2026-07-14T18:00Z Optimize native route: OptimizeHoldingsAdapter verifies OPTZ's official product page and exact fund-scoped full-holdings XLS link before parsing its issuer export. The shared legacy-XLS parser now retries duplicated-OLE-stream issuer workbooks using xlrd's documented corruption-tolerant mode after strict parsing fails. Static adapter coverage, full 235-test adapter suite, opt-in live OPTZ route, strict manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 193 native/live-backed, and 152 fallback-only.",
         "2026-07-14T17:16Z Cultivar native route: CultivarHoldingsAdapter parses CVAR's official current fund-page table, preserving ticker, CUSIP, shares, value, weight, and as-of date. Static parser, full 234-test adapter suite, opt-in CVAR live route, strict manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 192 native/live-backed, and 153 fallback-only.",

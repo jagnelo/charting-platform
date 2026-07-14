@@ -10422,6 +10422,22 @@ Append a short entry after each worker session.
 - `goose_hollow`: official site returns ModSecurity `406` to direct backend retrieval.
 - None were promoted. These are provider-source accessibility blockers; SEC EDGAR remains a
   fallback only and does not satisfy the native provider integration goal.
+
+# ETF Holdings Provider Source Audit - 2026-07-14T23:20Z
+
+- `wisdomtree`: the official DXJ page documents complete all-holdings access, but current
+  backend retrieval returns HTTP 403 even with a browser-equivalent request profile. It is not
+  an executable native source from this environment.
+- `thrivent`: the issuer's public and financial-professional ETF pages advertise daily holdings
+  downloads, but both domains return HTTP 403 to the backend profile.
+- `manulife`: John Hancock's official daily multi-fund basket PDF is publicly discoverable but
+  returns HTTP 403 to both direct and browser-equivalent retrieval. Search-indexed text is not
+  a substitute for an executable source.
+- `morgan_stanley` maps to Parametric SMA products rather than a US ETF sponsor route, and
+  `bmo` maps to BMO's Canadian ETF business. Neither provides a concrete US ETF issuer route
+  to integrate under its current registered identity.
+- No provider was promoted from this audit. Strict state remains `345` registered providers,
+  `194` native/live-backed, and `151` fallback-only; SEC EDGAR remains fallback-only.
 # ETF Holdings Provider Integration - 2026-07-13T17:59Z
 
 - Promoted `thor` to native/live-backed support through a dedicated `ThorHoldingsAdapter` for

@@ -21,10 +21,12 @@ tasks:
       - lint
     notes:
       - Current truthful count: 194 native/live-backed providers out of 345; 151 remain.
-      - Current priority blockers: WisdomTree and SoFi return bot-protection HTTP 403 responses
-        to browser-header backend requests. Thrivent currently exposes documents/top holdings but
-        no complete current issuer-native holdings artifact. PIMCO's public fund client exposes
-        only a top-ten export and its direct API requires an unavailable authenticated role.
+      - >
+        Current priority blockers: WisdomTree, SoFi, and Thrivent return bot-protection HTTP 403
+        responses to browser-header backend requests. Thrivent and WisdomTree advertise current
+        full/daily holdings, but their public routes are not executable from the backend. John
+        Hancock's public multi-fund basket PDF also returns HTTP 403. PIMCO's public fund client
+        exposes only a top-ten export and its direct API requires an unavailable authenticated role.
         Do not promote any of them until a reachable complete issuer-native route passes a live
         test. Neuberger Berman is supported through its official sitemap and detailed-holdings
         workbook route. Water Island is supported through AltShares' complete periodic
