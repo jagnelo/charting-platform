@@ -10457,3 +10457,14 @@ Append a short entry after each worker session.
   fund-scoped API was found.
 - No provider was promoted. Strict state remains `345` registered providers, `194`
   native/live-backed, and `151` fallback-only; SEC EDGAR remains fallback-only.
+
+# ETF Holdings Provider Integration - 2026-07-14T23:07Z
+
+- Promoted `jensen` through a dedicated `JensenHoldingsAdapter` for `JGRW`. The adapter
+  consumes Jensen's issuer-owned FilePoint daily holdings CSV, filters the selected fund account,
+  and preserves ticker, CUSIP, shares, value, percentage weights, composition date, and cash rows.
+- Validation passed: targeted Ruff, full adapter unit suite (`237 passed`), and the opt-in real
+  `JGRW` route (`1 passed`). The strict manifest now includes Jensen, ensuring every one of the
+  `195` native/live-backed providers has explicit static and concrete live coverage.
+- Strict count: `345` registered providers, `195` native/live-backed, `150` fallback-only. SEC
+  EDGAR remains fallback-only and does not count as primary provider support.

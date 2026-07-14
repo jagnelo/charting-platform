@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Jensen native holdings route - 2026-07-14T23:07Z
+
+- Promoted `jensen` through an isolated `JensenHoldingsAdapter` for `JGRW`. It consumes
+  Jensen's issuer-owned FilePoint daily CSV, filters the fund-scoped `Account` rows, and
+  preserves ticker, CUSIP, shares, value, percent weight, source date, and cash rows.
+- Validation passed: targeted Ruff; the full ETF-holdings adapter unit suite (`237 passed`);
+  and the opt-in live `JGRW` route (`1 passed`). The live manifest now requires Jensen to
+  retain a concrete first-party route test.
+- Strict coverage is now `195/345` native/live-backed, leaving `150` fallback-only. SEC
+  EDGAR remains a fallback and is not counted as primary provider support.
+
 ## Absolute Investment Advisers source audit - 2026-07-14T23:30Z
 
 - The official ABEQ product page is backend-readable, but exposes only strategy material,
