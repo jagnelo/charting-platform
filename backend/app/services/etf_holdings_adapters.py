@@ -29511,6 +29511,177 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class KingsbarnHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete current ETF constituents from Kingsbarn's public fund page.
+
+    Kingsbarn publishes each ETF through its issuer-owned administrator application.
+    The page carries both the selected fund identity and a complete ``Constituents``
+    table, so the adapter verifies the identity before accepting that table.
+    """
+
+    FUND_PAGE_URL = "https://admin.kingsbarn.com/ExchangeTradedFund/Details/{symbol_upper}"
+    _AS_OF_RE = re.compile(
+        r"<th>\s*As\s+of\s+date:\s*</th>\s*<td>\s*(?P<date>\d{4}-\d{2}-\d{2})\s*</td>",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol else Decimal("0"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Kingsbarn publishes complete current ETF constituents on its public fund page."
+                if normalized_symbol
+                else "A Kingsbarn ETF symbol is required to resolve its public holdings page."
+            ),
+            source_url=self.FUND_PAGE_URL.format(symbol_upper=normalized_symbol)
+            if normalized_symbol
+            else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Kingsbarn ETF symbol is required to load holdings.")
+        page_url = (
+            source_url
+            if source_url and "admin.kingsbarn.com" in source_url.lower()
+            else self.FUND_PAGE_URL.format(symbol_upper=normalized_symbol)
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        self._validate_product_page(response.text, symbol=normalized_symbol)
+        rows = self._parse_constituents_table(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Kingsbarn's public constituents table returned no parseable holdings for {normalized_symbol}."
+            )
+        composition_date = self._parse_as_of_date(response.text)
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"kingsbarn-{normalized_symbol}-{composition_date or 'unknown'}-{index}"
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "kingsbarn_public_fund_page_constituents_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str) -> None:
+        normalized = re.sub(r"\s+", " ", html.unescape(raw_html))
+        ticker_match = re.search(
+            r"<th>\s*Ticker:\s*</th>\s*<td>\s*([^<]+?)\s*</td>",
+            normalized,
+            re.IGNORECASE,
+        )
+        actual_symbol = _clean(ticker_match.group(1)) if ticker_match else None
+        if actual_symbol is None or actual_symbol.upper() != symbol:
+            raise ValueError(
+                f"Kingsbarn product page identity did not match requested ETF {symbol}."
+            )
+        if not re.search(r">\s*Constituents\s*<", normalized, re.IGNORECASE):
+            raise ValueError(f"Kingsbarn product page did not expose a constituents table for {symbol}.")
+
+    @classmethod
+    def _parse_constituents_table(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> list[CanonicalHoldingRow]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        expected_headers = {"name", "ticker", "cusip", "market value", "weight (%)"}
+        for table in parser.tables:
+            header_index = next(
+                (
+                    index
+                    for index, row in enumerate(table[:30])
+                    if expected_headers <= {cell.strip().lower() for cell in row if _clean(cell)}
+                ),
+                None,
+            )
+            if header_index is None:
+                continue
+            header = table[header_index]
+            rows: list[CanonicalHoldingRow] = []
+            for index, raw_row in enumerate(table[header_index + 1 :], start=1):
+                raw = _row_dict(header, raw_row)
+                name = _clean(raw.get("Name"))
+                ticker = _clean(raw.get("Ticker"))
+                cusip = _clean(raw.get("CUSIP"))
+                if not any([name, ticker, cusip, raw.get("Market Value")]):
+                    continue
+                text = " ".join(part.lower() for part in (name, ticker) if part)
+                is_cash = "cash" in text or "cash equivalent" in text
+                holding_type = "cash" if is_cash else "equity"
+                rows.append(
+                    CanonicalHoldingRow(
+                        symbol=None if is_cash else cls._tradable_symbol(ticker),
+                        name=name,
+                        cusip=cusip if _looks_like_cusip(cusip) else None,
+                        # Kingsbarn renders the percentage sign in every displayed weight.
+                        # `_decimal` therefore performs the single required conversion to a ratio.
+                        weight=_decimal(raw.get("Weight (%)")),
+                        shares=_decimal(raw.get("Shares*")),
+                        market_value=_decimal(raw.get("Market Value")),
+                        currency="USD",
+                        holding_type=holding_type,
+                        row_type="cash" if is_cash else "security",
+                        source_row_id=f"{symbol}:{index}",
+                        extra_data={key: value for key, value in raw.items() if value not in (None, "")},
+                    )
+                )
+            return rows
+        return []
+
+    @classmethod
+    def _parse_as_of_date(cls, raw_html: str) -> date | None:
+        match = cls._AS_OF_RE.search(raw_html)
+        if match is None:
+            return None
+        try:
+            return date.fromisoformat(match.group("date"))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().split()[0]
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+
 class QuantifyChaosHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Quantify Funds' issuer-linked daily holdings CSV files.
 
@@ -30731,6 +30902,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         ),
         live_tested_default_route=True,
         terms_note="Natixis public daily ETF holdings CSV files may be subject to issuer terms.",
+    ),
+    "kingsbarn": IssuerCsvAdapterConfig(
+        adapter_key="kingsbarn",
+        source_provider="kingsbarn",
+        source_access="issuer_public_administrator_constituents_table",
+        product_page_templates=(
+            "https://admin.kingsbarn.com/ExchangeTradedFund/Details/{symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Kingsbarn public ETF constituents pages may be subject to issuer terms."
+        ),
     ),
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
@@ -32262,6 +32445,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "capital_group": CapitalGroupHoldingsAdapter,
         "cary_street": CaryStreetHoldingsAdapter,
         "peakshares": PeakSharesHoldingsAdapter,
+        "kingsbarn": KingsbarnHoldingsAdapter,
         "quantify_chaos": QuantifyChaosHoldingsAdapter,
         "summit_global": SummitGlobalHoldingsAdapter,
         "regan": ReganHoldingsAdapter,

@@ -726,6 +726,56 @@ async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_h
 
 
 @pytest.mark.asyncio
+async def test_kingsbarn_adapter_verifies_fund_identity_and_parses_constituents_table(monkeypatch):
+    adapter = get_holdings_adapter("kingsbarn")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <html><body>
+                  <h2>Kingsbarn Dividend Opportunity ETF</h2>
+                  <table><tr><th>Ticker:</th><td>DVDN</td></tr>
+                    <tr><th>As of date:</th><td>2026-07-13</td></tr></table>
+                  <h3>Constituents</h3>
+                  <table class="table table-hover">
+                    <tr><th>Name</th><th>Ticker</th><th>CUSIP</th><th>Shares<sup>*</sup></th>
+                      <th>Market Value</th><th>Weight (%)</th></tr>
+                    <tr><td>Trinity Capital Inc</td><td>TRIN</td><td>896442308</td><td>14244</td>
+                      <td>$250,124.64</td><td>8.0786%</td></tr>
+                    <tr><td>CASH AND CASH EQUIVALENTS</td><td></td><td></td><td>76844</td>
+                      <td>$76,843.99</td><td>2.4819%</td></tr>
+                  </table>
+                </body></html>
+            """,
+            content_type="text/html",
+            url="https://admin.kingsbarn.com/ExchangeTradedFund/Details/DVDN",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DVDN", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://admin.kingsbarn.com/ExchangeTradedFund/Details/DVDN"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "TRIN"
+    assert result.rows[0].cusip == "896442308"
+    assert result.rows[0].shares == Decimal("14244")
+    assert result.rows[0].market_value == Decimal("250124.64")
+    assert result.rows[0].weight == Decimal("0.080786")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "kingsbarn"
+    assert result.legal_metadata["route_resolution"] == (
+        "kingsbarn_public_fund_page_constituents_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_quantify_chaos_adapter_verifies_product_page_and_parses_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("quantify_chaos")
     assert adapter is not None
