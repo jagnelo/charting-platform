@@ -28576,6 +28576,180 @@ class HullHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class CaryStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Fairlead ETF holdings through the issuer's own product application.
+
+    Cary Street is the adviser for the Fairlead Tactical Sector ETF.  Its
+    public product page identifies the fund and its own JavaScript requests a
+    fund-scoped FilePoint JSON payload.  The FilePoint endpoint is therefore
+    only used after the Fairlead page verifies the requested fund identity;
+    it is not a generic FilePoint fallback.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "TACK": "https://www.fairleadfunds.com/tack",
+    }
+    FUND_IDS = {
+        "TACK": "1342",
+    }
+    HOLDINGS_URL = "https://filepoint.live/fairlead_getholdings_cached4.php"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        fund_id = self.FUND_IDS.get(normalized_symbol)
+        if not product_page_url or not fund_id:
+            raise ValueError(
+                f"Cary Street does not publish a configured holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            if not re.search(rf"\b{re.escape(normalized_symbol)}\b", page_response.text, re.IGNORECASE):
+                raise ValueError(
+                    f"Cary Street product page identity did not match requested ETF {normalized_symbol}."
+                )
+            holdings_response = await client.post(
+                self.HOLDINGS_URL,
+                data={"fundID": fund_id},
+                headers={
+                    **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                    "Origin": "https://www.fairleadfunds.com",
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        payload = holdings_response.json()
+        if not isinstance(payload, list):
+            raise ValueError(
+                f"Cary Street holdings payload for {normalized_symbol} was not a row collection."
+            )
+        rows, composition_date = self._parse_holdings_payload(
+            payload,
+            symbol=normalized_symbol,
+            fund_id=fund_id,
+        )
+        if not rows:
+            raise ValueError(
+                f"Cary Street did not return complete holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"rows": payload, "product_page_url": str(page_response.url)},
+            source_url=str(holdings_response.url),
+            source_identifier=fund_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_product_page_verified_filepoint_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_payload(
+        payload: list[Any],
+        *,
+        symbol: str,
+        fund_id: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            portfolio_id = _clean(item.get("portfolioNumber"))
+            if portfolio_id and portfolio_id != fund_id:
+                continue
+            row_date = CaryStreetHoldingsAdapter._parse_as_of_date(item.get("asOfDate"))
+            if composition_date is None:
+                composition_date = row_date
+            raw_ticker = _clean(item.get("securityTicker"))
+            name = _clean(item.get("securityDescriptionLong") or item.get("securityDescriptionShort"))
+            holding_type = CaryStreetHoldingsAdapter._holding_type(
+                item=item,
+                name=name,
+                ticker=raw_ticker,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=CaryStreetHoldingsAdapter._tradable_symbol(
+                        ticker=raw_ticker,
+                        holding_type=holding_type,
+                    ),
+                    name=name or raw_ticker,
+                    cusip=CaryStreetHoldingsAdapter._cusip(item.get("securityIdentifier")),
+                    weight=_decimal(item.get("netAssetsPercent") or item.get("marketValuePercent")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValueBase")),
+                    currency=_clean(item.get("tradingCurrency")),
+                    country=_clean(item.get("country")),
+                    holding_type=holding_type,
+                    row_type="cash" if holding_type == "cash" else "security",
+                    source_row_id=f"cary-street-{symbol}-{index}",
+                    extra_data={key: value for key, value in item.items() if value not in (None, "")},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _cusip(value: Any) -> str | None:
+        candidate = _clean(value)
+        return candidate if candidate and re.fullmatch(r"[0-9A-Z]{9}", candidate) else None
+
+    @staticmethod
+    def _holding_type(*, item: dict[str, Any], name: str | None, ticker: str | None) -> str:
+        segment = (_clean(item.get("segment")) or "").upper()
+        category = (_clean(item.get("category")) or "").upper()
+        text = " ".join(part.upper() for part in (name, ticker, segment, category) if part)
+        if any(token in text for token in ("SWEEP", "CASH", "RECEIVABLE", "PAYABLE")):
+            return "cash"
+        if "FUTURE" in text:
+            return "future"
+        if "OPTION" in text:
+            return "option"
+        if "EXCHANGE-TRADED FUND" in text or " ETF" in text:
+            return "fund"
+        if "EQUITY" in category:
+            return "equity"
+        return "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund", "security"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -30488,6 +30662,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         url_templates=("https://docs.google.com/spreadsheets/export?id=1WO0jYItwXyUcv7GJwV4GKZ0bj6hzKpUeR1h0zaecdv0&exportFormat=csv",),
         live_tested_default_route=True, terms_note="Arlington public ETF holdings CSV may be subject to issuer terms.",
     ),
+    "cary_street": IssuerCsvAdapterConfig(
+        adapter_key="cary_street",
+        source_provider="cary_street",
+        source_access="issuer_product_page_verified_filepoint_holdings_json",
+        product_page_templates=("https://www.fairleadfunds.com/tack",),
+        live_tested_default_route=True,
+        terms_note="Fairlead/Cary Street public ETF holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -30543,6 +30725,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cambiar": CambiarHoldingsAdapter,
         "calamos": CalamosHoldingsAdapter,
         "capital_group": CapitalGroupHoldingsAdapter,
+        "cary_street": CaryStreetHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,

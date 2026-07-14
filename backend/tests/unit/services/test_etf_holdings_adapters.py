@@ -427,6 +427,87 @@ async def test_hull_adapter_verifies_product_page_and_classifies_complete_holdin
 
 
 @pytest.mark.asyncio
+async def test_cary_street_adapter_verifies_fairlead_page_and_parses_fund_scoped_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("cary_street")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body><h1>TACK - Fairlead Tactical Sector ETF</h1></body></html>",
+            content_type="text/html",
+            url="https://www.fairleadfunds.com/tack",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1342",
+                        "portfolioName": "Fairlead Tactical Sector ETF",
+                        "securityIdentifier": "81369Y886",
+                        "securityTicker": "XLU US",
+                        "securityDescriptionShort": "SS UTILITIES SEL",
+                        "securityDescriptionLong": "State Street Utilities Select Sector SPDR ETF USD Class",
+                        "shares": 791815,
+                        "marketValueBase": 36281600.50,
+                        "netAssetsPercent": 0.1219,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "EXCHANGE-TRADED FUND",
+                        "category": "EQUITY",
+                    },
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "1342",
+                        "portfolioName": "Fairlead Tactical Sector ETF",
+                        "securityIdentifier": "BBHETFMM",
+                        "securityTicker": "9BBH",
+                        "securityDescriptionShort": "BBH SWEEP VEHICLE",
+                        "shares": 1177736.61,
+                        "marketValueBase": 1177736.61,
+                        "netAssetsPercent": 0.0041,
+                        "tradingCurrency": "USD",
+                        "country": "US",
+                        "segment": "SHORT TERM INVESTMENTS - OTHER",
+                    },
+                    {
+                        "asOfDate": "2026-07-13T00:00:00",
+                        "portfolioNumber": "9999",
+                        "securityTicker": "WRONG",
+                        "securityDescriptionShort": "Sibling fund row",
+                        "netAssetsPercent": 1,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://filepoint.live/fairlead_getholdings_cached4.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TACK", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.fairleadfunds.com/tack"
+    assert FakeAsyncClient.requested[1][0] == "https://filepoint.live/fairlead_getholdings_cached4.php"
+    assert FakeAsyncClient.requested[1][1]["data"] == {"fundID": "1342"}
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == "https://www.fairleadfunds.com/tack"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "XLU"
+    assert result.rows[0].cusip == "81369Y886"
+    assert result.rows[0].weight == Decimal("0.1219")
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "cary_street"
+    assert result.legal_metadata["source_format"] == "json"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_filepoint_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millions(monkeypatch):
     adapter = get_holdings_adapter("astoria")
     assert adapter is not None
