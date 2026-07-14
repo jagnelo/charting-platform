@@ -8267,6 +8267,29 @@ def test_shelton_adapter_discovers_and_parses_current_holdings_csv():
     assert composition_date == date(2026, 7, 13)
 
 
+def test_jensen_adapter_parses_fund_scoped_filepoint_daily_holdings_csv():
+    adapter = get_holdings_adapter("jensen")
+    assert adapter is not None
+    assert adapter._holdings_url("JGRW") == (
+        "https://jensen.filepoint.live/assets/data/FilepointJensen.40J1.J1_Holdings.csv"
+    )
+    rows, composition_date = adapter._parse_holdings_csv(
+        """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag
+07/14/2026,JGRW,AAPL,037833100,Apple Inc,18649,317.31,5917514.19,6.64%,
+07/14/2026,JGRW,Cash&Other,Cash&Other,Cash & Other,10073.23,1,10073.23,0.01%,Y
+07/14/2026,OTHER,MSFT,594918104,Microsoft Corp,1,1,1,100%,
+""",
+        symbol="JGRW",
+    )
+    assert len(rows) == 2
+    assert rows[0].symbol == "AAPL"
+    assert rows[0].cusip == "037833100"
+    assert rows[0].weight == Decimal("0.0664")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 14)
+
+
 def test_scharf_adapter_discovers_and_parses_current_holdings_csv():
     adapter = get_holdings_adapter("scharf")
     assert adapter is not None

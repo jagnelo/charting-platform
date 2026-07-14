@@ -6275,6 +6275,154 @@ class TortoiseHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class JensenHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Jensen ETF daily holdings from its issuer-owned FilePoint export."""
+
+    _FUND_EXPORTS = {
+        "JGRW": "40J1.J1",
+    }
+    _HOLDINGS_URL_TEMPLATE = (
+        "https://jensen.filepoint.live/assets/data/"
+        "FilepointJensen.{fund_id}_Holdings.csv"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self._holdings_url(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Jensen publishes this ETF's complete daily holdings CSV through its public ETF application."
+                if source_url
+                else (
+                    "No verified Jensen daily holdings route is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified Jensen daily holdings route is configured for this ETF symbol."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        holdings_url = self._holdings_url(normalized_symbol)
+        if source_url and "jensen.filepoint.live" in source_url.lower():
+            holdings_url = source_url.strip()
+        if not holdings_url:
+            raise ValueError(f"No verified Jensen daily holdings route is configured for {normalized_symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Jensen daily holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_filepoint_daily_holdings_csv", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=self._FUND_EXPORTS.get(normalized_symbol, normalized_symbol),
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "jensen_filepoint_daily_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _holdings_url(cls, symbol: str) -> str | None:
+        fund_id = cls._FUND_EXPORTS.get(symbol.strip().upper())
+        return cls._HOLDINGS_URL_TEMPLATE.format(fund_id=fund_id) if fund_id else None
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        if not table_rows:
+            return [], None
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:10])
+                if {
+                    cell.strip().lstrip("\ufeff").lower()
+                    for cell in row
+                    if _clean(cell)
+                }
+                >= {"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+
+        header = [cell.lstrip("\ufeff") for cell in table_rows[header_index]]
+        composition_date: date | None = None
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            account = _clean(_first(raw, ["Account"]))
+            if account and account.upper() != symbol.upper():
+                continue
+            ticker = _clean(_first(raw, ["StockTicker"]))
+            cusip = _clean(_first(raw, ["CUSIP"]))
+            name = _clean(_first(raw, ["SecurityName"]))
+            row_date = _clean(_first(raw, ["Date"]))
+            if row_date:
+                try:
+                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            is_cash = bool(_clean(_first(raw, ["MoneyMarketFlag"]))) or "cash" in " ".join(
+                part.lower() for part in (ticker, name) if part
+            )
+            if not any([ticker, name, cusip, _first(raw, ["MarketValue"])]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=_decimal(_first(raw, ["MarketValue"])),
+                    # Jensen's export includes a percent sign, so use the general parser
+                    # rather than the bare-percentage-points helper.
+                    weight=_decimal(_first(raw, ["Weightings"])),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
@@ -30175,6 +30323,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "jensen": IssuerCsvAdapterConfig(
+        adapter_key="jensen",
+        source_provider="jensen",
+        source_access="issuer_public_filepoint_daily_holdings_csv",
+        url_templates=(
+            "https://jensen.filepoint.live/assets/data/FilepointJensen.40J1.J1_Holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note="Jensen public ETF application holdings exports may be subject to issuer terms.",
+    ),
     "eagle_capital": IssuerCsvAdapterConfig(
         adapter_key="eagle_capital",
         source_provider="eagle_capital",
@@ -31766,6 +31924,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "innovator": InnovatorHoldingsAdapter,
         "invesco": InvescoHoldingsAdapter,
         "ishares": IsharesHoldingsAdapter,
+        "jensen": JensenHoldingsAdapter,
         "janus_henderson": JanusHendersonHoldingsAdapter,
         "jpmorgan": JPMorganHoldingsAdapter,
         "kraneshares": KranesharesHoldingsAdapter,

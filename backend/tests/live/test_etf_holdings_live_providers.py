@@ -134,6 +134,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "innovator",
     "invesco",
     "ishares",
+    "jensen",
     "janus_henderson",
     "jpmorgan",
     "kraneshares",
@@ -1379,6 +1380,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "tortoise",
             "TPZ",
+            None,
+            {},
+            20,
+        ),
+        (
+            "jensen",
+            "JGRW",
             None,
             {},
             20,
