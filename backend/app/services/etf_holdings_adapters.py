@@ -10384,6 +10384,153 @@ class WaterIslandHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class CanaryHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Canary Capital's issuer-owned current holdings table for each ETF."""
+
+    PRODUCT_PAGE_TEMPLATE = "https://canaryetfs.com/{symbol_lower}/"
+    _REQUIRED_HEADERS = {
+        "date",
+        "account",
+        "name",
+        "ticker",
+        "quantity",
+        "market value",
+        "weightings",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        product_page_url = self.PRODUCT_PAGE_TEMPLATE.format(symbol_lower=normalized_symbol.lower())
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol else Decimal("0.5000"),
+            status="ready" if normalized_symbol or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Canary Capital publishes this ETF's current holdings in its issuer-owned product table."
+                if normalized_symbol
+                else "No Canary ETF symbol was supplied; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "No Canary ETF symbol was supplied."
+            ),
+            source_url=product_page_url if normalized_symbol else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Canary holdings require an ETF symbol.")
+        product_page_url = source_url or self.PRODUCT_PAGE_TEMPLATE.format(
+            symbol_lower=normalized_symbol.lower()
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        if response.status_code == 403:
+            fallback_response = await asyncio.to_thread(
+                requests.get,
+                product_page_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                    "User-Agent": "curl/8.0",
+                },
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            fallback_response.raise_for_status()
+            raw_html = fallback_response.text
+            resolved_url = str(fallback_response.url)
+        else:
+            response.raise_for_status()
+            raw_html = response.text
+            resolved_url = str(response.url)
+        rows, composition_date = self._parse_product_page(raw_html, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Canary product page contained no current holdings rows for {normalized_symbol}.")
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"{normalized_symbol}:{composition_date or 'unknown'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "canary_product_page_current_holdings_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=resolved_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "canary_product_page_current_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "refresh_frequency": "issuer_current_product_page",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        normalized_symbol = symbol.strip().upper()
+        for table in parser.tables:
+            header_index = next(
+                (
+                    index
+                    for index, row in enumerate(table[:20])
+                    if cls._REQUIRED_HEADERS <= {cell.strip().lower() for cell in row if _clean(cell)}
+                ),
+                None,
+            )
+            if header_index is None:
+                continue
+            header = table[header_index]
+            records = [_row_dict(header, row) for row in table[header_index + 1 :]]
+            matched = [
+                record
+                for record in records
+                if _clean(_first(record, ["account"])) == normalized_symbol
+            ]
+            if not matched:
+                continue
+            rows = parse_holdings_table(
+                [header, *[[record.get(column, "") for column in header] for record in matched]]
+            )
+            composition_dates: list[date] = []
+            for record in matched:
+                raw_date = _clean(_first(record, ["date"]))
+                if raw_date is None:
+                    continue
+                try:
+                    composition_dates.append(datetime.strptime(raw_date, "%m/%d/%Y").date())
+                except ValueError:
+                    continue
+            return rows, max(composition_dates, default=None)
+        return [], None
+
+
 class EMLesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch EMLes' fund-specific full-holdings CSV from its public ETF pages."""
 
@@ -31156,6 +31303,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AltShares public portfolio-of-investments reports may be subject to issuer terms.",
     ),
+    "canary": IssuerCsvAdapterConfig(
+        adapter_key="canary",
+        source_provider="canary",
+        source_access="issuer_current_product_page_holdings_table",
+        product_page_templates=("https://canaryetfs.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Canary Capital public ETF holdings tables may be subject to issuer terms.",
+    ),
     "emles": IssuerCsvAdapterConfig(
         adapter_key="emles",
         source_provider="emles",
@@ -31311,6 +31466,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dimensional": DimensionalHoldingsAdapter,
         "direxion": DirexionHoldingsAdapter,
         "water_island": WaterIslandHoldingsAdapter,
+        "canary": CanaryHoldingsAdapter,
         "distillate": DistillateHoldingsAdapter,
         "rafferty": RaffertyHoldingsAdapter,
         "doubleline": DoubleLineHoldingsAdapter,

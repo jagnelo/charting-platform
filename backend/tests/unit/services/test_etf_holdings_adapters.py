@@ -159,6 +159,31 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
     assert rows[2].extra_data["position_side"] == "short"
 
 
+def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
+    adapter = get_holdings_adapter("canary")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_product_page(
+        """
+        <table>
+          <thead><tr><th>Date</th><th>Account</th><th>Name</th><th>Ticker</th><th>CUSIP</th><th>Quantity</th><th>Market Value</th><th>Weightings</th><th>MoneyMarketFlag</th></tr></thead>
+          <tbody>
+            <tr><td>07/14/2026</td><td>HBR</td><td>HEDERA</td><td>HBARUSD</td><td>HBARUSD</td><td>689,679,113.55</td><td>45,723,656.19</td><td>100.00%</td><td></td></tr>
+            <tr><td>07/14/2026</td><td>HBR</td><td>Cash &amp; Other</td><td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>-38.64</td><td>-38.64</td><td>0.00%</td><td>Y</td></tr>
+            <tr><td>07/14/2026</td><td>LTCC</td><td>LITECOIN</td><td>LTCUSD</td><td>LTCUSD</td><td>117,038.14</td><td>5,053,056.24</td><td>100.00%</td><td></td></tr>
+          </tbody>
+        </table>
+        """,
+        symbol="HBR",
+    )
+
+    assert composition_date == date(2026, 7, 14)
+    assert [row.symbol for row in rows] == ["HBARUSD", None]
+    assert rows[0].weight == Decimal("1")
+    assert rows[0].market_value == Decimal("45723656.19")
+    assert rows[1].row_type == "cash"
+
+
 @pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
