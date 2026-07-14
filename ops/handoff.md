@@ -1,5 +1,17 @@
 # Active Handoff
 
+## PeakShares native holdings route - 2026-07-15T00:00Z
+
+- Promoted `peakshares` through an isolated `PeakSharesHoldingsAdapter` for `PSTR` and `PRMR`.
+  It verifies the issuer's ETF product page and its declared numeric fund ID before calling the
+  exact public fund-application endpoint. Response rows are filtered by that ID, so a sibling
+  fund cannot leak into the snapshot.
+- Static coverage verifies page identity, request scope, sibling-row rejection, fund rows,
+  options, cash, CUSIPs, and composition date. Validation passed: targeted Ruff, the full
+  adapter unit suite (`238 passed`), and live `PSTR` plus manifest checks (`3 passed`).
+- Strict coverage is now `196/345` native/live-backed, leaving `149` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary support.
+
 ## Jensen native holdings route - 2026-07-14T23:07Z
 
 - Promoted `jensen` through an isolated `JensenHoldingsAdapter` for `JGRW`. It consumes

@@ -10468,3 +10468,14 @@ Append a short entry after each worker session.
   `195` native/live-backed providers has explicit static and concrete live coverage.
 - Strict count: `345` registered providers, `195` native/live-backed, `150` fallback-only. SEC
   EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Integration - 2026-07-15T00:00Z
+
+- Promoted `peakshares` through a dedicated `PeakSharesHoldingsAdapter` for `PSTR` and `PRMR`.
+  It identity-validates the issuer product page and page-declared fund ID before posting to the
+  exact public PeakShares application endpoint. The parser filters the response by fund ID,
+  preserving equities/funds, options, cash, CUSIPs, values, weights, and as-of date.
+- Validation passed: targeted Ruff; full adapter unit suite (`238 passed`); and live `PSTR` plus
+  the strict provider-matrix and concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `196` native/live-backed, `149` fallback-only. SEC
+  EDGAR remains fallback-only and does not count as primary provider support.
