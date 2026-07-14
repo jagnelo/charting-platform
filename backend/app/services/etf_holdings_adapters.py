@@ -28750,6 +28750,169 @@ class CaryStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Summit Global's disclosed tracking baskets from issuer product pages.
+
+    Summit's semi-transparent ETFs do not publish their confidential actual
+    portfolios every day. Their public fund pages do publish a complete
+    tracking basket, so this adapter records that disclosure type explicitly.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "SGLC": "https://www.sgiam.com/etfs/large-cap-core/",
+    }
+    _CELL_PATTERN = re.compile(
+        r"<article\b[^>]*\bclass=[\"'](?P<class>[^\"']*)[\"'][^>]*>(?P<value>.*?)</article>",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"Summit Global does not publish a configured tracking-basket route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_tracking_basket(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Summit Global did not expose a complete tracking basket for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "product_page_url": str(response.url),
+                "disclosure_type": "tracking_basket",
+            },
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_tracking_basket_grid",
+                "disclosure_type": "tracking_basket",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_tracking_basket(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not re.search(rf"\b{re.escape(symbol)}\b", raw_html, re.IGNORECASE):
+            raise ValueError(
+                f"Summit Global product page identity did not match requested ETF {symbol}."
+            )
+        section_match = re.search(
+            r'<section\b[^>]*\bid=[\"\']etf-holdings-table[\"\'][^>]*>(?P<body>.*?)</section>',
+            raw_html,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not section_match:
+            return [], cls._extract_composition_date(raw_html)
+
+        cells: list[str] = []
+        for match in cls._CELL_PATTERN.finditer(section_match.group("body")):
+            class_names = {part.lower() for part in match.group("class").split()}
+            if not class_names.intersection({"name", "data", "header", "headerleft"}):
+                continue
+            value = _clean(re.sub(r"<[^>]+>", " ", html.unescape(match.group("value"))))
+            # Keep placeholder cells to preserve the issuer's fixed six-column grid.
+            cells.append(value or "")
+
+        expected_headers = ["name", "ticker", "cusip", "shares", "weight", "market value"]
+        if [value.lower() for value in cells[:6]] != expected_headers:
+            return [], cls._extract_composition_date(raw_html)
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, offset in enumerate(range(6, len(cells), 6), start=1):
+            values = cells[offset : offset + 6]
+            if len(values) != 6:
+                continue
+            name, raw_ticker, cusip, shares, weight, market_value = values
+            holding_type = cls._holding_type(name=name, ticker=raw_ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(raw_ticker, holding_type=holding_type),
+                    name=name,
+                    cusip=cls._cusip(cusip),
+                    weight=_decimal(weight),
+                    shares=_decimal(shares),
+                    market_value=_decimal(market_value),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type="cash" if holding_type == "cash" else "security",
+                    source_row_id=f"summit-global-{symbol}-{index}",
+                    extra_data={
+                        "disclosure_type": "tracking_basket",
+                        "source_ticker": raw_ticker,
+                    },
+                )
+            )
+        return rows, cls._extract_composition_date(raw_html)
+
+    @staticmethod
+    def _extract_composition_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"Tracking\s+Basket\s+as\s+of\s+(\d{4}-\d{2}-\d{2})",
+            raw_html,
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        try:
+            return date.fromisoformat(match.group(1))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _cusip(value: str) -> str | None:
+        candidate = _clean(value)
+        return candidate if candidate and re.fullmatch(r"[0-9A-Z]{9}", candidate) else None
+
+    @staticmethod
+    def _holding_type(*, name: str, ticker: str) -> str:
+        text = f"{name} {ticker}".upper()
+        if any(token in text for token in ("CASH", "SWEEP", "RECEIVABLE", "PAYABLE")):
+            return "cash"
+        if " ETF" in text or "EXCHANGE TRADED FUND" in text:
+            return "fund"
+        return "equity"
+
+    @staticmethod
+    def _tradable_symbol(ticker: str, *, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"}:
+            return None
+        candidate = ticker.strip().upper().split()[0].replace("/", "-")
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -30670,6 +30833,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Fairlead/Cary Street public ETF holdings data may be subject to issuer terms.",
     ),
+    "summit_global": IssuerCsvAdapterConfig(
+        adapter_key="summit_global",
+        source_provider="summit_global",
+        source_access="issuer_public_tracking_basket_product_page",
+        product_page_templates=("https://www.sgiam.com/etfs/large-cap-core/",),
+        live_tested_default_route=True,
+        terms_note="Summit Global public ETF tracking-basket disclosures may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -30726,6 +30897,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "calamos": CalamosHoldingsAdapter,
         "capital_group": CapitalGroupHoldingsAdapter,
         "cary_street": CaryStreetHoldingsAdapter,
+        "summit_global": SummitGlobalHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,

@@ -508,6 +508,66 @@ async def test_cary_street_adapter_verifies_fairlead_page_and_parses_fund_scoped
 
 
 @pytest.mark.asyncio
+async def test_summit_global_adapter_parses_only_issuer_disclosed_tracking_basket(monkeypatch):
+    adapter = get_holdings_adapter("summit_global")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <html><body>
+                  <h1>SGI U.S. Large Cap Core ETF (SGLC)</h1>
+                  <h1>Tracking Basket as of 2026-07-13</h1>
+                  <section id="etf-holdings-table">
+                    <article class="headerLeft">Name</article>
+                    <article class="header">Ticker</article>
+                    <article class="header">CUSIP</article>
+                    <article class="header">Shares</article>
+                    <article class="header">Weight</article>
+                    <article class="headerLeft">Market Value</article>
+                    <article class="name">NVIDIA Corp</article>
+                    <article class="data">NVDA</article>
+                    <article class="data">67066G104</article>
+                    <article class="data">84.00</article>
+                    <article class="data">7.83%</article>
+                    <article class="name">$17,096.52</article>
+                    <article class="name">Cash &amp; Other</article>
+                    <article class="data">CASH</article>
+                    <article class="data">-</article>
+                    <article class="data">2.00</article>
+                    <article class="data">0.10%</article>
+                    <article class="name">$218.33</article>
+                    <article class="name">Berkshire Hathaway Inc</article>
+                    <article class="data">BRK/B</article>
+                    <article class="data">084670702</article>
+                    <article class="data">7.00</article>
+                    <article class="data">1.59%</article>
+                    <article class="name">$3,477.95</article>
+                  </section>
+                </body></html>
+            """,
+            content_type="text/html",
+            url="https://www.sgiam.com/etfs/large-cap-core/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SGLC")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.sgiam.com/etfs/large-cap-core/"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].weight == Decimal("0.0783")
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].symbol == "BRK-B"
+    assert result.legal_metadata["disclosure_type"] == "tracking_basket"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
 async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millions(monkeypatch):
     adapter = get_holdings_adapter("astoria")
     assert adapter is not None

@@ -68,6 +68,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "calamos",
     "capital_group",
     "cary_street",
+    "summit_global",
     "castleark",
     "capital_impact",
     "coinshares",
@@ -650,6 +651,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             5,
+        ),
+        (
+            "summit_global",
+            "SGLC",
+            None,
+            {},
+            50,
         ),
         (
             "castleark",
