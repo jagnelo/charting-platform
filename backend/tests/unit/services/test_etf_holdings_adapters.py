@@ -568,6 +568,60 @@ async def test_summit_global_adapter_parses_only_issuer_disclosed_tracking_baske
 
 
 @pytest.mark.asyncio
+async def test_regan_adapter_verifies_fund_page_and_parses_its_scoped_daily_csv(monkeypatch):
+    adapter = get_holdings_adapter("regan")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><body><h1>Regan Fixed Rate MBS ETF</h1><h5>MBSX</h5>"
+                '<a href="/wp-json/fund/mbsx/holdings">Current Holdings</a>'
+                "</body></html>"
+            ),
+            content_type="text/html",
+            url="https://www.regancapital.com/etfs/mbsx/",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Regan Fixed Rate MBS ETF",
+                    "Fund Holdings Data as of 07/14/2026",
+                    (
+                        "Name, Security Identifier, Symbol, Net Assets %, Market Price, "
+                        "Shares Held, Market Value, Market Value %"
+                    ),
+                    "BBH SWEEP VEHICLE, BBHETFMM, 9BBH, 1.25, 100, 1000, 1000, 1.25",
+                    "FNMA 30YR 4.5%, 3136BGRJ8, , 4.50, 101.25, 250000, 253125, 4.50",
+                ]
+            ),
+            url="https://www.regancapital.com/wp-json/fund/mbsx/holdings",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MBSX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.regancapital.com/etfs/mbsx/",
+        "https://www.regancapital.com/wp-json/fund/mbsx/holdings",
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip == "3136BGRJ8"
+    assert result.rows[1].weight == Decimal("0.045")
+    assert result.rows[1].market_value == Decimal("253125")
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_product_page_verified_fund_scoped_daily_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 async def test_astoria_adapter_discovers_page_and_normalizes_market_value_millions(monkeypatch):
     adapter = get_holdings_adapter("astoria")
     assert adapter is not None

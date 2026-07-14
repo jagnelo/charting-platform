@@ -28913,6 +28913,201 @@ class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class ReganHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Regan's daily MBS ETF portfolios from their fund-scoped issuer routes."""
+
+    PRODUCT_PAGE_URLS = {
+        "MBSF": "https://www.regancapital.com/etfs/mbsf/",
+        "MBSX": "https://www.regancapital.com/etfs/mbsx/",
+    }
+    HOLDINGS_ENDPOINTS = {
+        "MBSF": "https://www.regancapital.com/wp-json/etf/holdings",
+        "MBSX": "https://www.regancapital.com/wp-json/fund/mbsx/holdings",
+    }
+    EXPECTED_FUND_NAMES = {
+        "MBSF": "Regan Floating Rate MBS ETF",
+        "MBSX": "Regan Fixed Rate MBS ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            # A profile may supply its issuer product URL later. Keep the provider
+            # probe ready while fetch_latest remains strict about known fund routes.
+            status="ready",
+            reason=(
+                "Regan publishes this ETF's complete current portfolio through its fund-scoped "
+                "issuer route."
+                if product_page_url
+                else "Regan is recognized; a configured fund-scoped holdings route is required."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        holdings_url = self.HOLDINGS_ENDPOINTS.get(normalized_symbol)
+        if not product_page_url or not holdings_url:
+            raise ValueError(
+                f"Regan does not publish a configured complete holdings route for {normalized_symbol}."
+            )
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            self._validate_product_page(
+                page_response.text,
+                symbol=normalized_symbol,
+                holdings_url=holdings_url,
+            )
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Regan holdings route returned no complete rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "product_page_url": str(page_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_verified_fund_scoped_daily_holdings_csv",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, *, symbol: str, holdings_url: str) -> None:
+        expected_name = cls.EXPECTED_FUND_NAMES[symbol]
+        normalized_page = re.sub(r"\s+", " ", html.unescape(raw_html)).lower()
+        if symbol.lower() not in normalized_page or expected_name.lower() not in normalized_page:
+            raise ValueError(f"Regan product page identity did not match requested ETF {symbol}.")
+        endpoint_path = urlparse(holdings_url).path.rstrip("/")
+        if endpoint_path.lower() not in normalized_page:
+            raise ValueError(f"Regan product page did not link the configured holdings route for {symbol}.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        lines = [line for line in raw_csv.splitlines() if line.strip()]
+        if len(lines) < 3 or cls.EXPECTED_FUND_NAMES[symbol].lower() not in lines[0].lower():
+            return [], None
+        composition_date = cls._extract_as_of_date(lines[1])
+        header_index = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.strip().lower().startswith("name, security identifier, symbol,")
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], composition_date
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(csv.DictReader(StringIO("\n".join(lines[header_index:]))), start=1):
+            name = _clean(raw.get("Name"))
+            identifier = _clean(raw.get(" Security Identifier"))
+            ticker = _clean(raw.get(" Symbol"))
+            if not any([name, identifier, ticker]):
+                continue
+            holding_type = cls._holding_type(name=name, ticker=ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(ticker, holding_type=holding_type),
+                    name=name or identifier,
+                    cusip=cls._cusip(identifier),
+                    weight=_decimal_percent_points(raw.get(" Net Assets %")),
+                    shares=_decimal(raw.get(" Shares Held")),
+                    market_value=_decimal(raw.get(" Market Value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type="cash" if holding_type == "cash" else "security",
+                    source_row_id=f"regan-{symbol}-{index}",
+                    extra_data={
+                        key.strip(): value
+                        for key, value in raw.items()
+                        if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_as_of_date(value: str) -> date | None:
+        match = re.search(r"as\s+of\s+(\d{2}/\d{2}/\d{4})", value, re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _cusip(value: str | None) -> str | None:
+        candidate = _clean(value)
+        return candidate if candidate and re.fullmatch(r"[0-9A-Z]{9}", candidate) else None
+
+    @staticmethod
+    def _holding_type(*, name: str | None, ticker: str | None) -> str:
+        text = " ".join(part.upper() for part in (name, ticker) if part)
+        if any(token in text for token in ("SWEEP", "CASH", "RECEIVABLE", "PAYABLE")):
+            return "cash"
+        if " ETF" in text or "EXCHANGE TRADED FUND" in text:
+            return "fund"
+        return "fixed_income"
+
+    @staticmethod
+    def _tradable_symbol(ticker: str | None, *, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -30841,6 +31036,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Summit Global public ETF tracking-basket disclosures may be subject to issuer terms.",
     ),
+    "regan": IssuerCsvAdapterConfig(
+        adapter_key="regan",
+        source_provider="regan",
+        source_access="issuer_product_page_verified_fund_scoped_daily_holdings_csv",
+        product_page_templates=("https://www.regancapital.com/etfs/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note="Regan Capital public ETF holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -30898,6 +31101,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "capital_group": CapitalGroupHoldingsAdapter,
         "cary_street": CaryStreetHoldingsAdapter,
         "summit_global": SummitGlobalHoldingsAdapter,
+        "regan": ReganHoldingsAdapter,
         "castleark": CastleArkHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,
