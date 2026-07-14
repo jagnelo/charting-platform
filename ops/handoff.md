@@ -1,5 +1,34 @@
 # Active Handoff
 
+## Tremblant native ETF holdings route - 2026-07-14T11:15Z
+
+- Promoted `tremblant` through an isolated TOGA-only adapter. It verifies the official Tremblant
+  ETF product page, verifies that the issuer's own application declares the current FilePoint CSV,
+  then parses only `TOGA` rows. Provider-local normalization handles Tremblant's percent-suffixed
+  `Weightings` values before canonical parsing; it does not alter other FilePoint integrations.
+- Validation: focused static tests `2 passed`; real opt-in TOGA route `2 passed`; complete adapter
+  unit suite `228 passed`; strict provider matrix and concrete-live-route invariant `2 passed`;
+  targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `185` native/live-backed, and `160` fallback-only.
+  Cohanzick and Tremblant changes are uncommitted. Continue the issuer queue with the next
+  reachable unresolved provider; Westwood is currently HTTP `403`, while Vert currently exposes
+  only periodic holdings documents rather than a complete refreshable current holdings artifact.
+
+## Cohanzick native ETF holdings route - 2026-07-14T11:06Z
+
+- Promoted `cohanzick` through an isolated CUSD-only adapter. The adapter validates the current
+  official CrossingBridge CUSD page before fetching its public Catapult holdings JSON, because the
+  endpoint itself has no fund parameter and historic SPC pages formerly exposed the CUSD payload.
+  It also preserves CUSIPs, avoids inventing symbols from identifier-shaped tickers, and classifies
+  issuer money-market rows as cash.
+- Validation: focused static regression `1 passed`; full adapter unit suite `227 passed`; real
+  opt-in CUSD route `2 passed` (including its parametrized route); strict provider matrix and
+  concrete-live-route invariant `2 passed`; targeted Ruff and `git diff --check` passed.
+- Current strict state is `345` registered, `184` native/live-backed, and `161` fallback-only.
+  The Cohanzick changes are uncommitted. Continue source discovery with the next reachable
+  unresolved issuer; retain Guinness Atkinson, WisdomTree, SoFi, Thrivent, and Aptus as blocked
+  until a complete first-party route becomes executable.
+
 ## Guinness Atkinson source audit - 2026-07-13T21:25Z
 
 - Retried the issuer's official `ADIV` product page, ETF catalogue, fund-resources page,

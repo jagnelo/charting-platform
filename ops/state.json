@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-13T21:25:00Z",
+    "last_handoff_at": "2026-07-14T11:15:00Z",
     "last_commit": "5b30460",
-    "git_ready_to_commit": false,
+    "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-13 targeted Ruff check for the RiverNorth native adapter and focused tests)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-13: 226 passed), focused static and opt-in live RiverNorth FLDZ route (2 static, 1 live), plus the strict live-provider coverage invariant and provider matrix (2 passed). The invariant proves all 183 native/live-backed providers have explicit adapter and concrete live-test mappings. Bounded live runs found Aptus's product route newly blocked by HTTP 403, so it was removed from the native count. A full network sweep remains required for current endpoint compatibility.",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-14: 228 passed), focused static and opt-in live Cohanzick CUSD and Tremblant TOGA routes (2 static, 4 live including parametrized routes), plus the strict live-provider coverage invariant and provider matrix (2 passed). The invariant proves all 185 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,8 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-14T11:15Z Tremblant native route: promoted tremblant through an isolated TOGA product-page/application-script-verified FilePoint CSV adapter. It filters only TOGA rows and locally normalizes issuer percent-suffixed weights. Static/parser, full 228-test adapter suite, real TOGA route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict count is 345 registered, 185 native/live-backed, and 160 fallback-only. Cohanzick and Tremblant changes are uncommitted.",
+        "2026-07-14T11:06Z Cohanzick native route: promoted cohanzick through an isolated CUSD-only adapter. The official CrossingBridge CUSD page is validated before its unparameterized public Catapult holdings JSON is fetched, preventing legacy SPC page discovery from silently ingesting CUSD rows. Static parser test, full 227-test adapter suite, real CUSD route, provider matrix, concrete-route invariant, Ruff, and diff checks passed. Strict count is 345 registered, 184 native/live-backed, and 161 fallback-only. Changes are uncommitted.",
         "2026-07-13T21:25Z Guinness Atkinson source audit: direct official ADIV, catalogue, resource, WordPress API, sitemap, and uploads requests all returned the issuer's Cloudflare 403 challenge. No complete executable native artifact exists from this environment, so guinness_atkinson remains fallback-only and unpromoted.",
         "2026-07-13T21:21Z RiverNorth native route: FLDZ's official RiverNorth product page resolves to the matching TrueShares ETF page and exposes a public complete holdings CSV. river_north now uses an isolated redirect-validating adapter, static regression, and real opt-in FLDZ test. Full adapter suite 226, focused live route plus matrix/invariant 3, Ruff, and diff checks passed. Strict count is 345 registered, 183 native/live-backed, and 162 fallback-only.",
         "2026-07-13T22:50Z WisdomTree retry: the current official US DXJ product page and public holdings-query variants remain HTTP 403 through browser-header requests. WisdomTree remains fallback-only; no executable first-party complete holdings artifact was found in this pass.",

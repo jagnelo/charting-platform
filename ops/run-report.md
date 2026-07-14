@@ -2,6 +2,29 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-14 - Tremblant native ETF holdings route
+
+- Promoted `tremblant` through a dedicated TOGA adapter. It validates the issuer product page and
+  the corresponding public application script before ingesting the issuer-declared current
+  FilePoint CSV. The adapter filters solely to TOGA and locally normalizes the issuer's
+  percent-suffixed weights without changing shared FilePoint parsing behavior.
+- Validation: focused static tests `2 passed`; real opt-in TOGA route `2 passed`; full adapter
+  suite `228 passed`; provider matrix and explicit concrete-live-route invariant `2 passed`; Ruff
+  and diff checks passed. Current truthful count: `345` registered, `185` native, `160`
+  fallback-only. Cohanzick and Tremblant changes remain uncommitted.
+
+## 2026-07-14 - Cohanzick native ETF holdings route
+
+- Promoted `cohanzick` through an isolated CUSD-only implementation. The adapter verifies the
+  official CrossingBridge product page before calling its public holdings JSON because the JSON
+  endpoint is unparameterized; this prevents the legacy SPC page from silently ingesting the
+  current CUSD portfolio. It preserves valid CUSIPs, shares, values and weights, while classifying
+  money-market rows as cash and identifier-shaped tickers as non-symbols.
+- Validation: static regression `1 passed`; full adapter suite `227 passed`; real opt-in CUSD
+  route `2 passed`; provider matrix and explicit concrete-live-route invariant `2 passed`; Ruff
+  and diff checks passed. Current truthful count: `345` registered, `184` native, `161`
+  fallback-only. Changes are intentionally uncommitted pending the next requested commit.
+
 ## 2026-07-13 - Guinness Atkinson issuer-route audit
 
 - Direct backend requests to the official `ADIV` product page, ETF catalogue, resources page,
