@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Cultivar - 2026-07-14T17:16Z
+
+- Added a native CVAR adapter for Cultivar's official current fund-page holdings table.
+- Static parser, all 234 adapter unit tests, live CVAR route, strict manifest invariant, Ruff,
+  and diff checks passed. Strict coverage is `192/345` native/live-backed.
+
 # ETF Holdings Provider Integration - Canary Capital - 2026-07-14T17:10Z
 
 - Promoted `canary` through a dedicated current-product-page holdings-table adapter. The shared

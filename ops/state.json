@@ -3,8 +3,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-14T17:10:00Z",
-    "last_commit": "2122921",
+    "last_handoff_at": "2026-07-14T17:16:00Z",
+    "last_commit": "4fb9f41",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-14 targeted Ruff check for the Regan adapter, parser regression, and live-provider manifest)",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-14T17:16Z Cultivar native route: CultivarHoldingsAdapter parses CVAR's official current fund-page table, preserving ticker, CUSIP, shares, value, weight, and as-of date. Static parser, full 234-test adapter suite, opt-in CVAR live route, strict manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 192 native/live-backed, and 153 fallback-only.",
         "2026-07-14T17:10Z Canary native route: CanaryHoldingsAdapter parses the issuer-owned current product-page holdings table and filters its shared table by Account, preventing cross-fund leakage. It preserves ticker, quantity, market value, weight, cash rows, and as-of date. Canary returned 403 through httpx but 200 through requests with the verified curl-compatible request profile, so the adapter uses a scoped 403 fallback. Focused parser, full 233-test adapter suite, opt-in HBR live route, strict provider manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 191 native/live-backed, and 154 fallback-only.",
         "2026-07-14T16:58Z Water Island native route: WaterIslandHoldingsAdapter validates ARB/EVNT product pages then parses AltShares' issuer-hosted periodic Portfolio of Investments report. It preserves long and short positions, cash, shares, values, calculated weights, and as-of date, while explicitly recording periodic_issuer_report frequency. Focused parser, opt-in live ARB route, strict provider manifest invariant, Ruff, and diff checks passed. Strict state is 345 registered, 190 native/live-backed, and 155 fallback-only.",
         "2026-07-14T16:46Z PIMCO source audit: the official BOND product client points to fund-ui.pimco.com/fund-detail-api. Its public application exposes only a top-ten holdings export; direct API requests require an unavailable role context (401 without a role, 500 with the public-page role values). That is not a complete current constituent artifact, so pacific_investments remains fallback-only and uncounted. Strict state remains 345 registered, 189 native/live-backed, and 156 fallback-only.",

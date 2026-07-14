@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Cultivar native ETF holdings route - 2026-07-14T17:16Z
+
+- Promoted `cultivar` through a dedicated adapter for its official CVAR current fund-page table.
+  The parser preserves ticker, security description, CUSIP, shares, market value, weight, and
+  the page's as-of date.
+- Static parser, complete adapter suite (`234 passed`), opt-in live CVAR route, strict provider
+  manifest invariant, Ruff, and diff checks passed. Strict coverage: `192/345` native/live.
+
 ## Canary Capital native ETF holdings route - 2026-07-14T17:10Z
 
 - Promoted `canary` through an isolated `CanaryHoldingsAdapter`. Canary's issuer product pages

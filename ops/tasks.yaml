@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 191 native/live-backed providers out of 345; 154 remain.
+      - Current truthful count: 192 native/live-backed providers out of 345; 153 remain.
       - Current priority blockers: WisdomTree and SoFi return bot-protection HTTP 403 responses
         to browser-header backend requests. Thrivent currently exposes documents/top holdings but
         no complete current issuer-native holdings artifact. PIMCO's public fund client exposes
