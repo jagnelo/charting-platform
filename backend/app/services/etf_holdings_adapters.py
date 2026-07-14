@@ -9279,6 +9279,217 @@ class ScharfHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class CohanzickHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch current CUSD holdings through Cohanzick's verified public product route."""
+
+    product_page_url = "https://www.crossingbridgefunds.com/ultra-short-duration-etf"
+    holdings_url = "https://temp4.catapultmysite.com/adapter.php?file=etfholdings"
+    supported_symbol = "CUSD"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.supported_symbol:
+            raise ValueError(
+                "Cohanzick's verified current public holdings endpoint is scoped to CUSD; "
+                f"it cannot be used for {normalized_symbol or 'an empty symbol'}."
+            )
+
+        # The endpoint has no fund argument. Verify the issuer's current CUSD page first so
+        # an old alias or another Cohanzick fund can never receive this holdings payload.
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                self.product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        page_response.raise_for_status()
+        page_text = page_response.text
+        if (
+            self.supported_symbol not in page_text.upper()
+            or self.holdings_url not in page_text
+        ):
+            raise ValueError("Cohanzick's CUSD product page did not verify its public holdings endpoint.")
+
+        # Catapult accepts a conventional browser request but rejects httpx's TLS fingerprint.
+        # This narrow sync transport is intentionally local to Cohanzick's public endpoint.
+        response = await asyncio.to_thread(
+            requests.get,
+            self.holdings_url,
+            headers={
+                **_issuer_page_request_headers(accept="application/json,text/javascript,*/*; q=0.01"),
+                "Referer": self.product_page_url,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        rows = self._parse_holdings_payload(payload)
+        if not rows:
+            raise ValueError("Cohanzick's CUSD holdings endpoint returned no parseable holdings rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload,
+            source_url=self.holdings_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_product_page_verified_current_holdings_json",
+                "composition_date": None,
+                "as_of_date": None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_payload(payload: Any) -> list[CanonicalHoldingRow]:
+        if not isinstance(payload, list):
+            return []
+        rows: list[CanonicalHoldingRow] = []
+        for source_row_id, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            name = _clean(item.get("name"))
+            raw_ticker = _clean(item.get("ticker"))
+            cusip = _clean(item.get("cusip"))
+            valid_cusip = cusip if _looks_like_cusip(cusip) else None
+            is_cash = raw_ticker.upper() in {"FGXXX", "FXFXX"} or "government obligations fund" in name.lower()
+            is_fixed_income = bool(valid_cusip and not raw_ticker) or "bill" in name.lower() or "bond" in name.lower()
+            holding_type = "cash" if is_cash else "fixed_income" if is_fixed_income else "equity"
+            row_type = "cash" if is_cash else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if _looks_like_cusip(raw_ticker) else raw_ticker or None,
+                    name=name or None,
+                    cusip=valid_cusip,
+                    shares=_decimal(item.get("sharesheld")),
+                    market_value=_decimal(item.get("marketvalue")),
+                    weight=CohanzickHoldingsAdapter._parse_weight(item.get("weight")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(source_row_id),
+                    extra_data={key: value for key, value in item.items() if value not in (None, "")},
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _parse_weight(value: Any) -> Decimal | None:
+        """Cohanzick emits percentage strings, rather than bare percentage points."""
+
+        text = _clean(value)
+        return _decimal(text) if text and text.endswith("%") else _decimal_percent_points(text)
+
+
+class TremblantHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Tremblant's current TOGA holdings from its issuer-declared FilePoint CSV."""
+
+    product_page_url = "https://www.tremblantetf.com/"
+    holdings_url = "https://www.tremblantetf.com/assets/data/FilepointTremblant.40M8.M8_ETF_Holdings.csv"
+    holdings_filename = "FilepointTremblant.40M8.M8_ETF_Holdings.csv"
+    supported_symbol = "TOGA"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.supported_symbol:
+            raise ValueError(
+                "Tremblant's verified current issuer holdings route is scoped to TOGA; "
+                f"it cannot be used for {normalized_symbol or 'an empty symbol'}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                self.product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            page_text = page_response.text
+            if self.supported_symbol not in page_text.upper():
+                raise ValueError("Tremblant's product page did not identify TOGA.")
+            script_response = await client.get(
+                "https://www.tremblantetf.com/assets/js/app.js",
+                headers=_issuer_page_request_headers(accept="application/javascript,*/*"),
+                follow_redirects=True,
+            )
+            script_response.raise_for_status()
+            if self.holdings_filename not in script_response.text:
+                raise ValueError("Tremblant's TOGA application did not declare its holdings CSV.")
+            holdings_response = await client.get(
+                self.holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,*/*"),
+                    "Referer": self.product_page_url,
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = TrueSharesHoldingsAdapter._parse_true_shares_csv(
+            self._normalize_weight_percentages(holdings_response.text),
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError("Tremblant's TOGA holdings CSV returned no parseable rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=None,
+            source_url=str(getattr(holdings_response, "url", self.holdings_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_verified_filepoint_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "issuer_native_filepoint_holdings_csv",
+            },
+        )
+
+    @staticmethod
+    def _normalize_weight_percentages(raw_csv: str) -> str:
+        """The official TOGA CSV encodes Weightings as strings such as ``2.50%``."""
+
+        source_rows = csv.DictReader(StringIO(raw_csv.strip()))
+        fieldnames = source_rows.fieldnames
+        if not fieldnames or "Weightings" not in fieldnames:
+            return raw_csv
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        for row in source_rows:
+            # FilePoint exports occasionally carry trailing blank cells beyond the header.
+            row.pop(None, None)
+            value = _clean(row.get("Weightings"))
+            if value and value.endswith("%"):
+                row["Weightings"] = value[:-1].strip()
+            writer.writerow(row)
+        return output.getvalue()
+
+
 class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch complete Cohen & Steers ETF holdings from its public fund API."""
 
@@ -28492,6 +28703,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cohen & Steers public ETF fund API data may be subject to issuer terms.",
     ),
+    "cohanzick": IssuerCsvAdapterConfig(
+        adapter_key="cohanzick",
+        source_provider="cohanzick",
+        source_access="issuer_product_page_verified_holdings_json",
+        product_page_templates=("https://www.crossingbridgefunds.com/ultra-short-duration-etf",),
+        live_tested_default_route=True,
+        terms_note="Cohanzick's public CUSD holdings JSON may be subject to issuer terms.",
+    ),
+    "tremblant": IssuerCsvAdapterConfig(
+        adapter_key="tremblant",
+        source_provider="tremblant",
+        source_access="issuer_product_page_verified_filepoint_holdings_csv",
+        product_page_templates=("https://www.tremblantetf.com/",),
+        live_tested_default_route=True,
+        terms_note="Tremblant's public TOGA holdings CSV may be subject to issuer terms.",
+    ),
     "capital_impact": IssuerCsvAdapterConfig(
         adapter_key="capital_impact",
         source_provider="capital_impact",
@@ -30346,6 +30573,8 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "wedbush": WedbushHoldingsAdapter,
         "shelton": SheltonHoldingsAdapter,
         "scharf": ScharfHoldingsAdapter,
+        "cohanzick": CohanzickHoldingsAdapter,
+        "tremblant": TremblantHoldingsAdapter,
         "cohen_steers": CohenSteersHoldingsAdapter,
         "capital_impact": CapitalImpactHoldingsAdapter,
         "corgi": CorgiHoldingsAdapter,

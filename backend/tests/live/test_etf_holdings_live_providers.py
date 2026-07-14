@@ -24,6 +24,8 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "wedbush",
     "shelton",
     "scharf",
+    "cohanzick",
+    "tremblant",
     "cohen_steers",
     "acquirers",
     "infrastructure_capital",
@@ -1152,6 +1154,20 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             50,
         ),
         (
+            "cohanzick",
+            "CUSD",
+            None,
+            {},
+            10,
+        ),
+        (
+            "tremblant",
+            "TOGA",
+            None,
+            {},
+            20,
+        ),
+        (
             "t_rowe_price",
             "TCHP",
             None,
@@ -1698,6 +1714,31 @@ async def test_live_scharf_product_page_linked_holdings_csv():
     assert result.legal_metadata["route_resolution"] == "scharf_product_page_linked_holdings_csv"
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("cohanzick")
+async def test_live_cohanzick_cusd_page_verified_holdings_json():
+    adapter = get_holdings_adapter("cohanzick")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="CUSD")
+    _assert_live_holdings_result(result, adapter_key="cohanzick", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_current_holdings_json"
+    assert result.legal_metadata["source_format"] == "json"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("tremblant")
+async def test_live_tremblant_toga_page_verified_filepoint_holdings_csv():
+    adapter = get_holdings_adapter("tremblant")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="TOGA")
+    _assert_live_holdings_result(result, adapter_key="tremblant", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_filepoint_holdings_csv"
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["composition_date"]
 
 
 @pytest.mark.asyncio

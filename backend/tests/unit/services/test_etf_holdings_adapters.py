@@ -3288,6 +3288,119 @@ async def test_river_north_adapter_validates_redirect_to_trueshares_holdings_csv
 
 
 @pytest.mark.asyncio
+async def test_cohanzick_adapter_validates_cusd_page_and_parses_current_holdings(monkeypatch):
+    adapter = get_holdings_adapter("cohanzick")
+    assert adapter is not None
+
+    holdings_url = "https://temp4.catapultmysite.com/adapter.php?file=etfholdings"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f"<html><h1>CUSD</h1><script>url='{holdings_url}'</script></html>",
+            content_type="text/html",
+            url="https://www.crossingbridgefunds.com/ultra-short-duration-etf",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *args, **kwargs: FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "cusip": "037833100",
+                        "ticker": "AAPL",
+                        "name": "Apple Inc.",
+                        "sharesheld": "10",
+                        "marketvalue": "$2,000.00",
+                        "weight": "2.50%",
+                    },
+                    {
+                        "cusip": "912797UG0",
+                        "ticker": "912797UG0",
+                        "name": "Treasury Bill 09/17/2026",
+                        "sharesheld": "4",
+                        "marketvalue": "$400.00",
+                        "weight": "0.50%",
+                    },
+                    {
+                        "ticker": "FGXXX",
+                        "name": "First American Government Obligations Fund 12/01/2031",
+                        "sharesheld": "100",
+                        "marketvalue": "$100.00",
+                        "weight": "0.10%",
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url=holdings_url,
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="CUSD")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.product_page_url
+    assert result.source_url == holdings_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.025")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_current_holdings_json"
+
+    with pytest.raises(ValueError, match="scoped to CUSD"):
+        await adapter.fetch_latest(symbol="SPC")
+
+
+@pytest.mark.asyncio
+async def test_tremblant_adapter_verifies_toga_application_and_parses_filepoint_csv(monkeypatch):
+    adapter = get_holdings_adapter("tremblant")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html><h1>Tremblant Global ETF TOGA</h1></html>", content_type="text/html"),
+        FakeResponse(
+            text=f'$.ajax({{url:"./assets/data/{adapter.holdings_filename}"}})',
+            content_type="application/javascript",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+                    "07/14/2026,TOGA,AFRM,00827B106,Affirm Holdings Inc,10,80,800,2.50%,10000",
+                    "07/14/2026,TOGA,Cash&Other,,,Cash & Other,100,1,100,1.00%,10000",
+                    "07/14/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,2.00%,10000",
+                ]
+            ),
+            content_type="text/csv",
+            url=adapter.holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TOGA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.product_page_url,
+        "https://www.tremblantetf.com/assets/js/app.js",
+        adapter.holdings_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AFRM"
+    assert result.rows[0].weight == Decimal("0.025")
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_filepoint_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+    with pytest.raises(ValueError, match="scoped to TOGA"):
+        await adapter.fetch_latest(symbol="TMT")
+
+
+@pytest.mark.asyncio
 async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("fm_investments")
     assert adapter is not None
