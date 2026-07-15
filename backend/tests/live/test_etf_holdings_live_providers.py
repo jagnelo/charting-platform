@@ -178,6 +178,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "sprott",
     "ssc",
     "sterling_capital",
+    "natixis",
     "strive",
     "swan_global",
     "tapp",
@@ -487,6 +488,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             {},
             20,
         ),
+        ("natixis", "GQI", None, {}, 100),
         (
             "anfield",
             "AEMS",

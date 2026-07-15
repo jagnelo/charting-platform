@@ -1046,6 +1046,42 @@ async def test_natixis_adapter_parses_issuer_daily_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_natixis_investment_managers_adapter_has_its_own_native_route(monkeypatch):
+    adapter = get_holdings_adapter("natixis")
+    assert adapter is not None
+    assert adapter.adapter_key == "natixis"
+    assert adapter.source_provider == "natixis_investment_managers"
+
+    holdings_url = "https://mkt.im.natixis.com/files/etfs/GQI_daily_full_holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "DAILY HOLDINGS",
+                    "Natixis Gateway Quality Income ETF",
+                    "Ticker: GQI",
+                    "As Of Date: 07/09/2026",
+                    "Ticker,CUSIP,ISIN,Security name,Quantity held,Percent of net assets,Market value",
+                    "AAPL,037833100,US0378331005,APPLE INC,60866,7.315,19247046.52",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GQI")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.07315")
+    assert result.legal_metadata["adapter_key"] == "natixis"
+    assert result.legal_metadata["source_provider"] == "natixis_investment_managers"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

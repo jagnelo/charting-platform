@@ -3857,8 +3857,8 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
-class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch Natixis ETF holdings from its issuer-native daily CSV files."""
+class NatixisDailyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Shared parser for the documented Natixis daily ETF holdings export."""
 
     DAILY_HOLDINGS_TEMPLATE = (
         "https://mkt.im.natixis.com/files/etfs/{symbol}_daily_full_holdings.csv"
@@ -3875,9 +3875,9 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
             confidence=Decimal("0.9000"),
             status="ready" if normalized_symbol else "needs_issuer_route",
             reason=(
-                "Natixis publishes daily ETF holdings through issuer-native CSV files."
+                f"{self.source_provider} publishes daily ETF holdings through issuer-native CSV files."
                 if normalized_symbol
-                else "Natixis holdings require an ETF symbol."
+                else f"{self.source_provider} holdings require an ETF symbol."
             ),
             source_url=(
                 self.DAILY_HOLDINGS_TEMPLATE.format(symbol=normalized_symbol)
@@ -3898,7 +3898,7 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         del issuer_product_id, identifiers
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
-            raise ValueError("Natixis holdings require an ETF symbol.")
+            raise ValueError(f"{self.source_provider} holdings require an ETF symbol.")
 
         daily_holdings_url = source_url or self.DAILY_HOLDINGS_TEMPLATE.format(
             symbol=normalized_symbol
@@ -3918,7 +3918,9 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
             symbol=normalized_symbol,
         )
         if not rows:
-            raise ValueError(f"Natixis daily holdings CSV returned no rows for {normalized_symbol}.")
+            raise ValueError(
+                f"{self.source_provider} daily holdings CSV returned no rows for {normalized_symbol}."
+            )
 
         return HoldingsFetchResult(
             rows=rows,
@@ -4000,7 +4002,7 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         """Keep TLS verification enabled when Natixis omits its public intermediate."""
 
         context = ssl.create_default_context()
-        context.load_verify_locations(cafile=str(NatixisHoldingsAdapter.INTERMEDIATE_CERTIFICATE_PATH))
+        context.load_verify_locations(cafile=str(NatixisDailyHoldingsAdapter.INTERMEDIATE_CERTIFICATE_PATH))
         return context
 
     @staticmethod
@@ -4015,6 +4017,14 @@ class NatixisHoldingsAdapter(IssuerCsvHoldingsAdapter):
             except ValueError:
                 continue
         return None
+
+
+class GroupeBpceNatixisHoldingsAdapter(NatixisDailyHoldingsAdapter):
+    """Native Groupe BPCE integration for the Natixis ETF holdings export."""
+
+
+class NatixisInvestmentManagersHoldingsAdapter(NatixisDailyHoldingsAdapter):
+    """Native Natixis Investment Managers integration for its ETF holdings export."""
 
 
 class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -31362,6 +31372,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Natixis public daily ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "natixis": IssuerCsvAdapterConfig(
+        adapter_key="natixis",
+        source_provider="natixis_investment_managers",
+        source_access="issuer_public_symbol_daily_holdings_csv",
+        url_templates=(
+            "https://mkt.im.natixis.com/files/etfs/{symbol_upper}_daily_full_holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note="Natixis Investment Managers public daily ETF holdings CSV files may be subject to issuer terms.",
+    ),
     "kingsbarn": IssuerCsvAdapterConfig(
         adapter_key="kingsbarn",
         source_provider="kingsbarn",
@@ -33004,7 +33024,8 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
         "mirae_asset": MiraeAssetHoldingsAdapter,
-        "groupe_bpce": NatixisHoldingsAdapter,
+        "groupe_bpce": GroupeBpceNatixisHoldingsAdapter,
+        "natixis": NatixisInvestmentManagersHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
