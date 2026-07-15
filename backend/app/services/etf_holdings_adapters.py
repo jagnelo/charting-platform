@@ -7515,6 +7515,171 @@ class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
 
 
+class FortunaHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Fortuna's HBTC portfolio from its public complete holdings table."""
+
+    _FUNDS = {"HBTC": "https://hbtc.fortunafunds.com/hbtc-fund/"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
+            status="ready" if product_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Fortuna publishes HBTC's complete current holdings table on its official product page."
+                if product_url
+                else (
+                    f"Fortuna has no configured native holdings route for {normalized_symbol}; SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Fortuna has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol if product_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"Fortuna has no configured native holdings route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Fortuna product page did not expose complete current holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", product_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "issuer_product_page_complete_current_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "fortuna_hbtc_native_holdings_table",
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        text = html.unescape(raw_html)
+        if symbol != "HBTC" or "Fortuna Hedged Bitcoin ETF" not in text or not re.search(r"\bHBTC\b", text):
+            raise ValueError(f"Fortuna product page identity did not match requested ETF {symbol}.")
+        parser = _HTMLTableByIdParser(table_id="holdings-table")
+        parser.feed(text)
+        if not parser.rows:
+            return [], None
+        header = parser.rows[0]
+        required_headers = {"Date", "Account", "StockTicker", "CUSIP", "SecurityName", "Shares", "MarketValue", "Weightings", "MoneyMarketFlag"}
+        if not required_headers.issubset(set(header)):
+            return [], None
+
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, values in enumerate(parser.rows[1:], start=1):
+            raw = _row_dict(header, values)
+            if (_clean(raw.get("Account")) or "").upper() != symbol:
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(raw.get("StockTicker"))
+            name = _clean(raw.get("SecurityName"))
+            row_type, holding_type = cls._classify_holding(
+                raw_symbol=raw_symbol,
+                name=name,
+                money_market=_clean(raw.get("MoneyMarketFlag")),
+            )
+            cusip_value = _clean(raw.get("CUSIP"))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+            parsed_symbol = cls._tradable_symbol(raw_symbol) if holding_type in {"equity", "fund"} else None
+            if not any([parsed_symbol, name, cusip, raw.get("MarketValue"), raw.get("Weightings")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"fortuna-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _classify_holding(
+        *,
+        raw_symbol: str | None,
+        name: str | None,
+        money_market: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name) if part)
+        if (money_market or "").upper() == "Y" or "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if re.search(r"\b\d{6}[CP]\d{8}\b", text) or " IBIT " in f" {text} ":
+            return "security", "option"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if any(marker in text for marker in ("BOND", "TREASURY", "NOTE")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
 
@@ -35039,6 +35204,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Conductor ETFs public CGV holdings CSV may be subject to issuer terms.",
     ),
+    "fortuna": IssuerCsvAdapterConfig(
+        adapter_key="fortuna",
+        source_provider="fortuna",
+        source_access="issuer_product_page_complete_current_holdings_table",
+        product_page_templates=("https://hbtc.fortunafunds.com/hbtc-fund/",),
+        live_tested_default_route=True,
+        terms_note="Fortuna Funds public HBTC holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -35184,6 +35357,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "idx": IdxHoldingsAdapter,
         "indexperts": IndexpertsHoldingsAdapter,
         "ironhorse": IronHorseHoldingsAdapter,
+        "fortuna": FortunaHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,

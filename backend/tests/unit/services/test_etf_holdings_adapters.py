@@ -1673,6 +1673,44 @@ async def test_ironhorse_adapter_follows_declared_full_holdings_csv_and_keeps_fo
 
 
 @pytest.mark.asyncio
+async def test_fortuna_adapter_parses_complete_product_table_and_classifies_options_and_cash(monkeypatch):
+    adapter = get_holdings_adapter("fortuna")
+    assert adapter is not None
+    product_url = "https://hbtc.fortunafunds.com/hbtc-fund/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <h1>The HBTC Fund</h1><p>Fortuna Hedged Bitcoin ETF, HBTC</p>
+            <table id="holdings-table"><thead><tr>
+              <th>Date</th><th>Account</th><th>StockTicker</th><th>CUSIP</th><th>SecurityName</th>
+              <th>Shares</th><th>Price</th><th>MarketValue</th><th>Weightings</th><th>NetAssets</th>
+              <th>SharesOutstanding</th><th>CreationUnits</th><th>MoneyMarketFlag</th>
+            </tr></thead><tbody>
+              <tr><td>07/15/2026</td><td>HBTC</td><td>4IBIT 260731C00034400</td><td>4IBIT 260731C00034400</td><td>IBIT 07/31/2026 34.4 C</td><td>-208</td><td>$2.63</td><td>$-54,723.51</td><td>-7.48%</td><td>731668</td><td>40000</td><td>4</td><td></td></tr>
+              <tr><td>07/15/2026</td><td>HBTC</td><td>FXFXX</td><td>31846V328</td><td>First American Treasury Obligations Fund</td><td>381128</td><td>$100.00</td><td>$381,128.33</td><td>52.09%</td><td>731668</td><td>40000</td><td>4</td><td>Y</td></tr>
+              <tr><td>07/15/2026</td><td>OTHER</td><td>AAPL</td><td>037833100</td><td>Sibling Fund Position</td><td>1</td><td>$1</td><td>$1</td><td>100%</td><td>1</td><td>1</td><td>1</td><td></td></tr>
+            </tbody></table>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HBTC")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "option"
+    assert result.rows[0].weight == Decimal("-0.0748")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
