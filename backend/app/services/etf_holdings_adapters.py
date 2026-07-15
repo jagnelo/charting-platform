@@ -4027,6 +4027,162 @@ class NatixisInvestmentManagersHoldingsAdapter(NatixisDailyHoldingsAdapter):
     """Native Natixis Investment Managers integration for its ETF holdings export."""
 
 
+class WesternSouthernHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Touchstone ETF holdings from its issuer-owned product-page payloads."""
+
+    _FUND_BY_SYMBOL = {
+        "DVND": ("dividend-select-etf", "Touchstone Dividend Select ETF"),
+        "TDI": ("dynamic-international-etf", "Touchstone Dynamic International ETF"),
+        "TLCG": ("large-company-growth-etf", "Touchstone Large Company Growth ETF"),
+        "TLCI": ("international-equity-etf", "Touchstone International Equity ETF"),
+        "TEMX": (
+            "sands-capital-emerging-markets-ex-china-growth-etf",
+            "Touchstone Sands Capital Emerging Markets ex-China Growth ETF",
+        ),
+        "TSEL": (
+            "sands-capital-us-select-growth-etf",
+            "Touchstone Sands Capital US Select Growth ETF",
+        ),
+        "TSEC": ("securitized-income-etf", "Touchstone Securitized Income ETF"),
+        "SIO": ("strategic-income-etf", "Touchstone Strategic Income ETF"),
+        "TUSI": ("ultra-short-income-etf", "Touchstone Ultra Short Income ETF"),
+        "LCF": ("us-large-cap-focused-etf", "Touchstone US Large Cap Focused ETF"),
+    }
+    PRODUCT_URL_TEMPLATE = "https://www.westernsouthern.com/touchstone/etfs/{slug}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUND_BY_SYMBOL.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if fund else Decimal("0.7000"),
+            status="ready",
+            reason=(
+                "Touchstone publishes complete fund holdings in its issuer-owned ETF product page."
+                if fund
+                else "Touchstone publishes complete ETF holdings; the exact product route is resolved from its ETF catalogue."
+            ),
+            source_url=(self.PRODUCT_URL_TEMPLATE.format(slug=fund[0]) if fund else None),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUND_BY_SYMBOL.get(normalized_symbol)
+        if not fund:
+            raise ValueError(f"No configured Touchstone ETF product route matches {normalized_symbol}.")
+        product_url = source_url or self.PRODUCT_URL_TEMPLATE.format(slug=fund[0])
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(
+            response.text,
+            expected_title=fund[1],
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Touchstone full holdings returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "issuer_product_page_full_holdings_payload"},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "issuer_product_page_full_holdings_payload",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_product_page(
+        raw_html: str, *, expected_title: str, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_html = html.unescape(raw_html)
+        if "Touchstone" not in normalized_html or expected_title not in normalized_html:
+            return [], None
+        payload_match = re.search(
+            r"var\s+fullHoldings\s*=\s*\[(?P<payload>.*?)\];",
+            normalized_html,
+            re.DOTALL,
+        )
+        if not payload_match:
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        for index, source_match in enumerate(
+            re.finditer(r"\{(?P<fields>.*?)\}", payload_match.group("payload"), re.DOTALL),
+            start=1,
+        ):
+            raw = {
+                field_match.group("key"): html.unescape(field_match.group("value")).strip()
+                for field_match in re.finditer(
+                    r"'(?P<key>[^']+)'\s*:\s*'(?P<value>[^']*)'",
+                    source_match.group("fields"),
+                )
+            }
+            name = _clean(raw.get("securityDescription"))
+            ticker = _clean(raw.get("tickerSymbol"))
+            cusip = _clean(raw.get("cusip"))
+            if not any((name, ticker, cusip)):
+                continue
+            is_cash = (ticker or "").upper() in {"USD", "CASH"} or (name or "").lower() in {
+                "us dollar",
+                "cash",
+            }
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    shares=_decimal(raw.get("sharesParValue")),
+                    market_value=_decimal(raw.get("marketValue")),
+                    weight=_decimal_percent_points(raw.get("portfolioPercent")),
+                    currency="USD" if is_cash else None,
+                    country=_clean(raw.get("country")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={**raw, "source": "touchstone_product_page_full_holdings"},
+                )
+            )
+        composition_date = WesternSouthernHoldingsAdapter._parse_composition_date(normalized_html)
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_composition_date(raw_html: str) -> date | None:
+        for match in re.finditer(
+            r"(?:as\s+of|data\s+as\s+of)\s*(?P<date>[A-Z][a-z]+\s+\d{1,2},\s+\d{4}|\d{1,2}/\d{1,2}/\d{4})",
+            raw_html,
+            re.I,
+        ):
+            value = match.group("date")
+            for date_format in ("%B %d, %Y", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(value, date_format).date()
+                except ValueError:
+                    continue
+        return None
+
+
 class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch GQG ETF holdings from the issuer's daily FilePoint export."""
 
@@ -31382,6 +31538,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Natixis Investment Managers public daily ETF holdings CSV files may be subject to issuer terms.",
     ),
+    "western_southern": IssuerCsvAdapterConfig(
+        adapter_key="western_southern",
+        source_provider="touchstone_investments",
+        source_access="issuer_product_page_complete_holdings_payload",
+        product_page_templates=(
+            "https://www.westernsouthern.com/touchstone/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Touchstone public ETF product-page holdings data may be subject to issuer terms.",
+    ),
     "kingsbarn": IssuerCsvAdapterConfig(
         adapter_key="kingsbarn",
         source_provider="kingsbarn",
@@ -33026,6 +33192,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "mirae_asset": MiraeAssetHoldingsAdapter,
         "groupe_bpce": GroupeBpceNatixisHoldingsAdapter,
         "natixis": NatixisInvestmentManagersHoldingsAdapter,
+        "western_southern": WesternSouthernHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,

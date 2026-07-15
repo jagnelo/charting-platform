@@ -1082,6 +1082,46 @@ async def test_natixis_investment_managers_adapter_has_its_own_native_route(monk
 
 
 @pytest.mark.asyncio
+async def test_western_southern_adapter_parses_touchstone_full_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("western_southern")
+    assert adapter is not None
+    product_url = "https://www.westernsouthern.com/touchstone/etfs/us-large-cap-focused-etf"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <title>Touchstone US Large Cap Focused ETF</title>
+                <script>
+                  var fullHoldings = [
+                    {'securityDescription': 'APPLE INC', 'tickerSymbol': 'AAPL',
+                     'cusip': '037833100', 'country': 'US', 'sharesParValue': '4,262',
+                     'currentPrice': '384.05', 'marketValue': '1,636,821', 'portfolioPercent': '2.43'},
+                    {'securityDescription': 'US Dollar', 'tickerSymbol': 'USD',
+                     'cusip': 'CASHUSD', 'country': 'US', 'sharesParValue': '1,000',
+                     'currentPrice': '1.00', 'marketValue': '1,000', 'portfolioPercent': '0.01'}
+                  ];
+                </script>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LCF")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].shares == Decimal("4262")
+    assert result.rows[0].market_value == Decimal("1636821")
+    assert result.rows[0].weight == Decimal("0.0243")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_full_holdings_payload"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
