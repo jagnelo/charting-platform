@@ -889,7 +889,7 @@ def parse_holdings_zip(raw_archive: bytes) -> tuple[list[CanonicalHoldingRow], s
     return [], "", {"source_format": "zip", "archive_files": file_names}
 
 
-def parse_xlsx_table(raw_workbook: bytes, *, worksheet_index: int = 1) -> list[list[str]]:
+def parse_xlsx_table(raw_workbook: bytes, *, worksheet_index: int | str = 1) -> list[list[str]]:
     """Extract a worksheet from an XLSX workbook using stdlib OpenXML parsing."""
 
     namespace = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
@@ -901,7 +901,11 @@ def parse_xlsx_table(raw_workbook: bytes, *, worksheet_index: int = 1) -> list[l
                 texts = [node.text or "" for node in item.findall(".//main:t", namespace)]
                 shared_strings.append("".join(texts))
 
-        worksheet_name = f"xl/worksheets/sheet{worksheet_index}.xml"
+        worksheet_name = (
+            f"xl/worksheets/{worksheet_index}.xml"
+            if isinstance(worksheet_index, str)
+            else f"xl/worksheets/sheet{worksheet_index}.xml"
+        )
         if worksheet_name not in workbook.namelist():
             worksheet_prefix = "xl/worksheets/sheet"
             worksheet_name = next(
@@ -27604,6 +27608,145 @@ class CambiarHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if _looks_like_cusip(candidate) else None
 
 
+class ThornburgHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read only the requested ETF's worksheet from Thornburg's shared workbook."""
+
+    _FUNDS = {
+        "TPLS": ("Thornburg Limited Term U.S. Treasury ETF", "https://www.thornburg.com/product/etfs/ecb/TPLS/"),
+        "TMB": ("Thornburg Multi-Sector Bond ETF", "https://www.thornburg.com/product/etfs/emb/TMB/"),
+        "TXUE": ("Thornburg International Equity ETF", "https://www.thornburg.com/product/etfs/eie/TXUE/"),
+        "TXUG": ("Thornburg International Growth ETF", "https://www.thornburg.com/product/etfs/eig/TXUG/"),
+        "THOR": ("Thornburg Income Builder Opportunities Trust", "https://www.thornburg.com/product/etfs/eib/THOR/"),
+        "TAOZ": ("Thornburg American Opportunities Fund", "https://www.thornburg.com/product/mutual-funds/fv/TAOZ/"),
+        "TFGZ": ("Thornburg Focus Growth Fund", "https://www.thornburg.com/product/mutual-funds/fcg/TFGZ/"),
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        expected = self._FUNDS.get(normalized_symbol)
+        if expected is None:
+            raise ValueError(f"Thornburg has no configured native holdings route for {symbol}.")
+        fund_name, product_url = expected
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            page_text = page_response.text
+            if normalized_symbol not in page_text or fund_name.lower() not in page_text.lower():
+                raise ValueError(f"Thornburg product page identity did not match {normalized_symbol}.")
+            download_match = re.search(
+                r'''href=["'](?P<url>[^"']+holdings[^"']+\.xlsx[^"']*)["']''',
+                page_text,
+                re.IGNORECASE,
+            )
+            if download_match is None:
+                raise ValueError(f"Thornburg product page did not expose holdings for {normalized_symbol}.")
+            workbook_url = html.unescape(urljoin(str(page_response.url), download_match.group("url")))
+            workbook_response = await client.get(
+                workbook_url,
+                headers=_holdings_request_headers(
+                    accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"
+                ),
+                follow_redirects=True,
+            )
+        workbook_response.raise_for_status()
+        workbook_rows, composition_date = self._select_fund_worksheet(
+            workbook_response.content,
+            fund_name=fund_name,
+        )
+        rows = self._parse_rows(workbook_rows)
+        if not rows:
+            raise ValueError(f"Thornburg workbook did not expose holdings for {normalized_symbol}.")
+        for position, row in enumerate(rows, start=1):
+            row.source_row_id = row.source_row_id or f"{position}:{row.symbol or row.name}"
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(workbook_response.url),
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "issuer_product_page_linked_fund_scoped_holdings_xlsx",
+                "source_format": "xlsx",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _select_fund_worksheet(raw_workbook: bytes, *, fund_name: str) -> tuple[list[list[str]], date | None]:
+        with zipfile.ZipFile(BytesIO(raw_workbook)) as workbook:
+            sheet_names = sorted(
+                (name.rsplit("/", 1)[-1].removesuffix(".xml") for name in workbook.namelist()
+                 if name.startswith("xl/worksheets/sheet") and name.endswith(".xml")),
+                key=lambda name: int(re.search(r"\d+", name).group(0)),
+            )
+        for sheet_name in sheet_names:
+            worksheet = parse_xlsx_table(raw_workbook, worksheet_index=sheet_name)
+            worksheet_fund_name = _clean(worksheet[0][0]) if worksheet else None
+            if worksheet_fund_name is None or fund_name.lower() != worksheet_fund_name.lower():
+                continue
+            header_index = next(
+                (index for index, row in enumerate(worksheet[:12])
+                 if {"security name", "symbol", "shares", "market value", "percent"}
+                 <= {str(cell).strip().lower() for cell in row}),
+                -1,
+            )
+            if header_index < 0:
+                continue
+            composition_date = None
+            if len(worksheet) > 1:
+                match = re.search(r"(\d{4}-\d{2}-\d{2})", " ".join(worksheet[1]))
+                if match:
+                    composition_date = date.fromisoformat(match.group(1))
+            return worksheet[header_index:], composition_date
+        raise ValueError(f"Thornburg workbook did not contain the requested fund worksheet: {fund_name}.")
+
+    @staticmethod
+    def _parse_rows(workbook_rows: list[list[str]]) -> list[CanonicalHoldingRow]:
+        header = [str(cell).strip() for cell in workbook_rows[0]]
+        parsed: list[CanonicalHoldingRow] = []
+        for position, raw_row in enumerate(workbook_rows[1:], start=1):
+            row = _row_dict(header, raw_row)
+            name = _clean(row.get("Security Name"))
+            if name is None:
+                continue
+            raw_symbol = _clean(row.get("Symbol"))
+            # This issuer's workbook uses the Symbol column for foreign SEDOLs too.
+            is_ticker = raw_symbol is not None and any(character.isalpha() for character in raw_symbol)
+            lowered_name = name.lower()
+            is_cash = "cash" in lowered_name or "money market" in lowered_name
+            parsed.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or not is_ticker else raw_symbol,
+                    name=name,
+                    sedol=None if is_ticker else raw_symbol,
+                    shares=_decimal(row.get("Shares")),
+                    market_value=_decimal(row.get("Market Value")),
+                    weight=_decimal(row.get("Percent")),
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{position}:{raw_symbol or name}",
+                    extra_data={key: value for key, value in row.items() if _clean(value) is not None},
+                )
+            )
+        return parsed
+
+
 class HartfordHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hartford ETF holdings from public full-holdings workbooks."""
 
@@ -33825,6 +33968,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Regan Capital public ETF holdings data may be subject to issuer terms.",
     ),
+    "thornburg": IssuerCsvAdapterConfig(
+        adapter_key="thornburg",
+        source_provider="thornburg",
+        source_access="issuer_product_page_linked_fund_scoped_holdings_xlsx",
+        live_tested_default_route=True,
+        terms_note="Thornburg public ETF holdings workbooks may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -33965,6 +34115,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "intech": IntechHoldingsAdapter,
         "frontier": FrontierHoldingsAdapter,
         "goose_hollow": GooseHollowHoldingsAdapter,
+        "thornburg": ThornburgHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,

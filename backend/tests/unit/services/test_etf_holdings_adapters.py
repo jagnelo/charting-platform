@@ -1340,6 +1340,59 @@ async def test_goose_hollow_adapter_parses_issuer_application_holdings_rows(monk
 
 
 @pytest.mark.asyncio
+async def test_thornburg_adapter_selects_requested_etf_from_shared_holdings_workbook(monkeypatch):
+    adapter = get_holdings_adapter("thornburg")
+    assert adapter is not None
+    product_url = "https://www.thornburg.com/product/etfs/eie/TXUE/"
+    workbook_url = "https://www.thornburg.com/wp-content/uploads/holdings/current.xlsx"
+    workbook = _xlsx_workbook_sheets(
+        [
+            [
+                ["Thornburg Focus Growth Fund"],
+                ["", "As of 2026-07-14"],
+                ["", "Security Name", "Symbol", "Shares", "Market Value", "Percent"],
+                ["", "SIBLING SECURITY", "SIB", "1", "100", "0.1"],
+            ],
+            [
+                ["Thornburg International Equity ETF"],
+                ["", "As of 2026-07-14"],
+                ["", "Security Name", "Symbol", "Shares", "Market Value", "Percent"],
+                ["", "Mitsubishi UFJ Financial Group, Inc.", "6335171", "10", "500", "0.05"],
+                ["", "Cash and Cash Equivalents", "", "2", "20", "0.002"],
+            ],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Thornburg International Equity ETF</h1>TXUE"
+                f'<a href="{workbook_url}">Download Holdings</a>'
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=workbook_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TXUE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, workbook_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].name == "Mitsubishi UFJ Financial Group, Inc."
+    assert result.rows[0].symbol is None
+    assert result.rows[0].sedol == "6335171"
+    assert result.rows[0].weight == Decimal("0.05")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
