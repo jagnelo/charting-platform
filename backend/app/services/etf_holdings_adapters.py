@@ -4553,6 +4553,178 @@ class FrontierHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class GooseHollowHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Goose Hollow's current holdings embedded in its issuer application script."""
+
+    _PRODUCT_URL = "https://www.gham.co/"
+    _HOLDINGS_SCRIPT_URL = "https://www.gham.co/assets/js/etf1_python.js"
+    _FUNDS = {
+        "GHTA": "Goose Hollow Tactical Allocation ETF",
+    }
+    _HOLDINGS_FRAGMENT_RE = re.compile(
+        r"document\.getElementById\([\"']fund_holdings_table[\"']\)"
+        r"\.innerHTML\s*\+=\s*[\"'](?P<fragment>(?:\\.|[^\"'])*)[\"'];",
+        re.I | re.S,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if normalized_symbol in self._FUNDS else Decimal("0.7000"),
+            status="ready",
+            reason=(
+                "Goose Hollow publishes the current GHTA portfolio through its issuer application."
+                if normalized_symbol in self._FUNDS
+                else "Goose Hollow's public ETF application determines the portfolio scope."
+            ),
+            source_url=self._PRODUCT_URL if normalized_symbol in self._FUNDS else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        expected_name = self._FUNDS.get(normalized_symbol)
+        if expected_name is None:
+            raise ValueError(f"No configured Goose Hollow ETF product route matches {normalized_symbol}.")
+        product_page_url = source_url or self._PRODUCT_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            self._validate_product_page(
+                product_response.text,
+                symbol=normalized_symbol,
+                expected_name=expected_name,
+            )
+            script_response = await client.get(
+                self._HOLDINGS_SCRIPT_URL,
+                headers=_holdings_request_headers(accept="application/javascript,text/javascript,*/*"),
+                follow_redirects=True,
+            )
+            script_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_script(script_response.text)
+        if not rows:
+            raise ValueError("Goose Hollow's public application returned no current holdings rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=script_response.text,
+            raw_json={
+                "source_format": "issuer_application_embedded_holdings_rows",
+                "product_page_url": str(product_response.url),
+            },
+            source_url=str(script_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "javascript_embedded_html_rows",
+                "route_resolution": "goose_hollow_issuer_application_holdings_script",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str, expected_name: str) -> None:
+        normalized_html = raw_html.casefold()
+        if symbol.casefold() not in normalized_html or expected_name.casefold() not in normalized_html:
+            raise ValueError("Goose Hollow product page did not match the requested ETF identity.")
+
+    @classmethod
+    def _parse_holdings_script(
+        cls,
+        raw_script: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        match = cls._HOLDINGS_FRAGMENT_RE.search(raw_script)
+        if match is None:
+            return [], None
+        try:
+            fragment = json.loads(f'"{match.group("fragment")}"')
+        except json.JSONDecodeError as exc:
+            raise ValueError("Goose Hollow holdings script contains an invalid HTML fragment.") from exc
+
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for source_index, raw_row in enumerate(
+            re.findall(r"<tr[^>]*>(.*?)</tr>", fragment, re.I | re.S),
+            start=1,
+        ):
+            cells = [
+                _clean(html.unescape(re.sub(r"<[^>]+>", "", cell)))
+                for cell in re.findall(r"<td[^>]*>(.*?)</td>", raw_row, re.I | re.S)
+            ]
+            if len(cells) != 7:
+                continue
+            as_of, name, ticker, cusip, market_value, shares, weight = cells
+            row_date = cls._parse_date(as_of)
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            if not any([name, ticker, cusip, market_value, shares, weight]):
+                continue
+            holding_type = cls._holding_type(name=name, ticker=ticker)
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if row_type == "cash" else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(weight),
+                    shares=_decimal(shares),
+                    market_value=_decimal(market_value),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"GHTA:{source_index}:{cusip or ticker or name}",
+                    extra_data={
+                        "as_of_date": as_of,
+                        "source_name": name,
+                        "source_ticker": ticker,
+                        "source_cusip": cusip,
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _holding_type(*, name: str | None, ticker: str | None) -> str:
+        text = " ".join(part.upper() for part in (name, ticker) if part)
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash"
+        if any(term in text for term in (" OPTION", " FUTURE", " SWAP", " FORWARD")) or re.search(
+            r"\b[CP]\d+(?:\.\d+)?$",
+            text,
+        ):
+            return "derivative"
+        if "ETF" in text or "FUND" in text:
+            return "fund"
+        return "equity"
+
+
 class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch GQG ETF holdings from the issuer's daily FilePoint export."""
 
@@ -32126,6 +32298,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Frontier Asset public daily ETF holdings exports may be subject to issuer terms.",
     ),
+    "goose_hollow": IssuerCsvAdapterConfig(
+        adapter_key="goose_hollow",
+        source_provider="goose_hollow_capital",
+        source_access="issuer_application_current_complete_holdings_rows",
+        product_page_templates=("https://www.gham.co/",),
+        live_tested_default_route=True,
+        terms_note="Goose Hollow Capital's public ETF application holdings may be subject to issuer terms.",
+    ),
     "im_global_partner": IssuerCsvAdapterConfig(
         adapter_key="im_global_partner",
         source_provider="im_global_partner",
@@ -33784,6 +33964,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "western_southern": WesternSouthernHoldingsAdapter,
         "intech": IntechHoldingsAdapter,
         "frontier": FrontierHoldingsAdapter,
+        "goose_hollow": GooseHollowHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,

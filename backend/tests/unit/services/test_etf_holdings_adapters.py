@@ -1290,6 +1290,56 @@ async def test_frontier_adapter_validates_product_page_and_filters_dated_daily_e
 
 
 @pytest.mark.asyncio
+async def test_goose_hollow_adapter_parses_issuer_application_holdings_rows(monkeypatch):
+    adapter = get_holdings_adapter("goose_hollow")
+    assert adapter is not None
+    product_url = "https://www.gham.co/"
+    script_url = "https://www.gham.co/assets/js/etf1_python.js"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<title>GHTA-Goose Hollow Capital</title>"
+                "<h2>Goose Hollow Tactical Allocation ETF</h2>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=(
+                'document.getElementById("fund_holdings_table").innerHTML += '
+                '"<tr><td>2026-07-14</td><td>CASH AND CASH EQUIVALENTS</td>'
+                "<td>None</td><td>None</td><td>1,933,484.81</td><td>1,933,485</td>"
+                "<td>0.047</td></tr><tr><td>2026-07-14</td><td>AGNC INVESTMENT CORP.</td>"
+                "<td>AGNC</td><td>00123Q104</td><td>2,042,619.54</td><td>182,703</td>"
+                "<td>0.050</td></tr><tr><td>2026-07-14</td><td>TLT US 01/21/28 C120</td>"
+                "<td>None</td><td>None</td><td>-50,436.00</td><td>-1,401</td>"
+                '<td>-0.001</td></tr>";'
+            ),
+            content_type="application/javascript",
+            url=script_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GHTA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, script_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].symbol == "AGNC"
+    assert result.rows[1].cusip == "00123Q104"
+    assert result.rows[1].weight == Decimal("0.050")
+    assert result.rows[2].holding_type == "derivative"
+    assert result.rows[2].shares == Decimal("-1401")
+    assert result.legal_metadata["route_resolution"] == (
+        "goose_hollow_issuer_application_holdings_script"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
