@@ -10592,6 +10592,16 @@ Append a short entry after each worker session.
 - Strict count: `345` registered providers, `205` native/live-backed, `140` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
 
+# ETF Holdings Provider Native Route - 2026-07-15T18:45Z
+
+- Promoted `thornburg` through a dedicated `ThornburgHoldingsAdapter` for TPLS, TMB,
+  TXUE, TXUG, THOR, TAOZ, and TFGZ. It verifies the selected official product page,
+  follows its declared current holdings workbook, and selects only the matching named
+  worksheet from the shared file. Numeric foreign identifiers remain SEDOLs rather than
+  being incorrectly exposed as tickers.
+- Validation passed: full adapter suite (`250 passed`), live TXUE issuer route, and Ruff.
+  Strict count: `345` registered providers, `208` native/live-backed, `137` fallback-only.
+
 # ETF Holdings Provider Native Route - 2026-07-15T12:10Z
 
 - Promoted `frontier` through a dedicated `FrontierHoldingsAdapter` for FARX, FCBD, FGSM,

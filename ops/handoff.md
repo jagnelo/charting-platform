@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Thornburg native holdings route - 2026-07-15T18:45Z
+
+- Promoted `thornburg` through an isolated `ThornburgHoldingsAdapter`. It validates the
+  requested ETF product page, follows only its declared current holdings workbook, then
+  selects the matching fund worksheet rather than ingesting sibling portfolios. Foreign
+  identifiers are retained as SEDOLs when the issuer's `Symbol` column is not a ticker.
+- Validation passed: full adapter suite (`250 passed`), Ruff, and opt-in live TXUE route.
+  Strict coverage is now `208/345` native/live-backed and `137` fallback-only; SEC EDGAR
+  remains fallback-only and is not counted as primary provider support.
+
 ## Goose Hollow Capital native holdings route - 2026-07-15T18:35Z
 
 - Promoted `goose_hollow` through an isolated `GooseHollowHoldingsAdapter` for GHTA.

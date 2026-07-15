@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 207 native/live-backed providers out of 345; 138 remain.
+      - Current truthful count: 208 native/live-backed providers out of 345; 137 remain.
+      - >
+        Thornburg is supported through its verified ETF product pages and the dated,
+        fund-scoped worksheet selected from its complete issuer-hosted holdings workbook.
       - >
         Goose Hollow Capital is supported through its own verified ETF application and
         its current complete GHTA holdings payload.
