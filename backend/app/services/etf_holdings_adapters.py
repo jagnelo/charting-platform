@@ -27747,6 +27747,138 @@ class ThornburgHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return parsed
 
 
+class IdxHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read the complete current holdings table from each IDX Shares ETF page."""
+
+    _FUNDS = {
+        "DYFI": "https://idxshares.com/dyfi/",
+        "GLDB": "https://idxshares.com/gldb/",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if product_url else Decimal("0.3500"),
+            # An unknown IDX ticker may still be resolved through the common SEC fallback;
+            # the explicit product-page map only controls the native current-holdings route.
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "IDX Shares publishes a complete current holdings table on each ETF product page."
+                if product_url
+                else f"IDX Shares has no configured native holdings route for {normalized_symbol}; SEC fallback remains available."
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"IDX Shares has no configured native holdings route for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        composition_date, rows = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"IDX Shares product page did not expose holdings for {normalized_symbol}.")
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"idx-{normalized_symbol}-{composition_date or 'unknown'}-{index}"
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "idxshares_product_page_current_holdings_table",
+                "source_format": "html_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[date | None, list[CanonicalHoldingRow]]:
+        normalized = html.unescape(raw_html)
+        table_match = re.search(
+            rf'<table[^>]+class=["\'][^"\']*table-top-holdings[^"\']*["\'][^>]*'
+            rf'data-title=["\']{re.escape(symbol)}["\'][^>]*>(?P<table>.*?)</table>',
+            normalized,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if table_match is None:
+            raise ValueError(f"IDX Shares product page identity did not match requested ETF {symbol}.")
+        table_open = table_match.group(0).split(">", 1)[0]
+        date_match = re.search(r'data-asof=["\'](?P<date>\d{4}-\d{2}-\d{2})["\']', table_open)
+        composition_date = date.fromisoformat(date_match.group("date")) if date_match else None
+        parser = _HTMLTablesParser()
+        parser.feed(table_match.group(0))
+        table = parser.tables[0] if parser.tables else []
+        expected_headers = {"name", "symbol", "shares", "market value", "weightings (%)"}
+        if not table or not expected_headers <= {cell.lower() for cell in table[0]}:
+            raise ValueError(f"IDX Shares product page used an unexpected holdings schema for {symbol}.")
+        header = table[0]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(table[1:], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("Name"))
+            raw_symbol = _clean(raw.get("Symbol"))
+            if not name:
+                continue
+            text = " ".join(value.upper() for value in (name, raw_symbol) if value)
+            is_cash = "CASH" in text or "GOVERNMENT OBLIGATIONS FUND" in text
+            is_future = any(token in text for token in (" FUT", " FUTURE", " COMDTY", " CURNCY"))
+            ticker = cls._tradable_symbol(raw_symbol)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_future else ticker,
+                    name=name,
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    weight=_decimal(raw.get("Weightings (%)")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "future" if is_future else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return composition_date, rows
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        symbol = candidate.upper().split()[0]
+        return symbol if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", symbol) else None
+
+
 class HartfordHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hartford ETF holdings from public full-holdings workbooks."""
 
@@ -33975,6 +34107,13 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Thornburg public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "idx": IssuerCsvAdapterConfig(
+        adapter_key="idx",
+        source_provider="idx",
+        source_access="issuer_product_page_complete_current_holdings_table",
+        live_tested_default_route=True,
+        terms_note="IDX Shares public ETF holdings tables may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -34116,6 +34255,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "frontier": FrontierHoldingsAdapter,
         "goose_hollow": GooseHollowHoldingsAdapter,
         "thornburg": ThornburgHoldingsAdapter,
+        "idx": IdxHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,

@@ -110,6 +110,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "frontier",
     "goose_hollow",
     "thornburg",
+    "idx",
     "oneascent",
     "first_eagle",
     "fm_investments",
@@ -500,6 +501,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("frontier", "FARX", None, {}, 10),
         ("goose_hollow", "GHTA", None, {}, 10),
         ("thornburg", "TXUE", None, {}, 10),
+        ("idx", "GLDB", None, {}, 5),
         (
             "anfield",
             "AEMS",

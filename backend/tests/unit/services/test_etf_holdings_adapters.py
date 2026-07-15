@@ -1393,6 +1393,44 @@ async def test_thornburg_adapter_selects_requested_etf_from_shared_holdings_work
 
 
 @pytest.mark.asyncio
+async def test_idx_adapter_parses_requested_product_page_current_holdings(monkeypatch):
+    adapter = get_holdings_adapter("idx")
+    assert adapter is not None
+    product_url = "https://idxshares.com/gldb/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <h1>GLDB</h1>
+            <table class="table-top-holdings responsive" data-title="GLDB" data-asof="2026-07-15">
+              <thead><tr><th>Name</th><th>Symbol</th><th>Shares</th><th>Market Value</th><th>Weightings (%)</th></tr></thead>
+              <tbody>
+                <tr><td>First American Government Obligations Fund</td><td>FGXXX</td><td>28,155,183.93</td><td>$28,155,183.93</td><td>82.49%</td></tr>
+                <tr><td>GOLD 100 OZ FUTR Aug26</td><td>GCQ6 Comdty</td><td>46</td><td>$18,720,620.00</td><td>54.85%</td></tr>
+                <tr><td>Cash &amp; Other</td><td>Cash&amp;Other</td><td>5,575,956.88</td><td>$5,575,956.88</td><td>16.34%</td></tr>
+              </tbody>
+            </table>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GLDB")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].weight == Decimal("0.8249")
+    assert result.rows[1].holding_type == "future"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
