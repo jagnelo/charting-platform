@@ -3836,6 +3836,58 @@ async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_truemark_adapter_verifies_product_page_before_parsing_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("truemark")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://docs.google.com/spreadsheets/export"
+        "?id=1YsAIlsy14uHV5_PKLzkXDprxNyweaO-eH_Vtmvu2iIA&exportFormat=csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><body><h1>LRNZ | TrueShares Technology, AI & Deep Learning ETF</h1>"
+                "<p>TrueMark Investments, LLC is the investment advisor.</p>"
+                f'<a href="{holdings_url}">Download Holdings CSV</a></body></html>'
+            ),
+            content_type="text/html",
+            url="https://www.true-shares.com/etf/lrnz/",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "7/14/2026,LRNZ,NVDA,67066G104,NVIDIA Corp,7615,203.53,1549880.95,3.89,39804440",
+                    "7/14/2026,LRNZ,SALXX,857492656,STATE STREET INST U.S. GOVERNMENT MMKT ADMN CLASS,354482.07,100,354482.07,0.89,39804440",
+                    "7/14/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1,20000",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LRNZ", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.true-shares.com/etf/lrnz/"
+    assert FakeAsyncClient.requested[1][0] == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0389")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "truemark"
+    assert result.legal_metadata["route_resolution"] == (
+        "truemark_product_page_verified_google_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_river_north_adapter_validates_redirect_to_trueshares_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("river_north")
     assert adapter is not None

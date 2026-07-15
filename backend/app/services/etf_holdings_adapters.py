@@ -17913,6 +17913,97 @@ class TrueSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class TrueMarkHoldingsAdapter(TrueSharesHoldingsAdapter):
+    """Fetch TrueMark ETF holdings through its own TrueShares product pages.
+
+    TrueMark operates the TrueShares ETF range, but it remains a separately
+    registered issuer identity in the holdings registry.  Its adapter therefore
+    verifies the requested TrueMark product page before consuming the complete
+    Google Sheets CSV explicitly linked from that page.
+    """
+
+    PRODUCT_PAGE_URL = "https://www.true-shares.com/etf/{symbol_lower}/"
+
+    def resolve_product_page_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().lower()
+        return self.PRODUCT_PAGE_URL.format(symbol_lower=normalized_symbol) if normalized_symbol else None
+
+    async def _discover_source_url_from_product_page(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.resolve_product_page_url(symbol=symbol)
+        if not product_page_url:
+            return None
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        self._validate_product_page(response.text, symbol=normalized_symbol)
+        return TappAlphaHoldingsAdapter._discover_google_csv_export(
+            response.text,
+            base_url=str(response.url),
+        )
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str) -> None:
+        page_text = " ".join(html.unescape(raw_html).upper().split())
+        if not re.search(rf"\b{re.escape(symbol)}\b", page_text):
+            raise ValueError(
+                f"TrueMark product page identity did not match requested ETF {symbol}."
+            )
+        if "TRUEMARK INVESTMENTS" not in page_text and "TRUESHARES" not in page_text:
+            raise ValueError(
+                f"TrueMark product page did not identify its issuer for {symbol}."
+            )
+
+    @staticmethod
+    def _classify_holding(*, symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if "MMKT" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        return TrueSharesHoldingsAdapter._classify_holding(symbol=symbol, name=name)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        # Always discover from the verified TrueMark page.  A persisted source URL
+        # must not bypass page identity validation after a product-site change.
+        del source_url
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=None,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": "truemark_product_page_verified_google_holdings_csv",
+            "snapshot_provenance": "truemark_issuer_native_google_sheet_csv",
+        }
+        return result
+
+
 class RiverNorthHoldingsAdapter(TrueSharesHoldingsAdapter):
     """Fetch RiverNorth ETF holdings through its verified TrueShares product redirect."""
 
@@ -31990,6 +32081,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="TrueShares public ETF product pages and Google Sheets holdings CSV exports may be subject to issuer terms.",
     ),
+    "truemark": IssuerCsvAdapterConfig(
+        adapter_key="truemark",
+        source_provider="truemark",
+        source_access="issuer_public_product_page_google_holdings_csv",
+        product_page_templates=(
+            "https://www.true-shares.com/etf/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "TrueMark's public TrueShares ETF product pages and linked Google Sheets "
+            "holdings CSV exports may be subject to issuer terms."
+        ),
+    ),
     "river_north": IssuerCsvAdapterConfig(
         adapter_key="river_north",
         source_provider="river_north",
@@ -32584,6 +32688,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "t_rowe_price": TRowePriceHoldingsAdapter,
         "tuttle": TuttleHoldingsAdapter,
         "true_shares": TrueSharesHoldingsAdapter,
+        "truemark": TrueMarkHoldingsAdapter,
         "river_north": RiverNorthHoldingsAdapter,
         "tema": TemaHoldingsAdapter,
         "teucrium": TeucriumHoldingsAdapter,

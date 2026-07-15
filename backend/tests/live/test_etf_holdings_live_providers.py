@@ -187,6 +187,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "texas_capital",
     "tuttle",
     "true_shares",
+    "truemark",
     "t_rowe_price",
     "timothy_plan",
     "tema",
@@ -1197,6 +1198,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             5,
+        ),
+        (
+            "truemark",
+            "LRNZ",
+            None,
+            {},
+            20,
         ),
         (
             "river_north",
