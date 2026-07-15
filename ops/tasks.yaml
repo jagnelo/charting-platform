@@ -27,6 +27,10 @@ tasks:
         tests. Do not treat a provider as native/live-backed based solely on a
         generated adapter registration or SEC fallback.
       - >
+        Global X's prior inherited generic discovery path has also been replaced
+        with a fund-page-scoped native resolver and CSV parser. Its related
+        Mirae Asset identity uses that same concrete issuer platform route.
+      - >
         Liquid Strategies is supported through its official fund-scoped ETF pages and
         complete current holdings tables for OVL, OVS, OVF, OVLH, OVB, OVT, and OVM.
       - >

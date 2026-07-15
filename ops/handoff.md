@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Global X native-parser integrity repair - 2026-07-15T21:00Z
+
+- Replaced the counted-but-generic `GlobalXHoldingsAdapter` path with an
+  isolated Global X implementation. It resolves only the requested issuer page,
+  extracts its exact dated `assets.globalxetfs.com` complete-holdings CSV,
+  validates the CSV schema, and preserves SEDOL/quantity/value/weight/date data
+  while classifying derivative and cash rows without false ticker symbols.
+- Mirae Asset remains a distinct adapter identity but now delegates to this
+  concrete Global X implementation because its US ETF range is published on the
+  same Global X issuer platform.
+- Validation passed: Ruff; full adapter suite (`262 passed`); opt-in live QYLD
+  routes for Global X and Mirae Asset; and the concrete-live-route invariant
+  (`3 passed`). The provider count remains `216/345` native/live-backed and
+  `129` fallback-only: this corrects an existing counted provider.
+- Continue the unresolved issuer queue with a new fallback-only provider whose
+  complete first-party artifact can be accessed and tested.
+
 ## VanEck native-parser integrity repair - 2026-07-15T20:44Z
 
 - Replaced the counted-but-empty `VanEckHoldingsAdapter` subclass with an

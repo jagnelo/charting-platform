@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integrity Repair - Global X - 2026-07-15T21:00Z
+
+- Replaced Global X's inherited generic discovery path with an issuer-specific
+  resolver/parser for the requested fund page and its exact dated complete
+  holdings CSV. The parser retains SEDOL, quantity, value, weight, and date and
+  correctly keeps option and cash rows non-tradable.
+- Validation passed: Ruff; all `262` adapter unit tests with `--no-cov`; live
+  QYLD retrieval for Global X and Mirae Asset; and the concrete-live-route
+  invariant (`3 passed`). Coverage remains `216/345` native/live-backed and
+  `129` fallback-only because this repaired an already-counted provider.
+
 # ETF Holdings Provider Integrity Repair - VanEck - 2026-07-15T20:44Z
 
 - Replaced the empty `VanEckHoldingsAdapter` with a dedicated parser for the
