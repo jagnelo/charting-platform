@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integrity Repair - SPDR - 2026-07-16T01:00Z
+
+- Replaced the empty `SpdrHoldingsAdapter` with a dedicated parser for State
+  Street's fund-scoped daily holdings workbooks. It identity-checks the workbook
+  ticker and preserves identifiers, quantities, weights, date, and non-tradable
+  option/cash semantics.
+- Validation passed: Ruff; all `259` adapter unit tests with `--no-cov`; the live
+  `SPY` route; and the concrete-live-route invariant (`2 passed`). Coverage remains
+  `216/345` native/live-backed and `129` fallback-only because this corrected an
+  already-counted provider.
+
 # ETF Holdings Provider Integration - Liquid Strategies - 2026-07-16T00:30Z
 
 - Promoted `liquid_strategies` through an isolated `LiquidStrategiesHoldingsAdapter`

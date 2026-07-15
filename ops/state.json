@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-16T00:30:00Z",
-    "last_commit": "8f3b3f9 feat(etf-holdings): add Liquid Strategies native route",
+    "last_handoff_at": "2026-07-16T01:00:00Z",
+    "last_commit": "d32eba3 fix(etf-holdings): isolate SPDR holdings parser",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-16 Ruff check for the Liquid Strategies adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 258 passed with --no-cov) and opt-in live Liquid Strategies OVL route. The live manifest now proves all 216 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-16 Ruff check for the SPDR adapter and static fixture)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 259 passed with --no-cov) and opt-in live SPDR SPY route. The live manifest now proves all 216 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-16T01:00Z SPDR integrity repair: replaced the empty SpdrHoldingsAdapter subclass with a dedicated State Street daily-workbook parser that identity-checks the fund ticker, requires the explicit SPDR schema, and classifies encoded option contracts/cash without false tradable symbols. Ruff, the full 259-test adapter suite, and the opt-in live SPY route plus strict manifest invariant passed. Strict state remains 345 registered, 216 native/live-backed, and 129 fallback-only; this was an existing-provider correction.",
         "2026-07-16T00:30Z Liquid Strategies native route: LiquidStrategiesHoldingsAdapter verifies the exact requested ticker on the official OVL/OVS/OVF/OVLH/OVB/OVT/OVM fund page before parsing its complete current holdings table. It preserves CUSIP/ticker/shares/weight/date data and classifies cash and option rows without false tradable symbols. Ruff, the full 258-test adapter suite, and the opt-in live OVL route plus strict manifest invariant passed. Strict state is 345 registered, 216 native/live-backed, and 129 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T00:00Z Fortuna native route: FortunaHoldingsAdapter verifies the official HBTC product page before parsing its complete current holdings table. It filters account-scoped rows, preserves shares/value/weight/date data, and classifies option contracts and cash without false tradable symbols. Ruff, the full 257-test adapter suite, and the opt-in live HBTC route plus strict manifest invariant passed. Strict state is 345 registered, 215 native/live-backed, and 130 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T23:30Z IronHorse native route: IronHorseHoldingsAdapter verifies Conductor ETFs' official CGV product page before following only its declared complete holdings CSV. It validates the fund identity, preserves CUSIP/shares/value/weight/date data, normalizes explicitly US-listed tickers only, and classifies currency rows as non-tradable cash. Ruff, the full 256-test adapter suite, and the opt-in live CGV route plus strict manifest invariant passed. Strict state is 345 registered, 214 native/live-backed, and 131 fallback-only; SEC EDGAR remains fallback-only.",

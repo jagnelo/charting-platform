@@ -1,5 +1,20 @@
 # Active Handoff
 
+## SPDR native-parser integrity repair - 2026-07-16T01:00Z
+
+- Replaced the counted-but-empty `SpdrHoldingsAdapter` subclass with an isolated
+  parser for State Street's fund-scoped daily XLSX route. It now verifies the
+  workbook ticker, requires SPDR's explicit schema, retains CUSIP/SEDOL/shares/
+  weight/date data, and classifies encoded option contracts and cash without
+  exposing them as tradable tickers.
+- Validation passed: Ruff; the full adapter suite (`259 passed`); opt-in live
+  `SPY` route; and the concrete-live-route invariant (`2 passed`). The provider
+  count remains `216/345` native/live-backed and `129` fallback-only: this is a
+  correction of an existing counted provider, not a promotion.
+- Continue auditing other counted empty subclasses (`global_x`, `vaneck`,
+  `wisdomtree`, and `yieldmax`) before relying on the aggregate count as evidence
+  that every provider has a non-generic implementation.
+
 ## Liquid Strategies native holdings route - 2026-07-16T00:30Z
 
 - Promoted `liquid_strategies` through an isolated `LiquidStrategiesHoldingsAdapter`
