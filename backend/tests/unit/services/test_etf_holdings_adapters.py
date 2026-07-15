@@ -1431,6 +1431,47 @@ async def test_idx_adapter_parses_requested_product_page_current_holdings(monkey
 
 
 @pytest.mark.asyncio
+async def test_formidable_adapter_parses_only_requested_fund_holdings(monkeypatch):
+    adapter = get_holdings_adapter("formidable")
+    assert adapter is not None
+    product_url = "https://formidablefunds.com/forh/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <table><thead><tr><th>As of Date</th><th>NAV($)</th></tr></thead>
+              <tbody><tr><td>07/14/2026</td><td>24.1748</td></tr></tbody></table>
+            <table><thead><tr>
+              <th>ETF Ticker</th><th>Description</th><th>Ticker</th><th>Weight</th>
+              <th>Market Value</th><th>FIGI</th><th>Shares Held</th>
+            </tr></thead><tbody>
+              <tr><td>FORH</td><td>Acacia Research Corp</td><td>ACTG</td><td>9.58%</td><td>1,853,636.01</td><td>BBG000KF9J02</td><td>424,173.00</td></tr>
+              <tr><td>FORH</td><td>Cash and Cash Equivalents</td><td>CASH</td><td>1.00%</td><td>193,519.42</td><td></td><td>193,519.42</td></tr>
+              <tr><td>FORH</td><td>Adobe Systems Call Option</td><td></td><td>-0.01%</td><td>-40.00</td><td></td><td>-8.00</td></tr>
+              <tr><td>KONG</td><td>Sibling Fund Position</td><td>SIB</td><td>5.00%</td><td>10</td><td>BBG000000000</td><td>1</td></tr>
+            </tbody></table>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FORH")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ACTG"
+    assert result.rows[0].weight == Decimal("0.0958")
+    assert result.rows[0].extra_data["FIGI"] == "BBG000KF9J02"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].holding_type == "option"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
