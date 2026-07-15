@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integrity Repair - VanEck - 2026-07-15T20:44Z
+
+- Replaced the empty `VanEckHoldingsAdapter` with a dedicated parser for the
+  issuer's US disclosure-cookie-protected, fund-scoped daily workbook. It
+  validates the workbook schema and preserves FIGI, quantity, value, weight,
+  date, and non-tradable row semantics without inventing ticker symbols.
+- Validation passed: Ruff; all `261` adapter unit tests with `--no-cov`; the
+  live `SMH` route; and the concrete-live-route invariant (`2 passed`). Coverage
+  remains `216/345` native/live-backed and `129` fallback-only because this
+  repaired an already-counted provider.
+
 # ETF Holdings Provider Integrity Repair - YieldMax - 2026-07-16T01:20Z
 
 - Replaced the empty `YieldMaxHoldingsAdapter` with a dedicated parser for its

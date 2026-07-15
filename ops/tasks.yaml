@@ -22,6 +22,11 @@ tasks:
     notes:
       - Current truthful count: 216 native/live-backed providers out of 345; 129 remain.
       - >
+        Counted empty adapters for SPDR, YieldMax, and VanEck have now been
+        replaced with isolated schema-specific parser implementations and live
+        tests. Do not treat a provider as native/live-backed based solely on a
+        generated adapter registration or SEC fallback.
+      - >
         Liquid Strategies is supported through its official fund-scoped ETF pages and
         complete current holdings tables for OVL, OVS, OVF, OVLH, OVB, OVT, and OVM.
       - >

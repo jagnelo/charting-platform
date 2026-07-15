@@ -1,5 +1,19 @@
 # Active Handoff
 
+## VanEck native-parser integrity repair - 2026-07-15T20:44Z
+
+- Replaced the counted-but-empty `VanEckHoldingsAdapter` subclass with an
+  isolated parser for VanEck's fund-scoped US daily holdings workbook. The
+  adapter sends only VanEck's required public disclosure context, verifies the
+  workbook schema, retains FIGI/quantity/value/weight/date data, and keeps
+  cash, fixed-income, derivative, and fund rows non-tradable where appropriate.
+- Validation passed: Ruff; the full adapter suite (`261 passed`); opt-in live
+  `SMH` route; and the concrete-live-route invariant (`2 passed`). The provider
+  count remains `216/345` native/live-backed and `129` fallback-only: this is a
+  correction of an existing counted provider, not a promotion.
+- Counted empty subclasses are now cleared. Continue with a new uncounted
+  provider whose official complete issuer artifact can be reached and tested.
+
 ## YieldMax native-parser integrity repair - 2026-07-16T01:20Z
 
 - Replaced the counted-but-empty `YieldMaxHoldingsAdapter` subclass with an

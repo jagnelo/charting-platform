@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-16T01:20:00Z",
-    "last_commit": "cd7d35f fix(etf-holdings): isolate YieldMax holdings parser",
+    "last_handoff_at": "2026-07-15T20:44:00Z",
+    "last_commit": "8d7b9a7 fix(etf-holdings): isolate VanEck holdings parser",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-16 Ruff check for the YieldMax adapter and static fixture)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 260 passed with --no-cov) and opt-in live YieldMax TSLY route. The live manifest now proves all 216 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 Ruff check for the VanEck adapter and static fixture)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 261 passed with --no-cov) and opt-in live VanEck SMH route. The live manifest now proves all 216 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T20:44Z VanEck integrity repair: replaced the empty VanEckHoldingsAdapter subclass with a dedicated US disclosure-cookie-scoped daily-workbook parser that validates the schema, preserves FIGI/quantity/value/weight/date data, and classifies cash, fixed-income, derivatives, and funds without false tradable tickers. Ruff, the full 261-test adapter suite, and the opt-in live SMH route plus strict manifest invariant passed. Strict state remains 345 registered, 216 native/live-backed, and 129 fallback-only; this was an existing-provider correction.",
         "2026-07-16T01:20Z YieldMax integrity repair: replaced the empty YieldMaxHoldingsAdapter subclass with a dedicated account-scoped daily CSV parser that preserves derivative, Treasury, cash, and tradable-security semantics without false tickers. Ruff, the full 260-test adapter suite, and the opt-in live TSLY route plus strict manifest invariant passed. Strict state remains 345 registered, 216 native/live-backed, and 129 fallback-only; this was an existing-provider correction.",
         "2026-07-16T01:00Z SPDR integrity repair: replaced the empty SpdrHoldingsAdapter subclass with a dedicated State Street daily-workbook parser that identity-checks the fund ticker, requires the explicit SPDR schema, and classifies encoded option contracts/cash without false tradable symbols. Ruff, the full 259-test adapter suite, and the opt-in live SPY route plus strict manifest invariant passed. Strict state remains 345 registered, 216 native/live-backed, and 129 fallback-only; this was an existing-provider correction.",
         "2026-07-16T00:30Z Liquid Strategies native route: LiquidStrategiesHoldingsAdapter verifies the exact requested ticker on the official OVL/OVS/OVF/OVLH/OVB/OVT/OVM fund page before parsing its complete current holdings table. It preserves CUSIP/ticker/shares/weight/date data and classifies cash and option rows without false tradable symbols. Ruff, the full 258-test adapter suite, and the opt-in live OVL route plus strict manifest invariant passed. Strict state is 345 registered, 216 native/live-backed, and 129 fallback-only; SEC EDGAR remains fallback-only.",
