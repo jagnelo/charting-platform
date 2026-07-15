@@ -1,5 +1,19 @@
 # Active Handoff
 
+## TrueMark native holdings route - 2026-07-15T01:12Z
+
+- Promoted `truemark` through an isolated `TrueMarkHoldingsAdapter` for `LRNZ`.
+  It confirms the TrueMark/TrueShares product-page identity before consuming only
+  the complete, dated Google Sheets CSV explicitly linked from that page. The
+  adapter filters account-scoped rows and classifies `MMKT` money-market entries
+  as cash rather than false tradable instruments.
+- Static coverage verifies product identity, CSV discovery, sibling-account exclusion,
+  CUSIP/weight/date preservation, and cash classification. Validation passed:
+  targeted Ruff, full adapter unit suite (`241 passed`), plus the live `LRNZ` route
+  and strict provider manifest checks (`3 passed`).
+- Strict coverage is now `199/345` native/live-backed, leaving `146` fallback-only.
+  SEC EDGAR remains fallback-only and is not counted as primary support.
+
 ## Kingsbarn native holdings route - 2026-07-15T00:48Z
 
 - Promoted `kingsbarn` through an isolated `KingsbarnHoldingsAdapter` for `DVDN`.

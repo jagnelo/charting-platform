@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T00:48:00Z",
-    "last_commit": "3a27390",
+    "last_handoff_at": "2026-07-15T01:12:00Z",
+    "last_commit": null,
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Kingsbarn adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 240 passed with --no-cov) and opt-in live Kingsbarn DVDN route plus manifest checks (3 selected passed). The live manifest now proves all 198 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 targeted Ruff check for the TrueMark adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 241 passed with --no-cov) and opt-in live TrueMark LRNZ route plus manifest checks (3 selected passed). The live manifest now proves all 199 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T01:12Z TrueMark native route: TrueMarkHoldingsAdapter verifies the LRNZ TrueMark/TrueShares product page before consuming its explicitly linked complete Google Sheets CSV. It filters account-scoped rows, preserves identifiers, values, percentage weights and source date, and classifies MMKT money-market rows as cash. Targeted Ruff, the full 241-test adapter suite, and live LRNZ plus manifest checks passed. Strict state is 345 registered, 199 native/live-backed, and 146 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T00:48Z Kingsbarn native route: KingsbarnHoldingsAdapter verifies the administrator-hosted DVDN product identity before parsing its public complete constituents table. It preserves ticker, CUSIP, shares, values, percentage weights, source date, and cash classification. Targeted Ruff, the full 240-test adapter suite, and live DVDN plus manifest checks passed. Strict state is 345 registered, 198 native/live-backed, and 147 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T00:30Z Quantify Funds native route: QuantifyChaosHoldingsAdapter validates BTGD's public issuer page before consuming the linked daily holdings CSV. It filters account-scoped rows and preserves futures, funds, cash, CUSIPs, shares, values, weights, and source dates. A scoped requests fallback handles the issuer's httpx-only HTTP 403 without generalizing transport behavior. Targeted Ruff, the full 239-test adapter suite, and live BTGD plus manifest checks passed. Strict state is 345 registered, 197 native/live-backed, and 148 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T00:00Z PeakShares native route: PeakSharesHoldingsAdapter validates PSTR/PRMR issuer product pages and their declared fund IDs before calling the issuer application's exact fund-scoped holdings endpoint. It filters sibling payload rows, preserves CUSIPs, values, weights, options, cash, and as-of dates. Targeted Ruff, full 238-test adapter suite, and live PSTR plus manifest checks passed. Strict state is 345 registered, 196 native/live-backed, and 149 fallback-only; SEC EDGAR remains fallback-only.",

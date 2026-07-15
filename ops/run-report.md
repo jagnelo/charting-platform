@@ -10501,3 +10501,14 @@ Append a short entry after each worker session.
   strict provider-matrix and concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `197` native/live-backed, `148` fallback-only. SEC
   EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Integration - 2026-07-15T01:12Z
+
+- Promoted `truemark` through a dedicated `TrueMarkHoldingsAdapter` for LRNZ. It
+  validates the requested TrueMark/TrueShares product page before consuming only
+  its explicitly linked current Google Sheets CSV, filters by the requested account,
+  and preserves CUSIPs, values, percent weights, shares, source date, and cash rows.
+  `MMKT` money-market rows are explicitly non-tradable cash.
+- Validation passed: targeted Ruff; full adapter unit suite (`241 passed`); live LRNZ;
+  strict provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `199` native/live-backed, `146` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.
