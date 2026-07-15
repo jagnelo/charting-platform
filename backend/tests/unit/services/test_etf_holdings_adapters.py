@@ -1122,6 +1122,62 @@ async def test_western_southern_adapter_parses_touchstone_full_holdings_payload(
 
 
 @pytest.mark.asyncio
+async def test_intech_adapter_resolves_current_fund_scoped_daily_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("intech")
+    assert adapter is not None
+    product_url = "https://www.intechetfs.com/intech-etfs/"
+    document_url = (
+        "https://www.intechetfs.com/wp-content/uploads/2026/07/"
+        "IntechETFs_LGDX-Holdings_07132026_100017.pdf"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<div data-ep-wrapper-link="{&quot;url&quot;:&quot;/wp-content/uploads/2026/07/'
+                'IntechETFs_LGDX-Holdings_07132026_100017.pdf&quot;}"></div>'
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            content=b"%PDF-placeholder",
+            content_type="application/pdf",
+            url=document_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        type(adapter),
+        "_extract_pdf_text",
+        staticmethod(
+            lambda _raw: "\n".join(
+                [
+                    "Date Account StockTicker CUSIP SecurityName Shares Price MarketValue Weightings NetAssets SharesOutstanding CreationUnits MoneyMarketFlag",
+                    "Tue Jul 14 2026 LGDX AAPL 037833100 Apple Inc 25,607 317.31 8,125,357.17 0.0540 151,684,108.8 6,051,944 605.19 N",
+                    "Tue Jul 14 2026 LGDX FGXXX 31846V336 First American Government Obligations Fund 12/01/2031 321,738 100.00 321,738.23 0.0021 151,684,108.8 6,051,944 605.19 Y",
+                    "Tue Jul 14 2026 SMDX AAPL 037833100 Apple Inc 1 1 1 0.1 1 1 1 N",
+                ]
+            )
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="LGDX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, document_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].shares == Decimal("25607")
+    assert result.rows[0].market_value == Decimal("8125357.17")
+    assert result.rows[0].weight == Decimal("0.0540")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_current_daily_holdings_pdf"
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

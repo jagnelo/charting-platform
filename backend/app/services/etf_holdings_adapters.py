@@ -4183,6 +4183,176 @@ class WesternSouthernHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class IntechHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Intech's current fund-scoped daily holdings PDF from its ETF page."""
+
+    PRODUCT_PAGE_URL = "https://www.intechetfs.com/intech-etfs/"
+    _FUND_NAMES = {
+        "LGDX": "Intech S&P Large Cap Diversified Alpha ETF",
+        "SMDX": "Intech S&P Small-Mid Cap Diversified Alpha ETF",
+    }
+    _DAILY_PDF_RE = re.compile(
+        r'data-ep-wrapper-link="\{&quot;url&quot;:&quot;'
+        r'(?P<url>[^&"]*IntechETFs_(?P<symbol>LGDX|SMDX)-Holdings_[^&"]+\.pdf)'
+        r'&quot;',
+        re.IGNORECASE,
+    )
+    _PDF_ROW_RE = re.compile(
+        r"^(?P<weekday>Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+"
+        r"(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+"
+        r"(?P<day>\d{1,2})\s+(?P<year>\d{4})\s+"
+        r"(?P<account>[A-Z0-9.-]+)\s+(?P<ticker>\S+)\s+(?P<cusip>\S+)\s+"
+        r"(?P<name>.*?)\s+(?P<shares>-?[\d,]+(?:\.\d+)?)\s+"
+        r"(?P<price>-?[\d,]+(?:\.\d+)?)\s+(?P<market_value>-?[\d,]+(?:\.\d+)?)\s+"
+        r"(?P<weight>-?[\d,]+(?:\.\d+)?)\s+(?P<net_assets>-?[\d,]+(?:\.\d+)?)\s+"
+        r"(?P<shares_outstanding>-?[\d,]+(?:\.\d+)?)\s+"
+        r"(?P<creation_units>-?[\d,]+(?:\.\d+)?)\s+(?P<money_market>[YN])$"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund_name = self._FUND_NAMES.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if fund_name else Decimal("0.7000"),
+            status="ready",
+            reason=(
+                "Intech publishes complete current daily holdings PDFs on its issuer-owned ETF page."
+                if fund_name
+                else "Intech publishes ETF holdings; the exact report is resolved from its ETF catalogue."
+            ),
+            source_url=self.PRODUCT_PAGE_URL,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self._FUND_NAMES:
+            raise ValueError(f"No configured Intech ETF product route matches {normalized_symbol}.")
+        product_page_url = source_url or self.PRODUCT_PAGE_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            document_url = self._extract_daily_holdings_pdf_url(
+                product_response.text,
+                symbol=normalized_symbol,
+            )
+            if not document_url:
+                raise ValueError(
+                    f"Intech ETF page did not expose a current daily holdings PDF for {normalized_symbol}."
+                )
+            document_response = await client.get(
+                urljoin(str(product_response.url), document_url),
+                headers=_holdings_request_headers(accept="application/pdf,*/*"),
+                follow_redirects=True,
+            )
+        document_response.raise_for_status()
+        raw_text = self._extract_pdf_text(document_response.content)
+        rows, composition_date = self._parse_daily_holdings_pdf(raw_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Intech daily holdings PDF returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_text,
+            raw_json={
+                "source_format": "issuer_daily_holdings_pdf",
+                "product_page_url": str(product_response.url),
+            },
+            source_url=str(document_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "issuer_product_page_current_daily_holdings_pdf",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _extract_daily_holdings_pdf_url(cls, raw_html: str, *, symbol: str) -> str | None:
+        for match in cls._DAILY_PDF_RE.finditer(raw_html):
+            if match.group("symbol").upper() != symbol:
+                continue
+            return html.unescape(match.group("url")).replace("\\/", "/")
+        return None
+
+    @staticmethod
+    def _extract_pdf_text(raw_pdf: bytes) -> str:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        return "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(raw_pdf)).pages)
+
+    @classmethod
+    def _parse_daily_holdings_pdf(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for line in (line.strip() for line in raw_text.splitlines()):
+            match = cls._PDF_ROW_RE.match(line)
+            if not match or match.group("account").upper() != symbol:
+                continue
+            try:
+                row_date = datetime.strptime(
+                    " ".join(
+                        (match.group("month"), match.group("day"), match.group("year"))
+                    ),
+                    "%b %d %Y",
+                ).date()
+            except ValueError:
+                row_date = None
+            if composition_date is None:
+                composition_date = row_date
+            is_cash = match.group("money_market").upper() == "Y"
+            ticker = _clean(match.group("ticker"))
+            cusip = _clean(match.group("cusip"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=_clean(match.group("name")),
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(match.group("weight")),
+                    shares=_decimal(match.group("shares")),
+                    market_value=_decimal(match.group("market_value")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"{symbol}:{len(rows) + 1}:{cusip or ticker or match.group('name')}"
+                    ),
+                    extra_data={
+                        "source": "intech_current_daily_holdings_pdf",
+                        "security_price": match.group("price"),
+                        "net_assets": match.group("net_assets"),
+                        "shares_outstanding": match.group("shares_outstanding"),
+                        "creation_units": match.group("creation_units"),
+                        "money_market_flag": match.group("money_market"),
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch GQG ETF holdings from the issuer's daily FilePoint export."""
 
@@ -31548,6 +31718,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Touchstone public ETF product-page holdings data may be subject to issuer terms.",
     ),
+    "intech": IssuerCsvAdapterConfig(
+        adapter_key="intech",
+        source_provider="intech_etfs",
+        source_access="issuer_product_page_current_daily_holdings_pdf",
+        product_page_templates=("https://www.intechetfs.com/intech-etfs/",),
+        live_tested_default_route=True,
+        terms_note="Intech public ETF product pages and daily holdings PDFs may be subject to issuer terms.",
+    ),
     "kingsbarn": IssuerCsvAdapterConfig(
         adapter_key="kingsbarn",
         source_provider="kingsbarn",
@@ -33193,6 +33371,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "groupe_bpce": GroupeBpceNatixisHoldingsAdapter,
         "natixis": NatixisInvestmentManagersHoldingsAdapter,
         "western_southern": WesternSouthernHoldingsAdapter,
+        "intech": IntechHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
