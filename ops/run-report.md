@@ -10635,3 +10635,13 @@ Append a short entry after each worker session.
   provider matrix; and concrete-live-route invariant (`3 passed`). Strict count: `345`
   registered providers, `209` native/live-backed, `136` fallback-only. SEC EDGAR remains
   fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Native Route - 2026-07-15T21:00Z
+
+- Promoted `formidable` through a dedicated `FormidableHoldingsAdapter` for `FORH` and
+  `KONG`. It validates the issuer's complete current table schema, filters rows by the
+  requested fund ticker, retains FIGI/shares/value/weight/as-of metadata, and classifies
+  cash and options without false tradable symbols.
+- Validation passed: Ruff; full adapter suite (`252 passed`); opt-in live `FORH` route;
+  and the concrete-live-route invariant (`2 passed`). Strict count: `345` registered
+  providers, `210` native/live-backed, `135` fallback-only. SEC EDGAR remains fallback-only.

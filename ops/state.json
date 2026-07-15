@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T20:15:00Z",
-    "last_commit": "pending: feat(etf-holdings): add IDX Shares native route",
+    "last_handoff_at": "2026-07-15T21:00:00Z",
+    "last_commit": "9d46a46 feat(etf-holdings): add Formidable native route",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-15 Ruff check for the IDX Shares adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 251 passed with --no-cov) and opt-in live IDX Shares GLDB route. The live manifest now proves all 209 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 Ruff check for the Formidable adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 252 passed with --no-cov) and opt-in live Formidable FORH route. The live manifest now proves all 210 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T21:00Z Formidable native route: FormidableHoldingsAdapter verifies FORH and KONG's issuer-owned current holdings tables, filters every shared page table by the requested ETF Ticker, and retains FIGI, shares, values, decimal weights, and source dates while classifying cash and options without false tradable symbols. Ruff, the full 252-test adapter suite, and the opt-in live FORH route plus strict manifest invariant passed. Strict state is 345 registered, 210 native/live-backed, and 135 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T20:15Z IDX Shares native route: IdxHoldingsAdapter verifies DYFI and GLDB's fund-scoped current holdings tables on the issuer's public product pages. It retains shares, market values, decimal weights and source dates while classifying cash and futures without false tradable tickers. Full 251-test adapter suite, Ruff, and live GLDB route plus strict manifest checks passed. Strict state is 345 registered, 209 native/live-backed, and 136 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T18:45Z Thornburg native route: ThornburgHoldingsAdapter validates each configured ETF page, requests only its declared issuer workbook, and selects the matching named worksheet. It preserves shares, values, weights, dates, cash rows, tickers, and foreign SEDOL identifiers without sibling-fund leakage. Full 250-test adapter suite, Ruff, and live TXUE route passed. Strict state is 345 registered, 208 native/live-backed, and 137 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T18:35Z Goose Hollow Capital native route: GooseHollowHoldingsAdapter verifies GHTA's official issuer page and parses only its declared current holdings application script. It preserves identifiers, values, quantities, dates, cash/fund rows, and option contracts. Full 249-test adapter suite, Ruff, and live GHTA plus manifest checks passed. Strict state is 345 registered, 207 native/live-backed, and 138 fallback-only; SEC EDGAR remains fallback-only.",

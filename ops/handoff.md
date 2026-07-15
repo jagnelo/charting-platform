@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Formidable native holdings route - 2026-07-15T21:00Z
+
+- Promoted `formidable` through an isolated `FormidableHoldingsAdapter` for `FORH` and
+  `KONG`. It requests only the verified issuer-owned product page, requires the exact
+  complete holdings schema, filters every row by the requested `ETF Ticker`, and parses
+  the separately published as-of date. It retains FIGI, shares, market values, and
+  decimal weights while classifying cash and options without inventing tradable symbols.
+- Validation passed: Ruff; the full adapter suite (`252 passed`); opt-in live `FORH`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `210/345` native/live-backed and `135` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## IDX Shares native holdings route - 2026-07-15T20:15Z
 
 - Promoted `idx` through an isolated `IdxHoldingsAdapter` for the issuer's complete
