@@ -10579,3 +10579,15 @@ Append a short entry after each worker session.
   implement or live-test.
 - No provider was promoted. Strict state remains `345` registered providers, `204`
   native/live-backed, and `141` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+
+# ETF Holdings Provider Native Route - 2026-07-15T11:39Z
+
+- Promoted `im_global_partner` with an isolated DBMF adapter. It validates the official iM Global
+  Partner product page's fund identity before parsing only the page's complete
+  `breakdown-holdings-us` table. It preserves source identifiers, quantities, values, weights,
+  and as-of date while excluding total-assets summaries and correctly classifying futures and
+  Treasury holdings as non-equity positions.
+- Validation passed: targeted Ruff; full adapter suite (`247 passed`); live DBMF route; strict
+  provider matrix; and the concrete-live-route invariant (`2 passed`).
+- Strict count: `345` registered providers, `205` native/live-backed, `140` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.

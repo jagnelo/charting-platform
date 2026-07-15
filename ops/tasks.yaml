@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 204 native/live-backed providers out of 345; 141 remain.
+      - Current truthful count: 205 native/live-backed providers out of 345; 140 remain.
       - >
         Intech is supported through its official ETF catalogue and current daily PDF holdings
         exports for LGDX and SMDX. The provider-specific adapter discovers the current dated

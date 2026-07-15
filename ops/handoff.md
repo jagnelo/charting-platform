@@ -1,5 +1,20 @@
 # Active Handoff
 
+## iM Global Partner native holdings route - 2026-07-15T11:39Z
+
+- Promoted `im_global_partner` through an isolated `IMGlobalPartnerHoldingsAdapter` for DBMF.
+  It requests only the verified iM Global Partner DBMF product page, validates the page's
+  Bloomberg code and fund name, and parses only its `breakdown-holdings-us` table. The adapter
+  preserves raw identifiers, shares, market values, percent-point weights, and the as-of date;
+  it excludes the total-assets summary and classifies futures and Treasury bills as non-equity
+  positions rather than false tradable symbols.
+- Static coverage verifies page identity, table schema, date/value/weight parsing, raw identifier
+  preservation, and asset classification. Validation passed: targeted Ruff, full ETF-holdings
+  adapter unit suite (`247 passed`), plus the opt-in live DBMF route and strict provider manifest
+  checks (`2 passed`).
+- Strict coverage is now `205/345` native/live-backed and `140` fallback-only. SEC EDGAR remains
+  fallback-only and is not counted as primary provider support.
+
 ## Unlimited ETFs source audit - 2026-07-15T03:15Z
 
 - `unlimited` was rechecked through its official `www.unlimitedetfs.com` entry point with a
