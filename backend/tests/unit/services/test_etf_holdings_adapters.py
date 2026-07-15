@@ -1882,6 +1882,49 @@ async def test_vaneck_adapter_parses_us_disclosure_workbook(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_global_x_adapter_resolves_declared_fund_csv_and_preserves_row_types(monkeypatch):
+    adapter = get_holdings_adapter("global_x")
+    assert adapter is not None
+    product_page_url = "https://www.globalxetfs.com/funds/qyld/"
+    holdings_url = "https://assets.globalxetfs.com/funds/holdings/qyld_full-holdings_20260714.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="https://assets.globalxetfs.com/funds/holdings/'
+                'qyld_full-holdings_20260714.csv">Complete holdings</a>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Global X Nasdaq 100 Covered Call ETF",
+                    "Fund Holdings Data as of 07/14/2026",
+                    "% of Net Assets,Ticker,Name,SEDOL,Market Price ($),Shares Held,Market Value ($)",
+                    '0.16,CRWV,COREWEAVE INC-CL A,BTTRKN7,79.94,"164,284.00","13,132,862.96"',
+                    '-0.04,"",NDX US 07/17/26 C30325,"",1030.0,"-2,798.00","-2,881,940.00"',
+                    '-0.01,"",OTHER PAYABLE & RECEIVABLES,"",1.0,"-405,089.44","-405,089.44"',
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QYLD")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url, holdings_url]
+    assert [row.symbol for row in result.rows] == ["CRWV", None, None]
+    assert [row.holding_type for row in result.rows] == ["equity", "derivative", "cash"]
+    assert result.rows[0].sedol == "BTTRKN7"
+    assert result.rows[0].weight == Decimal("0.0016")
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+    assert result.legal_metadata["route_resolution"] == "global_x_fund_page_declared_holdings_csv"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

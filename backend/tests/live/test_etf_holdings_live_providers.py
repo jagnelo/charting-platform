@@ -1492,17 +1492,19 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
 @pytest.mark.asyncio
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    ("adapter_key", "symbol", "identifiers"),
+    ("adapter_key", "symbol", "identifiers", "expected_route_resolution"),
     [
         (
             "global_x",
             "QYLD",
             {},
+            "global_x_fund_page_declared_holdings_csv",
         ),
         (
             "mirae_asset",
             "QYLD",
             {},
+            "global_x_fund_page_declared_holdings_csv",
         ),
     ],
 )
@@ -1510,6 +1512,7 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
     adapter_key,
     symbol,
     identifiers,
+    expected_route_resolution,
 ):
     adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
@@ -1517,7 +1520,7 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
     result = await adapter.fetch_latest(symbol=symbol, identifiers=identifiers)
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
-    assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
+    assert result.legal_metadata["route_resolution"] == expected_route_resolution
 
 
 @pytest.mark.asyncio

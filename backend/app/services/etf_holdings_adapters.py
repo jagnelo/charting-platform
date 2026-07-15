@@ -2998,7 +2998,193 @@ class SchwabHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class GlobalXHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Fetch Global X fund-scoped holdings from its declared dated CSV artifact.
+
+    Global X embeds the current complete holdings-file URL on each fund page.
+    The URL is fund-specific and dated; resolving only that declared asset avoids
+    the generic link-discovery path and prevents sibling-fund leakage.
+    """
+
+    _PRODUCT_PAGE_TEMPLATE = "https://www.globalxetfs.com/funds/{symbol_lower}/"
+    _HOLDINGS_URL_PATTERN = re.compile(
+        r"https://assets\.globalxetfs\.com/funds/holdings/"
+        r"(?P<symbol>[a-z0-9_-]+)_full-holdings_(?P<as_of>\d{8})\.csv",
+        re.IGNORECASE,
+    )
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "% of Net Assets",
+            "Ticker",
+            "Name",
+            "SEDOL",
+            "Market Price ($)",
+            "Shares Held",
+            "Market Value ($)",
+        }
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.5000"),
+                status="needs_issuer_route",
+                reason="Global X holdings require an ETF symbol to resolve its fund page.",
+                required_identifiers=["symbol"],
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason="Global X publishes a fund-scoped complete holdings CSV from each ETF page.",
+            source_url=self._product_page_url(normalized_symbol),
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Global X holdings require an ETF symbol.")
+        product_page_url = source_url or self._product_page_url(normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_page.raise_for_status()
+            holdings_url = self._holdings_url_from_page(
+                product_page.text,
+                symbol=normalized_symbol,
+            )
+            holdings_response = await client.get(
+                holdings_url,
+                headers=_issuer_page_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"Global X complete holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "csv"},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": "global_x_fund_page_declared_complete_holdings_csv",
+                "source_provider": "global_x",
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "global_x_fund_page_declared_holdings_csv",
+                "product_page_url": str(product_page.url),
+                "snapshot_provenance": "global_x_native_dated_holdings_csv",
+                **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    @classmethod
+    def _product_page_url(cls, symbol: str) -> str:
+        return cls._PRODUCT_PAGE_TEMPLATE.format(symbol_lower=symbol.strip().lower())
+
+    @classmethod
+    def _holdings_url_from_page(cls, page_text: str, *, symbol: str) -> str:
+        expected_symbol = symbol.strip().lower()
+        candidates = [
+            html.unescape(match.group(0))
+            for match in cls._HOLDINGS_URL_PATTERN.finditer(page_text)
+            if match.group("symbol").lower() == expected_symbol
+        ]
+        if not candidates:
+            raise ValueError(
+                f"Global X product page did not declare a complete holdings CSV for {symbol}."
+            )
+        return candidates[0]
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        lines = [line for line in raw_csv.splitlines() if line.strip()]
+        header_index = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if cls._REQUIRED_HEADERS.issubset(set(next(csv.reader([line]))))
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError("Global X CSV did not expose the expected complete holdings schema.")
+        composition_date = cls._composition_date(lines[:header_index])
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw in enumerate(csv.DictReader(lines[header_index:]), start=1):
+            name = _clean(raw.get("Name"))
+            source_ticker = _clean(raw.get("Ticker"))
+            row_type, holding_type = cls._classify_row(name=name, source_ticker=source_ticker)
+            if not any([name, source_ticker, _clean(raw.get("SEDOL"))]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(source_ticker) if row_type == "security" else None,
+                    name=name,
+                    sedol=_clean(raw.get("SEDOL")) if row_type == "security" else None,
+                    weight=_decimal_percent_points(raw.get("% of Net Assets")),
+                    shares=_decimal(raw.get("Shares Held")),
+                    market_value=_decimal(raw.get("Market Value ($)")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{position}",
+                    extra_data={
+                        "source_ticker": source_ticker,
+                        "market_price": _clean(raw.get("Market Price ($)")),
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _composition_date(lines: list[str]) -> date | None:
+        for line in lines:
+            match = re.search(r"as of\s+(\d{2}/\d{2}/\d{4})", line, re.IGNORECASE)
+            if match:
+                return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        if not value or not re.fullmatch(r"[A-Z][A-Z0-9.\-]{0,14}", value.upper()):
+            return None
+        return value.upper()
+
+    @staticmethod
+    def _classify_row(*, name: str | None, source_ticker: str | None) -> tuple[str, str]:
+        text = " ".join(part for part in (name, source_ticker) if part).upper()
+        if any(marker in text for marker in ("CASH", "PAYABLE", "RECEIVABLE")):
+            return "cash", "cash"
+        if any(marker in text for marker in (" OPTION", " FUTURE", " SWAP", " FORWARD", "NDX US ")):
+            return "other", "derivative"
+        if "FUND" in text or " ETF" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class MiraeAssetHoldingsAdapter(GlobalXHoldingsAdapter):
