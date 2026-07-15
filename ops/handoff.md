@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Liquid Strategies native holdings route - 2026-07-16T00:30Z
+
+- Promoted `liquid_strategies` through an isolated `LiquidStrategiesHoldingsAdapter`
+  for the Overlay Shares ETF family (`OVL`, `OVS`, `OVF`, `OVLH`, `OVB`, `OVT`, and
+  `OVM`). It verifies the exact ticker on the official fund page, parses only its
+  complete current holdings table, retains CUSIP/ticker/shares/weight/source-date
+  data, and keeps cash and option rows non-tradable.
+- Validation passed: Ruff; the full adapter suite (`258 passed`); opt-in live `OVL`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `216/345` native/live-backed and `129` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## Fortuna native holdings route - 2026-07-16T00:00Z
 
 - Promoted `fortuna` through an isolated `FortunaHoldingsAdapter` for `HBTC`. It

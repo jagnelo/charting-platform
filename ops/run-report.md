@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Liquid Strategies - 2026-07-16T00:30Z
+
+- Promoted `liquid_strategies` through an isolated `LiquidStrategiesHoldingsAdapter`
+  for the Overlay Shares ETF family. It validates the exact ticker on the official
+  product page, parses its complete current holdings table, retains identifiers,
+  quantities, weights, and dates, and keeps cash and option rows non-tradable.
+- Validation passed: Ruff; all `258` adapter unit tests with `--no-cov`; the live
+  `OVL` route; and the concrete-live-route invariant (`2 passed`). Strict coverage
+  is now `216/345` native/live-backed providers and `129` fallback-only.
+
 # ETF Holdings Provider Integration - Fortuna - 2026-07-16T00:00Z
 
 - Promoted `fortuna` through an isolated `FortunaHoldingsAdapter` for `HBTC`. The

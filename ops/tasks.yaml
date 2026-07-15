@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 215 native/live-backed providers out of 345; 130 remain.
+      - Current truthful count: 216 native/live-backed providers out of 345; 129 remain.
+      - >
+        Liquid Strategies is supported through its official fund-scoped ETF pages and
+        complete current holdings tables for OVL, OVS, OVF, OVLH, OVB, OVT, and OVM.
       - >
         Fortuna is supported through its official HBTC product page and its complete
         current fund-scoped holdings table.
