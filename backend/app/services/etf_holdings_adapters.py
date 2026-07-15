@@ -7335,6 +7335,186 @@ class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class IronHorseHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Conductor ETF holdings from IronHorse's declared full CSV export."""
+
+    _FUNDS = {"CGV": "https://conductoretfs.com/global-equity-etf/"}
+    _DOWNLOAD_PATTERN = re.compile(
+        r'<a[^>]+class=["\'][^"\']*\bdwnld-hlds\b[^"\']*["\'][^>]+href=["\'](?P<href>[^"\']+)["\']',
+        re.IGNORECASE,
+    )
+    _CURRENCY_CODES = frozenset({
+        "AED", "AUD", "CAD", "CHF", "DKK", "EUR", "GBP", "HKD", "JPY", "KRW", "NOK", "PLN", "SEK", "SGD", "USD",
+    })
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
+            status="ready" if product_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "IronHorse publishes CGV's complete current holdings CSV on Conductor ETFs' official product page."
+                if product_url
+                else (
+                    f"IronHorse has no configured native holdings route for {normalized_symbol}; SEC fallback is available."
+                    if has_sec_fallback
+                    else f"IronHorse has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol if product_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"IronHorse has no configured native holdings route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            holdings_url = self._holdings_url(product_response.text, product_url=product_url)
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,*/*"),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"IronHorse holdings CSV did not expose complete current rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=None,
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_declared_complete_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "ironhorse_conductor_native_holdings_csv",
+            },
+        )
+
+    @classmethod
+    def _holdings_url(cls, raw_html: str, *, product_url: str) -> str:
+        text = html.unescape(raw_html)
+        if "Conductor Global Equity Value ETF" not in text or not re.search(r"\bCGV\b", text):
+            raise ValueError("IronHorse product page identity did not match requested ETF CGV.")
+        match = cls._DOWNLOAD_PATTERN.search(text)
+        if match is None:
+            raise ValueError("IronHorse product page did not declare a complete holdings CSV.")
+        return urljoin(product_url, html.unescape(match.group("href")))
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        source_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        if len(source_rows) < 3:
+            return [], None
+        title = _clean(source_rows[0][0]) or ""
+        if "Conductor Global Equity Value ETF" not in title or symbol != "CGV":
+            raise ValueError(f"IronHorse holdings CSV identity did not match requested ETF {symbol}.")
+
+        composition_date = cls._composition_date(source_rows[1][0] if source_rows[1] else "")
+        header = [cell.strip().lstrip("\ufeff") for cell in source_rows[2]]
+        required_headers = {"Name", "Security Identifier", "Symbol", "Net Assets %", "Shares Held", "Market Value"}
+        if not required_headers.issubset(set(header)):
+            return [], composition_date
+
+        rows: list[CanonicalHoldingRow] = []
+        for position, values in enumerate(source_rows[3:], start=1):
+            raw = _row_dict(header, values)
+            name = _clean(raw.get("Name"))
+            identifier = _clean(raw.get("Security Identifier"))
+            raw_symbol = _clean(raw.get("Symbol"))
+            is_cash = cls._is_cash(name=name, identifier=identifier, raw_symbol=raw_symbol)
+            parsed_symbol = None if is_cash else cls._tradable_symbol(raw_symbol)
+            cusip = identifier if _looks_like_cusip(identifier) else None
+            if not any([parsed_symbol, name, cusip, raw.get("Market Value"), raw.get("Net Assets %")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal_percent_points(raw.get("Net Assets %")),
+                    shares=_decimal(raw.get("Shares Held")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"ironhorse-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _composition_date(value: str) -> date | None:
+        match = re.search(r"\b(\d{1,2}/\d{1,2}/\d{4})\b", value)
+        if match is None:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @classmethod
+    def _is_cash(cls, *, name: str | None, identifier: str | None, raw_symbol: str | None) -> bool:
+        text = " ".join(part.upper() for part in (name, identifier, raw_symbol) if part)
+        return (
+            "CASH" in text
+            or "CURRENCY" in text
+            or "SWEEP" in text
+            or (raw_symbol or "").strip().upper() in cls._CURRENCY_CODES
+        )
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().strip()
+        # Conductor denotes US-listed stocks as, for example, "CVS US". Preserve
+        # the actual exchange ticker but do not turn foreign listing codes into one.
+        match = re.fullmatch(r"([A-Z][A-Z0-9.-]{0,11})\s+US", normalized)
+        if match:
+            return match.group(1)
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+
 class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
 
@@ -34851,6 +35031,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Indexperts public ETF Pages holdings data may be subject to issuer terms.",
     ),
+    "ironhorse": IssuerCsvAdapterConfig(
+        adapter_key="ironhorse",
+        source_provider="ironhorse",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=("https://conductoretfs.com/global-equity-etf/",),
+        live_tested_default_route=True,
+        terms_note="Conductor ETFs public CGV holdings CSV may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -34995,6 +35183,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "formidable": FormidableHoldingsAdapter,
         "idx": IdxHoldingsAdapter,
         "indexperts": IndexpertsHoldingsAdapter,
+        "ironhorse": IronHorseHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,

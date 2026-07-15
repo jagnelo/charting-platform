@@ -113,6 +113,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "formidable",
     "idx",
     "indexperts",
+    "ironhorse",
     "lionshares",
     "cygnet",
     "oneascent",
@@ -297,6 +298,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         ("indexperts", "QIDX", None, {}, 100),
+        ("ironhorse", "CGV", None, {}, 50),
         (
             "capital_impact",
             "XOVR",

@@ -1626,6 +1626,53 @@ async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_ho
 
 
 @pytest.mark.asyncio
+async def test_ironhorse_adapter_follows_declared_full_holdings_csv_and_keeps_foreign_codes_raw(monkeypatch):
+    adapter = get_holdings_adapter("ironhorse")
+    assert adapter is not None
+    product_url = "https://conductoretfs.com/global-equity-etf/"
+    holdings_url = "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Conductor Global Equity Value ETF (CGV)</h1>"
+                '<a class="dwnld-hlds" href="/wp-content/themes/bb-theme-child/data/download.php?id=1532">'
+                "Download All Holdings (.CSV)</a>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Conductor Global Equity Value ETF",
+                    "Fund Holdings Data as of 07/15/2026",
+                    "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %",
+                    "DANISH KRONE,DKK,DKK,0.000020685500,6.54573,174.28,26.62,0.000020686600",
+                    "CVS HEALTH CORP,126650100,CVS US,1.3300,105.90,16100,1704990,1.3300",
+                    "NESTLE SA,7123870,NESN SW,0.8200,75.20,1000,75200,0.8200",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CGV")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].symbol == "CVS"
+    assert result.rows[1].cusip == "126650100"
+    assert result.rows[1].weight == Decimal("0.0133")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].extra_data["Symbol"] == "NESN SW"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
