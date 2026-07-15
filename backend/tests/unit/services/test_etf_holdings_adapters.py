@@ -1752,6 +1752,53 @@ async def test_liquid_strategies_adapter_parses_complete_table_and_classifies_ro
 
 
 @pytest.mark.asyncio
+async def test_spdr_adapter_parses_fund_scoped_workbook_and_preserves_row_types(monkeypatch):
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+    workbook_url = (
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/products/"
+        "fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=_xlsx_workbook(
+                [
+                    ["Fund Name:", "State Street SPDR S&P 500 ETF Trust"],
+                    ["Ticker Symbol:", "SPY"],
+                    ["Holdings:", "As of 14-Jul-2026"],
+                    [
+                        "Name",
+                        "Ticker",
+                        "Identifier",
+                        "SEDOL",
+                        "Weight",
+                        "Sector",
+                        "Shares Held",
+                        "Local Currency",
+                    ],
+                    ["NVIDIA CORP", "NVDA", "67066G104", "2379504", "7.908008", "", "100", "USD"],
+                    ["SPXW US 07/16/26 P7430", "SPXW 260716P07430000", "", "", "-0.04", "", "-10", "USD"],
+                    ["Cash & Other", "", "", "", "0.10", "", "20", "USD"],
+                ]
+            ),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=workbook_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SPY")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [workbook_url]
+    assert [row.symbol for row in result.rows] == ["NVDA", None, None]
+    assert [row.holding_type for row in result.rows] == ["equity", "derivative", "cash"]
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.07908008")
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

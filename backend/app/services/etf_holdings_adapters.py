@@ -2534,7 +2534,173 @@ class ArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Fetch State Street SPDR holdings from its fund-scoped daily workbook.
+
+    SPDR publishes a stable XLSX layout per ETF.  Keeping the schema here avoids
+    silently treating a changed issuer workbook as an arbitrary generic table.
+    """
+
+    _WORKBOOK_TEMPLATE = (
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+        "products/fund-data/etfs/us/holdings-daily-us-en-{symbol_lower}.xlsx"
+    )
+    _REQUIRED_HEADERS = frozenset(
+        {"Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"}
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "State Street publishes this ETF's complete current holdings workbook on its official SPDR route."
+                if normalized_symbol
+                else "SPDR holdings require an ETF symbol."
+            ),
+            source_url=(self._workbook_url(normalized_symbol) if normalized_symbol else None),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("SPDR holdings require an ETF symbol.")
+        workbook_url = source_url or self._workbook_url(normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                workbook_url,
+                headers=_holdings_request_headers(
+                    accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"
+                ),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date, fund_symbol = self._parse_workbook(
+            response.content,
+            symbol=normalized_symbol,
+        )
+        if fund_symbol != normalized_symbol:
+            raise ValueError(
+                f"SPDR workbook identity did not match requested ETF {normalized_symbol}."
+            )
+        if not rows:
+            raise ValueError(f"SPDR workbook did not expose holdings for {normalized_symbol}.")
+        workbook_rows = parse_xlsx_table(response.content)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id,
+            legal_metadata={
+                "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                "source_provider": "spdr",
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "spdr_symbol_daily_holdings_workbook",
+                "snapshot_provenance": "spdr_native_daily_holdings_workbook",
+                **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    @classmethod
+    def _workbook_url(cls, symbol: str) -> str:
+        return cls._WORKBOOK_TEMPLATE.format(symbol_lower=symbol.lower())
+
+    @classmethod
+    def _parse_workbook(
+        cls,
+        raw_workbook: bytes,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
+        workbook_rows = parse_xlsx_table(raw_workbook)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if cls._REQUIRED_HEADERS.issubset({_clean(value) or "" for value in row})
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError("SPDR workbook did not expose the expected holdings schema.")
+        fund_symbol = next(
+            (
+                (_clean(row[1]) or "").upper()
+                for row in workbook_rows[:header_index]
+                if (_clean(row[0]) or "").rstrip(":").lower() == "ticker symbol"
+                and len(row) > 1
+            ),
+            None,
+        )
+        composition_date = next(
+            (
+                cls._parse_as_of_date(_clean(row[1]))
+                for row in workbook_rows[:header_index]
+                if (_clean(row[0]) or "").rstrip(":").lower() == "holdings" and len(row) > 1
+            ),
+            None,
+        )
+        header = workbook_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("Name"))
+            source_ticker = _clean(raw.get("Ticker"))
+            identifier = _clean(raw.get("Identifier"))
+            if not any((name, source_ticker, identifier)):
+                continue
+            holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
+            row_symbol = source_ticker if row_type == "security" else None
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=row_symbol,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) and row_type == "security" else None,
+                    sedol=_clean(raw.get("SEDOL")) if row_type == "security" else None,
+                    weight=_decimal_percent_points(raw.get("Weight")),
+                    shares=_decimal(raw.get("Shares Held")),
+                    currency=_clean(raw.get("Local Currency")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"spdr-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date, fund_symbol
+
+    @staticmethod
+    def _parse_as_of_date(value: str | None) -> date | None:
+        match = re.search(r"(?:as of\s+)?(\d{1,2}-[A-Za-z]{3}-\d{4})", value or "", re.IGNORECASE)
+        if match is None:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%d-%b-%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _classify_row(*, name: str | None, source_ticker: str | None) -> tuple[str, str]:
+        text = " ".join(part for part in (name, source_ticker) if part).upper()
+        if any(token in text for token in ("CASH", "MONEY MARKET", "TREASURY BILL")):
+            return "cash", "cash"
+        if any(token in text for token in ("OPTION", "FUTURE", "SWAP", "FORWARD")) or re.search(
+            r"\b\d{6}[CP]\d{8}\b",
+            text,
+        ):
+            return "derivative", "other"
+        if " ETF" in text or " FUND" in text:
+            return "fund", "security"
+        return "equity", "security"
 
 
 class VanguardHoldingsAdapter(IssuerCsvHoldingsAdapter):
