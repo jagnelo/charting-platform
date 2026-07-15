@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Unlimited ETFs source audit - 2026-07-15T03:15Z
+
+- `unlimited` was rechecked through its official `www.unlimitedetfs.com` entry point with a
+  browser-equivalent request profile. Cloudflare returns HTTP 403 before the public catalogue or
+  any fund-scoped holdings artifact can be reached. It remains fallback-only and must not be
+  promoted or covered by a synthetic live test until a concrete, executable issuer-native route
+  is discovered.
+- Strict coverage remains `204/345` native/live-backed and `141` fallback-only. The next step is
+  to continue the unresolved issuer queue with a backend-reachable complete first-party holdings
+  artifact; the priority issuer set is already native/live-backed.
+
 ## Intech native holdings route - 2026-07-15T03:00Z
 
 - Promoted `intech` through an isolated `IntechHoldingsAdapter` for `LGDX` and `SMDX`.

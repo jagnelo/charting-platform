@@ -10570,3 +10570,12 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `203` native/live-backed, `142` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Source Audit - 2026-07-15T03:15Z
+
+- Rechecked `unlimited` through its official `www.unlimitedetfs.com` entry point using a
+  browser-equivalent request profile. Cloudflare returns HTTP 403 before the issuer catalogue or
+  a fund-scoped holdings artifact is available, so there is no executable issuer-native route to
+  implement or live-test.
+- No provider was promoted. Strict state remains `345` registered providers, `204`
+  native/live-backed, and `141` fallback-only. SEC EDGAR remains fallback-only and uncounted.
