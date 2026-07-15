@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 205 native/live-backed providers out of 345; 140 remain.
+      - Current truthful count: 206 native/live-backed providers out of 345; 139 remain.
+      - >
+        Frontier Asset is supported through its own verified fund pages and dated daily
+        fund-scoped holdings exports for FARX, FCBD, FGSM, FINT, FLCE, and FOPC.
       - >
         Intech is supported through its official ETF catalogue and current daily PDF holdings
         exports for LGDX and SMDX. The provider-specific adapter discovers the current dated

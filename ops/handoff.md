@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Frontier Asset native holdings route - 2026-07-15T12:10Z
+
+- Promoted `frontier` through an isolated `FrontierHoldingsAdapter` for FARX, FCBD,
+  FGSM, FINT, FLCE, and FOPC. It validates each official Frontier product page's ticker
+  and fund identity, then discovers the newest available dated, fund-scoped daily export
+  from Frontier's own public data path. The parser filters multi-fund rows by the selected
+  ticker and retains CUSIP, ISIN, SEDOL, shares, value, source date, and percent weights.
+- Static coverage verifies identity validation, dated-export fallback, sibling-fund
+  exclusion, identifier preservation, and cash/fund classification. Validation passed:
+  targeted Ruff; full ETF-holdings adapter unit suite (`248 passed`); opt-in live FARX
+  route; strict provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict coverage is now `206/345` native/live-backed and `139` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary provider support.
+
 ## iM Global Partner native holdings route - 2026-07-15T11:39Z
 
 - Promoted `im_global_partner` through an isolated `IMGlobalPartnerHoldingsAdapter` for DBMF.

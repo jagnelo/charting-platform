@@ -10591,3 +10591,15 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`2 passed`).
 - Strict count: `345` registered providers, `205` native/live-backed, `140` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Native Route - 2026-07-15T12:10Z
+
+- Promoted `frontier` through a dedicated `FrontierHoldingsAdapter` for FARX, FCBD, FGSM,
+  FINT, FLCE, and FOPC. It validates Frontier's public product-page identity, scans the
+  issuer-owned dated daily export for the latest available file, and filters the multi-fund
+  feed to the requested ETF. CUSIP, ISIN, SEDOL, quantities, market values, percent weights,
+  and composition date are retained; cash and mutual-fund rows are classified correctly.
+- Validation passed: targeted Ruff; full adapter suite (`248 passed`); live FARX route; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `206` native/live-backed, `139` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.
