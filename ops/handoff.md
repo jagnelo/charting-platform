@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Fortuna native holdings route - 2026-07-16T00:00Z
+
+- Promoted `fortuna` through an isolated `FortunaHoldingsAdapter` for `HBTC`. It
+  validates Fortuna's official product page, parses only its complete current
+  fund-scoped holdings table, filters by account, and preserves shares, values,
+  weights, and source date. Option contracts and cash remain non-tradable.
+- Validation passed: Ruff; the full adapter suite (`257 passed`); opt-in live `HBTC`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `215/345` native/live-backed and `130` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## IronHorse native holdings route - 2026-07-15T23:30Z
 
 - Promoted `ironhorse` through an isolated `IronHorseHoldingsAdapter` for Conductor

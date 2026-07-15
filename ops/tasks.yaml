@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 214 native/live-backed providers out of 345; 131 remain.
+      - Current truthful count: 215 native/live-backed providers out of 345; 130 remain.
+      - >
+        Fortuna is supported through its official HBTC product page and its complete
+        current fund-scoped holdings table.
       - >
         IronHorse is supported through Conductor ETFs' official CGV product page and its
         explicitly declared complete current holdings CSV.

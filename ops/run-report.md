@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Fortuna - 2026-07-16T00:00Z
+
+- Promoted `fortuna` through an isolated `FortunaHoldingsAdapter` for `HBTC`. The
+  adapter validates the official fund page and parses its complete current holdings
+  table, strictly filters the fund account, and distinguishes options and cash from
+  tradable equity symbols.
+- Validation passed: Ruff; all `257` adapter unit tests with `--no-cov`; the live
+  `HBTC` route; and the concrete-live-route invariant (`2 passed`). Strict coverage
+  is now `215/345` native/live-backed providers and `130` fallback-only.
+
 # ETF Holdings Provider Integration - IronHorse - 2026-07-15T23:30Z
 
 - Promoted `ironhorse` through an isolated `IronHorseHoldingsAdapter` for Conductor's
