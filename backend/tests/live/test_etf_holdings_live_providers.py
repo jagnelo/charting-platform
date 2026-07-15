@@ -177,6 +177,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "spear",
     "sprott",
     "ssc",
+    "sterling_capital",
     "strive",
     "swan_global",
     "tapp",
@@ -478,6 +479,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "sterling_capital",
+            "SCEP",
+            None,
+            {},
+            20,
         ),
         (
             "anfield",

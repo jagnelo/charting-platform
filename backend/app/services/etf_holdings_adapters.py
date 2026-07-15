@@ -13808,6 +13808,167 @@ class AngelOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "fixed_income"
 
 
+class SterlingCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Sterling Capital's current ETF holdings from its fund-scoped PDF exports."""
+
+    _FUND_BY_SYMBOL = {
+        "SCEC": ("scec", "Enhanced Core Bond ETF"),
+        "SCEP": ("scep", "Hedged Equity Premium Income ETF"),
+        "SCMC": ("scmc", "Multi-Strategy Income ETF"),
+        "SCNM": ("scnm", "National Municipal Bond ETF"),
+        "SCSB": ("scsb", "Short-Term Corporate Bond ETF"),
+        "SCUB": ("scub", "Ultra Short Bond ETF"),
+    }
+    _PDF_ROW_RE = re.compile(
+        r"^(?P<cusip>[A-Z0-9]{9})\s+(?P<name>.+?)\s+"
+        r"(?P<shares>\(?[\d,]+(?:\.\d+)?\)?)\s+"
+        r"\$(?P<price>[\d,]+(?:\.\d+)?)\s+"
+        r"(?P<weight>-?[\d.]+%)$"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUND_BY_SYMBOL.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if fund else Decimal("0.6000"),
+            status="ready" if fund or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Sterling Capital publishes this ETF's complete current holdings PDF on its public fund page."
+                if fund
+                else (
+                    "No verified Sterling Capital public holdings route is configured for this ETF symbol; "
+                    "SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified Sterling Capital public holdings route is configured for this ETF symbol."
+                )
+            ),
+            source_url=self._holdings_url(fund[0]) if fund else None,
+            issuer_product_id=normalized_symbol if fund else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUND_BY_SYMBOL.get(normalized_symbol)
+        if fund is None:
+            raise ValueError(
+                f"No verified Sterling Capital public holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        slug, fund_name = fund
+        holdings_url = self._holdings_url(slug)
+        response = await asyncio.to_thread(
+            requests.get,
+            holdings_url,
+            headers={
+                **_holdings_request_headers(accept="application/pdf,*/*"),
+                "Referer": f"https://sterlingcapital.com/investments/exchange-traded-funds/{slug}/",
+            },
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        raw_text = self._extract_pdf_text(response.content)
+        rows, composition_date = self._parse_holdings_text(
+            raw_text,
+            symbol=normalized_symbol,
+            expected_fund_name=fund_name,
+        )
+        if not rows:
+            raise ValueError(
+                f"Sterling Capital's {normalized_symbol} holdings PDF returned no parseable positions."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_text,
+            raw_json={"source_format": "pdf", "fund_slug": slug, "row_count": len(rows)},
+            source_url=str(getattr(response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "pdf",
+                "route_resolution": "issuer_fund_scoped_current_holdings_pdf",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "sterling_capital_issuer_native_holdings_pdf",
+            },
+        )
+
+    @staticmethod
+    def _holdings_url(slug: str) -> str:
+        return (
+            "https://sterlingcapital.com/investments/exchange-traded-funds/"
+            f"{slug}/export-portfolio-holdings/"
+        )
+
+    @staticmethod
+    def _extract_pdf_text(raw_pdf: bytes) -> str:
+        from pypdf import PdfReader  # noqa: PLC0415
+
+        reader = PdfReader(BytesIO(raw_pdf), strict=False)
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    @classmethod
+    def _parse_holdings_text(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+        expected_fund_name: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if "STERLING CAPITAL" not in raw_text.upper() or expected_fund_name.upper() not in raw_text.upper():
+            raise ValueError(f"Sterling Capital holdings PDF identity did not match requested ETF {symbol}.")
+        date_match = re.search(r"As\s+of\s+(\d{2}\.\d{2}\.\d{4})", raw_text, re.IGNORECASE)
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%m.%d.%Y").date() if date_match else None
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for source_row_id, line in enumerate(raw_text.splitlines(), start=1):
+            match = cls._PDF_ROW_RE.match(re.sub(r"\s+", " ", line.strip()))
+            if match is None:
+                continue
+            cusip = match.group("cusip").upper()
+            name = match.group("name").strip()
+            text = name.upper()
+            is_cash = "MONEY MARKET" in text or "CASH" in text
+            fixed_income_symbols = {"SCEC", "SCMC", "SCNM", "SCSB", "SCUB"}
+            holding_type = "cash" if is_cash else ("fixed_income" if symbol in fixed_income_symbols else "equity")
+            shares = _decimal(match.group("shares"))
+            price = _decimal(match.group("price"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    weight=_decimal(match.group("weight")),
+                    shares=shares,
+                    market_value=(shares * price) if shares is not None and price is not None else None,
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}-{source_row_id}",
+                    extra_data={
+                        "source": "sterling_capital_issuer_holdings_pdf",
+                        "price": match.group("price"),
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class DoubleLineHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch DoubleLine ETF holdings from issuer-published holdings PDFs."""
 
@@ -31282,6 +31443,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Angel Oak public ETF holdings files may be subject to issuer terms.",
     ),
+    "sterling_capital": IssuerCsvAdapterConfig(
+        adapter_key="sterling_capital",
+        source_provider="sterling_capital",
+        source_access="issuer_fund_scoped_current_holdings_pdf",
+        product_page_templates=(
+            "https://sterlingcapital.com/investments/exchange-traded-funds/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Sterling Capital public ETF holdings PDF exports may be subject to issuer terms.",
+    ),
     "dimensional": IssuerCsvAdapterConfig(
         adapter_key="dimensional",
         source_provider="dimensional",
@@ -32729,6 +32900,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "agf": AgfHoldingsAdapter,
         "rayliant": RayliantHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
+        "sterling_capital": SterlingCapitalHoldingsAdapter,
         "astoria": AstoriaHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
         "applied_finance": AppliedFinanceHoldingsAdapter,

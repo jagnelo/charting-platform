@@ -8096,6 +8096,49 @@ async def test_angel_oak_adapter_filters_combined_holdings_csv(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-07-07"
 
 
+@pytest.mark.asyncio
+async def test_sterling_capital_adapter_validates_fund_scoped_holdings_pdf(monkeypatch):
+    adapter = get_holdings_adapter("sterling_capital")
+    assert adapter is not None
+
+    raw_text = """
+    Sterling Capital Hedged Equity Premium Income ETF Holdings
+    As of 07.13.2026
+    CUSIP Description Quantity Price Portfolio Weight
+    037833100 APPLE INC 45,639 $317.31 6.19%
+    67066G104 NVIDIA CORP 65,934 $203.53 5.73%
+    31423R500 FEDERATED HERMES MONEY MARKET 12,628,380 $100.00 5.48%
+    """
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        type(adapter),
+        "_extract_pdf_text",
+        staticmethod(lambda raw_pdf: raw_text),
+    )
+
+    result = await adapter.fetch_latest(symbol="SCEP", identifiers={})
+
+    assert requested[0][0] == (
+        "https://sterlingcapital.com/investments/exchange-traded-funds/"
+        "scep/export-portfolio-holdings/"
+    )
+    assert [row.cusip for row in result.rows] == ["037833100", "67066G104", "31423R500"]
+    assert result.rows[0].holding_type == "equity"
+    assert result.rows[0].weight == Decimal("0.0619")
+    assert result.rows[0].shares == Decimal("45639")
+    assert result.rows[0].market_value == Decimal("14481711.09")
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "issuer_fund_scoped_current_holdings_pdf"
+    assert result.legal_metadata["composition_date"] == "2026-07-13"
+
+
 def test_doubleline_adapter_parses_pdf_extracted_text():
     adapter = get_holdings_adapter("doubleline")
     assert adapter is not None
