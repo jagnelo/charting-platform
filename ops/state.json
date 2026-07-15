@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T22:00:00Z",
-    "last_commit": "251f307 feat(etf-holdings): add LionShares native route",
+    "last_handoff_at": "2026-07-15T22:20:00Z",
+    "last_commit": "955988c feat(etf-holdings): add Cygnet native route",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-15 Ruff check for the LionShares adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 253 passed with --no-cov) and opt-in live LionShares TOT route. The live manifest now proves all 211 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 Ruff check for the Cygnet adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 254 passed with --no-cov) and opt-in live Cygnet ELM route. The live manifest now proves all 212 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T22:20Z Cygnet Capital native route: CygnetHoldingsAdapter verifies the official Elm ELM product page and follows only its explicitly declared complete holdings CSV. It filters by Account, retains ticker/CUSIP/shares/value/weight/date data, and classifies cash without false tradable symbols. Ruff, the full 254-test adapter suite, and the opt-in live ELM route plus strict manifest invariant passed. Strict state is 345 registered, 212 native/live-backed, and 133 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T22:00Z LionShares native route: LionSharesHoldingsAdapter verifies TOT's issuer-owned product page and declared application script before requesting the complete FilePoint CSV. It filters the shared feed by Account, retains ticker/CUSIP/shares/market value/weight/date metadata, and classifies money-market and cash rows without false tradable symbols. Ruff, the full 253-test adapter suite, and the opt-in live TOT route plus strict manifest invariant passed. Strict state is 345 registered, 211 native/live-backed, and 134 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T21:00Z Formidable native route: FormidableHoldingsAdapter verifies FORH and KONG's issuer-owned current holdings tables, filters every shared page table by the requested ETF Ticker, and retains FIGI, shares, values, decimal weights, and source dates while classifying cash and options without false tradable symbols. Ruff, the full 252-test adapter suite, and the opt-in live FORH route plus strict manifest invariant passed. Strict state is 345 registered, 210 native/live-backed, and 135 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T20:15Z IDX Shares native route: IdxHoldingsAdapter verifies DYFI and GLDB's fund-scoped current holdings tables on the issuer's public product pages. It retains shares, market values, decimal weights and source dates while classifying cash and futures without false tradable tickers. Full 251-test adapter suite, Ruff, and live GLDB route plus strict manifest checks passed. Strict state is 345 registered, 209 native/live-backed, and 136 fallback-only; SEC EDGAR remains fallback-only.",

@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Cygnet Capital native holdings route - 2026-07-15T22:20Z
+
+- Promoted `cygnet` through an isolated `CygnetHoldingsAdapter` for `ELM`. It validates
+  Cygnet Capital's official Elm product page, discovers only the page-declared complete
+  current CSV, filters rows by `Account`, and retains ticker/CUSIP/shares/value/weights/
+  source-date data while classifying cash correctly.
+- Validation passed: Ruff; the full adapter suite (`254 passed`); opt-in live `ELM`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `212/345` native/live-backed and `133` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## LionShares native holdings route - 2026-07-15T22:00Z
 
 - Promoted `lionshares` through an isolated `LionSharesHoldingsAdapter` for `TOT`. It

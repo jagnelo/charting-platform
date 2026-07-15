@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Cygnet Capital - 2026-07-15T22:20Z
+
+- Promoted `cygnet` through an isolated `CygnetHoldingsAdapter` for `ELM`. The adapter
+  validates the official Elm page and follows only its explicitly declared full-holdings
+  CSV. It isolates the `ELM` account and retains ticker, CUSIP, shares, value, weight,
+  source-date, and cash semantics.
+- Validation passed: Ruff; all `254` adapter unit tests with `--no-cov`; the live `ELM`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `212/345` native/live-backed providers and `133` fallback-only.
+
 # ETF Holdings Provider Integration - LionShares - 2026-07-15T22:00Z
 
 - Promoted `lionshares` through an isolated `LionSharesHoldingsAdapter` for `TOT`.

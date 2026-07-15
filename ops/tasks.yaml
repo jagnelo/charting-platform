@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 211 native/live-backed providers out of 345; 134 remain.
+      - Current truthful count: 212 native/live-backed providers out of 345; 133 remain.
+      - >
+        Cygnet Capital is supported through the official Elm ELM product page and its
+        explicitly declared complete current holdings CSV.
       - >
         LionShares is supported through its issuer-declared public TOT product page,
         application script, and complete account-scoped daily holdings CSV.
