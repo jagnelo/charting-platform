@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-15T18:35:00Z",
-    "last_commit": "79d879f chore(ops): finalize Frontier checkpoint",
-    "git_ready_to_commit": true,
+    "last_commit": "4c2fd47 chore(ops): record Goose Hollow validation",
+    "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (2026-07-15 targeted Ruff check for the Goose Hollow adapter, static fixture, and live-provider manifest)",
         "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 249 passed with --no-cov) and opt-in live Goose Hollow GHTA route plus manifest checks (3 selected passed). The live manifest now proves all 207 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
