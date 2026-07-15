@@ -10551,3 +10551,12 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `202` native/live-backed, `143` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Integration - 2026-07-15T02:42Z
+
+- Promoted `western_southern` through `WesternSouthernHoldingsAdapter`, a dedicated
+  Touchstone ETF integration. It identity-validates each selected issuer product page and parses
+  the complete embedded `fullHoldings` payload for the current ten-fund range.
+- Validation passed: targeted Ruff; full adapter suite (`245 passed`); live `LCF`; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `203` native/live-backed, `142` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.

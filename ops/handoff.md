@@ -5227,3 +5227,15 @@
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `202` native/live-backed, `143` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Integration - 2026-07-15T02:42Z
+
+- Promoted `western_southern` through a dedicated `WesternSouthernHoldingsAdapter` for the
+  Touchstone ETF range. It has explicit product routes for DVND, TDI, TLCG, TLCI, TEMX, TSEL,
+  TSEC, SIO, TUSI, and LCF; identity-validates the requested Touchstone product page then parses
+  its issuer-owned complete `fullHoldings` payload.
+- The parser preserves ticker/CUSIP, shares, values, percentage weights, country, and cash
+  classification. A static LCF fixture and a concrete opt-in live LCF route cover the adapter.
+- Validation passed: targeted Ruff; full adapter unit suite (`245 passed`); live `LCF`; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`). Strict state is `345`
+  registered providers, `203` native/live-backed, and `142` fallback-only. SEC EDGAR remains
+  fallback-only.
