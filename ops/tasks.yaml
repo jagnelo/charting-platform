@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 213 native/live-backed providers out of 345; 132 remain.
+      - Current truthful count: 214 native/live-backed providers out of 345; 131 remain.
+      - >
+        IronHorse is supported through Conductor ETFs' official CGV product page and its
+        explicitly declared complete current holdings CSV.
       - >
         Indexperts is supported through its issuer-designated ETF Pages product workspace
         and the page-declared complete current holdings JSON for RILA, QIDX, and YFFI.

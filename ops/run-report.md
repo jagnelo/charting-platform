@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - IronHorse - 2026-07-15T23:30Z
+
+- Promoted `ironhorse` through an isolated `IronHorseHoldingsAdapter` for Conductor's
+  `CGV`. The adapter verifies the issuer-owned product page before following only its
+  declared full holdings CSV, validates its fund identity, preserves identifiers,
+  quantities, values, weights and dates, and keeps currencies/cash non-tradable.
+- Validation passed: Ruff; all `256` adapter unit tests with `--no-cov`; the live `CGV`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `214/345` native/live-backed providers and `131` fallback-only.
+
 # ETF Holdings Provider Integration - Indexperts - 2026-07-15T23:00Z
 
 - Promoted `indexperts` through an isolated `IndexpertsHoldingsAdapter` for `RILA`,

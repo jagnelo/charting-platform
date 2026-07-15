@@ -1,5 +1,19 @@
 # Active Handoff
 
+## IronHorse native holdings route - 2026-07-15T23:30Z
+
+- Promoted `ironhorse` through an isolated `IronHorseHoldingsAdapter` for Conductor
+  Global Equity Value ETF (`CGV`). It verifies the official Conductor product page,
+  follows only its explicitly declared complete CSV, validates the fund identity, and
+  retains CUSIP/shares/value/weight/source-date data. Currency/cash rows remain
+  non-tradable, while only explicitly US-listed codes are normalized to platform tickers.
+- Validation passed: Ruff; the full adapter suite (`256 passed`); opt-in live `CGV`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `214/345` native/live-backed and `131` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## Indexperts native holdings route - 2026-07-15T23:00Z
 
 - Promoted `indexperts` through an isolated `IndexpertsHoldingsAdapter` for `RILA`,
