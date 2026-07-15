@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Indexperts native holdings route - 2026-07-15T23:00Z
+
+- Promoted `indexperts` through an isolated `IndexpertsHoldingsAdapter` for `RILA`,
+  `QIDX`, and `YFFI`. It verifies the issuer-designated ETF Pages product workspace,
+  calls only the page-declared complete holdings JSON, verifies the returned ETF ticker,
+  and retains ticker/CUSIP/SEDOL/shares/value/weight/source-date data while classifying
+  cash without false tradable symbols.
+- Validation passed: Ruff; the full adapter suite (`255 passed`); opt-in live `QIDX`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `213/345` native/live-backed and `132` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## Cygnet Capital native holdings route - 2026-07-15T22:20Z
 
 - Promoted `cygnet` through an isolated `CygnetHoldingsAdapter` for `ELM`. It validates

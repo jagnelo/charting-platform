@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Indexperts - 2026-07-15T23:00Z
+
+- Promoted `indexperts` through an isolated `IndexpertsHoldingsAdapter` for `RILA`,
+  `QIDX`, and `YFFI`. The adapter verifies the issuer-designated ETF Pages workspace,
+  calls its declared complete JSON feed, and rejects a payload whose returned fund ticker
+  does not match the requested ETF. It retains identifiers, shares, values, weights, and
+  source dates while classifying cash correctly.
+- Validation passed: Ruff; all `255` adapter unit tests with `--no-cov`; the live `QIDX`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `213/345` native/live-backed providers and `132` fallback-only.
+
 # ETF Holdings Provider Integration - Cygnet Capital - 2026-07-15T22:20Z
 
 - Promoted `cygnet` through an isolated `CygnetHoldingsAdapter` for `ELM`. The adapter
