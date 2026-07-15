@@ -7139,6 +7139,202 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Indexperts ETF holdings from its issuer-designated ETF Pages feed."""
+
+    _FUNDS = {
+        "RILA": "448",
+        "QIDX": "449",
+        "YFFI": "451",
+    }
+    _PRODUCT_PAGE_TEMPLATE = "https://etfpages.com/?t={symbol}"
+    _HOLDINGS_URL_TEMPLATE = "https://www.ncfunds.com/etf/load.php?f={fund_number}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund_number = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if fund_number else Decimal("0.3500"),
+            status="ready" if fund_number or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Indexperts publishes this ETF's complete current holdings through its ETF Pages product site."
+                if fund_number
+                else (
+                    f"Indexperts has no configured native holdings route for {normalized_symbol}; SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Indexperts has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=(
+                self._PRODUCT_PAGE_TEMPLATE.format(symbol=normalized_symbol) if fund_number else None
+            ),
+            issuer_product_id=fund_number,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund_number = self._FUNDS.get(normalized_symbol)
+        if fund_number is None:
+            raise ValueError(f"Indexperts has no configured native holdings route for {symbol}.")
+
+        product_url = self._PRODUCT_PAGE_TEMPLATE.format(symbol=normalized_symbol)
+        holdings_url = self._HOLDINGS_URL_TEMPLATE.format(fund_number=fund_number)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            if "Portfolio Holdings" not in product_response.text:
+                raise ValueError(
+                    f"Indexperts product page did not expose its holdings workspace for {normalized_symbol}."
+                )
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="application/json,*/*"),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        payload = holdings_response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Indexperts holdings feed did not expose complete current rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=payload if isinstance(payload, dict) else None,
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=fund_number,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "issuer_product_page_declared_complete_holdings_json",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "indexperts_etfpages_native_holdings_json",
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict):
+            return [], None
+        general_info = payload.get("generalinfo")
+        if isinstance(general_info, list):
+            general_info = general_info[0] if general_info else None
+        if not isinstance(general_info, dict):
+            return [], None
+        if (_clean(general_info.get("fticker")) or "").upper() != symbol:
+            raise ValueError(
+                f"Indexperts holdings feed identity did not match requested ETF {symbol}."
+            )
+
+        composition_date = cls._composition_date(payload)
+        rows: list[CanonicalHoldingRow] = []
+        holdings = payload.get("holdings")
+        if not isinstance(holdings, list):
+            return [], composition_date
+        for index, item in enumerate(holdings, start=1):
+            if not isinstance(item, dict):
+                continue
+            raw_symbol = _clean(item.get("ticker"))
+            name = _clean(item.get("descr1"))
+            category = _clean(item.get("category"))
+            holding_type, row_type = cls._classify_holding(
+                ticker=raw_symbol,
+                name=name,
+                category=category,
+            )
+            parsed_symbol = cls._tradable_symbol(raw_symbol, holding_type=holding_type)
+            cusip_value = _clean(item.get("cusip"))
+            sedol_value = _clean(item.get("sedol"))
+            if not any([parsed_symbol, name, cusip_value, item.get("marketvalue"), item.get("percentmv")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip_value if _looks_like_cusip(cusip_value) else None,
+                    sedol=sedol_value if _looks_like_sedol(sedol_value) else None,
+                    weight=_decimal_percent_points(item.get("percentmv")),
+                    shares=_decimal(item.get("quantity")),
+                    market_value=_decimal(item.get("marketvalue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"indexperts-{symbol}-{index}",
+                    extra_data={key: value for key, value in item.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _composition_date(payload: dict[str, Any]) -> date | None:
+        dates = payload.get("holdingdates")
+        candidate = dates[0] if isinstance(dates, list) and dates else None
+        if not isinstance(candidate, dict):
+            return None
+        for key in ("medata", "monthend", "asofdate"):
+            raw_date = _clean(candidate.get(key))
+            if not raw_date:
+                continue
+            for format_string in ("%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    return datetime.strptime(raw_date, format_string).date()
+                except ValueError:
+                    continue
+        return None
+
+    @staticmethod
+    def _classify_holding(
+        *,
+        ticker: str | None,
+        name: str | None,
+        category: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (ticker, name, category) if part)
+        if any(token in text for token in ("CASH", "MONEY MARKET", "US DOLLAR")):
+            return "cash", "cash"
+        if any(token in text for token in ("BOND", "NOTE", "TREASURY", "T-BILL")):
+            return "fixed_income", "security"
+        if " ETF" in text or "FUND" in text:
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(ticker: str | None, *, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper()
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
 
@@ -34647,6 +34843,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cygnet Capital's Elm ETF public holdings CSV may be subject to issuer terms.",
     ),
+    "indexperts": IssuerCsvAdapterConfig(
+        adapter_key="indexperts",
+        source_provider="indexperts",
+        source_access="issuer_product_page_declared_complete_holdings_json",
+        product_page_templates=("https://etfpages.com/?t={symbol_upper}",),
+        live_tested_default_route=True,
+        terms_note="Indexperts public ETF Pages holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -34790,6 +34994,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "thornburg": ThornburgHoldingsAdapter,
         "formidable": FormidableHoldingsAdapter,
         "idx": IdxHoldingsAdapter,
+        "indexperts": IndexpertsHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,

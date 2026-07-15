@@ -1566,6 +1566,66 @@ async def test_cygnet_adapter_uses_declared_full_holdings_csv_and_filters_accoun
 
 
 @pytest.mark.asyncio
+async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_holdings(monkeypatch):
+    adapter = get_holdings_adapter("indexperts")
+    assert adapter is not None
+    product_url = "https://etfpages.com/?t=QIDX"
+    holdings_url = "https://www.ncfunds.com/etf/load.php?f=449"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<section><h3>Portfolio Holdings</h3></section>",
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "generalinfo": [{"fticker": "QIDX", "fname": "Indexperts Quality Earnings Focused ETF"}],
+                    "holdingdates": [{"medata": "07/15/2026"}],
+                    "holdings": [
+                        {
+                            "ticker": "ANET",
+                            "cusip": "040413205",
+                            "sedol": "B1Y1W20",
+                            "descr1": "Arista Networks, Inc.",
+                            "quantity": "8366",
+                            "marketvalue": "1527380.62",
+                            "percentmv": "3.9",
+                            "category": "COMMSTCK",
+                        },
+                        {
+                            "ticker": "CASH",
+                            "cusip": "",
+                            "sedol": "",
+                            "descr1": "Cash and Cash Equivalents",
+                            "quantity": "1000",
+                            "marketvalue": "1000",
+                            "percentmv": "0.01",
+                            "category": "CASH",
+                        },
+                    ],
+                }
+            ),
+            content_type="application/json",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QIDX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ANET"
+    assert result.rows[0].weight == Decimal("0.039")
+    assert result.rows[0].sedol == "B1Y1W20"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
