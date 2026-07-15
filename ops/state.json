@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T01:38:00Z",
+    "last_handoff_at": "2026-07-15T02:10:00Z",
     "last_commit": null,
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Twin Oak adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 242 passed with --no-cov) and opt-in live Twin Oak TOAK route plus manifest checks (3 selected passed). The live manifest now proves all 200 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Sterling Capital adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 243 passed with --no-cov) and opt-in live Sterling Capital SCEP route plus manifest checks (3 selected passed). The live manifest now proves all 201 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T02:10Z Sterling Capital native route: SterlingCapitalHoldingsAdapter validates the selected fund-scoped current-holdings PDF against the Sterling Capital and ETF title before parsing holdings. It supports the six public ETF symbols SCEC, SCEP, SCMC, SCNM, SCSB, and SCUB; preserves CUSIPs, shares, derived values, percent weights and source dates; and classifies money-market holdings as cash. Targeted Ruff, the full 243-test adapter suite, and live SCEP plus manifest checks passed. Strict state is 345 registered, 201 native/live-backed, and 144 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T01:38Z Twin Oak native route: TwinOakHoldingsAdapter verifies TOAK's issuer fund page and its own application-declared FilePoint feed before parsing the account-scoped CSV. It preserves CUSIPs, values, shares, percent weights and source dates, and classifies options and money-market balances correctly. Targeted Ruff, the full 242-test adapter suite, and live TOAK plus manifest checks passed. Strict state is 345 registered, 200 native/live-backed, and 145 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T01:20Z Wellington source audit: the registered Wellington Management identity maps to an investment manager/sub-adviser rather than an independently sponsored US ETF range. The ETF products found are Vanguard-owned, so Wellington remains fallback-only until a concrete sponsor/product mapping exists.",
         "2026-07-15T01:12Z TrueMark native route: TrueMarkHoldingsAdapter verifies the LRNZ TrueMark/TrueShares product page before consuming its explicitly linked complete Google Sheets CSV. It filters account-scoped rows, preserves identifiers, values, percentage weights and source date, and classifies MMKT money-market rows as cash. Targeted Ruff, the full 241-test adapter suite, and live LRNZ plus manifest checks passed. Strict state is 345 registered, 199 native/live-backed, and 146 fallback-only; SEC EDGAR remains fallback-only.",

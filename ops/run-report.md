@@ -10530,3 +10530,14 @@ Append a short entry after each worker session.
   manager/sub-adviser, not the sponsor of the US-listed VUSV/VUSG ETF products found.
   Their holdings routes are Vanguard-owned. No provider was promoted; native support
   requires a concrete Wellington-sponsored US ETF product mapping.
+
+# ETF Holdings Provider Integration - 2026-07-15T02:10Z
+
+- Promoted `sterling_capital` through a dedicated `SterlingCapitalHoldingsAdapter` for
+  `SCEC`, `SCEP`, `SCMC`, `SCNM`, `SCSB`, and `SCUB`. It uses Sterling's public fund-scoped
+  current-holdings PDF exports, validates the issuer and selected fund title, then parses
+  complete rows with CUSIPs, shares, derived market values, percent weights, dates, and cash.
+- Validation passed: targeted Ruff; full adapter unit suite (`243 passed`); live `SCEP`; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `201` native/live-backed, `144` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.

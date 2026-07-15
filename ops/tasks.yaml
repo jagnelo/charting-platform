@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 200 native/live-backed providers out of 345; 145 remain.
+      - Current truthful count: 201 native/live-backed providers out of 345; 144 remain.
       - >
         Current priority blockers: WisdomTree, SoFi, and Thrivent return bot-protection HTTP 403
         responses to browser-header backend requests. Thrivent and WisdomTree advertise current

@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Sterling Capital native holdings route - 2026-07-15T02:10Z
+
+- Promoted `sterling_capital` through an isolated `SterlingCapitalHoldingsAdapter` for the
+  issuer's six public ETF symbols: `SCEC`, `SCEP`, `SCMC`, `SCNM`, `SCSB`, and `SCUB`.
+  The adapter requests only the selected fund's public current-holdings PDF, verifies its
+  Sterling Capital and fund-title identity, then preserves CUSIPs, position sizes, derived
+  market values, percent weights, dates, and money-market classification.
+- Static coverage verifies the fund-scoped request, PDF identity, percentage conversion,
+  market-value derivation, and cash classification. Validation passed: targeted Ruff, full
+  adapter unit suite (`243 passed`), plus the live `SCEP` issuer route and strict provider
+  manifest checks (`3 passed`).
+- Strict coverage is now `201/345` native/live-backed, leaving `144` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary support.
+
 ## Twin Oak native holdings route - 2026-07-15T01:38Z
 
 - Promoted `twin_oak` through an isolated `TwinOakHoldingsAdapter` for `TOAK`.
