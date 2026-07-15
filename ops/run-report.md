@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - LionShares - 2026-07-15T22:00Z
+
+- Promoted `lionshares` through an isolated `LionSharesHoldingsAdapter` for `TOT`.
+  It validates the issuer's public fund page and script, then consumes only the
+  application-declared current FilePoint CSV and filters rows by account. Ticker, CUSIP,
+  shares, value, weights, date, and money-market/cash semantics are retained.
+- Validation passed: Ruff; all `253` adapter unit tests with `--no-cov`; the live `TOT`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `211/345` native/live-backed providers and `134` fallback-only.
+
 # ETF Holdings Provider Integration - Intech - 2026-07-15T03:00Z
 
 - Added `IntechHoldingsAdapter` for Intech's issuer-public ETF catalogue and its current,

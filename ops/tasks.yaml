@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 210 native/live-backed providers out of 345; 135 remain.
+      - Current truthful count: 211 native/live-backed providers out of 345; 134 remain.
+      - >
+        LionShares is supported through its issuer-declared public TOT product page,
+        application script, and complete account-scoped daily holdings CSV.
       - >
         Formidable is supported through its verified public FORH and KONG product pages,
         which expose complete current holdings tables scoped by ETF ticker.

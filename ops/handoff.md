@@ -1,5 +1,19 @@
 # Active Handoff
 
+## LionShares native holdings route - 2026-07-15T22:00Z
+
+- Promoted `lionshares` through an isolated `LionSharesHoldingsAdapter` for `TOT`. It
+  verifies the issuer product page and its declared application script, then follows only
+  the script-declared complete current FilePoint CSV. The parser filters shared rows by
+  the requested `Account`, preserves ticker/CUSIP/shares/value/weights/source date, and
+  classifies money-market or cash rows without inventing tradable symbols.
+- Validation passed: Ruff; the full adapter suite (`253 passed`); opt-in live `TOT`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `211/345` native/live-backed and `134` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party holdings artifact. Do not promote sources that only provide SEC data,
+  top holdings, unverifiable sibling data, or non-executable browser routes.
+
 ## Formidable native holdings route - 2026-07-15T21:00Z
 
 - Promoted `formidable` through an isolated `FormidableHoldingsAdapter` for `FORH` and
