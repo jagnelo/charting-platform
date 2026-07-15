@@ -4044,6 +4044,61 @@ async def test_tremblant_adapter_verifies_toga_application_and_parses_filepoint_
 
 
 @pytest.mark.asyncio
+async def test_twin_oak_adapter_validates_application_feed_and_filters_fund_rows(monkeypatch):
+    adapter = get_holdings_adapter("twin_oak")
+    assert adapter is not None
+
+    filename = "FilepointTwinOak.40O9.O9_ETF_Holdings.csv"
+    holdings_url = f"https://twinoaketfs.com/assets/data/{filename}"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<div class="fund-page" data-ticker="TOAK"></div>',
+            content_type="text/html",
+            url="https://twinoaketfs.com/TOAK",
+        ),
+        FakeResponse(
+            text=f'$.ajax({{url:"./assets/data/{filename}"}})',
+            content_type="application/javascript",
+            url=adapter.APP_SCRIPT_URL,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "07/15/2026,TOAK,2SPY  260821C00020010,2SPY  260821C00020010,SPY 08/21/2026 20.01 C,911,731.8401,666706.33,73.48%,90727474,3140000,314,",
+                    "07/15/2026,TOAK,USBFS03,8AMMF0A84,U.S. Bank Money Market Deposit Account,71561.12,100,71561.12,0.08%,90727474,3140000,314,Y",
+                    "07/15/2026,TOAK,Cash&Other,Cash&Other,Cash & Other,-9327.91,1,-9327.91,-0.01%,90727474,3140000,314,Y",
+                    "07/15/2026,TSPX,VOO,922908363,Vanguard S&P 500 ETF,1,691.1,691.1,80.91%,239661600,8000000,1600,",
+                ]
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TOAK", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://twinoaketfs.com/TOAK",
+        adapter.APP_SCRIPT_URL,
+        holdings_url,
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "option"
+    assert result.rows[0].weight == Decimal("0.7348")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_fund_page_verified_application_declared_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("fm_investments")
     assert adapter is not None
