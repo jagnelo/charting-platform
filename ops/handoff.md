@@ -5215,3 +5215,15 @@
   payload identities, and parses full dated holdings including identifiers, weights, currency,
   cash, and derivatives. Static and opt-in live tests passed. Strict provider count: `345`
   registered, `179` native/live-backed, `166` remaining; SEC EDGAR remains fallback-only.
+# ETF Holdings Provider Integration - 2026-07-15T02:28Z
+
+- Promoted the separately registered `natixis` identity through a dedicated
+  `NatixisInvestmentManagersHoldingsAdapter` and concrete `GQI` live route. It uses the
+  verified issuer-native daily full-holdings CSV, preserves ticker/CUSIP/ISIN, shares,
+  values, percent weights, dates, and cash classification, and is independently configured
+  from `groupe_bpce`. The two exact-issuer integrations share only the common CSV parser and
+  TLS handling because they use the same publicly documented Natixis export.
+- Validation passed: targeted Ruff; full adapter unit suite (`244 passed`); live `GQI`; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `202` native/live-backed, `143` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.

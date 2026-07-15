@@ -10541,3 +10541,13 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `201` native/live-backed, `144` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Integration - 2026-07-15T02:28Z
+
+- Promoted the separately registered `natixis` provider through a dedicated
+  `NatixisInvestmentManagersHoldingsAdapter` and live `GQI` route. It consumes Natixis
+  Investment Managers' issuer-native daily full-holdings CSV and preserves identifiers,
+  shares, values, weights, source dates, and cash rows.
+- Validation passed: targeted Ruff; full adapter suite (`244 passed`); live `GQI`; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `202` native/live-backed, `143` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.
