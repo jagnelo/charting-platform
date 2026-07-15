@@ -1472,6 +1472,57 @@ async def test_formidable_adapter_parses_only_requested_fund_holdings(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_lionshares_adapter_uses_product_declared_csv_and_filters_account(monkeypatch):
+    adapter = get_holdings_adapter("lionshares")
+    assert adapter is not None
+    product_url = "https://lionsharesetf.com/tot"
+    application_url = "https://lionsharesetf.com/assets/js/app.js?version=16"
+    holdings_url = "https://lionsharesetf.com/assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<div class="fund-page" data-ticker="TOT"></div><script src="/assets/js/app.js?version=16"></script>',
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text='const holdings = "./assets/data/FilepointLionshares.40L8.L8_ETF_Holdings.csv";',
+            content_type="application/javascript",
+            url=application_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag",
+                    "07/15/2026,TOT,ITOT,464287150,iShares Core S&P Total U.S. Stock Market ETF,60744,164.88,10015470.72,99.93%,",
+                    "07/15/2026,TOT,FXFXX,31846V328,First American Treasury Obligations Fund,7082.64,100,7082.64,0.07%,Y",
+                    "07/15/2026,TOT,Cash&Other,Cash&Other,Cash & Other,-188.92,1,-188.92,0.00%,Y",
+                    "07/15/2026,SIB,SIB,123456789,Sibling Fund Position,1,1,1,100%,",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TOT")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_url,
+        application_url,
+        holdings_url,
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ITOT"
+    assert result.rows[0].weight == Decimal("0.9993")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

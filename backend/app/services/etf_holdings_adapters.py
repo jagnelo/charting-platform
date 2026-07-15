@@ -10367,6 +10367,196 @@ class TremblantHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return output.getvalue()
 
 
+class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch LionShares ETF holdings from its issuer-declared FilePoint CSV."""
+
+    _FUNDS = {"TOT": "https://lionsharesetf.com/tot"}
+    _DATA_FILE_PATTERN = re.compile(
+        r"[\"'](?P<path>\./assets/data/FilepointLionshares\.[^\"']+_ETF_Holdings\.csv)[\"']",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "LionShares publishes this ETF's complete current holdings CSV through its public fund application."
+                if product_url
+                else f"LionShares has no configured native holdings route for {normalized_symbol}; SEC fallback remains available."
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"LionShares has no configured native holdings route for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_page.raise_for_status()
+            application_url = self._application_url(product_page.text, product_url=product_url)
+            application = await client.get(
+                application_url,
+                headers=_issuer_page_request_headers(accept="application/javascript,*/*"),
+                follow_redirects=True,
+            )
+            application.raise_for_status()
+            holdings_url = self._holdings_url(application.text, application_url=application_url)
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,*/*"),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(f"LionShares holdings CSV did not expose rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=None,
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_fund_page_verified_application_declared_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "lionshares_issuer_native_filepoint_holdings_csv",
+            },
+        )
+
+    @staticmethod
+    def _application_url(raw_html: str, *, product_url: str) -> str:
+        if re.search(r'data-ticker=["\']TOT["\']', raw_html, re.IGNORECASE) is None:
+            raise ValueError("LionShares product page identity did not match requested ETF TOT.")
+        match = re.search(r'<script[^>]+src=["\'](?P<src>[^"\']*app\.js[^"\']*)', raw_html, re.IGNORECASE)
+        if match is None:
+            raise ValueError("LionShares product page did not declare its holdings application.")
+        return urljoin(product_url, html.unescape(match.group("src")))
+
+    @classmethod
+    def _holdings_url(cls, raw_application: str, *, application_url: str) -> str:
+        match = cls._DATA_FILE_PATTERN.search(raw_application)
+        if match is None:
+            raise ValueError("LionShares public application did not declare a complete holdings CSV.")
+        # The app resolves this relative path in the fund-page document, not beside its JS asset.
+        return urljoin(application_url, "/" + match.group("path").lstrip("./"))
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(raw.get("Account")) or "").upper()
+            if account != symbol:
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if composition_date is None:
+                composition_date = row_date
+            raw_symbol = _clean(raw.get("StockTicker"))
+            name = _clean(raw.get("SecurityName"))
+            row_type, holding_type = cls._classify_holding(
+                symbol=raw_symbol,
+                name=name,
+                money_market=_clean(raw.get("MoneyMarketFlag")),
+            )
+            cusip_value = _clean(raw.get("CUSIP"))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+            parsed_symbol = cls._clean_symbol(raw_symbol) if holding_type in {"equity", "fund"} else None
+            if not any([parsed_symbol, name, cusip, raw.get("MarketValue"), raw.get("Weightings")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"lionshares-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _clean_symbol(value: Any) -> str | None:
+        candidate = _clean(value)
+        if not candidate or _looks_like_cusip(candidate.upper()):
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _classify_holding(
+        *,
+        symbol: str | None,
+        name: str | None,
+        money_market: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (symbol, name) if part)
+        if (money_market or "").upper() == "Y" or "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if re.search(r"\b\d{6}[CP]\d{8}\b", text) or re.search(r"\b[CP]$", text):
+            return "security", "option"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if any(marker in text for marker in ("BOND", "TREASURY", "NOTE")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class TwinOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Twin Oak ETF holdings from its public, fund-page-declared CSV feeds."""
 
@@ -34290,6 +34480,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="IDX Shares public ETF holdings tables may be subject to issuer terms.",
     ),
+    "lionshares": IssuerCsvAdapterConfig(
+        adapter_key="lionshares",
+        source_provider="lionshares",
+        source_access="issuer_fund_page_verified_application_declared_holdings_csv",
+        product_page_templates=("https://lionsharesetf.com/tot",),
+        live_tested_default_route=True,
+        terms_note="LionShares public ETF daily holdings CSV exports may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -34433,6 +34631,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "thornburg": ThornburgHoldingsAdapter,
         "formidable": FormidableHoldingsAdapter,
         "idx": IdxHoldingsAdapter,
+        "lionshares": LionSharesHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
