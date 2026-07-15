@@ -107,6 +107,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "first_pacific",
     "federated_hermes",
     "fidelity",
+    "frontier",
     "oneascent",
     "first_eagle",
     "fm_investments",
@@ -494,6 +495,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("natixis", "GQI", None, {}, 100),
         ("western_southern", "LCF", None, {}, 20),
         ("intech", "LGDX", None, {}, 100),
+        ("frontier", "FARX", None, {}, 10),
         (
             "anfield",
             "AEMS",

@@ -1230,6 +1230,66 @@ async def test_intech_adapter_resolves_current_fund_scoped_daily_holdings_pdf(mo
 
 
 @pytest.mark.asyncio
+async def test_frontier_adapter_validates_product_page_and_filters_dated_daily_export(monkeypatch):
+    adapter = get_holdings_adapter("frontier")
+    assert adapter is not None
+    product_url = "https://funds.frontierasset.com/absolute-return-etf"
+    holdings_url = (
+        "https://funds.frontierasset.com/assets/data/"
+        "SEI_Frontier_Tradedate_Holdings_20260714.txt"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<body class="fundid" data-ticker="FARX">'
+                "<h1>Frontier Asset Absolute Return ETF</h1></body>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(status_code=404, content_type="text/html"),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|security_type|security_number|security_cusip|security_sedol|security_isin|security_ticker|security_description|quantity|market_value|notional_value|percent_of_market_value|percent_of_net_assets",
+                    "07/14/2026|4890|Frontier Asset Absolute Return ETF|00764Q637|FARX|Cash|||||||Cash|69,625.04|69,625.04||0.55|0.54",
+                    "07/14/2026|4890|Frontier Asset Absolute Return ETF|00764Q637|FARX|Mutual Fund||02368W309|02368W309|BR853F1|US02368W3097|AHLT|AMERICAN BEACON AHL TREND|93,191.00|2,693,219.90||21.17|21.05",
+                    "07/14/2026|4891|Frontier Asset Core Bond ETF|00764Q629|FCBD|Fund||46431W580|46431W580||US46431W5806|BND|VANGUARD TOTAL BOND MARKET ETF|1|1||100|100",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.date",
+        type("FixedDate", (), {"today": staticmethod(lambda: date(2026, 7, 15))}),
+    )
+
+    result = await adapter.fetch_latest(symbol="FARX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_url,
+        "https://funds.frontierasset.com/assets/data/SEI_Frontier_Tradedate_Holdings_20260715.txt",
+        holdings_url,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[1].symbol == "AHLT"
+    assert result.rows[1].cusip == "02368W309"
+    assert result.rows[1].isin == "US02368W3097"
+    assert result.rows[1].sedol == "BR853F1"
+    assert result.rows[1].weight == Decimal("0.2105")
+    assert result.legal_metadata["route_resolution"] == (
+        "frontier_dated_daily_fund_scoped_holdings_export"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

@@ -4353,6 +4353,206 @@ class IntechHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class FrontierHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Frontier Asset's dated, fund-scoped daily ETF holdings export."""
+
+    _FUNDS = {
+        "FARX": ("absolute-return-etf", "Frontier Asset Absolute Return ETF"),
+        "FCBD": ("core-bond-etf", "Frontier Asset Core Bond ETF"),
+        "FGSM": ("global-small-cap-equity-etf", "Frontier Asset Global Small Cap Equity ETF"),
+        "FINT": ("total-international-equity-etf", "Frontier Asset Total International Equity ETF"),
+        "FLCE": ("us-large-cap-equity-etf", "Frontier Asset U.S. Large Cap Equity ETF"),
+        "FOPC": ("opportunistic-credit-etf", "Frontier Asset Opportunistic Credit ETF"),
+    }
+    _PAGE_TEMPLATE = "https://funds.frontierasset.com/{slug}"
+    _HOLDINGS_TEMPLATE = (
+        "https://funds.frontierasset.com/assets/data/"
+        "SEI_Frontier_Tradedate_Holdings_{date_code}.txt"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        route = self._FUNDS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if route else Decimal("0.7000"),
+            status="ready",
+            reason=(
+                "Frontier Asset publishes a dated daily, fund-scoped holdings export."
+                if route
+                else "Frontier Asset publishes ETF holdings; the fund page determines the export scope."
+            ),
+            source_url=self._PAGE_TEMPLATE.format(slug=route[0]) if route else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        route = self._FUNDS.get(normalized_symbol)
+        if not route:
+            raise ValueError(f"No configured Frontier Asset ETF product route matches {normalized_symbol}.")
+        slug, expected_name = route
+        product_page_url = source_url or self._PAGE_TEMPLATE.format(slug=slug)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            self._validate_product_page(
+                product_response.text,
+                symbol=normalized_symbol,
+                expected_name=expected_name,
+            )
+            for offset in range(15):
+                report_date = date.today() - timedelta(days=offset)
+                holdings_url = self._HOLDINGS_TEMPLATE.format(
+                    date_code=report_date.strftime("%Y%m%d")
+                )
+                response = await client.get(
+                    holdings_url,
+                    headers=_holdings_request_headers(accept="text/plain,text/csv,*/*"),
+                    follow_redirects=True,
+                )
+                if response.status_code == 404:
+                    continue
+                response.raise_for_status()
+                rows, composition_date = self._parse_daily_holdings(
+                    response.text,
+                    symbol=normalized_symbol,
+                )
+                if not rows:
+                    raise ValueError(
+                        f"Frontier Asset daily holdings export contained no {normalized_symbol} rows."
+                    )
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=response.text,
+                    raw_json={
+                        "source_format": "issuer_daily_pipe_delimited_holdings",
+                        "product_page_url": str(product_response.url),
+                    },
+                    source_url=str(response.url),
+                    source_identifier=normalized_symbol,
+                    legal_metadata={
+                        "source_access": self.config.source_access,
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "pipe_delimited_text",
+                        "route_resolution": "frontier_dated_daily_fund_scoped_holdings_export",
+                        "composition_date": composition_date.isoformat() if composition_date else None,
+                        "as_of_date": composition_date.isoformat() if composition_date else None,
+                        "terms_note": self.config.terms_note,
+                    },
+                )
+        raise ValueError("Frontier Asset did not publish a holdings export in the last 15 days.")
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str, expected_name: str) -> None:
+        ticker_match = re.search(r'data-ticker=["\'](?P<ticker>[^"\']+)["\']', raw_html, re.I)
+        page_ticker = ticker_match.group("ticker").strip().upper() if ticker_match else None
+        if page_ticker != symbol or expected_name.casefold() not in raw_html.casefold():
+            raise ValueError("Frontier Asset product page did not match the requested ETF identity.")
+
+    @classmethod
+    def _parse_daily_holdings(
+        cls,
+        raw_text: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for item in csv.DictReader(StringIO(raw_text), delimiter="|"):
+            if _clean(item.get("fund_ticker")) != symbol:
+                continue
+            row_date = cls._parse_date(item.get("date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            name = _clean(item.get("security_description"))
+            ticker = _clean(item.get("security_ticker"))
+            cusip = _clean(item.get("security_cusip"))
+            isin = _clean(item.get("security_isin"))
+            sedol = _clean(item.get("security_sedol"))
+            security_group = _clean(item.get("security_group"))
+            security_type = _clean(item.get("security_type"))
+            if not any([name, ticker, cusip, isin, sedol]):
+                continue
+            holding_type = cls._holding_type(
+                security_group,
+                security_type,
+                name,
+                ticker,
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if row_type == "cash" else ticker,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin if _looks_like_isin(isin) else None,
+                    sedol=sedol if _looks_like_sedol(sedol) else None,
+                    weight=_decimal_percent_points(item.get("percent_of_net_assets")),
+                    shares=_decimal(item.get("quantity")),
+                    market_value=_decimal(item.get("market_value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"{symbol}:{len(rows) + 1}:{cusip or isin or ticker or name}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _holding_type(
+        security_group: str | None,
+        security_type: str | None,
+        name: str | None,
+        ticker: str | None,
+    ) -> str:
+        text = " ".join(
+            part.upper()
+            for part in (security_group, security_type, name, ticker)
+            if part
+        )
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash"
+        if any(term in text for term in ("BOND", "TREASURY", "FIXED INCOME")):
+            return "fixed_income"
+        if any(term in text for term in ("FUTURE", "OPTION", "SWAP", "FORWARD")):
+            return "derivative"
+        if "FUND" in text or "ETF" in text or "MUTUAL" in text:
+            return "fund"
+        return "equity"
+
+
 class GqgHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch GQG ETF holdings from the issuer's daily FilePoint export."""
 
@@ -31916,6 +32116,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Intech public ETF product pages and daily holdings PDFs may be subject to issuer terms.",
     ),
+    "frontier": IssuerCsvAdapterConfig(
+        adapter_key="frontier",
+        source_provider="frontier_asset",
+        source_access="issuer_verified_dated_daily_fund_scoped_holdings_export",
+        product_page_templates=(
+            "https://funds.frontierasset.com/absolute-return-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note="Frontier Asset public daily ETF holdings exports may be subject to issuer terms.",
+    ),
     "im_global_partner": IssuerCsvAdapterConfig(
         adapter_key="im_global_partner",
         source_provider="im_global_partner",
@@ -33573,6 +33783,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "natixis": NatixisInvestmentManagersHoldingsAdapter,
         "western_southern": WesternSouthernHoldingsAdapter,
         "intech": IntechHoldingsAdapter,
+        "frontier": FrontierHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
