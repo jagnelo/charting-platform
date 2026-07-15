@@ -1,5 +1,17 @@
 # Active Handoff
 
+## IDX Shares native holdings route - 2026-07-15T20:15Z
+
+- Promoted `idx` through an isolated `IdxHoldingsAdapter` for the issuer's complete
+  public product pages: `DYFI` and `GLDB`. The adapter verifies the page's fund-scoped
+  `data-title`, parses only its current holdings table, preserves shares, market value,
+  percentage weights, and as-of date, and classifies cash and futures without exposing
+  them as tradable equity symbols.
+- Validation passed: Ruff, the full adapter suite (`251 passed`), the opt-in live GLDB
+  route, provider matrix, and concrete-live-route invariant (`3 passed`). Strict coverage
+  is now `209/345` native/live-backed and `136` fallback-only; SEC EDGAR remains
+  fallback-only and is not counted as primary provider support.
+
 ## Thornburg native holdings route - 2026-07-15T18:45Z
 
 - Promoted `thornburg` through an isolated `ThornburgHoldingsAdapter`. It validates the

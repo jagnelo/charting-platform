@@ -10624,3 +10624,14 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `207` native/live-backed, `138` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Native Route - 2026-07-15T20:15Z
+
+- Promoted `idx` through a dedicated `IdxHoldingsAdapter` for the issuer's complete
+  public current-holdings tables on its `DYFI` and `GLDB` product pages. The adapter
+  verifies the requested product identity against the page's fund-scoped table, retains
+  shares, values, decimal weights and source date, and classifies cash and futures
+  without creating false tradable symbols.
+- Validation passed: Ruff; full adapter suite (`251 passed`); opt-in live `GLDB` route;
+  provider matrix; and concrete-live-route invariant (`3 passed`). Strict count: `345`
+  registered providers, `209` native/live-backed, `136` fallback-only. SEC EDGAR remains
+  fallback-only and does not count as primary provider support.

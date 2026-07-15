@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 208 native/live-backed providers out of 345; 137 remain.
+      - Current truthful count: 209 native/live-backed providers out of 345; 136 remain.
+      - >
+        IDX Shares is supported through its verified public ETF catalogue and the complete
+        current holdings tables on its DYFI and GLDB fund pages.
       - >
         Thornburg is supported through its verified ETF product pages and the dated,
         fund-scoped worksheet selected from its complete issuer-hosted holdings workbook.
