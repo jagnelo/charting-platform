@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Russell Investments - 2026-07-15T22:35Z
+
+- Promoted `russell_investments` through an isolated month-end issuer workbook
+  adapter for `RUSC`, `RINT`, `RGLO`, `REMG`, and `RIFR`. It validates the expected
+  strategy title and Russell-specific schema, derives weights from reported net
+  assets, extracts the composition date, and classifies non-tradable rows correctly.
+- Validation passed: Ruff; all `264` adapter unit tests with `--no-cov`; the live
+  `RUSC` issuer route; and the concrete-live-route invariant (`2 passed`). Strict
+  coverage is now `217/345` native/live-backed providers and `128` fallback-only.
+
 # ETF Holdings Provider Integrity Repair - Global X - 2026-07-15T21:00Z
 
 - Replaced Global X's inherited generic discovery path with an issuer-specific

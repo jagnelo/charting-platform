@@ -20,7 +20,11 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 216 native/live-backed providers out of 345; 129 remain.
+      - Current truthful count: 217 native/live-backed providers out of 345; 128 remain.
+      - >
+        Russell Investments is supported through issuer-hosted month-end strategy
+        workbooks for RUSC, RINT, RGLO, REMG, and RIFR. Its adapter validates the
+        expected strategy title and Russell workbook schema before parsing holdings.
       - >
         Counted empty adapters for SPDR, YieldMax, and VanEck have now been
         replaced with isolated schema-specific parser implementations and live

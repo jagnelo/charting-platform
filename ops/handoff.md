@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Russell Investments native holdings route - 2026-07-15T22:35Z
+
+- Promoted `russell_investments` with an isolated month-end workbook adapter for
+  `RUSC`, `RINT`, `RGLO`, `REMG`, and `RIFR`. It uses only Russell's issuer-hosted
+  strategy workbook route, verifies the expected fund title and explicit schema,
+  calculates weights from reported net assets, and preserves non-tradable cash,
+  derivatives, futures, options, and bonds without inventing ticker symbols.
+- Validation passed: Ruff; full adapter suite (`264 passed`); opt-in live `RUSC`
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is now
+  `217/345` native/live-backed and `128` fallback-only; SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with the next backend-reachable, complete
+  first-party artifact. Do not promote top-holdings pages, generic spreadsheet parsing,
+  inaccessible browser-only routes, or SEC-only data as native support.
+
 ## Global X native-parser integrity repair - 2026-07-15T21:00Z
 
 - Replaced the counted-but-generic `GlobalXHoldingsAdapter` path with an
