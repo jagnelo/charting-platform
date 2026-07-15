@@ -1831,6 +1831,57 @@ async def test_yieldmax_adapter_filters_account_and_keeps_options_non_tradable(m
 
 
 @pytest.mark.asyncio
+async def test_vaneck_adapter_parses_us_disclosure_workbook(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    product_slug = "semiconductor-etf-smh"
+    holdings_url = (
+        "https://www.vaneck.com/us/en/investments/semiconductor-etf-smh/downloads/holdings/?cken=true"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=_xlsx_workbook(
+                [
+                    ["Daily Holdings (%)  07/14/2026"],
+                    [],
+                    [
+                        "Number",
+                        "Ticker",
+                        "Holding Name",
+                        "Identifier (FIGI)",
+                        "Shares",
+                        "Asset Class",
+                        "Market Value (US$)",
+                        "Notional Value",
+                        "% of Net Assets",
+                    ],
+                    ["1", "NVDA", "Nvidia Corp", "BBG000BBJQV0", "69,005,218", "Stock", "$14,615,305,172.40", "--", "20.31%"],
+                    ["2", "", "Cash & Other", "", "20", "Cash", "$20", "--", "0.01%"],
+                    ["3", "", "US Treasury Bill", "", "200", "Fixed Income", "$200", "--", "0.02%"],
+                ]
+            ),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="SMH",
+        identifiers={"product_slug": product_slug},
+    )
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert FakeAsyncClient.requested[0][1]["headers"]["Cookie"] == adapter._US_DISCLOSURE_COOKIE
+    assert [row.symbol for row in result.rows] == ["NVDA", None, None]
+    assert [row.holding_type for row in result.rows] == ["equity", "cash", "fixed_income"]
+    assert result.rows[0].weight == Decimal("0.2031")
+    assert result.rows[0].extra_data["figi"] == "BBG000BBJQV0"
+    assert result.legal_metadata["composition_date"] == "2026-07-14"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

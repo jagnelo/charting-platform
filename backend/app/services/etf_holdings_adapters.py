@@ -3094,7 +3094,196 @@ class AmeripriseHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Fetch VanEck's US fund-scoped daily holdings workbooks.
+
+    VanEck's public US disclosure endpoint requires its ordinary country and
+    retail-disclaimer cookies.  The adapter scopes those headers to VanEck and
+    parses the issuer's FIGI-based workbook schema directly.
+    """
+
+    _HOLDINGS_URL_TEMPLATE = "https://www.vaneck.com/us/en/investments/{product_slug}/downloads/holdings/?cken=true"
+    _REQUIRED_HEADERS = frozenset(
+        {"Number", "Ticker", "Holding Name", "Identifier (FIGI)", "Shares", "Asset Class", "Market Value (US$)", "% of Net Assets"}
+    )
+    _US_DISCLOSURE_COOKIE = (
+        "ve-country-us=iso%3Dus%26investortype%3Dretail%26language%3Den%26"
+        "disclaimer%3Dtrue%26foreigntax%3Dfalse%26foreigntaxdisclaimer%3Dfalse; "
+        "ve-country=current%3Dus%26previous%3D; visitortype=user; sitelanguage=en"
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        product_slug = _identifier(identifiers, "product_slug", "issuer_product_id", "fund_slug")
+        sec_cik = _identifier(identifiers, "sec_cik")
+        if not product_slug and sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason=(
+                    "VanEck's fund-scoped workbook needs a product slug; SEC EDGAR filings "
+                    "remain available as the documented fallback for this ETF."
+                ),
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=_identifier(identifiers, "issuer_product_id", "sec_series_id"),
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_slug else Decimal("0.6500"),
+            status="ready" if product_slug else "needs_issuer_route",
+            reason=(
+                "VanEck's public US disclosure route publishes this ETF's complete current holdings workbook."
+                if product_slug
+                else "VanEck holdings require the issuer's product slug to select the fund-scoped workbook."
+            ),
+            source_url=(self._holdings_url(product_slug) if product_slug else None),
+            issuer_product_id=product_slug,
+            required_identifiers=[] if product_slug else ["product_slug"],
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        normalized_identifiers = identifiers or {}
+        product_slug = (
+            issuer_product_id
+            or _identifier(normalized_identifiers, "product_slug", "issuer_product_id", "fund_slug")
+        )
+        if not normalized_symbol or not product_slug:
+            raise ValueError("VanEck holdings require an ETF symbol and issuer product slug.")
+        holdings_url = source_url or self._holdings_url(product_slug)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self._request_headers(product_slug=product_slug),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_workbook(response.content)
+        if not rows:
+            raise ValueError(f"VanEck workbook did not expose holdings for {normalized_symbol}.")
+        workbook_rows = parse_xlsx_table(response.content)
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            source_url=str(response.url),
+            source_identifier=product_slug,
+            legal_metadata={
+                "source_access": "vaneck_fund_scoped_daily_holdings_xlsx",
+                "source_provider": "vaneck",
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "vaneck_us_disclosure_cookie_fund_workbook",
+                "product_slug": product_slug,
+                "snapshot_provenance": "vaneck_native_daily_holdings_workbook",
+                **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    @classmethod
+    def _holdings_url(cls, product_slug: str) -> str:
+        return cls._HOLDINGS_URL_TEMPLATE.format(product_slug=product_slug.strip())
+
+    @classmethod
+    def _request_headers(cls, *, product_slug: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(
+            accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*"
+        )
+        headers["Cookie"] = cls._US_DISCLOSURE_COOKIE
+        headers["Referer"] = (
+            f"https://www.vaneck.com/us/en/investments/{product_slug.strip()}/holdings/?cken=true"
+        )
+        return headers
+
+    @classmethod
+    def _parse_workbook(cls, raw_workbook: bytes) -> tuple[list[CanonicalHoldingRow], date | None]:
+        workbook_rows = parse_xlsx_table(raw_workbook)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if cls._REQUIRED_HEADERS.issubset({_clean(value) or "" for value in row})
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError("VanEck workbook did not expose the expected holdings schema.")
+        composition_date = cls._parse_as_of_date(_clean(workbook_rows[0][0]) if workbook_rows else None)
+        header = workbook_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for position, raw_row in enumerate(workbook_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("Holding Name"))
+            source_ticker = _clean(raw.get("Ticker"))
+            figi = _clean(raw.get("Identifier (FIGI)"))
+            if not any((name, source_ticker, figi)):
+                continue
+            row_type, holding_type = cls._classify_row(
+                asset_class=_clean(raw.get("Asset Class")),
+                name=name,
+                source_ticker=source_ticker,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(source_ticker) if row_type == "security" else None,
+                    name=name,
+                    weight=_decimal(raw.get("% of Net Assets")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value (US$)")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"vaneck-{position}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if _clean(value) is not None},
+                        **({"figi": figi} if figi else {}),
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_as_of_date(value: str | None) -> date | None:
+        match = re.search(r"(\d{2}/\d{2}/\d{4})", value or "")
+        if match is None:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if candidate is None:
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        asset_class: str | None,
+        name: str | None,
+        source_ticker: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (asset_class, name, source_ticker) if part)
+        if "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if any(marker in text for marker in ("OPTION", "FUTURE", "SWAP", "FORWARD")):
+            return "other", "derivative"
+        if any(marker in text for marker in ("BOND", "TREASURY", "FIXED INCOME")):
+            return "security", "fixed_income"
+        if "FUND" in text or " ETF" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class VoyaHoldingsAdapter(IssuerCsvHoldingsAdapter):
