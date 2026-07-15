@@ -20,7 +20,10 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 206 native/live-backed providers out of 345; 139 remain.
+      - Current truthful count: 207 native/live-backed providers out of 345; 138 remain.
+      - >
+        Goose Hollow Capital is supported through its own verified ETF application and
+        its current complete GHTA holdings payload.
       - >
         Frontier Asset is supported through its own verified fund pages and dated daily
         fund-scoped holdings exports for FARX, FCBD, FGSM, FINT, FLCE, and FOPC.

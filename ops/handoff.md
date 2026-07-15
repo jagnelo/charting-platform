@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Goose Hollow Capital native holdings route - 2026-07-15T18:35Z
+
+- Promoted `goose_hollow` through an isolated `GooseHollowHoldingsAdapter` for GHTA.
+  It validates Goose Hollow's issuer page, requests only the issuer application script it
+  declares, and parses its full current portfolio rows. CUSIPs, tickers, quantities,
+  values, weights, source dates, cash, funds, and option contracts are all preserved or
+  correctly classified without using SEC filings as a primary source.
+- Static coverage verifies page identity, application extraction, cash, equity, and option
+  classification. Validation passed: targeted Ruff; full ETF-holdings adapter unit suite
+  (`249 passed`); opt-in live GHTA route; strict provider matrix; and the concrete-live-route
+  invariant (`3 passed`).
+- Strict coverage is now `207/345` native/live-backed and `138` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary provider support.
+
 ## Frontier Asset native holdings route - 2026-07-15T12:10Z
 
 - Promoted `frontier` through an isolated `FrontierHoldingsAdapter` for FARX, FCBD,

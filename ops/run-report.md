@@ -10603,3 +10603,14 @@ Append a short entry after each worker session.
   provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `206` native/live-backed, `139` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Native Route - 2026-07-15T18:35Z
+
+- Promoted `goose_hollow` through a dedicated `GooseHollowHoldingsAdapter` for GHTA.
+  It validates the official ETF page and parses the current complete holdings rows embedded
+  in the issuer's declared application script. It preserves CUSIPs, tickers, values, shares,
+  weights, and source date while correctly classifying cash, funds, and options.
+- Validation passed: targeted Ruff; full adapter suite (`249 passed`); live GHTA route; strict
+  provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `207` native/live-backed, `138` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.

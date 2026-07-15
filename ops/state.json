@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T12:10:00Z",
-    "last_commit": "c565e0a chore(ops): record Frontier provider validation",
-    "git_ready_to_commit": false,
+    "last_handoff_at": "2026-07-15T18:35:00Z",
+    "last_commit": "79d879f chore(ops): finalize Frontier checkpoint",
+    "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Frontier Asset adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 248 passed with --no-cov) and opt-in live Frontier Asset FARX route plus manifest checks (3 selected passed). The live manifest now proves all 206 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Goose Hollow adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 249 passed with --no-cov) and opt-in live Goose Hollow GHTA route plus manifest checks (3 selected passed). The live manifest now proves all 207 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T18:35Z Goose Hollow Capital native route: GooseHollowHoldingsAdapter verifies GHTA's official issuer page and parses only its declared current holdings application script. It preserves identifiers, values, quantities, dates, cash/fund rows, and option contracts. Full 249-test adapter suite, Ruff, and live GHTA plus manifest checks passed. Strict state is 345 registered, 207 native/live-backed, and 138 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T12:10Z Frontier Asset native route: FrontierHoldingsAdapter verifies FARX, FCBD, FGSM, FINT, FLCE, and FOPC product-page identities and parses Frontier's dated, public daily fund-scoped holdings export. It filters sibling funds, retains CUSIP/ISIN/SEDOL, values, weights, and source dates, and classifies cash and funds correctly. Full 248-test adapter suite, Ruff, and live FARX plus manifest checks passed. Strict state is 345 registered, 206 native/live-backed, and 139 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T11:39Z iM Global Partner native route: IMGlobalPartnerHoldingsAdapter validates DBMF's issuer-owned product page and parses only its complete breakdown-holdings-us table. It preserves raw identifiers, shares, values, percent-point weights and source date, excludes total-assets summaries, and classifies futures and Treasury bills correctly. Full 247-test adapter suite, Ruff, and live DBMF plus manifest checks passed. Strict state is 345 registered, 205 native/live-backed, and 140 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T03:15Z Unlimited ETFs source audit: www.unlimitedetfs.com returns Cloudflare HTTP 403 before its public catalogue or any fund-scoped holdings artifact can be reached with a browser-equivalent backend request. Unlimited remains fallback-only and uncounted until a concrete executable first-party route exists. Strict state remained 345 registered, 204 native/live-backed, and 141 fallback-only.",
