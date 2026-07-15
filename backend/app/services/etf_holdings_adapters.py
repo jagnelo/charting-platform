@@ -7680,6 +7680,241 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class RussellInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Russell ETF strategy portfolios from issuer-published month-end XLS files."""
+
+    _FUND_EXPORTS: dict[str, tuple[str, str]] = {
+        "RUSC": ("ric-us-small-cap-equity-fund.xls", "U.S. Small Cap Equity Fund"),
+        "RINT": (
+            "ric-international-developed-markets-fund.xls",
+            "International Developed Markets Fund",
+        ),
+        "RGLO": ("ric-global-equity-fund.xls", "Global Equity Fund"),
+        "REMG": ("ric-emerging-markets-fund.xls", "Emerging Markets Fund"),
+        "RIFR": ("ric-global-infrastructure-fund.xls", "Global Infrastructure Fund"),
+    }
+    _HOLDINGS_URL_TEMPLATE = (
+        "https://russellinvestments.com/-/media/files/us/funds/holdings/{filename}"
+    )
+    _HEADER_COLUMNS = {
+        "security name",
+        "shares",
+        "market value",
+        "security type",
+        "country",
+        "ticker",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        export = self._FUND_EXPORTS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        source_url = (
+            self._HOLDINGS_URL_TEMPLATE.format(filename=export[0]) if export else None
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9800") if export else Decimal("0.4000"),
+            status="ready" if export or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Russell Investments publishes this ETF strategy's complete month-end portfolio "
+                "through its issuer-hosted workbook."
+                if export
+                else (
+                    f"Russell Investments has no configured native holdings workbook for {normalized_symbol}; "
+                    "SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Russell Investments has no configured native holdings workbook for {normalized_symbol}."
+                )
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        export = self._FUND_EXPORTS.get(normalized_symbol)
+        if export is None:
+            raise ValueError(
+                f"Russell Investments does not publish a configured complete holdings workbook for {normalized_symbol}."
+            )
+
+        filename, expected_fund_name = export
+        holdings_url = self._HOLDINGS_URL_TEMPLATE.format(filename=filename)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=_issuer_page_request_headers(
+                    accept="application/vnd.ms-excel,application/octet-stream,*/*",
+                ),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        workbook_rows = self._read_workbook_rows(response.content)
+        rows, composition_date = self._parse_workbook_rows(
+            workbook_rows,
+            expected_fund_name=expected_fund_name,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Russell Investments holdings workbook returned no complete rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "xls",
+                "workbook_rows": workbook_rows,
+                "expected_fund_name": expected_fund_name,
+            },
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xls",
+                "route_resolution": "russell_investments_month_end_etf_strategy_holdings_xls",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "expected_fund_name": expected_fund_name,
+                "cadence": "month_end",
+            },
+        )
+
+    @staticmethod
+    def _read_workbook_rows(raw_workbook: bytes) -> list[list[str]]:
+        import xlrd  # noqa: PLC0415
+
+        workbook = xlrd.open_workbook(
+            file_contents=raw_workbook,
+            ignore_workbook_corruption=True,
+        )
+        for worksheet in workbook.sheets():
+            rows = [
+                ["" if value is None else str(value).strip() for value in worksheet.row_values(index)]
+                for index in range(worksheet.nrows)
+            ]
+            if any(any(_clean(value) for value in row) for row in rows):
+                return rows
+        return []
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[str]],
+        *,
+        expected_fund_name: str,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        title_text = "\n".join(
+            value for row in workbook_rows[:30] for value in row if _clean(value)
+        )
+        if expected_fund_name.lower() not in title_text.lower():
+            raise ValueError(
+                "Russell Investments holdings workbook did not match the expected ETF strategy."
+            )
+        composition_date = cls._extract_composition_date(title_text)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows)
+                if cls._HEADER_COLUMNS <= {(_clean(value) or "").lower() for value in row}
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError("Russell Investments holdings workbook did not contain its holdings header.")
+
+        header = workbook_rows[header_index]
+        parsed_rows = [_row_dict(header, row) for row in workbook_rows[header_index + 1 :]]
+        net_assets = next(
+            (
+                _decimal(_first(row, ["market value"]))
+                for row in parsed_rows
+                if (_clean(_first(row, ["security name"])) or "").lower() == "net assets"
+            ),
+            None,
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(parsed_rows, start=header_index + 1):
+            name = _clean(_first(raw, ["security name"]))
+            security_type = _clean(_first(raw, ["security type"]))
+            ticker = _clean(_first(raw, ["ticker"]))
+            market_value = _decimal(_first(raw, ["market value"]))
+            if not name or name.lower() in {"value of positions held", "other assets and liabilities, net", "net assets"}:
+                continue
+            if market_value is None and not ticker:
+                continue
+            holding_type, row_type = cls._classify_holding(
+                name=name,
+                security_type=security_type,
+            )
+            weight = (
+                market_value / net_assets
+                if market_value is not None and net_assets not in (None, Decimal("0"))
+                else None
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(ticker=ticker, holding_type=holding_type),
+                    name=name,
+                    shares=_decimal(_first(raw, ["shares"])),
+                    market_value=market_value,
+                    weight=weight,
+                    country=_clean(_first(raw, ["country"])),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"russell:{symbol}:{index}:{ticker or name}",
+                    extra_data={
+                        key: value for key, value in raw.items() if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(value: str) -> date | None:
+        match = re.search(r"(?:as of the report date is|schedule of investments\s*-?)\s*(\d{1,2}/\d{1,2}/\d{4})", value, re.IGNORECASE)
+        if match is None:
+            return None
+        return datetime.strptime(match.group(1), "%m/%d/%Y").date()
+
+    @staticmethod
+    def _classify_holding(*, name: str, security_type: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, security_type) if part)
+        if "CASH" in text or "FOREIGN CURRENCY" in text:
+            return "cash", "cash"
+        if "FUTURE" in text:
+            return "future", "security"
+        if "OPTION" in text or "WARRANT" in text or "RIGHT" in text:
+            return "option", "security"
+        if "DERIVATIVE" in text or "SWAP" in text:
+            return "derivative", "security"
+        if "BOND" in text or "NOTE" in text:
+            return "bond", "security"
+        if "FUND" in text or "ETF" in text or "TRUST" in text:
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Indexperts ETF holdings from its issuer-designated ETF Pages feed."""
 
@@ -36079,6 +36314,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Liquid Strategies public ETF holdings data may be subject to issuer terms.",
     ),
+    "russell_investments": IssuerCsvAdapterConfig(
+        adapter_key="russell_investments",
+        source_provider="russell_investments",
+        source_access="issuer_month_end_fund_scoped_holdings_xls",
+        url_templates=(
+            "https://russellinvestments.com/-/media/files/us/funds/holdings/{symbol_lower}.xls",
+        ),
+        live_tested_default_route=True,
+        terms_note="Russell Investments month-end ETF strategy holdings workbooks may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -36226,6 +36471,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ironhorse": IronHorseHoldingsAdapter,
         "fortuna": FortunaHoldingsAdapter,
         "liquid_strategies": LiquidStrategiesHoldingsAdapter,
+        "russell_investments": RussellInvestmentsHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,

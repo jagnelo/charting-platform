@@ -178,6 +178,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "proshares",
     "rafferty",
     "rayliant",
+    "russell_investments",
     "renaissance_capital",
     "roundhill",
     "river_north",
@@ -1467,6 +1468,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             5,
+        ),
+        (
+            "russell_investments",
+            "RUSC",
+            None,
+            {},
+            100,
         ),
     ],
 )

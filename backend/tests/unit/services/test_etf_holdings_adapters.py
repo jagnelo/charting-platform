@@ -160,6 +160,109 @@ def test_water_island_parser_preserves_periodic_long_and_short_positions():
     assert rows[2].extra_data["position_side"] == "short"
 
 
+def test_russell_parser_uses_issuer_schema_and_calculates_weights_from_net_assets():
+    adapter = get_holdings_adapter("russell_investments")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_workbook_rows(
+        [
+            [
+                "Russell Investment Company\nU.S. Small Cap Equity Fund (CH2C)\n"
+                "Schedule of Investments - 5/31/2026 (Unaudited)"
+            ],
+            [],
+            [
+                "Security Name",
+                "Coupon Rate",
+                "Maturity",
+                "Shares",
+                "Market Value",
+                "Unrealized on Derivatives",
+                "Industry Name",
+                "Security Type",
+                "Country",
+                "Ticker",
+            ],
+            [
+                "Abercrombie & Fitch Co.",
+                "-",
+                "-",
+                "3654",
+                "282161.88",
+                "0",
+                "Consumer Discretionary",
+                "Common Stock",
+                "United States",
+                "ANF",
+            ],
+            [
+                "U.S. Cash Management Fund",
+                "1.000",
+                "10/31/2049",
+                "1000",
+                "1000",
+                "0",
+                "Short-Term Investments",
+                "Cash & Cash Equivalents",
+                "United States",
+                "",
+            ],
+            ["Net Assets", "", "", "", "1000000", "", "", "", "", ""],
+        ],
+        expected_fund_name="U.S. Small Cap Equity Fund",
+        symbol="RUSC",
+    )
+
+    assert composition_date == date(2026, 5, 31)
+    assert len(rows) == 2
+    assert rows[0].symbol == "ANF"
+    assert rows[0].weight == Decimal("282161.88") / Decimal("1000000")
+    assert rows[1].symbol is None
+    assert rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_russell_adapter_fetches_its_mapped_issuer_workbook(monkeypatch):
+    adapter = get_holdings_adapter("russell_investments")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=b"russell-workbook",
+            content_type="application/vnd.ms-excel",
+            url=(
+                "https://russellinvestments.com/-/media/files/us/funds/holdings/"
+                "ric-us-small-cap-equity-fund.xls"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        adapter,
+        "_read_workbook_rows",
+        lambda _content: [
+            ["Russell Investment Company\nU.S. Small Cap Equity Fund\nSchedule of Investments - 5/31/2026"],
+            [],
+            [
+                "Security Name", "Coupon Rate", "Maturity", "Shares", "Market Value",
+                "Unrealized on Derivatives", "Industry Name", "Security Type", "Country", "Ticker",
+            ],
+            ["Abercrombie & Fitch Co.", "", "", "3654", "282161.88", "", "", "Common Stock", "United States", "ANF"],
+            ["Net Assets", "", "", "", "1000000", "", "", "", "", ""],
+        ],
+    )
+
+    result = await adapter.fetch_latest(symbol="RUSC")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "ANF"
+    assert result.legal_metadata["route_resolution"] == (
+        "russell_investments_month_end_etf_strategy_holdings_xls"
+    )
+    assert FakeAsyncClient.requested[0][0].endswith("ric-us-small-cap-equity-fund.xls")
+
+
 def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     adapter = get_holdings_adapter("canary")
     assert adapter is not None
