@@ -7680,6 +7680,167 @@ class FortunaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class LiquidStrategiesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Overlay Shares ETF holdings from Liquid Strategies' fund pages."""
+
+    _FUNDS = frozenset({"OVL", "OVS", "OVF", "OVLH", "OVB", "OVT", "OVM"})
+    _PRODUCT_URL_TEMPLATE = "https://lsfunds.com/etfs/{symbol_lower}"
+    _REQUIRED_HEADERS = frozenset({"Security Name", "CUSIP", "Ticker", "Shares", "Weight"})
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._product_url(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
+            status="ready" if product_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Liquid Strategies publishes this ETF's complete current holdings table on its official fund page."
+                if product_url
+                else (
+                    f"Liquid Strategies has no configured native holdings route for {normalized_symbol}; SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Liquid Strategies has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol if product_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._product_url(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"Liquid Strategies has no configured native holdings route for {symbol}.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_product_page(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Liquid Strategies product page did not expose complete current holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(getattr(response, "url", product_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "issuer_product_page_complete_current_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "liquid_strategies_native_holdings_table",
+            },
+        )
+
+    @classmethod
+    def _product_url(cls, symbol: str) -> str | None:
+        return cls._PRODUCT_URL_TEMPLATE.format(symbol_lower=symbol.lower()) if symbol in cls._FUNDS else None
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        text = html.unescape(raw_html)
+        if symbol not in cls._FUNDS or re.search(
+            rf'class=["\'][^"\']*etf-hero__ticker[^"\']*["\'][^>]*>\s*{re.escape(symbol)}\s*<',
+            text,
+            re.IGNORECASE,
+        ) is None:
+            raise ValueError(f"Liquid Strategies product page identity did not match requested ETF {symbol}.")
+        tables = _HTMLTablesParser()
+        tables.feed(text)
+        table = next(
+            (candidate for candidate in tables.tables if candidate and cls._REQUIRED_HEADERS.issubset(set(candidate[0]))),
+            None,
+        )
+        if table is None:
+            return [], None
+        composition_date = cls._composition_date(text)
+        header = table[0]
+        rows: list[CanonicalHoldingRow] = []
+        for position, values in enumerate(table[1:], start=1):
+            raw = _row_dict(header, values)
+            name = _clean(raw.get("Security Name"))
+            raw_symbol = _clean(raw.get("Ticker"))
+            row_type, holding_type = cls._classify_holding(raw_symbol=raw_symbol, name=name)
+            cusip_value = _clean(raw.get("CUSIP"))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+            parsed_symbol = cls._tradable_symbol(raw_symbol) if holding_type in {"equity", "fund"} else None
+            if not any([parsed_symbol, name, cusip, raw.get("Shares"), raw.get("Weight")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal(raw.get("Weight")),
+                    shares=_decimal(raw.get("Shares")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"liquid-strategies-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _composition_date(raw_html: str) -> date | None:
+        match = re.search(r"\bData\s+as\s+of\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})\b", raw_html)
+        if match is None:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%B %d, %Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _classify_holding(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name) if part)
+        if "CASH" in text or "MONEY MARKET" in text or "GOVERNMENT OBLIGATIONS FUND" in text:
+            return "cash", "cash"
+        if re.search(r"\b\d{6}[CP]\d{8}\b", text):
+            return "security", "option"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        if any(marker in text for marker in ("BOND", "TREASURY", "NOTE")):
+            return "security", "fixed_income"
+        return "security", "equity"
+
+
 class HedgeyeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hedgeye ETF daily holdings from the issuer's public product pages."""
 
@@ -35212,6 +35373,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Fortuna Funds public HBTC holdings data may be subject to issuer terms.",
     ),
+    "liquid_strategies": IssuerCsvAdapterConfig(
+        adapter_key="liquid_strategies",
+        source_provider="liquid_strategies",
+        source_access="issuer_product_page_complete_current_holdings_table",
+        product_page_templates=("https://lsfunds.com/etfs/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Liquid Strategies public ETF holdings data may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -35358,6 +35527,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "indexperts": IndexpertsHoldingsAdapter,
         "ironhorse": IronHorseHoldingsAdapter,
         "fortuna": FortunaHoldingsAdapter,
+        "liquid_strategies": LiquidStrategiesHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,

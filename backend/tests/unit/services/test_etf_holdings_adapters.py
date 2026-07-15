@@ -1711,6 +1711,47 @@ async def test_fortuna_adapter_parses_complete_product_table_and_classifies_opti
 
 
 @pytest.mark.asyncio
+async def test_liquid_strategies_adapter_parses_complete_table_and_classifies_rows(monkeypatch):
+    adapter = get_holdings_adapter("liquid_strategies")
+    assert adapter is not None
+    product_url = "https://lsfunds.com/etfs/ovl"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <h1><span class="etf-hero__ticker">OVL</span> Overlay Shares Large Cap Equity ETF</h1>
+            <section class="etf-holdings"><p class="etf-holdings__as-of">Data as of July 15, 2026</p>
+            <table class="etf-holdings__table"><thead><tr>
+              <th>Security Name</th><th>CUSIP</th><th>Ticker</th><th>Shares</th><th>Weight</th>
+            </tr></thead><tbody>
+              <tr><td>First American Government Obligations Fund 12/01/2031</td><td>31846V336</td><td>FGXXX</td><td>818,933</td><td>0.25%</td></tr>
+              <tr><td>SPXW US 07/16/26 P7430</td><td>SPXW 260716P07430000</td><td>SPXW 260716P07430000</td><td>-108</td><td>-0.04%</td></tr>
+              <tr><td>Vanguard S&amp;P 500 ETF</td><td>922908363</td><td>VOO</td><td>481,951</td><td>99.85%</td></tr>
+              <tr><td>Cash &amp; Other</td><td>Cash&amp;Other</td><td>Cash&amp;Other</td><td>520,644</td><td>0.16%</td></tr>
+            </tbody></table></section>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="OVL")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 4
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].holding_type == "option"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].holding_type == "fund"
+    assert result.rows[2].symbol == "VOO"
+    assert result.rows[2].weight == Decimal("0.9985")
+    assert result.rows[3].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
