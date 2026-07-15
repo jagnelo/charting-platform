@@ -1523,6 +1523,49 @@ async def test_lionshares_adapter_uses_product_declared_csv_and_filters_account(
 
 
 @pytest.mark.asyncio
+async def test_cygnet_adapter_uses_declared_full_holdings_csv_and_filters_account(monkeypatch):
+    adapter = get_holdings_adapter("cygnet")
+    assert adapter is not None
+    product_url = "https://www.elmfunds.com/elm-market-navigator-etf"
+    holdings_url = "https://docs.google.com/spreadsheets/export?id=example&exportFormat=csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<h1>Elm Market Navigator ETF (ELM)</h1>'
+                '<a href="https://docs.google.com/spreadsheets/export?id=example&amp;exportFormat=csv">'
+                'Download FULL Holdings CSV</a>'
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "07/15/2026,ELM,VTI,922908769,Vanguard Total Stock Market ETF,359028,368.25,132212061,22.98%,575337431",
+                    "07/15/2026,ELM,FGXXX,31846V336,First American Government Obligations Fund,2230178,100,2230178,0.39%,575337431",
+                    "07/15/2026,OTHER,AAA,123456789,Sibling Fund Position,1,1,1,100%,1",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ELM")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "VTI"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].weight == Decimal("0.2298")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None

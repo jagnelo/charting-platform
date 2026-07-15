@@ -10367,6 +10367,157 @@ class TremblantHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return output.getvalue()
 
 
+class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Cygnet Capital's ELM holdings from Elm's declared full CSV export."""
+
+    _FUNDS = {"ELM": "https://www.elmfunds.com/elm-market-navigator-etf"}
+    _ANCHOR_PATTERN = re.compile(
+        r'<a[^>]+href=["\'](?P<href>[^"\']+)["\'][^>]*>(?P<label>.*?)</a>',
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "Cygnet Capital publishes ELM's complete current holdings CSV on its official Elm product page."
+                if product_url
+                else f"Cygnet Capital has no configured native holdings route for {normalized_symbol}; SEC fallback remains available."
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(f"Cygnet Capital has no configured native holdings route for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_page.raise_for_status()
+            holdings_url = self._holdings_url(product_page.text, product_url=product_url)
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,*/*"),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Cygnet Capital holdings CSV did not expose rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json=None,
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "issuer_product_page_declared_complete_holdings_csv",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "cygnet_elm_issuer_native_holdings_csv",
+            },
+        )
+
+    @classmethod
+    def _holdings_url(cls, raw_html: str, *, product_url: str) -> str:
+        if "Elm Market Navigator ETF" not in raw_html or "ELM" not in raw_html:
+            raise ValueError("Cygnet Capital product page identity did not match requested ETF ELM.")
+        for match in cls._ANCHOR_PATTERN.finditer(html.unescape(raw_html)):
+            label = re.sub(r"<[^>]+>", " ", html.unescape(match.group("label")))
+            if re.search(r"\bDownload\s+FULL\s+Holdings\s+CSV\b", label, re.IGNORECASE):
+                return urljoin(product_url, html.unescape(match.group("href")))
+        raise ValueError("Cygnet Capital product page did not declare a complete holdings CSV.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(raw.get("Account")) or "").upper()
+            if account != symbol:
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if composition_date is None:
+                composition_date = row_date
+            raw_symbol = _clean(raw.get("Stock Ticker"))
+            name = _clean(raw.get("Security Name"))
+            is_cash = "CASH" in " ".join(part.upper() for part in (raw_symbol, name) if part) or raw_symbol == "FGXXX"
+            cusip_value = _clean(raw.get("CUSIP"))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+            parsed_symbol = cls._clean_symbol(raw_symbol) if not is_cash else None
+            if not any([parsed_symbol, name, cusip, raw.get("Market Value"), raw.get("Weightings")]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "fund",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"cygnet-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _clean_symbol(value: Any) -> str | None:
+        candidate = _clean(value)
+        if not candidate or _looks_like_cusip(candidate.upper()):
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+
 class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch LionShares ETF holdings from its issuer-declared FilePoint CSV."""
 
@@ -34488,6 +34639,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="LionShares public ETF daily holdings CSV exports may be subject to issuer terms.",
     ),
+    "cygnet": IssuerCsvAdapterConfig(
+        adapter_key="cygnet",
+        source_provider="cygnet_capital",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=("https://www.elmfunds.com/elm-market-navigator-etf",),
+        live_tested_default_route=True,
+        terms_note="Cygnet Capital's Elm ETF public holdings CSV may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -34632,6 +34791,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "formidable": FormidableHoldingsAdapter,
         "idx": IdxHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
+        "cygnet": CygnetHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
