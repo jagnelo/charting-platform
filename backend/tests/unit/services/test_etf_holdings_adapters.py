@@ -1122,6 +1122,58 @@ async def test_western_southern_adapter_parses_touchstone_full_holdings_payload(
 
 
 @pytest.mark.asyncio
+async def test_imgp_adapter_parses_verified_fund_scoped_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("im_global_partner")
+    assert adapter is not None
+    product_url = (
+        "https://www.imgp.com/us/fund/"
+        "US53700T8273-imgp-dbi-managed-futures-strategy-etf/"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <script>
+                  const fund = {"fund_id":"137453","bloomberg_code":"DBMF"};
+                </script>
+                <h1>IMGP DBi Managed Futures Strategy ETF</h1>
+                <table id="breakdown-holdings-us">
+                  <thead><tr>
+                    <td>Date</td><td>Security Name</td><td>CUSIP</td><td>Ticker</td>
+                    <td>Shares Qty</td><td>Market Value</td><td>Weight</td>
+                  </tr></thead>
+                  <tbody>
+                    <tr><td>07/15/2026</td><td>S&amp;P 500 EMINI FUT SEP26</td><td>ADI2VD0L0</td><td>ESU6</td><td>80,500</td><td>$611,095,625.00</td><td>0.16</td></tr>
+                    <tr><td>07/15/2026</td><td>US TREASURY BILL</td><td>912797UG0</td><td>-</td><td>28,000,000</td><td>$27,818,813.96</td><td>0.01</td></tr>
+                    <tr><td>07/15/2026</td><td>TOTAL NET ASSETS</td><td></td><td></td><td></td><td>$999,999,999</td><td>100.00</td></tr>
+                  </tbody>
+                </table>
+            """,
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DBMF")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "future"
+    assert result.rows[0].shares == Decimal("80500")
+    assert result.rows[0].market_value == Decimal("611095625")
+    assert result.rows[0].weight == Decimal("0.0016")
+    assert result.rows[0].extra_data["CUSIP"] == "ADI2VD0L0"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].cusip == "912797UG0"
+    assert result.legal_metadata["route_resolution"] == "imgp_verified_fund_scoped_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+    assert result.legal_metadata["fund_id"] == "137453"
+
+
+@pytest.mark.asyncio
 async def test_intech_adapter_resolves_current_fund_scoped_daily_holdings_pdf(monkeypatch):
     adapter = get_holdings_adapter("intech")
     assert adapter is not None

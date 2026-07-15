@@ -134,6 +134,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hypatia",
     "inspire",
     "impax",
+    "im_global_partner",
     "innovator",
     "invesco",
     "ishares",
@@ -1513,6 +1514,21 @@ async def test_live_hull_product_verified_complete_holdings_csv():
     assert result.legal_metadata["composition_date"]
     assert any(row.holding_type == "cash" for row in result.rows)
     assert any(row.holding_type in {"future", "option"} for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("im_global_partner")
+async def test_live_imgp_dbmf_product_page_exposes_complete_holdings_table():
+    adapter = get_holdings_adapter("im_global_partner")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="DBMF")
+
+    _assert_live_holdings_result(result, adapter_key="im_global_partner", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == "imgp_verified_fund_scoped_holdings_table"
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["fund_id"]
 
 
 @pytest.mark.asyncio

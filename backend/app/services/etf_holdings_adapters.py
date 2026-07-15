@@ -31158,6 +31158,196 @@ class ReganHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class IMGlobalPartnerHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read complete holdings directly from iM Global Partner fund pages."""
+
+    PRODUCT_PAGE_URLS = {
+        "DBMF": (
+            "https://www.imgp.com/us/fund/"
+            "US53700T8273-imgp-dbi-managed-futures-strategy-etf/"
+        ),
+    }
+    _EXPECTED_FUND_NAMES = {
+        "DBMF": "IMGP DBi Managed Futures Strategy ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status="ready",
+            reason=(
+                "iM Global Partner publishes this ETF's complete current holdings on its "
+                "fund-scoped issuer page."
+                if product_page_url
+                else "iM Global Partner is recognized; a configured fund-scoped holdings route is required."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"iM Global Partner does not publish a configured complete holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=self.source_request_headers(source_url=product_page_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date, fund_id = self._parse_product_page(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"iM Global Partner's product page returned no complete holdings rows for {normalized_symbol}."
+            )
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "product_page_url": str(response.url),
+                "fund_id": fund_id,
+                "table_id": "breakdown-holdings-us",
+            },
+            source_url=str(response.url),
+            source_identifier=fund_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "imgp_verified_fund_scoped_holdings_table",
+                "product_page_url": str(response.url),
+                "fund_id": fund_id,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        headers["Referer"] = "https://www.imgp.com/us/"
+        return headers
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
+        normalized_html = html.unescape(raw_html)
+        expected_name = cls._EXPECTED_FUND_NAMES[symbol]
+        if not re.search(rf'"bloomberg_code"\s*:\s*"{re.escape(symbol)}"', normalized_html, re.I):
+            raise ValueError(f"iM Global Partner product page identity did not match requested ETF {symbol}.")
+        if expected_name.lower() not in re.sub(r"\s+", " ", normalized_html).lower():
+            raise ValueError(f"iM Global Partner product name did not match requested ETF {symbol}.")
+
+        fund_id_match = re.search(r'"fund_id"\s*:\s*"(?P<fund_id>\d+)"', normalized_html)
+        parser = _HTMLTableByIdParser(table_id="breakdown-holdings-us")
+        parser.feed(normalized_html)
+        if not parser.rows:
+            return [], None, fund_id_match.group("fund_id") if fund_id_match else None
+
+        headers = [(_clean(value) or "").lower() for value in parser.rows[0]]
+        expected_headers = {
+            "date",
+            "security name",
+            "cusip",
+            "ticker",
+            "shares qty",
+            "market value",
+            "weight",
+        }
+        if not expected_headers.issubset(set(headers)):
+            return [], None, fund_id_match.group("fund_id") if fund_id_match else None
+
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, values in enumerate(parser.rows[1:], start=1):
+            raw = _row_dict(parser.rows[0], values)
+            name = _clean(raw.get("Security Name"))
+            if not name or name.upper() == "TOTAL NET ASSETS":
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            ticker = _clean(raw.get("Ticker"))
+            cusip = _clean(raw.get("CUSIP"))
+            holding_type, row_type = cls._classify_holding(name=name, ticker=ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(ticker, holding_type=holding_type),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    shares=_decimal(raw.get("Shares Qty")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    weight=_decimal_percent_points(raw.get("Weight")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"imgp-{symbol}-{index}",
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date, fund_id_match.group("fund_id") if fund_id_match else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _classify_holding(*, name: str, ticker: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, ticker) if part)
+        if any(token in text for token in ("CASH", "USD", "US DOLLAR")):
+            return "cash", "cash"
+        if any(token in text for token in ("FUT", "FUTURE", "COMDTY", "CURNCY")):
+            return "future", "security"
+        if any(token in text for token in ("TREASURY", "BILL", "NOTE", "BOND")):
+            return "fixed_income", "security"
+        if " ETF" in text or "FUND" in text or "TRUST" in text:
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(ticker: str | None, *, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "ishares": IssuerCsvAdapterConfig(
         adapter_key="ishares",
@@ -31725,6 +31915,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=("https://www.intechetfs.com/intech-etfs/",),
         live_tested_default_route=True,
         terms_note="Intech public ETF product pages and daily holdings PDFs may be subject to issuer terms.",
+    ),
+    "im_global_partner": IssuerCsvAdapterConfig(
+        adapter_key="im_global_partner",
+        source_provider="im_global_partner",
+        source_access="issuer_verified_fund_scoped_complete_holdings_table",
+        product_page_templates=(
+            "https://www.imgp.com/us/fund/"
+            "US53700T8273-imgp-dbi-managed-futures-strategy-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="iM Global Partner public ETF product-page holdings disclosures may be subject to issuer terms.",
     ),
     "kingsbarn": IssuerCsvAdapterConfig(
         adapter_key="kingsbarn",
@@ -33372,6 +33573,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "natixis": NatixisInvestmentManagersHoldingsAdapter,
         "western_southern": WesternSouthernHoldingsAdapter,
         "intech": IntechHoldingsAdapter,
+        "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
