@@ -15224,7 +15224,164 @@ class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class YieldMaxHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Fetch YieldMax's account-scoped daily Tidal holdings CSVs.
+
+    YieldMax's funds publish derivatives alongside collateral.  The dedicated
+    parser must therefore retain the portfolio rows without mistaking options or
+    Treasury identifiers for platform-tradable ticker symbols.
+    """
+
+    _HOLDINGS_URL_TEMPLATE = (
+        "https://yieldmaxetfs.com/wp-content/uploads/funds/"
+        "{symbol_upper}/TidalFG_Holdings_{symbol_upper}.csv"
+    )
+    _REQUIRED_HEADERS = frozenset(
+        {"Date", "Account", "StockTicker", "CUSIP", "SecurityName", "Shares", "MarketValue", "Weightings"}
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready" if normalized_symbol else "needs_issuer_route",
+            reason=(
+                "YieldMax publishes this ETF's complete current account-scoped holdings CSV on its official route."
+                if normalized_symbol
+                else "YieldMax holdings require an ETF symbol."
+            ),
+            source_url=(self._holdings_url(normalized_symbol) if normalized_symbol else None),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("YieldMax holdings require an ETF symbol.")
+        holdings_url = source_url or self._holdings_url(normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": f"https://yieldmaxetfs.com/our-etfs/{normalized_symbol.lower()}/",
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"YieldMax holdings CSV did not expose rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": "yieldmax_fund_scoped_daily_holdings_csv",
+                "source_provider": "yieldmax",
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "yieldmax_symbol_daily_holdings_csv",
+                "snapshot_provenance": "yieldmax_native_daily_holdings_csv",
+                **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+            },
+        )
+
+    @classmethod
+    def _holdings_url(cls, symbol: str) -> str:
+        return cls._HOLDINGS_URL_TEMPLATE.format(symbol_upper=symbol.upper())
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        if not cls._REQUIRED_HEADERS.issubset(set(reader.fieldnames or [])):
+            raise ValueError("YieldMax holdings CSV did not expose the expected account schema.")
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(reader, start=1):
+            account = (_clean(raw.get("Account")) or "").upper()
+            if account != symbol:
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if composition_date is None:
+                composition_date = row_date
+            source_ticker = _clean(raw.get("StockTicker"))
+            identifier = _clean(raw.get("CUSIP"))
+            name = _clean(raw.get("SecurityName"))
+            row_type, holding_type = cls._classify_row(
+                source_ticker=source_ticker,
+                identifier=identifier,
+                name=name,
+                money_market=_clean(raw.get("MoneyMarketFlag")),
+            )
+            parsed_symbol = cls._tradable_symbol(source_ticker) if row_type == "security" else None
+            if not any((parsed_symbol, name, identifier, _clean(raw.get("MarketValue")))):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=identifier if _looks_like_cusip(identifier) and row_type == "security" else None,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"yieldmax-{symbol}-{position}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if candidate is None:
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _classify_row(
+        *,
+        source_ticker: str | None,
+        identifier: str | None,
+        name: str | None,
+        money_market: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (source_ticker, identifier, name) if part)
+        if (money_market or "").upper() == "Y" or "CASH" in text or "MONEY MARKET" in text:
+            return "cash", "cash"
+        if re.search(r"\b\d{6}[CP]\d{8}\b", text) or " OPTION" in text:
+            return "other", "option"
+        if any(marker in text for marker in ("TREASURY", "BILL", "NOTE", "BOND")):
+            return "security", "fixed_income"
+        if " ETF" in text or " FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class ProSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):

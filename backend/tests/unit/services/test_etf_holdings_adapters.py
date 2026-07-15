@@ -1799,6 +1799,38 @@ async def test_spdr_adapter_parses_fund_scoped_workbook_and_preserves_row_types(
 
 
 @pytest.mark.asyncio
+async def test_yieldmax_adapter_filters_account_and_keeps_options_non_tradable(monkeypatch):
+    adapter = get_holdings_adapter("yieldmax")
+    assert adapter is not None
+    holdings_url = "https://yieldmaxetfs.com/wp-content/uploads/funds/TSLY/TidalFG_Holdings_TSLY.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+                    "07/15/2026,TSLY,TSLA  260717C00410000,TSLA  260717C00410000,TSLA US 07/17/26 C410,-2000,2.085,-417000,-0.05%,768897792.03",
+                    "07/15/2026,TSLY,912797RS8,912797RS8,United States Treasury Bill 09/03/2026,183223000,99.495833,182299250.1,23.71%,768897792.03",
+                    "07/15/2026,TSLY,TSLA,88160R101,Tesla Inc,100,300,30000,3.90%,768897792.03",
+                    "07/15/2026,OTHER,AAPL,037833100,Apple Inc,1,200,200,1.00%,20000",
+                ]
+            ),
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TSLY")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert [row.symbol for row in result.rows] == [None, None, "TSLA"]
+    assert [row.holding_type for row in result.rows] == ["option", "fixed_income", "equity"]
+    assert result.rows[2].cusip == "88160R101"
+    assert result.rows[1].weight == Decimal("0.2371")
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_gqg_adapter_parses_issuer_dated_filepoint_holdings_export(monkeypatch):
     adapter = get_holdings_adapter("gqg")
     assert adapter is not None
