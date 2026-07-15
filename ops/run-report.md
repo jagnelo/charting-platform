@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integrity Repair - YieldMax - 2026-07-16T01:20Z
+
+- Replaced the empty `YieldMaxHoldingsAdapter` with a dedicated parser for its
+  fund-scoped daily CSVs. It filters the requested account and retains derivative,
+  Treasury, cash, and tradable-security semantics without inventing tickers.
+- Validation passed: Ruff; all `260` adapter unit tests with `--no-cov`; the live
+  `TSLY` route; and the concrete-live-route invariant (`2 passed`). Coverage remains
+  `216/345` native/live-backed and `129` fallback-only because this corrected an
+  already-counted provider.
+
 # ETF Holdings Provider Integrity Repair - SPDR - 2026-07-16T01:00Z
 
 - Replaced the empty `SpdrHoldingsAdapter` with a dedicated parser for State

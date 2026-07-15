@@ -1,5 +1,18 @@
 # Active Handoff
 
+## YieldMax native-parser integrity repair - 2026-07-16T01:20Z
+
+- Replaced the counted-but-empty `YieldMaxHoldingsAdapter` subclass with an
+  isolated parser for each fund's account-scoped daily CSV. It validates the
+  required schema, excludes sibling funds, retains shares/value/weight/date data,
+  and classifies option contracts and Treasury collateral without false tradable
+  tickers.
+- Validation passed: Ruff; the full adapter suite (`260 passed`); opt-in live
+  `TSLY` route; and the concrete-live-route invariant (`2 passed`). The provider
+  count remains `216/345` native/live-backed and `129` fallback-only: this is a
+  correction of an existing counted provider, not a promotion.
+- The next integrity repair is `vaneck`, the remaining counted empty adapter.
+
 ## SPDR native-parser integrity repair - 2026-07-16T01:00Z
 
 - Replaced the counted-but-empty `SpdrHoldingsAdapter` subclass with an isolated
