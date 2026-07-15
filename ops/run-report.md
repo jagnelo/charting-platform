@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Intech - 2026-07-15T03:00Z
+
+- Added `IntechHoldingsAdapter` for Intech's issuer-public ETF catalogue and its current,
+  dated daily holdings PDFs. The adapter discovers only the selected `LGDX` or `SMDX` report,
+  isolates its account rows, and preserves CUSIP, ticker, shares, value, decimal weights,
+  composition date, USD currency, and cash classification.
+- Validation passed: targeted Ruff; all `246` adapter unit tests with `--no-cov`; and the live
+  `LGDX` route plus strict provider-matrix and concrete-live-route checks (`3 passed`). Strict
+  coverage is now `204/345` native/live-backed providers and `141` fallback-only.
+
 # ETF Holdings Provider Integration - Kingsbarn - 2026-07-15T00:48Z
 
 - Promoted `kingsbarn` through an isolated `KingsbarnHoldingsAdapter` for the issuer's public

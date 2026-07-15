@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Intech native holdings route - 2026-07-15T03:00Z
+
+- Promoted `intech` through an isolated `IntechHoldingsAdapter` for `LGDX` and `SMDX`.
+  It discovers the current daily, fund-scoped PDF from Intech's public ETF catalogue, then
+  parses only the selected account's positions while retaining ticker, CUSIP, shares, market
+  value, decimal weights, composition date, currency, and money-market classification.
+- Static coverage verifies PDF discovery, fund isolation, value/weight parsing, and cash
+  classification. Validation passed: targeted Ruff, full adapter unit suite (`246 passed`),
+  plus the live `LGDX` route and strict provider manifest checks (`3 passed`).
+- Strict coverage is now `204/345` native/live-backed, leaving `141` fallback-only. SEC EDGAR
+  remains fallback-only and is not counted as primary support.
+
 ## Sterling Capital native holdings route - 2026-07-15T02:10Z
 
 - Promoted `sterling_capital` through an isolated `SterlingCapitalHoldingsAdapter` for the

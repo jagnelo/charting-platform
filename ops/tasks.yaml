@@ -20,7 +20,11 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 203 native/live-backed providers out of 345; 142 remain.
+      - Current truthful count: 204 native/live-backed providers out of 345; 141 remain.
+      - >
+        Intech is supported through its official ETF catalogue and current daily PDF holdings
+        exports for LGDX and SMDX. The provider-specific adapter discovers the current dated
+        fund PDF from the issuer page before parsing the selected fund's report.
       - >
         Current priority blockers: WisdomTree, SoFi, and Thrivent return bot-protection HTTP 403
         responses to browser-header backend requests. Thrivent and WisdomTree advertise current

@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-15T02:42:00Z",
+    "last_handoff_at": "2026-07-15T03:00:00Z",
     "last_commit": null,
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Western & Southern/Touchstone adapter, static fixture, and live-provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 245 passed with --no-cov) and opt-in live Touchstone LCF route plus manifest checks (3 selected passed). The live manifest now proves all 203 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-15 targeted Ruff check for the Intech adapter, static fixture, and live-provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-15: 246 passed with --no-cov) and opt-in live Intech LGDX route plus manifest checks (3 selected passed). The live manifest now proves all 204 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-15T03:00Z Intech native route: IntechHoldingsAdapter discovers the current fund-scoped daily PDF from Intech's official ETF catalogue, then parses the selected LGDX or SMDX account only. It preserves tickers, CUSIPs, shares, values, decimal weights, dates, USD currency, and money-market classifications. Full 246-test adapter suite, Ruff, and live LGDX plus manifest checks passed. Strict state is 345 registered, 204 native/live-backed, and 141 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T02:42Z Western & Southern native route: WesternSouthernHoldingsAdapter verifies the requested Touchstone product page before parsing its issuer-owned complete fullHoldings payload. It has exact routes for the ten current Touchstone ETFs and preserves tickers, CUSIPs, shares, market values, weights, countries and cash classifications. Full 245-test adapter suite, Ruff, and live LCF plus manifest checks passed. Strict state is 345 registered, 203 native/live-backed, and 142 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T02:28Z Natixis Investment Managers native route: the separately registered natixis provider now has its own explicit NatixisInvestmentManagersHoldingsAdapter and live GQI route. The implementation uses the verified issuer-native daily full-holdings CSV, preserves identifiers, values, weights, dates and cash classification, and shares only the exact CSV parser/TLS handling used by the separately registered Groupe BPCE parent identity. Full 244-test adapter suite, Ruff, and live GQI plus manifest checks passed. Strict state is 345 registered, 202 native/live-backed, and 143 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T02:10Z Sterling Capital native route: SterlingCapitalHoldingsAdapter validates the selected fund-scoped current-holdings PDF against the Sterling Capital and ETF title before parsing holdings. It supports the six public ETF symbols SCEC, SCEP, SCMC, SCNM, SCSB, and SCUB; preserves CUSIPs, shares, derived values, percent weights and source dates; and classifies money-market holdings as cash. Targeted Ruff, the full 243-test adapter suite, and live SCEP plus manifest checks passed. Strict state is 345 registered, 201 native/live-backed, and 144 fallback-only; SEC EDGAR remains fallback-only.",
