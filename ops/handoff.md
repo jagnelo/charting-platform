@@ -1,5 +1,28 @@
 # Active Handoff
 
+## Twin Oak native holdings route - 2026-07-15T01:38Z
+
+- Promoted `twin_oak` through an isolated `TwinOakHoldingsAdapter` for `TOAK`.
+  The adapter validates the selected public fund page and the page's own application
+  script before requesting its declared FilePoint CSV. It filters the shared feed by
+  fund account and preserves source date, CUSIPs, shares, values, percent weights,
+  options, funds, and cash classifications.
+- Static coverage verifies the product/page identity, application-declared feed,
+  sibling-fund exclusion, option handling, and money-market cash classification.
+  Validation passed: targeted Ruff, full adapter unit suite (`242 passed`), plus the
+  live `TOAK` route and strict provider manifest checks (`3 passed`).
+- Strict coverage is now `200/345` native/live-backed, leaving `145` fallback-only.
+  SEC EDGAR remains fallback-only and is not counted as primary support.
+
+## Wellington source audit - 2026-07-15T01:20Z
+
+- The current registered `wellington` identity maps to Wellington Management as an
+  investment manager/sub-adviser, not to an independently sponsored US ETF range.
+  Its visible VUSV/VUSG ETF products and complete holdings routes are Vanguard-owned.
+  Do not repurpose Vanguard's native integration to falsely promote this separate key;
+  it needs a concrete Wellington-sponsored US ETF product mapping before it can be
+  truthfully supported.
+
 ## TrueMark native holdings route - 2026-07-15T01:12Z
 
 - Promoted `truemark` through an isolated `TrueMarkHoldingsAdapter` for `LRNZ`.

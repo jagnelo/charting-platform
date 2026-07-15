@@ -10512,3 +10512,21 @@ Append a short entry after each worker session.
   strict provider matrix; and the concrete-live-route invariant (`3 passed`).
 - Strict count: `345` registered providers, `199` native/live-backed, `146` fallback-only.
   SEC EDGAR remains fallback-only and does not count as primary provider support.
+# ETF Holdings Provider Integration - 2026-07-15T01:38Z
+
+- Promoted `twin_oak` through a dedicated `TwinOakHoldingsAdapter` for TOAK. It
+  validates the requested issuer fund page and the application-declared CSV feed,
+  filters the multi-fund source to the requested account, and preserves CUSIPs,
+  shares, market values, percent weights, source date, option rows, and money-market
+  cash rows.
+- Validation passed: targeted Ruff; full adapter unit suite (`242 passed`); live TOAK;
+  strict provider matrix; and the concrete-live-route invariant (`3 passed`).
+- Strict count: `345` registered providers, `200` native/live-backed, `145` fallback-only.
+  SEC EDGAR remains fallback-only and does not count as primary provider support.
+
+# ETF Holdings Provider Source Audit - 2026-07-15T01:20Z
+
+- `wellington`: the registered Wellington Management identity is an investment
+  manager/sub-adviser, not the sponsor of the US-listed VUSV/VUSG ETF products found.
+  Their holdings routes are Vanguard-owned. No provider was promoted; native support
+  requires a concrete Wellington-sponsored US ETF product mapping.
