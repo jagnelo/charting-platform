@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-16T01:45:00Z",
-    "last_commit": "9613a26 feat(etf-holdings): add Morgan Stanley holdings adapter",
-    "git_ready_to_commit": false,
+    "last_commit": "dc1b585 chore(ops): record Morgan Stanley holdings integration",
+    "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-16 Ruff check for the Morgan Stanley adapter, static fixture, and live test module)",
         "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 266 passed with --no-cov) and opt-in live Morgan Stanley MSLC route. The live manifest now proves all 218 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
