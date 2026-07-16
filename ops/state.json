@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-07-16T20:15:00Z",
+  "last_handoff_at": "2026-07-16T21:10:00Z",
     "last_commit": "28881cf chore(ops): checkpoint native provider expansion",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-16 Ruff check for Redwood plus the current uncommitted adapter changes)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 290 passed with --no-cov). The adapter invariant proves every currently counted native/live-backed provider owns fetch_latest; the live manifest proves each has a concrete route test. The full opt-in live provider matrix also passed on 2026-07-16: 237 passed in 309.29s. This verifies all currently counted native/live-backed concrete issuer routes; 115 registered issuers remain fallback-only and uncounted.",
+        "backend_lint": "passed (2026-07-16 Ruff check for the Digital Currency Group adapter and Main Management retry hardening)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 292 passed with --no-cov). The adapter invariant proves every currently counted native/live-backed provider owns fetch_latest; the live manifest proves each has a concrete route test. The full opt-in live provider matrix also passed cleanly on 2026-07-16: 238 passed in 320.70s. This verifies all 231 currently counted native/live-backed concrete issuer routes; 114 registered issuers remain fallback-only and uncounted.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-16T21:10Z Digital Currency Group native route: added an isolated adapter restricted to the verified Grayscale Bitcoin Adopters ETF (BCOR) publisher route. The public issuer payload returned a complete 44-row current equity portfolio; the adapter validates the requested identity, rejects unrelated Grayscale products, records Grayscale as the publisher, and never substitutes SEC fallback. A static fixture, concrete live BCOR test, registry invariants, Ruff, 292 adapter unit tests, and the complete 238-test live matrix passed. Main Management's transient BUYW CSV timeout observed during an overlapping live sweep was hardened with a third bounded issuer-local retry and a regression test. Strict state is 345 registered, 231 native/live-backed, and 114 fallback-only.",
         "2026-07-16T19:45Z Redwood native route: added an isolated adapter restricted to the verified LeaderShares LSAF, LSAT, and DYLD range. It fetches each issuer-owned fund-scoped complete holdings CSV, validates the exact fund title/as-of date/schema, and preserves identifiers, shares, values, weights, cash, and fixed-income semantics. Ruff, the full 290-test adapter suite, exact network-enabled LSAF live route, and provider/live-route invariants passed. Strict state is 345 registered, 230 native/live-backed, and 115 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T19:20Z Osprey native route: added an isolated adapter restricted to OSOL, OBNB, ODOT, and OBNK. Its public product pages disclose daily single-asset units per trust share, AUM, outstanding shares, and as-of date; the adapter derives the aggregate crypto asset holding directly and does not invent a multi-security portfolio. Ruff, the full 288-test adapter suite, exact network-enabled OSOL live route, and provider/live-route invariants passed. Strict state is 345 registered, 229 native/live-backed, and 116 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T19:00Z Raymond James native route: added an isolated adapter restricted to RJDI, RJMI, and RJVI. Its public FilePoint portal provides complete fund-specific quarterly Schedule of Investments PDFs. The adapter validates fund identity and the disclosed date, preserves reported shares/par and market values, and classifies equity, fixed-income, and cash positions without invented symbols. Ruff, the full 287-test adapter suite, exact network-enabled RJDI live route, and provider/live-route invariants passed. Strict state is 345 registered, 228 native/live-backed, and 117 fallback-only; SEC EDGAR remains fallback-only.",

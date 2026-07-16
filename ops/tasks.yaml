@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 230 native/live-backed providers out of 345; 115 remain.
+      - Current truthful count: 231 native/live-backed providers out of 345; 114 remain.
         Redwood is supported through its verified LeaderShares `LSAF`, `LSAT`, and
         `DYLD` issuer-owned full-holdings CSVs. The adapter validates the exact fund
         title, as-of date, and disclosed schema before preserving identifiers, values,

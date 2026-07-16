@@ -11016,3 +11016,17 @@ Append a short entry after each worker session.
 - Rechecked live issuer sources: WisdomTree's actual U.S. holdings page is Cloudflare-gated
   to backend traffic, and Pictet's fund page only exposes a Kurtosys client application
   without a stable complete issuer artifact in the fetched page. Neither was promoted.
+# ETF Holdings Provider Native Route - 2026-07-16T21:10Z
+
+- Promoted `digital_currency_group` through a dedicated `BCOR` adapter. Its registered
+  issuer identity uses Grayscale's subsidiary-owned BCOR product page, which returned
+  44 complete current equity holdings on the verified public route. The adapter is
+  deliberately limited to BCOR, records Grayscale as the publisher, and rejects
+  unrelated Grayscale tickers instead of acting as a generic adapter.
+- Added static and opt-in live BCOR coverage. A clean complete live provider matrix
+  passed: `238 passed in 320.70s`. Strict support is now `231/345` native/live-backed
+  and `114/345` fallback-only.
+- The same validation found an intermittent Main Management BUYW CSV header timeout
+  under concurrent matrix load. Its issuer-specific retry path now makes three bounded
+  attempts and has a timeout-then-success regression test; the isolated route and the
+  clean complete matrix both passed afterward.

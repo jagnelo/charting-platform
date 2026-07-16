@@ -1,5 +1,28 @@
 # Active Handoff
 
+## Digital Currency Group native route and live-matrix hardening - 2026-07-16T21:10Z
+
+- Promoted `digital_currency_group` through an isolated adapter restricted to the
+  verified `BCOR` (Grayscale Bitcoin Adopters ETF) issuer route. DCG's registered
+  ETF identity publishes BCOR's complete current equity portfolio through its
+  Grayscale subsidiary's fund-scoped embedded holdings payload. The adapter rejects
+  every other Grayscale product, keeps Grayscale explicit as the publisher, and does
+  not rely on SEC fallback or a generated URL path.
+- Added a static BCOR fixture test plus a concrete opt-in live BCOR route. The
+  strict configuration/live-manifest invariants now cover `231/345` native providers;
+  `114` remain fallback-only and uncounted.
+- Hardened Main Management's BUYW CSV retrieval from two to three narrowly scoped
+  retries after a full live sweep observed a transient issuer `ReadTimeout`. A focused
+  timeout-then-success unit regression test covers the retry. Its isolated live route
+  then passed.
+- Validation passed: Ruff; `292` adapter unit tests; four targeted live/invariant
+  tests; and a clean full live matrix: `238 passed in 320.70s`. The previous matrix
+  failure was a transient Main Management timeout during overlapping suite runs, not a
+  parser or provider-route regression.
+- Exact next step: continue the remaining-114 queue, promoting only issuers with a
+  complete executable first-party holdings artifact, a dedicated adapter, static
+  fixture, and concrete live route test.
+
 ## Full native provider live-matrix verification - 2026-07-16T20:15Z
 
 - The complete opt-in live issuer suite has now completed successfully: `237 passed in
