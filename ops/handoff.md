@@ -15,6 +15,20 @@
   complete, backend-reachable, first-party artifact; avoid re-probing known
   geo/bot-blocked sources without a newly identified endpoint.
 
+## Priority source and manifest audit - 2026-07-16T14:30Z
+
+- Westwood's current `YLDW`, `MDST`, and `WEEI` product pages and John Hancock /
+  Manulife's current ETF and fund-document pages all return HTTP 403 before an
+  issuer-native complete holdings artifact can be retrieved. They remain
+  fallback-only; their public search-indexed content is not sufficient evidence
+  for a backend integration.
+- BMO's publicly reachable official ETF holdings endpoint was also checked. It
+  returns only a top-holdings list (for example, 10 rows for the S&P 500 ETF),
+  not a complete portfolio, so BMO cannot be promoted from it.
+- The enabled manifest checks passed: the adapter registry has `345` entries,
+  `222` are live-backed, and all `222` have a matching concrete issuer-route
+  live-test case. Strict coverage remains `222/345`, with `123` fallback-only.
+
 ## Provider live-support integrity correction - 2026-07-16T13:45Z
 
 - Demoted `cultivar` from native/live-backed coverage. Its only configured first-party

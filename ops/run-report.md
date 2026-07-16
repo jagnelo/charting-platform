@@ -2,6 +2,19 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Priority Source and Manifest Audit - 2026-07-16T14:30Z
+
+- Current Westwood product pages (`YLDW`, `MDST`, `WEEI`) and John Hancock /
+  Manulife ETF and fund-document pages all return HTTP 403 before any complete
+  issuer-native holdings disclosure can be reached. They remain fallback-only.
+- BMO's official ETF API is reachable, but it returns only top-holdings rows
+  (for example, 10 rows for the S&P 500 ETF) rather than a complete portfolio,
+  so it does not meet the native-support standard.
+- The live-enabled registry checks passed: all `222` currently native/live-backed
+  providers map to explicit concrete issuer-route live tests, and the 345-entry
+  registry flags agree with that manifest. Strict state remains `222/345` native,
+  `123` fallback-only.
+
 # ETF Holdings Provider Integrity Audit - 2026-07-16T13:45Z
 
 - Demoted `cultivar`: its configured public fund page and WordPress API currently
