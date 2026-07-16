@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Verification - 2026-07-16T15:45Z
+
+- Verified the current strict state is `224/345` native/live-backed identities and
+  `121/345` fallback-only. This is not the completion state for the active all-provider
+  goal. The prior clean working tree reflected already committed/pushed Brookfield and
+  Wellington implementation work, plus operational checkpoint commits.
+- Re-ran Pacer's exact opt-in live `COWZ` route successfully. Its issuer marketing
+  page is Cloudflare-blocked, but its direct issuer holdings artifact remains reachable,
+  so Pacer is correctly counted. Absolute Investment Advisers' public ABEQ page was
+  also examined; it exposes documents rather than a complete current holdings feed, so
+  it remains fallback-only and unpromoted.
+
 # ETF Holdings Provider Integration - Wellington - 2026-07-16T15:15Z
 
 - Promoted `wellington` using a dedicated adapter restricted to its actual

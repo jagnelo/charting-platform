@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Provider support verification and next-source audit - 2026-07-16T15:45Z
+
+- Rechecked the strict support state after the user questioned whether clean working
+  trees had hidden a lack of progress: `224/345` registered identities are currently
+  marked native/live-backed and `121` remain fallback-only. The last two real native
+  additions were Wellington and Brookfield; the intervening clean state reflected
+  committed/pushed implementation plus required operational handoffs, not completion
+  of the 345-provider goal.
+- Ran Pacer's exact opt-in issuer route (`COWZ`) live: it passed through the issuer's
+  direct `usbank/live/..._Holdings.csv` artifact despite Pacer's public marketing page
+  itself returning a Cloudflare challenge. Pacer remains legitimately counted.
+- Audited the next fallback identity, Absolute Investment Advisers (`ABEQ`). Its
+  reachable first-party product page exposes investor documents and historical N-PORT
+  material, but no complete current issuer-native holdings feed. Do not promote it or
+  build a pretend generic route. Continue with a different reachable fallback issuer;
+  preserve this finding to avoid repeatedly probing the same page.
+
 ## Brookfield native holdings route - 2026-07-16T15:35Z
 
 - Promoted the registered `brookfield` identity through an isolated adapter restricted to
