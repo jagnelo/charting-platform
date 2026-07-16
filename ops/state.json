@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-16T12:04:39Z",
-    "last_commit": "pending feat(etf-holdings): add Weitz holdings adapter",
-    "git_ready_to_commit": false,
+    "last_commit": "eefa31c feat(etf-holdings): add Weitz holdings adapter",
+    "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-16 Ruff check for the Weitz adapter, static fixtures, and live test module)",
         "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 277 passed with --no-cov) and opt-in live Weitz WCPB route. The live manifest now proves all 223 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
