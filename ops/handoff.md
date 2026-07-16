@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Provider live-support integrity correction - 2026-07-16T13:45Z
+
+- Demoted `cultivar` from native/live-backed coverage. Its only configured first-party
+  route (`https://cultivarfunds.com/funds/`) and the WordPress API currently reject
+  backend requests with 403/500, so preserving its parser is valid but counting it as
+  an executable native integration was not.
+- The static adapter suite passed (`277 passed`). A network-enabled live-matrix rerun
+  passed the strict registry invariant and the first 34 concrete issuer routes before
+  the command channel closed without a final suite result; do not claim a complete
+  live-matrix pass until that full run completes normally.
+- PIMCO was also audited: its public fund-detail client exposes only `topTenHoldings`
+  and `topTenHoldings/export`; no complete unauthenticated holdings endpoint was found.
+  It remains fallback-only.
+- Strict coverage is now `222/345` native/live-backed and `123` fallback-only. Next
+  concrete action: continue the priority issuer queue with a complete, backend-reachable,
+  first-party artifact and add both static and opt-in live coverage before promotion.
+
 ## Weitz native holdings route - 2026-07-16T12:04Z
 
 - Promoted `weitz` through a dedicated adapter for the issuer's genuine US ETF

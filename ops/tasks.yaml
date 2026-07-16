@@ -20,7 +20,7 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 223 native/live-backed providers out of 345; 122 remain.
+      - Current truthful count: 222 native/live-backed providers out of 345; 123 remain.
       - >
         Weitz is supported through its issuer-owned WCPB and WMSB product pages,
         whose embedded `holdingsFileJson` payloads disclose complete current holdings.
@@ -110,6 +110,8 @@ tasks:
         full/daily holdings, but their public routes are not executable from the backend. John
         Hancock's public multi-fund basket PDF also returns HTTP 403. PIMCO's public fund client
         exposes only a top-ten export and its direct API requires an unavailable authenticated role.
+        Cultivar's public fund page and WordPress API currently reject backend requests (403/500),
+        so it is fallback-only rather than falsely counted as live-backed.
         Do not promote any of them until a reachable complete issuer-native route passes a live
         test. Neuberger Berman is supported through its official sitemap and detailed-holdings
         workbook route. Water Island is supported through AltShares' complete periodic

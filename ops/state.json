@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-16T12:04:39Z",
+    "last_handoff_at": "2026-07-16T13:45:00Z",
     "last_commit": "eefa31c feat(etf-holdings): add Weitz holdings adapter",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-16 Ruff check for the Weitz adapter, static fixtures, and live test module)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 277 passed with --no-cov) and opt-in live Weitz WCPB route. The live manifest now proves all 223 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 277 passed with --no-cov). The live manifest proves every currently counted native/live-backed provider has explicit adapter and concrete live-test mappings. A network-enabled matrix rerun passed the invariant and its first 34 routes, but the command channel closed before a final suite result; a full completed sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-16T13:45Z Provider integrity correction: Cultivar's first-party page and WordPress API now reject backend requests with 403/500, so it was demoted from native/live-backed to fallback-only rather than overstating capability. PIMCO's reachable public fund client exposes only top-ten holdings and has no complete unauthenticated endpoint. Static adapter suite passed (277 tests); a network-enabled live sweep passed its strict invariant and first 34 routes before the execution channel closed. Strict state is 345 registered, 222 native/live-backed, and 123 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T12:04Z Weitz native route: added a dedicated adapter for WCPB and WMSB. It validates the issuer page's matching ticker and fund name before parsing its complete embedded holdings JSON, requires one issuer as-of date, preserves CUSIP/shares/value/weight data, and classifies non-equity rows without false tradable symbols. Ruff, the full 277-test adapter suite, opt-in live WCPB route, strict manifest invariant, and diff check passed. Strict state is 345 registered, 223 native/live-backed, and 122 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T13:10Z Clough CGI native route: added a dedicated Clough CGI adapter for the formal issuer identity used by CBLS and CBSE. It only accepts that verified fund range and uses Clough Capital's public fund-scoped holdings JSON, not a generic or SEC route. Ruff, the full 275-test adapter suite, opt-in live CBSE route, strict manifest invariant, and diff check passed. Strict state is 345 registered, 222 native/live-backed, and 123 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T12:55Z Dividend Assets Capital native route: added a dedicated DVGR issuer-page adapter for the complete current holdings table. It verifies fund identity/schema, requires one effective date, converts the source's market-value-in-millions values, and falls back narrowly from httpx's issuer-specific 403/TLS rejection to requests using identical public headers. Ruff, full 273-test adapter suite, opt-in live DVGR route, strict manifest invariant, and diff check passed. Strict state is 345 registered, 221 native/live-backed, and 124 fallback-only; SEC EDGAR remains fallback-only.",

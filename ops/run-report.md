@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integrity Audit - 2026-07-16T13:45Z
+
+- Demoted `cultivar`: its configured public fund page and WordPress API currently
+  return 403/500 to backend requests, so it cannot honestly be counted as a native,
+  live-backed provider. The parser remains available for a future reachable route.
+- Audited PIMCO's public fund client. It exposes only top-ten holdings endpoints;
+  without a complete unauthenticated issuer artifact, PIMCO remains fallback-only.
+- Validation: `277 passed` in the adapter unit suite; `git diff --check` passed.
+  The network-enabled live matrix passed its strict manifest invariant and first 34
+  issuer routes before the execution channel closed without a final result. Strict
+  coverage is `222/345` native/live-backed and `123` fallback-only.
+
 # ETF Holdings Provider Integration - Weitz - 2026-07-16T12:04Z
 
 - Promoted `weitz` through its issuer-owned `WCPB` and `WMSB` product pages.
