@@ -10877,3 +10877,14 @@ Append a short entry after each worker session.
 - No provider was promoted. Strict state remains `345` registered providers,
   `222` native/live-backed, and `123` fallback-only. SEC EDGAR remains fallback-only
   and uncounted.
+# ETF Holdings Provider Native Route - 2026-07-16T15:35Z
+
+- Promoted `brookfield` through a dedicated, deliberately constrained `TRBF` adapter.
+  Brookfield is the registered manager identity, while Angel Oak is the legal issuer and
+  publisher of the complete current account-scoped CSV. The adapter accepts only `TRBF`,
+  rejects arbitrary source URLs and mismatched identifiers, preserves the issuer's
+  fixed-income/cash semantics, and records the publisher boundary in snapshot metadata.
+- Validation passed: focused static fixture suite (`3 passed`), Ruff, live TRBF holdings
+  route, strict live-provider/concrete-test invariant (`2 passed`), and diff check. Strict
+  coverage is `224/345` native/live-backed and `121` fallback-only. SEC EDGAR remains
+  fallback-only and uncounted.

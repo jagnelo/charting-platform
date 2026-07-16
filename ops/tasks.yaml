@@ -20,7 +20,13 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 223 native/live-backed providers out of 345; 122 remain.
+      - Current truthful count: 224 native/live-backed providers out of 345; 121 remain.
+      - >
+        Brookfield Asset Management's registered US ETF identity is supported through a
+        dedicated, deliberately constrained adapter for TRBF. Angel Oak is TRBF's legal
+        issuer and publishes the complete account-scoped portfolio CSV; the adapter records
+        Angel Oak as publisher and rejects every other symbol rather than treating its
+        aggregate file as a Brookfield fallback.
       - >
         Wellington Management's three registered US ETF identities are supported through a
         dedicated, deliberately constrained adapter for VUSV, VDIG, and VUSG. Vanguard is

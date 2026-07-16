@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Brookfield native holdings route - 2026-07-16T15:35Z
+
+- Promoted the registered `brookfield` identity through an isolated adapter restricted to
+  `TRBF`. ETFDB identifies TRBF under Brookfield Asset Management, but Angel Oak is the
+  legal issuer and publishes the complete, current account-scoped portfolio in its public
+  CSV export. The adapter deliberately uses only that verified publisher relationship,
+  refuses arbitrary symbols, custom URLs, and mismatched identifiers, and records Angel Oak
+  as the source publisher.
+- Static fixture validation passed (`3 passed`), Ruff passed, and the opt-in live TRBF
+  route plus the strict concrete-live-route invariant passed (`2 passed`). Strict coverage
+  is now `224/345` native/live-backed and `121` fallback-only. SEC EDGAR remains fallback-only.
+
 ## Wellington native holdings route - 2026-07-16T15:15Z
 
 - Promoted the registered `wellington` identity with an isolated adapter restricted to
