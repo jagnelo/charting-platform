@@ -37197,8 +37197,11 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="cultivar", source_provider="cultivar",
         source_access="issuer_current_fund_page_holdings_table",
         product_page_templates=("https://cultivarfunds.com/funds/",),
-        live_tested_default_route=True,
-        terms_note="Cultivar public ETF fund-page holdings tables may be subject to issuer terms.",
+        # The public fund page and its WordPress API currently reject backend
+        # requests (403/500). Keep the parser available for a future route, but
+        # do not advertise this issuer as live-backed until that changes.
+        live_tested_default_route=False,
+        terms_note="Cultivar public fund-page holdings data is currently blocked from backend retrieval.",
     ),
     "optimize": IssuerCsvAdapterConfig(
         adapter_key="optimize",
