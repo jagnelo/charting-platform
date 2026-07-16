@@ -8303,6 +8303,200 @@ class GoldenEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return int(match.group(1).replace(",", "")) if match else None
 
 
+class DividendAssetsCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Dividend Assets Capital's complete DVGR portfolio from its issuer page."""
+
+    _FUNDS = {
+        "DVGR": (
+            "https://dacapitaletf.com/",
+            "DAC 3D Dividend Growth ETF",
+        ),
+    }
+    _TABLE_ID = "table_11"
+    _EXPECTED_HEADERS = {
+        "ticker",
+        "name",
+        "cusip",
+        "shares",
+        "price",
+        "market value ($mm)",
+        "% of net assets",
+        "effective_date",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9700") if fund else Decimal("0.3500"),
+            status="ready" if fund or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Dividend Assets Capital publishes DVGR's complete current holdings table on its issuer page."
+                if fund
+                else (
+                    f"Dividend Assets Capital has no configured native holdings route for {normalized_symbol}; "
+                    "SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Dividend Assets Capital has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=fund[0] if fund else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        if fund is None:
+            raise ValueError(
+                f"Dividend Assets Capital has no configured native holdings route for {normalized_symbol}."
+            )
+
+        product_url, expected_fund_name = fund
+        response = await self._fetch_product_page(product_url)
+        composition_date, rows = self._parse_product_page(
+            response.text,
+            symbol=normalized_symbol,
+            expected_fund_name=expected_fund_name,
+        )
+        if not rows:
+            raise ValueError(
+                f"Dividend Assets Capital product page did not expose holdings for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "dividend_assets_product_page_complete_holdings_table",
+                "source_format": "html_table",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+        expected_fund_name: str,
+    ) -> tuple[date, list[CanonicalHoldingRow]]:
+        if (
+            expected_fund_name.lower() not in raw_html.lower()
+            or f"{symbol} Fund Holdings".lower() not in raw_html.lower()
+        ):
+            raise ValueError(f"Dividend Assets Capital product page identity did not match {symbol}.")
+
+        parser = _HTMLTableByIdParser(table_id=cls._TABLE_ID)
+        parser.feed(html.unescape(raw_html))
+        if not parser.rows:
+            raise ValueError(f"Dividend Assets Capital product page did not expose a holdings table for {symbol}.")
+        header = parser.rows[0]
+        if cls._EXPECTED_HEADERS != {cell.strip().lower() for cell in header}:
+            raise ValueError(
+                f"Dividend Assets Capital product page used an unexpected holdings schema for {symbol}."
+            )
+
+        rows: list[CanonicalHoldingRow] = []
+        effective_dates: set[date] = set()
+        for index, raw_row in enumerate(parser.rows[1:], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("NAME"))
+            if not name:
+                continue
+            effective_date = _clean(raw.get("EFFECTIVE_DATE"))
+            if effective_date is None:
+                raise ValueError(
+                    f"Dividend Assets Capital holdings row {index} did not declare an effective date."
+                )
+            try:
+                effective_dates.add(datetime.strptime(effective_date, "%m/%d/%Y").date())
+            except ValueError as error:
+                raise ValueError(
+                    f"Dividend Assets Capital holdings row {index} used an invalid effective date."
+                ) from error
+
+            ticker = cls._tradable_symbol(_clean(raw.get("TICKER")))
+            text = " ".join(value.upper() for value in (name, ticker) if value)
+            is_cash = "CASH" in text or "MONEY MARKET" in text
+            market_value_millions = _decimal(raw.get("Market Value ($mm)"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    cusip=_clean(raw.get("CUSIP")),
+                    shares=_decimal(raw.get("SHARES")),
+                    market_value=(
+                        market_value_millions * Decimal("1000000")
+                        if market_value_millions is not None
+                        else None
+                    ),
+                    weight=_decimal_percent_points(raw.get("% OF NET ASSETS")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"dividend-assets:{symbol}:{index}:{ticker or name}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+
+        if len(effective_dates) != 1:
+            raise ValueError(
+                "Dividend Assets Capital complete holdings table did not contain one consistent effective date."
+            )
+        return effective_dates.pop(), rows
+
+    @staticmethod
+    async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        # Dividend Assets Capital's public WordPress edge accepts this request
+        # through requests but currently rejects httpx's TLS fingerprint.
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().split()[0].replace("/", ".")
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+
 class CyberHornetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Cyber Hornet's fund-scoped full holdings CSVs from issuer pages."""
 
@@ -36916,6 +37110,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Golden Eagle public ETF portfolio disclosures may be subject to issuer terms.",
     ),
+    "dividend_assets": IssuerCsvAdapterConfig(
+        adapter_key="dividend_assets",
+        source_provider="dividend_assets",
+        source_access="issuer_product_page_complete_current_holdings_table",
+        product_page_templates=("https://dacapitaletf.com/",),
+        live_tested_default_route=True,
+        terms_note="Dividend Assets Capital public ETF holdings data may be subject to issuer terms.",
+    ),
     "cyber_hornet": IssuerCsvAdapterConfig(
         adapter_key="cyber_hornet",
         source_provider="cyber_hornet",
@@ -37079,6 +37281,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
         "golden_eagle": GoldenEagleHoldingsAdapter,
+        "dividend_assets": DividendAssetsCapitalHoldingsAdapter,
         "cyber_hornet": CyberHornetHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,

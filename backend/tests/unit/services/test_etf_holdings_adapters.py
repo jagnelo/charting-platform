@@ -523,6 +523,108 @@ async def test_cyber_hornet_adapter_fetches_issuer_declared_complete_holdings_cs
     assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
 
 
+def test_dividend_assets_parser_uses_issuer_complete_holdings_table_and_units():
+    adapter = get_holdings_adapter("dividend_assets")
+    assert adapter is not None
+
+    composition_date, rows = adapter._parse_product_page(
+        """
+        <h1>DAC 3D Dividend Growth ETF</h1><h2>DVGR Fund Holdings</h2>
+        <table id="table_11">
+          <thead><tr>
+            <th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+            <th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th>
+          </tr></thead>
+          <tbody>
+            <tr><td>STLD</td><td>Steel Dynamics Inc</td><td>858119100</td><td>623</td><td>235.56</td><td>0.15</td><td>0.92</td><td>07/16/2026</td></tr>
+            <tr><td></td><td>Cash &amp; Other Assets</td><td></td><td>10</td><td>1</td><td>0.01</td><td>0.06</td><td>07/16/2026</td></tr>
+          </tbody>
+        </table>
+        """,
+        symbol="DVGR",
+        expected_fund_name="DAC 3D Dividend Growth ETF",
+    )
+
+    assert composition_date == date(2026, 7, 16)
+    assert len(rows) == 2
+    assert rows[0].symbol == "STLD"
+    assert rows[0].cusip == "858119100"
+    assert rows[0].weight == Decimal("0.0092")
+    assert rows[0].market_value == Decimal("150000")
+    assert rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_dividend_assets_adapter_fetches_issuer_complete_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("dividend_assets")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+            <h1>DAC 3D Dividend Growth ETF</h1><h2>DVGR Fund Holdings</h2>
+            <table id="table_11"><thead><tr>
+              <th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+              <th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th>
+            </tr></thead><tbody><tr>
+              <td>MSFT</td><td>Microsoft Corp</td><td>594918104</td><td>2,220</td><td>395.63</td><td>0.88</td><td>5.53</td><td>07/16/2026</td>
+            </tr></tbody></table>
+            """,
+            content_type="text/html",
+            url="https://dacapitaletf.com/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DVGR")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].market_value == Decimal("880000")
+    assert result.legal_metadata["route_resolution"] == (
+        "dividend_assets_product_page_complete_holdings_table"
+    )
+    assert FakeAsyncClient.requested[0][0] == "https://dacapitaletf.com/"
+
+
+@pytest.mark.asyncio
+async def test_dividend_assets_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
+    adapter = get_holdings_adapter("dividend_assets")
+    assert adapter is not None
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    holdings_html = """
+    <h1>DAC 3D Dividend Growth ETF</h1><h2>DVGR Fund Holdings</h2>
+    <table id="table_11"><thead><tr>
+      <th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+      <th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody><tr>
+      <td>MSFT</td><td>Microsoft Corp</td><td>594918104</td><td>2,220</td><td>395.63</td><td>0.88</td><td>5.53</td><td>07/16/2026</td>
+    </tr></tbody></table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url="https://dacapitaletf.com/")]
+    requests_called: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requests_called.append(url)
+        return FakeResponse(text=holdings_html, content_type="text/html", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="DVGR")
+
+    assert requests_called == ["https://dacapitaletf.com/"]
+    assert result.rows[0].symbol == "MSFT"
+
+
 def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     adapter = get_holdings_adapter("canary")
     assert adapter is not None
