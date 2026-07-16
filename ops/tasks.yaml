@@ -20,7 +20,13 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 219 native/live-backed providers out of 345; 126 remain.
+      - Current truthful count: 220 native/live-backed providers out of 345; 125 remain.
+      - >
+        Cyber Hornet is supported through its issuer-owned BBB, EEE, SSS, and XXX
+        product pages and their explicitly declared full-holdings CSV exports. The
+        adapter validates the fund-scoped download route and CSV schema, preserves
+        CUSIP/shares/market value/weight data, and keeps direct crypto and cash rows
+        non-tradable rather than inventing platform symbols.
       - >
         Golden Eagle is supported through HYP's official current portfolio table.
         The adapter verifies fund identity, the issuer's actual table schema, its

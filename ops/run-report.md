@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Cyber Hornet - 2026-07-16T11:30Z
+
+- Promoted `cyber_hornet` through its issuer-owned BBB, EEE, SSS, and XXX fund
+  pages and their explicitly declared full-holdings CSV exports. The isolated
+  adapter validates the selected page's fund-specific download route and CSV
+  schema, preserves ticker/CUSIP/shares/value/weight data, and prevents direct
+  crypto or cash rows from becoming false platform symbols.
+- Validation passed: Ruff; all `270` adapter unit tests with `--no-cov`; the
+  live `XXX` issuer route; the concrete-live-route invariant (`2 passed`); and
+  `git diff --check`. Strict coverage is now `220/345` native/live-backed
+  providers and `125` fallback-only.
+
 # ETF Holdings Provider Integration - Golden Eagle - 2026-07-16T02:20Z
 
 - Promoted `golden_eagle` through HYP's official current portfolio table. The

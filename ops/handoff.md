@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Cyber Hornet native holdings route - 2026-07-16T11:30Z
+
+- Promoted `cyber_hornet` with an isolated adapter for its current published
+  BBB, EEE, SSS, and XXX ETF fund pages. It verifies that the selected issuer
+  page declares its matching full-holdings CSV, verifies the actual CSV schema,
+  and preserves ticker/CUSIP/shares/value/weight data. Direct crypto exposure
+  and cash remain non-tradable rather than being falsely mapped as platform
+  instruments.
+- Validation passed: Ruff; full adapter suite (`270 passed`); opt-in live XXX
+  route; the concrete-live-route invariant (`2 passed`); and `git diff --check`.
+  Strict coverage is now `220/345` native/live-backed and `125` fallback-only;
+  SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with a backend-reachable, complete,
+  first-party artifact. Do not promote sources that expose only top holdings,
+  browser-only content, or SEC data as native provider support.
+
 ## Golden Eagle native holdings route - 2026-07-16T02:20Z
 
 - Promoted `golden_eagle` with an isolated adapter for the Golden Eagle Dynamic
