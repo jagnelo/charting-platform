@@ -11056,3 +11056,14 @@ Append a short entry after each worker session.
   route; configured-provider registry invariant; and concrete-live-route manifest
   invariant. Strict count: `345` registered providers, `233` native/live-backed, and
   `112` fallback-only. SEC EDGAR remains fallback-only and does not count as support.
+
+# ETF Holdings Provider Native Route - 2026-07-16T20:50Z
+
+- Promoted `cboe` through a dedicated `BUFG` adapter. Cboe Vest is the verified
+  sub-adviser, while First Trust is the legal issuer and publisher of the complete current
+  holdings table. The adapter accepts only BUFG, blocks arbitrary URLs and unrelated
+  Cboe-listed products, and retains the publisher boundary in snapshot metadata.
+- Validation passed: Ruff; full adapter suite (`295 passed`); exact opt-in `BUFG` live
+  route; configured-provider registry invariant; and concrete-live-route manifest
+  invariant. Strict count: `345` registered providers, `234` native/live-backed, and
+  `111` fallback-only. SEC EDGAR remains fallback-only and does not count as support.

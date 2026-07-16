@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Cboe/Vest native route - 2026-07-16T20:50Z
+
+- Promoted `cboe` through an isolated adapter limited to `BUFG`, a verified Cboe Vest
+  sub-advised ETF. The legal issuer First Trust publishes the complete current holdings
+  table. The adapter owns that publisher retrieval, rejects arbitrary URLs and unrelated
+  Cboe-listed products, and records First Trust as publisher without SEC fallback.
+- Validation passed: Ruff; full adapter suite (`295 passed`); concrete opt-in `BUFG`
+  live route; configured-provider registry invariant; and concrete-live-route manifest
+  invariant. Strict state is now `234/345` native/live-backed and `111` fallback-only.
+- The full matrix runner remains unavailable in this command channel after roughly 10-15%
+  progress. Preserve the documented `238 passed` clean baseline and run the 241-test
+  matrix from a durable local shell before claiming a fresh whole-suite pass.
+- Exact next step: continue the remaining-111 queue with the same native-route, fixture,
+  and concrete-live-test threshold.
+
 ## CICC native route - 2026-07-16T20:35Z
 
 - Promoted `cicc` through an isolated adapter limited to `KWEB`, a verified U.S.
