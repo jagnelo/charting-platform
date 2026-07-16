@@ -9040,6 +9040,44 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
+    adapter = get_holdings_adapter("cicc")
+    assert adapter is not None
+
+    holdings_csv = "\n".join(
+        [
+            '"KWEB Holdings","As of 2026-07-06","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"TENCENT HOLDINGS LTD",10.08,700,KYG875721634,"9,923,675","578,937,496"',
+        ]
+    )
+    requested: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requested.append(url)
+        response = FakeResponse(text=holdings_csv, content_type="text/csv")
+        response.url = url
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="KWEB")
+
+    assert requested == ["https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"]
+    assert result.rows[0].symbol == "700"
+    assert result.legal_metadata["adapter_key"] == "cicc"
+    assert result.legal_metadata["source_provider"] == "kraneshares"
+    assert result.legal_metadata["publisher"] == "kraneshares"
+    assert result.legal_metadata["route_resolution"] == "cicc_kraneshares_dated_csv_lookback"
+
+    with pytest.raises(ValueError, match="only supports"):
+        await adapter.fetch_latest(symbol="KWEBX")
+    with pytest.raises(ValueError, match="verified KraneShares publisher route"):
+        await adapter.fetch_latest(symbol="KWEB", source_url="https://example.test/holdings")
+
+
+@pytest.mark.asyncio
 async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("ssc")
     assert adapter is not None
