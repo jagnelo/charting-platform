@@ -379,6 +379,82 @@ async def test_morgan_stanley_adapter_discovers_and_fetches_current_issuer_workb
     assert FakeAsyncClient.requested[1][0].endswith("ETF_07_15_2026.xlsx")
 
 
+def test_golden_eagle_parser_validates_complete_declared_portfolio_count():
+    adapter = get_holdings_adapter("golden_eagle")
+    assert adapter is not None
+
+    composition_date, rows = adapter._parse_product_page(
+        """
+        <p>The Golden Eagle Dynamic Hypergrowth ETF (Ticker: HYP)</p>
+        <div><span># of Holdings</span><span>2</span></div>
+        <p>As of 07/14/2026</p>
+        <table>
+          <tr><th>Name</th><th>Symbol</th><th>Shares</th><th>Market Value</th><th>Weightings (%)</th></tr>
+          <tr><td>BERKSHIRE HATHAWAY INC-CL B</td><td>BRK/B</td><td>92495</td><td>$45,423,369.55</td><td>1.14%</td></tr>
+          <tr><td>NVIDIA CORP</td><td>NVDA</td><td>1259256</td><td>$266,710,420.80</td><td>6.69%</td></tr>
+          <tr><td>CASH AND CASH EQUIVALENTS</td><td></td><td>50057.42</td><td>$50,057.42</td><td>0.06%</td></tr>
+        </table>
+        """,
+        symbol="HYP",
+        expected_fund_name="The Golden Eagle Dynamic Hypergrowth ETF",
+    )
+
+    assert composition_date == date(2026, 7, 14)
+    assert len(rows) == 3
+    assert rows[0].symbol == "BRK.B"
+    assert rows[0].weight == Decimal("0.0114")
+    assert rows[1].symbol == "NVDA"
+    assert rows[2].symbol is None
+    assert rows[2].row_type == "cash"
+
+    with pytest.raises(ValueError, match="did not match its declared complete portfolio"):
+        adapter._parse_product_page(
+            """
+            <p>The Golden Eagle Dynamic Hypergrowth ETF (Ticker: HYP)</p>
+            <div><span># of Holdings</span><span>3</span></div>
+            <table>
+              <tr><th>Name</th><th>Symbol</th><th>Shares</th><th>Market Value</th><th>Weightings (%)</th></tr>
+              <tr><td>NVIDIA CORP</td><td>NVDA</td><td>1</td><td>$1</td><td>100%</td></tr>
+            </table>
+            """,
+            symbol="HYP",
+            expected_fund_name="The Golden Eagle Dynamic Hypergrowth ETF",
+        )
+
+
+@pytest.mark.asyncio
+async def test_golden_eagle_adapter_reads_its_complete_issuer_portfolio(monkeypatch):
+    adapter = get_holdings_adapter("golden_eagle")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <p>The Golden Eagle Dynamic Hypergrowth ETF (Ticker: HYP)</p>
+                <div><span># of Holdings</span><span>1</span></div>
+                <p>As of 07/15/2026</p>
+                <table>
+                  <tr><th>Name</th><th>Symbol</th><th>Shares</th><th>Market Value</th><th>Weightings (%)</th></tr>
+                  <tr><td>NVIDIA CORP</td><td>NVDA</td><td>1259256</td><td>$266,710,420.80</td><td>100%</td></tr>
+                </table>
+            """,
+            content_type="text/html",
+            url="https://hypergrowthetf.com/hyp-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HYP")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["route_resolution"] == (
+        "golden_eagle_product_page_complete_holdings_table"
+    )
+    assert FakeAsyncClient.requested[0][0] == "https://hypergrowthetf.com/hyp-etf/"
+
+
 def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     adapter = get_holdings_adapter("canary")
     assert adapter is not None

@@ -132,6 +132,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "gamco",
     "gmo",
     "goldman_sachs",
+    "golden_eagle",
     "graniteshares",
     "grayscale",
     "hashdex",
@@ -1483,6 +1484,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "golden_eagle",
+            "HYP",
+            None,
+            {},
+            50,
         ),
     ],
 )

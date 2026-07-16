@@ -8140,6 +8140,169 @@ class MorganStanleyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class GoldenEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Golden Eagle's complete current HYP portfolio from its issuer page."""
+
+    _FUNDS = {
+        "HYP": (
+            "https://hypergrowthetf.com/hyp-etf/",
+            "The Golden Eagle Dynamic Hypergrowth ETF",
+        ),
+    }
+    _EXPECTED_HEADERS = {"name", "symbol", "shares", "market value", "weightings (%)"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if fund else Decimal("0.3500"),
+            status="ready" if fund or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Golden Eagle publishes HYP's complete current portfolio table on its issuer page."
+                if fund
+                else (
+                    f"Golden Eagle has no configured native holdings route for {normalized_symbol}; "
+                    "SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Golden Eagle has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=fund[0] if fund else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        if fund is None:
+            raise ValueError(f"Golden Eagle has no configured native holdings route for {normalized_symbol}.")
+
+        product_url, expected_fund_name = fund
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        composition_date, rows = self._parse_product_page(
+            response.text,
+            symbol=normalized_symbol,
+            expected_fund_name=expected_fund_name,
+        )
+        if not rows:
+            raise ValueError(f"Golden Eagle product page did not expose holdings for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "golden_eagle_product_page_complete_holdings_table",
+                "source_format": "html_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+        expected_fund_name: str,
+    ) -> tuple[date | None, list[CanonicalHoldingRow]]:
+        if expected_fund_name.lower() not in raw_html.lower() or f"ticker: {symbol}".lower() not in raw_html.lower():
+            raise ValueError(f"Golden Eagle product page identity did not match {symbol}.")
+        parser = _HTMLTablesParser()
+        parser.feed(html.unescape(raw_html))
+        table = next(
+            (
+                candidate
+                for candidate in parser.tables
+                if candidate
+                and cls._EXPECTED_HEADERS <= {cell.strip().lower() for cell in candidate[0]}
+            ),
+            None,
+        )
+        if table is None:
+            raise ValueError(f"Golden Eagle product page used an unexpected holdings schema for {symbol}.")
+
+        header = table[0]
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw_row in enumerate(table[1:], start=1):
+            raw = _row_dict(header, raw_row)
+            name = _clean(raw.get("Name"))
+            if not name:
+                continue
+            ticker = cls._tradable_symbol(_clean(raw.get("Symbol")))
+            text = " ".join(value.upper() for value in (name, ticker) if value)
+            is_cash = "CASH" in text or "MONEY MARKET" in text
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker,
+                    name=name,
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    weight=_decimal(raw.get("Weightings (%)")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"golden-eagle:{symbol}:{index}:{ticker or name}",
+                    extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
+                )
+            )
+
+        declared_count = cls._declared_security_count(raw_html)
+        security_count = sum(row.row_type == "security" for row in rows)
+        if declared_count is None:
+            raise ValueError("Golden Eagle product page did not declare its complete holdings count.")
+        if security_count != declared_count:
+            raise ValueError(
+                "Golden Eagle product page holdings count did not match its declared complete portfolio."
+            )
+        return cls._composition_date(raw_html), rows
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        candidate = _clean(value)
+        if not candidate:
+            return None
+        normalized = candidate.upper().split()[0].replace("/", ".")
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @staticmethod
+    def _composition_date(value: str) -> date | None:
+        match = re.search(r"\bAs\s+of\s+(\d{1,2}/\d{1,2}/\d{4})\b", value, re.IGNORECASE)
+        return datetime.strptime(match.group(1), "%m/%d/%Y").date() if match else None
+
+    @staticmethod
+    def _declared_security_count(value: str) -> int | None:
+        match = re.search(
+            r"#\s*of\s*Holdings\s*</span>\s*<span[^>]*>\s*([\d,]+)\s*</span>",
+            value,
+            re.IGNORECASE,
+        )
+        return int(match.group(1).replace(",", "")) if match else None
+
+
 class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Indexperts ETF holdings from its issuer-designated ETF Pages feed."""
 
@@ -36559,6 +36722,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Morgan Stanley public ETF holdings workbooks may be subject to issuer terms.",
     ),
+    "golden_eagle": IssuerCsvAdapterConfig(
+        adapter_key="golden_eagle",
+        source_provider="golden_eagle",
+        source_access="issuer_product_page_complete_holdings_table",
+        product_page_templates=("https://hypergrowthetf.com/{symbol_lower}-etf/",),
+        live_tested_default_route=True,
+        terms_note="Golden Eagle public ETF portfolio disclosures may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -36713,6 +36884,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
+        "golden_eagle": GoldenEagleHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,
         "hartford": HartfordHoldingsAdapter,
