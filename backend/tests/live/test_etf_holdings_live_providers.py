@@ -168,6 +168,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "rex",
     "leuthold",
     "main_management",
+    "man_group",
     "mairs_power",
     "madison",
     "matthews",
@@ -616,6 +617,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "man_group",
+            "BUYO",
+            None,
+            {},
+            300,
         ),
         (
             "vaneck",

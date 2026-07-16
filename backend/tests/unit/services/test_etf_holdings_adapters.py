@@ -9078,6 +9078,37 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_man_group_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
+    adapter = get_holdings_adapter("man_group")
+    assert adapter is not None
+    holdings_csv = "\n".join(
+        [
+            '"BUYO Holdings","As of 2026-07-06","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"NEWS CORP - CLASS A",1.67,NWSA,US65249B1098,"9,826","274,931"',
+        ]
+    )
+    requested: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requested.append(url)
+        response = FakeResponse(text=holdings_csv, content_type="text/csv")
+        response.url = url
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    result = await adapter.fetch_latest(symbol="BUYO")
+
+    assert requested == ["https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv"]
+    assert result.rows[0].symbol == "NWSA"
+    assert result.legal_metadata["adapter_key"] == "man_group"
+    assert result.legal_metadata["publisher"] == "kraneshares"
+    with pytest.raises(ValueError, match="only supports"):
+        await adapter.fetch_latest(symbol="KWEB")
+
+
+@pytest.mark.asyncio
 async def test_cboe_adapter_is_limited_to_its_verified_first_trust_route(monkeypatch):
     adapter = get_holdings_adapter("cboe")
     assert adapter is not None

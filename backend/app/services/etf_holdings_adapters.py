@@ -34618,6 +34618,60 @@ class CiccHoldingsAdapter(KranesharesHoldingsAdapter):
         )
 
 
+class ManGroupHoldingsAdapter(KranesharesHoldingsAdapter):
+    """Fetch Man Group's verified BUYO ETF from its KraneShares partner route."""
+
+    supported_symbols = {"BUYO"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "Man Group's verified KraneShares U.S. holdings route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        if source_url:
+            raise ValueError("Man Group holdings must use its verified KraneShares publisher route.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Man Group issuer product identity must match the requested ETF symbol.")
+
+        for days_back in range(self.latest_lookback_days + 1):
+            source_date = date.today() - timedelta(days=days_back)
+            candidate_url = (
+                "https://kraneshares.com/csv/"
+                f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol.lower()}_holdings.csv"
+            )
+            try:
+                result = await self._fetch_csv_source(
+                    symbol=normalized_symbol,
+                    issuer_product_id=normalized_symbol,
+                    source_url=candidate_url,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code in {403, 404}:
+                    continue
+                raise
+            result.legal_metadata = {
+                **(result.legal_metadata or {}),
+                "adapter_key": self.adapter_key,
+                "source_provider": self.source_provider,
+                "publisher": "kraneshares",
+                "route_resolution": "man_group_kraneshares_dated_csv_lookback",
+            }
+            return result
+
+        raise ValueError(
+            f"Man Group's KraneShares publisher did not return current {normalized_symbol} holdings."
+        )
+
+
 class SprottHoldingsAdapter(IssuerCsvHoldingsAdapter):
     sitemap_url = "https://sprottetfs.com/xml-sitemap/"
 
@@ -38710,6 +38764,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subsidiary and may be subject to issuer terms."
         ),
     ),
+    "man_group": IssuerCsvAdapterConfig(
+        adapter_key="man_group",
+        source_provider="kraneshares",
+        source_access="issuer_partner_dated_complete_holdings_csv",
+        product_page_templates=(
+            "https://kraneshares.com/etf/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Man Group's verified BUYO ETF holdings are published by its KraneShares "
+            "partner and may be subject to issuer terms."
+        ),
+    ),
     "sprott": IssuerCsvAdapterConfig(
         adapter_key="sprott",
         source_provider="sprott",
@@ -39663,6 +39730,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "jpmorgan": JPMorganHoldingsAdapter,
         "kraneshares": KranesharesHoldingsAdapter,
         "cicc": CiccHoldingsAdapter,
+        "man_group": ManGroupHoldingsAdapter,
         "kurv": KurvHoldingsAdapter,
         "lazard": LazardHoldingsAdapter,
         "leuthold": LeutholdHoldingsAdapter,
