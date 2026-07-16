@@ -12940,6 +12940,41 @@ async def test_main_management_adapter_fetches_symbol_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_main_management_adapter_retries_a_transient_timeout(monkeypatch):
+    adapter = get_holdings_adapter("main_management")
+    assert adapter is not None
+
+    csv_payload = "\n".join(
+        [
+            "Main BuyWrite ETF",
+            "Fund Holdings Data as of 06/12/2026",
+            "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
+            "SS FINANCIAL SEL,81369Y605,XLF US,1022.44,53.34,2351200,125413008,10.23",
+        ]
+    )
+
+    class TimeoutThenResponseClient(FakeAsyncClient):
+        attempts = 0
+
+        async def get(self, url, **kwargs):
+            type(self).requested.append((url, kwargs))
+            type(self).attempts += 1
+            if type(self).attempts == 1:
+                raise httpx.ReadTimeout("publisher stalled", request=httpx.Request("GET", url))
+            return FakeResponse(text=csv_payload, content_type="text/csv")
+
+    TimeoutThenResponseClient.requested = []
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutThenResponseClient
+    )
+
+    result = await adapter.fetch_latest(symbol="BUYW")
+
+    assert len(TimeoutThenResponseClient.requested) == 2
+    assert result.rows[0].symbol == "XLF"
+
+
+@pytest.mark.asyncio
 async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(monkeypatch):
     adapter = get_holdings_adapter("procuream")
     assert adapter is not None
@@ -13355,6 +13390,38 @@ async def test_grayscale_adapter_parses_embedded_holdings_data(monkeypatch):
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_json"
     assert result.legal_metadata["source_format"] == "embedded_json"
     assert result.legal_metadata["composition_date"] == "06/12/2026"
+
+
+@pytest.mark.asyncio
+async def test_digital_currency_group_adapter_is_limited_to_bcor(monkeypatch):
+    adapter = get_holdings_adapter("digital_currency_group")
+    assert adapter is not None
+
+    html = (
+        '<html><script>self.__next_f.push([1,"'
+        '"productData":{"ticker":"BCOR","name":"Grayscale Bitcoin Adopters ETF",'
+        '"pricingDataDate":"07/15/2026"},'
+        '"holdingsData":[{"id":1,"symbol":"TSLA","name":"Tesla Inc",'
+        '"weight":0.2052,"sharesHeld":"1201","marketValue":"473746.46",'
+        '"date":"07/15/2026"}]'
+        '"])</script></html>'
+    )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=html, content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BCOR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://etfs.grayscale.com/bcor"
+    assert result.rows[0].symbol == "TSLA"
+    assert result.rows[0].weight == Decimal("0.2052")
+    assert result.rows[0].shares == Decimal("1201")
+    assert result.rows[0].market_value == Decimal("473746.46")
+    assert result.legal_metadata["adapter_key"] == "digital_currency_group"
+
+    with pytest.raises(ValueError, match="only supports BCOR"):
+        await adapter.fetch_latest(symbol="GBTC")
 
 
 @pytest.mark.asyncio

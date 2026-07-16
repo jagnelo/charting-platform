@@ -23388,7 +23388,9 @@ class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        for attempt in range(2):
+        # This publisher intermittently stalls before sending response headers. Retry only
+        # its direct CSV request so a transient edge timeout does not discard a valid feed.
+        for attempt in range(3):
             try:
                 result = await super().fetch_latest(
                     symbol=symbol,
@@ -23398,9 +23400,9 @@ class MainManagementHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
                 break
             except httpx.TimeoutException:
-                if attempt:
+                if attempt == 2:
                     raise
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.25 * (attempt + 1))
         rows, composition_date = self._parse_main_management_csv(result.raw_text or "")
         result.rows = rows
         result.legal_metadata = {
@@ -24603,6 +24605,33 @@ class GrayscaleHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows
+
+
+class DigitalCurrencyGroupHoldingsAdapter(GrayscaleHoldingsAdapter):
+    """Fetch Digital Currency Group's BCOR ETF from its Grayscale publisher route."""
+
+    supported_symbols = {"BCOR"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "Digital Currency Group's verified Grayscale holdings route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        return await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class GoldmanSachsHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -38365,6 +38394,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Grayscale public ETF product-page holdings data may be subject to issuer terms.",
     ),
+    "digital_currency_group": IssuerCsvAdapterConfig(
+        adapter_key="digital_currency_group",
+        source_provider="grayscale",
+        source_access="issuer_public_product_page_embedded_json",
+        product_page_templates=(
+            "https://etfs.grayscale.com/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Digital Currency Group's BCOR ETF holdings are published on its Grayscale "
+            "subsidiary's public product page and may be subject to issuer terms."
+        ),
+    ),
     "hashdex": IssuerCsvAdapterConfig(
         adapter_key="hashdex",
         source_provider="hashdex",
@@ -39354,6 +39396,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "cyber_hornet": CyberHornetHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,
+        "digital_currency_group": DigitalCurrencyGroupHoldingsAdapter,
         "hartford": HartfordHoldingsAdapter,
         "hashdex": HashdexHoldingsAdapter,
         "harbor": HarborHoldingsAdapter,

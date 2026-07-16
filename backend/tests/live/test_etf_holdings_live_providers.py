@@ -94,6 +94,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "defiance",
     "dividend_assets",
     "deepwater",
+    "digital_currency_group",
     "deutsche_bank",
     "diamond_hill",
     "dimensional",
@@ -1006,6 +1007,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             1,
+        ),
+        (
+            "digital_currency_group",
+            "BCOR",
+            None,
+            {},
+            40,
         ),
         (
             "hashdex",
