@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-16T01:45:00Z",
-    "last_commit": "dc1b585 chore(ops): record Morgan Stanley holdings integration",
-    "git_ready_to_commit": true,
+    "last_handoff_at": "2026-07-16T02:20:00Z",
+    "last_commit": "155f3d8 chore(ops): finalize Morgan Stanley checkpoint",
+    "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (2026-07-16 Ruff check for the Morgan Stanley adapter, static fixture, and live test module)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 266 passed with --no-cov) and opt-in live Morgan Stanley MSLC route. The live manifest now proves all 218 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
+        "backend_lint": "passed (2026-07-16 Ruff check for the Golden Eagle adapter, static fixture, and live test module)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 268 passed with --no-cov) and opt-in live Golden Eagle HYP route. The live manifest now proves all 219 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,7 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-16T02:20Z Golden Eagle native route: added a dedicated official HYP product-page adapter. It verifies the page's exact fund identity, actual Name/Symbol/Shares/Market Value/Weightings schema, as-of date, and issuer-declared security count before accepting its complete portfolio. It retains shares/value/weights and classifies the cash balance without a false tradable symbol. Ruff, full 268-test adapter suite, opt-in live HYP route, strict manifest invariant, and diff check passed. Strict state is 345 registered, 219 native/live-backed, and 126 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-16T01:45Z Morgan Stanley native route: added a dedicated issuer-product-page-to-current-workbook adapter for MSLC. It discovers the dated workbook from Morgan Stanley's public Pathway ETF page, verifies the expected fund title and explicit holdings header, preserves ticker/ISIN/CUSIP/SEDOL/shares/value/weight/currency data, and classifies cash, futures, derivatives, options, bonds, and funds without false tradable symbols. Ruff, full 266-test adapter suite, opt-in live MSLC route, and strict manifest invariant passed. Strict state is 345 registered, 218 native/live-backed, and 127 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T22:35Z Russell Investments native route: added a dedicated month-end issuer-workbook adapter for RUSC, RINT, RGLO, REMG, and RIFR. It validates the expected strategy title and explicit Russell workbook header, extracts source date and net assets, calculates weights, and classifies cash, futures, derivatives, options, bonds, and funds without false tradable symbols. Ruff, full 264-test adapter suite, opt-in live RUSC route, and strict manifest invariant passed. Strict state is 345 registered, 217 native/live-backed, and 128 fallback-only; SEC EDGAR remains fallback-only.",
         "2026-07-15T21:00Z Global X integrity repair: replaced the generic inherited GlobalXHoldingsAdapter fetch path with a dedicated product-page-to-dated-complete-CSV parser. It validates the Global X schema, preserves SEDOL/quantity/value/weight/date data, and classifies derivatives/cash without false tradable symbols. Mirae Asset uses that same concrete issuer platform route through its separate identity. Ruff, the full 262-test adapter suite, and opt-in live QYLD routes for Global X and Mirae Asset plus strict manifest invariant passed. Strict state remains 345 registered, 216 native/live-backed, and 129 fallback-only; this was an existing-provider correction.",

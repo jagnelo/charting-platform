@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Golden Eagle native holdings route - 2026-07-16T02:20Z
+
+- Promoted `golden_eagle` with an isolated adapter for the Golden Eagle Dynamic
+  Hypergrowth ETF (`HYP`). It uses only the issuer-owned product page, verifies
+  the exact fund identity, table schema, as-of date, and declared 60-security
+  portfolio count, then retains ticker/shares/value/weight/currency data while
+  preserving the cash row as non-tradable.
+- Validation passed: Ruff; full adapter suite (`268 passed`); opt-in live HYP
+  route; the concrete-live-route invariant (`2 passed`); and `git diff --check`.
+  Strict coverage is now `219/345` native/live-backed and `126` fallback-only;
+  SEC EDGAR remains fallback-only.
+- Continue the unresolved issuer queue with a backend-reachable, complete,
+  first-party artifact. Do not count issuer pages that expose only top holdings
+  unless their declared count independently proves the table is complete.
+
 ## Morgan Stanley native holdings route - 2026-07-16T01:45Z
 
 - Promoted `morgan_stanley` with an isolated issuer-page-to-current-workbook

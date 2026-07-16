@@ -20,7 +20,12 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 218 native/live-backed providers out of 345; 127 remain.
+      - Current truthful count: 219 native/live-backed providers out of 345; 126 remain.
+      - >
+        Golden Eagle is supported through HYP's official current portfolio table.
+        The adapter verifies fund identity, the issuer's actual table schema, its
+        reported as-of date, and the page-declared security count before storing
+        holdings, including the non-tradable cash balance.
       - >
         Morgan Stanley is supported through its issuer-owned Pathway ETF product
         page and current, dated MSLC holdings workbook. The adapter verifies the

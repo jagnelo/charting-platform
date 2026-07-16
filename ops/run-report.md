@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Golden Eagle - 2026-07-16T02:20Z
+
+- Promoted `golden_eagle` through HYP's official current portfolio table. The
+  isolated adapter confirms page identity, actual issuer schema, the reported
+  as-of date, and the declared complete security count before accepting rows.
+- Validation passed: Ruff; all `268` adapter unit tests with `--no-cov`; the
+  live `HYP` issuer route; the concrete-live-route invariant (`2 passed`); and
+  `git diff --check`. Strict coverage is now `219/345` native/live-backed
+  providers and `126` fallback-only.
+
 # ETF Holdings Provider Integration - Morgan Stanley - 2026-07-16T01:45Z
 
 - Promoted `morgan_stanley` through an isolated `MSLC` issuer product-page and
