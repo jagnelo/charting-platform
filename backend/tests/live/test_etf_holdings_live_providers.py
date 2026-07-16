@@ -87,6 +87,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "optimize",
     "clearshares",
     "clough",
+    "clough_cgi",
     "davis",
     "defiance",
     "dividend_assets",
@@ -1412,6 +1413,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "clough",
+            "CBSE",
+            None,
+            {},
+            20,
+        ),
+        (
+            "clough_cgi",
             "CBSE",
             None,
             {},

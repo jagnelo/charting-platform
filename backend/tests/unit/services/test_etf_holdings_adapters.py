@@ -7425,8 +7425,9 @@ async def test_clearshares_adapter_fetches_native_holdings_workbook(monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_clough_adapter_fetches_native_holdings_json(monkeypatch):
-    adapter = get_holdings_adapter("clough")
+@pytest.mark.parametrize("adapter_key", ["clough", "clough_cgi"])
+async def test_clough_adapter_fetches_native_holdings_json(monkeypatch, adapter_key):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     payload = {
@@ -7479,9 +7480,21 @@ async def test_clough_adapter_fetches_native_holdings_json(monkeypatch):
     assert result.rows[1].holding_type == "cash"
     assert result.rows[1].extra_data["source_symbol"] == "GS.BROKER"
     assert result.legal_metadata["route_resolution"] == "issuer_wordpress_holdings_json"
-    assert result.legal_metadata["source_provider"] == "clough"
+    assert result.legal_metadata["source_provider"] == (
+        "clough_capital" if adapter_key == "clough_cgi" else "clough"
+    )
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["source_format"] == "json"
     assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
+async def test_clough_cgi_adapter_rejects_non_clough_fund_symbols():
+    adapter = get_holdings_adapter("clough_cgi")
+    assert adapter is not None
+
+    with pytest.raises(ValueError, match="only configured for CBLS, CBSE"):
+        await adapter.fetch_latest(symbol="SPY", identifiers={})
 
 
 @pytest.mark.asyncio

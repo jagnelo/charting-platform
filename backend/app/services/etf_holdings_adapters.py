@@ -26523,6 +26523,38 @@ class CloughHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class CloughCgiHoldingsAdapter(CloughHoldingsAdapter):
+    """Fetch the Clough CGI ETF range through Clough Capital's native feed.
+
+    ETF catalogues use both ``Clough`` and ``Clough CGI`` for the issuer family.
+    The latter is a separate registered identity, but its two US-listed ETFs are
+    published at the same issuer-owned Clough Capital endpoint.
+    """
+
+    SUPPORTED_SYMBOLS = frozenset({"CBLS", "CBSE"})
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            raise ValueError(
+                "Clough CGI's native holdings route is only configured for "
+                f"{', '.join(sorted(self.SUPPORTED_SYMBOLS))}; received {normalized_symbol}."
+            )
+        return await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+
+
 class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Palmer Square ETF holdings from issuer product-page JSON data."""
 
@@ -35779,6 +35811,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Clough Capital public ETF holdings JSON endpoints may be subject to issuer terms.",
     ),
+    "clough_cgi": IssuerCsvAdapterConfig(
+        adapter_key="clough_cgi",
+        source_provider="clough_capital",
+        source_access="issuer_public_wordpress_holdings_json",
+        url_templates=(
+            "https://www.cloughcapital.com/wp-admin/admin-ajax.php"
+            "?action=get_holdings_json&slug={symbol_lower}",
+        ),
+        product_page_templates=(
+            "https://www.cloughcapital.com/etfs/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Clough CGI ETF holdings are published through Clough Capital's public "
+            "issuer endpoint and may be subject to issuer terms."
+        ),
+    ),
     "aptus": IssuerCsvAdapterConfig(
         adapter_key="aptus",
         source_provider="aptus",
@@ -37196,6 +37245,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ssc": AlpsHoldingsAdapter,
         "clearshares": ClearSharesHoldingsAdapter,
         "clough": CloughHoldingsAdapter,
+        "clough_cgi": CloughCgiHoldingsAdapter,
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "deepwater": DeepwaterHoldingsAdapter,
