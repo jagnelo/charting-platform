@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Dividend Assets Capital native holdings route - 2026-07-16T12:55Z
+
+- Promoted `dividend_assets` with an isolated adapter for the DAC 3D Dividend
+  Growth ETF (`DVGR`). It fetches the publisher's complete current holdings
+  table, verifies the fund identity and exact schema, requires a single
+  effective date, and correctly expands the published market-value-in-millions
+  values while preserving CUSIP, shares, and weights.
+- The public WordPress edge returns `403` to httpx while accepting the identical
+  headers through requests. The adapter has a narrow issuer-local fallback for
+  that verified TLS-fingerprint behavior, covered by a regression test; it is
+  not a generic fallback path.
+- Validation passed: Ruff; full adapter suite (`273 passed`); opt-in live DVGR
+  route; the concrete-live-route invariant (`2 passed`); and `git diff --check`.
+  Strict coverage is now `221/345` native/live-backed and `124` fallback-only;
+  SEC EDGAR remains fallback-only.
+
 ## Cyber Hornet native holdings route - 2026-07-16T11:30Z
 
 - Promoted `cyber_hornet` with an isolated adapter for its current published

@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Dividend Assets Capital - 2026-07-16T12:55Z
+
+- Promoted `dividend_assets` through DVGR's issuer-owned complete current
+  holdings table. The dedicated adapter validates fund identity/schema and one
+  effective date, preserves identifiers/shares/weights, and converts the
+  source's published market-value-in-millions column to canonical currency.
+- Validation passed: Ruff; all `273` adapter unit tests with `--no-cov`; the
+  live DVGR issuer route; the concrete-live-route invariant (`2 passed`); and
+  `git diff --check`. Strict coverage is now `221/345` native/live-backed and
+  `124` fallback-only. The issuer-specific httpx-403-to-requests transport
+  fallback is covered by a unit regression test.
+
 # ETF Holdings Provider Integration - Cyber Hornet - 2026-07-16T11:30Z
 
 - Promoted `cyber_hornet` through its issuer-owned BBB, EEE, SSS, and XXX fund

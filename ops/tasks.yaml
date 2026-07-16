@@ -20,7 +20,14 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 220 native/live-backed providers out of 345; 125 remain.
+      - Current truthful count: 221 native/live-backed providers out of 345; 124 remain.
+      - >
+        Dividend Assets Capital is supported through DAC 3D Dividend Growth ETF
+        (DVGR)'s issuer-owned complete holdings table. The adapter verifies the
+        exact fund identity and schema, enforces one effective date across the
+        disclosure, preserves CUSIP/shares/weights/value data, and uses an
+        issuer-local requests transport fallback only for the publisher edge's
+        documented httpx TLS-fingerprint rejection.
       - >
         Cyber Hornet is supported through its issuer-owned BBB, EEE, SSS, and XXX
         product pages and their explicitly declared full-holdings CSV exports. The
