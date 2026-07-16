@@ -1,5 +1,24 @@
 # Active Handoff
 
+## Weitz native holdings route - 2026-07-16T12:04Z
+
+- Promoted `weitz` through a dedicated adapter for the issuer's genuine US ETF
+  range: Core Plus Bond ETF (`WCPB`) and Multisector Bond ETF (`WMSB`). The
+  adapter consumes only the complete `holdingsFileJson` disclosure embedded in
+  the fund-scoped issuer page, verifies both the requested ticker and fund name,
+  and rejects all unconfigured symbols before making a request.
+- The implementation requires one reported composition date, retains CUSIP,
+  shares, market value, and allocation data, and keeps fixed-income, derivative,
+  fund, and cash rows from being incorrectly exposed as equity symbols.
+- Validation passed: Ruff; full adapter suite (`277 passed`); opt-in live WCPB
+  route; concrete-live-route invariant (`3 passed`); and `git diff --check`.
+  Strict coverage is now `223/345` native/live-backed and `122` fallback-only;
+  SEC EDGAR remains fallback-only.
+- Next concrete action: continue the unresolved issuer queue with a complete,
+  backend-reachable, first-party issuer artifact. WisdomTree, Thrivent, and
+  Westwood currently return HTTP 403 to backend requests and must remain
+  unpromoted until a testable route is found.
+
 ## Clough CGI native holdings route - 2026-07-16T13:10Z
 
 - Promoted the separately registered `clough_cgi` issuer identity through an

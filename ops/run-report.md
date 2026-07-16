@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Weitz - 2026-07-16T12:04Z
+
+- Promoted `weitz` through its issuer-owned `WCPB` and `WMSB` product pages.
+  The dedicated adapter validates the fund ticker and name before parsing the
+  complete embedded JSON holdings payload, enforces one composition date, and
+  preserves CUSIPs, shares, values, allocations, and non-equity classifications.
+- Validation passed: Ruff; all `277` adapter unit tests with `--no-cov`; the
+  live `WCPB` issuer route; the concrete-live-route invariant (`3 passed`); and
+  `git diff --check`. Strict coverage is now `223/345` native/live-backed and
+  `122` fallback-only.
+
 # ETF Holdings Provider Integration - Clough CGI - 2026-07-16T13:10Z
 
 - Promoted the registered `clough_cgi` identity through a dedicated adapter for
