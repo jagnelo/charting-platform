@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Full native provider live-matrix verification - 2026-07-16T20:15Z
+
+- The complete opt-in live issuer suite has now completed successfully: `237 passed in
+  309.29s`. This replaces the previous incomplete-matrix caveat. It verifies the
+  concrete live route tests and configuration invariants for all currently counted
+  native/live-backed integrations.
+- Strict support state is unchanged: `230/345` issuer identities have isolated native
+  provider routes with static and live coverage; `115/345` remain fallback-only and do
+  not count as native support. The active all-345 goal remains in progress.
+- The apparent lack of progress in previous iterations was operational rather than an
+  intentional stop: checkpoint-only commits were pushed while the substantive adapter
+  expansion stayed uncommitted locally. That expansion is now preserved in
+  `3839d8e`, with its checkpoint in `28881cf`, both pushed to the feature branch.
+- Exact next step: continue the remaining-115 queue, promoting only issuers with a
+  verifiable complete first-party holdings artifact and adding a dedicated adapter,
+  static fixture coverage, and a concrete opt-in live test before increasing the count.
+
 ## Native provider verification and priority-source audit - 2026-07-16T20:05Z
 
 - Reconciled the apparent checkpoint-only history with the real working tree: the current

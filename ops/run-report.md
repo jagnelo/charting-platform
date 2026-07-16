@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Full Native Live Matrix - 2026-07-16T20:15Z
+
+- Ran the complete opt-in issuer-route suite:
+  `RUN_LIVE_ETF_HOLDINGS_TESTS=1 .venv/bin/pytest tests/live/test_etf_holdings_live_providers.py --no-cov -q`.
+  It completed successfully with `237 passed in 309.29s`.
+- This verifies the live-backed adapter configuration and every concrete provider live
+  route currently counted as native support. Current truthful state remains `230/345`
+  native/live-backed and `115/345` fallback-only; this is meaningful validation, not
+  completion of the active all-345 implementation goal.
+
 # ETF Holdings Provider Integration - Redwood - 2026-07-16T19:45Z
 
 - Added a dedicated Redwood adapter restricted to `LSAF`, `LSAT`, and `DYLD`. It uses
