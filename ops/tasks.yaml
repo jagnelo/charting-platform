@@ -20,7 +20,12 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 217 native/live-backed providers out of 345; 128 remain.
+      - Current truthful count: 218 native/live-backed providers out of 345; 127 remain.
+      - >
+        Morgan Stanley is supported through its issuer-owned Pathway ETF product
+        page and current, dated MSLC holdings workbook. The adapter verifies the
+        fund title and workbook schema before preserving identifiers, weights,
+        values, shares, currencies, and non-tradable rows.
       - >
         Russell Investments is supported through issuer-hosted month-end strategy
         workbooks for RUSC, RINT, RGLO, REMG, and RIFR. Its adapter validates the

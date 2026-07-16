@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Morgan Stanley native holdings route - 2026-07-16T01:45Z
+
+- Promoted `morgan_stanley` with an isolated issuer-page-to-current-workbook
+  adapter for the Morgan Stanley Pathway Large Cap Equity ETF (`MSLC`). It
+  discovers the dated issuer workbook from the selected product page, verifies
+  the fund title and explicit workbook schema, preserves ticker/ISIN/CUSIP/
+  SEDOL/shares/value/weight/currency data, and keeps cash, derivatives,
+  futures, fixed income, and funds non-tradable where appropriate.
+- Validation passed: Ruff; full adapter suite (`266 passed`); opt-in live MSLC
+  route; and the concrete-live-route invariant (`2 passed`). Strict coverage is
+  now `218/345` native/live-backed and `127` fallback-only; SEC EDGAR remains
+  fallback-only.
+- Continue the unresolved issuer queue with a backend-reachable, complete,
+  first-party artifact. Guinness Atkinson's otherwise-valid complete PDF route
+  is currently HTTP 403 from backend requests and must remain unpromoted.
+
 ## Russell Investments native holdings route - 2026-07-15T22:35Z
 
 - Promoted `russell_investments` with an isolated month-end workbook adapter for

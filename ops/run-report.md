@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Morgan Stanley - 2026-07-16T01:45Z
+
+- Promoted `morgan_stanley` through an isolated `MSLC` issuer product-page and
+  current-workbook route. The adapter discovers the dated workbook rather than
+  hardcoding it, verifies the title/schema, retains market identifiers and
+  holdings data, and classifies cash/derivative/fixed-income rows safely.
+- Validation passed: Ruff; all `266` adapter unit tests with `--no-cov`; the
+  live `MSLC` issuer route; and the concrete-live-route invariant (`2 passed`).
+  Strict coverage is now `218/345` native/live-backed providers and `127`
+  fallback-only.
+
 # ETF Holdings Provider Integration - Russell Investments - 2026-07-15T22:35Z
 
 - Promoted `russell_investments` through an isolated month-end issuer workbook
