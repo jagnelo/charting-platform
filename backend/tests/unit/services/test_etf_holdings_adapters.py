@@ -9078,6 +9078,39 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_cboe_adapter_is_limited_to_its_verified_first_trust_route(monkeypatch):
+    adapter = get_holdings_adapter("cboe")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text="Holdings of the Fund as of 07/15/2026")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_html_holdings_table_by_headers",
+        lambda *_args, **_kwargs: [
+            CanonicalHoldingRow(symbol="SPY", name="SPDR S&P 500 ETF Trust", weight=Decimal("1"))
+        ],
+    )
+
+    result = await adapter.fetch_latest(symbol="BUFG")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker=BUFG"
+    )
+    assert result.rows[0].symbol == "SPY"
+    assert result.legal_metadata["adapter_key"] == "cboe"
+    assert result.legal_metadata["source_provider"] == "first_trust"
+    assert result.legal_metadata["publisher"] == "first_trust"
+    assert result.legal_metadata["route_resolution"] == "cboe_vest_first_trust_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+    with pytest.raises(ValueError, match="only supports"):
+        await adapter.fetch_latest(symbol="BNOV")
+    with pytest.raises(ValueError, match="verified First Trust publisher route"):
+        await adapter.fetch_latest(symbol="BUFG", source_url="https://example.test/holdings")
+
+
+@pytest.mark.asyncio
 async def test_ssc_alps_adapter_fetches_public_proxy_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("ssc")
     assert adapter is not None

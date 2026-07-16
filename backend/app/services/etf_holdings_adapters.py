@@ -34008,6 +34008,75 @@ class FirstTrustHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class CboeHoldingsAdapter(FirstTrustHoldingsAdapter):
+    """Fetch Cboe Vest's verified BUFG ETF through its legal First Trust issuer."""
+
+    supported_symbols = {"BUFG"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "Cboe Vest's verified First Trust holdings route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        if source_url:
+            raise ValueError("Cboe holdings must use its verified First Trust publisher route.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Cboe issuer product identity must match the requested ETF symbol.")
+
+        product_page_url = (
+            "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker="
+            f"{normalized_symbol}"
+        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows = parse_html_holdings_table_by_headers(
+            response.text,
+            required_headers={
+                "security name",
+                "identifier",
+                "cusip",
+                "shares / quantity",
+                "market value",
+                "weighting",
+            },
+        )
+        if not rows:
+            raise ValueError(f"Cboe's First Trust publisher returned no {normalized_symbol} holdings.")
+        as_of_date = self._extract_as_of_date(response.text)
+        return HoldingsFetchResult(
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "cboe_vest_first_trust_holdings_table",
+                "composition_date": as_of_date.isoformat() if as_of_date else None,
+                "as_of_date": as_of_date.isoformat() if as_of_date else None,
+                "publisher": "first_trust",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+
 class FranklinHoldingsAdapter(IssuerCsvHoldingsAdapter):
     graphql_url = "https://www.franklintempleton.com/api/pds/price-and-performance"
     country_code = "US"
@@ -38458,6 +38527,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="First Trust public ETF holdings pages may be subject to issuer terms.",
     ),
+    "cboe": IssuerCsvAdapterConfig(
+        adapter_key="cboe",
+        source_provider="first_trust",
+        source_access="issuer_subadvisor_legal_issuer_complete_holdings_table",
+        product_page_templates=(
+            "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker={symbol_upper}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Cboe Vest's verified BUFG holdings are published by its legal First Trust "
+            "issuer and may be subject to issuer terms."
+        ),
+    ),
     "franklin": IssuerCsvAdapterConfig(
         adapter_key="franklin",
         source_provider="franklin",
@@ -39533,6 +39615,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "founder": FounderHoldingsAdapter,
         "sei": SeiHoldingsAdapter,
         "first_trust": FirstTrustHoldingsAdapter,
+        "cboe": CboeHoldingsAdapter,
         "franklin": FranklinHoldingsAdapter,
         "global_x": GlobalXHoldingsAdapter,
         "mirae_asset": MiraeAssetHoldingsAdapter,

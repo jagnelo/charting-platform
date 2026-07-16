@@ -71,6 +71,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "cambiar",
     "calamos",
     "canary",
+    "cboe",
     "capital_group",
     "cary_street",
     "peakshares",
@@ -1345,6 +1346,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "cboe",
+            "BUFG",
+            None,
+            {},
+            8,
         ),
         (
             "franklin",
