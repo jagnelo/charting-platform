@@ -20,8 +20,11 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 234 native/live-backed providers out of 345; 111 remain.
-        Cboe/Vest is supported through a dedicated adapter for the verified `BUFG`
+      - Current truthful count: 235 native/live-backed providers out of 345; 110 remain.
+        Man Group is supported through a dedicated adapter for the documented `BUYO`
+        partnership, using KraneShares' complete daily holdings CSV. It is constrained
+        to that product relationship and has static plus opt-in live coverage.
+      - Cboe/Vest is supported through a dedicated adapter for the verified `BUFG`
         sub-advised fund. It uses the legal First Trust issuer's complete holdings table,
         accepts no arbitrary publisher URL or unrelated Cboe-listed product, and has
         static plus opt-in live route coverage.

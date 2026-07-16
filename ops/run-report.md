@@ -11067,3 +11067,13 @@ Append a short entry after each worker session.
   route; configured-provider registry invariant; and concrete-live-route manifest
   invariant. Strict count: `345` registered providers, `234` native/live-backed, and
   `111` fallback-only. SEC EDGAR remains fallback-only and does not count as support.
+
+# ETF Holdings Provider Native Route - 2026-07-16T21:05Z
+
+- Promoted `man_group` through a dedicated `BUYO` adapter. KraneShares is the documented
+  publisher partner; the isolated adapter owns its dated complete holdings CSV lookup,
+  accepts only BUYO, and records the publisher boundary without SEC fallback.
+- Validation passed: Ruff; full adapter suite (`296 passed`); exact opt-in `BUYO` live
+  route (`308` rows); configured-provider registry invariant; and concrete-live-route
+  manifest invariant. Strict count: `345` registered providers, `235` native/live-backed,
+  and `110` fallback-only.

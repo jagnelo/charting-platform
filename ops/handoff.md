@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Man Group native route - 2026-07-16T21:05Z
+
+- Promoted `man_group` through an isolated adapter limited to `BUYO`, its documented
+  KraneShares partnership product. The adapter owns the dated KraneShares CSV lookup,
+  rejects arbitrary URLs and unrelated products, records KraneShares as publisher, and
+  never substitutes SEC fallback.
+- Validation passed: Ruff; full adapter suite (`296 passed`); concrete opt-in `BUYO`
+  live route (`308` rows); configured-provider registry invariant; and concrete-live-route
+  manifest invariant. Strict state is now `235/345` native/live-backed and `110`
+  fallback-only.
+- Continue the remaining-110 queue with the same isolated adapter, fixture, and live
+  route threshold. The full matrix runner limitation remains documented below.
+
 ## Cboe/Vest native route - 2026-07-16T20:50Z
 
 - Promoted `cboe` through an isolated adapter limited to `BUFG`, a verified Cboe Vest
