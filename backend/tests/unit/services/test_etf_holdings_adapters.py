@@ -7561,6 +7561,83 @@ async def test_palmer_square_adapter_parses_embedded_holdings_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_weitz_adapter_parses_verified_embedded_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("weitz")
+    assert adapter is not None
+
+    raw_html = """
+    <html>
+      <body>
+        <h1>Core Plus Bond ETF</h1>
+        <a id="download-holdings" data-ticker="WCPB">Download holdings</a>
+        <script>
+          var holdingsFileJson = [
+            {
+              "rowDate": "07/15/2026",
+              "companyName": "T 4 3/8 05/15/40",
+              "ticker": "",
+              "cusip": "912810QH4",
+              "percentOfFund": 0.101617890182,
+              "assetClassName": "U.S. GOVERNMENT & AGENCIES",
+              "industryName": "U.S. TREASURY NOTES",
+              "shares": 23250000.0,
+              "price": 95.457031,
+              "marketValue": 22193759.71
+            },
+            {
+              "rowDate": "07/15/2026",
+              "companyName": "MICROSOFT CORP",
+              "ticker": "MSFT US",
+              "cusip": "594918104",
+              "percentOfFund": 0.015,
+              "assetClassName": "EQUITY",
+              "industryName": "TECHNOLOGY",
+              "shares": 100.0,
+              "marketValue": 50000.0
+            }
+          ];
+        </script>
+      </body>
+    </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://weitzinvestments.com/products/etfs/wcpb/core-plus-bond/default.fs",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="WCPB", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://weitzinvestments.com/products/etfs/wcpb/core-plus-bond/default.fs"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].cusip == "912810QH4"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.00101617890182")
+    assert result.rows[0].shares == Decimal("23250000.0")
+    assert result.rows[1].symbol == "MSFT"
+    assert result.rows[1].holding_type == "equity"
+    assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings_json"
+    assert result.legal_metadata["source_provider"] == "weitz"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
+async def test_weitz_adapter_rejects_unconfigured_fund_symbols():
+    adapter = get_holdings_adapter("weitz")
+    assert adapter is not None
+
+    with pytest.raises(ValueError, match="does not publish a configured"):
+        await adapter.fetch_latest(symbol="SPY", identifiers={})
+
+
+@pytest.mark.asyncio
 async def test_future_fund_adapter_parses_preamble_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("future_fund")
     assert adapter is not None

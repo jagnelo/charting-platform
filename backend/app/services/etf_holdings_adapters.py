@@ -26724,6 +26724,241 @@ class PalmerSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "security"
 
 
+class WeitzHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch complete Weitz ETF holdings embedded in issuer product pages.
+
+    Weitz publishes a complete fund-scoped holdings payload as
+    ``holdingsFileJson`` on each ETF product page.  The page route and the
+    embedded ticker are both verified so a requested ETF cannot be substituted
+    with a sibling fund's disclosure.
+    """
+
+    PRODUCT_PAGE_URLS = {
+        "WCPB": "https://weitzinvestments.com/products/etfs/wcpb/core-plus-bond/default.fs",
+        "WMSB": "https://weitzinvestments.com/products/etfs/wmsb/1014/default.fs",
+    }
+    EXPECTED_FUND_NAMES = {
+        "WCPB": "Core Plus Bond ETF",
+        "WMSB": "Multisector Bond ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        sec_cik = _identifier(identifiers, "sec_cik")
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.3500"),
+            status="ready",
+            reason=(
+                "Weitz publishes this ETF's complete current holdings in its public product page payload."
+                if product_page_url
+                else (
+                    f"Weitz has no configured native complete holdings route for {normalized_symbol}; "
+                    "SEC EDGAR remains available as fallback."
+                )
+            ),
+            source_url=(
+                product_page_url
+                or (f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json" if sec_cik else None)
+            ),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = source_url or self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url or normalized_symbol not in self.PRODUCT_PAGE_URLS:
+            raise ValueError(
+                "Weitz does not publish a configured complete holdings route for "
+                f"{normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date, holdings_payload = self._parse_product_page(
+            response.text,
+            fund_symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Weitz product page did not expose complete holdings rows for {normalized_symbol}."
+            )
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html_embedded_json",
+                "holdings": holdings_payload,
+            },
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_embedded_json",
+                "route_resolution": "issuer_product_page_embedded_holdings_json",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_full_investment_holdings",
+                "snapshot_provenance": "issuer_native_product_page_json",
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        page_text: str,
+        *,
+        fund_symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date, list[dict[str, Any]]]:
+        normalized_page = html.unescape(page_text)
+        expected_name = cls.EXPECTED_FUND_NAMES[fund_symbol]
+        if not re.search(
+            rf'data-ticker=["\']{re.escape(fund_symbol)}["\']',
+            normalized_page,
+            flags=re.IGNORECASE,
+        ):
+            raise ValueError(f"Weitz product page identity did not match requested ETF {fund_symbol}.")
+        if expected_name.lower() not in normalized_page.lower():
+            raise ValueError(f"Weitz product page name did not match requested ETF {fund_symbol}.")
+
+        holdings_payload = cls._extract_holdings_payload(normalized_page)
+        if not holdings_payload:
+            return [], date.min, []
+
+        composition_dates = {
+            composition_date
+            for raw in holdings_payload
+            if isinstance(raw, dict)
+            if (composition_date := cls._parse_date(raw.get("rowDate"))) is not None
+        }
+        if len(composition_dates) != 1:
+            raise ValueError(
+                f"Weitz holdings payload for {fund_symbol} did not report one effective date."
+            )
+        composition_date = composition_dates.pop()
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(holdings_payload, start=1):
+            if not isinstance(raw, dict):
+                continue
+            name = _clean(raw.get("companyName"))
+            raw_symbol = _clean(raw.get("ticker"))
+            cusip = _clean(raw.get("cusip"))
+            asset_class = _clean(raw.get("assetClassName"))
+            industry = _clean(raw.get("industryName"))
+            if not any((name, raw_symbol, cusip, asset_class, industry)):
+                continue
+            row_type, holding_type = cls._classify_holding(
+                name=name,
+                raw_symbol=raw_symbol,
+                asset_class=asset_class,
+                industry=industry,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=(
+                        cls._normalize_symbol(raw_symbol) if row_type == "security" else None
+                    ),
+                    name=name,
+                    cusip=cusip.upper() if cusip and _looks_like_cusip(cusip.upper()) else None,
+                    weight=_decimal_percent_points(raw.get("percentOfFund")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("marketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"{fund_symbol}-{composition_date.isoformat()}-{index}:"
+                        f"{cusip or raw_symbol or name or asset_class}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date, holdings_payload
+
+    @staticmethod
+    def _extract_holdings_payload(page_text: str) -> list[dict[str, Any]]:
+        marker = "var holdingsFileJson ="
+        marker_index = page_text.find(marker)
+        if marker_index < 0:
+            return []
+        payload_start = page_text.find("[", marker_index)
+        if payload_start < 0:
+            return []
+        try:
+            payload, _ = json.JSONDecoder().raw_decode(page_text[payload_start:])
+        except json.JSONDecodeError:
+            return []
+        return [item for item in payload if isinstance(item, dict)] if isinstance(payload, list) else []
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _normalize_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        candidate = text.upper().split()[0]
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+    @staticmethod
+    def _classify_holding(
+        *,
+        name: str | None,
+        raw_symbol: str | None,
+        asset_class: str | None,
+        industry: str | None,
+    ) -> tuple[str, str]:
+        text = " ".join(
+            value.upper()
+            for value in (name, raw_symbol, asset_class, industry)
+            if value
+        )
+        if any(marker in text for marker in ("CASH", "MONEY MARKET", "CURRENCY")):
+            return "cash", "cash"
+        if any(
+            marker in text
+            for marker in ("BOND", "NOTE", "TREASURY", "AGENCIES", "FIXED INCOME")
+        ):
+            return "security", "fixed_income"
+        if any(marker in text for marker in ("FUTURE", "OPTION", "SWAP", "FORWARD")):
+            return "security", "derivative"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class FutureFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Future Fund ETF holdings from issuer-published CSV modules."""
 
@@ -35828,6 +36063,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "issuer endpoint and may be subject to issuer terms."
         ),
     ),
+    "weitz": IssuerCsvAdapterConfig(
+        adapter_key="weitz",
+        source_provider="weitz",
+        source_access="issuer_product_page_embedded_complete_holdings_json",
+        product_page_templates=(
+            "https://weitzinvestments.com/products/etfs/{symbol_lower}/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Weitz public ETF holdings disclosures may be subject to issuer terms.",
+    ),
     "aptus": IssuerCsvAdapterConfig(
         adapter_key="aptus",
         source_provider="aptus",
@@ -37246,6 +37491,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "clearshares": ClearSharesHoldingsAdapter,
         "clough": CloughHoldingsAdapter,
         "clough_cgi": CloughCgiHoldingsAdapter,
+        "weitz": WeitzHoldingsAdapter,
         "davis": DavisHoldingsAdapter,
         "defiance": DefianceHoldingsAdapter,
         "deepwater": DeepwaterHoldingsAdapter,
