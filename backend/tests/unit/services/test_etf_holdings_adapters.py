@@ -9576,6 +9576,48 @@ async def test_angel_oak_adapter_filters_combined_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_brookfield_adapter_uses_verified_angel_oak_publisher_route(monkeypatch):
+    adapter = get_holdings_adapter("brookfield")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/16/2026,TRBF,00092TAB1,00092TAB1,ACHD Trust 2025-DS1 9.38% 01/09/2034,100000.00000000,100.859780,100859.78,0.29%,35388792.00,720000,36.000000000000,
+07/16/2026,TRBF,CASH,,Cash & Cash Equivalents,100.00000000,1.000000,100.00,0.01%,35388792.00,720000,36.000000000000,Y
+07/16/2026,AOHY,00404AAQ2,00404AAQ2,Other Angel Oak Bond,10.00000000,99.000000,990.00,0.50%,1000,100,1,
+"""
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="TRBF")
+
+    assert requested[0][0] == "https://angeloakcapital.com/secure-gs/Angel_Oak_ETF_Holdings.csv"
+    assert len(result.rows) == 2
+    assert result.rows[0].cusip == "00092TAB1"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["adapter_key"] == "brookfield"
+    assert result.legal_metadata["source_provider"] == "angel_oak"
+    assert result.legal_metadata["portfolio_manager"] == "brookfield_asset_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "angel_oak_publisher_combined_account_holdings_csv_for_brookfield_managed_etf"
+    )
+
+
+@pytest.mark.asyncio
+async def test_brookfield_adapter_rejects_unverified_fund_symbols():
+    adapter = get_holdings_adapter("brookfield")
+    assert adapter is not None
+
+    with pytest.raises(ValueError, match="supports only TRBF"):
+        await adapter.fetch_latest(symbol="AOHY")
+
+
+@pytest.mark.asyncio
 async def test_sterling_capital_adapter_validates_fund_scoped_holdings_pdf(monkeypatch):
     adapter = get_holdings_adapter("sterling_capital")
     assert adapter is not None

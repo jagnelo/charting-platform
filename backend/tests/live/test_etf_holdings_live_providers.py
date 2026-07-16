@@ -57,6 +57,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "bitwise",
     "bny_mellon",
     "bondbloxx",
+    "brookfield",
     "beyond_investing",
     "brandes",
     "brown_advisory",
@@ -501,6 +502,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "angel_oak",
             "AOHY",
+            None,
+            {},
+            100,
+        ),
+        (
+            "brookfield",
+            "TRBF",
             None,
             {},
             100,

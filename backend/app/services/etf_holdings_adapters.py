@@ -17333,6 +17333,89 @@ class AngelOakHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "fixed_income"
 
 
+class BrookfieldHoldingsAdapter(AngelOakHoldingsAdapter):
+    """Fetch the Angel Oak-published portfolio for Brookfield's registered TRBF ETF.
+
+    ETFDB identifies TRBF under Brookfield Asset Management, while Angel Oak is
+    the legal issuer and publishes the complete, account-scoped holdings export.
+    The narrow scope makes the publisher relationship explicit instead of using
+    Angel Oak's aggregate file as an unbounded fallback for Brookfield.
+    """
+
+    SUPPORTED_SYMBOLS = frozenset({"TRBF"})
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            sec_cik = _identifier(identifiers, "sec_cik")
+            if sec_cik:
+                return HoldingsAdapterProbe(
+                    adapter_key=self.adapter_key,
+                    confidence=Decimal("0.7800"),
+                    status="ready",
+                    reason=(
+                        "No native Brookfield publisher route is configured for this ETF "
+                        "symbol, but SEC identifiers permit the EDGAR fallback."
+                    ),
+                    source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                    issuer_product_id=_identifier(identifiers, "issuer_product_id", "fund_id"),
+                )
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0"),
+                status="needs_provider_implementation",
+                reason="No verified Brookfield publisher route is configured for this ETF symbol.",
+                source_url=None,
+                issuer_product_id=None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Brookfield's registered TRBF ETF is legally issued by Angel Oak, which "
+                "publishes its complete current account-scoped portfolio export."
+            ),
+            source_url=self.source_url,
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            raise ValueError("Brookfield's configured US ETF route supports only TRBF.")
+        if source_url is not None:
+            raise ValueError("Brookfield holdings use the verified Angel Oak publisher route.")
+
+        supplied_identifier = _identifier(
+            identifiers or {}, "issuer_product_id", "fund_id"
+        ) or issuer_product_id
+        if supplied_identifier and supplied_identifier.strip().upper() != normalized_symbol:
+            raise ValueError("Brookfield ETF identifiers must match the requested TRBF fund symbol.")
+
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            identifiers={},
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": "angel_oak",
+            "adapter_key": self.adapter_key,
+            "route_resolution": "angel_oak_publisher_combined_account_holdings_csv_for_brookfield_managed_etf",
+            "portfolio_manager": "brookfield_asset_management",
+        }
+        return result
+
+
 class SterlingCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Sterling Capital's current ETF holdings from its fund-scoped PDF exports."""
 
@@ -35922,6 +36005,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Angel Oak public ETF holdings files may be subject to issuer terms.",
     ),
+    "brookfield": IssuerCsvAdapterConfig(
+        adapter_key="brookfield",
+        source_provider="angel_oak",
+        source_access="angel_oak_publisher_combined_account_holdings_csv_for_brookfield_managed_etf",
+        live_tested_default_route=True,
+        terms_note=(
+            "Angel Oak publishes the complete public portfolio for Brookfield-managed TRBF; "
+            "the Brookfield adapter is intentionally limited to that verified fund."
+        ),
+    ),
     "sterling_capital": IssuerCsvAdapterConfig(
         adapter_key="sterling_capital",
         source_provider="sterling_capital",
@@ -37532,6 +37625,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "agf": AgfHoldingsAdapter,
         "rayliant": RayliantHoldingsAdapter,
         "angel_oak": AngelOakHoldingsAdapter,
+        "brookfield": BrookfieldHoldingsAdapter,
         "sterling_capital": SterlingCapitalHoldingsAdapter,
         "astoria": AstoriaHoldingsAdapter,
         "anfield": AnfieldHoldingsAdapter,
