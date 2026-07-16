@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Clough CGI native holdings route - 2026-07-16T13:10Z
+
+- Promoted the separately registered `clough_cgi` issuer identity through an
+  isolated adapter restricted to its real US ETF range: Clough Hedged Equity
+  ETF (`CBLS`) and Clough Select Equity ETF (`CBSE`). Both are published through
+  Clough Capital's issuer-owned, fund-scoped public holdings JSON endpoint.
+- This is not a generic route or SEC fallback: the adapter rejects unrelated
+  symbols before network access and preserves ticker, CUSIP, shares, market
+  value, weight, and issuer as-of date from the verified source.
+- Validation passed: Ruff; full adapter suite (`275 passed`); opt-in live CBSE
+  route; the concrete-live-route invariant (`2 passed`); and `git diff --check`.
+  Strict coverage is now `222/345` native/live-backed and `123` fallback-only;
+  SEC EDGAR remains fallback-only.
+
 ## Dividend Assets Capital native holdings route - 2026-07-16T12:55Z
 
 - Promoted `dividend_assets` with an isolated adapter for the DAC 3D Dividend

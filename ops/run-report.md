@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Clough CGI - 2026-07-16T13:10Z
+
+- Promoted the registered `clough_cgi` identity through a dedicated adapter for
+  its two genuine issuer products, `CBLS` and `CBSE`. The adapter consumes only
+  Clough Capital's issuer-owned, fund-scoped full-holdings JSON and rejects
+  unrelated symbols before attempting a request.
+- Validation passed: Ruff; all `275` adapter unit tests with `--no-cov`; the
+  live CBSE issuer route; the concrete-live-route invariant (`2 passed`); and
+  `git diff --check`. Strict coverage is now `222/345` native/live-backed and
+  `123` fallback-only.
+
 # ETF Holdings Provider Integration - Dividend Assets Capital - 2026-07-16T12:55Z
 
 - Promoted `dividend_assets` through DVGR's issuer-owned complete current
