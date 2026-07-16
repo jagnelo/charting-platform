@@ -455,6 +455,74 @@ async def test_golden_eagle_adapter_reads_its_complete_issuer_portfolio(monkeypa
     assert FakeAsyncClient.requested[0][0] == "https://hypergrowthetf.com/hyp-etf/"
 
 
+def test_cyber_hornet_parser_uses_declared_csv_schema_and_preserves_identifiers():
+    adapter = get_holdings_adapter("cyber_hornet")
+    assert adapter is not None
+
+    holdings_url, composition_date = adapter._parse_product_page(
+        """
+        <section><h3>Top 10 Holdings</h3><p>as of 07/16/2026</p>
+        <a href="/download-holdings?fund=XXX">DOWNLOAD FULL HOLDINGS</a></section>
+        """,
+        symbol="XXX",
+    )
+    rows = adapter._parse_holdings_csv(
+        """Name,Stock Ticker,Weighting,CUSIP,Shares,Price,Market Value
+XRP,XRPUSD,25.07%,XRPUSD,113918.27144500,1.109000,126335.36
+BERKSHIRE HATHAWAY INC-CL B,BRK/B,1.07%,084670702,11.00000000,488.350000,5371.85
+CASH AND OTHER ASSETS,,0.06%,,500.00000000,1.000000,500.00
+""",
+        symbol="XXX",
+    )
+
+    assert holdings_url == "https://www.cyberhornets.com/download-holdings?fund=XXX"
+    assert composition_date == date(2026, 7, 16)
+    assert len(rows) == 3
+    assert rows[0].holding_type == "crypto"
+    assert rows[0].symbol is None
+    assert rows[1].symbol == "BRK.B"
+    assert rows[1].cusip == "084670702"
+    assert rows[1].weight == Decimal("0.0107")
+    assert rows[2].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_cyber_hornet_adapter_fetches_issuer_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("cyber_hornet")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<section><h3>Top 10 Holdings</h3><p>as of 07/16/2026</p>'
+                '<a href="/download-holdings?fund=XXX">DOWNLOAD FULL HOLDINGS</a></section>'
+            ),
+            content_type="text/html",
+            url="https://www.cyberhornets.com/fund/xxx",
+        ),
+        FakeResponse(
+            text=(
+                "Name,Stock Ticker,Weighting,CUSIP,Shares,Price,Market Value\n"
+                "NVIDIA Corp,NVDA,100.00%,67066G104,141.00000000,212.500000,29962.50\n"
+            ),
+            content_type="text/csv",
+            url="https://www.cyberhornets.com/download-holdings?fund=XXX",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="XXX")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["route_resolution"] == (
+        "cyber_hornet_product_page_declared_complete_holdings_csv"
+    )
+    assert FakeAsyncClient.requested[0][0] == "https://www.cyberhornets.com/fund/xxx"
+    assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
+
+
 def test_canary_parser_filters_shared_holdings_table_to_requested_etf():
     adapter = get_holdings_adapter("canary")
     assert adapter is not None

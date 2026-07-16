@@ -8303,6 +8303,192 @@ class GoldenEagleHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return int(match.group(1).replace(",", "")) if match else None
 
 
+class CyberHornetHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Cyber Hornet's fund-scoped full holdings CSVs from issuer pages."""
+
+    _FUNDS = {
+        "BBB": "https://www.cyberhornets.com/fund/bbb",
+        "EEE": "https://www.cyberhornets.com/fund/eee",
+        "SSS": "https://www.cyberhornets.com/fund/sss",
+        "XXX": "https://www.cyberhornets.com/fund/xxx",
+    }
+    _EXPECTED_HEADERS = {
+        "name",
+        "stock ticker",
+        "weighting",
+        "cusip",
+        "shares",
+        "price",
+        "market value",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9700") if product_url else Decimal("0.3500"),
+            status="ready" if product_url or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Cyber Hornet publishes this ETF's complete current holdings CSV from its issuer page."
+                if product_url
+                else (
+                    f"Cyber Hornet has no configured native holdings route for {normalized_symbol}; "
+                    "SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Cyber Hornet has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=product_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._FUNDS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(
+                f"Cyber Hornet has no configured native holdings route for {normalized_symbol}."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            holdings_url, composition_date = self._parse_product_page(
+                page_response.text,
+                symbol=normalized_symbol,
+            )
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/csv,text/plain,application/download,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        rows = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"Cyber Hornet's complete holdings CSV returned no rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "csv",
+                "product_page_url": str(page_response.url),
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "route_resolution": "cyber_hornet_product_page_declared_complete_holdings_csv",
+                "source_format": "csv",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(cls, raw_html: str, *, symbol: str) -> tuple[str, date | None]:
+        download_match = re.search(
+            rf'href=["\'](?P<url>[^"\']*download-holdings\?fund={re.escape(symbol)}[^"\']*)["\']',
+            html.unescape(raw_html),
+            re.IGNORECASE,
+        )
+        if download_match is None:
+            raise ValueError(
+                f"Cyber Hornet product page did not expose a complete holdings CSV for {symbol}."
+            )
+        page_text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html.unescape(raw_html)))
+        if not re.search(r"Top\s+10\s+Holdings.*?as\s+of\s+\d{2}/\d{2}/\d{4}", page_text, re.I):
+            raise ValueError(
+                f"Cyber Hornet product page did not verify a current holdings disclosure for {symbol}."
+            )
+        date_match = re.search(
+            r"Top\s+10\s+Holdings.*?as\s+of\s+(\d{2}/\d{2}/\d{4})",
+            page_text,
+            re.IGNORECASE,
+        )
+        composition_date = (
+            datetime.strptime(date_match.group(1), "%m/%d/%Y").date() if date_match else None
+        )
+        return urljoin("https://www.cyberhornets.com", download_match.group("url")), composition_date
+
+    @classmethod
+    def _parse_holdings_csv(cls, raw_csv: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        reader = csv.DictReader(StringIO(raw_csv))
+        headers = {(_clean(header) or "").lower() for header in (reader.fieldnames or [])}
+        if not cls._EXPECTED_HEADERS <= headers:
+            raise ValueError(f"Cyber Hornet holdings CSV used an unexpected schema for {symbol}.")
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(reader, start=1):
+            name = _clean(raw.get("Name"))
+            ticker = _clean(raw.get("Stock Ticker"))
+            if not name:
+                continue
+            holding_type, row_type = cls._classify_holding(name=name, ticker=ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(ticker, holding_type=holding_type),
+                    name=name,
+                    cusip=_clean(raw.get("CUSIP")) if _looks_like_cusip(_clean(raw.get("CUSIP"))) else None,
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("Market Value")),
+                    # The issuer includes literal percent signs, which _decimal already
+                    # normalizes into a decimal weight.
+                    weight=_decimal(raw.get("Weighting")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"cyber-hornet:{symbol}:{index}:{ticker or name}",
+                    extra_data={
+                        key: value for key, value in raw.items() if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows
+
+    @staticmethod
+    def _classify_holding(*, name: str, ticker: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, ticker) if part)
+        if any(token in text for token in ("CASH", "OTHER ASSETS", "LIABILITIES")):
+            return "cash", "cash"
+        if any(token in text for token in ("BITCOIN", "ETHEREUM", "SOLANA", "XRP", "CRYPTO")):
+            return "crypto", "security"
+        if any(token in text for token in ("FUND", "ETF", "TRUST")):
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(ticker: str | None, *, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0].replace("/", ".")
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Indexperts ETF holdings from its issuer-designated ETF Pages feed."""
 
@@ -36730,6 +36916,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Golden Eagle public ETF portfolio disclosures may be subject to issuer terms.",
     ),
+    "cyber_hornet": IssuerCsvAdapterConfig(
+        adapter_key="cyber_hornet",
+        source_provider="cyber_hornet",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=("https://www.cyberhornets.com/fund/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Cyber Hornet public ETF holdings CSV exports may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -36885,6 +37079,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "gmo": GmoHoldingsAdapter,
         "goldman_sachs": GoldmanSachsHoldingsAdapter,
         "golden_eagle": GoldenEagleHoldingsAdapter,
+        "cyber_hornet": CyberHornetHoldingsAdapter,
         "graniteshares": GraniteSharesHoldingsAdapter,
         "grayscale": GrayscaleHoldingsAdapter,
         "hartford": HartfordHoldingsAdapter,

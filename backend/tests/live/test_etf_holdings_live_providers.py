@@ -83,6 +83,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "convergence",
     "cullen",
     "cultivar",
+    "cyber_hornet",
     "optimize",
     "clearshares",
     "clough",
@@ -1491,6 +1492,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             50,
+        ),
+        (
+            "cyber_hornet",
+            "XXX",
+            None,
+            {},
+            400,
         ),
     ],
 )
