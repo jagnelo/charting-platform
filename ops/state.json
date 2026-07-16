@@ -4,8 +4,8 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-16T02:20:00Z",
-    "last_commit": "155f3d8 chore(ops): finalize Morgan Stanley checkpoint",
-    "git_ready_to_commit": false,
+    "last_commit": "a8042da chore(ops): record Golden Eagle holdings integration",
+    "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-16 Ruff check for the Golden Eagle adapter, static fixture, and live test module)",
         "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-16: 268 passed with --no-cov) and opt-in live Golden Eagle HYP route. The live manifest now proves all 219 native/live-backed providers have explicit adapter and concrete live-test mappings. A full network sweep remains required for current endpoint compatibility.",
