@@ -161,6 +161,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "mairs_power",
     "madison",
     "matthews",
+    "morgan_stanley",
     "miller_value",
     "motley_fool",
     "neos",
@@ -1472,6 +1473,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "russell_investments",
             "RUSC",
+            None,
+            {},
+            100,
+        ),
+        (
+            "morgan_stanley",
+            "MSLC",
             None,
             {},
             100,

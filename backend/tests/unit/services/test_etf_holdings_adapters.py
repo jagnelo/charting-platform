@@ -221,6 +221,70 @@ def test_russell_parser_uses_issuer_schema_and_calculates_weights_from_net_asset
     assert rows[1].row_type == "cash"
 
 
+def test_morgan_stanley_parser_uses_issuer_schema_and_preserves_identifiers():
+    adapter = get_holdings_adapter("morgan_stanley")
+    assert adapter is not None
+
+    rows, composition_date = adapter._parse_workbook_rows(
+        [
+            ["Morgan Stanley Wealth Management"],
+            ["Morgan Stanley Pathway - Large Cap Equity ETF"],
+            ["All Fund Holdings | as of 07/14/2026"],
+            [
+                "TICKER",
+                "ISIN",
+                "CUSIP",
+                "SEDOL",
+                "Description",
+                "Security Types",
+                "Market Value",
+                "Maturity Date",
+                "Shares",
+                "Asset Currency",
+                "Market Value Weight",
+            ],
+            [
+                "BRK/B",
+                "US0846707026",
+                "084670702",
+                "2073390",
+                "BERKSHIRE HATHAWAY INC-CL B",
+                "COMMON STOCK",
+                "45423369.55",
+                "",
+                "92495",
+                "USD",
+                "0.0114",
+            ],
+            [
+                "",
+                "",
+                "CASH",
+                "",
+                "CASH",
+                "CASH",
+                "34736804.18",
+                "",
+                "34736804.18",
+                "USD",
+                "0.0087",
+            ],
+        ],
+        expected_fund_name="Morgan Stanley Pathway - Large Cap Equity ETF",
+        symbol="MSLC",
+    )
+
+    assert composition_date == date(2026, 7, 14)
+    assert len(rows) == 2
+    assert rows[0].symbol == "BRK.B"
+    assert rows[0].isin == "US0846707026"
+    assert rows[0].cusip == "084670702"
+    assert rows[0].sedol == "2073390"
+    assert rows[0].weight == Decimal("0.0114")
+    assert rows[1].symbol is None
+    assert rows[1].row_type == "cash"
+
+
 @pytest.mark.asyncio
 async def test_russell_adapter_fetches_its_mapped_issuer_workbook(monkeypatch):
     adapter = get_holdings_adapter("russell_investments")
@@ -261,6 +325,58 @@ async def test_russell_adapter_fetches_its_mapped_issuer_workbook(monkeypatch):
         "russell_investments_month_end_etf_strategy_holdings_xls"
     )
     assert FakeAsyncClient.requested[0][0].endswith("ric-us-small-cap-equity-fund.xls")
+
+
+@pytest.mark.asyncio
+async def test_morgan_stanley_adapter_discovers_and_fetches_current_issuer_workbook(monkeypatch):
+    adapter = get_holdings_adapter("morgan_stanley")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="/pub/wealth-investmentsolutions/msps/'
+                'Holdings_MSLC%20Morgan%20Stanley%20Pathway%20-%20Large%20Cap%20Equity%20'
+                'ETF_07_15_2026.xlsx">Download Full Holdings</a> '
+                "Morgan Stanley Pathway - Large Cap Equity ETF"
+            ),
+            content_type="text/html",
+            url="https://www.morganstanley.com/wealth-investmentsolutions/msps/mslc.html",
+        ),
+        FakeResponse(
+            content=_xlsx_workbook(
+                [
+                    ["Morgan Stanley Pathway - Large Cap Equity ETF"],
+                    ["All Fund Holdings | as of 07/14/2026"],
+                    [
+                        "TICKER", "ISIN", "CUSIP", "SEDOL", "Description", "Security Types",
+                        "Market Value", "Maturity Date", "Shares", "Asset Currency", "Market Value Weight",
+                    ],
+                    [
+                        "NVDA", "US67066G1040", "67066G104", "2379504", "NVIDIA CORP",
+                        "COMMON STOCK", "266710420.8", "", "1259256", "USD", "0.0669",
+                    ],
+                ]
+            ),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=(
+                "https://www.morganstanley.com/pub/wealth-investmentsolutions/msps/"
+                "Holdings_MSLC%20Morgan%20Stanley%20Pathway%20-%20Large%20Cap%20Equity%20ETF_07_15_2026.xlsx"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MSLC")
+
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["route_resolution"] == (
+        "morgan_stanley_product_page_linked_current_holdings_xlsx"
+    )
+    assert FakeAsyncClient.requested[0][0].endswith("/mslc.html")
+    assert FakeAsyncClient.requested[1][0].endswith("ETF_07_15_2026.xlsx")
 
 
 def test_canary_parser_filters_shared_holdings_table_to_requested_etf():

@@ -7915,6 +7915,231 @@ class RussellInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
 
 
+class MorganStanleyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Resolve Morgan Stanley Pathway ETF holdings from the issuer's dated workbook."""
+
+    _FUNDS: dict[str, tuple[str, str]] = {
+        "MSLC": (
+            "https://www.morganstanley.com/wealth-investmentsolutions/msps/mslc.html",
+            "Morgan Stanley Pathway - Large Cap Equity ETF",
+        ),
+    }
+    _WORKBOOK_URL_RE = re.compile(
+        r"(?P<url>/pub/wealth-investmentsolutions/msps/[^\"'<>]*Holdings_MSLC[^\"'<>]+\.xlsx)",
+        re.IGNORECASE,
+    )
+    _HEADER_COLUMNS = {
+        "ticker",
+        "isin",
+        "cusip",
+        "sedol",
+        "description",
+        "security types",
+        "market value",
+        "shares",
+        "asset currency",
+        "market value weight",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9800") if fund else Decimal("0.4000"),
+            status="ready" if fund or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Morgan Stanley publishes this Pathway ETF's complete current holdings workbook "
+                "from its issuer product page."
+                if fund
+                else (
+                    f"Morgan Stanley has no configured native holdings route for {normalized_symbol}; "
+                    "SEC fallback is available."
+                    if has_sec_fallback
+                    else f"Morgan Stanley has no configured native holdings route for {normalized_symbol}."
+                )
+            ),
+            source_url=fund[0] if fund else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        if fund is None:
+            raise ValueError(
+                f"Morgan Stanley has no configured native holdings route for {normalized_symbol}."
+            )
+
+        product_url, expected_fund_name = fund
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            if expected_fund_name.lower() not in product_response.text.lower():
+                raise ValueError(
+                    f"Morgan Stanley product page did not match the expected ETF for {normalized_symbol}."
+                )
+            workbook_url = self._discover_workbook_url(product_response.text)
+            workbook_response = await client.get(
+                workbook_url,
+                headers={
+                    **_issuer_page_request_headers(
+                        accept=(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+                            "application/octet-stream,*/*"
+                        ),
+                    ),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+        workbook_response.raise_for_status()
+        workbook_rows = parse_xlsx_table(workbook_response.content)
+        rows, composition_date = self._parse_workbook_rows(
+            workbook_rows,
+            expected_fund_name=expected_fund_name,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Morgan Stanley holdings workbook returned no complete rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "xlsx",
+                "workbook_rows": workbook_rows,
+                "expected_fund_name": expected_fund_name,
+            },
+            source_url=str(workbook_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "morgan_stanley_product_page_linked_current_holdings_xlsx",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "expected_fund_name": expected_fund_name,
+                "cadence": "daily",
+            },
+        )
+
+    @classmethod
+    def _discover_workbook_url(cls, page: str) -> str:
+        match = cls._WORKBOOK_URL_RE.search(page.replace("&amp;", "&"))
+        if match is None:
+            raise ValueError(
+                "Morgan Stanley product page did not expose its current complete holdings workbook."
+            )
+        return urljoin("https://www.morganstanley.com", match.group("url"))
+
+    @classmethod
+    def _parse_workbook_rows(
+        cls,
+        workbook_rows: list[list[str]],
+        *,
+        expected_fund_name: str,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        title_text = "\n".join(
+            value for row in workbook_rows[:12] for value in row if _clean(value)
+        )
+        if expected_fund_name.lower() not in title_text.lower():
+            raise ValueError(
+                "Morgan Stanley holdings workbook did not match the expected ETF."
+            )
+        composition_date = cls._extract_composition_date(title_text)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows)
+                if cls._HEADER_COLUMNS <= {(_clean(value) or "").lower() for value in row}
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError("Morgan Stanley holdings workbook did not contain its holdings header.")
+
+        header = workbook_rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        for index, row in enumerate(workbook_rows[header_index + 1 :], start=header_index + 1):
+            raw = _row_dict(header, row)
+            name = _clean(_first(raw, ["description"]))
+            security_type = _clean(_first(raw, ["security types"]))
+            ticker = _clean(_first(raw, ["ticker"]))
+            if not name:
+                continue
+            holding_type, row_type = cls._classify_holding(
+                name=name,
+                security_type=security_type,
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(ticker=ticker, holding_type=holding_type),
+                    name=name,
+                    isin=_clean(_first(raw, ["isin"])),
+                    cusip=_clean(_first(raw, ["cusip"])),
+                    sedol=_clean(_first(raw, ["sedol"])),
+                    shares=_decimal(_first(raw, ["shares"])),
+                    market_value=_decimal(_first(raw, ["market value"])),
+                    weight=_decimal(_first(raw, ["market value weight"])),
+                    currency=_clean(_first(raw, ["asset currency"])),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"morgan-stanley:{symbol}:{index}:{ticker or name}",
+                    extra_data={
+                        key: value for key, value in raw.items() if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _extract_composition_date(value: str) -> date | None:
+        match = re.search(r"all fund holdings\s*\|\s*as of\s*(\d{1,2}/\d{1,2}/\d{4})", value, re.IGNORECASE)
+        return datetime.strptime(match.group(1), "%m/%d/%Y").date() if match else None
+
+    @staticmethod
+    def _classify_holding(*, name: str, security_type: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, security_type) if part)
+        if "CASH" in text or "CURRENCY" in text:
+            return "cash", "cash"
+        if "OPTION" in text or "WARRANT" in text or "RIGHT" in text:
+            return "option", "security"
+        if "FUTURE" in text or "FUT" in text:
+            return "future", "security"
+        if any(token in text for token in ("SWAP", "FORWARD", "DERIVATIVE")):
+            return "derivative", "security"
+        if any(token in text for token in ("BOND", "NOTE", "TREASURY", "MORTGAGE")):
+            return "fixed_income", "security"
+        if "ETF" in text or "FUND" in text or "TRUST" in text:
+            return "fund", "security"
+        return "equity", "security"
+
+    @staticmethod
+    def _tradable_symbol(*, ticker: str | None, holding_type: str) -> str | None:
+        if holding_type not in {"equity", "fund"} or not ticker:
+            return None
+        candidate = ticker.strip().upper().split()[0].replace("/", ".")
+        return candidate if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", candidate) else None
+
+
 class IndexpertsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Indexperts ETF holdings from its issuer-designated ETF Pages feed."""
 
@@ -36324,6 +36549,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Russell Investments month-end ETF strategy holdings workbooks may be subject to issuer terms.",
     ),
+    "morgan_stanley": IssuerCsvAdapterConfig(
+        adapter_key="morgan_stanley",
+        source_provider="morgan_stanley",
+        source_access="issuer_product_page_linked_current_holdings_xlsx",
+        product_page_templates=(
+            "https://www.morganstanley.com/wealth-investmentsolutions/msps/{symbol_lower}.html",
+        ),
+        live_tested_default_route=True,
+        terms_note="Morgan Stanley public ETF holdings workbooks may be subject to issuer terms.",
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -36503,6 +36738,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "main_management": MainManagementHoldingsAdapter,
         "madison": MadisonHoldingsAdapter,
         "matthews": MatthewsHoldingsAdapter,
+        "morgan_stanley": MorganStanleyHoldingsAdapter,
         "miller_value": MillerValueHoldingsAdapter,
         "motley_fool": MotleyFoolHoldingsAdapter,
         "neos": NeosHoldingsAdapter,
