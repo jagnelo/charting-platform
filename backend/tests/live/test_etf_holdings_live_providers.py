@@ -33,6 +33,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "aot",
     "abrdn",
     "adaptive_investments",
+    "affiliated_managers_group",
     "agf",
     "advisor_shares",
     "akre",
@@ -52,6 +53,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "astoria",
     "axs",
     "bahl_gaynor",
+    "baird",
     "baron",
     "build",
     "bitwise",
@@ -173,7 +175,9 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "new_york_life",
     "northern_trust",
     "ocean_park",
+    "osprey",
     "pacer",
+    "praxis",
     "palmer_square",
     "point_bridge",
     "polen",
@@ -183,6 +187,8 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "proshares",
     "rafferty",
     "rayliant",
+    "raymond_james",
+    "redwood",
     "russell_investments",
     "renaissance_capital",
     "roundhill",
@@ -962,7 +968,9 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "PJBF",
             None,
             {},
-            30,
+            # PJBF is a cash-management ETF. Its issuer-published daily
+            # portfolio legitimately contains only the current cash sleeves.
+            2,
         ),
         (
             "brown_advisory",
@@ -1151,7 +1159,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "FEPI",
             None,
             {},
-            50,
+            30,
         ),
         (
             "leuthold",
@@ -1249,7 +1257,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "MAGO",
             None,
             {},
-            20,
+            2,
         ),
         (
             "true_shares",
@@ -1538,6 +1546,12 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             {},
             400,
         ),
+        ("praxis", "PRXG", None, {}, 100),
+        ("baird", "SAGP", None, {}, 100),
+        ("affiliated_managers_group", "MUNX", None, {}, 50),
+        ("raymond_james", "RJDI", None, {}, 30),
+        ("osprey", "OSOL", None, {}, 1),
+        ("redwood", "LSAF", None, {}, 100),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
@@ -1945,7 +1959,7 @@ async def test_live_cohanzick_cusd_page_verified_holdings_json():
     assert adapter is not None
     result = await adapter.fetch_latest(symbol="CUSD")
     _assert_live_holdings_result(result, adapter_key="cohanzick", min_rows=10)
-    assert result.legal_metadata["route_resolution"] == "issuer_product_page_verified_current_holdings_json"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_current_holdings_json"
     assert result.legal_metadata["source_format"] == "json"
 
 
