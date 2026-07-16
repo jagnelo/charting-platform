@@ -20,7 +20,37 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 224 native/live-backed providers out of 345; 121 remain.
+      - Current truthful count: 230 native/live-backed providers out of 345; 115 remain.
+        Redwood is supported through its verified LeaderShares `LSAF`, `LSAT`, and
+        `DYLD` issuer-owned full-holdings CSVs. The adapter validates the exact fund
+        title, as-of date, and disclosed schema before preserving identifiers, values,
+        weights, and non-tradable cash or fixed-income semantics.
+        Osprey is supported through its verified public OSOL, OBNB, ODOT, and OBNK
+        trust pages. The adapter derives each issuer-disclosed daily single-asset holding
+        from units per share and outstanding shares while preserving AUM/as-of metadata;
+        it does not claim a multi-security ETF portfolio where none exists.
+        Raymond James is supported through its issuer-owned FilePoint portal's complete,
+        fund-specific quarterly Schedule of Investments PDFs for RJDI, RJMI, and RJVI;
+        the adapter validates fund identity/as-of date and preserves equity, bond, and
+        cash semantics. Its periodic issuer disclosure cadence is explicit metadata,
+        not a claim of daily coverage.
+        Affiliated Managers Group is supported through AMG's complete public MUNX
+        municipal-bond holdings table, with issuer-local transport handling plus
+        static and opt-in live route coverage.
+        SoFi remains fallback-only after a 2026-07-16 retry: its ETF product pages,
+        sitemap, and publicly declared wealth API namespace all return the same WAF
+        `403` document to normal browser-equivalent backend requests.
+        Thrivent remains fallback-only after direct retries against both public ETF
+        hostnames and its advertised holdings paths; each returned `403` before a
+        complete issuer-native holdings artifact could be inspected.
+        Guinness Atkinson's issuer resource catalogue currently returns `403` to backend
+        requests despite advertising ETF holdings documents, while Man Group's disclosed
+        direct all-holdings download endpoint currently returns `500`; neither is counted
+        as native support pending an executable issuer route.
+        Baird is supported through its Strategas current-holdings CSVs for SAMM, SAMT,
+        and SAGP, with both static and opt-in live route coverage.
+        Praxis is supported through its verified issuer-publisher daily CSVs for PRXG,
+        PRXV, and PRXI, with both static and opt-in live route coverage.
       - >
         Brookfield Asset Management's registered US ETF identity is supported through a
         dedicated, deliberately constrained adapter for TRBF. Angel Oak is TRBF's legal

@@ -1,5 +1,147 @@
 # Active Handoff
 
+## Native provider verification and priority-source audit - 2026-07-16T20:05Z
+
+- Reconciled the apparent checkpoint-only history with the real working tree: the current
+  uncommitted implementation batch is substantive and includes isolated, tested adapters
+  for Praxis, Baird, Affiliated Managers Group, Raymond James, Osprey, and Redwood.
+  The strict registry count is `230/345` native/live-backed and `115/345` fallback-only.
+- Revalidated the complete local adapter suite (`290 passed`) and Ruff. The opt-in live
+  checks for Redwood plus the registry/configuration and concrete-live-route invariants
+  also passed (`3 passed`). This is not evidence that the full 237-case live matrix has
+  completed; it has not yet had a final uninterrupted run.
+- Re-audited two high-priority remaining sources instead of promoting them from search
+  snippets: WisdomTree's actual U.S. product page continues to return a Cloudflare
+  challenge to browser-header backend requests; Pictet's public fund pages render only
+  a client-side Kurtosys application and do not expose a stable, directly fetchable
+  complete holdings artifact in the issuer HTML. Both remain fallback-only and uncounted.
+- Exact next step: continue source discovery from the remaining 115 keys, select only
+  an issuer with an executable full portfolio route, then add a constrained adapter,
+  fixture, opt-in live route test, and registry entry before incrementing the count.
+
+## Redwood native holdings route - 2026-07-16T19:45Z
+
+- Promoted `redwood` through an isolated adapter restricted to its verified LeaderShares
+  ETF range: `LSAF`, `LSAT`, and `DYLD`. Each issuer product page links to a
+  fund-scoped complete holdings CSV. The adapter validates the exact reported fund name,
+  one as-of date, and the actual CSV schema; it preserves CUSIP, normalized ticker,
+  shares, market value, weights, and cash/fixed-income semantics without inventing
+  tradable symbols.
+- Validation passed: Ruff; full adapter suite (`290 passed`); exact opt-in live `LSAF`
+  route; configured-provider invariant; and concrete-live-route manifest invariant
+  (`3 passed`). Strict state is now `230/345` native/live-backed and `115/345`
+  fallback-only. The full live-provider matrix still has no completed final result.
+
+## Osprey native holdings route - 2026-07-16T19:20Z
+
+- Promoted `osprey` through an isolated adapter restricted to the verified public
+  `OSOL`, `OBNB`, `ODOT`, and `OBNK` trust pages. Each page discloses daily asset
+  units per trust share, AUM, outstanding trust shares, and an as-of date. The adapter
+  derives the aggregate single-asset holding directly from those issuer values and keeps
+  it as a crypto security rather than fabricating an equity constituent list.
+- Validation passed: Ruff; full adapter suite (`288 passed`); exact opt-in live `OSOL`
+  route; configured-provider invariant; and concrete-live-route manifest invariant
+  (`3 passed`). Strict state is now `229/345` native/live-backed and `116/345`
+  fallback-only. The full live-provider matrix still has no completed final result.
+
+## Raymond James native holdings route - 2026-07-16T19:00Z
+
+- Promoted `raymond_james` through an isolated adapter restricted to `RJDI`, `RJMI`,
+  and `RJVI`. Raymond James's public FilePoint portal exposes each ETF's complete,
+  fund-specific quarterly Schedule of Investments PDF at a stable issuer-owned route.
+  The adapter validates the requested fund title and as-of date, preserves reported
+  shares/par amounts and market values, and correctly distinguishes equity, fixed-income,
+  and cash-equivalent positions without inventing symbols.
+- Validation passed: Ruff; full adapter suite (`287 passed`); exact opt-in live `RJDI`
+  route; configured-provider invariant; and concrete-live-route manifest invariant
+  (`3 passed`). Strict state is now `228/345` native/live-backed and `117/345`
+  fallback-only. This is periodic quarterly issuer disclosure, not a claim of daily
+  coverage. The full live-provider matrix still has no completed final result.
+
+## Thrivent priority route retry - 2026-07-16T18:15Z
+
+- Retried current ETF and holdings paths on both `www.thriventfunds.com` and
+  `fp.thriventfunds.com`. Each browser-equivalent request returned the issuer's `403`
+  gate before a complete daily holdings file or route metadata became accessible.
+- `thrivent` remains fallback-only and uncounted. This is an independently refreshed
+  blocker, not a reason to use SEC EDGAR as a primary adapter.
+
+## SoFi priority route retry - 2026-07-16T18:10Z
+
+- Retried the remaining high-priority `sofi` identity with its current `SFY` product
+  pages, ETF directory, sitemap, and the `/wealth/backend/api/` namespace explicitly
+  allowed in its robots file. Every candidate returned the same `403` WAF document to
+  a normal browser-equivalent backend request; no executable complete issuer-native
+  portfolio artifact was exposed.
+- `sofi` remains fallback-only and uncounted. Do not replace this finding with SEC
+  EDGAR or an invented generic URL route. Continue the queue with the next reachable
+  issuer, while retaining this audit to avoid repeated blind probes.
+
+## Affiliated Managers Group native holdings route - 2026-07-16T18:00Z
+
+- Promoted `affiliated_managers_group` through a dedicated `MUNX` adapter. AMG's
+  first-party product page publishes a complete current municipal-bond portfolio table
+  with CUSIP, par value, market value, and net-assets weight. The adapter validates the
+  exact table schema, keeps all bond rows identifier-backed and non-symbolic, and
+  classifies cash/other-assets rows as non-tradable.
+- AMG's publisher edge returns a TLS-fingerprint-specific `403` to `httpx` while the
+  same public request succeeds through `requests`; the adapter has a narrowly scoped
+  issuer-only retry rather than any generic transport fallback.
+- Validation passed: Ruff; full adapter unit suite (`286 passed`); exact opt-in live
+  `MUNX` route (`1 passed`). Strict state is now `227/345` native/live-backed and
+  `118/345` fallback-only. The full live-provider matrix still has no completed final
+  result and must not be described as passing.
+
+## Baird native holdings route - 2026-07-16T17:30Z
+
+- Promoted `baird` through a dedicated adapter for the three Baird-sponsored Strategas
+  ETFs: `SAMM`, `SAMT`, and `SAGP`. Strategas publishes current complete portfolios at
+  a stable, fund-scoped issuer download route. The adapter filters each shared file to
+  the requested ETF, retains CUSIP/SEDOL/shares/weights/date data, and preserves cash
+  and currency rows without inventing tradable symbols.
+- Validation passed: Ruff; the full adapter unit suite (`285 passed`); exact opt-in
+  networked live `SAGP` route (`1 passed`); and `git diff --check`. Strict state is now
+  `226/345` native/live-backed and `119/345` fallback-only. The full live-provider matrix
+  still has no completed final result and must not be described as passing.
+
+## Praxis native holdings route - 2026-07-16T17:15Z
+
+- Promoted `praxis` through a dedicated adapter restricted to Praxis's verified US ETF
+  catalogue: `PRXG`, `PRXV`, and `PRXI`. The issuer's public website geo-blocks
+  server-side rendering, but its issuer-publisher daily CSVs are directly reachable and
+  return account-scoped complete portfolios. The adapter uses only that per-Praxis,
+  symbol-scoped convention; it is neither a generic URL adapter nor an SEC route.
+- The adapter filters shared publisher rows to the requested account, preserves CUSIP,
+  shares, value, weights, date, and cash semantics, and rejects unverified symbols.
+- Validation passed: Ruff; the full adapter unit suite (`284 passed`); exact opt-in
+  networked live `PRXG` route (`1 passed`); and `git diff --check`. Strict state is now
+  `225/345` native/live-backed and `120/345` fallback-only. The full live-provider matrix
+  still has no completed final result and must not be described as passing.
+
+## Live-backed adapter isolation repair - 2026-07-16T16:30Z
+
+- Corrected the remaining structural gap in the declared `224/345` native/live-backed
+  set: every counted adapter now owns a `fetch_latest` entry point. ARK and Pacer use
+  only verified direct publisher CSV routes; Schwab and GraniteShares now own their
+  fund-page-to-file discovery and validate the publisher host; Cambria, Beyond
+  Investing, Motley Fool, Tuttle, Yorkville, Groupe BPCE/Natixis, Natixis Investment
+  Managers, SEI, and 3EDGE own their issuer fetch entry points while sharing only
+  transport/parser utilities for genuinely identical FilePoint, Google Sheets, or
+  daily-export layouts.
+- Added a full registry invariant in the adapter unit suite: any configuration marked
+  `live_tested_default_route=True` must instantiate an adapter whose class defines
+  `fetch_latest` itself. This supplements the existing live manifest invariant that
+  requires a concrete live-route test for every such key.
+- Validation passed: full adapter suite (`283 passed`), Ruff, diff check; exact opt-in
+  live routes passed for ARK, Pacer, Schwab, GraniteShares, Cambria, Beyond Investing,
+  Motley Fool, Tuttle, Yorkville, Groupe BPCE/Natixis, Natixis Investment Managers,
+  and SEI. A full `231`-test live sweep was started but did not return a final process
+  result through the execution channel, so do not claim a current full-matrix pass.
+- Strict state remains `224/345` native/live-backed and `121` fallback-only. Continue
+  the active goal by implementing a genuine issuer-native route for the next reachable
+  fallback identity; do not treat the count or the isolation repair as all-provider
+  completion.
+
 ## Provider support verification and next-source audit - 2026-07-16T15:45Z
 
 - Rechecked the strict support state after the user questioned whether clean working
@@ -5684,3 +5826,11 @@
   provider matrix; and the concrete-live-route invariant (`3 passed`). Strict state is `345`
   registered providers, `203` native/live-backed, and `142` fallback-only. SEC EDGAR remains
   fallback-only.
+## 2026-07-16 - Guinness Atkinson and Man Group source audit
+
+- Guinness Atkinson's public fund-resource catalogue advertises ETF holdings documents, but direct backend access
+  returns HTTP `403`; its indexed quarterly PDFs are therefore not a stable current discovery route from the app.
+- Man Group's public ETF UI exposes an `All holdings` workbook for MEMA, but the verified direct issuer
+  `download-holdings` endpoint returns HTTP `500` to both `httpx` and `requests`, including browser-equivalent headers.
+- Neither provider was promoted. Both remain fallback-only until an executable complete issuer-native holdings route
+  can be validated; SEC EDGAR remains fallback-only and uncounted.

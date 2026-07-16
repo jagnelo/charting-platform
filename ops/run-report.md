@@ -2,6 +2,93 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Redwood - 2026-07-16T19:45Z
+
+- Added a dedicated Redwood adapter restricted to `LSAF`, `LSAT`, and `DYLD`. It uses
+  LeaderShares' issuer-owned fund-scoped full-holdings CSV download, validates fund
+  identity, source date, and schema, and preserves CUSIP, ticker, shares, values,
+  weights, cash, and fixed-income semantics.
+- Validation passed: Ruff; full `290`-test adapter suite; exact opt-in live `LSAF`
+  route; registered-provider configuration invariant; and concrete live-route manifest
+  invariant (`3 passed`). Strict coverage is now `230/345` native/live-backed providers
+  and `115/345` fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Provider Integration - Osprey - 2026-07-16T19:20Z
+
+- Added a dedicated Osprey adapter for its verified public OSOL, OBNB, ODOT, and OBNK
+  trust pages. It parses each issuer-disclosed daily asset-per-share, AUM, outstanding
+  shares, and as-of date to create the trust's single crypto-asset holding precisely.
+- Validation passed: Ruff; full `288`-test adapter suite; exact opt-in live `OSOL`
+  route; registered-provider configuration invariant; and concrete live-route manifest
+  invariant (`3 passed`). Strict coverage is now `229/345` native/live-backed providers
+  and `116/345` fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Provider Integration - Raymond James - 2026-07-16T19:00Z
+
+- Added a dedicated Raymond James adapter restricted to `RJDI`, `RJMI`, and `RJVI`.
+  It fetches the issuer-owned FilePoint portal's fund-specific quarterly Schedule of
+  Investments PDFs, verifies the selected fund title and disclosed as-of date, and
+  preserves shares/par, market value, equity/fixed-income, and cash semantics.
+- Validation passed: Ruff; full `287`-test adapter suite; exact opt-in live `RJDI`
+  route; registered-provider configuration invariant; and concrete live-route manifest
+  invariant (`3 passed`). Strict coverage is now `228/345` native/live-backed providers
+  and `117/345` fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Priority Source Audit - Thrivent - 2026-07-16T18:15Z
+
+- Retried current ETF and holdings paths on both Thrivent public hostnames. All direct
+  browser-equivalent requests return the issuer's `403` gate before a complete daily
+  holdings artifact can be reached. `thrivent` remains fallback-only and uncounted.
+
+# ETF Holdings Priority Source Audit - SoFi - 2026-07-16T18:10Z
+
+- Rechecked SoFi's `SFY` product pages, ETF directory, sitemap, and its robots-declared
+  wealth API namespace. All paths return the issuer's WAF `403` document to a normal
+  browser-equivalent backend request; no complete current issuer-native holdings artifact
+  is executable from this environment. `sofi` remains fallback-only and uncounted.
+
+# ETF Holdings Provider Integration - Affiliated Managers Group - 2026-07-16T18:00Z
+
+- Added a dedicated AMG adapter for `MUNX`, which parses the issuer's complete public
+  municipal-bond portfolio table and preserves CUSIP, par value, market value, weights,
+  as-of date, and cash/non-security semantics. Its `requests` retry is strictly limited
+  to AMG's public page after an `httpx` `403`.
+- Validation passed: Ruff; `286` adapter unit tests; exact opt-in live `MUNX` route.
+  Strict coverage is now `227/345` native/live-backed providers and `118/345`
+  fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Provider Integration - Baird - 2026-07-16T17:30Z
+
+- Added a dedicated Baird adapter for its Strategas `SAMM`, `SAMT`, and `SAGP` ETFs.
+  It fetches the issuer-published symbol-scoped current CSVs and preserves complete
+  security, currency, CUSIP, SEDOL, share, weight, and date semantics.
+- Validation passed: Ruff; `285` adapter unit tests; exact opt-in live `SAGP` route; and
+  `git diff --check`. Strict coverage is now `226/345` native/live-backed providers and
+  `119/345` fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Provider Integration - Praxis - 2026-07-16T17:15Z
+
+- Added a dedicated Praxis adapter for the verified `PRXG`, `PRXV`, and `PRXI` catalogue.
+  It consumes the issuer-publisher's per-symbol, account-scoped daily CSVs directly because
+  Praxis geo-blocks server-rendered fund pages. This remains an isolated native Praxis route,
+  not a generic-feed or SEC fallback.
+- Validation passed: Ruff; `284` adapter unit tests; exact opt-in live `PRXG` route; and
+  `git diff --check`. Strict coverage is now `225/345` native/live-backed providers and
+  `120/345` fallback-only. The full live matrix remains unverified.
+
+# ETF Holdings Adapter Isolation Repair - 2026-07-16T16:30Z
+
+- Replaced the remaining inherited fetch-entry paths inside the currently counted
+  native/live-backed set. Added an executable unit invariant requiring each live-backed
+  configuration to instantiate a class defining `fetch_latest`; the pre-existing live
+  manifest continues to require a concrete live route for every such provider.
+- Static validation passed: `283` adapter tests, Ruff, and `git diff --check`.
+  Exact live routes passed for ARK, Pacer, Schwab, GraniteShares, Cambria, Beyond
+  Investing, Motley Fool, Tuttle, Yorkville, both Natixis identities, and SEI.
+- The full 231-provider live suite did not return a final result through this command
+  channel, so it is intentionally not recorded as passed. Strict registry state remains
+  `224/345` native/live-backed and `121/345` fallback-only; the all-provider goal remains active.
+
 # ETF Holdings Provider Verification - 2026-07-16T15:45Z
 
 - Verified the current strict state is `224/345` native/live-backed identities and
@@ -10900,3 +10987,22 @@ Append a short entry after each worker session.
   route, strict live-provider/concrete-test invariant (`2 passed`), and diff check. Strict
   coverage is `224/345` native/live-backed and `121` fallback-only. SEC EDGAR remains
   fallback-only and uncounted.
+## 2026-07-16T18:45Z ETF Holdings Provider Source Audit
+
+- Guinness Atkinson: the issuer's public resource catalogue advertises ETF holdings PDFs but returns HTTP `403`
+  to backend requests, so the discovered indexed documents cannot serve as a current native route.
+- Man Group: the public MEMA interface exposes an `All holdings` workbook, but its direct issuer
+  `download-holdings` endpoint returns HTTP `500` with both `httpx` and `requests` under browser-equivalent headers.
+- No provider was promoted; both remain fallback-only. Continue the reachable issuer queue without substituting SEC
+  EDGAR as primary support.
+# 2026-07-16T20:05Z - Native provider verification and priority-source audit
+
+- Confirmed strict provider state: `345` registered issuer keys, `230` native/live-backed,
+  and `115` fallback-only. The apparent prior lack of implementation progress was caused
+  by ops-only commits while the current provider adapter/test batch remained uncommitted.
+- Validation: `ruff check` passed; `tests/unit/services/test_etf_holdings_adapters.py`
+  passed (`290 passed`); targeted opt-in live Redwood and live-manifest invariants passed
+  (`3 passed`). The complete live-provider matrix remains unverified as a whole.
+- Rechecked live issuer sources: WisdomTree's actual U.S. holdings page is Cloudflare-gated
+  to backend traffic, and Pictet's fund page only exposes a Kurtosys client application
+  without a stable complete issuer artifact in the fetched page. Neither was promoted.
