@@ -1,5 +1,26 @@
 # Active Handoff
 
+## Amun native route - 2026-07-16T20:20Z
+
+- Promoted `amun` through an isolated adapter limited to the verified 21Shares U.S.
+  product range: `ARKB`, `TETH`, `TOXR`, and `TSOL`. Amun's ETF business publishes
+  these products through its 21Shares subsidiary; the adapter therefore records
+  21Shares as the source publisher, rejects arbitrary source URLs, issuer-identity
+  mismatches, and non-verified symbols, and never falls back to SEC EDGAR.
+- Static fixture coverage and the real opt-in `ARKB` route passed. Registry and
+  concrete-live-route manifest invariants also passed. Ruff and the full adapter unit
+  suite passed (`293 passed`). Strict state is now `232/345` native/live-backed and
+  `113` fallback-only.
+- The complete `239`-test live matrix could not produce a final result in this execution
+  environment: the command channel terminated it at roughly 10-15% without a pytest
+  failure summary or surviving process, including when output was captured/detached.
+  Do not represent it as passing for this increment. The prior clean baseline remains
+  `238 passed in 320.70s`; rerun the complete matrix from a durable local shell before
+  claiming a new whole-suite pass.
+- Exact next step: continue the remaining-113 queue, promoting only issuers with a
+  complete executable first-party holdings artifact, a dedicated adapter, static fixture,
+  and concrete live route test.
+
 ## Digital Currency Group native route and live-matrix hardening - 2026-07-16T21:10Z
 
 - Promoted `digital_currency_group` through an isolated adapter restricted to the

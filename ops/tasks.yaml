@@ -20,7 +20,11 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 231 native/live-backed providers out of 345; 114 remain.
+      - Current truthful count: 232 native/live-backed providers out of 345; 113 remain.
+        Amun is supported through a dedicated, bounded adapter for its verified U.S.
+        21Shares subsidiary ETF range (`ARKB`, `TETH`, `TOXR`, and `TSOL`). It owns
+        its publisher API retrieval, rejects unverified symbols and arbitrary source
+        URLs, and has static plus opt-in live route coverage for `ARKB`.
         Redwood is supported through its verified LeaderShares `LSAF`, `LSAT`, and
         `DYLD` issuer-owned full-holdings CSVs. The adapter validates the exact fund
         title, as-of date, and disclosed schema before preserving identifiers, values,

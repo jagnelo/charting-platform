@@ -11030,3 +11030,18 @@ Append a short entry after each worker session.
   under concurrent matrix load. Its issuer-specific retry path now makes three bounded
   attempts and has a timeout-then-success regression test; the isolated route and the
   clean complete matrix both passed afterward.
+
+# ETF Holdings Provider Native Route - 2026-07-16T20:20Z
+
+- Promoted `amun` through a dedicated adapter for the verified U.S. 21Shares subsidiary
+  range: `ARKB`, `TETH`, `TOXR`, and `TSOL`. The adapter has its own constrained fetch
+  path to the public 21Shares product-details API, rejects unverified symbols, arbitrary
+  source URLs, and identity mismatches, and explicitly records 21Shares as publisher.
+- Validation passed: Ruff; full adapter suite (`293 passed`); exact opt-in `ARKB` live
+  route; configured-provider registry invariant; and concrete-live-route manifest
+  invariant. Strict count: `345` registered providers, `232` native/live-backed, and
+  `113` fallback-only. SEC EDGAR remains fallback-only and does not count as support.
+- The full `239`-test live matrix was attempted repeatedly but the current command
+  execution channel terminated it around 10-15% without a pytest failure or final result.
+  The known clean full-matrix baseline is unchanged at `238 passed in 320.70s`; rerun the
+  new matrix from a durable local shell before asserting a new full-matrix pass.
