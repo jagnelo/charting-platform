@@ -1,5 +1,20 @@
 # Active Handoff
 
+## WisdomTree source audit - 2026-07-16T14:10Z
+
+- Revalidated the unresolved priority `wisdomtree` identity against current issuer
+  product pages (`DHS`, `EPS`) and likely holdings API paths using browser-style
+  request headers. Every route returned the same Cloudflare HTTP 403 challenge
+  before a complete holdings artifact could be reached.
+- Search indexing confirms that WisdomTree publicly presents daily holdings and a
+  “View all holdings” product surface, but an indexed rendering is not a
+  backend-executable issuer-native integration. `wisdomtree` remains fallback-only
+  and uncounted until a reachable complete first-party endpoint can be verified.
+- Strict coverage remains `222/345` native/live-backed, with `123` fallback-only.
+  Next concrete action: continue the unresolved queue with an issuer that has a
+  complete, backend-reachable, first-party artifact; avoid re-probing known
+  geo/bot-blocked sources without a newly identified endpoint.
+
 ## Provider live-support integrity correction - 2026-07-16T13:45Z
 
 - Demoted `cultivar` from native/live-backed coverage. Its only configured first-party

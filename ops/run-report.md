@@ -10842,3 +10842,13 @@ Append a short entry after each worker session.
 - Validation passed: Ruff; full adapter suite (`252 passed`); opt-in live `FORH` route;
   and the concrete-live-route invariant (`2 passed`). Strict count: `345` registered
   providers, `210` native/live-backed, `135` fallback-only. SEC EDGAR remains fallback-only.
+# ETF Holdings Provider Source Audit - 2026-07-16T14:10Z
+
+- Revalidated the priority WisdomTree issuer with current DHS/EPS product URLs and
+  likely issuer API paths under browser-style headers. Every route returned the
+  same Cloudflare HTTP 403 challenge before a complete holdings artifact could be
+  retrieved. Search indexing alone is insufficient to claim a backend-executable
+  native integration.
+- No provider was promoted. Strict state remains `345` registered providers,
+  `222` native/live-backed, and `123` fallback-only. SEC EDGAR remains fallback-only
+  and uncounted.
