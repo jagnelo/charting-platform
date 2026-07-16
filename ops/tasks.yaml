@@ -20,7 +20,12 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 222 native/live-backed providers out of 345; 123 remain.
+      - Current truthful count: 223 native/live-backed providers out of 345; 122 remain.
+      - >
+        Wellington Management's three registered US ETF identities are supported through a
+        dedicated, deliberately constrained adapter for VUSV, VDIG, and VUSG. Vanguard is
+        their legal issuer and publishes the complete fund-scoped portfolios; the adapter
+        records that publisher relationship rather than inventing a Wellington endpoint.
       - >
         Weitz is supported through its issuer-owned WCPB and WMSB product pages,
         whose embedded `holdingsFileJson` payloads disclose complete current holdings.

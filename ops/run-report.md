@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider Integration - Wellington - 2026-07-16T15:15Z
+
+- Promoted `wellington` using a dedicated adapter restricted to its actual
+  Wellington-managed US ETF range: `VUSV`, `VDIG`, and `VUSG`. Vanguard is their
+  legal issuer and publishes the complete fund-scoped portfolio JSON, so the adapter
+  transparently records Vanguard as the publisher rather than fabricating a separate
+  Wellington source.
+- Validation passed: Ruff; all `279` adapter unit tests with `--no-cov`; live VUSV
+  retrieval (88 rows); registry/concrete-route invariant (`2 passed`); and
+  `git diff --check`. Strict coverage is now `223/345` native/live-backed and `122`
+  fallback-only.
+
 # ETF Holdings Priority Source and Manifest Audit - 2026-07-16T14:30Z
 
 - Current Westwood product pages (`YLDW`, `MDST`, `WEEI`) and John Hancock /

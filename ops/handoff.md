@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Wellington native holdings route - 2026-07-16T15:15Z
+
+- Promoted the registered `wellington` identity with an isolated adapter restricted to
+  the three real Wellington-managed US ETFs: `VUSV`, `VDIG`, and `VUSG`. These are
+  Vanguard-sponsored funds, so the adapter uses only Vanguard's complete public,
+  fund-scoped portfolio JSON API and records Vanguard as the source publisher.
+- The adapter rejects unverified symbols, custom URLs, and mismatched fund identifiers
+  before any request. This is a concrete route integration, not a generic route or SEC
+  fallback. Live VUSV validation returned the published 88-row portfolio.
+- Validation passed: Ruff; full adapter suite (`279 passed`); opt-in live VUSV route;
+  registry/concrete-live-route invariant (`2 passed`); and `git diff --check`. Strict
+  coverage is now `223/345` native/live-backed and `122` fallback-only.
+
 ## WisdomTree source audit - 2026-07-16T14:10Z
 
 - Revalidated the unresolved priority `wisdomtree` identity against current issuer
