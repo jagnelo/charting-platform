@@ -4583,6 +4583,51 @@ async def test_vanguard_adapter_fetches_public_json_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeypatch):
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '{"size":88,"asOfDate":"2026-03-31T00:00:00-04:00",'
+                '"fund":{"entity":[{"type":"portfolioHolding",'
+                '"longName":"Microsoft Corp.","ticker":"MSFT",'
+                '"sharesHeld":"4197","marketValue":1553603.49,'
+                '"percentWeight":"2.87","cusip":"594918104"}]}}'
+            ),
+            content_type="application/json",
+        ),
+        *[FakeResponse(text="{}", content_type="application/json") for _ in range(6)],
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="VUSV")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://investor.vanguard.com/vmf/api/"
+        "VUSV/portfolio-holding/stock.json?start=1&count=20000"
+    )
+    assert result.rows[0].symbol == "MSFT"
+    assert result.legal_metadata["adapter_key"] == "wellington"
+    assert result.legal_metadata["source_provider"] == "vanguard"
+    assert result.legal_metadata["portfolio_manager"] == "wellington_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "vanguard_publisher_json_api_for_wellington_managed_etf"
+    )
+
+
+@pytest.mark.asyncio
+async def test_wellington_adapter_rejects_unverified_fund_symbols():
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    with pytest.raises(ValueError, match="supports only VUSV, VDIG, and VUSG"):
+        await adapter.fetch_latest(symbol="VOO")
+
+
+@pytest.mark.asyncio
 async def test_innovator_adapter_filters_public_aggregate_csv(monkeypatch):
     adapter = get_holdings_adapter("innovator")
     assert adapter is not None

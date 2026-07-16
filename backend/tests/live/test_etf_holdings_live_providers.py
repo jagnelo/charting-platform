@@ -224,6 +224,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "voya",
     "wahed",
     "water_island",
+    "wellington",
     "weitz",
     "wbi",
     "world_gold_council",
@@ -1185,6 +1186,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             100,
+        ),
+        (
+            "wellington",
+            "VUSV",
+            None,
+            {},
+            80,
         ),
         (
             "innovator",

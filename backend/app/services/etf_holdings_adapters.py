@@ -2885,6 +2885,75 @@ class VanguardHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
+    """Fetch the Vanguard-published portfolios for Wellington-managed US ETFs.
+
+    Wellington manages these funds, while Vanguard is their legal issuer and the
+    publisher of the complete portfolio API. Keeping that publisher boundary
+    explicit avoids pretending Wellington exposes a separate public endpoint.
+    """
+
+    SUPPORTED_SYMBOLS = frozenset({"VDIG", "VUSG", "VUSV"})
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason=(
+                "Wellington manages this US ETF and Vanguard publishes its complete "
+                "public portfolio through the fund-scoped API."
+            ),
+            source_url=self.resolve_source_url(symbol=normalized_symbol),
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            raise ValueError(
+                "Wellington's configured US ETF route supports only VUSV, VDIG, and VUSG."
+            )
+        if source_url is not None:
+            raise ValueError("Wellington holdings use the verified Vanguard publisher route.")
+
+        supplied_identifier = _identifier(
+            identifiers or {},
+            "vanguard_fund_id",
+            "fund_id",
+            "issuer_product_id",
+        ) or issuer_product_id
+        if supplied_identifier and supplied_identifier.strip().upper() != normalized_symbol:
+            raise ValueError(
+                "Wellington ETF identifiers must match the requested Vanguard fund symbol."
+            )
+
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            identifiers={},
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": "vanguard",
+            "adapter_key": self.adapter_key,
+            "route_resolution": "vanguard_publisher_json_api_for_wellington_managed_etf",
+            "portfolio_manager": "wellington_management",
+        }
+        return result
+
+
 class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -37423,6 +37492,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cyber Hornet public ETF holdings CSV exports may be subject to issuer terms.",
     ),
+    "wellington": IssuerCsvAdapterConfig(
+        adapter_key="wellington",
+        source_provider="vanguard",
+        source_access="vanguard_publisher_public_json_api_for_wellington_managed_etfs",
+        live_tested_default_route=True,
+        terms_note=(
+            "Vanguard publishes the complete public portfolios for its Wellington-managed "
+            "US ETFs; the Wellington adapter is intentionally limited to that verified range."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -37651,6 +37730,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "us_global_investors": USGlobalInvestorsHoldingsAdapter,
         "vaneck": VanEckHoldingsAdapter,
         "vanguard": VanguardHoldingsAdapter,
+        "wellington": WellingtonHoldingsAdapter,
         "victory": VictoryHoldingsAdapter,
         "virtus": VirtusHoldingsAdapter,
         "volatility_shares": VolatilitySharesHoldingsAdapter,
