@@ -4,7 +4,7 @@
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-07-16T02:20:00Z",
-    "last_commit": "a8042da chore(ops): record Golden Eagle holdings integration",
+    "last_commit": "64137c3 chore(ops): finalize Golden Eagle checkpoint",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (2026-07-16 Ruff check for the Golden Eagle adapter, static fixture, and live test module)",
