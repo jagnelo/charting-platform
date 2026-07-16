@@ -4005,6 +4005,52 @@ async def test_21shares_adapter_fetches_product_details_constituents(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_amun_adapter_is_limited_to_verified_21shares_products(monkeypatch):
+    adapter = get_holdings_adapter("amun")
+    assert adapter is not None
+
+    payload = {
+        "success": True,
+        "data": {
+            "ticker": "ARKB",
+            "product_name": "ARK 21shares Bitcoin ETF",
+            "currency": {"short_name": "USD"},
+            "valuation_date": "2026-07-15",
+            "constituents": [
+                {
+                    "name": "BITCOIN",
+                    "ticker": "BTC",
+                    "weight": 1,
+                    "quantity": 32870.7435,
+                    "market_value": 2092359570.44,
+                }
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(payload), content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ARKB")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://21sharesprimary.paradox-coworking.com/api/product_details/ARKB"
+    )
+    assert result.rows[0].symbol == "BTC"
+    assert result.legal_metadata["adapter_key"] == "amun"
+    assert result.legal_metadata["source_provider"] == "21shares"
+    assert result.legal_metadata["publisher"] == "21shares"
+    assert result.legal_metadata["route_resolution"] == "amun_21shares_public_product_details_api"
+
+    with pytest.raises(ValueError, match="only supports"):
+        await adapter.fetch_latest(symbol="GBTC")
+    with pytest.raises(ValueError, match="verified 21Shares publisher route"):
+        await adapter.fetch_latest(symbol="ARKB", source_url="https://example.test/holdings")
+
+
+@pytest.mark.asyncio
 async def test_coinshares_adapter_fetches_widget_holdings(monkeypatch):
     adapter = get_holdings_adapter("coinshares")
     assert adapter is not None

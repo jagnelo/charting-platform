@@ -16853,6 +16853,87 @@ class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class AmunHoldingsAdapter(TwentyOneSharesHoldingsAdapter):
+    """Fetch Amun's U.S. ETF range from its 21Shares subsidiary API."""
+
+    supported_symbols = {"ARKB", "TETH", "TOXR", "TSOL"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "Amun's verified 21Shares U.S. holdings route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        if source_url:
+            raise ValueError("Amun holdings must use its verified 21Shares publisher route.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Amun issuer product identity must match the requested ETF symbol.")
+
+        source_urls = [
+            f"{self.primary_base_url}/api/product_details/{normalized_symbol}",
+            f"{self.secondary_base_url}/api/product_details/{normalized_symbol}",
+        ]
+        failures: list[str] = []
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            for resolved_source_url in source_urls:
+                try:
+                    response = await client.get(
+                        resolved_source_url,
+                        headers=self.source_request_headers(source_url=resolved_source_url),
+                        follow_redirects=True,
+                    )
+                    response.raise_for_status()
+                    payload = response.json()
+                except Exception as exc:  # noqa: BLE001 - continue to the secondary issuer API host.
+                    failures.append(f"{resolved_source_url}: {exc}")
+                    continue
+
+                rows = self._parse_constituents(payload)
+                if not rows:
+                    failures.append(f"{resolved_source_url}: no constituent rows")
+                    continue
+                data = payload.get("data") if isinstance(payload, dict) else None
+                if not isinstance(data, dict):
+                    data = {}
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=response.text,
+                    raw_json=payload,
+                    source_url=str(getattr(response, "url", resolved_source_url)),
+                    source_identifier=normalized_symbol,
+                    legal_metadata={
+                        "source_access": self.config.source_access,
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "json",
+                        "route_resolution": "amun_21shares_public_product_details_api",
+                        "product_name": data.get("product_name"),
+                        "jurisdiction": data.get("jurisdiction"),
+                        "valuation_date": data.get("valuation_date"),
+                        "composition_date": data.get("valuation_date"),
+                        "as_of_date": data.get("valuation_date"),
+                        "total_nav": data.get("total_nav"),
+                        "total_units_outstanding": data.get("total_units_outstanding"),
+                        "nav_per_unit": data.get("nav_per_unit"),
+                        "publisher": "21shares",
+                        "terms_note": self.config.terms_note,
+                    },
+                )
+
+        raise ValueError(
+            f"Amun's 21Shares publisher did not return parseable {normalized_symbol} holdings: "
+            f"{'; '.join(failures)}"
+        )
+
+
 class YieldMaxHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch YieldMax's account-scoped daily Tidal holdings CSVs.
 
@@ -37133,6 +37214,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="21Shares public product details API may be subject to issuer terms.",
     ),
+    "amun": IssuerCsvAdapterConfig(
+        adapter_key="amun",
+        source_provider="21shares",
+        source_access="issuer_subsidiary_public_product_details_api",
+        url_templates=(
+            "https://21sharesprimary.paradox-coworking.com/api/product_details/{symbol_upper}",
+        ),
+        product_page_templates=(
+            "https://www.21shares.com/en-us/products-us/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Amun's verified U.S. ETF holdings are published by its 21Shares subsidiary "
+            "and may be subject to issuer terms."
+        ),
+    ),
     "abrdn": IssuerCsvAdapterConfig(
         adapter_key="abrdn",
         source_provider="abrdn",
@@ -39300,6 +39397,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "castleark": CastleArkHoldingsAdapter,
         "3edge": ThreeEdgeHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
+        "amun": AmunHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,
         "ssc": AlpsHoldingsAdapter,

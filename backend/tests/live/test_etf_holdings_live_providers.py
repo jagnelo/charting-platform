@@ -11,6 +11,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "818",
     "arlington",
     "21shares",
+    "amun",
     "1251_capital",
     "3fourteen",
     "abacus_global",
@@ -396,6 +397,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "21shares",
+            "ARKB",
+            None,
+            {},
+            1,
+        ),
+        (
+            "amun",
             "ARKB",
             None,
             {},
