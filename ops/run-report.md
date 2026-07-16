@@ -9,6 +9,10 @@ Append a short entry after each worker session.
   live-backed provider. The parser remains available for a future reachable route.
 - Audited PIMCO's public fund client. It exposes only top-ten holdings endpoints;
   without a complete unauthenticated issuer artifact, PIMCO remains fallback-only.
+- Audited SoFi's public ETF catalogue and fund pages. They return HTTP 403 to a
+  browser-header backend request; public indexing shows top-ten data and quarterly
+  reports only, not an executable complete current-holdings artifact. SoFi remains
+  fallback-only.
 - Validation: `277 passed` in the adapter unit suite; `git diff --check` passed.
   The network-enabled live matrix passed its strict manifest invariant and first 34
   issuer routes before the execution channel closed without a final result. Strict

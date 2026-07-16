@@ -13,6 +13,10 @@
 - PIMCO was also audited: its public fund-detail client exposes only `topTenHoldings`
   and `topTenHoldings/export`; no complete unauthenticated holdings endpoint was found.
   It remains fallback-only.
+- SoFi's public ETF catalogue and fund pages currently return HTTP 403 to a
+  browser-header backend request. Search-visible issuer pages expose top-ten data and
+  quarterly reports, not an executable complete current-holdings artifact. It remains
+  fallback-only pending a reachable issuer-native route.
 - Strict coverage is now `222/345` native/live-backed and `123` fallback-only. Next
   concrete action: continue the priority issuer queue with a complete, backend-reachable,
   first-party artifact and add both static and opt-in live coverage before promotion.
