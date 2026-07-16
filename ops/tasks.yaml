@@ -20,8 +20,12 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 232 native/live-backed providers out of 345; 113 remain.
-        Amun is supported through a dedicated, bounded adapter for its verified U.S.
+      - Current truthful count: 233 native/live-backed providers out of 345; 112 remain.
+        CICC is supported through a dedicated adapter for its verified controlling
+        relationship to KraneShares' `KWEB` route. It owns the dated CSV lookup,
+        rejects arbitrary URLs and unrelated products, records KraneShares as the
+        publisher, and has static plus opt-in live route coverage.
+      - Amun is supported through a dedicated, bounded adapter for its verified U.S.
         21Shares subsidiary ETF range (`ARKB`, `TETH`, `TOXR`, and `TSOL`). It owns
         its publisher API retrieval, rejects unverified symbols and arbitrary source
         URLs, and has static plus opt-in live route coverage for `ARKB`.

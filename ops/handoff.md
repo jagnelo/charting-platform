@@ -1,5 +1,22 @@
 # Active Handoff
 
+## CICC native route - 2026-07-16T20:35Z
+
+- Promoted `cicc` through an isolated adapter limited to `KWEB`, a verified U.S.
+  KraneShares product under CICC's controlling relationship. It owns the dated
+  issuer CSV lookup, refuses arbitrary URLs and identity mismatches, records
+  KraneShares as the publisher, and does not use SEC fallback.
+- Validation passed: Ruff; full adapter suite (`294 passed`); concrete opt-in
+  `KWEB` live route; configured-provider registry invariant; and concrete-live-route
+  manifest invariant. Strict state is now `233/345` native/live-backed and `112`
+  fallback-only.
+- The complete matrix runner remains unable to finish in this execution channel;
+  retain the documented `238 passed` clean baseline and rerun the now-240-test matrix
+  from a durable local shell before claiming a replacement whole-suite result.
+- Exact next step: continue the remaining-112 queue, promoting only identities with an
+  executable complete first-party publisher route plus an isolated adapter, fixture,
+  and concrete live test.
+
 ## Amun native route - 2026-07-16T20:20Z
 
 - Promoted `amun` through an isolated adapter limited to the verified 21Shares U.S.

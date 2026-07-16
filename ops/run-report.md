@@ -11045,3 +11045,14 @@ Append a short entry after each worker session.
   execution channel terminated it around 10-15% without a pytest failure or final result.
   The known clean full-matrix baseline is unchanged at `238 passed in 320.70s`; rerun the
   new matrix from a durable local shell before asserting a new full-matrix pass.
+
+# ETF Holdings Provider Native Route - 2026-07-16T20:35Z
+
+- Promoted `cicc` through a dedicated `KWEB` adapter. CICC's verified controlling
+  relationship to KraneShares is explicitly represented: the adapter owns the dated
+  KraneShares CSV lookup, accepts only KWEB, blocks arbitrary URLs and mismatched
+  identities, and records KraneShares as the publishing subsidiary.
+- Validation passed: Ruff; full adapter suite (`294 passed`); exact opt-in `KWEB` live
+  route; configured-provider registry invariant; and concrete-live-route manifest
+  invariant. Strict count: `345` registered providers, `233` native/live-backed, and
+  `112` fallback-only. SEC EDGAR remains fallback-only and does not count as support.
