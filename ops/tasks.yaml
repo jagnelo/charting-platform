@@ -72,6 +72,13 @@ tasks:
         Thrivent remains fallback-only after direct retries against both public ETF
         hostnames and its advertised holdings paths; each returned `403` before a
         complete issuer-native holdings artifact could be inspected.
+        A 2026-07-20 repeat confirmed Thrivent's own ETF page links to a fund-scoped
+        `daily-holdings-tscv.csv` asset, but both that asset and representative product
+        pages return the same Imperva/CloudFront HTTP 403 response to browser-header
+        backend requests. WisdomTree's documented DataSpan fund-data endpoints require
+        an unavailable API key and its public US holdings surfaces remain Cloudflare
+        gated; SoFi's indexed pages provide only top-ten holdings and its complete
+        issuer routes remain WAF blocked. All three remain fallback-only and uncounted.
         Guinness Atkinson's issuer resource catalogue currently returns `403` to backend
         requests despite advertising ETF holdings documents, while Man Group's disclosed
         direct all-holdings download endpoint currently returns `500`; neither is counted

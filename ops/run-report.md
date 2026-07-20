@@ -11106,3 +11106,17 @@ Append a short entry after each worker session.
   live route; configured-provider registry invariant; concrete-live-route manifest
   invariant (`3 passed`). Strict count: `345` registered, `237` native/live-backed, and
   `108` fallback-only.
+
+# ETF Holdings Priority Provider Access Audit - 2026-07-20T11:35Z
+
+- Rechecked the current registry state: `345` providers are registered, `237` are
+  native/live-backed, and `108` remain fallback-only. With live testing enabled, the
+  configuration-to-manifest invariant and concrete-live-route invariant both passed
+  (`2 passed`), proving every counted native provider has a declared concrete live test.
+- Thrivent's own ETF page identifies a complete, fund-scoped daily CSV, but the direct
+  file and representative product pages both return the same Imperva/CloudFront `403`
+  document to browser-header backend requests. WisdomTree's documented DataSpan API
+  requires an API key and the public US holdings surface remains Cloudflare-gated. SoFi
+  exposes top-ten data in indexed pages but no backend-reachable complete portfolio.
+- No provider was promoted. These issuers remain fallback-only and uncounted; continue
+  the remaining queue rather than replacing an unavailable native route with SEC.

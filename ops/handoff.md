@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Priority-provider access audit - 2026-07-20T11:35Z
+
+- Revalidated the native support count directly from the registry: `237/345`
+  native/live-backed and `108` fallback-only. With live mode enabled, both the
+  registry configuration invariant and the concrete-live-route manifest invariant pass
+  (`2 passed`), so no fallback-only provider is being counted as native support.
+- Rechecked the agreed priority blockers without promoting any of them: Thrivent's
+  current ETF page explicitly links its `daily-holdings-tscv.csv` file, but both page
+  and file return an Imperva/CloudFront HTTP `403` to browser-header backend requests.
+  WisdomTree's documented DataSpan endpoints require an unavailable API key, while its
+  public US holdings routes remain Cloudflare gated. SoFi's public indexed pages expose
+  top-ten positions but no backend-reachable complete current holdings artifact.
+- Continue from the remaining fallback-only queue. Do not claim a provider as supported
+  until a complete first-party route, isolated adapter, static fixture, and opt-in live
+  route all pass. SEC remains fallback-only and does not affect the count.
+
 ## Tidal native route - 2026-07-20T11:00Z
 
 - Promoted `tidal` through an isolated adapter limited to IINC, whose public sponsor
