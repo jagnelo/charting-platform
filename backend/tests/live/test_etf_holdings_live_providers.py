@@ -163,6 +163,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "janus_henderson",
     "jpmorgan",
     "kraneshares",
+    "kensington",
     "kurv",
     "lazard",
     "rex",
@@ -624,6 +625,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             300,
+        ),
+        (
+            "kensington",
+            "KAMO",
+            None,
+            {},
+            8,
         ),
         (
             "vaneck",

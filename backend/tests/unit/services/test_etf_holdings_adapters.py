@@ -821,6 +821,68 @@ async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_lo
 
 
 @pytest.mark.asyncio
+async def test_kensington_adapter_filters_account_validates_identity_and_preserves_non_tradable_rows(monkeypatch):
+    adapter = get_holdings_adapter("kensington")
+    assert adapter is not None
+
+    identity_json = json.dumps(
+        {
+            "title": {"rendered": "Hedged Premium Income ETF"},
+            "acf": {"ticker": "KHPI"},
+        }
+    )
+    holdings_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag",
+            "07/20/2026,KAMO,JAAA,47103U845,Janus Henderson AAA CLO ETF,10,50,500,10.00%,",
+            "07/20/2026,KHPI,4SPX  260821C07457690,4SPX  260821C07457690,SPX 08/21/2026 7457.69 C,-549,150,-8270685,-2.02%,",
+            "07/20/2026,KHPI,VOO,922908363,Vanguard S&P 500 ETF,594307,683,406012713.19,99.07%,",
+            "07/20/2026,KHPI,Cash&Other,Cash&Other,Cash & Other,5772044,1,5772044.16,1.41%,Y",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=identity_json, content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    def fake_get(url, **kwargs):
+        assert url == (
+            "https://www.kensingtonassetmanagement.com/data/"
+            "KensingtonWeb2.40K4.ETF_Holdings.csv"
+        )
+        assert kwargs["headers"]["Referer"].endswith("/solutions/etfs-khpi/")
+        response = FakeResponse(text=holdings_csv, content_type="text/csv", url=url)
+        response.status_code = 200
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="KHPI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://www.kensingtonassetmanagement.com/wp-json/wp/v2/investment/249",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "derivative"
+    assert result.rows[1].symbol == "VOO"
+    assert result.rows[1].cusip == "922908363"
+    assert result.rows[1].weight == Decimal("0.9907")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "kensington_public_combined_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+
+    with pytest.raises(ValueError, match="only supports"):
+        await adapter.fetch_latest(symbol="OTHER")
+    with pytest.raises(ValueError, match="verified public publisher route"):
+        await adapter.fetch_latest(symbol="KHPI", source_url="https://example.test/holdings")
+    with pytest.raises(ValueError, match="must match"):
+        await adapter.fetch_latest(symbol="KHPI", issuer_product_id="KAMO")
+
+
+@pytest.mark.asyncio
 async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_references(monkeypatch):
     adapter = get_holdings_adapter("rayliant")
     assert adapter is not None

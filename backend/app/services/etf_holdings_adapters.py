@@ -4400,6 +4400,227 @@ class AkreHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class KensingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Kensington's public account-scoped daily ETF holdings CSV."""
+
+    HOLDINGS_URL = (
+        "https://www.kensingtonassetmanagement.com/data/"
+        "KensingtonWeb2.40K4.ETF_Holdings.csv"
+    )
+    PRODUCT_API_URLS = {
+        "KAMO": "https://www.kensingtonassetmanagement.com/wp-json/wp/v2/investment/2562",
+        "KHPI": "https://www.kensingtonassetmanagement.com/wp-json/wp/v2/investment/249",
+    }
+    EXPECTED_TITLES = {
+        "KAMO": "Credit Opportunities ETF",
+        "KHPI": "Hedged Premium Income ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self.PRODUCT_API_URLS.get(normalized_symbol)
+        if product_url is None:
+            return super().probe(symbol=symbol, name="", identifiers={})
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason=(
+                "Kensington publishes fund-identity JSON and an account-scoped daily "
+                "complete ETF holdings CSV."
+            ),
+            source_url=self.HOLDINGS_URL,
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_api_url = self.PRODUCT_API_URLS.get(normalized_symbol)
+        if product_api_url is None:
+            raise ValueError(
+                "Kensington's verified public holdings route only supports "
+                f"{', '.join(sorted(self.PRODUCT_API_URLS))}; received {normalized_symbol}."
+            )
+        if source_url:
+            raise ValueError("Kensington holdings must use its verified public publisher route.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Kensington issuer product identity must match the requested ETF symbol.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_api_url,
+                headers=_issuer_page_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+        raw_csv, holdings_source_url = await self._fetch_holdings_csv(normalized_symbol)
+
+        self._validate_product_identity(product_response.text, normalized_symbol)
+        rows, composition_date = self._parse_holdings_csv(
+            raw_csv,
+            normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Kensington's public holdings CSV returned no {normalized_symbol} account rows."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_csv,
+            source_url=holdings_source_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "kensington_public_combined_daily_holdings_csv",
+                "product_identity_url": product_api_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def _fetch_holdings_csv(self, symbol: str) -> tuple[str, str]:
+        # Kensington's Cloudflare edge accepts its public CSV through the same
+        # browser-compatible requests transport used by the issuer's own site.
+        headers = _issuer_page_request_headers(accept="text/csv,*/*")
+        headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 Chrome/124 Safari/537.36"
+                ),
+                "Referer": (
+                    "https://www.kensingtonassetmanagement.com/solutions/"
+                    f"etfs-{symbol.lower()}/"
+                ),
+            }
+        )
+
+        def _request() -> requests.Response:
+            return requests.get(
+                self.HOLDINGS_URL,
+                headers=headers,
+                allow_redirects=True,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            )
+
+        response = await asyncio.to_thread(_request)
+        if response.status_code >= 400:
+            request = httpx.Request("GET", self.HOLDINGS_URL)
+            httpx_response = httpx.Response(
+                response.status_code,
+                request=request,
+                text=response.text,
+            )
+            raise httpx.HTTPStatusError(
+                f"Client error '{response.status_code}' for url '{self.HOLDINGS_URL}'",
+                request=request,
+                response=httpx_response,
+            )
+        return response.text, str(response.url)
+
+    @classmethod
+    def _validate_product_identity(cls, raw_json: str, symbol: str) -> None:
+        try:
+            payload = json.loads(raw_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Kensington's fund identity endpoint returned invalid JSON.") from exc
+        actual_symbol = _clean((payload.get("acf") or {}).get("ticker"))
+        actual_title = _clean((payload.get("title") or {}).get("rendered"))
+        if actual_symbol != symbol or actual_title != cls.EXPECTED_TITLES[symbol]:
+            raise ValueError("Kensington's fund identity endpoint did not match the requested ETF.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: set[date] = set()
+        for index, item in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            if (_clean(item.get("Account")) or "").upper() != symbol:
+                continue
+            composition_date = cls._parse_date(item.get("Date"))
+            if composition_date is None:
+                raise ValueError("Kensington holdings row is missing its disclosure date.")
+            composition_dates.add(composition_date)
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            holding_type = cls._holding_type(
+                raw_symbol=raw_symbol,
+                name=name,
+                money_market_flag=item.get("MoneyMarketFlag"),
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            raw_identifier = _clean(item.get("CUSIP"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(raw_symbol) if holding_type == "equity" else None,
+                    name=name,
+                    cusip=raw_identifier if _looks_like_cusip(raw_identifier) else None,
+                    sedol=raw_identifier if _looks_like_sedol(raw_identifier) else None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in item.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source_symbol": raw_symbol,
+                        "source": "kensington_public_combined_daily_holdings_csv",
+                    },
+                )
+            )
+        if len(composition_dates) > 1:
+            raise ValueError("Kensington's requested ETF rows have inconsistent disclosure dates.")
+        return rows, next(iter(composition_dates), None)
+
+    @staticmethod
+    def _parse_date(value: str | None) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        normalized = _clean(value)
+        if not normalized or " " in normalized or _looks_like_cusip(normalized):
+            return None
+        return normalized.upper() if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized.upper()) else None
+
+    @staticmethod
+    def _holding_type(*, raw_symbol: str | None, name: str | None, money_market_flag: Any) -> str:
+        text = " ".join(value.upper() for value in [raw_symbol, name] if value)
+        if _clean(money_market_flag) == "Y" or "CASH" in text or "MONEY MARKET" in text:
+            return "cash"
+        if "OPTION" in text or re.search(r"\b[CP]\s*$", text):
+            return "derivative"
+        return "equity"
+
+
 class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch full holdings CSVs from Rayliant's published ETF product pages."""
 
@@ -37407,6 +37628,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "and may be subject to issuer terms."
         ),
     ),
+    "kensington": IssuerCsvAdapterConfig(
+        adapter_key="kensington",
+        source_provider="kensington_asset_management",
+        source_access="issuer_public_combined_daily_holdings_csv",
+        url_templates=(
+            "https://www.kensingtonassetmanagement.com/data/"
+            "KensingtonWeb2.40K4.ETF_Holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Kensington publishes a combined daily ETF holdings CSV whose Account "
+            "field identifies each disclosed fund."
+        ),
+    ),
     "abrdn": IssuerCsvAdapterConfig(
         adapter_key="abrdn",
         source_provider="abrdn",
@@ -39614,6 +39849,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "3edge": ThreeEdgeHoldingsAdapter,
         "21shares": TwentyOneSharesHoldingsAdapter,
         "amun": AmunHoldingsAdapter,
+        "kensington": KensingtonHoldingsAdapter,
         "coinshares": CoinSharesHoldingsAdapter,
         "abrdn": AbrdnHoldingsAdapter,
         "ssc": AlpsHoldingsAdapter,
