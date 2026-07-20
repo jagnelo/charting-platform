@@ -24,6 +24,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "toews",
     "wedbush",
     "shelton",
+    "tidal",
     "scharf",
     "cohanzick",
     "tremblant",
@@ -1983,6 +1984,18 @@ async def test_live_shelton_product_page_linked_holdings_csv():
     result = await adapter.fetch_latest(symbol="SEPI")
     _assert_live_holdings_result(result, adapter_key="shelton", min_rows=20)
     assert result.legal_metadata["route_resolution"] == "shelton_product_page_linked_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("tidal")
+async def test_live_tidal_sponsor_fund_scoped_daily_holdings_csv():
+    adapter = get_holdings_adapter("tidal")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="IINC")
+    _assert_live_holdings_result(result, adapter_key="tidal", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "tidal_sponsor_fund_scoped_daily_holdings_csv"
     assert result.legal_metadata["composition_date"]
 
 

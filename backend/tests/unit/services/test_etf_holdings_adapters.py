@@ -10507,6 +10507,29 @@ def test_shelton_adapter_discovers_and_parses_current_holdings_csv():
     assert composition_date == date(2026, 7, 13)
 
 
+def test_tidal_adapter_parses_verified_sponsor_fund_scoped_holdings_csv():
+    adapter = get_holdings_adapter("tidal")
+    assert adapter is not None
+    probe = adapter.probe(symbol="IINC", name="Intelligent Income ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://www.iinc-etf.com/wp-content/uploads/data/TidalFG_Holdings_IINC.csv"
+    rows, composition_date = adapter._parse_holdings_csv(
+        """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings
+07/17/2026,IINC,ADP,053015103,Automatic Data Processing Inc,1155,256.56,296326.8,1.50%
+07/17/2026,IINC,Cash&Other,Cash&Other,Cash & Other,2105415,1,2105415.23,10.65%
+07/17/2026,OTHER,MSFT,594918104,Microsoft Corp,1,1,1,100%
+""",
+        symbol="IINC",
+    )
+    assert len(rows) == 2
+    assert rows[0].symbol == "ADP"
+    assert rows[0].cusip == "053015103"
+    assert rows[0].weight == Decimal("0.015")
+    assert rows[1].symbol is None
+    assert rows[1].holding_type == "cash"
+    assert composition_date == date(2026, 7, 17)
+
+
 def test_jensen_adapter_parses_fund_scoped_filepoint_daily_holdings_csv():
     adapter = get_holdings_adapter("jensen")
     assert adapter is not None

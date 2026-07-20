@@ -12676,6 +12676,194 @@ class SheltonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch verified sponsor-published Tidal ETF holdings without a generic route."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "IINC": (
+            "https://www.iinc-etf.com/",
+            "https://www.iinc-etf.com/wp-content/uploads/data/TidalFG_Holdings_IINC.csv",
+        ),
+    }
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if product else Decimal("0.5000"),
+            status="ready" if product or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "The IINC sponsor publishes a complete, fund-scoped public daily holdings CSV."
+                if product
+                else "No verified Tidal sponsor-published complete holdings route is configured for this ETF; "
+                "SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Tidal sponsor-published complete holdings route is configured for this ETF."
+            ),
+            source_url=product[1] if product else None,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id") or normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "No verified Tidal sponsor-published complete holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        product_page_url, holdings_url = product
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            try:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=page_headers,
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                resolved_page_url = str(page_response.url)
+                page_text = page_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                # This sponsor's public WordPress host rejects httpx's TLS
+                # fingerprint while accepting the same ordinary browser request.
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    product_page_url,
+                    headers=page_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_page_url = str(fallback_response.url)
+                page_text = fallback_response.text
+            if normalized_symbol not in page_text.upper():
+                raise ValueError(f"Tidal sponsor page identity did not match requested ETF {normalized_symbol}.")
+            csv_headers = {
+                **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                "Referer": resolved_page_url,
+            }
+            try:
+                csv_response = await client.get(
+                    holdings_url,
+                    headers=csv_headers,
+                    follow_redirects=True,
+                )
+                csv_response.raise_for_status()
+                resolved_csv_url = str(csv_response.url)
+                csv_text = csv_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    holdings_url,
+                    headers=csv_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_csv_url = str(fallback_response.url)
+                csv_text = fallback_response.text
+        rows, composition_date = self._parse_holdings_csv(csv_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Tidal sponsor holdings CSV returned no rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_text,
+            raw_json={
+                "source_format": "issuer_sponsor_fund_scoped_daily_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "row_count": len(rows),
+            },
+            source_url=resolved_csv_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "tidal_sponsor_fund_scoped_daily_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        table_rows = [row for row in csv.reader(StringIO(raw_csv.strip())) if any(_clean(cell) for cell in row)]
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lstrip("\ufeff").lower() for cell in row if _clean(cell)}
+                >= {"date", "account", "stockticker", "cusip", "securityname", "shares", "marketvalue", "weightings"}
+            ),
+            None,
+        )
+        if header_index is None:
+            return [], None
+        composition_date = None
+        rows: list[CanonicalHoldingRow] = []
+        header = [cell.lstrip("\ufeff") for cell in table_rows[header_index]]
+        for index, row in enumerate(table_rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, row)
+            account = _clean(_first(raw, ["Account"]))
+            if account and account.upper() != symbol.upper():
+                continue
+            ticker, name, cusip = (
+                _clean(_first(raw, [key])) for key in ("StockTicker", "SecurityName", "CUSIP")
+            )
+            row_date = _clean(_first(raw, ["Date"]))
+            if row_date:
+                try:
+                    parsed = datetime.strptime(row_date, "%m/%d/%Y").date()
+                    if composition_date is None or parsed > composition_date:
+                        composition_date = parsed
+                except ValueError:
+                    pass
+            is_cash = "cash" in " ".join(part.lower() for part in (ticker, name) if part)
+            if not any([ticker, name, cusip, _first(raw, ["MarketValue"])]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=_decimal(_first(raw, ["MarketValue"])),
+                    weight=_decimal(_first(raw, ["Weightings"])),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
+                )
+            )
+        return rows, composition_date
+
+
 class ScharfHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Scharf ETF's full current holdings CSV linked from its public fund page."""
 
@@ -39779,6 +39967,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "LeaderShares ETF range."
         ),
     ),
+    "tidal": IssuerCsvAdapterConfig(
+        adapter_key="tidal",
+        source_provider="tidal",
+        source_access="issuer_sponsor_fund_scoped_daily_holdings_csv",
+        product_page_templates=("https://www.iinc-etf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Tidal-sponsored ETF holdings are exposed through each sponsor's public product site; "
+            "the native route is intentionally limited to verified sponsor-published fund CSVs."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -39893,6 +40092,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "toews": ToewsHoldingsAdapter,
         "wedbush": WedbushHoldingsAdapter,
         "shelton": SheltonHoldingsAdapter,
+        "tidal": TidalHoldingsAdapter,
         "scharf": ScharfHoldingsAdapter,
         "cohanzick": CohanzickHoldingsAdapter,
         "tremblant": TremblantHoldingsAdapter,
