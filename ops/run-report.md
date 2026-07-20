@@ -11093,3 +11093,16 @@ Append a short entry after each worker session.
   route; configured-provider registry invariant; and concrete-live-route manifest
   invariant (`3 passed`). Strict count: `345` registered providers, `236`
   native/live-backed, and `109` fallback-only.
+
+# ETF Holdings Provider Native Route - 2026-07-20T11:00Z
+
+- Promoted `tidal` through a dedicated, bounded IINC adapter. IINC's public sponsor
+  page declares its complete Account-scoped daily holdings CSV, and the adapter validates
+  sponsor identity, filters only the requested account, and retains cash as non-tradable.
+  It does not pretend this single verified sponsor route is a generic Tidal resolver.
+- The sponsor host returns `403` to httpx's TLS fingerprint but accepts the equivalent
+  browser-compatible `requests` request. That fallback is isolated to this issuer route.
+- Validation passed: Ruff; full adapter unit suite (`298 passed`); exact opt-in IINC
+  live route; configured-provider registry invariant; concrete-live-route manifest
+  invariant (`3 passed`). Strict count: `345` registered, `237` native/live-backed, and
+  `108` fallback-only.

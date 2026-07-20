@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Tidal native route - 2026-07-20T11:00Z
+
+- Promoted `tidal` through an isolated adapter limited to IINC, whose public sponsor
+  site publishes an exact Account-scoped, dated daily holdings CSV. The adapter verifies
+  the sponsor-page identity before downloading the known fund file, rejects arbitrary
+  URLs and unverified tickers, and preserves cash without inventing tradable symbols.
+- The sponsor's WordPress edge rejected the ordinary httpx TLS fingerprint with `403`;
+  the same public page and file worked through `requests`, so that narrowly scoped
+  issuer-local fallback is explicit in the adapter. Ruff, the full adapter unit suite
+  (`298 passed`), the concrete opt-in IINC route, and both live-provider manifest
+  invariants passed (`3 passed`). Strict state is now `237/345` native/live-backed and
+  `108` fallback-only.
+- Continue the remaining-108 queue with the same isolated adapter, fixture, and live
+  route threshold. Do not claim trust-wide Tidal support beyond sponsor routes that are
+  verified individually.
+
 ## Kensington native route - 2026-07-20T10:30Z
 
 - Promoted `kensington` through an isolated adapter limited to its verified KAMO and

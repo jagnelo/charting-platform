@@ -20,7 +20,14 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 236 native/live-backed providers out of 345; 109 remain.
+      - Current truthful count: 237 native/live-backed providers out of 345; 108 remain.
+        Tidal is supported through an isolated, strictly bounded adapter for IINC's
+        verified sponsor-published daily holdings CSV. The adapter first confirms the
+        public sponsor page identity, rejects arbitrary URLs and unrelated tickers,
+        filters the CSV by its exact Account field, and preserves cash as non-tradable.
+        Its narrowly scoped requests transport fallback exists only because the
+        sponsor's WordPress edge rejects equivalent httpx requests with HTTP 403; both
+        static parser and opt-in live-route coverage are in place for IINC.
         Kensington Asset Management is supported through an isolated adapter for its
         verified KAMO and KHPI ETF range. It verifies each fund through Kensington's
         public WordPress identity API, filters the issuer's combined daily CSV by
