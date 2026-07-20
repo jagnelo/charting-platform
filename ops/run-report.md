@@ -11077,3 +11077,19 @@ Append a short entry after each worker session.
   route (`308` rows); configured-provider registry invariant; and concrete-live-route
   manifest invariant. Strict count: `345` registered providers, `235` native/live-backed,
   and `110` fallback-only.
+
+# ETF Holdings Provider Native Route - 2026-07-20T10:30Z
+
+- Promoted `kensington` through a bounded native adapter for KAMO and KHPI. The adapter
+  verifies the requested ticker and exact fund title through Kensington's public
+  WordPress investment endpoint, then filters the issuer's combined daily holdings CSV
+  by its Account field. It marks cash/money-market and option rows non-tradable rather
+  than creating false instrument symbols.
+- Kensington's Cloudflare edge returned `403` to the normal httpx CSV request but
+  returned the same public file to a browser-compatible `requests` transport with the
+  matching fund page as referer. That issuer-specific transport is deliberately scoped
+  to this adapter. Static parser coverage and an opt-in live KAMO route were added.
+- Validation passed: Ruff; full adapter unit suite (`297 passed`); concrete live KAMO
+  route; configured-provider registry invariant; and concrete-live-route manifest
+  invariant (`3 passed`). Strict count: `345` registered providers, `236`
+  native/live-backed, and `109` fallback-only.

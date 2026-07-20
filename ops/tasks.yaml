@@ -20,7 +20,14 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 235 native/live-backed providers out of 345; 110 remain.
+      - Current truthful count: 236 native/live-backed providers out of 345; 109 remain.
+        Kensington Asset Management is supported through an isolated adapter for its
+        verified KAMO and KHPI ETF range. It verifies each fund through Kensington's
+        public WordPress identity API, filters the issuer's combined daily CSV by
+        Account, and preserves non-tradable cash and option positions without
+        inventing instrument tickers. Its browser-compatible requests transport is
+        scoped solely to the public Cloudflare-protected CSV and has static plus
+        opt-in live coverage for KAMO.
         Man Group is supported through a dedicated adapter for the documented `BUYO`
         partnership, using KraneShares' complete daily holdings CSV. It is constrained
         to that product relationship and has static plus opt-in live coverage.

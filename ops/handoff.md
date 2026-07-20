@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Kensington native route - 2026-07-20T10:30Z
+
+- Promoted `kensington` through an isolated adapter limited to its verified KAMO and
+  KHPI ETF range. It validates each requested fund against Kensington's public
+  WordPress investment identity API, then filters the issuer's combined daily holdings
+  CSV by its exact Account field. Cash and money-market rows remain non-tradable cash;
+  index option rows remain non-tradable derivatives.
+- Kensington's Cloudflare edge rejected the standard httpx CSV request with `403`, but
+  accepted a browser-compatible `requests` transport with an issuer product-page
+  referer. That narrow transport is local to this adapter and is covered by the static
+  fixture. Ruff, the full adapter unit suite (`297 passed`), the concrete opt-in KAMO
+  live route, and both configured-provider/live-route manifest invariants passed (`3
+  passed`). Strict state is now `236/345` native/live-backed and `109` fallback-only.
+- Continue the remaining-109 queue with the same isolated adapter, fixture, and live
+  route threshold. The full matrix runner limitation remains documented below.
+
 ## Man Group native route - 2026-07-16T21:05Z
 
 - Promoted `man_group` through an isolated adapter limited to `BUYO`, its documented
