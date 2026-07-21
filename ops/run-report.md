@@ -2,6 +2,280 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Native Audit Continuation - 2026-07-21T19:25Z
+
+- Registry count remains `277/345` native/live-backed and `68/345`
+  fallback-only. The count is not a substitute for a clean live-provider
+  matrix.
+- Official Alpha Architect QVAL content is publicly indexed with complete
+  holdings, but direct backend-style retrieval returned an empty HTTP `200`
+  response after prior issuer-side `502` failures. No stable issuer-native
+  alternate was established, so no unsupported route was promoted.
+- A fresh opt-in matrix attempt did not return a pytest footer from this
+  execution environment and is deliberately not represented as pass/fail
+  evidence.
+
+# ETF Holdings Adapter Invariants - 2026-07-21T19:35Z
+
+- Full deterministic ETF adapter suite passed: `347 passed`.
+- With live tests enabled, the registered-provider and concrete-live-route
+  invariants both passed (`2 passed`). Every configured native/live-backed
+  adapter therefore has a matching executable issuer-route test entry.
+
+# ETF Holdings Priority Source Audit - 2026-07-21T18:35Z
+
+- WisdomTree's current public WTV surface still provides only an indexed
+  top-ten preview to this environment; its documented complete Fund Data API
+  requires a private `x-wt-dataspan-key`, and direct page retrieval is WAF
+  blocked. SoFi similarly exposes top-ten data and periodic reports, not a
+  complete current holdings artifact.
+- `marathon` is a subadvisor identity for a John Hancock/Manulife ETF rather
+  than a fund publisher. None of these identities was falsely promoted. Strict
+  state remains `277/345` native/live-backed and `68/345` fallback-only.
+
+# ETF Holdings Remaining Issuer Source Audit - 2026-07-21T17:31Z
+
+- Revalidated official source routes for WisdomTree, Thrivent, and Westwood.
+  WisdomTree's documented full-holdings action/DataSpan surface remains
+  Cloudflare/API-key gated; Thrivent's advertised daily-holdings assets remain
+  Imperva/CloudFront gated; and Westwood's official MDST complete CSV returns a
+  Cloudflare challenge to a browser-header backend request.
+- No provider was falsely promoted. Strict current working-tree state remains
+  `276/345` native/live-backed and `69/345` fallback-only; `260/345` is the
+  prior committed checkpoint while the 16-provider expansion is uncommitted.
+
+# ETF Holdings Unlimited Funds Native Route - 2026-07-21T20:15Z
+
+- Added an isolated Unlimited Funds adapter for `HFND`, `HFGM`, `HFMF`, and
+  `HFEQ`. It accepts only four verified issuer-owned complete current holdings
+  CSVs, filters exactly to the requested fund account, and preserves cash and
+  derivative rows as non-tradable source data.
+- The issuer's WordPress download edge rejects `httpx` but accepts `requests` for
+  the same official downloads; the transport fallback is confined to Unlimited.
+  Validation passed: focused deterministic fixture, full adapter suite (`344
+  passed`), Ruff, exact opt-in HFND live route, provider matrix, and concrete
+  live-route invariant. Strict state: `276/345` native/live-backed and `69/345`
+  fallback-only.
+
+# ETF Holdings Lagan / Congress Asset Management Native Route - 2026-07-21T16:57Z
+
+- Added an isolated Congress adapter for `CSMD`, `CAML`, and `CAFX`. It validates
+  the exact issuer product page, its declared application script, and its shared
+  daily FilePoint CSV before filtering strictly to the requested fund account.
+  Cash and fixed-income rows remain source-faithful and non-tradable.
+- Validation passed: focused deterministic fixture, Ruff, exact opt-in CAML live
+  route, provider matrix, and concrete-live-route invariant. Strict state:
+  `275/345` native/live-backed and `70/345` fallback-only.
+
+# ETF Holdings ShariaPortfolio / SP Funds Native Route - 2026-07-21T19:40Z
+
+- Added an isolated adapter for registered `SPTE` and `SPWO` routes. It verifies
+  each official SP Funds page declares the exact full daily CSV and filters the
+  shared publisher format to the requested fund account. Cash and dated option
+  contracts remain non-tradable source rows.
+- Validation passed: focused deterministic fixture, full adapter suite (`342 passed`),
+  Ruff, exact opt-in live SPTE route, provider matrix, and concrete-live-route invariant.
+  Strict state: `274/345` native/live-backed and `71/345` fallback-only.
+
+# ETF Holdings Gladius / Wayfinder Native Route - 2026-07-21T19:20Z
+
+- Added an isolated `CMBO` adapter. It validates Wayfinder's official fund-page
+  identity, extracts the issuer-rendered current portfolio only, and requires
+  the disclosed weights to sum to the whole portfolio before ingesting it.
+  Cash and option positions remain source-faithful, non-tradable rows.
+- Validation passed: focused deterministic fixture, full adapter suite (`341 passed`),
+  Ruff, exact opt-in live CMBO route, provider matrix, and concrete-live-route invariant.
+  Strict state: `273/345` native/live-backed and `72/345` fallback-only.
+
+# ETF Holdings Nightview Capital Native Route - 2026-07-21T19:05Z
+
+- Added an isolated `NITE` adapter. It validates Nightview's official fund page
+  declares the exact complete current holdings CSV before parsing the source.
+  The source reports descriptive security names rather than portable symbols;
+  cash remains non-tradable and name-to-instrument reconciliation is left to the
+  existing safe downstream resolver rather than guessing tickers.
+- Validation passed: focused deterministic fixture, full adapter suite (`340 passed`),
+  Ruff, exact opt-in live NITE route, provider matrix, and concrete-live-route invariant. Strict state:
+  `272/345` native/live-backed and `73/345` fallback-only.
+
+# ETF Holdings Reckoner Capital Management Native Route - 2026-07-21T18:40Z
+
+- Added an isolated `RAAA` adapter. It follows only the issuer-declared route:
+  Reckoner fund page, its portfolio iframe, the iframe's declared application
+  script, and the script's exact complete daily CSV. CLO debt and repo positions
+  are retained as non-tradable source rows.
+- Reckoner's edge serves the verified public source through `requests` while
+  rejecting `httpx` with HTTP 403; the adapter's compatibility fallback is
+  constrained to this issuer chain. Validation passed: focused static fixture,
+  full deterministic adapter suite (`339 passed`), Ruff, exact opt-in live RAAA
+  route, provider matrix, and concrete-live-route invariant. Strict state:
+  `271/345` native/live-backed and `74/345` fallback-only.
+
+# ETF Holdings Myriad Asset Management Native Route - 2026-07-21T18:25Z
+
+- Added an isolated `MDAA` adapter. It verifies the official Myriad fund page
+  declares its application script, verifies that script declares the exact
+  complete daily holdings CSV, then filters the issuer CSV to `MDAA` only.
+  Currency-future and cash rows are retained as non-tradable source positions.
+- Validation passed: focused static fixture, full deterministic adapter suite
+  (`338 passed`), Ruff, exact opt-in live MDAA route, provider matrix, and
+  concrete-live-route invariant. Strict state: `270/345` native/live-backed and
+  `75/345` fallback-only.
+
+# ETF Holdings SRN Advisors / Siren ETF Trust Native Route - 2026-07-21T18:05Z
+
+- Added an isolated SRN adapter for Siren ETF Trust's `BLCN` and `LEAD` product
+  pages. It verifies each issuer page declares the exact public combined daily
+  CSV, then strictly filters its records by the requested ETF account. Cash and
+  currency rows stay non-tradable while valid identifiers are retained.
+- `BLCN` currently reports a seven-row liquidation portfolio, so the live route
+  verifies its actual complete disclosure rather than an obsolete equity count.
+  Validation passed: focused static test, full deterministic adapter suite
+  (`337 passed`), Ruff, exact opt-in live BLCN route, provider matrix, and
+  concrete-live-route invariant. Strict state: `269/345` native/live-backed and
+  `76/345` fallback-only.
+
+# ETF Holdings Retireful / Mohr Funds Native Route - 2026-07-21T17:25Z
+
+- Added an isolated Retireful adapter for Mohr Funds' RULE, SNAV, MFUL, and CNAV
+  ETF product pages. It validates fund identity, follows issuer-owned pagination
+  only, and rejects an incomplete result when parsed rows do not equal the
+  issuer-declared complete portfolio count. Cash-equivalent rows with omitted
+  ticker/CUSIP fields remain visible as non-tradable cash.
+- Validation passed: deterministic pagination/cash fixture, Ruff, exact opt-in
+  live RULE route, provider matrix, and concrete-live-route invariant. Strict
+  state: `268/345` native/live-backed and `77/345` fallback-only.
+
+# ETF Holdings Guinness Atkinson and Westwood Source Retries - 2026-07-21T16:55Z
+
+- Browser-equivalent retrieval of the official Guinness Atkinson DIVS and
+  Westwood MDST product pages both received Cloudflare challenge documents
+  before an advertised complete holdings download could be traced to an
+  executable current issuer artifact.
+- Neither issuer was promoted; SEC, third-party, top-ten, and stale-report
+  sources remain invalid substitutes. Strict state remains `267/345`
+  native/live-backed and `78/345` fallback-only.
+
+# ETF Holdings Beacon Capital Product-Line Completion - 2026-07-21T16:40Z
+
+- Extended the isolated Beacon adapter from BSR to both active Beacon ETFs: BSR
+  and BTR. Each validates its own official product page and its own declared
+  complete current holdings CSV; route metadata and source-row identifiers are
+  fund-specific.
+- Validation passed: deterministic BSR/BTR fixtures, Ruff, `git diff --check`,
+  exact opt-in live BSR/BTR routes, provider matrix, and concrete-live-route
+  invariant. This improves Beacon product coverage but leaves the strict issuer
+  count at `267/345` native/live-backed and `78/345` fallback-only.
+
+# ETF Holdings PlanRock Source Audit - 2026-07-21T16:25Z
+
+- PlanRock's official literature page is public and identifies PRAE, but the
+  complete holdings documents it exposes are dated June and December 2025 PDFs.
+  No current holdings table, CSV, API, or matching complete PRMN artifact is
+  available from its first-party surface.
+- `planrock` remains fallback-only and uncounted. No stale PDF, SEC filing, or
+  third-party substitute was promoted as native support.
+
+# ETF Holdings Beacon Capital Native Route - 2026-07-21T16:15Z
+
+- Added an isolated Beacon BSR adapter. It verifies the official Unified
+  Catalyst product page and follows only that page's declared complete current
+  holdings CSV. Cash sweep and receivable rows are preserved as non-tradable;
+  ordinary portfolio ETF identifiers, symbols, values, and weights are retained.
+- The issuer's WordPress edge rejects httpx for both verified public documents,
+  while accepting requests. The fallback is explicitly bounded to those URLs.
+  Validation passed: focused static fixture, full deterministic suite (`334
+  passed`), Ruff, exact opt-in BSR live route, provider matrix,
+  concrete-live-route invariant, and `git diff --check`. Strict state:
+  `267/345` native/live-backed and `78/345` fallback-only.
+
+# ETF Holdings SWP Investment Management Native Route - 2026-07-21T16:00Z
+
+- Added an isolated SWP adapter that verifies the issuer's public SWP product
+  page declares the exact daily holdings spreadsheet before reading it. It
+  filters strictly to SWP account rows and preserves equity, option, and cash
+  semantics without inventing tradable symbols for derivative or cash rows.
+- Validation passed: focused static fixture, full deterministic adapter suite
+  (`333 passed`), Ruff, exact opt-in SWP live route, provider matrix,
+  concrete-live-route invariant, and `git diff --check`. Strict state:
+  `266/345` native/live-backed and `79/345` fallback-only.
+
+# ETF Holdings WisdomTree Source Retry - 2026-07-21T15:40Z
+
+- The issuer's official U.S. WTV page is publicly indexed and advertises a
+  full-holdings feature, but direct browser-equivalent retrieval still returns
+  `403` before that complete artifact can be discovered. WisdomTree remains
+  fallback-only and uncounted; no top-ten, SEC, or third-party substitute was used.
+
+# ETF Holdings Waverly Advisors Native Route - 2026-07-21T15:30Z
+
+- Added an isolated Waverly GGM adapter that verifies the official product page
+  and its issuer-declared complete holdings CSV. It converts bare percentage
+  points into fractional weights and retains cash and receivable rows as
+  non-tradable.
+- Validation passed: focused static fixture, full deterministic adapter suite
+  (`332 passed`), Ruff, exact opt-in GGM live route, provider matrix, and
+  concrete-live-route invariant. Strict state: `265/345` native/live-backed
+  and `80/345` fallback-only.
+
+# ETF Holdings SoFi Source Retry - 2026-07-21T15:05Z
+
+- Retried SoFi's official `SFY` product page with browser-equivalent retrieval.
+  It remains blocked by a `403` challenge before a complete current holdings
+  artifact can be discovered. Indexed content exposes top-ten rows and
+  quarterly documents only, neither of which is a valid native complete-current
+  holdings source.
+- SoFi remains fallback-only and uncounted. No SEC, Tidal, or third-party source
+  was used as a substitute; the all-provider goal remains active.
+
+# ETF Holdings WEBS Investments Native Route - 2026-07-21T14:50Z
+
+- Added an isolated WEBS Investments adapter. It validates the requested ticker
+  through the issuer's public ETF catalogue and matching fund metadata before
+  reading only that ticker's public daily-metrics and complete-holdings APIs.
+  Cash and total-return swaps are preserved as non-tradable rows.
+- Validation passed: actual adapter retrieval of four current `DVSP` rows,
+  static fixture, exact opt-in `DVSP` live route, provider matrix,
+  concrete-live-route invariant, full deterministic adapter suite (`331
+  passed`), Ruff, and `git diff --check`. Strict state: `264/345`
+  native/live-backed and `81/345` fallback-only.
+
+# ETF Holdings X-Square Native Route - 2026-07-21T14:35Z
+
+- Added a dedicated X-Square Capital adapter for ZTAX. It validates the issuer's
+  exact full-holdings page before obtaining the short-lived page-declared token
+  in memory and calling only the corresponding fund-scoped complete holdings
+  API. Returned rows must identify ZTAX and be marked complete; municipal debt
+  remains non-tradable while its source identifiers are preserved.
+- Validation passed: actual adapter retrieval of 16 current holdings, static
+  fixture, exact opt-in `ZTAX` live route, provider matrix,
+  concrete-live-route invariant, full deterministic adapter suite (`330
+  passed`), Ruff, and `git diff --check`. Strict state: `263/345`
+  native/live-backed and `82/345` fallback-only.
+
+# ETF Holdings Donoghue Forlines Native Route - 2026-07-21T14:12Z
+
+- Promoted the existing isolated Donoghue Forlines `DFTT` adapter after
+  re-verifying the official Tactical 30 product page and its declared,
+  fund-scoped complete holdings CSV. The issuer now accepts the verified route
+  through `requests` while rejecting httpx with 403, so the adapter has a
+  bounded issuer-local fallback rather than a generic or SEC route.
+- Validation passed: actual adapter retrieval of 33 current holdings, focused
+  static tests, exact opt-in `DFTT` live route, provider matrix,
+  concrete-live-route invariant, full deterministic adapter suite (`329
+  passed`), Ruff, and `git diff --check`. Strict state: `262/345`
+  native/live-backed and `83/345` fallback-only.
+
+# ETF Holdings Artemis Native Route - 2026-07-21T13:57Z
+
+- Added a dedicated Artemis/ARS adapter bounded to `ACEP` and `AFOS`. It
+  validates the exact official product page and fund title before accepting its
+  embedded complete holdings table, preserving ticker, CUSIP, shares, value,
+  weights, effective date, and cash semantics.
+- Validation passed: static fixture, exact opt-in `ACEP` live route, provider
+  matrix, concrete live-route invariant, Ruff, and `git diff --check`. Strict
+  state: `261/345` native/live-backed and `84/345` fallback-only.
+
 # ETF Holdings AG Financial Native Route - 2026-07-21T13:41Z
 
 - Added a dedicated AG Financial/Crossmark adapter for `CLCG` and `CLCV`. It
@@ -11574,3 +11848,69 @@ Append a short entry after each worker session.
   browser-equivalent backend access receives Cloudflare `403` before a complete
   artifact can be discovered and validated. WisdomTree remains fallback-only;
   no generic or SEC fallback was counted as native support.
+
+# ETF Holdings Remaining-Issuer Audit - 2026-07-21T17:42Z
+
+- Q3 Tactical's official site returned Cloudflare HTTP `503` and an explicit
+  one-hour retry window to a browser-equivalent request. No stable complete
+  issuer artifact is currently executable, so Q3 remains fallback-only.
+- Westwood's official MDST CSV and Ridgeline's ACVF fund-data page remain
+  Cloudflare-gated. Sterling Capital is already supported; `sterling_fund` is a
+  different unresolved identity and was not double-counted.
+- Strict working-tree count is `276/345` native/live-backed, `69/345`
+  fallback-only. The 16-provider batch after the `260/345` commit remains dirty
+  implementation/test work, not a completed ops-only feature checkpoint.
+
+# ETF Holdings Priority-Issuer Route Retry - 2026-07-21T17:50Z
+
+- SoFi's official SFYF page is Cloudflare-managed for backend clients. The
+  public indexed page exposes top-ten data but no backend-verifiable complete
+  portfolio artifact; it remains fallback-only.
+- Q3 Tactical returned issuer-side Cloudflare HTTP `503` with `Retry-After:
+  3600`, so no native route can presently be discovered or covered by a live
+  test. No provider was promoted on partial or search-index-only evidence.
+
+# ETF Holdings Anfield Live Route Revalidation - 2026-07-21T17:54Z
+
+- The existing Anfield `AEMS` static parser was retested against its current
+  issuer product page. `httpx` receives HTTP `404`, while browser-header direct
+  requests to both canonical and `www` hostnames receive issuer HTTP `403`.
+  The public indexed download is not executable by the backend, so no current
+  complete source artifact can be live-tested.
+- Reverted the temporary configuration/test promotion. `anfield` remains
+  fallback-only and uncounted; focused deterministic parser test passed.
+
+# ETF Holdings Current Native-Provider Validation - 2026-07-21T18:00Z
+
+- Full deterministic adapter suite passed: `344 passed`.
+- Opt-in registry and concrete-live-route manifest invariants passed: `2 passed`.
+- The complete live matrix began but the execution channel ended after partial
+  progress and supplied no pytest footer. This is not a successful full-sweep
+  result and must be rerun in a durable runner.
+
+# ETF Holdings CCM Native Route - 2026-07-21T18:10Z
+
+- Promoted `ccm` through an isolated Community Capital Management `OWNS`
+  complete-holdings CSV adapter. The public issuer product page explicitly links
+  the CSV; the parser validates OWNS's fund CUSIP/name and retains fixed-income
+  and cash classifications without fabricating tickers.
+- CCM returns a Cloudflare `403` to `httpx` but serves the identical explicit
+  issuer CSV to `requests`. The compatibility retry is provider-local and only
+  applies after the verified CCM route's `403`.
+- Passed: focused deterministic parser coverage; full adapter suite (`345
+  passed`); Ruff; exact opt-in live `OWNS` route; configured-provider registry
+  invariant; and concrete-live-route invariant. State: `277/345`
+  native/live-backed and `68/345` fallback-only.
+
+# ETF Holdings Native Reliability Sweep - 2026-07-21T19:10Z
+
+- The opt-in live matrix completed with `283 passed, 2 failed`: ETF Architect
+  QVAL received an issuer-side `502`, and Virtus SSMG timed out while retrieving
+  its HTML product page. A previous VanEck SMH timeout was repaired with a
+  provider-local bounded retry and its focused live route passed.
+- Virtus SSMG was changed to its official direct positions XLS URL, eliminating
+  the unnecessary product-page dependency. Its focused static suite (`3
+  passed`) and exact opt-in live test (`1 passed`) verify the new route.
+- The matrix is still not green because ETF Architect's native route remains
+  externally unreliable. It must not be represented as fully verified merely
+  because it remains registered as a native provider configuration.

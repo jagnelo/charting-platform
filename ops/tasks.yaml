@@ -20,7 +20,93 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 260 native/live-backed providers out of 345; 85 remain.
+      - >
+        Current truthful count: 277 native/live-backed providers out of 345; 68 remain.
+        A 2026-07-21 source audit revalidated that WisdomTree's advertised
+        product/DataSpan holdings routes, Thrivent's advertised daily-holdings
+        downloads, and Westwood's official MDST CSV are not executable from a
+        backend request due to issuer-side Cloudflare, API-key, or
+        Imperva/CloudFront gates. They remain fallback-only rather than being
+        promoted on search-index evidence. The current implementation worktree
+        has 276 native/live-backed providers; the last committed checkpoint has
+        260, so the 16-provider expansion must be committed as implementation
+        changes rather than mistaken for a completed no-op checkpoint.
+        Unlimited Funds is supported through isolated HFND, HFGM, HFMF, and HFEQ
+        routes that accept only their verified issuer-owned complete holdings CSVs.
+        Cash and derivative source rows remain non-tradable; static and opt-in live
+        coverage are in place, and SEC remains fallback-only.
+        Lagan Holding Co. Trust is supported through an isolated Congress Asset
+        Management adapter for CSMD, CAML, and CAFX. It verifies the fund-specific
+        product page, the page-declared application script, and the issuer's shared
+        account-scoped FilePoint CSV before accepting only the requested fund rows.
+        Static and opt-in live coverage are in place; SEC remains fallback-only.
+        ShariaPortfolio is supported through isolated SP Funds routes for SPTE and
+        SPWO. Each verifies the official product page declares its fund-scoped daily
+        holdings CSV and parses only the matching account. Static and opt-in live
+        coverage are in place; SEC remains fallback-only.
+        Gladius is supported through an isolated Wayfinder CMBO adapter. It accepts
+        only the verified official fund page, validates fund identity, parses its
+        issuer-rendered current portfolio, and rejects the disclosure unless the
+        source weights total the complete portfolio. Static and opt-in live coverage
+        are in place; SEC remains fallback-only.
+        Nightview Capital is supported through an isolated NITE adapter. It verifies
+        the issuer's public fund page declares the exact complete daily holdings CSV
+        before parsing its source-faithful name-backed holdings. Cash/currency stays
+        non-tradable and no display names are converted into guessed tickers. Static
+        and opt-in live coverage are in place; SEC remains fallback-only.
+        Reckoner Capital Management is supported through an isolated RAAA adapter.
+        It verifies the issuer fund page, portfolio iframe, iframe-declared script,
+        and exact complete daily CSV before parsing only RAAA rows. The issuer's
+        CLO and repo rows remain non-tradable; static and opt-in live coverage are
+        in place and SEC remains fallback-only.
+        Myriad Asset Management is supported through an isolated MDAA adapter.
+        It verifies the public fund page declares its holdings application script,
+        then verifies that script declares the exact complete daily holdings CSV
+        before parsing only MDAA rows. Currency futures and cash remain non-tradable;
+        static and opt-in live coverage are in place and SEC remains fallback-only.
+        SRN Advisors is supported through an isolated Siren ETF Trust adapter for
+        BLCN and LEAD. It verifies the specific issuer product page declares the
+        shared daily CSV, filters the source strictly by account, and preserves
+        liquidation cash/currency rows as non-tradable rather than fabricating
+        equities. Static and opt-in live coverage are in place; SEC remains
+        fallback-only.
+        Retireful is supported through an isolated Mohr Funds adapter for RULE,
+        SNAV, MFUL, and CNAV. It verifies each issuer-hosted product page,
+        follows only the page's own bounded holdings pagination, and requires the
+        returned rows to match the issuer-declared complete portfolio count.
+        Static and opt-in live coverage are in place; SEC remains fallback-only.
+        Beacon Capital is supported through isolated BSR and BTR routes that verify
+        each issuer product page and its own declared complete holdings CSV. Its
+        issuer-local transport fallback is constrained to that exact public page
+        and CSV after the issuer rejects the equivalent httpx fingerprint. Static
+        and opt-in live coverage are in place; SEC remains fallback-only.
+        SWP Investment Management is supported through an isolated SWP adapter that
+        verifies its public product page's declared daily CSV before parsing only
+        SWP account rows. It preserves option and cash rows as non-tradable while
+        retaining their source information. Static and opt-in live coverage are in
+        place; SEC remains fallback-only.
+        Waverly Advisors is supported through an isolated GGM adapter that verifies
+        its official product page and page-declared complete holdings CSV, normalizes
+        issuer percentage points, and retains cash/receivable rows as non-tradable.
+        Static and opt-in live coverage are in place; SEC remains fallback-only.
+        WEBS Investments is supported through an isolated adapter that verifies
+        the issuer's public ETF catalogue and fund metadata before it requests
+        only the matching fund-scoped holdings and as-of-date APIs. Static and
+        opt-in live coverage are in place; cash and swap rows remain non-tradable.
+        X-Square Capital is supported through an isolated ZTAX adapter that verifies
+        the issuer's exact complete-holdings page, retrieves only the page-declared
+        short-lived API token in memory, and validates the returned complete fund
+        identity before parsing holdings. Static and opt-in live coverage are in
+        place; SEC remains fallback-only.
+        Donoghue Forlines is supported through an isolated DFTT adapter that
+        verifies the official Tactical 30 product page before following only
+        its declared fund-scoped holdings CSV. Its issuer-specific
+        browser-compatible fallback is limited to issuer-side httpx 403s;
+        static and opt-in live coverage are in place and SEC remains fallback-only.
+        Artemis is supported through an isolated ARS Investment Partners adapter
+        bounded to ACEP and AFOS. It validates the exact public fund page and
+        parses only its embedded complete holdings table. Static and opt-in live
+        ACEP coverage are in place; SEC remains fallback-only.
         AG Financial is supported through a bounded Crossmark adapter for CLCG
         and CLCV that verifies the product page, declared application route,
         and dated complete daily holdings CSV. Static and opt-in live coverage
@@ -33,8 +119,10 @@ tasks:
         requested issuer product page's declared fund-scoped market-data JSON before
         parsing complete holdings. Static and opt-in live LFDR coverage are in place.
         Nomura's official ETF catalogue was also audited, but its location-gated
-        public pages expose no executable full-portfolio route; it remains
-        fallback-only rather than being counted through SEC or a third party.
+        public pages expose no executable full-portfolio route to normal
+        browser-like backend requests; only crawler-identified requests receive
+        the complete table. It remains fallback-only rather than embedding
+        crawler impersonation, or counting SEC or a third party as native support.
         Grace Partners is supported through an isolated adapter bounded to the
         verified First Trust publisher relationship and its complete public
         holdings page. It has static and opt-in live `IDVY` coverage; SEC remains
@@ -147,6 +235,7 @@ tasks:
         21Shares subsidiary ETF range (`ARKB`, `TETH`, `TOXR`, and `TSOL`). It owns
         its publisher API retrieval, rejects unverified symbols and arbitrary source
         URLs, and has static plus opt-in live route coverage for `ARKB`.
+      - >
         Redwood is supported through its verified LeaderShares `LSAF`, `LSAT`, and
         `DYLD` issuer-owned full-holdings CSVs. The adapter validates the exact fund
         title, as-of date, and disclosed schema before preserving identifiers, values,
