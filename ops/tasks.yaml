@@ -21,16 +21,60 @@ tasks:
       - lint
     notes:
       - >
-        Current truthful count: 277 native/live-backed providers out of 345; 68 remain.
+        Current truthful count: 287 native/live-backed providers out of 345; 58 remain.
+        The complete opt-in live matrix initially produced 294 passes and one
+        Brookmont/BAMA parser failure. Brookmont's helpers were restored to the
+        owning adapter; direct issuer validation and its focused unit/live route
+        now pass. The final repaired full opt-in live-provider matrix passed
+        295 tests on 2026-07-22.
+        COtwo Advisors is supported through an isolated CTWO-only adapter that
+        follows the exact current JSON feed declared by its official product
+        page and validates the fund's complete two-asset portfolio. Static and
+        exact opt-in live coverage are in place; SEC remains fallback-only.
+        PT Asset Management is supported through an isolated STBF-only adapter
+        that uses the complete current CSV explicitly linked by PTAM's public
+        STBF page. It validates the account, preserves identifiers/weights/
+        values/shares, and retains cash/fixed-income source semantics. Static
+        and exact opt-in live coverage are in place; SEC remains fallback-only.
+        Split Rock is supported through an isolated KOOL-only adapter that calls
+        the exact fund 441 complete-holdings JSON API declared by KOOL's official
+        product site. The adapter validates returned fund identity and preserves
+        CUSIPs, values, shares, weights, and non-tradable cash semantics. Static
+        and concrete opt-in live coverage are in place; SEC remains fallback-only.
+        Vontobel is supported through an isolated VNIE-only adapter that uses
+        the issuer page's own complete dated FilePoint daily holdings export,
+        filters exact fund rows, preserves identifiers/weights/values/shares,
+        and retains cash/currency as non-tradable. Static and exact opt-in live
+        coverage are in place; SEC remains fallback-only.
+        Inverdale is supported through an isolated MGMT-only adapter that calls
+        the ETF's issuer-declared, fund-scoped complete holdings JSON endpoint.
+        It validates both the Ballast fund account and portfolio identity,
+        preserves identifiers, weights, values, and shares, and retains cash
+        and receivable rows as non-tradable. Static and exact opt-in live
+        coverage are in place; SEC remains fallback-only.
+        Distribution Cognizant is supported through an isolated VOXP-only adapter
+        using the issuer-declared complete account-scoped daily holdings CSV.
+        Static and exact opt-in live coverage are in place; SEC remains fallback-only.
+        Concourse Capital is supported through an isolated CCFE-only adapter that
+        validates and parses the complete issuer-rendered holdings table on its
+        public product page. Absolute Investment Advisers is supported through an
+        isolated ABEQ-only periodic financial-statement route. STF Management's
+        advertised TUG current-holdings URL returns issuer-side
+        HTTP 404, but its product page links complete dated TUG Schedule of
+        Investments PDFs; its bounded adapter is now live-backed as a quarterly
+        snapshot route. SoFi and Guinness Atkinson
+        official ETF pages are Cloudflare-gated to backend requests. None is
+        counted from periodic reports or top-ten content.
         A 2026-07-21 source audit revalidated that WisdomTree's advertised
         product/DataSpan holdings routes, Thrivent's advertised daily-holdings
         downloads, and Westwood's official MDST CSV are not executable from a
         backend request due to issuer-side Cloudflare, API-key, or
         Imperva/CloudFront gates. They remain fallback-only rather than being
-        promoted on search-index evidence. The current implementation worktree
-        has 276 native/live-backed providers; the last committed checkpoint has
-        260, so the 16-provider expansion must be committed as implementation
-        changes rather than mistaken for a completed no-op checkpoint.
+        promoted on search-index evidence. Sterling Fund Management is independently
+        supported through an explicit SCMC-only adapter and its registered publisher's
+        complete fund-scoped PDF; static and opt-in live coverage are in place. The
+        last committed checkpoint has fewer native/live-backed providers, so this
+        expansion is implementation work rather than a completed no-op checkpoint.
         Unlimited Funds is supported through isolated HFND, HFGM, HFMF, and HFEQ
         routes that accept only their verified issuer-owned complete holdings CSVs.
         Cash and derivative source rows remain non-tradable; static and opt-in live
@@ -373,6 +417,10 @@ tasks:
         full/daily holdings, but their public routes are not executable from the backend. John
         Hancock's public multi-fund basket PDF also returns HTTP 403. PIMCO's public fund client
         exposes only a top-ten export and its direct API requires an unavailable authenticated role.
+        A 2026-07-21 endpoint-level audit reproduced PIMCO's public client configuration from
+        the official MINT page and confirmed issuer HTTP 401 responses for fund, top-ten,
+        holdings, and literature endpoints; it remains fallback-only until a complete public
+        route is executable by the backend.
         Cultivar's public fund page and WordPress API currently reject backend requests (403/500),
         so it is fallback-only rather than falsely counted as live-backed.
         Do not promote any of them until a reachable complete issuer-native route passes a live
