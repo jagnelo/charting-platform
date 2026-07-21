@@ -8616,6 +8616,187 @@ async def test_prospera_adapter_verifies_issuer_portal_and_parses_daily_holdings
 
 
 @pytest.mark.asyncio
+async def test_stone_ridge_adapter_verifies_lifex_page_and_parses_fund_scoped_json(monkeypatch):
+    adapter = get_holdings_adapter("stone_ridge")
+    assert adapter is not None
+
+    product_page_url = "https://www.lifexfunds.com/etfs/lfdr"
+    market_data_url = "https://calc.lifexfunds.com/market-data/LFDR.json"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<section id="holdings">Portfolio Holdings</section>'
+                '<table data-export-table-name="PortfolioHoldings.csv"></table>'
+                f'<script>fetch("{market_data_url}")</script>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "ticker": "LFDR",
+                    "asOfDate": "2026-07-20",
+                    "holdings": [
+                        {
+                            "securityName": "United States Treasury Note/Bond 4.75% 02/15/2037",
+                            "cusip": "912810PT9",
+                            "weight": 0.0728,
+                            "marketValue": 60914.06,
+                            "quantity": 60000,
+                        },
+                        {
+                            "securityName": "Cash & Other",
+                            "weight": 0.01,
+                            "marketValue": 8450,
+                            "quantity": 8450,
+                        },
+                    ],
+                }
+            ),
+            content_type="application/json",
+            url=market_data_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LFDR", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_page_url,
+        market_data_url,
+    ]
+    assert result.legal_metadata["route_resolution"] == (
+        "stone_ridge_lifex_product_page_market_data_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].cusip == "912810PT9"
+    assert result.rows[0].weight == Decimal("0.0728")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].cusip is None
+
+
+@pytest.mark.asyncio
+async def test_alexis_adapter_verifies_product_page_and_parses_declared_wix_holdings(monkeypatch):
+    adapter = get_holdings_adapter("alexis")
+    assert adapter is not None
+
+    product_page_url = "https://www.lexietf.com/"
+    holdings_url = "https://www.lexietf.com/_files/ugd/cd0ef0_f6f37f02a21d433a98e289aee28a38cd.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<h1>Alexis Practical Tactical ETF</h1>'
+                '"name":"alexis.40vx.website_out.holdings.csv",'
+                '"filepath":"wix:document:\\/\\/v1\\/cd0ef0_f6f37f02a21d433a98e289aee28a38cd.csv\\/Holdings.csv"'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag\n"
+                "07/21/2026,LEXI,912797SK4,912797SK4,United States Treasury Bill 10/29/2026,3000000,98.96,2969000.01,1.62%,N\n"
+                "07/21/2026,LEXI,AAPL,037833100,Apple Inc,5371,326.59,1754114.89,0.96%,N\n"
+                "07/21/2026,OTHER,MSFT,594918104,Microsoft Corp,1,500,500,1.00%,N\n"
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LEXI", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url, holdings_url]
+    assert result.legal_metadata["route_resolution"] == "alexis_product_page_declared_wix_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-21"
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].symbol == "AAPL"
+    assert result.rows[1].cusip == "037833100"
+    assert result.rows[1].weight == Decimal("0.0096")
+
+
+@pytest.mark.asyncio
+async def test_ag_financial_adapter_verifies_crossmark_page_and_parses_dated_daily_holdings(monkeypatch):
+    adapter = get_holdings_adapter("ag_financial")
+    assert adapter is not None
+
+    class CrossmarkDate(date):
+        @classmethod
+        def today(cls) -> date:
+            return cls(2026, 7, 21)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", CrossmarkDate)
+    product_page_url = "https://www.crossmarkglobaletf.com/large-cap-growth-etf"
+    application_url = "https://www.crossmarkglobaletf.com/assets/js/app.js"
+    missing_csv_url = (
+        "https://www.crossmarkglobaletf.com/assets/data/BBH_Crossmark_ETF_PVAL_WEB.20260721.csv"
+    )
+    holdings_url = (
+        "https://www.crossmarkglobaletf.com/assets/data/BBH_Crossmark_ETF_PVAL_WEB.20260720.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<section id="funds" data-ticker="CLCG"><a id="holdingscsv">Download Holdings</a>'
+                '<script src="assets/js/app.js"></script></section>'
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text='fetch("./assets/data/BBH_Crossmark_ETF_PVAL_WEB."+reportDate+".csv")',
+            content_type="text/javascript",
+            url=application_url,
+        ),
+        FakeResponse(status_code=404, url=missing_csv_url),
+        FakeResponse(
+            text=(
+                "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,Market Value,"
+                "Maturity Date,Shares,Security Price,Asset Currency,Shares Outstanding,Total Net Assets,"
+                "Market Value Weight\n"
+                "CLCG,7/20/2026,US67066G1040,67066G104,2379504,NVDA,NVIDIA CORP,COMMON STOCK,"
+                "4633767.6,,22795,203.28,USD,1000000,28241494.21,16.41%\n"
+                "CLCG,7/20/2026,US912797SK47,912797SK4,,912797SK4,United States Treasury Bill,"
+                "TREASURY BILL,100000,,1000,100,USD,1000000,28241494.21,0.35%\n"
+                "CLCV,7/20/2026,US0378331005,037833100,2046251,AAPL,APPLE INC,COMMON STOCK,"
+                "100000,,100,100,USD,1000000,28241494.21,0.35%\n"
+            ),
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CLCG", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_page_url,
+        application_url,
+        missing_csv_url,
+        holdings_url,
+    ]
+    assert result.legal_metadata["route_resolution"] == (
+        "ag_financial_crossmark_product_page_to_dated_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.1641")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+
+
+@pytest.mark.asyncio
 async def test_brookmont_adapter_discovers_product_page_all_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("brookmont")
     assert adapter is not None
@@ -12601,13 +12782,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["fidelity"]["support_route_types"]
     assert adapters["lazard"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["lazard"]["support_route_types"]
-    for adapter_key in [
-        "stone_ridge",
-    ]:
-        assert adapter_key in adapters
-        assert adapters[adapter_key]["live_tested_default_route"] is False
-        assert adapters[adapter_key]["supports_sec_filing_fallback"] is True
-        assert "sec_edgar_filing_fallback" in adapters[adapter_key]["support_route_types"]
+    assert adapters["stone_ridge"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["stone_ridge"]["support_route_types"]
 
 
 def test_every_registered_adapter_has_a_real_support_route():
@@ -12656,7 +12832,7 @@ def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
 
 @pytest.mark.asyncio
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
-    adapter = get_holdings_adapter("stone_ridge")
+    adapter = get_holdings_adapter("absolute_investment_advisers")
     assert adapter is not None
 
     async def fake_discover_holdings_filings(**kwargs):

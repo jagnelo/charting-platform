@@ -46,6 +46,8 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "adaptive_investments",
     "affiliated_managers_group",
     "agf",
+    "ag_financial",
+    "alexis",
     "advisor_shares",
     "akre",
     "allianz",
@@ -87,6 +89,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "peakshares",
     "kingsbarn",
     "prospera",
+    "stone_ridge",
     "quantify_chaos",
     "summit_global",
     "regan",
@@ -797,6 +800,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "prospera",
             "THRV",
+            None,
+            {},
+            10,
+        ),
+        (
+            "stone_ridge",
+            "LFDR",
             None,
             {},
             10,
@@ -1628,6 +1638,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("raymond_james", "RJDI", None, {}, 30),
         ("osprey", "OSOL", None, {}, 1),
         ("redwood", "LSAF", None, {}, 100),
+        ("alexis", "LEXI", None, {}, 20),
+        ("ag_financial", "CLCG", None, {}, 20),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
