@@ -20,7 +20,90 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 237 native/live-backed providers out of 345; 108 remain.
+      - Current truthful count: 256 native/live-backed providers out of 345; 89 remain.
+        Grace Partners is supported through an isolated adapter bounded to the
+        verified First Trust publisher relationship and its complete public
+        holdings page. It has static and opt-in live `IDVY` coverage; SEC remains
+        fallback-only.
+        Pettee is now supported through a bounded Hoya Capital adapter for HOMZ
+        and RIET. It validates each official product page and accepts only its
+        declared complete legacy-XLS holdings workbook; static and opt-in live
+        coverage are in place and SEC remains fallback-only.
+        Absolute Investment Advisers' verified ABEQ FilePoint workspace is
+        currently source-broken: its declared CSV returns an opaque payload and
+        its declared JSON API returns `Name is empty`. It remains fallback-only
+        until a complete first-party route is executable and live-tested.
+        Concourse's CCFE is administered by ETF Architect, whose official fund
+        directory advertises a holdings download, but both official entry points
+        are currently Cloudflare-blocked to the adapter runtime. Concourse
+        remains fallback-only until the concrete complete artifact can be
+        executed and live-tested; SEC and third-party pages are not substitutes.
+        Sovereign's Capital is now supported through a bounded SOVF adapter that
+        verifies its official fund page before accepting only its declared complete
+        legacy-XLS portfolio. Static parser and opt-in live-route coverage passed;
+        cash/non-equity rows remain non-tradable. SEC remains fallback-only.
+        The most recent high-priority source audit retried Guinness Atkinson,
+        DoubleLine, Q3 Asset Management, and STF. Guinness Atkinson and DoubleLine
+        are currently blocked by Cloudflare from backend retrieval; Q3's official
+        site is temporarily Cloudflare rate-limited; and STF's listed current
+        holdings URL is currently broken. None is counted until a current complete
+        first-party route is executable and live-tested.
+        Sound Capital is supported through a bounded `RVER` adapter. It validates
+        River1's public Trenchless Fund ETF product page before reading only its
+        declared complete holdings XLS workbook, records River1 as publisher, and
+        preserves cash/other-assets rows as non-tradable. Static and opt-in live
+        coverage are in place. SEC remains fallback only.
+        Little Harbor is supported through bounded `MSTB`, `MSTQ`, and `RMIF` routes.
+        It verifies each official product page and its exact issuer-linked full holdings
+        workbook, with static and opt-in live coverage in place. SEC remains fallback only.
+        Langar is supported through a bounded `LGHT` adapter. It validates Langar's
+        public ticker-to-fund settings before accepting the corresponding public
+        Nottingham fund-scoped holdings JSON; static and opt-in live coverage are
+        in place. SEC remains fallback only.
+        McIvy is supported through a bounded Genter Capital adapter for its verified
+        GEND route. It validates Genter's public ticker-to-fund settings before
+        accepting the corresponding public Nottingham fund-scoped holdings JSON;
+        static and opt-in live coverage are in place. SEC remains fallback only.
+        Mitsubishi UFJ is supported through an isolated `MJSC` adapter limited to
+        MUFG's verified product page and its named complete Nuxt holdings component.
+        Foreign venue tickers remain source metadata rather than becoming fabricated
+        platform symbols. Static and opt-in live coverage are in place; SEC remains
+        a fallback only.
+        WealthTrust is supported through an isolated WLTG adapter that validates its
+        official fund identity and parses only the issuer-reported complete holdings
+        table. Static and opt-in live coverage are in place; FIGI is retained and cash
+        rows remain non-tradable.
+        Soundwatch is supported through an isolated SHDG adapter that validates its
+        official product page and follows only its matching issuer-linked complete
+        legacy-XLS workbook. Static and opt-in live coverage are in place; cash and
+        index-option rows remain non-tradable.
+        Cultivar's existing isolated CVAR fund-page parser was live-revalidated against
+        its now-backend-reachable complete issuer portfolio. Static and opt-in live
+        coverage are in place for CVAR.
+        Marygold is supported through an isolated USCF Investments adapter that verifies
+        the exact product page, obtains the issuer's short-lived public browser token
+        only in memory, and queries its matching complete holdings API. Static and
+        opt-in live coverage are in place for USO; non-security rows remain non-tradable.
+        AmeriLife is supported through an isolated BAMA adapter that verifies the
+        Brookstone Asset Management product page and parses only its linked complete
+        holdings CSV. Static and opt-in live coverage are in place for BAMA.
+        Envestnet is supported through an isolated ActivePassive product-page adapter
+        that validates the declared ETF ticker and fetches only the linked complete
+        legacy-XLS holdings workbook. Static and opt-in live coverage are in place
+        for APMU.
+        FMC Group is supported through an isolated FMCX adapter using the issuer's
+        complete quarterly holdings workbook. It honestly retains only the published
+        ticker/weight portfolio, preserves cash as non-tradable, and records the stated
+        60-day disclosure lag. Static and opt-in live coverage are in place for FMCX.
+        Dawn Global is supported through its own bounded parent-issuer adapter. Tema is
+        the verified ETF publisher; the adapter owns the Dawn Global fetch path while
+        using only Tema's public symbol-scoped holdings CSV and explicitly records that
+        publisher relationship. Static and opt-in live coverage are in place for DSPY.
+        Dana is supported through an isolated adapter for the issuer's official
+        fund-scoped daily holdings CSV. It validates the requested ETF against the
+        Account column, preserves identifiers, shares, values, weights, and dates,
+        and retains cash/fixed-income rows as non-tradable. Static and opt-in live
+        coverage are in place for DANA.
         Tidal is supported through an isolated, strictly bounded adapter for IINC's
         verified sponsor-published daily holdings CSV. The adapter first confirms the
         public sponsor page identity, rejects arbitrary URLs and unrelated tickers,
