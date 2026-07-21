@@ -21,6 +21,15 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "alternative_access",
     "rational",
     "dakota_wealth",
+    "dana",
+    "dawn_global",
+    "envestnet",
+    "amerilife",
+    "marygold",
+    "soundwatch",
+    "sound_capital",
+    "sovereign",
+    "wealthtrust",
     "toews",
     "wedbush",
     "shelton",
@@ -47,7 +56,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ameriprise",
     "amplify",
     "angel_oak",
-    "anfield",
     "applied_finance",
     "aptus",
     "ark",
@@ -57,6 +65,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "bahl_gaynor",
     "baird",
     "baron",
+    "bcp_cc",
     "build",
     "bitwise",
     "bny_mellon",
@@ -77,6 +86,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "cary_street",
     "peakshares",
     "kingsbarn",
+    "prospera",
     "quantify_chaos",
     "summit_global",
     "regan",
@@ -84,6 +94,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "3edge",
     "capital_impact",
     "cicc",
+    "cultivar",
     "coinshares",
     "corgi",
     "counterpoint",
@@ -105,6 +116,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "dhandho",
     "core_alternative",
     "eagle_capital",
+    "eighth_wonder",
     "emles",
     "direxion",
     "distillate",
@@ -116,6 +128,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "faith_investor_services",
     "first_pacific",
     "federated_hermes",
+    "fmc_group",
     "fidelity",
     "frontier",
     "goose_hollow",
@@ -133,6 +146,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "fm_investments",
     "founder",
     "first_trust",
+    "grace_partners",
     "franklin",
     "future_fund",
     "global_x",
@@ -166,9 +180,11 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "kraneshares",
     "kensington",
     "kurv",
+    "langar",
     "lazard",
     "rex",
     "leuthold",
+    "little_harbor",
     "main_management",
     "man_group",
     "mairs_power",
@@ -176,6 +192,8 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "matthews",
     "morgan_stanley",
     "miller_value",
+    "mitsubishi_ufj",
+    "mcivy",
     "motley_fool",
     "neos",
     "neuberger_berman",
@@ -184,9 +202,11 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ocean_park",
     "osprey",
     "pacer",
+    "pictet",
     "praxis",
     "palmer_square",
     "point_bridge",
+    "pettee",
     "polen",
     "principal",
     "prudential",
@@ -551,13 +571,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("lionshares", "TOT", None, {}, 2),
         ("cygnet", "ELM", None, {}, 10),
         (
-            "anfield",
-            "AEMS",
-            None,
-            {},
-            3,
-        ),
-        (
             "applied_finance",
             "VSLU",
             None,
@@ -782,6 +795,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         (
+            "prospera",
+            "THRV",
+            None,
+            {},
+            10,
+        ),
+        (
             "3edge",
             "EDGU",
             None,
@@ -1000,12 +1020,12 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "prudential",
-            "PJBF",
+            "PJUS",
             None,
             {},
-            # PJBF is a cash-management ETF. Its issuer-published daily
-            # portfolio legitimately contains only the current cash sleeves.
-            2,
+            # PJBF was liquidated in July 2026. PJUS remains an active PGIM
+            # ETF and verifies the issuer's current daily-holdings route.
+            50,
         ),
         (
             "brown_advisory",
@@ -1360,6 +1380,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         (
             "first_trust",
             "QQEW",
+            None,
+            {},
+            20,
+        ),
+        (
+            "grace_partners",
+            "IDVY",
             None,
             {},
             20,
@@ -1915,6 +1942,23 @@ async def test_live_eagle_capital_daily_creation_basket_json():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("eighth_wonder")
+async def test_live_eighth_wonder_fundsmith_etft_complete_holdings_component():
+    adapter = get_holdings_adapter("eighth_wonder")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ETFT")
+
+    _assert_live_holdings_result(result, adapter_key="eighth_wonder", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "fundsmith_public_etft_complete_holdings_component"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.isin for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("core_alternative")
 async def test_live_core_alternative_dated_daily_holdings_csv():
     adapter = get_holdings_adapter("core_alternative")
@@ -2001,6 +2045,132 @@ async def test_live_tidal_sponsor_fund_scoped_daily_holdings_csv():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("pictet")
+async def test_live_pictet_public_fund_allocation_api():
+    adapter = get_holdings_adapter("pictet")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="PQUS")
+    _assert_live_holdings_result(result, adapter_key="pictet", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "pictet_public_kurtosys_fund_allocations"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("dana")
+async def test_live_dana_fund_scoped_daily_holdings_csv():
+    adapter = get_holdings_adapter("dana")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="DANA")
+    _assert_live_holdings_result(result, adapter_key="dana", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == "dana_fund_scoped_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("dawn_global")
+async def test_live_dawn_global_tema_publisher_holdings_csv():
+    adapter = get_holdings_adapter("dawn_global")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="DSPY")
+    _assert_live_holdings_result(result, adapter_key="dawn_global", min_rows=100)
+    assert result.legal_metadata["publisher"] == "tema"
+    assert result.legal_metadata["route_resolution"] == "dawn_global_tema_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("fmc_group")
+async def test_live_fmc_group_quarterly_holdings_workbook():
+    adapter = get_holdings_adapter("fmc_group")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="FMCX")
+    _assert_live_holdings_result(result, adapter_key="fmc_group", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "fmc_group_fmcx_quarterly_holdings_workbook"
+    assert result.legal_metadata["source_frequency"] == "quarterly"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("envestnet")
+async def test_live_envestnet_product_page_linked_full_holdings_xls():
+    adapter = get_holdings_adapter("envestnet")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="APMU")
+    _assert_live_holdings_result(result, adapter_key="envestnet", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "envestnet_product_page_linked_full_holdings_xls"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("amerilife")
+async def test_live_amerilife_brookstone_bama_full_holdings_csv():
+    adapter = get_holdings_adapter("amerilife")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="BAMA")
+    _assert_live_holdings_result(result, adapter_key="amerilife", min_rows=5)
+    assert result.legal_metadata["publisher"] == "brookstone_asset_management"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("marygold")
+async def test_live_marygold_uscf_public_browser_holdings_api():
+    adapter = get_holdings_adapter("marygold")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="USO")
+    _assert_live_holdings_result(result, adapter_key="marygold", min_rows=3)
+    assert result.legal_metadata["publisher"] == "uscf_investments"
+    assert result.legal_metadata["route_resolution"] == "marygold_uscf_public_browser_holdings_api"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("soundwatch")
+async def test_live_soundwatch_product_page_linked_full_holdings_xls():
+    adapter = get_holdings_adapter("soundwatch")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="SHDG")
+    _assert_live_holdings_result(result, adapter_key="soundwatch", min_rows=5)
+    assert result.legal_metadata["route_resolution"] == "soundwatch_product_page_full_holdings_xls"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.row_type == "derivative" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("wealthtrust")
+async def test_live_wealthtrust_public_wltg_complete_holdings_table():
+    adapter = get_holdings_adapter("wealthtrust")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="WLTG")
+    _assert_live_holdings_result(result, adapter_key="wealthtrust", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "wealthtrust_public_wltg_complete_holdings_table"
+    assert any(row.symbol == "AAPL" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("cultivar")
+async def test_live_cultivar_current_fund_page_holdings_table():
+    adapter = get_holdings_adapter("cultivar")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="CVAR")
+    _assert_live_holdings_result(result, adapter_key="cultivar", min_rows=50)
+    assert result.legal_metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @_covers_live_provider("scharf")
 async def test_live_scharf_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("scharf")
@@ -2048,6 +2218,153 @@ async def test_live_cohen_steers_public_fund_api():
     assert result.legal_metadata["route_resolution"] == "cohen_steers_public_fund_api"
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "json"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("bcp_cc")
+async def test_live_bcp_cc_legacy_identity_uses_bounded_first_eagle_holdings_page():
+    adapter = get_holdings_adapter("bcp_cc")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="FEOE")
+
+    _assert_live_holdings_result(result, adapter_key="bcp_cc", min_rows=20)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "bcp_cc_legacy_identity_first_eagle_product_page_holdings_table"
+    )
+    assert result.legal_metadata["source_provider"] == "first_eagle"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("mitsubishi_ufj")
+async def test_live_mitsubishi_ufj_mjsc_nuxt_complete_holdings_component():
+    adapter = get_holdings_adapter("mitsubishi_ufj")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="MJSC")
+
+    _assert_live_holdings_result(result, adapter_key="mitsubishi_ufj", min_rows=80)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "mufg_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["source_format"] == "nuxt_hydration_json"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.extra_data.get("source_ticker") for row in result.rows)
+    assert all(row.symbol is None for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("mcivy")
+async def test_live_mcivy_genter_nottingham_fund_scoped_holdings_json():
+    adapter = get_holdings_adapter("mcivy")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="GEND")
+
+    _assert_live_holdings_result(result, adapter_key="mcivy", min_rows=30)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "mcivy_genter_nottingham_fund_scoped_complete_holdings_json"
+    )
+    assert result.legal_metadata["publisher"] == "The Nottingham Company"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("langar")
+async def test_live_langar_lght_nottingham_fund_scoped_holdings_json():
+    adapter = get_holdings_adapter("langar")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="LGHT")
+
+    _assert_live_holdings_result(result, adapter_key="langar", min_rows=30)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "langar_nottingham_fund_scoped_complete_holdings_json"
+    )
+    assert result.legal_metadata["publisher"] == "The Nottingham Company"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("little_harbor")
+async def test_live_little_harbor_mstb_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("little_harbor")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="MSTB")
+
+    _assert_live_holdings_result(result, adapter_key="little_harbor", min_rows=5)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "little_harbor_product_page_linked_complete_holdings_xls"
+    )
+    assert any(row.cusip for row in result.rows)
+    assert any(row.row_type in {"cash", "derivative"} for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("pettee")
+async def test_live_pettee_homz_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("pettee")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="HOMZ")
+
+    _assert_live_holdings_result(result, adapter_key="pettee", min_rows=50)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "pettee_hoya_product_page_linked_complete_holdings_xls"
+    )
+    assert result.legal_metadata["publisher"] == "Hoya Capital Real Estate"
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("sound_capital")
+async def test_live_sound_capital_rver_river1_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("sound_capital")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="RVER")
+
+    _assert_live_holdings_result(result, adapter_key="sound_capital", min_rows=15)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "sound_capital_river1_product_page_linked_complete_holdings_xls"
+    )
+    assert result.legal_metadata["publisher"] == "River1 Asset Management"
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("sovereign")
+async def test_live_sovereign_sovf_product_page_linked_holdings_workbook():
+    adapter = get_holdings_adapter("sovereign")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SOVF")
+
+    _assert_live_holdings_result(result, adapter_key="sovereign", min_rows=50)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "sovereign_sovf_product_page_linked_complete_holdings_xls"
+    )
+    assert any(row.cusip for row in result.rows)
 
 
 
