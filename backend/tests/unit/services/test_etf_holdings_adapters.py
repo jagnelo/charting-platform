@@ -1264,6 +1264,30 @@ async def test_cary_street_adapter_verifies_fairlead_page_and_parses_fund_scoped
 
 
 @pytest.mark.asyncio
+async def test_cary_street_adapter_retries_a_transient_holdings_timeout(monkeypatch):
+    adapter = get_holdings_adapter("cary_street")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ReadTimeout("issuer stalled"),
+        FakeResponse(text="[]", content_type="application/json"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._post_holdings_with_timeout_retry(
+            client,
+            fund_id="1342",
+            referer="https://www.fairleadfunds.com/tack",
+        )
+
+    assert response.text == "[]"
+    assert len(FakeAsyncClient.requested) == 2
+    assert all(request[1]["data"] == {"fundID": "1342"} for request in FakeAsyncClient.requested)
+
+
+@pytest.mark.asyncio
 async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("peakshares")
     assert adapter is not None
@@ -4467,6 +4491,226 @@ async def test_castleark_adapter_fetches_recent_daily_holdings_text(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_vontobel_adapter_fetches_only_vnie_from_issuer_daily_text(monkeypatch):
+    adapter = get_holdings_adapter("vontobel")
+    assert adapter is not None
+
+    holdings_text = "\n".join(
+        [
+            (
+                "date|fund_id|fund_name|fund_cusip|fund_ticker|security_group|"
+                "security_type|security_number|security_cusip|security_sedol|"
+                "security_isin|security_ticker|security_description|quantity|"
+                "market_value|notional_value|percent_of_market_value|percent_of_net_assets"
+            ),
+            (
+                "07/20/2026|5410|Vontobel International Equity Active ETF|00791R723|VNIE|Cash|||||||"
+                "Cash|245459.47|245459.47||2.87|2.79"
+            ),
+            (
+                "07/20/2026|5410|Vontobel International Equity Active ETF|00791R723|VNIE|Stock - Common||"
+                "874039100|874039100|2885401|US8740391003|TSM|TAIWAN SEMICONDUCTOR|"
+                "9000|2079000||24.36|24.02"
+            ),
+            (
+                "07/20/2026|9999|Other Fund|000000000|OTHER|Stock - Common|||||||"
+                "OTHER SECURITY|1|1||1|1"
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="not found", content_type="text/html", status_code=404),
+        FakeResponse(
+            text=holdings_text,
+            content_type="text/plain",
+            url=(
+                "https://vontobel.filepoint.live/assets/data/"
+                "SEI_Vontobel_Tradedate_Holdings_20260720.txt"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    MockDate.today_value = date(2026, 7, 21)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+
+    result = await adapter.fetch_latest(symbol="VNIE")
+
+    requested_urls = [request[0] for request in FakeAsyncClient.requested]
+    assert requested_urls == [
+        "https://vontobel.filepoint.live/assets/data/SEI_Vontobel_Tradedate_Holdings_20260721.txt",
+        "https://vontobel.filepoint.live/assets/data/SEI_Vontobel_Tradedate_Holdings_20260720.txt",
+    ]
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://vontobel.filepoint.live/"
+    assert len(result.rows) == 2
+    cash_row, equity_row = result.rows
+    assert cash_row.symbol is None
+    assert cash_row.row_type == "cash"
+    assert cash_row.weight == Decimal("0.0279")
+    assert equity_row.symbol == "TSM"
+    assert equity_row.cusip == "874039100"
+    assert equity_row.isin == "US8740391003"
+    assert equity_row.sedol == "2885401"
+    assert equity_row.weight == Decimal("0.2402")
+    assert result.source_url.endswith("SEI_Vontobel_Tradedate_Holdings_20260720.txt")
+    assert result.legal_metadata["source_provider"] == "vontobel"
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+
+    with pytest.raises(ValueError, match="VNIE only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_split_rock_adapter_fetches_only_kool_from_official_fund_api(monkeypatch):
+    adapter = get_holdings_adapter("split_rock")
+    assert adapter is not None
+
+    payload = {
+        "generalinfo": [{"ffundno": "441", "fname": "North Shore Equity Rotation ETF", "fticker": "KOOL"}],
+        "pricing": [{"effdate": "07/20/2026"}],
+        "holdings": [
+            {"ticker": "NVDA", "cusip": "67066G104", "descr1": "NVIDIA Corp.", "quantity": "15933", "marketvalue": "3238860.24", "percentmv": "5.59", "category": "COMMSTCK"},
+            {"ticker": "XLV", "cusip": "81369Y209", "descr1": "Health Care Select Sector SPDR Fund", "quantity": "20283", "marketvalue": "3230067.75", "percentmv": "5.57", "category": "ETF"},
+            {"ticker": "CASH", "cusip": "", "descr1": "Cash", "quantity": "100", "marketvalue": "1000", "percentmv": "0.01", "category": "CASH"},
+            {"ticker": "AAPL", "cusip": "037833100", "descr1": "Apple Inc.", "quantity": "7791", "marketvalue": "2544462.69", "percentmv": "4.39", "category": "COMMSTCK"},
+            {"ticker": "MSFT", "cusip": "594918104", "descr1": "Microsoft Corp.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+            {"ticker": "AMZN", "cusip": "023135106", "descr1": "Amazon.com Inc.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+            {"ticker": "META", "cusip": "30303M102", "descr1": "Meta Platforms Inc.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+            {"ticker": "GOOGL", "cusip": "02079K305", "descr1": "Alphabet Inc.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+            {"ticker": "JPM", "cusip": "46625H100", "descr1": "JPMorgan Chase & Co.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+            {"ticker": "XOM", "cusip": "30231G102", "descr1": "Exxon Mobil Corp.", "quantity": "10", "marketvalue": "100", "percentmv": "0.01", "category": "COMMSTCK"},
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://www.ncfunds.com/etf/load.php?f=441",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="KOOL")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.ncfunds.com/etf/load.php?f=441"
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://www.kooletf.com/"
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0559")
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.source_url == "https://www.ncfunds.com/etf/load.php?f=441"
+
+    with pytest.raises(ValueError, match="KOOL only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_ptam_adapter_fetches_stbf_from_issuer_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("ptam")
+    assert adapter is not None
+
+    header = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+        "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag"
+    )
+    rows = [
+        "07/21/2026,STBF,00191UAA0,00191UAA0,Everforth Inc 4.625% 05/15/2028,200000,92.882930,185765.86,0.26%,70526680,2800000,140,",
+        "07/21/2026,STBF,01750WAN9,01750WAN9,Allegro CLO XIII Ltd 4.8292% 07/20/2038,300625,100.036300,300734.13,0.43%,70526680,2800000,140,",
+        "07/21/2026,STBF,FGXXX,31846V104,First American Government Obligations Fund,3081963,1.00,3081963,4.41%,70526680,2800000,140,Y",
+        "07/21/2026,STBF,02490BAG3,02490BAG3,American Credit Acceptance Receivables Trust 2024-3,350000,101.375730,354815.06,0.50%,70526680,2800000,140,",
+        "07/21/2026,STBF,04010LBK8,04010LBK8,Ares Capital Corp 5.5% 09/01/2030,100000,98.756643,98756.64,0.14%,70526680,2800000,140,",
+        "07/21/2026,STBF,05495BBN5,05495BBN5,BANK 2026-BNK52 0.921% 06/15/2036,7200000,5.564000,400608,0.57%,70526680,2800000,140,",
+        "07/21/2026,STBF,055292AW6,055292AW6,BBCMS Mortgage Trust 2026-5C41,300000,101.486920,304460.76,0.43%,70526680,2800000,140,",
+        "07/21/2026,STBF,06211EAU5,06211EAU5,BANK5 2023-5YR3 7.315% 09/15/2056,250000,103.457830,258644.58,0.37%,70526680,2800000,140,",
+        "07/21/2026,STBF,126408103,126408103,CSX Corp 4.1% 03/15/2044,100000,88.000000,88000,0.12%,70526680,2800000,140,",
+        "07/21/2026,STBF,172967424,172967424,Citigroup Inc 4.65% 07/30/2045,100000,95.000000,95000,0.13%,70526680,2800000,140,",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join([header, *rows]),
+            url="https://ptam.com/?download_etf_holdings=1",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="STBF")
+
+    assert FakeAsyncClient.requested[0][0] == "https://ptam.com/?download_etf_holdings=1"
+    assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == "https://ptam.com/short-term-bond-etf/"
+    assert result.legal_metadata["composition_date"] == "2026-07-21"
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].cusip == "00191UAA0"
+    assert result.rows[0].weight == Decimal("0.0026")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].weight == Decimal("0.0441")
+    assert result.source_url == "https://ptam.com/?download_etf_holdings=1"
+
+    with pytest.raises(ValueError, match="STBF only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_cotwo_adapter_fetches_complete_ctwo_two_asset_portfolio(monkeypatch):
+    adapter = get_holdings_adapter("cotwo")
+    assert adapter is not None
+
+    payload = [
+        {
+            "Shares Outstanding": "100000",
+            "Assets Under Management": "1,861,330.77",
+            "NAV": "18.6133",
+            "aum %": "98.90",
+            "Portfolio row 1-Position": "19,600",
+            "Portfolio row 1-Current Exposure ($):": "1,841,660.88",
+            "Portfolio row 2-Position": "20,414.59",
+            "Portfolio row 2-Current Exposure ($):": "20,414.59",
+            "Portfolio row 2 Name:": "SSC Government Money Market",
+            "Portfolio row 2 Identifier": "GVMXX",
+            "Portfolio row2 Aum": "1.10",
+            "Performance As of": "July 20, 2026",
+        }
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            url="https://sheetdb.io/api/v1/95fl0jvcykg4d",
+            content_type="application/json",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CTWO")
+
+    assert FakeAsyncClient.requested[0][0] == "https://sheetdb.io/api/v1/95fl0jvcykg4d"
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
+    assert result.legal_metadata["route_resolution"] == (
+        "cotwo_product_page_declared_complete_two_asset_feed"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "European Union Allowances (EUA) Phase 4"
+    assert result.rows[0].isin == "EU000A2QMW50"
+    assert result.rows[0].holding_type == "commodity"
+    assert result.rows[0].weight == Decimal("0.989")
+    assert result.rows[1].symbol == "GVMXX"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[1].weight == Decimal("0.011")
+
+    with pytest.raises(ValueError, match="COtwo native holdings route"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
 async def test_3edge_adapter_fetches_recent_fund_scoped_daily_holdings_text(monkeypatch):
     adapter = get_holdings_adapter("3edge")
     assert adapter is not None
@@ -6418,6 +6662,83 @@ async def test_ocean_park_adapter_posts_fund_id_and_parses_filepoint_json(monkey
     assert result.legal_metadata["route_resolution"] == "issuer_public_filepoint_holdings_json"
     assert result.legal_metadata["composition_date"] == "2026-07-06"
     assert result.legal_metadata["product_page_url"] == "https://oceanparketfs.com/domestic-etf"
+
+
+@pytest.mark.asyncio
+async def test_inverdale_adapter_accepts_only_mgmt_and_classifies_issuer_portfolio(monkeypatch):
+    adapter = get_holdings_adapter("inverdale")
+    assert adapter is not None
+
+    payload = [
+        {
+            "asOfDate": "2026-07-20T00:00:00",
+            "portfolioNumber": "1247",
+            "portfolioName": "Ballast Small/Mid Cap ETF",
+            "securityIdentifier": "USD",
+            "securityTicker": "USD",
+            "securityDescriptionLong": "US DOLLARS",
+            "shares": 1000,
+            "marketValueBase": 1000,
+            "tradingCurrency": "USD",
+            "country": "US",
+            "segment": "CURRENCY",
+            "category": "CURRENCY",
+            "marketValuePercent": 0.01,
+        },
+        {
+            "asOfDate": "2026-07-20T00:00:00",
+            "portfolioNumber": "1247",
+            "portfolioName": "Ballast Small/Mid Cap ETF",
+            "securityIdentifier": "624756102",
+            "securityTicker": "MLI US",
+            "securityDescriptionLong": "Mueller Industries, Inc.",
+            "shares": 100,
+            "marketValueBase": 2990604.58,
+            "tradingCurrency": "USD",
+            "country": "US",
+            "segment": "COMMON STOCKS",
+            "category": "INDUSTRIALS",
+            "marketValuePercent": 0.017280626912,
+        },
+        {
+            "asOfDate": "2026-07-20T00:00:00",
+            "portfolioNumber": "9999",
+            "portfolioName": "Other Fund",
+            "securityIdentifier": "037833100",
+            "securityTicker": "AAPL US",
+            "securityDescriptionLong": "Apple Inc.",
+            "segment": "COMMON STOCKS",
+            "marketValuePercent": 0.5,
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/ballast_getholdings_cached4.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MGMT")
+
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == "https://filepoint.live/ballast_getholdings_cached4.php"
+    assert request_kwargs["data"] == {"fundID": "1247"}
+    assert request_kwargs["headers"]["Referer"] == "https://etf.mgmtetf.com/"
+    assert request_kwargs["headers"]["X-Requested-With"] == "XMLHttpRequest"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[1].symbol == "MLI"
+    assert result.rows[1].cusip == "624756102"
+    assert result.rows[1].holding_type == "equity"
+    assert result.rows[1].weight == Decimal("0.017280626912")
+    assert result.legal_metadata["route_resolution"] == (
+        "issuer_declared_mgmt_filepoint_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-20"
 
 
 @pytest.mark.asyncio
@@ -8547,6 +8868,29 @@ PROLOGIS INC, 74340W103, PLD US, 0.689259577400, 139.430000000000, 17648.0000000
     assert result.legal_metadata["route_resolution"] == "issuer_symbol_holdings_download"
     assert result.legal_metadata["composition_date"] == "2026-07-02"
     assert result.legal_metadata["product_page_url"] == "https://www.zacksetfs.com/zecp.php"
+
+
+@pytest.mark.asyncio
+async def test_zacks_adapter_retries_a_transient_holdings_timeout(monkeypatch):
+    adapter = get_holdings_adapter("zacks")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ReadTimeout("issuer stalled"),
+        FakeResponse(text="holdings", url="https://www.zacksetfs.com/webservices/holdings.php"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_holdings_with_timeout_retry(
+            client,
+            "https://www.zacksetfs.com/webservices/holdings.php",
+            headers={"Referer": "https://www.zacksetfs.com/"},
+        )
+
+    assert response.text == "holdings"
+    assert len(FakeAsyncClient.requested) == 2
 
 
 @pytest.mark.asyncio
@@ -11617,6 +11961,268 @@ async def test_sterling_capital_adapter_validates_fund_scoped_holdings_pdf(monke
     assert result.legal_metadata["composition_date"] == "2026-07-13"
 
 
+@pytest.mark.asyncio
+async def test_sterling_fund_adapter_is_bounded_to_scmc_and_records_publisher_provenance(monkeypatch):
+    adapter = get_holdings_adapter("sterling_fund")
+    assert adapter is not None
+
+    raw_text = """
+    Sterling Capital Multi-Strategy Income ETF Holdings
+    As of 07.13.2026
+    CUSIP Description Quantity Price Portfolio Weight
+    037833100 APPLE INC 45,639 $317.31 6.19%
+    31423R500 FEDERATED HERMES MONEY MARKET 12,628,380 $100.00 5.48%
+    """
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        type(adapter),
+        "_extract_pdf_text",
+        staticmethod(lambda raw_pdf: raw_text),
+    )
+
+    result = await adapter.fetch_latest(symbol="SCMC", identifiers={})
+
+    assert requested[0][0] == (
+        "https://sterlingcapital.com/investments/exchange-traded-funds/"
+        "scmc/export-portfolio-holdings/"
+    )
+    assert [row.cusip for row in result.rows] == ["037833100", "31423R500"]
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["adapter_key"] == "sterling_fund"
+    assert result.legal_metadata["source_provider"] == "sterling_fund_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "sterling_capital_publisher_current_holdings_pdf_for_sterling_fund_scmc"
+    )
+
+    with pytest.raises(ValueError, match="only for SCMC"):
+        await adapter.fetch_latest(symbol="SCEP", identifiers={})
+
+
+@pytest.mark.asyncio
+async def test_distribution_cognizant_adapter_filters_complete_voxp_daily_csv(monkeypatch):
+    adapter = get_holdings_adapter("distribution_cognizant")
+    assert adapter is not None
+
+    raw_csv = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+07/21/2026,VOXP,AAPL,037833100,Apple Inc,1245,326.59,406604.55,7.06%,5756370,150000,3,
+07/21/2026,VOXP,MSFT,594918104,Microsoft Corp,645,373.02,240597.90,4.18%,5756370,150000,3,
+07/21/2026,VOXP,NVDA,67066G104,NVIDIA Corp,2070,200.09,414186.30,7.20%,5756370,150000,3,
+07/21/2026,VOXP,AMZN,023135106,Amazon.com Inc,978,238.44,233196.32,4.05%,5756370,150000,3,
+07/21/2026,VOXP,AVGO,11135F101,Broadcom Inc,384,377.75,145056.00,2.52%,5756370,150000,3,
+07/21/2026,VOXP,GOOGL,02079K305,Alphabet Inc,1029,357.37,367733.73,6.39%,5756370,150000,3,
+07/21/2026,VOXP,ABBV,00287Y109,AbbVie Inc,150,253.38,38007.00,0.66%,5756370,150000,3,
+07/21/2026,VOXP,ABNB,009066101,Airbnb Inc,45,144.94,6522.30,0.11%,5756370,150000,3,
+07/21/2026,VOXP,ABT,002824100,Abbott Laboratories,159,101.66,16163.94,0.28%,5756370,150000,3,
+07/21/2026,VOXP,ACN,G1151C101,Accenture PLC,21,144.73,3039.33,0.05%,5756370,150000,3,
+07/21/2026,VOXP,FGXXX,31846V336,First American Government Obligations Fund,1230000,1,1230000,21.37%,5756370,150000,3,Y
+07/21/2026,OTHER,ZZZ,999999999,Unrelated Fund,1,1,1,0.01%,100,1,1,
+"""
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="VOXP")
+
+    assert requested[0][0] == adapter.HOLDINGS_URL
+    assert result.legal_metadata["composition_date"] == "2026-07-21"
+    assert result.legal_metadata["route_resolution"] == (
+        "distribution_cognizant_voxp_public_daily_holdings_csv"
+    )
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+
+    with pytest.raises(ValueError, match="only for VOXP"):
+        await adapter.fetch_latest(symbol="VOX")
+
+
+@pytest.mark.asyncio
+async def test_concourse_adapter_parses_complete_ccfe_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("concourse")
+    assert adapter is not None
+
+    product_page = """
+    <h1>Concourse Capital Focused Equity ETF (CCFE)</h1>
+    <section><h2>Fund Holdings</h2>
+    <table id="table_10"><thead><tr>
+      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+      <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody>
+      <tr><td>AAP</td><td>Advance Auto Parts Inc</td><td>00751Y106</td><td>48,063</td><td>52.04</td><td>2.50</td><td>6.58</td><td>07/21/2026</td></tr>
+      <tr><td>ARCB</td><td>ArcBest Corp</td><td>03937C105</td><td>16,563</td><td>158.20</td><td>2.62</td><td>6.90</td><td>07/21/2026</td></tr>
+      <tr><td>BCO</td><td>Brink's Co/The</td><td>109696104</td><td>7,859</td><td>119.59</td><td>0.94</td><td>2.47</td><td>07/21/2026</td></tr>
+      <tr><td>BLDR</td><td>Builders FirstSource Inc</td><td>12008R107</td><td>18,949</td><td>72.70</td><td>1.38</td><td>3.63</td><td>07/21/2026</td></tr>
+      <tr><td>CLH</td><td>Clean Harbors Inc</td><td>184496107</td><td>3,341</td><td>310.22</td><td>1.04</td><td>2.73</td><td>07/21/2026</td></tr>
+      <tr><td>CMCO</td><td>Columbus McKinnon Corp</td><td>199333105</td><td>150,773</td><td>14.33</td><td>2.16</td><td>5.69</td><td>07/21/2026</td></tr>
+      <tr><td>CRK</td><td>Comstock Resources Inc</td><td>205768302</td><td>98,806</td><td>12.89</td><td>1.27</td><td>3.35</td><td>07/21/2026</td></tr>
+      <tr><td>CPS</td><td>Cooper-Standard Holdings Inc</td><td>21676P103</td><td>142,959</td><td>27.85</td><td>3.98</td><td>10.48</td><td>07/21/2026</td></tr>
+      <tr><td>CPNG</td><td>Coupang Inc</td><td>22266T109</td><td>60,024</td><td>16.44</td><td>0.99</td><td>2.60</td><td>07/21/2026</td></tr>
+      <tr><td>WCC</td><td>WESCO International Inc</td><td>95082P105</td><td>9,680</td><td>319.05</td><td>3.09</td><td>8.13</td><td>07/21/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>5,908</td><td>1.00</td><td>0.01</td><td>0.02</td><td>07/21/2026</td></tr>
+    </tbody></table></section>
+    """
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        return FakeResponse(text=product_page, content_type="text/html", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="CCFE")
+
+    assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert result.legal_metadata["composition_date"] == "2026-07-21"
+    assert result.legal_metadata["route_resolution"] == (
+        "concourse_public_product_page_complete_holdings_table"
+    )
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "AAP"
+    assert result.rows[0].market_value == Decimal("2500000")
+    assert result.rows[0].weight == Decimal("0.0658")
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+
+    with pytest.raises(ValueError, match="only for CCFE"):
+        await adapter.fetch_latest(symbol="CPS")
+
+
+@pytest.mark.asyncio
+async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_statement(monkeypatch):
+    adapter = get_holdings_adapter("absolute_investment_advisers")
+    assert adapter is not None
+
+    product_page = '''
+    <h1>Absolute Select Value ETF [ABEQ]</h1>
+    <a href="/documents/ABEQ-AR-25.pdf">Annual Report</a>
+    <a href="/documents/ABEQ-FinacialStatements_0326.pdf">Financial Statements</a>
+    '''
+    portfolio = '''
+    Absolute Select Value ETF
+    Schedule of Investments
+    March 31, 2026
+    Common Stocks — 66.37% Shares Fair Value
+    Apple Inc. 1,000 $ 200,000
+    Microsoft Corp. 1,000 150,000
+    Alphabet Inc. 1,000 120,000
+    Nvidia Corp. 1,000 110,000
+    Amazon.com Inc. 1,000 100,000
+    Meta Platforms Inc. 1,000 90,000
+    Berkshire Hathaway Inc. 1,000 80,000
+    JPMorgan Chase & Co. 1,000 70,000
+    Visa Inc. 1,000 60,000
+    UnitedHealth Group Inc. 1,000 50,000
+    U.S. Government & Agencies — 30.75%
+    United States Treasury Bill 3.87%, 5/14/2026 $ 100,000 $ 99,000
+    United States Treasury Strip 3.51%, 2/15/2027 $ 90,000 $ 87,000
+    Net Assets — 100.00% $ 1,400,000
+    Statement of Assets and Liabilities
+    '''
+    older_portfolio = portfolio.replace("March 31, 2026", "March 31, 2025")
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        if url == adapter.PRODUCT_PAGE_URL:
+            return FakeResponse(text=product_page, content_type="text/html", url=url)
+        return FakeResponse(content=url.encode(), content_type="application/pdf", url=url)
+
+    def fake_extract(raw_pdf):
+        return portfolio if b"0326" in raw_pdf else older_portfolio
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
+
+    result = await adapter.fetch_latest(symbol="ABEQ")
+
+    assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert result.source_url.endswith("ABEQ-FinacialStatements_0326.pdf")
+    assert result.legal_metadata["composition_date"] == "2026-03-31"
+    assert result.legal_metadata["route_resolution"] == (
+        "absolute_product_page_linked_complete_financial_statement_pdf"
+    )
+    assert len(result.rows) == 12
+    assert result.rows[0].name == "Apple Inc."
+    assert result.rows[-1].holding_type == "fixed_income"
+    assert result.rows[-1].extra_data["principal_amount"] == "90,000"
+
+    with pytest.raises(ValueError, match="only for ABEQ"):
+        await adapter.fetch_latest(symbol="CGUS")
+
+
+@pytest.mark.asyncio
+async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypatch):
+    adapter = get_holdings_adapter("stf")
+    assert adapter is not None
+
+    product_page = '''
+    <h1>STF Tactical Growth ETF</h1>
+    <a href="/wp-content/uploads/2026/02/TUG-3rd-Fiscal-Q-Holdings-1.pdf">Q3 Holdings</a>
+    <a href="/wp-content/uploads/2026/03/TUG-1st-Fiscal-Q-Holdings-1.pdf">Q1 Holdings</a>
+    '''
+    older_schedule = '''
+    STF Tactical Growth ETF
+    Schedule of Investments
+    June 30, 2025 (Unaudited)
+    COMMON STOCKS - 98.5% Shares Value
+    Alpha Corp 1,000 $ 100,000
+    Beta Corp 1,000 $ 100,000
+    Gamma Corp 1,000 $ 100,000
+    Delta Corp 1,000 $ 100,000
+    Epsilon Corp 1,000 $ 100,000
+    Zeta Corp 1,000 $ 100,000
+    Eta Corp 1,000 $ 100,000
+    Theta Corp 1,000 $ 100,000
+    Iota Corp 1,000 $ 100,000
+    Kappa Corp 1,000 $ 100,000
+    TOTAL NET ASSETS - 100.0% $ 1,010,000
+    '''
+    newest_schedule = older_schedule.replace("June 30, 2025", "December 31, 2025").replace(
+        "Alpha Corp 1,000 $ 100,000", "Apple Inc 1,000 $ 200,000"
+    )
+    requested = []
+
+    def fake_get(url, **kwargs):
+        requested.append((url, kwargs))
+        if url == adapter.PRODUCT_PAGE_URL:
+            return FakeResponse(text=product_page, content_type="text/html", url=url)
+        return FakeResponse(content=url.encode(), content_type="application/pdf", url=url)
+
+    def fake_extract(raw_pdf):
+        return newest_schedule if b"2026/03" in raw_pdf else older_schedule
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
+
+    result = await adapter.fetch_latest(symbol="TUG")
+
+    assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert result.source_url.endswith("TUG-1st-Fiscal-Q-Holdings-1.pdf")
+    assert result.legal_metadata["composition_date"] == "2025-12-31"
+    assert result.legal_metadata["route_resolution"] == (
+        "stf_product_page_linked_complete_quarterly_schedule_pdf"
+    )
+    assert len(result.rows) == 10
+    assert result.rows[0].name == "Apple Inc"
+    assert result.rows[0].weight == Decimal("200000") / Decimal("1010000")
+
+    with pytest.raises(ValueError, match="only for TUG"):
+        await adapter.fetch_latest(symbol="SEPI")
+
+
 def test_doubleline_adapter_parses_pdf_extracted_text():
     adapter = get_holdings_adapter("doubleline")
     assert adapter is not None
@@ -12082,6 +12688,40 @@ async def test_toews_retries_three_transient_timeouts(monkeypatch):
 
     assert response.text == "ok"
     assert len(FakeAsyncClient.requested) == 3
+
+
+@pytest.mark.asyncio
+async def test_toews_uses_scoped_secondary_transport_after_timeout_exhaustion(monkeypatch):
+    adapter = get_holdings_adapter("toews")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ReadTimeout("first"),
+        httpx.ReadTimeout("second"),
+        httpx.ReadTimeout("third"),
+    ]
+    fallback_calls: list[tuple[str, dict]] = []
+
+    def fallback_get(url, **kwargs):
+        fallback_calls.append((url, kwargs))
+        return FakeResponse(text="ok", content_type="text/csv", url=url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_with_timeout_retry(
+            client,
+            "https://toewsetfs.com/wp-content/themes/cardinal-child/etf/download-2025.php?id=1383",
+            headers={"Referer": "https://toewsetfs.com/hrsk/"},
+        )
+
+    assert response.text == "ok"
+    assert len(FakeAsyncClient.requested) == 3
+    assert fallback_calls[0][0].endswith("download-2025.php?id=1383")
+    assert fallback_calls[0][1]["headers"] == {"Referer": "https://toewsetfs.com/hrsk/"}
+    assert fallback_calls[0][1]["allow_redirects"] is True
 
 
 def test_wedbush_adapter_parses_symbol_holdings_csv():
@@ -13819,7 +14459,7 @@ def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
 
 @pytest.mark.asyncio
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
-    adapter = get_holdings_adapter("absolute_investment_advisers")
+    adapter = get_holdings_adapter("aegon")
     assert adapter is not None
 
     async def fake_discover_holdings_filings(**kwargs):
@@ -15764,6 +16404,43 @@ async def test_main_management_adapter_retries_a_transient_timeout(monkeypatch):
     result = await adapter.fetch_latest(symbol="BUYW")
 
     assert len(TimeoutThenResponseClient.requested) == 2
+    assert result.rows[0].symbol == "XLF"
+
+
+@pytest.mark.asyncio
+async def test_main_management_adapter_uses_its_scoped_secondary_transport_after_timeouts(monkeypatch):
+    adapter = get_holdings_adapter("main_management")
+    assert adapter is not None
+
+    csv_payload = "\n".join(
+        [
+            "Main BuyWrite ETF",
+            "Fund Holdings Data as of 06/12/2026",
+            "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
+            "SS FINANCIAL SEL,81369Y605,XLF US,1022.44,53.34,2351200,125413008,10.23",
+        ]
+    )
+
+    class TimeoutClient(FakeAsyncClient):
+        async def get(self, url, **kwargs):
+            type(self).requested.append((url, kwargs))
+            raise httpx.ReadTimeout("publisher stalled", request=httpx.Request("GET", url))
+
+    fallback_calls: list[tuple[str, dict]] = []
+
+    def fallback_get(url, **kwargs):
+        fallback_calls.append((url, kwargs))
+        return FakeResponse(text=csv_payload, content_type="text/csv", url=url)
+
+    TimeoutClient.requested = []
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
+
+    result = await adapter.fetch_latest(symbol="BUYW")
+
+    assert len(TimeoutClient.requested) == 3
+    assert fallback_calls[0][0] == "https://www.mainmgtetfs.com/etfs/download-buyw.php"
+    assert fallback_calls[0][1]["headers"]["Referer"] == "https://www.mainmgtetfs.com/"
     assert result.rows[0].symbol == "XLF"
 
 
