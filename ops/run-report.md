@@ -2,6 +2,55 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings AG Financial Native Route - 2026-07-21T13:41Z
+
+- Added a dedicated AG Financial/Crossmark adapter for `CLCG` and `CLCV`. It
+  validates the exact Crossmark product page, its matching `data-ticker`, and
+  its holdings-download control before validating the issuer's declared
+  application export pattern and parsing only matching daily CSV rows.
+- Validation passed: exact static fixture, exact opt-in `CLCG` live route, both
+  manifest invariants, full deterministic adapter suite (`328 passed`), Ruff,
+  and `git diff --check`. Strict state: `260/345` native/live-backed and
+  `85/345` fallback-only.
+
+# ETF Holdings Alexis Native Route - 2026-07-21T13:25Z
+
+- Added a dedicated Alexis adapter for `LEXI`. It verifies the issuer page and
+  its specifically declared Wix holdings document before following only that
+  daily CSV, then parses the fund-scoped account rows with CUSIP, shares, value,
+  weights, and fixed-income/cash semantics intact.
+- Validation passed: focused static parser test, exact opt-in `LEXI` live route,
+  both manifest invariants, full deterministic adapter suite (`327 passed`),
+  Ruff, and `git diff --check`. Strict state: `259/345` native/live-backed and
+  `86/345` fallback-only.
+
+# ETF Holdings Anfield Current-product Source Audit - 2026-07-21T13:20Z
+
+- The historical `AEMS` product URL now returns `404`. Anfield's public
+  WordPress catalogue currently exposes its Universal Fixed Income mutual fund
+  but no current ETF product or complete ETF holdings artifact.
+- The existing issuer-local parser remains uncounted: it cannot have a valid
+  current opt-in live route without fabricating support for a discontinued
+  product. Strict state remains `258/345` native/live-backed and `87/345`
+  fallback-only.
+
+# ETF Holdings Stone Ridge Native Route - 2026-07-21T16:10Z
+
+- Added a dedicated Stone Ridge/LifeX adapter. It follows an issuer product page
+  only after verifying that the page declares the requested fund's complete
+  market-data JSON, then validates the response ticker before parsing holdings.
+- Validation passed: focused static tests, Ruff, exact opt-in `LFDR` live route,
+  configured-provider invariant, and concrete-live-route manifest invariant.
+  Strict state: `258/345` native/live-backed and `87/345` fallback-only.
+- Audited Nomura's first-party ETF surface. The public catalogue is reachable,
+  but the location-gated pages do not reveal an executable complete holdings
+  artifact. It remains fallback-only; SEC and third-party sources were not
+  counted as native support.
+- Aegon/Transamerica's fund centre and representative ETF pages return only the
+  issuer's Incapsula challenge document to browser-equivalent retrieval. No
+  provider-native complete holdings source could be validated, so it also
+  remains fallback-only and uncounted.
+
 # ETF Holdings WisdomTree / BMO Source Audit - 2026-07-21T14:05Z
 
 - WisdomTree's official U.S. WTV product page remains Cloudflare-blocked to a

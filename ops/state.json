@@ -3,12 +3,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-06-05T18:38:49Z",
     "worker_soft_stop_at": null,
-  "last_handoff_at": "2026-07-21T15:20:00Z",
-    "last_commit": "773a3dc feat(etf-holdings): add Tidal native holdings adapter",
+  "last_handoff_at": "2026-07-21T13:41:00Z",
+    "last_commit": "7b5fd2f chore(ops): checkpoint ETF provider expansion",
     "git_ready_to_commit": true,
     "validation": {
-        "backend_lint": "passed (2026-07-20 Ruff check for the current ETF holdings adapter/test changes and live provider manifest)",
-        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-21: 323 passed with --no-cov). The complete opt-in live provider matrix passed (2026-07-21: 263 passed in 369.84s), proving every counted native provider has an executable concrete live route. Morgan Stanley, Regan, Baron, ETF Architect, Howard Capital, Cultivar, and Toews received bounded issuer-local reliability repairs before this final sweep.",
+        "backend_lint": "passed (2026-07-21 Ruff check for the current ETF holdings adapter/test changes and live provider manifest)",
+        "backend_tests": "passed full ETF holdings adapter unit suite (2026-07-21: 328 passed with --no-cov). Exact opt-in AG Financial/Crossmark CLCG live route plus both provider-manifest invariants passed; previous complete opt-in live matrix passed (2026-07-21: 263 passed in 369.84s), proving every then-counted native provider had an executable concrete live route. Morgan Stanley, Regan, Baron, ETF Architect, Howard Capital, Cultivar, and Toews received bounded issuer-local reliability repairs before that full sweep.",
         "frontend_tests": "passed (2026-06-09 ETF holdings frontend Vitest rerun for SearchBar, ETFHoldingsPanel, and ETFHoldingsView, including regression coverage that synthetic HOLDING-* symbols are not surfaced to users)",
         "frontend_build": "passed",
         "alembic_upgrade": "passed via rtk make dev-infra",
@@ -18,6 +18,10 @@
         "backend_log_check": "not_run"
     },
     "notes": [
+        "2026-07-21T13:41Z AG Financial native route: promoted `ag_financial` through an isolated Crossmark CLCG/CLCV adapter that verifies the requested product page's ticker and holdings download, verifies its declared application contains the dated complete CSV route, and parses only matching ETF rows with CUSIP/ISIN/SEDOL/value/weight/share plus cash and fixed-income semantics. Static fixture, exact live CLCG, both provider invariants, 328 deterministic tests, Ruff, and diff check passed. Strict state: 260/345 native/live-backed, 85 fallback-only.",
+        "2026-07-21T13:25Z Alexis native route: promoted `alexis` through an isolated LEXI adapter that verifies the issuer page declares its named Wix daily holdings CSV, resolves only that file, filters account-scoped rows, and retains CUSIP/value/weight/share plus fixed-income semantics. Static fixture, exact live LEXI, both provider invariants, 327 deterministic tests, Ruff, and diff check passed. Strict state: 259/345 native/live-backed, 86 fallback-only.",
+        "2026-07-21T13:20Z Anfield source audit: the former AEMS ETF product URL returns 404, and the issuer's complete public WordPress catalogue now exposes only a mutual-fund product. Its isolated historical parser remains fallback-only rather than being falsely promoted without a current executable ETF holdings route. Strict state remains 258/345 native/live-backed and 87 fallback-only.",
+        "2026-07-21T16:10Z Stone Ridge native route: promoted through an isolated LifeX adapter which verifies the requested issuer product page declares that fund's complete market-data JSON, validates the returned ticker, and preserves as-of date/CUSIP/value/weight/quantity plus cash and fixed-income semantics. Static LFDR, exact opt-in LFDR live, and both provider invariants passed. Strict state: 258/345 native/live-backed, 87 fallback-only. Nomura's official catalogue remains location-gated and exposes no executable complete holdings artifact, while Aegon/Transamerica's fund centre plus representative TABD/TLVL pages return only Incapsula challenges. Both remain fallback-only; no SEC, administrator, or third-party source was substituted.",
         "2026-07-21T15:20Z WisdomTree source retry: WTV's official page advertises a full-holdings action, but browser-equivalent backend retrieval remains Cloudflare 403-blocked before a complete issuer artifact can be traced. WisdomTree remains fallback-only; no generic parser or SEC fallback is counted as native support.",
         "2026-07-21T15:05Z Prospera native route: promoted Prospera through an isolated THRV adapter. It verifies the issuer fund-data page, explicitly declared FilePoint portal, THRV identity, and expected daily CSV schema before parsing full holdings. Deterministic parser test, Ruff, registry/manifest invariants, and exact opt-in live THRV route passed. Strict state: 257/345 native/live-backed, 88 fallback-only; SEC remains fallback-only.",
         "2026-07-21T14:30Z Source audit: Guardian Capital's U.S.-listed LCG identity is represented via its Sterling Capital affiliate. The official product page is live, but it renders no complete portfolio table and its only linked quarterly holdings reports return 404 from FilePoint. Guardian remains fallback-only; the distinct Sterling Capital adapter does not substitute for native Guardian support.",

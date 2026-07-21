@@ -20,7 +20,21 @@ tasks:
       - adapter-matrix
       - lint
     notes:
-      - Current truthful count: 256 native/live-backed providers out of 345; 89 remain.
+      - Current truthful count: 260 native/live-backed providers out of 345; 85 remain.
+        AG Financial is supported through a bounded Crossmark adapter for CLCG
+        and CLCV that verifies the product page, declared application route,
+        and dated complete daily holdings CSV. Static and opt-in live coverage
+        are in place; SEC remains fallback-only.
+        Alexis Investment is supported through an isolated LEXI adapter that
+        verifies the issuer page's specifically declared Wix daily holdings CSV
+        before parsing only LEXI's account rows. Static and opt-in live coverage
+        are in place; SEC remains fallback-only.
+        Stone Ridge is supported through an isolated LifeX adapter that verifies the
+        requested issuer product page's declared fund-scoped market-data JSON before
+        parsing complete holdings. Static and opt-in live LFDR coverage are in place.
+        Nomura's official ETF catalogue was also audited, but its location-gated
+        public pages expose no executable full-portfolio route; it remains
+        fallback-only rather than being counted through SEC or a third party.
         Grace Partners is supported through an isolated adapter bounded to the
         verified First Trust publisher relationship and its complete public
         holdings page. It has static and opt-in live `IDVY` coverage; SEC remains

@@ -1,5 +1,65 @@
 # Active Handoff
 
+## AG Financial native route - 2026-07-21T13:41Z
+
+- Promoted `ag_financial` through an isolated Crossmark adapter for `CLCG` and
+  `CLCV`. It verifies the requested Crossmark product page's fund ticker and
+  holdings-download control, verifies the page-declared application exposes the
+  dated daily-export route, and then accepts only the matching ETF rows from
+  the issuer CSV. CUSIP, ISIN, SEDOL, shares, value, weights, and cash/fixed-
+  income semantics are retained.
+- Static parser coverage, exact opt-in `CLCG` live coverage, both live-provider
+  manifest invariants, the complete deterministic adapter suite (`328 passed`),
+  Ruff, and `git diff --check` passed. Strict state is now `260/345`
+  native/live-backed and `85/345` fallback-only.
+
+## Alexis native route - 2026-07-21T13:25Z
+
+- Promoted `alexis` through an isolated `AlexisHoldingsAdapter` for `LEXI`.
+  The adapter verifies the official Alexis page identifies the fund and declares
+  its named Wix daily holdings document before resolving only that document's
+  public download. It filters the account-scoped CSV to `LEXI`, preserves
+  CUSIP/shares/value/weight/date, and retains Treasury rows as fixed income
+  rather than fabricating a tradable ticker.
+- Static parser coverage, exact opt-in `LEXI` live coverage, both live-provider
+  manifest invariants, the complete deterministic adapter suite (`327 passed`),
+  Ruff, and `git diff --check` passed. Strict state is now `259/345`
+  native/live-backed and `86/345` fallback-only.
+
+## Anfield current-product source audit - 2026-07-21T13:20Z
+
+- Retried Anfield's historical `AEMS` issuer route with browser-equivalent
+  requests. The former ETF product URL now returns `404`, while the issuer's
+  current WordPress search and complete page catalogue expose only the Anfield
+  Universal Fixed Income mutual fund rather than a current ETF product.
+- The existing isolated Anfield parser remains a historical parser only. There
+  is no current issuer-native ETF portfolio to execute or live-test, so
+  `anfield` remains fallback-only and uncounted. This is a discontinued-product
+  gap, not a missing generic parser that should be routed through SEC.
+- This audit preceded the Alexis promotion; its result is unchanged, while the
+  current strict state is `259/345` native/live-backed and `86/345` fallback-only.
+
+## Stone Ridge native route and Nomura source audit - 2026-07-21T16:10Z
+
+- Promoted `stone_ridge` through an isolated `StoneRidgeHoldingsAdapter`. It verifies
+  the requested issuer-owned LifeX product page declares that exact fund's
+  market-data JSON before accepting the complete current portfolio. The parser
+  retains as-of date, CUSIP, market value, weight, quantity, and correct
+  fixed-income/cash semantics.
+- The static LFDR fixture, exact opt-in LFDR live route, registry/native-set
+  invariant, and concrete-live-route invariant passed. Strict state is now
+  `258/345` native/live-backed and `87/345` fallback-only.
+- Nomura's official ETF catalogue is reachable, but the site resolves backend
+  access through its location gate and the public catalogue HTML exposes no
+  executable fund or complete holdings artifact. Third-party pages and SEC data
+  were deliberately not substituted. `nomura` remains fallback-only until a
+  complete issuer-native route can be verified and live-tested.
+- Aegon's Transamerica fund centre and representative `TABD`/`TLVL` ETF pages
+  were retried with browser-equivalent requests. Each returns only the issuer's
+  Incapsula challenge document, so no complete native portfolio artifact can
+  currently be traced. `aegon` remains fallback-only; the distinct Tidal
+  administrator integration is not a substitute for native Aegon support.
+
 ## WisdomTree and BMO source audit - 2026-07-21T14:05Z
 
 - WisdomTree remains a high-value unresolved issuer, but its official U.S.
