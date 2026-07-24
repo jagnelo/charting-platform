@@ -21,12 +21,20 @@ tasks:
       - lint
     notes:
       - >
-        Current truthful count: 287 native/live-backed providers out of 345; 58 remain.
+        Current truthful count: 288 native/live-backed providers out of 345; 57 remain.
+        Every remaining recognition-only identity now has a test-enforced source
+        audit record with its current accessibility outcome and next action, so
+        SEC fallback cannot silently be treated as native provider support.
         The complete opt-in live matrix initially produced 294 passes and one
         Brookmont/BAMA parser failure. Brookmont's helpers were restored to the
         owning adapter; direct issuer validation and its focused unit/live route
         now pass. The final repaired full opt-in live-provider matrix passed
         295 tests on 2026-07-22.
+        Anfield is supported through an isolated ADFI-only adapter that verifies
+        the issuer's exact product page and its page-declared dated complete
+        holdings CSV. Its future/commodity rows are kept non-tradable rather
+        than being misclassified as cash. Static and opt-in live coverage are
+        in place; SEC remains fallback-only.
         COtwo Advisors is supported through an isolated CTWO-only adapter that
         follows the exact current JSON feed declared by its official product
         page and validates the fund's complete two-asset portfolio. Static and

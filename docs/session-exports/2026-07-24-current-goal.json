@@ -1,0 +1,19 @@
+{
+  "threadId": "019df470-e6f0-7163-a3ec-680996f981c1",
+  "objective": "Replace generated/thin ETF provider adapters with full native per-provider ETF holdings integrations for all 345 registered providers, with each provider having isolated implementation code plus static and live test coverage; SEC EDGAR remains fallback only and must not count as primary provider support.\nRespect the priority ordering of ETF providers based on what was discussed: higher priority to implement a native handler should be given to those providers that host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage of overall US stock market listed stocks.\nKeep trying to access each provider's resources, even if they reject requests. If after some tries a provider is only flaggable as blocking (our requests), skip it and mark it as such so we can take care of the next one, and so on and so forth.\nDo not instantly block the goal until you can actually say you've tried all pending/left providers.\nEnsure also that the maintainability gap (i.e., we do not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS has a corresponding live-test case) is covered for all supported providers.",
+  "status": "paused",
+  "tokensUsed": 313871898,
+  "timeUsedSeconds": 336115,
+  "createdAt": 1781275360,
+  "updatedAt": 1784711775,
+  "exportedAt": "2026-07-24",
+  "repoBranchAtExport": "feat/etf-holdings-constituents",
+  "sourceOfTruthFiles": [
+    "docs/agent-orchestration.md",
+    "ops/tasks.yaml",
+    "ops/handoff.md",
+    "ops/state.json",
+    "ops/run-report.md",
+    "docs/session-exports/2026-07-24-etf-holdings-session-context.md"
+  ]
+}

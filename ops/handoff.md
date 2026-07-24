@@ -1,5 +1,103 @@
 # Active Handoff
 
+## Fallback registry audit guard and Guinness source recheck - 2026-07-22T10:10Z
+
+- Added `FALLBACK_ISSUER_AUDITS`, an exhaustive, test-enforced manifest for all
+  57 recognition-only adapters. The manifest must exactly equal the registered
+  non-native adapter set and gives each entry an audit status, reason, next
+  action, and review date. It prevents a fallback/SEC path from being silently
+  represented as native provider support.
+- Guinness Atkinson's official fund-resources page remains Cloudflare-managed:
+  a browser-equivalent backend request received HTTP `403` with
+  `cf-mitigated: challenge`. Search-indexed official holdings documents are not
+  an executable backend integration, so Guinness remains fallback-only.
+- Passed: native-provider/concrete-live-route invariants plus exact Anfield
+  ADFI live route (`3 passed`); focused native/fallback adapter tests (`3
+  passed`); Ruff and `git diff --check`.
+
+### Next step
+
+- Continue issuer-owned source discovery for the remaining 57 audited fallback
+  identities, promoting only routes that can pass deterministic parsing and an
+  exact opt-in live test.
+
+## Guardian, Sun Life, and Aegon source triage - 2026-07-22T09:40Z
+
+- Guardian Capital's direct ETF entry point returned `404`; Aegon's equivalent
+  path resolved to its own page-not-found response; and Sun Life's ETF entry
+  point returned issuer-side `403` to a browser-equivalent request.
+- None currently exposes a reachable, executable U.S. ETF complete-holdings
+  artifact. They remain fallback-only and are not candidates for fabricated
+  native adapters. Continue auditing the remaining registry individually.
+
+## Checkpoint validation - 2026-07-22T09:30Z
+
+- `git diff --check` and JSON parsing of `ops/state.json` passed.
+- Focused deterministic Anfield parser coverage passed (`1 passed, 360 deselected`).
+- The exact live ADFI route and both provider manifest invariants passed
+  (`3 passed, 293 deselected`).
+
+## DoubleLine source revalidation - 2026-07-22T09:25Z
+
+- DoubleLine's official ETF directory returned issuer-side Cloudflare HTTP
+  `403` to a browser-equivalent request, before exposing a complete current
+  holdings artifact. It cannot provide fresh executable route evidence from
+  this environment.
+- A full live-matrix diagnostic with an 8-second request timeout was not
+  completed: the command host reaped the redirected child before it flushed a
+  log. Do not claim it as validation evidence.
+
+## Reflection Asset Management source audit - 2026-07-22T09:10Z
+
+- Rechecked Reflection's accessible official DEMZ site. Its public performance
+  page identifies the fund and a current holding count, but the rendered
+  holdings and download link are populated through `nowserver.co.uk`, an
+  unrelated third-party AJAX service, not a bounded issuer-owned portfolio
+  artifact. The issuer-page links otherwise expose periodic reports only.
+- Do not promote `reflection` through that vendor endpoint or SEC. It remains
+  fallback-only until Reflection publishes an executable first-party complete
+  holdings feed.
+
+### Next step
+
+- Continue the remaining issuer-source audit. Promote only executable,
+  issuer-owned complete portfolio routes with deterministic and exact opt-in
+  live coverage.
+
+## Anfield native route promotion - 2026-07-22T09:00Z
+
+- Replaced the retired Anfield AEMS path with the issuer-owned current ADFI
+  product-page flow. Regents Park's public ADFI page declares a dated,
+  fund-scoped complete holdings CSV; the adapter validates both the product
+  identity and the exact issuer CSV shape before accepting it.
+- The parser preserves cash as cash and classifies commodity futures as
+  non-tradable derivatives rather than incorrectly collapsing them into cash.
+- Passed: deterministic Anfield fixture, targeted Ruff, exact opt-in ADFI live
+  route, and both native-provider/concrete-live-route manifest invariants.
+  Strict state is now `288/345` native/live-backed and `57/345` fallback-only.
+
+### Next step
+
+- Continue the remaining issuer-source audit. Promote only executable,
+  issuer-owned complete portfolio routes with deterministic and exact opt-in
+  live coverage.
+
+## Manulife / John Hancock source audit - 2026-07-22T08:35Z
+
+- Rechecked the issuer-hosted John Hancock quarterly ETF holdings report as a
+  possible bounded native periodic route. Both a plain backend-equivalent
+  request and a browser-compatible request with an issuer referer returned
+  HTTP `403` from the public `jhinvestments.com` document URL.
+- Search-indexed copies of the document are not a usable provider route. Do
+  not promote `manulife` from SEC fallback until its complete first-party
+  portfolio artifact can be retrieved and parsed by the backend.
+
+### Next step
+
+- Continue the remaining issuer-source audit. Promote only executable,
+  issuer-owned complete portfolio routes with deterministic and exact opt-in
+  live coverage.
+
 ## Toews live-route repair - 2026-07-22T03:35Z
 
 - The final confirmation sweep after Zacks, Cary Street, and Main Management
@@ -7414,6 +7512,18 @@
   official publisher requests and remain access-blocked. Continue the remaining
   provider queue with issuers that expose executable first-party holdings routes.
 
+## Q3 first-party route audit - 2026-07-22T10:30Z
+
+- Q3's official QVOY and QTAC pages expose complete, current holdings tables
+  and issuer CSV downloads through normal browser indexing. Direct backend
+  retrieval of the same official origin currently returns HTTP 503 with
+  `Retry-After: 3600`, so Q3 remains fallback-only until the issuer route can
+  execute reliably in the application transport.
+- The registry remains truthful at `288/345` native/live-backed issuers and
+  `57` audited fallback-only identities. The Anfield ADFI deterministic route,
+  the native-provider matrix invariant, and the concrete-live-route invariant
+  all passed on 2026-07-22 (`3 passed`).
+
 ## Full native-provider matrix green - 2026-07-22T03:45Z
 
 - The final repaired opt-in live-provider sweep completed cleanly:
@@ -7422,3 +7532,29 @@
 - This validates each of the current `287/345` native/live-backed providers via
   a concrete first-party route. The remaining `58` issuers are still
   fallback-only; the 345-provider objective stays active and is not complete.
+
+## Remaining issuer source audit - 2026-07-22T08:20Z
+
+- Rechecked WisdomTree `DXJ`: the current public product page is Cloudflare
+  `403` to backend-equivalent retrieval. Its documented Fund Data API requires
+  a non-public `x-wt-dataspan-key`, so it cannot be counted as a free,
+  executable first-party native route.
+- Rechecked SoFi `SFY`: public indexing confirms periodic quarterly holdings
+  disclosures, but the current issuer product page remains Cloudflare-gated to
+  backend retrieval and no public complete current portfolio artifact was
+  available through that request. It remains fallback-only.
+- Rechecked Vert `VGSR`: the issuer page is reachable and links complete
+  quarterly schedule PDFs, but the current schedule uses embedded font mappings
+  that produce glyph codes rather than reliable security text through the
+  project's available PDF parser. Do not promote it until an independently
+  validated extraction path preserves the actual portfolio identities.
+## DoubleLine source revalidation - 2026-07-22T09:25Z
+
+- Rechecked DoubleLine's official ETF directory using a browser-equivalent
+  request. The issuer edge returned Cloudflare HTTP `403` before exposing an
+  executable current complete-holdings artifact. The previously recorded
+  native route must therefore not be used as new live evidence in this
+  environment; it remains a known access constraint for future provider work.
+- A full live-matrix attempt with `ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS=8` could
+  not be retained by the command host: the child process was terminated before
+  its redirected log flushed. Do not claim that attempt as a completed suite.

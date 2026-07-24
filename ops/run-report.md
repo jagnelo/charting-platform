@@ -2,6 +2,67 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Fallback Registry Audit Guard - 2026-07-22T10:10Z
+
+- Added an exhaustive, test-enforced fallback audit manifest for the 57
+  recognition-only issuer identities. It must exactly match the current
+  non-live-backed registry, including a review outcome and next action for
+  each identity.
+- Rechecked Guinness Atkinson's official resources route: backend-equivalent
+  access received Cloudflare HTTP `403`, so it remains fallback-only rather
+  than being promoted from search-indexed artifacts or SEC data.
+- Validation passed: exact Anfield live route and native-provider manifest
+  invariants (`3 passed`), focused adapter tests (`3 passed`), Ruff, and diff
+  check. Current strict count remains `288/345` native/live-backed.
+
+# ETF Holdings Guardian, Sun Life, and Aegon Source Triage - 2026-07-22T09:40Z
+
+- Guardian Capital's ETF entry point returned `404`; Aegon's resolved to an
+  issuer page-not-found response; and Sun Life's ETF entry point returned
+  issuer-side `403` to a browser-equivalent request.
+- No executable U.S. ETF complete-holdings source was discovered, so none was
+  falsely promoted from fallback-only status.
+
+# ETF Holdings Checkpoint Validation - 2026-07-22T09:30Z
+
+- `git diff --check` and `ops/state.json` JSON parsing passed.
+- Focused Anfield deterministic test passed: `1 passed, 360 deselected`.
+- Exact ADFI live route plus both provider manifest invariants passed:
+  `3 passed, 293 deselected`.
+
+# ETF Holdings DoubleLine Source Revalidation - 2026-07-22T09:25Z
+
+- Browser-equivalent retrieval of DoubleLine's official ETF directory returned
+  issuer-side Cloudflare HTTP `403`; it did not expose an executable complete
+  holdings route for fresh native validation in this environment.
+- A diagnostic full matrix using an 8-second provider request timeout was not
+  completed because the command host reaped the redirected child before its
+  output flushed. It is not validation evidence.
+
+# ETF Holdings Reflection Source Audit - 2026-07-22T09:10Z
+
+- Reflection's official DEMZ page is reachable but delegates its current
+  holdings rendering and full-download link to `nowserver.co.uk`; its own
+  links are periodic reports. This is not an issuer-owned native portfolio
+  endpoint, so `reflection` remains fallback-only and uncounted.
+
+# ETF Holdings Anfield Native Route - 2026-07-22T09:00Z
+
+- Promoted `anfield` through the issuer's current ADFI product page and its
+  declared dated complete holdings CSV. The adapter is bounded to the verified
+  Regents Park domain, ADFI identity, and CSV filename pattern; it does not
+  use SEC or a generic discovery fallback as its native route.
+- The deterministic parser fixture, targeted Ruff, exact opt-in ADFI live test,
+  and both provider-manifest invariants passed. Strict state is `288/345`
+  native/live-backed and `57/345` fallback-only.
+
+# ETF Holdings Manulife / John Hancock Source Audit - 2026-07-22T08:35Z
+
+- The issuer-hosted current quarterly ETF portfolio PDF was retried both as a
+  plain backend request and with browser-compatible headers plus a first-party
+  referer. Both paths returned HTTP `403`. It is not an executable native
+  provider source, so `manulife` remains fallback-only and uncounted.
+
 # ETF Holdings Toews Live-Route Repair - 2026-07-22T03:35Z
 
 - The next retained full-matrix sweep reached `294 passed, 1 failed`: Toews
@@ -12118,6 +12179,28 @@ Append a short entry after each worker session.
 - This is a full live sweep of the currently native/live-backed provider set
   (`287/345`). It does not change the active goal: `58` registered issuers
   remain fallback-only and still require independent first-party integrations.
+
+# ETF Holdings Remaining-Issuer Audit - 2026-07-22T08:20Z
+
+- WisdomTree's documented complete-data API requires an unavailable publisher
+  API key and direct `DXJ` product-page retrieval returns Cloudflare `403`.
+- SoFi's `SFY` issuer page remains Cloudflare-gated. Search-indexed periodic
+  disclosures do not constitute an executable native current-holdings route.
+- Vert's issuer page and its page-linked complete `VGSR` quarterly PDFs are
+  reachable. The latest schedule has no usable ToUnicode mapping: `pypdf`
+  yields encoded glyph paths rather than security names and values. It remains
+  unpromoted until a reliable parser is available.
+
+# ETF Holdings Q3 Route Audit - 2026-07-22T10:30Z
+
+- Q3's official `QVOY` and `QTAC` pages publicly describe complete current
+  holdings and downloadable CSVs, but backend-equivalent retrieval of the
+  official origin returned HTTP `503` with `Retry-After: 3600`. No generated or
+  SEC-backed route was promoted in its place.
+- Targeted validation passed: Anfield deterministic route plus the registry and
+  concrete-live-route invariants (`3 passed`), the exact Anfield live route plus
+  the same two invariants (`3 passed`), Ruff, `git diff --check`, and `state.json`
+  parsing.
 ## 2026-07-21T20:40Z - Provider audit continuation
 
 - `backend/.venv/bin/pytest tests/unit/services/test_etf_holdings_adapters.py --no-cov -q`: passed, `347 passed`.
@@ -12126,3 +12209,11 @@ Append a short entry after each worker session.
 - A full live-matrix invocation produced partial progress only before the execution channel lost the test process/footer; it is not a completed validation result.
 - Official WisdomTree `DXJ`, `WTV`, and holdings entry points all returned publisher-side Cloudflare `403` responses to browser-equivalent backend requests.
 - Official SoFi `SFY`/`SFYF` product pages and Thrivent ETF/ETF-holdings pages each returned issuer-side `403` responses to browser-equivalent backend requests; no complete executable artifact was exposed.
+# ETF Holdings DoubleLine Source Revalidation - 2026-07-22T09:25Z
+
+- Browser-equivalent retrieval of DoubleLine's official ETF directory returned
+  issuer-side Cloudflare HTTP `403`; no executable complete-holdings route was
+  exposed for a fresh native validation in this environment.
+- A diagnostic full matrix using an 8-second provider request timeout was not
+  completed: the command host reaped its redirected child before output was
+  flushed. It is not validation evidence.
