@@ -1852,6 +1852,21 @@ class IssuerCsvAdapterConfig:
     terms_note: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class IssuerFallbackAudit:
+    """Evidence for a registered issuer that has no native holdings route yet.
+
+    A recognition-only adapter may use SEC as a fallback, but it must never be
+    mistaken for a native issuer integration. Keep the source-access outcome
+    explicit so adding or promoting an issuer requires a deliberate audit.
+    """
+
+    status: str
+    reason: str
+    next_action: str
+    last_checked: date
+
+
 class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
     """Issuer-aware CSV adapter driven by ETF identity/profile metadata.
 
@@ -36224,10 +36239,15 @@ class HowardCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch Anfield ETF holdings from issuer product-page CSV exports."""
+    """Fetch the current Anfield ETF portfolio from its public fund page.
+
+    Anfield retired the former AEMS route. Its active ADFI page declares the
+    complete current holdings table and a matching fund-scoped CSV. Keep this
+    adapter bounded to that issuer-owned route.
+    """
 
     PRODUCT_PAGE_URLS: dict[str, str] = {
-        "AEMS": "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/",
+        "ADFI": "https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/",
     }
 
     def resolve_product_page_url(
@@ -36248,7 +36268,7 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
-        headers["Referer"] = "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/"
+        headers["Referer"] = self.PRODUCT_PAGE_URLS["ADFI"]
         return headers
 
     async def fetch_latest(
@@ -36259,33 +36279,30 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
-        resolved_source_url = (
-            source_url
-            if source_url and source_url.lower().split("?", 1)[0].endswith(".csv")
-            else None
-        )
-        page_url = None
+        normalized_symbol = symbol.strip().upper()
+        page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if page_url is None:
+            raise ValueError(
+                "No verified Anfield native holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        resolved_source_url = source_url if source_url and self._is_verified_holdings_csv(source_url) else None
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             if not resolved_source_url:
-                page_url = source_url or self.resolve_product_page_url(
-                    symbol=symbol,
-                    issuer_product_id=issuer_product_id,
-                    identifiers=identifiers or {},
-                )
-                if not page_url:
-                    raise ValueError(f"Anfield product page route is unavailable for {symbol}.")
                 page_response = await client.get(
                     page_url,
                     headers=_issuer_page_request_headers(accept="text/html,*/*"),
                     follow_redirects=True,
                 )
                 page_response.raise_for_status()
+                if not self._is_verified_product_page(page_response.text):
+                    raise ValueError("Anfield product page identity did not match ADFI.")
                 resolved_source_url = self._discover_holdings_csv(
                     page_response.text,
                     base_url=str(page_response.url),
                 )
                 if not resolved_source_url:
-                    raise ValueError(f"Anfield product page did not expose a holdings CSV for {symbol}.")
+                    raise ValueError("Anfield product page did not expose ADFI's holdings CSV.")
 
             response = await client.get(
                 resolved_source_url,
@@ -36293,21 +36310,21 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
         response.raise_for_status()
-        rows, composition_date = self._parse_holdings_csv(response.text, fund_symbol=symbol)
+        rows, composition_date = self._parse_holdings_csv(response.text, fund_symbol=normalized_symbol)
         if not rows:
-            raise ValueError(f"Anfield holdings CSV did not expose rows for {symbol}.")
+            raise ValueError("Anfield ADFI holdings CSV did not expose rows.")
 
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
             source_url=str(response.url),
-            source_identifier=issuer_product_id or symbol.strip().upper(),
+            source_identifier=issuer_product_id or normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
-                "route_resolution": "issuer_product_page_discovered_holdings_csv",
+                "route_resolution": "anfield_adfi_product_page_declared_holdings_csv",
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
@@ -36327,7 +36344,23 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         ):
             raw_url = html.unescape(match.group("url")).replace("\\/", "/")
             candidates.append(urljoin(base_url, raw_url))
-        return candidates[0] if candidates else None
+        return next((url for url in candidates if AnfieldHoldingsAdapter._is_verified_holdings_csv(url)), None)
+
+    @staticmethod
+    def _is_verified_product_page(page_text: str) -> bool:
+        return (
+            "Anfield Dynamic Fixed Income ETF" in page_text
+            and re.search(r"\bADFI\b", page_text, flags=re.IGNORECASE) is not None
+        )
+
+    @staticmethod
+    def _is_verified_holdings_csv(source_url: str) -> bool:
+        parsed = urlparse(source_url)
+        return (
+            parsed.scheme == "https"
+            and parsed.netloc.lower() == "regentsparkfunds.com"
+            and re.fullmatch(r"/csv/holdings-1031-[\w.-]+\.csv", parsed.path) is not None
+        )
 
     @classmethod
     def _parse_holdings_csv(
@@ -36417,6 +36450,8 @@ class AnfieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifier: str | None,
     ) -> tuple[str, str]:
         text = " ".join(part.upper() for part in (raw_symbol, name, identifier) if part)
+        if any(marker in text for marker in ("FUTURE", " COMDTY", "OPTION", "SWAP", "FORWARD")):
+            return "other", "derivative"
         if any(
             marker in text
             for marker in (
@@ -48357,17 +48392,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "anfield": IssuerCsvAdapterConfig(
         adapter_key="anfield",
         source_provider="anfield",
-        source_access="issuer_public_product_page_discovered_holdings_csv",
+        source_access="issuer_public_adfi_product_page_declared_complete_holdings_csv",
         product_page_templates=(
-            "https://anfieldfunds.com/our-funds/anfield-enhanced-market-strategy-etf/",
+            "https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/",
         ),
-        # AEMS was the sole live test representative. Its issuer page and
-        # WordPress record are currently removed, so do not misrepresent this
-        # historical-export parser as a currently live-backed integration.
-        live_tested_default_route=False,
+        live_tested_default_route=True,
         terms_note=(
-            "Anfield's historical product-page CSV exports may be subject to issuer terms; "
-            "no current public ETF holdings route was available when last audited."
+            "Anfield's public ADFI product page and complete current holdings CSV may be "
+            "subject to issuer terms."
         ),
     ),
     "donoghue_forlines": IssuerCsvAdapterConfig(
@@ -49430,6 +49462,82 @@ for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
             source_provider=_adapter_key,
         ),
     )
+
+
+_FALLBACK_AUDIT_DATE = date(2026, 7, 22)
+
+# These identities remain registered because ETF discovery can identify them,
+# but they are not native provider integrations. The manifest is deliberately
+# exhaustive: a new recognition-only entry must be reviewed rather than being
+# silently counted as supported through the SEC fallback.
+_FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
+    "not_verified_us_etf_publisher": (
+        "aegon", "albert_mason", "araq", "barclays", "belpointe", "bmo",
+        "ci_financial", "colliers", "corient", "delaware", "epiris", "epwa",
+        "equitable", "estate_counselors", "eurazeo", "focus_financial", "graff",
+        "hwcap", "killir", "kingsview", "logan", "marathon", "mm_vam",
+        "msc_group", "neil_azous", "noa", "nsi", "orix", "pacific_investments",
+        "paralel", "planrock", "pmv", "rdj", "redbird", "resolute",
+        "reverence", "ridgeline", "rock_point", "saracen", "scm_edge",
+        "spend_life_wisely", "ubs", "warren",
+    ),
+    "issuer_access_blocked": (
+        "guinness_atkinson", "manulife", "sofi", "sun_life",
+        "symmetry", "thrivent", "westwood", "wisdomtree", "q3",
+    ),
+    "non_executable_public_source": (
+        "guardian", "nomura", "reflection", "vert",
+    ),
+    "provider_not_a_portfolio_publisher": ("precidian",),
+    "needs_first_party_route_discovery": (),
+}
+
+
+def _fallback_audit(status: str) -> IssuerFallbackAudit:
+    details = {
+        "not_verified_us_etf_publisher": (
+            "The discovered identity is not yet verified as an independent U.S. ETF "
+            "portfolio publisher with an executable public complete-holdings route.",
+            "Verify the publisher relationship and identify a first-party fund catalogue "
+            "before implementing a route.",
+        ),
+        "issuer_access_blocked": (
+            "The issuer advertises or is associated with ETF holdings, but its first-party "
+            "route currently blocks backend-equivalent access through WAF, Cloudflare, or "
+            "an authenticated data service.",
+            "Periodically re-test the issuer-owned route; add a bounded native adapter only "
+            "when a complete portfolio artifact is executable.",
+        ),
+        "non_executable_public_source": (
+            "No executable first-party complete current holdings artifact is available from "
+            "the audited public issuer routes.",
+            "Re-audit official product pages and disclosures for a complete machine-readable "
+            "or reliably parseable portfolio source.",
+        ),
+        "provider_not_a_portfolio_publisher": (
+            "This identity is an ETF technology or service provider, not an independent "
+            "publisher of complete ETF portfolios.",
+            "Resolve each sponsored fund to its actual portfolio-publishing issuer.",
+        ),
+        "needs_first_party_route_discovery": (
+            "No verified issuer-owned complete holdings route has been identified yet.",
+            "Continue first-party product-page and public-download route discovery.",
+        ),
+    }
+    reason, next_action = details[status]
+    return IssuerFallbackAudit(
+        status=status,
+        reason=reason,
+        next_action=next_action,
+        last_checked=_FALLBACK_AUDIT_DATE,
+    )
+
+
+FALLBACK_ISSUER_AUDITS: dict[str, IssuerFallbackAudit] = {
+    adapter_key: _fallback_audit(status)
+    for status, adapter_keys in _FALLBACK_AUDITS_BY_STATUS.items()
+    for adapter_key in adapter_keys
+}
 
 
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:

@@ -17,6 +17,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "abacus_global",
     "acp_horizon",
     "advent_capital",
+    "anfield",
     "archer_investment",
     "alternative_access",
     "rational",
@@ -2012,6 +2013,23 @@ async def test_live_toews_product_page_linked_holdings_csv():
     assert result.legal_metadata["route_resolution"] == "toews_product_page_linked_holdings_csv"
     assert result.legal_metadata["composition_date"]
     assert result.legal_metadata["source_format"] == "csv"
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("anfield")
+async def test_live_anfield_adfi_product_page_declared_holdings_csv():
+    adapter = get_holdings_adapter("anfield")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ADFI")
+
+    _assert_live_holdings_result(result, adapter_key="anfield", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == (
+        "anfield_adfi_product_page_declared_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip == "464288588" and row.symbol == "MBB" for row in result.rows)
 
 
 @pytest.mark.asyncio
