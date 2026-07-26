@@ -2,6 +2,32 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Belpointe PLGI Native Route Promotion - 2026-07-26T23:00Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label.
+- Promoted `belpointe` from fallback-only to native/live-backed through the
+  current PL Growth and Income ETF public page at `https://plgrowthincome.com/`
+  and its page-declared FilePoint JSON payload
+  `https://filepoint.live/PLGI_getdata_cached.php`.
+- Added isolated `BelpointeHoldingsAdapter` support for `PLGI`, explicit
+  live-backed config, adapter registration, `LIVE_BACKED_ISSUER_ADAPTERS`
+  coverage, concrete opt-in live coverage, and deterministic fake-client
+  coverage for product-page validation, app-script discovery, PLGI filtering,
+  equity identifier preservation, option classification, and cash
+  classification.
+- Removed `belpointe` from fallback audits. Strict state is now `345`
+  registered, `326` native/live-backed, and `19` fallback-only; SEC EDGAR
+  remains fallback-only and uncounted.
+- Validation passed: focused unit slice `6 passed`; focused opt-in Belpointe
+  live route `1 passed`; strict manifest recompute reported `audit_matches
+  True`, `test_matches_config True`, disjoint sets, and no missing/extra audits;
+  Ruff; deterministic adapter suite `413 passed`; `git diff --check`; full
+  opt-in ETF holdings live matrix `334 passed in 583.42s`.
+- Local implementation commit is `bc72f94 feat(etf): add Belpointe PLGI native
+  holdings route`. Push still depends on SSH authenticating as an account with
+  permission to `jagnelo/charting-platform`.
+
 # ETF Holdings Alternate Artifact/API Route Re-Audit - 2026-07-26T22:39Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime

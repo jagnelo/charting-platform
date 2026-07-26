@@ -1,5 +1,49 @@
 # Active Handoff
 
+## Belpointe PLGI native route promotion - 2026-07-26T23:00Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Implementation commit: `bc72f94 feat(etf): add Belpointe PLGI native holdings
+  route`. Once this ops checkpoint is committed separately, the branch will be
+  ahead of origin by seven local commits. Push still depends on SSH
+  authenticating as an account with permission to `jagnelo/charting-platform`.
+- Promoted `belpointe` from fallback-only / provider-not-publisher to
+  native/live-backed through the current PL Growth and Income ETF public product
+  page at `https://plgrowthincome.com/`. The page is backend-readable and its
+  application script declares the public FilePoint payload
+  `https://filepoint.live/PLGI_getdata_cached.php`.
+- Added an isolated `BelpointeHoldingsAdapter` for `PLGI` only. It validates the
+  product page identity and FilePoint success response, parses the latest
+  `2026-07-23` composition payload, preserves equity identifiers, keeps PLGI
+  option rows as non-tradable `option` rows without inventing symbols, and
+  classifies cash rows as cash.
+- Source metadata is intentionally honest: the route provenance is PL Growth and
+  Income ETF / Collaborative Fund Advisors / FilePoint, not a claim that the
+  route text itself names Belpointe. `belpointe` was removed from fallback
+  audits, added to `LIVE_BACKED_ISSUER_ADAPTERS`, and given explicit live-backed
+  adapter config plus deterministic and concrete opt-in live coverage.
+- Strict state is now `345` registered / `326` native-live-backed / `19`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed:
+  focused `belpointe or native_provider_sets or fallback` unit slice `6 passed`;
+  focused opt-in Belpointe live route `1 passed`; strict manifest recompute
+  `audit_matches True`, `test_matches_config True`, disjoint native/fallback
+  sets, and no missing/extra audits; Ruff; deterministic adapter suite
+  `413 passed`; `git diff --check`; full opt-in ETF holdings live matrix
+  `334 passed in 583.42s`.
+
+### Next step
+
+- Continue periodic route discovery for the remaining `19`, prioritizing only
+  backend-executable first-party complete/current holdings artifacts. Do not
+  count SEC filings, stale reports, key-gated APIs, WAF-blocked endpoints, or
+  unrelated delegated publisher routes as native provider support.
+
 ## Alternate artifact/API route re-audit - 2026-07-26T22:39Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
