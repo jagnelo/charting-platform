@@ -2,6 +2,34 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Alternate Artifact/API Route Re-Audit - 2026-07-26T22:39Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. No provider was promoted or demoted, and no backend code
+  changed.
+- Current branch is clean and ahead of origin by four local commits:
+  `3e31f36`, `3606a2b`, `c726406`, and `c747369`. Push remains blocked until
+  SSH authenticates as an account with permission to `jagnelo/charting-platform`.
+- Recomputed the current matrix from code: `345` registered, `325`
+  native/live-backed, `20` fallback-only.
+- Rechecked alternate public artifact/API routes. WisdomTree DataSpan
+  `funddetails` candidate routes for DXJ (`details`, `holdings`,
+  `top_holdings`, `nav`, `aggregates`) returned Cloudflare `403`; current
+  DataSpan docs describe key-gated access through `x-wt-dataspan-key`.
+- John Hancock / Manulife guessed JHCB/JHHY monthly/quarterly holdings and
+  annual-report document slugs returned `403 Access Denied`, not PDF holdings
+  content.
+- SoFi direct first-party CloudFront PDF artifacts were backend-fetchable, but
+  the discovered schedules are dated `2025-11-30` (`SFY` and `AGIQ`), and other
+  guessed newer quarterly PDF names returned CloudFront `403` XML. These stale
+  quarter-end schedules were not counted as a current native route.
+- PIMCO MINT remains page-readable, but fund-detail API guesses for documents,
+  regulatory documents, fund identity, holdings, and portfolio returned `401
+  Full authentication is required`.
+- Latest complete validation remains the previous checkpoint: deterministic
+  adapter suite `412 passed`, Ruff, strict manifest aligned, and full opt-in
+  ETF holdings live matrix `333 passed in 516.33s`.
+
 # ETF Holdings Provider-Not-Publisher and Blocked-Route Re-Audit - 2026-07-26T22:32Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime

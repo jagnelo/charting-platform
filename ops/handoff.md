@@ -1,5 +1,56 @@
 # Active Handoff
 
+## Alternate artifact/API route re-audit - 2026-07-26T22:39Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is clean and ahead of origin by four local commits:
+  `3e31f36 feat(etf): expand native holdings provider coverage`,
+  `3606a2b chore(ops): checkpoint ETF holdings live matrix`,
+  `c726406 chore(ops): record ETF fallback route audit`, and
+  `c747369 chore(ops): record ETF provider identity audit`. Push remains
+  blocked until SSH authenticates as an account with permission to
+  `jagnelo/charting-platform`.
+- Recomputed the current fallback-only set from code: `345` registered / `325`
+  native/live-backed / `20` fallback-only. This pass focused on alternate
+  public artifacts and APIs rather than the already-rechecked product-page
+  surfaces.
+- `wisdomtree` remains unpromoted. Current WisdomTree DataSpan public API docs
+  describe `funddetails` endpoints but require an `x-wt-dataspan-key`, and
+  backend probes of `dataspanapi.wisdomtree.com/funddetails/...` candidate
+  routes for DXJ (`details`, `holdings`, `top_holdings`, `nav`, `aggregates`)
+  returned Cloudflare `403` HTML.
+- `manulife` remains unpromoted. Current John Hancock / Manulife document URL
+  guesses for JHCB and JHHY monthly/quarterly holdings plus annual report slugs
+  all returned Akamai-style `403 Access Denied`, not PDF or machine-readable
+  holdings content.
+- `sofi` remains unpromoted. Direct first-party CloudFront PDF artifacts were
+  backend-fetchable, but the discovered `Fiscal-Q3-Quarterly-Holdings-1.pdf`
+  and `Fiscal-Q3-Quarterly-Holdings.pdf` schedules are dated `2025-11-30`
+  (`SFY` and `AGIQ` respectively). Other guessed quarterly PDF filenames
+  returned CloudFront `403` XML. These stale quarter-end schedules are not a
+  current complete native route.
+- `pacific_investments` / PIMCO remains unpromoted. PIMCO MINT product page is
+  still backend-readable, but fund-detail API guesses for documents, regulatory
+  documents, fund identity, holdings, and portfolio all returned `401 Full
+  authentication is required`.
+- No provider was promoted or demoted, and no backend code changed. Strict
+  state and validation remain from the previous checkpoint: full opt-in live
+  matrix `333 passed in 516.33s`, deterministic adapter suite `412 passed`,
+  Ruff clean, and manifest alignment proven.
+
+### Next step
+
+- Continue periodic route discovery for the remaining `20`, but do not promote
+  stale quarter-end PDFs, key-gated APIs, auth-blocked document endpoints, SEC
+  filings, or third-party holdings pages. A promotable route still needs to be
+  first-party, backend-executable, complete, and current enough to satisfy the
+  native provider standard.
+
 ## Provider-not-publisher and blocked-route re-audit - 2026-07-26T22:32Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
