@@ -93,6 +93,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "baird",
     "barclays",
     "baron",
+    "belpointe",
     "bmo",
     "bcp_cc",
     "build",
@@ -601,6 +602,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "belpointe",
+            "PLGI",
+            None,
+            {},
+            100,
         ),
         (
             "zacks",

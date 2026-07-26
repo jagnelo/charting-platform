@@ -17801,6 +17801,8 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["allianz"]["support_route_types"]
     assert adapters["adaptive_investments"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["adaptive_investments"]["support_route_types"]
+    assert adapters["belpointe"]["live_tested_default_route"] is True
+    assert "issuer_native_live_route" in adapters["belpointe"]["support_route_types"]
     assert adapters["applied_finance"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["applied_finance"]["support_route_types"]
     assert adapters["alliancebernstein"]["live_tested_default_route"] is True
@@ -19599,6 +19601,115 @@ async def test_sovereign_adapter_parses_only_sovf_linked_holdings_workbook(monke
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
+async def test_belpointe_plgi_adapter_discovers_filepoint_payload_and_parses_holdings(monkeypatch):
+    adapter = get_holdings_adapter("belpointe")
+    assert adapter is not None
+
+    payload = {
+        "response": {"status_description": "Success", "status_code": 0},
+        "data": {
+            "2026-07-23": [
+                {
+                    "fund_ticker": "PLGI",
+                    "fund_description": "PL Growth and Income ETF",
+                    "fund_cusip": "19423L417",
+                    "fund_isin": "US19423L4178",
+                    "etf_issuer": "Collaborative Fund Advisors",
+                    "number_of_holdings_in_etf": 168,
+                    "constituents": [
+                        {
+                            "etf_ticker": "PLGI",
+                            "constituent_ticker": "INTC",
+                            "constituent_description": "INTEL CORP",
+                            "constituent_weight": "0.007126",
+                            "constituent_market_value": "366440.88",
+                            "constituent_cusip": "458140100",
+                            "constituent_isin": "US4581401001",
+                            "constituent_figi": "BBG000C0G1D1",
+                            "constituent_sedol": "2463247",
+                            "shares_held_of_constituent": "3656.0",
+                        },
+                        {
+                            "etf_ticker": "PLGI",
+                            "constituent_ticker": "NVDA US 08/21/26 C230",
+                            "constituent_description": "NVDA US 08/21/26 C230",
+                            "constituent_weight": "-0.001234",
+                            "constituent_market_value": "-63424.12",
+                            "shares_held_of_constituent": "-7.0",
+                        },
+                        {
+                            "etf_ticker": "PLGI",
+                            "constituent_ticker": "",
+                            "constituent_description": "CASH AND CASH EQUIVALENTS",
+                            "constituent_weight": "0.003118",
+                            "constituent_market_value": "160345.20",
+                        },
+                        {
+                            "etf_ticker": "OTHER",
+                            "constituent_ticker": "AAPL",
+                            "constituent_description": "APPLE INC",
+                            "constituent_weight": "0.01",
+                        },
+                    ],
+                }
+            ]
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<html><title>PL Growth and Income ETF</title>'
+                '<button id="downloadHoldingsBtn">Download All</button>PLGI'
+                '<script src="assets/js/app.js"></script></html>'
+            ),
+            content_type="text/html",
+            url="https://plgrowthincome.com/",
+        ),
+        FakeResponse(
+            text='const holdingsUrl = "https://filepoint.live/PLGI_getdata_cached.php";',
+            content_type="application/javascript",
+            url="https://plgrowthincome.com/assets/js/app.js",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/PLGI_getdata_cached.php",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PLGI")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://plgrowthincome.com/",
+        "https://plgrowthincome.com/assets/js/app.js",
+        "https://filepoint.live/PLGI_getdata_cached.php",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "INTC"
+    assert result.rows[0].cusip == "458140100"
+    assert result.rows[0].isin == "US4581401001"
+    assert result.rows[0].sedol == "2463247"
+    assert result.rows[0].weight == Decimal("0.007126")
+    assert result.rows[0].shares == Decimal("3656.0")
+    assert result.rows[0].market_value == Decimal("366440.88")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].holding_type == "option"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.raw_json["fund_metadata"]["etf_issuer"] == "Collaborative Fund Advisors"
+    assert result.legal_metadata["source_provider"] == "pl_growth_income"
+    assert result.legal_metadata["source_format"] == "filepoint_json"
+    assert result.legal_metadata["route_resolution"] == (
+        "plgi_product_page_declared_filepoint_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-23"
 
 
 @pytest.mark.asyncio

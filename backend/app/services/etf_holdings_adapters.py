@@ -23855,6 +23855,234 @@ class AdaptiveInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "equity"
 
 
+class BelpointeHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch PLGI complete holdings from its public fund page FilePoint payload."""
+
+    SUPPORTED_SYMBOL = "PLGI"
+    PRODUCT_PAGE_URL = "https://plgrowthincome.com/"
+    APP_JS_URL = "https://plgrowthincome.com/assets/js/app.js"
+    HOLDINGS_URL_RE = re.compile(
+        r"https://filepoint\.live/PLGI_getdata_cached\.php",
+        flags=re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.3500"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "PLGI publishes complete current holdings through its public fund page FilePoint payload."
+                if supported
+                else (
+                    "No verified Belpointe/PLGI native holdings route is configured for "
+                    f"{normalized_symbol or 'an empty symbol'}; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified Belpointe/PLGI native holdings route is configured for "
+                    f"{normalized_symbol or 'an empty symbol'}."
+                )
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                "No verified Belpointe/PLGI native holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and not self._is_official_product_page(source_url):
+            raise ValueError("Belpointe/PLGI holdings must be resolved from the official PLGI page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_page_response.raise_for_status()
+            self._validate_product_page(product_page_response.text)
+            script_response = await client.get(
+                self.APP_JS_URL,
+                headers={
+                    **_issuer_page_request_headers(accept="application/javascript,text/javascript,*/*"),
+                    "Referer": str(product_page_response.url),
+                },
+                follow_redirects=True,
+            )
+            script_response.raise_for_status()
+            holdings_url = self._discover_holdings_url(script_response.text)
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                    "Referer": str(product_page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        payload = holdings_response.json()
+        rows, composition_date, fund_metadata = self._parse_holdings_payload(payload)
+        if not rows:
+            raise ValueError("PLGI FilePoint holdings payload returned no complete rows.")
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "filepoint_json",
+                "fund_metadata": fund_metadata,
+                "row_count": len(rows),
+            },
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "filepoint_json",
+                "route_resolution": "plgi_product_page_declared_filepoint_holdings_json",
+                "product_page_url": str(product_page_response.url),
+                "app_script_url": self.APP_JS_URL,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "plgi_native_filepoint_payload",
+                "publisher_metadata": fund_metadata,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, page_text: str) -> None:
+        normalized = html.unescape(page_text).lower()
+        if "pl growth and income etf" not in normalized or "plgi" not in normalized:
+            raise ValueError("PLGI product page identity did not match requested ETF.")
+        if "downloadholdingsbtn" not in normalized:
+            raise ValueError("PLGI product page did not expose its complete holdings download control.")
+
+    @classmethod
+    def _discover_holdings_url(cls, app_js: str) -> str:
+        match = cls.HOLDINGS_URL_RE.search(app_js)
+        if match is None:
+            raise ValueError("PLGI app script did not declare its FilePoint holdings payload route.")
+        return match.group(0)
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date, dict[str, Any]]:
+        if not isinstance(payload, dict) or payload.get("response", {}).get("status_code") != 0:
+            raise ValueError("PLGI FilePoint payload did not report a successful response.")
+        data = payload.get("data")
+        if not isinstance(data, dict) or not data:
+            return [], date.min, {}
+        latest_key = max(data)
+        fund_entries = data.get(latest_key)
+        if not isinstance(fund_entries, list) or not fund_entries or not isinstance(fund_entries[0], dict):
+            return [], date.min, {}
+        fund = fund_entries[0]
+        if (_clean(fund.get("fund_ticker")) or "").upper() != cls.SUPPORTED_SYMBOL:
+            raise ValueError("PLGI FilePoint payload did not match requested ETF PLGI.")
+        composition_date = cls._parse_date(fund.get("as_of_date") or latest_key)
+        if composition_date is None:
+            raise ValueError("PLGI FilePoint payload did not expose an as-of date.")
+        constituents = fund.get("constituents")
+        if not isinstance(constituents, list):
+            return [], composition_date, cls._fund_metadata(fund)
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(constituents, start=1):
+            if not isinstance(item, dict):
+                continue
+            if (_clean(item.get("etf_ticker")) or "").upper() != cls.SUPPORTED_SYMBOL:
+                continue
+            name = _clean(item.get("constituent_description"))
+            raw_ticker = _clean(item.get("constituent_ticker"))
+            cusip = _clean(item.get("constituent_cusip"))
+            isin = _clean(item.get("constituent_isin"))
+            sedol = _clean(item.get("constituent_sedol"))
+            if not any((name, raw_ticker, cusip, isin, sedol)):
+                continue
+            row_type, holding_type = cls._classify_holding(name=name, ticker=raw_ticker)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=raw_ticker.upper() if raw_ticker and row_type == "security" else None,
+                    name=name or raw_ticker,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin.upper() if isin and _looks_like_isin(isin.upper()) else None,
+                    sedol=sedol,
+                    weight=_decimal(item.get("constituent_weight")),
+                    shares=_decimal(item.get("shares_held_of_constituent")),
+                    market_value=_decimal(item.get("constituent_market_value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"PLGI-{composition_date.isoformat()}-{index}:{cusip or raw_ticker or name}",
+                    extra_data={
+                        key: value
+                        for key, value in item.items()
+                        if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date, cls._fund_metadata(fund)
+
+    @staticmethod
+    def _fund_metadata(fund: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: value
+            for key, value in fund.items()
+            if key != "constituents" and _clean(value) is not None
+        }
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _is_official_product_page(source_url: str) -> bool:
+        parsed = urlparse(source_url)
+        return parsed.scheme == "https" and parsed.netloc.lower() in {
+            "plgrowthincome.com",
+            "www.plgrowthincome.com",
+        }
+
+    @staticmethod
+    def _classify_holding(*, name: str | None, ticker: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (name, ticker) if part)
+        if "CASH" in text or "CASH EQUIVALENT" in text:
+            return "cash", "cash"
+        if re.search(r"\b[A-Z0-9.]+ US \d{2}/\d{2}/\d{2,4} [CP]\d", text):
+            return "other", "option"
+        if any(token in text for token in ("OPTION", "SWAP", "FUTURE", " FORWARD")):
+            return "other", "derivative"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+
 class AllspringHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def resolve_source_url(
         self,
@@ -54808,6 +55036,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Adaptive Investments public ETF fund-page holdings payloads may be subject to issuer terms.",
     ),
+    "belpointe": IssuerCsvAdapterConfig(
+        adapter_key="belpointe",
+        source_provider="pl_growth_income",
+        source_access="plgi_product_page_declared_filepoint_current_holdings_json",
+        product_page_templates=(
+            "https://plgrowthincome.com/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "PL Growth and Income ETF/Collaborative Fund Advisors public product page "
+            "declares a FilePoint complete-holdings payload that may be subject to "
+            "issuer terms."
+        ),
+    ),
     "mm_vam": IssuerCsvAdapterConfig(
         adapter_key="mm_vam",
         source_provider="vident_investment_advisory",
@@ -57949,7 +58191,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "epwa", "pacific_investments", "planrock",
     ),
     "provider_not_a_portfolio_publisher": (
-        "belpointe", "epiris", "eurazeo",
+        "epiris", "eurazeo",
         "marathon", "msc_group", "orix",
         "rock_point",
     ),
@@ -58038,6 +58280,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ameriprise": AmeripriseHoldingsAdapter,
         "amplify": AmplifyHoldingsAdapter,
         "adaptive_investments": AdaptiveInvestmentsHoldingsAdapter,
+        "belpointe": BelpointeHoldingsAdapter,
         "akre": AkreHoldingsAdapter,
         "agf": AgfHoldingsAdapter,
         "alexis": AlexisHoldingsAdapter,
