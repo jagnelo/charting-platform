@@ -1,5 +1,54 @@
 # Active Handoff
 
+## Provider-not-publisher and blocked-route re-audit - 2026-07-26T22:32Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is clean and ahead of origin by three local commits:
+  `3e31f36 feat(etf): expand native holdings provider coverage`,
+  `3606a2b chore(ops): checkpoint ETF holdings live matrix`, and
+  `c726406 chore(ops): record ETF fallback route audit`. Push remains blocked
+  until SSH authenticates as an account with permission to
+  `jagnelo/charting-platform`.
+- Recomputed the current fallback-only set from code again: `345` registered /
+  `325` native/live-backed / `20` fallback-only. Buckets remain
+  `issuer_access_blocked`: `aegon`, `guinness_atkinson`, `manulife`, `q3`,
+  `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`, `wisdomtree`;
+  `non_executable_public_source`: `epwa`, `pacific_investments`, `planrock`;
+  `provider_not_a_portfolio_publisher`: `belpointe`, `epiris`, `eurazeo`,
+  `marathon`, `msc_group`, `orix`, `rock_point`.
+- Rechecked the provider-not-publisher bucket for delegated/successor routes.
+  `orix` was not promoted: Defiance's current ORCX pages are
+  backend-executable (`/orcx/` and `/orcx-full-holdings/` return HTTP `200` and
+  a holdings table), but the pages identify ORCX as the Daily Target 2X Long
+  ORCL ETF and do not identify ORIX as the portfolio publisher. Counting ORIX
+  through that route would be a false positive. `rock_point` was not promoted:
+  current guessed Rock Point ETF domains do not resolve, while ADPV remains
+  covered by `adaptive_investments`; no current Rock Point publisher route was
+  found.
+- Rechecked additional blocked routes. `westwood` MDST product, exact
+  `1471-Holdings.csv`, and download-query routes still return Cloudflare `403`.
+  `ridgeline` ACVF product/fund-data routes still return nginx `403`, and the
+  old `acvfunds.com` host does not resolve. `aegon` / Transamerica fund center,
+  fund list, TALV, and TABD pages still return the 212-byte Incapsula shell;
+  guessed TALV/TABD holdings CSV paths return Transamerica `404` pages.
+- No provider was promoted or demoted in this audit-only pass. Strict state and
+  validation remain from the previous checkpoint: `333 passed in 516.33s` for
+  the full opt-in live matrix, `412 passed` for the deterministic adapter
+  suite, Ruff clean, and manifest alignment proven.
+
+### Next step
+
+- Continue periodic route discovery for the remaining `20`, but keep rejecting
+  delegated routes unless the current first-party evidence links the registered
+  identity to the actual portfolio-publishing route. High-value route-change
+  candidates remain `wisdomtree`, `sofi`, `rex`, `thrivent`, `manulife`,
+  `westwood`, `q3`, `aegon`, `ridgeline`, `guinness_atkinson`, and PIMCO.
+
 ## Fallback route re-audit - 2026-07-26T22:26Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

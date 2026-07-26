@@ -2,6 +2,38 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Provider-Not-Publisher and Blocked-Route Re-Audit - 2026-07-26T22:32Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. No provider was promoted or demoted.
+- Current branch is clean and ahead of origin by three local commits:
+  `3e31f36`, `3606a2b`, and `c726406`. Push remains blocked until SSH
+  authenticates as an account with permission to `jagnelo/charting-platform`.
+- Recomputed the current matrix from code: `345` registered, `325`
+  native/live-backed, `20` fallback-only. Buckets remain unchanged:
+  `issuer_access_blocked` (`aegon`, `guinness_atkinson`, `manulife`, `q3`,
+  `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`, `wisdomtree`),
+  `non_executable_public_source` (`epwa`, `pacific_investments`, `planrock`),
+  and `provider_not_a_portfolio_publisher` (`belpointe`, `epiris`, `eurazeo`,
+  `marathon`, `msc_group`, `orix`, `rock_point`).
+- Rechecked provider-not-publisher possibilities. Defiance's current ORCX pages
+  are backend-executable and expose holdings, but they identify ORCX as the
+  Daily Target 2X Long ORCL ETF and do not identify ORIX as the portfolio
+  publisher, so `orix` was not promoted through that unrelated route.
+  `rock_point` was not promoted because current guessed Rock Point ETF domains
+  do not resolve and ADPV remains covered by `adaptive_investments` rather than
+  a separate current Rock Point publisher route.
+- Rechecked additional blocked routes. `westwood` MDST product, exact CSV, and
+  query download routes still return Cloudflare `403`; `ridgeline` ACVF current
+  routes still return nginx `403` and the old host does not resolve; `aegon` /
+  Transamerica fund-center/TALV/TABD routes still return the 212-byte Incapsula
+  shell, while guessed TALV/TABD holdings CSV paths return Transamerica `404`
+  pages.
+- No validation-impacting code changed. Latest complete validation remains the
+  previous checkpoint: deterministic adapter suite `412 passed`, Ruff, strict
+  manifest aligned, and full opt-in ETF holdings live matrix `333 passed in
+  516.33s`.
+
 # ETF Holdings Fallback Route Re-Audit - 2026-07-26T22:26Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
