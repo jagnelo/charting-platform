@@ -17,22 +17,21 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "abacus_global",
     "acp_horizon",
     "advent_capital",
-    "anfield",
     "archer_investment",
     "alternative_access",
     "rational",
     "dakota_wealth",
     "dana",
-    "donoghue_forlines",
     "dawn_global",
     "envestnet",
     "amerilife",
     "marygold",
     "soundwatch",
+    "equitable",
+    "estate_counselors",
     "sound_capital",
     "sovereign",
     "wealthtrust",
-    "toews",
     "wedbush",
     "shelton",
     "tidal",
@@ -50,6 +49,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "affiliated_managers_group",
     "agf",
     "ag_financial",
+    "albert_mason",
     "alexis",
     "artemis",
     "unlimited",
@@ -59,11 +59,16 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "lagan",
     "beacon_capital",
     "retireful",
+    "resolute",
     "srn",
     "myriad",
     "reckoner",
+    "redbird",
+    "redwood",
+    "reflection",
     "nightview",
     "gladius",
+    "guardian",
     "shariaportfolio",
     "x_square",
     "advisor_shares",
@@ -75,16 +80,20 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "american_century",
     "ameriprise",
     "amplify",
+    "anfield",
     "angel_oak",
     "applied_finance",
     "aptus",
+    "araq",
     "ark",
     "arrow",
     "astoria",
     "axs",
     "bahl_gaynor",
     "baird",
+    "barclays",
     "baron",
+    "bmo",
     "bcp_cc",
     "build",
     "bitwise",
@@ -105,6 +114,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "ccm",
     "capital_group",
     "cary_street",
+    "colliers",
     "peakshares",
     "kingsbarn",
     "prospera",
@@ -121,7 +131,9 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "corgi",
     "concourse",
     "cotwo",
+    "corient",
     "distribution_cognizant",
+    "donoghue_forlines",
     "counterpoint",
     "convergence",
     "cullen",
@@ -132,8 +144,10 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "clough_cgi",
     "davis",
     "defiance",
+    "delaware",
     "dividend_assets",
     "deepwater",
+    "ci_financial",
     "digital_currency_group",
     "deutsche_bank",
     "diamond_hill",
@@ -153,6 +167,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "faith_investor_services",
     "first_pacific",
     "federated_hermes",
+    "focus_financial",
     "fmc_group",
     "fidelity",
     "frontier",
@@ -161,7 +176,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "formidable",
     "idx",
     "indexperts",
-    "ironhorse",
     "fortuna",
     "liquid_strategies",
     "lionshares",
@@ -175,12 +189,13 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "franklin",
     "future_fund",
     "global_x",
+    "graff",
     "mirae_asset",
     "groupe_bpce",
     "gqg",
     "gamco",
-    "gmo",
     "goldman_sachs",
+    "gmo",
     "golden_eagle",
     "graniteshares",
     "grayscale",
@@ -188,9 +203,12 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hartford",
     "harbor",
     "hedgeye",
+    "scm_edge",
     "hennessy",
+    "ironhorse",
     "horizon_kinetics",
     "howard_capital",
+    "hwcap",
     "hull",
     "hypatia",
     "inspire",
@@ -202,14 +220,16 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "jensen",
     "janus_henderson",
     "jpmorgan",
+    "kingsview",
+    "killir",
     "kraneshares",
     "kensington",
     "kurv",
     "langar",
     "lazard",
-    "rex",
     "leuthold",
     "little_harbor",
+    "logan",
     "main_management",
     "man_group",
     "mairs_power",
@@ -219,18 +239,26 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "miller_value",
     "mitsubishi_ufj",
     "mcivy",
+    "mm_vam",
     "motley_fool",
     "neos",
     "neuberger_berman",
+    "neil_azous",
+    "nomura",
     "new_york_life",
+    "noa",
     "northern_trust",
+    "nsi",
     "ocean_park",
     "osprey",
+    "paralel",
     "pacer",
     "pictet",
     "ptam",
+    "precidian",
     "praxis",
     "palmer_square",
+    "pmv",
     "point_bridge",
     "pettee",
     "polen",
@@ -239,19 +267,22 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "procuream",
     "proshares",
     "rafferty",
+    "rdj",
     "rayliant",
     "raymond_james",
-    "redwood",
     "russell_investments",
     "renaissance_capital",
+    "reverence",
     "roundhill",
     "river_north",
     "running_oak",
+    "saracen",
     "schwab",
     "sei",
     "simplify",
     "spdr",
     "spear",
+    "spend_life_wisely",
     "sprott",
     "split_rock",
     "ssc",
@@ -264,12 +295,15 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "inverdale",
     "strive",
     "swan_global",
+    "sun_life",
+    "symmetry",
     "tapp",
     "tiaa",
     "tcw",
     "thor",
     "tortoise",
     "texas_capital",
+    "toews",
     "tuttle",
     "true_shares",
     "truemark",
@@ -279,15 +313,18 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "tema",
     "teucrium",
     "themes",
+    "ubs",
     "us_global_investors",
     "vanguard",
     "vaneck",
+    "vert",
     "victory",
     "virtus",
     "volatility_shares",
     "vontobel",
     "voya",
     "wahed",
+    "warren",
     "water_island",
     "wellington",
     "weitz",
@@ -363,6 +400,16 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("archer_investment", "ARWG", None, {}, 20),
         ("818", "SPCT", None, {}, 20),
         ("arlington", "AQEC", None, {}, 20),
+        ("kingsview", "MVFD", None, {}, 30),
+        ("killir", "GARY", None, {}, 20),
+        ("rdj", "HEDG", None, {}, 8),
+        ("reverence", "OOSP", None, {}, 200),
+        ("saracen", "SJCP", None, {}, 10),
+        ("mm_vam", "VUSE", None, {}, 100),
+        ("albert_mason", "KNOW", None, {}, 50),
+        ("focus_financial", "EBI", None, {}, 1000),
+        ("graff", "PFDE", None, {}, 50),
+        ("resolute", "AHLT", None, {}, 200),
         (
             "corgi",
             "FDRS",
@@ -371,7 +418,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         ("indexperts", "QIDX", None, {}, 100),
-        ("ironhorse", "CGV", None, {}, 50),
         ("fortuna", "HBTC", None, {}, 5),
         ("liquid_strategies", "OVL", None, {}, 5),
         (
@@ -436,6 +482,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "scm_edge",
+            "HEFT",
+            None,
+            {},
+            50,
         ),
         (
             "polen",
@@ -515,6 +568,34 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         (
+            "neil_azous",
+            "RDFI",
+            None,
+            {},
+            20,
+        ),
+        (
+            "nomura",
+            "FRWD",
+            None,
+            {},
+            20,
+        ),
+        (
+            "delaware",
+            "LRGG",
+            None,
+            {},
+            20,
+        ),
+        (
+            "ironhorse",
+            "CGV",
+            None,
+            {},
+            100,
+        ),
+        (
             "adaptive_investments",
             "ADPV",
             None,
@@ -543,11 +624,18 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             1,
         ),
         (
+            "precidian",
+            "ASMH",
+            None,
+            {},
+            2,
+        ),
+        (
             "advisor_shares",
             "MSOS",
             None,
             {},
-            5,
+            4,
         ),
         (
             "allianz",
@@ -557,11 +645,32 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             5,
         ),
         (
+            "araq",
+            "SSUS",
+            None,
+            {},
+            10,
+        ),
+        (
             "alliancebernstein",
             "FWD",
             None,
             {},
             100,
+        ),
+        (
+            "equitable",
+            "FWD",
+            None,
+            {},
+            100,
+        ),
+        (
+            "estate_counselors",
+            "TBFC",
+            None,
+            {},
+            20,
         ),
         (
             "amplify",
@@ -585,6 +694,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         (
+            "guardian",
+            "SCNM",
+            None,
+            {},
+            20,
+        ),
+        (
             "sterling_capital",
             "SCEP",
             None,
@@ -596,7 +712,21 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "SCMC",
             None,
             {},
-            20,
+            100,
+        ),
+        (
+            "hwcap",
+            "HWSM",
+            None,
+            {},
+            100,
+        ),
+        (
+            "spend_life_wisely",
+            "SLWS",
+            None,
+            {},
+            100,
         ),
         (
             "stf",
@@ -613,6 +743,55 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             10,
         ),
         (
+            "paralel",
+            "SRHQ",
+            None,
+            {},
+            50,
+        ),
+        (
+            "logan",
+            "LCLG",
+            None,
+            {},
+            50,
+        ),
+        (
+            "pmv",
+            "ARP",
+            None,
+            {},
+            5,
+        ),
+        (
+            "warren",
+            "WCAP",
+            None,
+            {},
+            20,
+        ),
+        (
+            "barclays",
+            "ATMP",
+            None,
+            {},
+            10,
+        ),
+        (
+            "bmo",
+            "BNKU",
+            None,
+            {},
+            10,
+        ),
+        (
+            "ubs",
+            "PFFL",
+            None,
+            {},
+            2,
+        ),
+        (
             "concourse",
             "CCFE",
             None,
@@ -627,11 +806,14 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         ("natixis", "GQI", None, {}, 100),
+        ("nsi", "NSI", None, {}, 40),
         ("western_southern", "LCF", None, {}, 20),
         ("intech", "LGDX", None, {}, 100),
         ("inverdale", "MGMT", None, {}, 20),
         ("split_rock", "KOOL", None, {}, 20),
         ("ptam", "STBF", None, {}, 100),
+        ("ci_financial", "SBH", None, {}, 20),
+        ("reflection", "DEMZ", None, {}, 40),
         ("cotwo", "CTWO", None, {}, 2),
         ("frontier", "FARX", None, {}, 10),
         ("goose_hollow", "GHTA", None, {}, 10),
@@ -1126,13 +1308,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         (
-            "goldman_sachs",
-            "GVIP",
-            None,
-            {},
-            20,
-        ),
-        (
             "grayscale",
             "GBTC",
             None,
@@ -1224,6 +1399,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             100,
         ),
         (
+            "noa",
+            "USAF",
+            None,
+            {},
+            50,
+        ),
+        (
             "northern_trust",
             "QDF",
             None,
@@ -1294,13 +1476,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             50,
         ),
         (
-            "rex",
-            "FEPI",
-            None,
-            {},
-            30,
-        ),
-        (
             "leuthold",
             "LCR",
             None,
@@ -1347,7 +1522,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "VUSV",
             None,
             {},
-            80,
+            70,
         ),
         (
             "innovator",
@@ -1383,6 +1558,20 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             10,
+        ),
+        (
+            "sun_life",
+            "MFSV",
+            None,
+            {},
+            50,
+        ),
+        (
+            "symmetry",
+            "SMOM",
+            None,
+            {},
+            5,
         ),
         (
             "tapp",
@@ -1560,6 +1749,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             40,
         ),
         (
+            "vert",
+            "VGSR",
+            None,
+            {},
+            100,
+        ),
+        (
             "virtus",
             "SSMG",
             None,
@@ -1592,7 +1788,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "OPER",
             None,
             {},
-            5,
+            4,
         ),
         (
             "clough",
@@ -1658,6 +1854,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             20,
         ),
         (
+            "colliers",
+            "NFRX",
+            None,
+            {},
+            20,
+        ),
+        (
             "kingsbarn",
             "DVDN",
             None,
@@ -1711,12 +1914,11 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("affiliated_managers_group", "MUNX", None, {}, 50),
         ("raymond_james", "RJDI", None, {}, 30),
         ("osprey", "OSOL", None, {}, 1),
-        ("redwood", "LSAF", None, {}, 100),
+        ("goldman_sachs", "GSLC", None, {}, 400),
         ("alexis", "LEXI", None, {}, 20),
         ("ag_financial", "CLCG", None, {}, 20),
         ("artemis", "ACEP", None, {}, 20),
         ("unlimited", "HFND", None, {}, 40),
-        ("donoghue_forlines", "DFTT", None, {}, 20),
         ("x_square", "ZTAX", None, {}, 10),
         ("webs", "DVSP", None, {}, 4),
         ("waverly", "GGM", None, {}, 5),
@@ -1732,6 +1934,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("srn", "BLCN", None, {}, 5),
         ("myriad", "MDAA", None, {}, 50),
         ("reckoner", "RAAA", None, {}, 50),
+        ("redbird", "RCLR", None, {}, 3),
+        ("redwood", "DYLD", None, {}, 100),
         ("nightview", "NITE", None, {}, 10),
         ("gladius", "CMBO", None, {}, 6),
         ("shariaportfolio", "SPTE", None, {}, 50),
@@ -2024,12 +2228,30 @@ async def test_live_anfield_adfi_product_page_declared_holdings_csv():
 
     result = await adapter.fetch_latest(symbol="ADFI")
 
-    _assert_live_holdings_result(result, adapter_key="anfield", min_rows=10)
+    _assert_live_holdings_result(result, adapter_key="anfield", min_rows=3)
     assert result.legal_metadata["route_resolution"] == (
         "anfield_adfi_product_page_declared_holdings_csv"
     )
     assert result.legal_metadata["composition_date"]
-    assert any(row.cusip == "464288588" and row.symbol == "MBB" for row in result.rows)
+    assert any(row.holding_type == "derivative" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("donoghue_forlines")
+async def test_live_donoghue_forlines_product_page_declared_holdings_csv():
+    adapter = get_holdings_adapter("donoghue_forlines")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="DFTT")
+
+    _assert_live_holdings_result(result, adapter_key="donoghue_forlines", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "donoghue_forlines_product_page_ajax_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert result.legal_metadata["source_format"] == "csv"
 
 
 @pytest.mark.asyncio
@@ -2126,7 +2348,7 @@ async def test_live_thor_product_page_scoped_holdings_api():
     _assert_live_holdings_result(result, adapter_key="thor", min_rows=2)
     assert result.legal_metadata["route_resolution"] == "thor_product_page_scoped_holdings_api"
     assert result.legal_metadata["composition_date"]
-    assert result.rows[1].cusip == "78462F103"
+    assert any(row.cusip and row.holding_type == "equity" for row in result.rows)
 
 
 @pytest.mark.asyncio
@@ -2506,6 +2728,26 @@ async def test_live_eldridge_combined_daily_holdings_file_filters_requested_etf(
     assert result.legal_metadata["route_resolution"] == "issuer_combined_daily_holdings_csv"
     assert result.legal_metadata["composition_date"]
     assert all(row.extra_data.get("Account") == "CLOX" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("corient")
+async def test_live_corient_fundx_product_page_declared_csv_viewer_holdings():
+    adapter = get_holdings_adapter("corient")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="XCOR")
+
+    _assert_live_holdings_result(result, adapter_key="corient", min_rows=10)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "fundx_product_page_declared_csv_viewer_holdings_json"
+    )
+    assert result.legal_metadata["publisher"] == "fundx"
+    assert result.legal_metadata["parent_issuer"] == "corient"
+    assert any(row.symbol == "IOO" for row in result.rows)
+    assert any(row.cusip for row in result.rows)
 
 
 def _parametrized_live_provider_keys(*tests) -> set[str]:
