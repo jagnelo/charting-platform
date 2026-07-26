@@ -1,5 +1,54 @@
 # Active Handoff
 
+## Fallback route re-audit - 2026-07-26T22:26Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is clean but still ahead of origin by the two local commits
+  from the previous push attempt: `3e31f36 feat(etf): expand native holdings
+  provider coverage` and `3606a2b chore(ops): checkpoint ETF holdings live
+  matrix`. Push previously failed because GitHub authenticated the SSH key as
+  `jagnelo-symbiotech`, which lacks permission to `jagnelo/charting-platform`.
+- Recomputed the current fallback-only set from the adapter registry: `20`
+  fallback-only providers remain. Buckets are `issuer_access_blocked`:
+  `aegon`, `guinness_atkinson`, `manulife`, `q3`, `rex`, `ridgeline`, `sofi`,
+  `thrivent`, `westwood`, `wisdomtree`; `non_executable_public_source`: `epwa`,
+  `pacific_investments`, `planrock`; `provider_not_a_portfolio_publisher`:
+  `belpointe`, `epiris`, `eurazeo`, `marathon`, `msc_group`, `orix`,
+  `rock_point`.
+- Rechecked high-priority access-blocked routes with `rtk curl` and
+  browser-like headers. Current backend results remain non-promotable:
+  `wisdomtree` DXJ product URLs return Cloudflare `403`; `rex` FEPI returns a
+  Cloudflare challenge `403`; `sofi` SFY/SFYF return the SoFi `403` Welcome
+  shell; `thrivent` TSME returns a `403` shell; `q3` ETF page and exact
+  `GetHoldingsCSV1_v3aLIVE.php` route return Wordfence `503`;
+  `guinness_atkinson` fund/resource pages return Cloudflare `403`;
+  `manulife` / John Hancock ETF catalogue, JHCB, JHHY, and documents routes
+  return Akamai-style `403 Access Denied`.
+- Rechecked non-executable public sources. `planrock` PRAE product page remains
+  reachable but the advertised `?download_holdings=1&account_id=1450` route
+  still returns a 48-byte opaque `Holdings.csv` body. `epwa` / CornerCap FUNL
+  current host timed out and the CornerCap route returned Cloudflare `522`.
+  `pacific_investments` / PIMCO MINT product page remains backend-readable, but
+  the probed fund-detail API `topTenHoldings/export` route returns `401 Full
+  authentication is required`; no complete current holdings route was exposed.
+- No provider was promoted or demoted in this audit-only pass. Strict state
+  remains `345` registered, `325` native/live-backed, and `20` fallback-only
+  from the previous validated checkpoint. Latest full opt-in ETF holdings live
+  matrix evidence remains `333 passed in 516.33s`.
+
+### Next step
+
+- Continue periodic route discovery for the remaining `20`, prioritizing
+  `wisdomtree`, `sofi`, `rex`, `thrivent`, `manulife`, and PIMCO only when a
+  backend-executable complete current holdings artifact can be proven. Do not
+  promote search-indexed page content, top-ten data, SEC EDGAR, stale reports,
+  or WAF-blocked routes.
+
 ## Colliers promotion and live matrix clean - 2026-07-26T15:54Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

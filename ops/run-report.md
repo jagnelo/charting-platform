@@ -2,6 +2,40 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Fallback Route Re-Audit - 2026-07-26T22:26Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. The full provider-native objective remains active; this was
+  an audit-only pass with no provider promotion.
+- Current branch remains clean but ahead of origin by two local commits:
+  `3e31f36 feat(etf): expand native holdings provider coverage` and
+  `3606a2b chore(ops): checkpoint ETF holdings live matrix`. The previous push
+  failed because SSH authenticated as `jagnelo-symbiotech`, which is denied for
+  `jagnelo/charting-platform`.
+- Recomputed the fallback-only matrix from code: `345` registered, `325`
+  native/live-backed, `20` fallback-only. Fallback buckets are
+  `issuer_access_blocked` (`aegon`, `guinness_atkinson`, `manulife`, `q3`,
+  `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`, `wisdomtree`),
+  `non_executable_public_source` (`epwa`, `pacific_investments`, `planrock`),
+  and `provider_not_a_portfolio_publisher` (`belpointe`, `epiris`, `eurazeo`,
+  `marathon`, `msc_group`, `orix`, `rock_point`).
+- Rechecked current backend accessibility for the highest-priority blocked
+  routes. `wisdomtree` DXJ product routes returned Cloudflare `403`; `rex` FEPI
+  returned Cloudflare challenge `403`; `sofi` SFY/SFYF returned `403` Welcome
+  shells; `thrivent` TSME returned a `403` shell; `q3` ETF page and exact CSV
+  endpoint returned Wordfence `503`; `guinness_atkinson` fund/resource routes
+  returned Cloudflare `403`; and `manulife` / John Hancock ETF, JHCB, JHHY, and
+  documents routes returned `403 Access Denied`.
+- Rechecked current non-executable public sources. `planrock` PRAE still serves
+  only the 48-byte opaque `Holdings.csv` from its advertised download route.
+  `epwa` / CornerCap FUNL timed out or returned Cloudflare `522`. PIMCO MINT
+  remains page-readable, but the probed fund-detail API route returns `401 Full
+  authentication is required`, with no complete current holdings route exposed.
+- No code changed and no validation-impacting behavior changed. Latest complete
+  validation remains the previous checkpoint: deterministic adapter suite `412
+  passed`, Ruff, strict manifest aligned, and full opt-in ETF holdings live
+  matrix `333 passed in 516.33s`.
+
 # ETF Holdings Colliers Promotion and Live Matrix Clean - 2026-07-26T15:54Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
