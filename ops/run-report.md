@@ -2,6 +2,1417 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Colliers Promotion and Live Matrix Clean - 2026-07-26T15:54Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- Promoted `colliers` from fallback-only / access-blocked to native
+  live-backed through Harrison Street's current NFRX product page. The page is
+  backend-readable and declares
+  `https://harrisonstlistedinfra.com/wp-content/uploads/data/TidalFG_Holdings_NFRX.csv`,
+  a complete current holdings CSV with NFRX rows dated `2026-07-23`.
+- Added `ColliersHarrisonStreetHoldingsAdapter`, explicit live-backed config,
+  adapter registration, static parser coverage, and concrete opt-in NFRX live
+  coverage. Removed `colliers` from fallback audits.
+- The first complete opt-in rerun after the promotion exposed
+  `main_management/BUYW` requests fallback read timeouts. Hardened only that
+  verified issuer CSV fallback to five attempts with a minimum 30-second
+  timeout, with deterministic coverage proving recovery after repeated
+  secondary-transport read timeouts.
+- The same failed rerun also reported an `eighth_wonder/ETFT` no-payload result,
+  but Fundsmith's current first-party page still contains the complete 29-row
+  ETFT component dated `2026-07-24`; the existing parser succeeds against the
+  current page, focused live passed, and no demotion was made.
+- Strict state is now `345` registered, `325` native/live-backed, and `20`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: strict manifest recompute `345` registered / `325`
+  live-backed / `20` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits; focused Main/Fundsmith/Colliers/unit invariant slice `10
+  passed`; focused opt-in live slice `3 passed`; deterministic adapter suite
+  `412 passed`; Ruff; complete opt-in ETF holdings live matrix `333 passed in
+  516.33s`.
+
+# ETF Holdings Live Matrix Timeout Hardening - 2026-07-26T15:18Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- First complete opt-in rerun exposed `peakshares/PSTR` exhausting async
+  FilePoint POST retries. Added a narrow PeakShares fallback to
+  browser-compatible `requests.post` after three async timeouts on the same
+  verified fund-id route. Focused PeakShares unit and opt-in live checks passed.
+- Second complete opt-in rerun exposed `donoghue_forlines/DFTT` exhausting
+  requests read-timeout retries against the product-page-declared CSV. Extended
+  that issuer-local retry helper to five attempts with a minimum 30-second
+  timeout. Focused Donoghue unit and opt-in live checks passed.
+- No provider was promoted or demoted. Strict state remains `345` registered,
+  `324` native/live-backed, and `21` fallback-only; SEC EDGAR remains
+  fallback-only and uncounted.
+- Validation passed after both repairs: strict manifest recompute `345`
+  registered / `324` live-backed / `21` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits; deterministic adapter suite `411 passed`; Ruff; complete
+  opt-in ETF holdings live matrix `332 passed in 501.35s`.
+
+# ETF Holdings Broader Fallback Route Retry Sweep - 2026-07-26T14:36Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- No provider was promoted or demoted. Rechecked Thrivent TSME daily CSV routes
+  and RightProspectus SOI/service paths; they returned `403` shells or JSON
+  `404`, not current complete holdings. Rechecked REX FEPI/AIPI product routes
+  and FEPI CSV POST; all returned Cloudflare `403`. Rechecked Westwood MDST
+  exact CSV; it remains Cloudflare `403`.
+- Rechecked Q3, Manulife, Aegon, Guinness Atkinson, PlanRock, EPWA/CornerCap,
+  Ridgeline, and Colliers. Results remained non-promotable: Q3 `503` with
+  `Retry-After: 3600`; Manulife Akamai `403`; Aegon 212-byte Incapsula shell;
+  Guinness Cloudflare `403`; PlanRock 48-byte non-text `Holdings.csv`; EPWA
+  timeout; Ridgeline/Colliers Cloudflare `403`.
+- Strict state remains `345` registered, `324` native/live-backed, and `21`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed where scoped to this audit-only pass: strict manifest
+  recompute still reports `345` registered / `324` live-backed / `21`
+  fallback-only with `audit_matches True`, `test_matches_config True`, disjoint
+  native/fallback sets, and no missing or extra audits. Latest complete opt-in
+  ETF holdings live matrix remains `332 passed in 523.04s` from the current
+  checkout after Redwood restoration.
+
+# ETF Holdings PIMCO/SoFi/WisdomTree High-Priority Retry - 2026-07-26T14:28Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- No provider was promoted or demoted. Rechecked PIMCO through current official
+  MINT/BOND/PYLD detail pages; the pages are backend-readable and embed the
+  current fund-detail app config, but the current app chunks expose top-ten,
+  document, NAV, distribution, breakout, benchmark, overview, and risk/stat
+  routes rather than a complete holdings route.
+- Rechecked SoFi/SFY/SFYF product pages and Tidal delegated CSV guesses. SoFi
+  remains Cloudflare `403`; guessed Tidal `SFY`/`SFYF` holdings CSV paths
+  returned HTML `404` pages.
+- Rechecked WisdomTree DXJ/DTD product pages and guessed fund-holdings CSV/XLSX
+  paths. Product pages remain Cloudflare `403`; guessed artifact paths returned
+  non-holdings `404`/9-byte responses.
+- Strict state remains `345` registered, `324` native/live-backed, and `21`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed where scoped to this audit-only pass: strict manifest
+  recompute still reports `345` registered / `324` live-backed / `21`
+  fallback-only with `audit_matches True`, `test_matches_config True`, disjoint
+  native/fallback sets, and no missing or extra audits. Latest complete opt-in
+  ETF holdings live matrix remains `332 passed in 523.04s` from the current
+  checkout after Redwood restoration.
+
+# ETF Holdings Redwood Native Route Restoration - 2026-07-26T14:19Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- Restored `redwood` from fallback-only / `non_executable_public_source` to
+  native live-backed after LeaderShares' exact `DYLD` holdings-download route
+  started returning a complete current CSV again. The route returned HTTP 200,
+  `filename="Holdings.csv"`, `content-length: 18981`, and a
+  `LeaderShares Dynamic Yield ETF` holdings file dated `07/24/2026`; the
+  existing Redwood parser produced `174` rows dated `2026-07-24`.
+- Re-enabled Redwood's existing isolated native route by setting
+  `live_tested_default_route=True`, removing `redwood` from fallback audits,
+  restoring it to `LIVE_BACKED_ISSUER_ADAPTERS`, and restoring the concrete
+  opt-in `DYLD` live route.
+- Same-pass fallback retries found no other promotable provider route: REX,
+  WisdomTree, Q3, Thrivent, Westwood, Guinness Atkinson, Colliers, Ridgeline,
+  Manulife, Aegon, PlanRock, EPWA/CornerCap, and PIMCO remain blocked,
+  timed out, top-ten-only, or non-executable rather than complete
+  backend-executable current holdings sources.
+- Strict state is now `345` registered, `324` native/live-backed, and `21`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: strict manifest recompute `345` registered / `324`
+  live-backed / `21` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits; focused Redwood/fallback/live-backed unit guards `2 passed`;
+  focused opt-in Redwood live route under `rtk` `1 passed`; deterministic
+  adapter suite `410 passed`; Ruff; full opt-in ETF holdings live matrix
+  `332 passed in 523.04s`.
+
+# ETF Holdings Redwood Live-Matrix Repair and Retry Sweep - 2026-07-26T13:58Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. Authoritative current goal verbatim: "Replace generated/thin
+  ETF provider adapters with full native per-provider ETF holdings integrations
+  for all 345 registered providers, with each provider having isolated
+  implementation code plus static and live test coverage; SEC EDGAR remains
+  fallback only and must not count as primary provider support. Respect the
+  priority ordering of ETF providers based on what was discussed: higher
+  priority to implement a native handler should be given to those providers that
+  host more ETFs, hold ETFs with higher AUM, or hold ETFs with greater coverage
+  of overall US stock market listed stocks. Keep trying to access each
+  provider's resources, even if they reject requests. If after some tries a
+  provider is only flaggable as blocking (our requests), skip it and mark it as
+  such so we can take care of the next one, and so on and so forth. Do not
+  instantly block the goal until you can actually say you've tried all
+  pending/left providers. Ensure also that the maintainability gap (i.e., we do
+  not programmatically assert that every member of LIVE_BACKED_ISSUER_ADAPTERS
+  has a corresponding live-test case) is covered for all supported providers."
+- The first fresh full opt-in live matrix exposed a real `redwood` / `DYLD`
+  failure: `ValueError: Redwood holdings CSV did not match the requested ETF.`
+  Reproduction through the backend `httpx` path and `rtk curl` showed the
+  current LeaderShares complete-holdings route returns HTTP 200 with
+  `filename="Holdings.csv"` but `content-length: 0`.
+- Rechecked current LeaderShares routes for `leadershares-dynamic-yield-etf`,
+  `leadershares-tactical-focused-etf`, and `leadershares-alphafactor-core-etf`.
+  All three `holdings-download` routes returned zero-byte CSV attachments, while
+  the current product pages expose only top-ten holdings dated `07/24/26`.
+  Demoted `redwood` from native/live-backed to fallback-only /
+  `non_executable_public_source`; retained the parser/static coverage for future
+  restoration if the issuer route starts returning complete rows again.
+- Same-pass retries found no new promotable provider route: EPWA / CornerCap,
+  PIMCO, Q3, Thrivent, WisdomTree, SoFi, Westwood, Ridgeline, and Colliers
+  remain blocked, unauthenticated, zero-byte, or top-ten-only rather than
+  complete backend-executable holdings sources.
+- Strict state is now `345` registered, `323` native/live-backed, and `22`
+  fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: strict manifest recompute `345` registered / `323`
+  live-backed / `22` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits; deterministic adapter suite `410 passed`; Ruff; full opt-in ETF
+  holdings live matrix `331 passed in 559.19s`.
+
+# ETF Holdings Remaining Provider Retry Sweep - 2026-07-26T13:05Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- No additional provider was promoted. Strict state remains `345` registered, `324` native/live-backed, and `21` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Retried PIMCO / MINT from the current first-party product page. The page is reachable and declares `fund-ui.pimco.com/fund-detail-api`, but confirmed page-declared API calls for as-of date, fund, `topTenHoldings`, and `topTenHoldings/export` return `401` even with product-page cookies plus browser-style `Referer` / `Origin` headers. The current app bundle exposes top-ten, breakout, allocation, document, and fund-stat APIs, not a complete holdings route.
+- Retried EPWA / CornerCap FUNL, Thrivent, Q3, and WisdomTree. EPWA / CornerCap still failed through FUNL host timeout, CornerCap `522`, and Empowered-to-ETF-Architect redirect; Thrivent TSME/TPFL advertised daily holdings CSVs returned the issuer `403` HTML shell; Q3 ETF page and exact `GetHoldingsCSV1_v3aLIVE.php` route returned Wordfence `503` with `Retry-After: 3600`; WisdomTree DXJ product and API routes returned Cloudflare `403`, while the guessed DXJ holdings CSV returned a non-holdings Next error shell.
+- Rechecked sampled provider-not-publisher identities. Belpointe remains a publicly traded opportunity-zone real-estate vehicle, Rock Point remains a wealth advisory site, and ORIX did not expose a separate portfolio-publishing feed.
+- No validation-impacting code changed after the already-validated IronHorse restoration. Latest full opt-in ETF holdings live matrix evidence from the current checkout remains `332 passed in 491.73s`; strict manifest recompute still reports `345` registered / `324` live-backed / `21` fallback-only with audits and live tests aligned.
+
+# ETF Holdings IronHorse Native Route Restoration - 2026-07-26T12:57Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Restored `ironhorse` from fallback-only / non-executable-public-source to native live-backed after Conductor ETFs' official CGV product-page-declared CSV route again returned complete dated holdings instead of the prior zero-byte body. Live CGV source evidence came from `https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532`, which exposed `Conductor Global Equity Value ETF` rows dated `2026-07-24`.
+- Re-enabled the existing isolated `IronHorseHoldingsAdapter` by setting `live_tested_default_route=True`, removing `ironhorse` from fallback audits, restoring it to `LIVE_BACKED_ISSUER_ADAPTERS`, and restoring the concrete opt-in `CGV` live route.
+- Strict state is now `345` registered, `324` native/live-backed, and `21` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: focused IronHorse/fallback/live-backed/source-audit unit guards `8 passed`; focused opt-in IronHorse live route plus concrete-route invariant `2 passed`; strict manifest recompute `345` registered / `324` live-backed / `21` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, `ironhorse_live True`, `ironhorse_fallback False`, and no missing or extra audits; deterministic adapter suite `410 passed`; Ruff; `git diff --check` clean; full opt-in ETF holdings live matrix `332 passed in 491.73s`.
+
+# ETF Holdings Delaware / Macquarie Successor Native Route - 2026-07-26T12:42Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Promoted `delaware` from fallback-only / non-executable-public-source to native live-backed through current Nomura Asset Management product pages for the former Macquarie/Delaware ETF suite. Backend `httpx` verified checked successor routes server-render complete `dailyHoldingsTable` payloads dated `2026-07-24`: EMEQ `67` rows, LRGG `21`, EXUS `51`, PWER `35`, BILD `54`, HTAX `217`, LTAX `85`, and STAX `93`.
+- Added `DelawareManagementNomuraHoldingsAdapter`, explicit live-backed config, adapter registration, static successor daily-table parser coverage, and concrete opt-in LRGG live coverage using `https://nomuraassetmanagement.com/us/investments/etf/nomura-focused-large-growth-etf`. Removed `delaware` from fallback audits.
+- Strict state is now `345` registered, `323` native/live-backed, and `22` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: focused Delaware/Nomura/fallback/live-backed/source-audit unit guards `9 passed`; focused opt-in Delaware live route plus concrete-route invariant `2 passed`; strict manifest recompute `345` registered / `323` live-backed / `22` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, `delaware_live True`, `delaware_fallback False`, and no missing or extra audits; deterministic adapter suite `410 passed`; Ruff; full opt-in ETF holdings live matrix `331 passed in 488.18s`.
+
+# ETF Holdings Nomura FRWD Native Route and CI Retry Repair - 2026-07-26T12:26Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Promoted `nomura` from fallback-only / non-executable-public-source to native live-backed through Nomura Asset Management's official FRWD product page, `https://nomuraassetmanagement.com/us/investments/etf/nomura-transformational-technologies-etf`. The US-prefixed route is backend-readable through `httpx`, follows to the current product page, and server-renders the complete `dailyHoldingsTable`; live FRWD exposed `27` daily rows dated `2026-07-24` with weights netting to approximately `1.0003`.
+- Added `NomuraHoldingsAdapter`, explicit live-backed config, adapter registration, static daily-table parser coverage, and concrete opt-in FRWD live coverage. Removed `nomura` from fallback audits.
+- The first full opt-in live matrix after adding Nomura exposed one unrelated transient failure: `ci_financial` / SBH timed out on the issuer AEM holdings endpoint after page identity validation. Hardened only that CI endpoint request with a bounded three-attempt `httpx.TimeoutException` retry and added deterministic retry coverage.
+- Strict state is now `345` registered, `322` native/live-backed, and `23` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Same-pass retries stayed blocked or non-executable: Q3 `503` with `Retry-After: 3600`; EPWA / CornerCap FUNL connection timeout; Guinness / SmartETFs Cloudflare managed challenge through `www.gafunds.com`; John Hancock / Manulife JHCB/JHHY Akamai `403`; PIMCO/MINT Sitecore-style `404` pages or no complete holdings API.
+- Validation passed: focused Nomura/CI/fallback/live-backed/source-audit unit guards `10 passed`; focused opt-in Nomura + CI live routes plus concrete-route invariant `3 passed`; strict manifest recompute `345` registered / `322` live-backed / `23` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, `nomura_live True`, `nomura_fallback False`, and no missing or extra audits; deterministic adapter suite `409 passed`; Ruff; full opt-in ETF holdings live matrix `330 passed in 473.64s`.
+
+# ETF Holdings Rareview / neil_azous Native RDFI Route - 2026-07-26T11:49Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Promoted `neil_azous` from fallback-only / access-blocked to native live-backed through Rareview Capital's first-party RDFI product page, `https://rareviewcapital.com/dynamic-fixed-income-etf/`. The page is now backend-readable with a browser-compatible `requests` transport and embeds a `databaseInfo` payload. The latest RDFI snapshot is dated `2026-07-22` and exposes `41` complete constituent rows with weights netting to approximately `1.000001`.
+- Added `NeilAzousRareviewHoldingsAdapter`, explicit live-backed config, adapter registration, static databaseInfo parser coverage, and concrete opt-in RDFI live coverage. Removed `neil_azous` from fallback audits.
+- Strict state is now `345` registered, `321` native/live-backed, and `24` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Same-pass retries before the promotion stayed blocked or non-executable: Aegon / Transamerica TALV/TABD product and guessed holdings routes returned the `212`-byte Incapsula shell; Ridgeline / ACV active host `acvetfs.com` product, material, guessed CSV, and WordPress API routes returned nginx `403`; old `acvfunds.com` routes failed DNS.
+- Validation passed: focused Rareview/fallback/live-backed/source-audit unit guards `8 passed`; focused opt-in Rareview live route plus concrete-route invariant `2 passed`; strict manifest recompute `345` registered / `321` live-backed / `24` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, `neil_azous_live True`, `neil_azous_fallback False`, and no missing or extra audits; deterministic adapter suite `407 passed`; Ruff; full opt-in ETF holdings live matrix `329 passed in 557.38s`.
+
+# ETF Holdings High-Priority Access-Blocked Route Retry - 2026-07-26T11:28Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Strict state remains `345` registered, `320` native/live-backed, and `25` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Rechecked high-priority fallback candidates with current first-party routes. `wisdomtree` / DXJ still returns Cloudflare `403` for the product page, guessed product API, and guessed holdings API; guessed `dxj-holdings.csv` returns `404`. `sofi` / SFY, SFYF, THTA, and the ETF catalogue return Cloudflare human-confirmation pages (`403`) with no complete holdings payload. `rex` / FEPI and CEPI product pages plus the quoted `admin-ajax.php?action=download_holdings&symbol=FEPI` candidate return Cloudflare `403`.
+- Rechecked issuer-owned document/download routes. Guinness Atkinson / SmartETFs ADIV product/resource pages and guessed ADIV holdings PDFs return Cloudflare `403`. Thrivent's official TSME product page advertises `/content/dam/thrivent/fund-data/csv/daily-holdings-tsme.csv`, but that exact CSV and TPFL's equivalent return a location-service / Incapsula `403` page from this backend. PIMCO/Pacific MINT routes resolve to Sitecore `404` or `403` pages, and guessed `fund-ui` holdings exports return non-holdings `404` shells. Manulife / John Hancock ETF, JHHY, and guessed holdings document routes return Akamai `403`.
+- No provider was promoted or demoted in this audit-only pass. No validation-impacting code changed after the already-validated IronHorse demotion. Latest complete opt-in ETF holdings live matrix remains `328 passed in 506.23s`.
+- Validation passed: focused fallback/live-backed/source-audit unit guards `7 passed`; opt-in live-backed concrete-route invariant `1 passed`; strict manifest recompute `345` registered / `320` live-backed / `25` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, and no missing or extra audits; ops JSON/YAML parse checks; `git diff --check` clean.
+
+# ETF Holdings Provider-Not-Publisher Identity Retry - 2026-07-26T11:18Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml` lines 7-21, not the shorter runtime goal-tool label.
+- Strict state remains `345` registered, `320` native/live-backed, and `25` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Rechecked provider-not-publisher identities for current first-party holdings evidence. `orix` still resolves through ORCX to Defiance, which is already native/live-backed; `rock_point` resolved to a wealth advisory site with no ETF holdings route while ADPV remains covered by `adaptive_investments`; `belpointe` remains a public opportunity-zone / real-estate offering, not an ETF portfolio publisher.
+- Rechecked the remaining non-publisher names. John Hancock / Marathon stayed Akamai `403` and Marathon remains a subadvisor identity; `eurazeo` is a private-markets asset manager page with no ETF/complete-holdings publisher surface in fetched HTML; `epiris` returned a Cloudflare blocked page; `msc_group` returned Akamai Access Denied.
+- No provider was promoted or demoted in this audit-only pass. No validation-impacting code changed after the already-validated IronHorse demotion. Latest complete opt-in ETF holdings live matrix remains `328 passed in 506.23s`.
+- Validation passed: focused fallback/live-backed/source-audit unit guards `7 passed`; opt-in live-backed concrete-route invariant `1 passed`; strict manifest recompute `345` registered / `320` live-backed / `25` fallback-only with `audit_matches True`, `test_matches_config True`, disjoint native/fallback sets, and no missing or extra audits; ops JSON/YAML parse checks; `git diff --check` clean.
+
+# ETF Holdings Non-Executable Public-Source and Blocked-Route Retry - 2026-07-26T11:12Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`, not the shorter runtime objective. No provider was promoted or demoted.
+- Strict state remains `345` registered, `320` native/live-backed, and `25` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Rechecked non-executable public-source routes: PlanRock PRAE still exposes only `download_holdings=1&account_id=1450`, returning `0` bytes from the page URL and a `48`-byte opaque body from the WP JSON variant; current page/scripts expose allocation images, fund details, and premium/discount chart code only. IronHorse CGV still links Conductor `download.php?id=1532`, which remains HTTP `200` with `0` bytes. Nomura/Delaware/Macquarie routes resolve to a backend-readable region/ETF shell, Sitecore `404` product slugs, `404` sitemaps, or generic Macquarie/Nomura pages; guessed FRWD FGS fulfillment holdings SKU returned `404`.
+- Rechecked blocked routes: Thrivent TSME page/FP/model JSON `403`; Q3 homepage/product/exact CSV `503`; Westwood MDST page/CSV/WP search `403`; WisdomTree DXJ and Dataspan `403`; SoFi SFY wealth/backend API guesses `403`; REX FEPI admin-ajax guesses `403`; EPWA/CornerCap alternate routes returned ETF Architect `403`, `etf.funl.com` DNS failure, CornerCap `522`, or guessed FUNL holdings CSV `404`.
+- No validation-impacting code changed after the already-validated IronHorse demotion. Latest complete opt-in ETF holdings live matrix remains `328 passed in 506.23s`.
+
+# ETF Holdings IronHorse Live-Matrix Repair / Fallback Demotion - 2026-07-26T11:06Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`, not the shorter runtime objective.
+- A fresh full opt-in live matrix exposed one real failure: `ironhorse` / `CGV` raised `ValueError: IronHorse holdings CSV did not expose complete current rows for CGV`; the failed run ended `1 failed, 328 passed in 587.43s`.
+- Rechecked Conductor's official CGV page and declared holdings route. The product page is still readable and still links `https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532`, but that artifact currently returns HTTP `200`, `application/octet-stream`, and `0` bytes. Alternate visible Download Monitor links are PDFs for SAI/prospectus/deck material, not complete holdings.
+- Demoted `ironhorse` from native/live-backed to fallback-only: config `live_tested_default_route=False`, removed the exact CGV live matrix case, removed `ironhorse` from `LIVE_BACKED_ISSUER_ADAPTERS`, and added it to `non_executable_public_source`. The adapter/static parser remain for future restoration when the first-party CSV returns complete rows again.
+- Current strict state is `345` registered, `320` native/live-backed, and `25` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: focused IronHorse/fallback/live-backed/source-audit guards `8 passed`; provider matrix plus concrete live-route invariant `2 passed`; strict manifest recompute `345` / `320` / `25` with `audit_matches True`, disjoint native/fallback sets, no missing or extra audits, `ironhorse_live False`, and `ironhorse_status non_executable_public_source`; complete opt-in ETF holdings live matrix `328 passed in 506.23s`; deterministic adapter suite `406 passed`; Ruff; ops JSON/YAML parse checks; `git diff --check` clean.
+
+# ETF Holdings Fallback Provider Retry Sweep and Docs-Goal Correction - 2026-07-26T10:43Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`, not the shorter runtime objective. The runtime goal tool still shows abbreviated wording; the authoritative current goal is the full docs wording.
+- No provider was promoted or demoted. Strict state remains `345` registered, `321` native/live-backed, and `24` fallback-only; SEC EDGAR remains fallback-only and uncounted.
+- Rechecked blocked candidates: WisdomTree DXJ/Dataspan remained Cloudflare `403` or non-holdings shell content, SoFi SFY/API guesses remained `403`, REX FEPI product/CSV routes remained `403`, Thrivent TSME CSV returned `403`, Q3 exact CSV returned `503`, Westwood MDST CSV returned `403`, Guinness ADIV PDF returned `403`, John Hancock / Manulife JHHY returned Akamai `403`, Aegon / Transamerica returned the 212-byte Incapsula shell, Rareview / RDFI returned `403`, and Ridgeline / ACVF returned `403`.
+- Rechecked non-executable public-source routes: PlanRock PRAE still exposes only a declared download that returns a `48`-byte opaque body through WP JSON and `0` bytes through the decoded page URL, with an empty WP media endpoint; PIMCO/MINT and Nomura URLs exposed non-holdings `404` or catalogue content; EPWA / CornerCap returned `522`, unrelated `404`, or hung with no artifact.
+- Validation passed: focused fallback/live-backed/source-audit guards `7 passed`; live concrete-route coverage invariant `1 passed`; strict manifest recompute `345` / `321` / `24` with `audit_matches True`, disjoint native/fallback sets, no missing or extra audits, and fallback buckets `12` access-blocked / `5` non-executable public-source / `7` provider-not-publisher. Latest complete opt-in ETF holdings live matrix remains fail-free from the current checkout: `329 passed in 504.56s`; this audit-only pass made no live-backed route changes.
+
+# ETF Holdings Colliers / Harrison Street NFRX Access-Blocked Audit - 2026-07-26T10:27Z
+
+- Continued under the exact docs-exported goal in `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`, not the shorter runtime objective.
+- Rechecked `colliers` through the likely related Harrison Street Infrastructure Active ETF (`NFRX`) site.
+- Backend-readable evidence: sitemap lists `https://harrisonstlistedinfra.com/funds/nfrx/`; first-party uploads `q1-holdings.pdf` and `fact-sheet.pdf` are directly downloadable.
+- Backend-blocked current routes: site root, `/funds/`, `/funds/nfrx/`, WordPress REST page/fund/search endpoints, and `admin-ajax.php` returned Cloudflare `403` shells.
+- Guessed complete CSV paths under `/wp-content/uploads/docs/nfrx/` returned full HTML `404` pages.
+- The reachable `q1-holdings.pdf` is a complete but stale periodic Schedule of Investments dated March 31, 2026. The June 30, 2026 fact sheet reports 43 holdings but exposes only top 10 holdings and points to the site for current holdings.
+- No provider was promoted or demoted. `colliers` moved from `provider_not_a_portfolio_publisher` to `issuer_access_blocked`; strict counts remain `345` registered, `321` native/live-backed, and `24` fallback-only. SEC EDGAR remains fallback-only and uncounted.
+- Validation passed: focused fallback/live-backed/source-audit guards `7 passed`; live concrete-route coverage invariant `1 passed`; strict manifest recompute `345` registered / `321` live-backed / `24` fallback-only with `audit_matches True`, disjoint native/fallback sets, no missing audits, and `colliers_status issuer_access_blocked`; Ruff; ops JSON/YAML parse checks; `git diff --check` clean. Latest complete opt-in ETF holdings live matrix remains fail-free from the current checkout: `329 passed in 504.56s`.
+
+# ETF Holdings Precidian ADRhedged Native Route - 2026-07-26T10:18Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective.
+- Promoted `precidian` from fallback-only to native/live-backed. Precidian's
+  official products page links `https://adrhedged.com/`; the ADRhedged sitemap
+  lists current security pages, and the ASMH page at
+  `https://adrhedged.com/security/asml-holding-adr-hedged/` is executable under
+  the backend live-test path even though the server returns HTTP `406`.
+- Added `PrecidianAdrHedgedHoldingsAdapter`, live-backed config, adapter mapping,
+  exact static 406-page coverage, and opt-in ASMH live coverage. The adapter
+  verifies the ADRhedged page context, parses the server-rendered
+  `holdings_table`, records `disclosure_type=adrhedged_series_portfolio`, and
+  normalizes `Cash (US$)` as cash. Live ASMH evidence: holdings dated
+  `07/23/2026`, rows for `ASML.AS` and `Cash (US$)`, with shares, market values,
+  and weights.
+- Strict state is now `345` registered, `321` native/live-backed, and `24`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only and
+  uncounted. Validation passed: focused Precidian/fallback/live-backed/source
+  audit unit guards `8 passed`; deterministic adapter suite `406 passed`; exact
+  Precidian live route `1 passed`; live concrete-route invariant `1 passed`;
+  Ruff; complete opt-in ETF holdings live matrix `329 passed in 504.56s`.
+
+# ETF Holdings Fallback Provider Retry Sweep - 2026-07-26T09:58Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted.
+- Rechecked `rex`, `wisdomtree`, `q3`, `aegon` / Transamerica, `westwood`,
+  `guinness_atkinson`, `thrivent`, `manulife`, `sofi`, `nomura`,
+  `pacific_investments` / PIMCO, `planrock`, `epwa` / CornerCap, and
+  `ridgeline`. The routes remained blocked, non-holdings, or non-executable:
+  REX `403`; WisdomTree `403`; Q3 Wordfence `503`; Transamerica 212-byte
+  Incapsula shell; Westwood/Guinness/Thrivent/John Hancock/SoFi/Ridgeline
+  `403`; SoFi delegated CSV guess `404`; PlanRock `48` opaque bytes; CornerCap
+  `522`; and Nomura/PIMCO catalogue pages exposed no complete holdings route.
+- Strict state remains `345` registered, `320` native/live-backed, and `25`
+  fallback-only. Strict manifest recompute passed with matching fallback audits,
+  disjoint native/fallback sets, and no missing audits. Latest complete opt-in
+  live matrix evidence remains `328 passed in 592.49s` from the current
+  checkout because this pass made no adapter or live-test code changes.
+
+# ETF Holdings Rareview Retry and Live-Matrix Revalidation - 2026-07-26T09:51Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted.
+- Rechecked `neil_azous` / Rareview Capital. The earlier cached RDFI page
+  showed a complete inline `databaseInfo` payload, but current backend-executable
+  requests to the homepage, RDFI product page, WP page JSON, and REST search all
+  returned Cloudflare `403`; sitemap access is only URL indexing, and the
+  reachable `etfg-api.js` script does not contain the holdings payload.
+  `neil_azous` remains `issuer_access_blocked`.
+- Strict state remains `345` registered, `320` native/live-backed, and `25`
+  fallback-only. Validation passed: focused fallback/live-backed unit guards
+  `7 passed`; live concrete-route invariant `1 passed`; strict manifest
+  recompute `345` / `320` / `25` with no overlap and no missing audits;
+  complete opt-in ETF holdings live matrix `328 passed in 592.49s`; Ruff;
+  `git diff --check` clean.
+
+# ETF Holdings PIMCO/Nomura/PlanRock/Ridgeline Route Retry - 2026-07-26T09:22Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted.
+- Rechecked `pacific_investments` / PIMCO, `nomura`, `planrock`, `ridgeline`,
+  `sofi`, and `manulife` / John Hancock for executable first-party complete
+  holdings artifacts. PIMCO fund-ui routes returned `403`; Nomura's catalogue
+  is readable but exposes no complete holdings route; PlanRock's advertised
+  PRAE Holdings.csv remains a `48`-byte opaque binary body; Ridgeline ACVF
+  official/REST/CSV routes returned Cloudflare `403`; SoFi returned
+  Cloudflare `403` and guessed Tidal CSVs returned `404`; John Hancock routes
+  returned Akamai `403`.
+- Strict state remains `345` registered, `320` native/live-backed, and `25`
+  fallback-only. Latest complete opt-in live matrix evidence remains
+  `328 passed in 510.34s` from the 09:14Z checkout because this pass made no
+  adapter or live-test code changes.
+
+# ETF Holdings Fallback Retry and Live-Matrix Revalidation - 2026-07-26T09:14Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted.
+- Strict state remains `345` registered, `320` native/live-backed, and `25`
+  fallback-only. The fallback audit set exactly matches providers without
+  `live_tested_default_route`, native/fallback sets are disjoint, and SEC EDGAR
+  remains fallback-only and uncounted.
+- Rechecked blocked executable-route candidates. Guinness Atkinson direct
+  holdings PDFs returned Cloudflare `403`; Westwood's exact official MDST CSV
+  target
+  `https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv`
+  returned Cloudflare `403`; Q3's exact
+  `GetHoldingsCSV1_v3aLIVE.php` route returned Wordfence/Cloudflare `503` with
+  `Retry-After: 3600`; REX FEPI still returned `403` through the existing
+  issuer POST adapter route; WisdomTree product routes returned Cloudflare
+  `403`; and Thrivent's official TSME daily holdings CSV returned
+  CloudFront/S3 `403`.
+- Validation passed: focused fallback/live-backed unit guards `7 passed`; live
+  concrete-route coverage invariant `1 passed`; strict manifest recompute
+  `345` / `320` / `25` with no overlap and no missing audits; complete opt-in
+  ETF holdings live matrix `328 passed in 510.34s`. Earlier focused runs
+  without `--no-cov` had selected tests pass but exited nonzero only because
+  the repo-wide coverage gate applied to narrow selections.
+
+# ETF Holdings BMO MicroSectors Native ETN Component Route - 2026-07-26T08:47Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective.
+- Promoted `bmo` from `issuer_access_blocked` to native/live-backed. BMO's
+  direct `bmoetn.com` routes still returned Akamai `503`, but the official
+  MicroSectors site is backend-readable. `https://microsectors.com/products/bnku/`
+  verifies the Bank of Montreal MicroSectors product context, and
+  `https://microsectors.com/big-banks/` exposes the complete ten-row weighted
+  Solactive MicroSectors U.S. Big Banks Index component list for `BNKU` /
+  `BNKD`.
+- Added `BmoMicroSectorsHoldingsAdapter`, exact static coverage, live-backed
+  config, adapter mapping, and opt-in live coverage for `bmo` / `BNKU`. The
+  adapter records `disclosure_type=etn_index_components` and keeps source names
+  and weights without fabricating ticker symbols absent from the page.
+- Strict state is now `345` registered, `320` native/live-backed, and `25`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only and
+  uncounted. Validation passed: focused BMO static `1 passed`; focused BMO live
+  `1 passed`; focused fallback/native manifest guards `2 passed`; live
+  concrete-route invariant `1 passed`; strict manifest recompute `345` / `320`
+  / `25`, disjoint native/fallback sets, fallback audit dates
+  `['2026-07-26']`; deterministic adapter suite `405 passed`; Ruff;
+  `git diff --check` clean; complete opt-in ETF holdings live matrix
+  `328 passed in 542.69s`.
+
+# ETF Holdings PeakShares Live-Matrix Timeout Repair and Fallback Probe - 2026-07-26T08:20Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`.
+  The runtime goal label is shorter only because the goal tool cannot rename an
+  active objective; the repo docs remain the source of truth.
+- Retried fallback-only providers without promotion. PIMCO/MINT is
+  backend-readable at the product page and its fund-ui bundle exposes fund-info,
+  fund-stats, breakouts, top-ten holdings, and top-ten export routes, but no
+  complete holdings export route; direct fund-ui API/export calls returned nginx
+  `403`. Q3 exact route variants now fail DNS. WisdomTree DXJ/WTV remain
+  Cloudflare `403`/non-holdings `404`; BMO ETN routes remain Akamai `503`;
+  Manulife/JH route guesses returned `404`; and Thrivent TSME product/direct
+  CSV routes returned `403` HTML shells.
+- Repaired the only current opt-in live-matrix failure: `peakshares` / `PSTR`
+  timed out on the official FilePoint holdings POST. Focused retry passed, so
+  `PeakSharesHoldingsAdapter` now retries that fund-scoped holdings POST up to
+  three times on timeout after the product page has been validated. Static
+  coverage now simulates timeout-then-success.
+- Validation passed: focused PeakShares static `1 passed`; focused PeakShares
+  live `1 passed`; complete opt-in ETF holdings live matrix
+  `327 passed in 491.04s`; deterministic adapter suite `404 passed`; focused
+  fallback/native manifest guards `2 passed`; live concrete-route invariant
+  `1 passed`; strict manifest recompute `345` registered / `319`
+  native/live-backed / `26` fallback-only with `audit_matches True`, disjoint
+  native/fallback sets, and fallback audit dates `['2026-07-26']`; Ruff; and
+  `git diff --check` clean.
+
+# ETF Holdings Vert Native Route and Capital Impact Live Repair - 2026-07-26T07:42Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective.
+- Promoted `vert` from fallback-only to native/live-backed. The adapter verifies
+  Vert's public `VGSR` investments page, follows its declared
+  `vertasset.filepoint.live` app, verifies the app bundle declares
+  `assets/data/FilepointVert.40V2.V2_ETF_Holdings.csv`, and parses only
+  `Account == VGSR` rows. Live source returned `155` current rows dated
+  `07/27/2026`; foreign venue-style source tickers are retained in metadata
+  rather than treated as platform symbols, and `Cash&Other` is classified as
+  cash.
+- The first full opt-in live matrix after Vert found one pre-existing
+  reliability failure in `capital_impact` / `XOVR`: the SS&C full-holdings page
+  briefly exposed incomplete API metadata. A focused rerun passed; the adapter
+  now retries metadata extraction from the same verified full-holdings page
+  before calling the same public SS&C API.
+- Strict state is now `345` registered, `319` native/live-backed, and `26`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only and
+  uncounted. Validation passed: Vert static `1 passed`; Vert live `1 passed`;
+  focused Capital Impact + Vert static `2 passed`; focused Capital Impact +
+  Vert live `2 passed`; deterministic adapter suite `404 passed`; complete
+  opt-in ETF holdings live matrix `327 passed in 477.04s`; focused
+  fallback/native manifest guards `2 passed`; live concrete-route invariant
+  `1 passed`; strict manifest recompute `345` / `319` / `26`, disjoint
+  native/fallback sets, fallback audit dates `['2026-07-26']`; Ruff; and
+  `git diff --check` clean.
+
+# ETF Holdings WisdomTree/Thrivent/REX/SoFi/Westwood Retry and Live-Matrix Revalidation - 2026-07-26T07:10Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted;
+  strict state remains `345` registered, `318` native/live-backed, and `27`
+  fallback-only with SEC EDGAR fallback-only and uncounted.
+- Retried `thrivent` TSME product/direct CSV routes, `wisdomtree` DXJ/WTV
+  product/Dataspan/media routes, `rex` FEPI product/admin-ajax/CSV routes,
+  `sofi` SFY/THTA product and guessed holdings CSV routes, and `westwood` MDST
+  product/download/CSV routes. Thrivent still returned `403` HTML/S3 shells;
+  WisdomTree product and Dataspan routes returned Cloudflare `403`, with only a
+  non-holdings `fundlist/ir/` AUM route visible in the public Next.js bundle;
+  REX and SoFi returned `403` challenge shells; Westwood failed backend TLS
+  validation before any complete artifact was executable.
+- Validation passed: complete opt-in ETF holdings live matrix
+  `326 passed in 587.34s`; focused fallback/native manifest guards `2 passed`;
+  live concrete-route invariant `1 passed`; strict manifest recompute `345`
+  registered / `318` live-backed / `27` fallback-only with
+  `audit_matches True`, disjoint native/fallback sets, and fallback audit dates
+  `['2026-07-26']`; Ruff; `ops/state.json` parses; and `git diff --check`
+  clean. A stale one-off manifest script import failed first because it used
+  the old `CONFIGURED_ISSUER_ADAPTERS` symbol, then passed after rerunning with
+  `ISSUER_ADAPTER_CONFIGS`.
+
+# ETF Holdings Barclays Retry Repair and PIMCO/EPWA Audit - 2026-07-26T06:50Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. A complete opt-in live matrix initially
+  found one real failure: `barclays` / `ATMP` received HTTP `500` from the
+  official Barclays iPath details API
+  `https://ipathetn.cib.barclays/ipath/details/211218`.
+- Hardened `BarclaysIpathHoldingsAdapter` with a bounded three-attempt retry on
+  the same verified details API for transient `5xx` responses and timeouts. The
+  adapter still verifies ATMP, ISIN `US06742C7231`, Bloomberg index ticker
+  `BXVWATMP`, and the Select MLP ETN product-name fragment before accepting
+  index-component rows.
+- Retried `pacific_investments` / PIMCO. The MINT product page is readable and
+  declares CUSIP `72201R833`; the official `fund-ui.pimco.com` app bundle
+  exposes `/api/as-of-date`, `/api/funds/{cusip}`, `/api/funds/{cusip}/breakouts`,
+  and `/api/funds/{cusip}/topTenHoldings/export`, but direct backend-equivalent
+  calls returned nginx `403`, while same-origin `www.pimco.com` proxy variants
+  returned `404`.
+- Retried `epwa` / CornerCap FUNL. `cornercapfunl-etf.com` and
+  `cornercapfunds.com` FUNL routes timed out, Empowered/ETF Architect routes
+  hit Cloudflare `403`, and `etf.funl.com` did not resolve.
+- No provider was promoted or demoted; strict state remains `345` registered,
+  `318` native/live-backed, and `27` fallback-only with `audit_matches True`.
+  Validation passed: focused Barclays unit `1 passed`; focused Barclays live
+  `1 passed`; complete opt-in ETF holdings live matrix `326 passed in 522.10s`;
+  deterministic adapter suite `403 passed`; live concrete-route invariant
+  `1 passed`; strict manifest recompute `345` / `318` / `27`, disjoint
+  native/fallback sets, fallback audit dates `['2026-07-26']`.
+
+# ETF Holdings BMO/Guinness/Ridgeline/Nomura Route Retry - 2026-07-26T06:19Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted;
+  strict state remains `345` registered, `318` native/live-backed, and `27`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only.
+- Retried current blocked-source leads. BMO exact current ETN routes
+  `BNKU.P`, `BNKD.P`, `BULZ.P`, and `FNGO.P`, plus guessed
+  holdings/constituents CSV paths, still returned Akamai `503`. Guinness
+  Atkinson current ETF/resource/product pages and guessed MRAD holdings CSV
+  paths returned Cloudflare challenge `403`. Aegon / Transamerica ETF
+  fund-center routes returned only Incapsula shell HTML. Ridgeline / ACVF
+  exact fund-data and guessed holdings CSV routes returned Cloudflare/nginx
+  `403`. Rareview / Neil Azous routes returned Cloudflare `403` or `404`
+  without RDFI holdings artifacts.
+- Retried Nomura/Macquarie/Delaware public-source routes. The official Nomura
+  U.S. ETF catalogue and literature pages are backend-executable, but they
+  expose only generic literature/navigation and investor-rights download links,
+  not a current complete holdings CSV/XLSX/JSON/API route.
+- Validation passed: focused fallback/native manifest guards `2 passed`; live
+  concrete-route invariant `1 passed`; strict manifest recompute `345`
+  registered / `318` live-backed / `27` fallback-only with `audit_matches True`,
+  disjoint native/fallback sets, and fallback audit dates `['2026-07-26']`.
+
+# ETF Holdings Fallback Route Retry and Audit-Date Refresh - 2026-07-26T06:10Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted;
+  strict state remains `345` registered, `318` native/live-backed, and `27`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only.
+- Retried high-priority blocked sources. `wisdomtree` `DXJ`, guessed
+  fund-details, and Dataspan holdings/constituents endpoints still returned
+  Cloudflare `403`; `q3` ETF page and exact `GetHoldingsCSV1_v3aLIVE.php`
+  still returned Wordfence `503`; `thrivent` TSME product/direct CSV routes
+  returned `403` HTML shells; `manulife` / John Hancock JHHY/JHMM product and
+  daily holdings PDF routes returned Akamai `403`; `rex` FEPI product,
+  `admin-ajax`, and guessed CSV paths returned Cloudflare `403`; `sofi`
+  TGIX/SFY pages and guessed TidalFG CSV paths returned SoFi `403`
+  Welcome/challenge shells; and `westwood` MDST product/download/guessed CSV
+  routes returned Cloudflare `403`.
+- Retried non-executable public-source routes. `planrock` PRAE still returned a
+  48-byte opaque `application/octet-stream` from the advertised holdings
+  download. PIMCO/Pacific current ETF pages and guessed MINT routes exposed no
+  unauthenticated complete holdings API/CSV/XLSX. Delaware/Macquarie ETF routes
+  redirect to Nomura. Nomura's ETF literature route currently serves a region
+  selector; the U.S. ASP.NET postback target was found, but the stateful
+  postback returned `403` and exposed no repeatable holdings artifact.
+- Updated `_FALLBACK_AUDIT_DATE` to `2026-07-26` for the exhaustive fallback
+  manifest. Validation passed: focused fallback/native manifest guards
+  `2 passed`; live concrete-route invariant `1 passed`; strict manifest
+  recompute `345` registered / `318` live-backed / `27` fallback-only with
+  `audit_matches True` and fallback audit dates `['2026-07-26']`; Ruff.
+
+# ETF Holdings Wellington Live-Matrix Repair - 2026-07-26T06:02Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime objective. No provider was promoted or demoted;
+  strict state remains `345` registered, `318` native/live-backed, and `27`
+  fallback-only with `audit_matches True`; SEC EDGAR remains fallback-only.
+- A sandboxed full opt-in live run was discarded as environmental:
+  `323 failed, 3 passed` from broad DNS/connect failures
+  (`httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known`).
+- The network-capable full matrix found one real failure:
+  `wellington` / `VUSV` returned no rows from Vanguard's detailed
+  `portfolio-holding/{type}.json` endpoints. Vanguard's product page now
+  declares ETF fund id `V055`; detailed holdings by `V055` are empty, while
+  the fund-id `portfolio-holding/pcf.json` route returns current parseable
+  composition rows.
+- Repaired `WellingtonHoldingsAdapter` to verify the Vanguard product page,
+  resolve the ETF fund id, try detailed Vanguard holdings by fund id, and fall
+  back to the Vanguard fund-id PCF JSON route when detailed holdings are empty.
+  The parser preserves identifiers, shares, market value, weights, currency,
+  country, exchange, row type, and composition date.
+- Validation passed: focused Wellington unit checks `2 passed`; focused
+  Wellington opt-in live route `1 passed`; complete opt-in ETF holdings live
+  matrix `326 passed in 455.65s`; focused unit/native-audit checks `4 passed`;
+  live concrete-route invariant `1 passed`; strict manifest recompute `345`
+  registered / `318` live-backed / `27` fallback-only with `audit_matches True`;
+  Ruff for ETF holdings adapter/live/unit files; `ops/state.json` parses; and
+  `git diff --check` clean.
+
+# ETF Holdings PlanRock/Q3/Westwood/SoFi Retry Pass - 2026-07-26T04:46Z
+
+- Promoted no provider. Strict state remains `345` registered, `318`
+  native/live-backed, and `27` fallback-only with `audit_matches True`; SEC
+  EDGAR remains fallback-only.
+- PlanRock `PRAE`: the official page still exposes exactly one
+  `Download Holdings CSV` link at
+  `https://planrockfunds.com/planrock-funds/planrock-alternative-growth-etf-prae/?download_holdings=1&account_id=1450`,
+  but the attachment remains an opaque 48-byte `application/octet-stream` body
+  that changes between requests and cannot be decoded as CSV/text.
+- Q3: retried `https://www.q3allseasonfunds.com/etf/`, non-www, `qvoy`/`qtac`
+  routes, and guessed direct `QVOY-Holdings.csv` / `QTAC-Holdings.csv` upload
+  paths. All returned the same Wordfence `503` limited-access page with
+  `Retry-After: 3600`.
+- Westwood: current search-visible official
+  `https://westwoodgroup.com/product/westwood-salient-enhanced-midstream-income/`
+  route advertises current `MDST` holdings/download content, but
+  backend-equivalent `httpx`, `requests`, and curl diagnostics all returned a
+  Cloudflare challenge `403` with `cf-mitigated: challenge`. The old
+  `salientpartners.com` route is domain parking.
+- SoFi: ETF pages and exact TidalFG-style holdings CSV paths for `SFY`,
+  `SFYX`, `SFYF`, `THTA`, `TGRT`, `GIGE`, and `WKLY` on both `www.sofi.com`
+  and `sofi.com` all returned the same `403` Welcome shell. The existing
+  `tidal` adapter is sponsor-site scoped and was not used as a generic SoFi
+  bypass.
+- Validation passed: focused fallback/native manifest guards `2 passed`;
+  concrete live-route coverage invariant `1 passed`; `git diff --check` clean.
+  Latest full opt-in ETF holdings live matrix evidence remains
+  `326 passed in 575.55s` from the current checkout before this audit-only
+  checkpoint.
+
+# ETF Holdings Goal Anchor, Fallback Retry, and Live-Matrix Revalidation - 2026-07-26T04:38Z
+
+- Re-anchored execution to the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime label: all 345 registered providers need full native
+  per-provider ETF holdings integrations where executable, isolated
+  implementation plus static/live coverage, SEC EDGAR fallback-only treatment,
+  provider priority by ETF count/AUM/U.S. market coverage, repeated attempts
+  before marking blockers, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Promoted no provider in this audit-only pass. Strict state remains `345`
+  registered, `318` native/live-backed, and `27` fallback-only with
+  `audit_matches True`; SEC EDGAR remains fallback-only.
+- Retried access-blocked sources without promotion: WisdomTree `DXJ`/`WTV`
+  returned Cloudflare `403`/captcha; SoFi `SFY`/`THTA` returned `403` shells
+  with no holdings links; John Hancock/Manulife `JHHY` and ETF routes returned
+  `403 Access Denied`; Thrivent `TSME` returned a `403` shell; Westwood's old
+  Salient route is domain parking and likely Westwood Funds routes are
+  `403`/TLS-blocked; REX `FEPI` returned Cloudflare `403`; Guinness Atkinson
+  returned Cloudflare `403`; Q3 returned Wordfence `503`; BMO ETN routes
+  returned `503`; Aegon/Transamerica returned an Incapsula shell; and
+  Ridgeline/ACVF plus Rareview/Neil Azous returned Cloudflare `403`.
+- Retried non-executable public sources without promotion: Nomura/Macquarie/
+  Delaware pages expose no complete holdings CSV/XLSX/API route and old
+  Macquarie daily-holdings URLs redirect to Nomura; PIMCO's current ETF
+  strategy markup exposed no complete unauthenticated holdings endpoint and old
+  MINT/BOND detail URLs return `404`; EP Wealth/CornerCap exposes no
+  `FUNL`/ETF/holdings route; PlanRock `PRAE` still advertises a holdings CSV
+  download, but it returns an opaque 48-byte application/octet-stream body;
+  Vert's current 2Q2026 PDF is a factsheet/top-ten artifact rather than a
+  complete holdings file.
+- Validation passed from the current checkout: focused fallback/native manifest
+  guards `2 passed`; live concrete-route coverage invariant `1 passed`; strict
+  manifest recompute `345` registered, `318` native/live-backed, `27`
+  fallback-only, `audit_matches True`; complete opt-in ETF holdings live matrix
+  `326 passed in 575.55s`; and `git diff --check` was clean before the ops
+  update. A prior selected pytest run omitted `--no-cov`; selected tests
+  passed, but the session failed only because repo-wide coverage was measured.
+  The same checks were rerun with `--no-cov` and passed.
+
+# ETF Holdings CI SBH Native Route - 2026-07-26T04:16Z
+
+- Promoted `ci_financial` through an isolated `CiFinancialHoldingsAdapter` for
+  `SBH`. It verifies CI SBH's public ETF page at
+  `https://cisbh.com/funds/etfs`, requires page-declared AEM fund markers
+  `fundId` `1479`, CUSIP `81580H449`, and `am-etf-portfolio`, then calls only
+  the public AEM endpoint at `https://cisbh.com/bin/etf/holdings?fund=1479`.
+- Live source evidence: the endpoint returned 22 current holdings rows and a
+  downloadable base64 CSV document titled `SBH Select Equity ETF` /
+  `Fund Holdings Data as of 07/24/2026`. The decoded CSV includes tickers,
+  CUSIPs, shares/par, market prices, market values, and weights; endpoint
+  weights summed to `1.0`.
+- Removed `ci_financial` from fallback audits, added exact opt-in `SBH` live
+  coverage, and marked it native/live-backed.
+- Strict state is now `345` registered, `318` native/live-backed, and `27`
+  fallback-only with `audit_matches True`. Validation passed: focused
+  deterministic CI/manifest checks `4 passed`; focused opt-in CI route
+  `1 passed`; Ruff; deterministic adapter suite `403 passed`;
+  `git diff --check`; live coverage invariants `2 passed`; complete opt-in
+  direct-route live matrix `272 passed in 379.53s`. SEC EDGAR remains
+  fallback-only.
+
+# ETF Holdings Reflection / DEMZ Native Route and Regan Live-Matrix Repair - 2026-07-26T04:01Z
+
+- Promoted `reflection` through an isolated `ReflectionHoldingsAdapter` for
+  `DEMZ`. It verifies the public DEMZ performance page, requires DEMZ identity
+  markers including CUSIP `00774Q346`, follows only the page-declared
+  `https://nowserver.co.uk/main_2.js` script, verifies the declared
+  `https://nowserver.co.uk/test_ftp_4.php` data endpoint, and accepts only the
+  endpoint-returned dated `ETF_RAM_holdings.csv` route.
+- Live source evidence: the endpoint returned
+  `https://nowserver.co.uk/files/20260724_ETF_RAM_holdings.csv`; the CSV
+  returned 44 complete `Democratic Large Cap Core ETF` rows dated `2026-07-24`
+  with fund CUSIP `00774Q346`, per-row tickers/CUSIPs/ISINs/SEDOLs,
+  shares/par, market values, and weights.
+- Removed `reflection` from fallback audits, added exact opt-in `DEMZ` live
+  coverage, and marked it native/live-backed. Same pass repaired an unrelated
+  `regan` live-matrix timeout by adding a bounded three-attempt retry for
+  transient `requests` fallback timeouts after async `httpx` retries are
+  exhausted.
+- Strict state is now `345` registered, `317` native/live-backed, and `28`
+  fallback-only with `audit_matches True`. Validation passed: focused
+  deterministic Reflection/Regan/manifest checks `5 passed`; focused opt-in
+  Reflection route `1 passed`; focused opt-in Regan route `1 passed`; Ruff;
+  deterministic adapter suite `402 passed`; `git diff --check`; live coverage
+  invariants `2 passed`; complete opt-in direct-route live matrix
+  `271 passed in 397.31s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Remaining Not-Verified Fallback Bucket Closed - 2026-07-26T03:35Z
+
+- Promoted no native provider. Reclassified the final
+  `not_verified_us_etf_publisher` identities: `colliers`, `epiris`, `eurazeo`,
+  `marathon`, `msc_group`, `orix`, and `rock_point` now sit under
+  `provider_not_a_portfolio_publisher`.
+- Evidence summary: Colliers and MSC Group are operating-company identities;
+  Epiris and Eurazeo are investment/private-market manager identities;
+  Marathon is the documented `JHHY` subadvisor rather than the John
+  Hancock/Manulife ETF publisher; ORIX-labelled Defiance products resolve to
+  the existing Defiance route; Rock Point must not be promoted via the
+  already-native `adaptive_investments` / `ADPV` publisher route.
+- Backend-equivalent probes were attempted for representative first-party
+  pages: Colliers `403`, Epiris `403`, Eurazeo `200`, MSC Group `200`, ORIX
+  corporate profile `200`, Defiance `ORCX` `200`, John Hancock's
+  Marathon-subadvised `JHHY` announcement `200`, Rock Point `200`, and
+  `adpvetf.com/adpv` `200`.
+- Strict state remains `345` registered, `316` native/live-backed, and `29`
+  fallback-only with `audit_matches True` and `not_verified ()`. Validation
+  passed: focused fallback/manifest guards `2 passed`; Ruff;
+  `git diff --check`; complete opt-in direct-route live matrix
+  `270 passed in 424.13s`; live coverage invariants `2 passed`. SEC EDGAR
+  remains fallback-only.
+
+# ETF Holdings Goldman Sachs Native Route - 2026-07-26T01:31Z
+
+- Promoted `goldman_sachs` through an isolated GSAM fund-service adapter for
+  `GSLC`. It calls Goldman Sachs Asset Management's public
+  `https://am.gs.com/services/funds` GraphQL endpoint and verifies `PV102394`,
+  share class `381430503`, ticker `GSLC`, fund type `ETF`, and the expected
+  Goldman Sachs ActiveBeta U.S. Large Cap Equity ETF identity before accepting
+  `allHoldings` rows.
+- Live source evidence: the GSAM fund service returned 438 complete `GSLC`
+  holdings rows dated `2026-07-23`. The older static GSAM workbook parser is
+  preserved for existing `GVIP` workbook coverage, but live-backed Goldman
+  support now uses the current GraphQL `GSLC` source.
+- Removed `goldman_sachs` from fallback audits, added exact opt-in `GSLC` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Goldman/manifest checks `6 passed`; focused opt-in
+  Goldman/manifest live checks `3 passed`; deterministic adapter suite
+  `397 passed`; Ruff; strict manifest recompute `345` registered,
+  `311` native/live-backed, `34` fallback-only, `audit_matches True`;
+  `git diff --check`; complete opt-in live matrix
+  `319 passed in 576.81s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Corient / FundX Native Route and Live Matrix Repair - 2026-07-26T01:09Z
+
+- Promoted `corient` through an isolated Corient/FundX adapter for `XCOR`.
+  It verifies the official FundX product page, page-declared holdings CSV
+  viewer UUID, and first-party Drupal CSV-viewer JSON endpoint before parsing
+  the current complete holdings rows.
+- Live source evidence: the FundX `XCOR` page at
+  `https://fundxetfs.com/fundx-fundx-etf-xcor` declares holdings widget
+  `0ba9e6e7-ac72-4ebf-8e0a-64a998e7db52`; its first-party JSON endpoint
+  returned 12 holdings rows with current page metadata dated `2026-07-24`.
+- Removed `corient` from fallback audits, added exact opt-in `XCOR` live
+  coverage, and marked it native/live-backed. Also repaired `cygnet` after the
+  full matrix exposed a transient ELM CSV read timeout, and repaired `alexis`
+  for the current Wix `fileUrl` / dated `Holdings_YYYY_M_D.csv` metadata shape.
+- Validation passed: focused deterministic Corient/manifest checks `4 passed`;
+  focused opt-in Corient live route `1 passed`; focused deterministic
+  Alexis/Cygnet/Corient checks `4 passed`; focused opt-in
+  Alexis/Cygnet/Corient live routes `3 passed`; deterministic adapter suite
+  `396 passed`; Ruff; strict manifest recompute `345` registered,
+  `310` native/live-backed, `35` fallback-only, `audit_matches True`;
+  `git diff --check`; complete opt-in live matrix
+  `318 passed in 551.77s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Estate Counselors / Brinsmere Native Route and COtwo Repair - 2026-07-26T00:28Z
+
+- Promoted `estate_counselors` through an isolated Estate Counselors/Brinsmere
+  adapter for `TBFC` and `TBFG`. It verifies the public Brinsmere product page,
+  linked `brinsmere.filepoint.live` app, app-declared JavaScript bundle, and
+  bundle-declared shared holdings CSV before parsing only requested account rows.
+- Live source evidence: the script-declared Brinsmere holdings CSV at
+  `https://brinsmere.filepoint.live/assets/data/FilepointBrinsmereTMC.40M4.M4_Holdings.csv`
+  returned 51 rows dated `2026-07-27` across `TBFC` and `TBFG`; exact opt-in
+  live coverage uses `TBFC`.
+- Removed `estate_counselors` from fallback audits, added exact opt-in `TBFC`
+  live coverage, and marked it native/live-backed. Also repaired `cotwo` after
+  the full matrix exposed a transient SheetDB HTTP 500; COtwo's official page
+  still declares the same feed, and the adapter now uses a bounded provider-local
+  retry for transient 5xx responses.
+- Validation passed: focused deterministic Estate Counselors check `1 passed`;
+  live/provider manifest checks `2 passed`; focused opt-in Estate Counselors
+  live route `1 passed`; focused deterministic COtwo/Estate Counselors checks
+  `3 passed`; focused opt-in COtwo live route `1 passed`; deterministic adapter
+  suite `394 passed`; Ruff; strict manifest recompute `345` registered,
+  `309` native/live-backed, `36` fallback-only, `audit_matches True`;
+  `git diff --check`; complete opt-in live matrix
+  `317 passed in 510.08s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Equitable / AllianceBernstein Native Route - 2026-07-26T00:02Z
+
+- Promoted `equitable` through an isolated Equitable/AllianceBernstein adapter
+  for `FWD`. It verifies the official AB product-page model and linked
+  full-holdings workbook, then records the Equitable parent / AllianceBernstein
+  publisher relationship instead of inheriting the AB adapter identity.
+- Live source evidence: `FWD` returned at least 100 rows from the official AB
+  product-page workbook route behind
+  `https://www.alliancebernstein.com/us/en-us/investments/products/etf/equities/ab-disruptors-etf.-.00039J509.html`.
+- Removed `equitable` from fallback audits, added exact opt-in `FWD` live
+  coverage, and marked it native/live-backed. Same-pass rechecks did not
+  promote `bmo` or `delaware`: BMO's tested routes timed out or returned 404,
+  and Macquarie/Delaware URLs redirected to Nomura pages without current
+  complete holdings CSV/XLSX/API links in the probed page data.
+- Validation passed: focused deterministic Equitable/AllianceBernstein checks
+  `2 passed`; live/provider manifest checks `2 passed`; focused opt-in
+  Equitable live route `1 passed`; deterministic adapter suite `392 passed`;
+  Ruff; strict manifest recompute `345` registered, `308` native/live-backed,
+  `37` fallback-only, `audit_matches True`; `ops/state.json` parse;
+  `git diff --check`; complete opt-in live matrix
+  `316 passed in 456.77s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Arax / Day Hagan Native Route - 2026-07-25T23:45Z
+
+- Promoted `araq` through an isolated Arax/Day Hagan adapter for `SSUS`,
+  `DHSB`, `SSXU`, and `SSFI`. It verifies the official Day Hagan product page,
+  derives the page-declared Airtable route at runtime, calls only the declared
+  complete holdings table, filters to the latest effective date, and records
+  the Arax issuer / Day Hagan publisher relationship.
+- Live source evidence: `SSUS` returned latest-date holdings dated
+  `2026-07-23` from the Day Hagan product-page-declared Airtable route behind
+  `https://dhfunds.com/day-hagan-smart-sector-etf`; probing the same declared
+  table also returned executable latest-date rows for `DHSB`, `SSXU`, and
+  `SSFI`.
+- Removed `araq` from fallback audits, added exact opt-in `SSUS` live coverage,
+  and marked it native/live-backed. Validation passed: focused deterministic
+  Arax check `1 passed`; live/provider manifest checks `2 passed`; focused
+  opt-in Arax live route `1 passed`; deterministic adapter suite
+  `391 passed`; Ruff; strict manifest recompute `345` registered,
+  `307` native/live-backed, `38` fallback-only, `audit_matches True`; complete
+  opt-in live matrix `315 passed in 492.63s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Guardian / Sterling Route and Live Matrix Repair - 2026-07-25T23:23Z
+
+- Promoted `guardian` through an isolated Guardian/Sterling adapter for
+  Sterling-published Guardian-owned ETF holdings. Live `SCNM` returned 92 rows
+  dated `2026-07-24` from
+  `https://sterlingcapital.com/investments/exchange-traded-funds/scnm/export-portfolio-holdings/`;
+  weights net to `1.0015`.
+- Demoted `sterling_fund` because the current public `SCMC` PDF extracts as an
+  empty holdings report dated `1969-12-31` with no parseable positions. It is
+  now fallback-audited as a non-executable public source.
+- Repaired the opt-in live matrix by adding bounded timeout retries for
+  `main_management`, `hypatia`, and `baron`, and by broadening Alexis' Wix CSV
+  filepath parser to match the current page-embedded CSV path. Also froze
+  date-dependent unit tests for PMV/KraneShares-derived routes.
+- Validation passed: focused deterministic/live slices for Guardian,
+  Main/Hypatia, and Alexis/Baron; deterministic adapter suite `390 passed`;
+  Ruff; strict manifest recompute `345` registered, `306` native/live-backed,
+  `39` fallback-only, `audit_matches True`; `ops/state.json` parse;
+  `git diff --check`; complete opt-in live matrix
+  `314 passed in 444.08s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Symmetry / Panoramic SMOM Native Route - 2026-07-25T22:26Z
+
+- Promoted `symmetry` through a bounded Symmetry/Panoramic adapter for `SMOM`.
+  It verifies the public Panoramic Funds SMOM product page, linked
+  `smometf.filepoint.live` FilePoint app, app-declared JavaScript bundle, and
+  dated `SEI_Symmetry_Tradedate_Holdings_MMDDYYYY.txt` complete holdings export
+  before parsing only validated SMOM fund rows.
+- Live source evidence: `SMOM` returned 6 rows dated `2026-07-24` from
+  `https://smometf.filepoint.live/assets/data/SEI_Symmetry_Tradedate_Holdings_07242026.txt`;
+  weights net to `1.0000`.
+- Removed `symmetry` from fallback audits, added exact opt-in `SMOM` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Symmetry check `1 passed`; live/provider manifest checks
+  `2 passed`; focused opt-in Symmetry live route `1 passed`; deterministic
+  adapter suite `389 passed`; Ruff; strict manifest recompute `345`
+  registered, `306` native/live-backed, `39` fallback-only,
+  `audit_matches True`; `git diff --check`; complete opt-in live matrix
+  `314 passed in 522.88s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Sun Life / MFS Native Routes - 2026-07-25T22:06Z
+
+- Promoted `sun_life` through a bounded Sun Life/MFS adapter for the 11 current
+  MFS ETF daily-holdings pages: `BRCE`, `BREE`, `BRIE`, `BRSM`, `MFSB`,
+  `MFSG`, `MFSI`, `MFSM`, `MFSV`, `MIVL`, and `MMID`. It verifies the MFS
+  daily holdings page, expected ETF product name, ticker identity, and dated
+  holdings table before parsing complete current rows. The adapter owns the
+  `sun_life` identity and records the Sun Life parent / MFS public ETF
+  publisher relationship.
+- Live source evidence: `MFSV` returned 65 rows dated `2026-07-24` from
+  `https://www.mfs.com/en-us/individual-investor/product-strategies/exchange-traded-funds/daily-holdings/MFSV-active-value-etf.html`;
+  weights net to `1.0009`.
+- Removed `sun_life` from fallback audits, added exact opt-in `MFSV` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Sun Life/MFS check `1 passed`; live/provider manifest checks
+  `2 passed`; focused opt-in Sun Life/MFS live route `1 passed`;
+  deterministic adapter suite `388 passed`; Ruff; strict manifest recompute
+  `345` registered, `305` native/live-backed, `40` fallback-only,
+  `audit_matches True`; `git diff --check`; complete opt-in live matrix
+  `313 passed in 590.90s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings RedBird / Reckoner RCLR Native Route - 2026-07-25T21:46Z
+
+- Promoted `redbird` through a bounded RedBird/Reckoner adapter for `RCLR`.
+  It verifies the public Reckoner RCLR product page, embedded RCLR portfolio
+  iframe, iframe-declared application bundle, and bundle-declared complete
+  daily holdings CSV before parsing only `RCLR` account rows. The adapter owns
+  the `redbird` identity and records the RedBird issuer / Reckoner publisher
+  relationship instead of inheriting `reckoner`.
+- Live source evidence: `RCLR` returned 3 rows dated `2026-07-27` from
+  `https://funds.reckoner.com/assets/data/FilepointReckoner.40R7.R7_ETF_Holdings.csv`;
+  weights net to `1.0000`.
+- Removed `redbird` from fallback audits, added exact opt-in `RCLR` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic RedBird check `1 passed`; live/provider manifest checks
+  `2 passed`; focused opt-in RedBird live route `1 passed`; deterministic
+  adapter suite `387 passed`; Ruff; strict manifest recompute `345`
+  registered, `304` native/live-backed, `41` fallback-only,
+  `audit_matches True`; complete opt-in live matrix
+  `312 passed in 451.70s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings SCM Edge / Hedgeye Native Route - 2026-07-25T21:29Z
+
+- Promoted `scm_edge` through a bounded S.C.M. Edge / Hedgeye adapter for
+  official Hedgeye product-page holdings payloads. The adapter owns its
+  `fetch_latest` entry point and records the S.C.M. Edge issuer / Hedgeye
+  publisher relationship rather than inheriting the `hedgeye` adapter identity.
+- Live source evidence: `HEFT` returned 76 rows dated `2026-07-27` from
+  `https://www.hedgeyeam.com/heft`; weights net to `1.0000`.
+- Removed `scm_edge` from fallback audits, added exact opt-in `HEFT` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic SCM Edge plus manifest checks `3 passed`; focused opt-in SCM
+  Edge live route `1 passed`; live/provider manifest checks `2 passed`;
+  deterministic adapter suite `386 passed`; Ruff; strict manifest recompute
+  `345` registered, `303` native/live-backed, `42` fallback-only,
+  `audit_matches True`; `git diff --check`; complete opt-in live matrix
+  `311 passed in 501.01s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Graff / Pathfinder Native Route - 2026-07-25T21:13Z
+
+- Promoted `graff` through a bounded Graff/Pathfinder adapter for `PFDE`. It
+  verifies the official Pathfinder PFDE product page, exact
+  `assets/js/app.js?version=4` bundle, and bundle-declared FilePoint holdings
+  CSV before parsing.
+- Live source evidence: `PFDE` returned 86 rows dated `2026-07-27` from
+  `https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv`;
+  weights net to `1.0000`.
+- Removed `graff` from fallback audits, added exact opt-in `PFDE` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Graff check `1 passed`; focused opt-in Graff live route
+  `1 passed`; live/provider manifest invariant `1 passed`; deterministic
+  adapter suite `385 passed`; Ruff; strict manifest recompute `345` registered,
+  `302` native/live-backed, `43` fallback-only, `audit_matches True`;
+  `git diff --check`; complete opt-in live matrix `310 passed in 452.27s`.
+  SEC EDGAR remains fallback-only.
+
+# ETF Holdings Resolute / American Beacon Native Routes - 2026-07-25T20:53Z
+
+- Promoted `resolute` through a bounded American Beacon adapter for `AHLT`,
+  `MGNR`, and `CPII`. It verifies each official product page, expected
+  ticker/CUSIP identity, and page-declared dated holdings CSV before parsing.
+- Live source evidence: `AHLT` returned 271 rows dated `2026-07-23`, `MGNR`
+  returned 45 rows dated `2026-07-23`, and `CPII` returned 16 rows dated
+  `2026-07-23`. `MGNR` and `CPII` weights net to `1.0000`; `AHLT` is a
+  trend/derivative strategy with notional and cash/derivative rows.
+- Removed `resolute` from fallback audits, added exact opt-in `AHLT` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Resolute check `1 passed`; focused opt-in live/provider checks
+  `3 passed`; deterministic adapter suite `384 passed`; Ruff; strict manifest
+  recompute `345` registered, `301` native/live-backed, `44` fallback-only,
+  `audit_matches True`; complete opt-in live matrix
+  `309 passed in 569.08s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Albert Mason / Fundamentals First Native Route - 2026-07-25T20:35Z
+
+- Promoted `albert_mason` through a bounded Fundamentals First / Mason adapter
+  for `KNOW`. It verifies the official Fundamentals First page, Mason's
+  page-linked FilePoint app, and the app-declared static complete-holdings CSV
+  before parsing dated rows.
+- Live source evidence: `KNOW` returned 89 rows dated `2026-07-27` from
+  `https://mason.filepoint.live/assets/data/FilepointMasonCap.40M2.ETF_Holdings.csv`;
+  weights net to `1.0002`.
+- Removed `albert_mason` from fallback audits, added exact opt-in `KNOW` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Albert Mason check `1 passed`; focused opt-in live/provider
+  checks `3 passed`; deterministic adapter suite `383 passed`; Ruff; strict
+  manifest recompute `345` registered, `300` native/live-backed,
+  `45` fallback-only, `audit_matches True`; complete opt-in live matrix
+  `308 passed in 483.45s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Focus Financial / Kovitz and Longview Native Routes - 2026-07-25T20:18Z
+
+- Promoted `focus_financial` through a bounded adapter for `EQTY` and `EBI`.
+  `EQTY` verifies Kovitz's official ETF page, the issuer-hosted FilePoint app,
+  fund id `1323`, and the FilePoint complete-holdings JSON route before
+  parsing. `EBI` verifies Longview's official product and fund-data pages before
+  parsing the embedded complete holdings table; Longview returns `403` to
+  default `httpx`, so the adapter uses a scoped browser-compatible `requests`
+  fallback for that exact fund-data URL.
+- Live source evidence: `EQTY` returned 43 rows dated `2026-07-24` with weights
+  netting to `1.0000`; `EBI` returned 1,721 rows dated `2026-07-27` with weights
+  netting to `0.9943`.
+- Removed `focus_financial` from fallback audits, added exact opt-in `EBI` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Focus Financial check `1 passed`; focused opt-in live/provider
+  checks `3 passed`; deterministic adapter suite `382 passed`; Ruff; strict
+  manifest recompute `345` registered, `299` native/live-backed,
+  `46` fallback-only, `audit_matches True`; complete opt-in live matrix
+  `307 passed in 553.35s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings MM VAM / Vident Native Routes and Live Matrix Repair - 2026-07-25T19:53Z
+
+- Promoted `mm_vam` through a bounded Vident adapter for `VUSE`, `VIDI`,
+  `VBND`, and `PPTY`. It verifies the official product page and issuer-rendered
+  `ETF Holdings` table before parsing complete dated rows; Vident returns `403`
+  to default `httpx`, so the adapter uses a scoped browser-compatible
+  `requests` fallback for the verified product pages.
+- Live source evidence: `VUSE` returned 128 rows, `VIDI` returned 247 rows,
+  `VBND` returned 176 rows, and `PPTY` returned 87 rows. All are dated
+  `2026-06-30`; weights net to approximately complete portfolios.
+- Removed `mm_vam` from fallback audits, added exact opt-in `VUSE` live
+  coverage, and marked it native/live-backed. Also hardened Zacks' `requests`
+  fallback and Inverdale's FilePoint POST with bounded timeout retries after the
+  first full matrix run exposed transient read timeouts.
+- Validation passed: focused deterministic MM VAM/Zacks/Inverdale/manifest
+  checks `11 passed`; focused opt-in live/provider checks `5 passed`;
+  deterministic adapter suite `381 passed`; Ruff; strict manifest recompute
+  `345` registered, `298` native/live-backed, `47` fallback-only,
+  `audit_matches True`; complete opt-in live matrix
+  `306 passed in 427.52s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Saracen / SanJac Alpha Native Routes - 2026-07-25T19:18Z
+
+- Promoted `saracen` through a bounded SanJac Alpha adapter for `SJCP` and
+  `SJLD`. It verifies each official product page, the page-declared
+  `sj-data-feeds` init script, the shared holdings component, and the page
+  nonce-backed WordPress AJAX resolver before parsing the issuer U.S. Bank CSV.
+- Live source evidence: `SJCP` returned 24 rows and `SJLD` returned 12 rows
+  from the shared SanJac holdings CSV; both are dated `2026-07-27`, with weights
+  netting to `0.9999` and `0.9998` respectively. CUSIP-keyed bond rows remain
+  non-tradable fixed income.
+- Removed `saracen` from fallback audits, added exact opt-in `SJCP` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Saracen/manifest checks `5 passed`; focused opt-in
+  live/provider checks `3 passed`; deterministic adapter suite `378 passed`;
+  Ruff; strict manifest recompute `345` registered, `297` native/live-backed,
+  `48` fallback-only, native/fallback disjoint; complete opt-in live matrix
+  `305 passed in 472.83s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Reverence / Obra Native Routes - 2026-07-25T19:02Z
+
+- Promoted `reverence` through a bounded Obra adapter for `OOSP`, `OGSP`, and
+  `ODHY`. The adapter verifies the official Obra product page,
+  `fund_settings.json` symbol/fund mapping, page-declared `data.js`, and the NC
+  Funds JSON route before parsing complete holdings.
+- Live source evidence: `OOSP` fund id `438` returned 250 rows, `OGSP` fund id
+  `439` returned 119 rows, and `ODHY` fund id `455` returned 145 rows; all are
+  dated `2026-07-24`. Cash rows remain cash, CMO/bond rows remain fixed income,
+  and fund rows remain fund holdings.
+- Removed `reverence` from fallback audits, added exact opt-in `OOSP` live
+  coverage, and marked it native/live-backed. Validation passed: focused
+  deterministic Reverence/manifest checks `5 passed`; focused opt-in
+  live/provider checks `3 passed`; deterministic adapter suite `377 passed`;
+  Ruff; strict manifest recompute `345` registered, `296` native/live-backed,
+  `49` fallback-only, `audit_matches True`; complete opt-in live matrix
+  `304 passed in 426.88s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings RDJ / Equable Shares Native Route - 2026-07-25T18:44Z
+
+- Promoted `rdj` through a bounded Equable Shares HEDG adapter. It verifies the
+  public HEDG fund page, HEDG / CUSIP `81752T411` identity, and the
+  issuer-declared full-holdings XLSX at
+  `https://www.equableshares.com/download/holdings/HEDG` before parsing.
+- Live source evidence: HEDG returned 9 rows dated `2026-07-27` and weights net
+  to `1.0000`; fund ETF holdings retain tradable symbols, options stay
+  non-tradable option rows, and cash/money-market rows stay cash.
+- Removed `rdj` from fallback audits, added exact opt-in HEDG live coverage,
+  and marked it native/live-backed. Validation passed: focused deterministic
+  RDJ/manifest checks `5 passed`; focused opt-in live/provider checks
+  `3 passed`; deterministic adapter suite `376 passed`; Ruff; strict manifest
+  recompute `345` registered, `295` native/live-backed, `50` fallback-only,
+  `audit_matches True`; complete opt-in live matrix
+  `303 passed in 420.38s`. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Killir / KKM Native Routes and Live Matrix Repair - 2026-07-25T18:19Z
+
+- Promoted `killir` / Killir Kapital Management through isolated native routes
+  for ESN and GARY. ESN verifies the public Essential 40 page, exact
+  `assets/js/app.js?version=2` bundle, and bundle-declared FilePoint fund id
+  `1954` JSON route; live ESN returned 44 rows dated `2026-07-24`. GARY
+  verifies the public Mango Growth page, exact `assets/js/app.js?version=6`
+  bundle, and dated SEI KKM holdings text route; live GARY used
+  `SEI_KKM_Financial_Tradedate_Holdings_07242026.txt` and returned 42 rows
+  dated `2026-07-24`.
+- Removed `killir` from fallback audits, added it to
+  `LIVE_BACKED_ISSUER_ADAPTERS`, and added exact opt-in live coverage using
+  GARY. Also hardened Donoghue Forlines' existing requests fallback with
+  bounded timeout retries after the full live matrix exposed a transient read
+  timeout against its issuer AJAX CSV route.
+- Validation passed: focused deterministic Killir/Donoghue/manifest checks
+  `8 passed`; focused opt-in live/provider checks `4 passed`; deterministic
+  adapter suite `375 passed`; Ruff; strict manifest recompute `345`
+  registered, `294` native/live-backed, `51` fallback-only, `audit_matches
+  True`; complete opt-in live matrix `302 passed in 387.19s`. SEC EDGAR
+  remains fallback-only.
+
+# ETF Holdings Current Fallback Source Retries - 2026-07-25T18:15Z
+
+- Re-ran current backend-equivalent probes for high-priority and dedicated-code
+  fallback identities. No additional provider was promoted.
+- PlanRock PRAE, Westwood MDST, WisdomTree DXJ, SoFi SFY, Q3, Manulife/John
+  Hancock, and IronHorse/CGV remain blocked or broken under backend-equivalent
+  access. Goldman Sachs GVIP remains uncounted because the GSAM workbook is
+  stale at `2025-07-09`; its DFIN catalogue resolves GVIP CUSIP `381430545`
+  but only exposes prospectus, annual/semiannual, Q1/Q3 fiscal holdings, and
+  SEC/proxy material rather than a current complete holdings artifact.
+- Nomura's U.S. ETF surface still exposes no backend-visible complete holdings
+  CSV/XLSX/JSON/API route. Reflection's official DEMZ page still delegates live
+  data to `nowserver.co.uk` and S&P custom-index pages, so it remains
+  third-party-only/non-executable for native provider support.
+- Strict state remains `293/345` native/live-backed and `52/345`
+  fallback-only. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Redwood / LeaderShares Native Route Restore - 2026-07-25T17:55Z
+
+- Restored `redwood` to native/live-backed support through the current
+  executable LeaderShares holdings downloads. `LSAF` remains uncounted because
+  the issuer-owned route currently returns HTTP `200` with an empty body, but
+  `LSAT` returned 34 rows and `DYLD` returned 174 rows, both dated
+  `2026-07-24`.
+- Narrowed the adapter's verified route map to `LSAT` and `DYLD`, added exact
+  opt-in live coverage for `DYLD`, and retained standalone currency rows as
+  non-equity `forex` cash rows.
+- Validation passed: focused deterministic/manifest checks `6 passed`;
+  focused opt-in live/provider checks `3 passed`; deterministic adapter suite
+  `372 passed`; Ruff; complete opt-in live matrix
+  `301 passed in 411.63s`. Strict state is `293/345` native/live-backed and
+  `52/345` fallback-only. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Goal Anchor and Live Matrix Revalidation - 2026-07-25T17:35Z
+
+- Re-anchored the current task to the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json`: all 345 registered
+  providers need full native per-provider holdings integrations where
+  executable, isolated implementation code, static and opt-in live coverage,
+  SEC EDGAR fallback-only treatment, priority by ETF count/AUM/U.S. constituent
+  coverage, explicit attempted blockers, and a programmatic concrete-live-route
+  assertion for every `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Re-ran the complete opt-in live provider matrix from the current checkout.
+  It is fail-free: `300 passed in 442.73s`.
+- Recomputed strict state: `345` registered, `292` native/live-backed, `53`
+  fallback-only, no overlap between native and fallback sets, and
+  `FALLBACK_ISSUER_AUDITS` exactly matches the fallback-only set.
+
+# ETF Holdings Kingsview / Monarch Native Route - 2026-07-25T17:15Z
+
+- Added a bounded `kingsview` adapter for Monarch Funds. It verifies the public
+  Monarch resources page, the exact `assets/js/app.js?version=6` bundle, and
+  the bundle-declared `filepoint.live/monarch_getholdings_cached4.php` JSON
+  route before parsing fund-scoped holdings.
+- Promoted `MVFD` as the exact live route through fund id `1456`; the current
+  JSON returned 42 rows dated `2026-07-24`. The resources-page CSV links were
+  not used because they currently return 35-byte non-CSV binary bodies.
+- Re-audited Vert `VGSR`; its current issuer page and Q1 holdings PDF remain
+  reachable, but available backend PDF extraction still yields numeric
+  glyph-code text rather than reliable security identities/weights, so Vert
+  remains fallback-only.
+- Validation passed: focused deterministic/manifest checks `5 passed`; focused
+  opt-in live/provider checks `3 passed`; deterministic adapter suite
+  `372 passed`; Ruff; complete opt-in live matrix
+  `300 passed in 454.59s`. Strict state is `292/345` native/live-backed and
+  `53/345` fallback-only. SEC EDGAR remains fallback-only.
+
+# ETF Holdings Anfield / Donoghue / Toews Restore and IronHorse Demotion - 2026-07-25T16:58Z
+
+- Restored `anfield`, `donoghue_forlines`, and `toews` to native/live-backed
+  support after current direct adapter fetches returned parseable issuer-owned
+  holdings artifacts:
+  - ADFI: 3 rows from the Regents Park product-page-declared CSV dated
+    `2026-07-24`.
+  - DFTT: 32 rows from the Donoghue Forlines product-page AJAX CSV dated
+    `2026-07-24`.
+  - HRSK: 122 rows from the Toews product-page linked CSV dated `2026-07-24`.
+- Demoted `ironhorse` because the current Conductor CGV product page still
+  declares the holdings CSV link, but that issuer-owned CSV returns HTTP 200
+  with `content-length: 0`; it is not currently an executable complete holdings
+  artifact.
+- Validation passed: focused deterministic/manifest checks `10 passed`;
+  focused opt-in live/provider checks `5 passed`; deterministic adapter suite
+  `371 passed`; Ruff; complete opt-in live matrix `299 passed in 421.38s`.
+  Strict state is `291/345` native/live-backed and `54/345` fallback-only. SEC
+  EDGAR remains fallback-only.
+
+# ETF Holdings Live Matrix Revalidation and PlanRock Retry - 2026-07-25T16:36Z
+
+- Re-ran the complete opt-in live provider matrix from the current
+  `feat/etf-holdings-constituents` tree. It is fail-free:
+  `297 passed, 2 skipped in 452.85s`.
+- Retried PlanRock PRAE source discovery. The official product page exposes a
+  `Download Holdings CSV` link, but the linked
+  `?download_holdings=1&account_id=1450` response currently returns a 48-byte
+  non-text `application/octet-stream` body instead of parseable CSV headers and
+  rows. PlanRock remains fallback-only and uncounted; SEC EDGAR was not used as
+  a substitute.
+- Strict state remains `289/345` native/live-backed and `56/345`
+  fallback-only.
+
+# ETF Holdings Noa / Atlas America Native Route - 2026-07-25T16:25Z
+
+- Added a bounded `noa` adapter for Atlas America USAF using the official
+  ACT Fund product page, its declared application bundle, and the bundle
+  declared public holdings CSV at `actfund.io/assets/data/getHoldings.php`.
+- Removed Noa from fallback audit coverage and added exact opt-in USAF live
+  coverage. The parser preserves ticker, CUSIP, ISIN, SEDOL, shares, market
+  value, weights, currency, and derivative/fund/equity classification.
+- Validation passed: focused Noa deterministic slice `6 passed`; focused Noa
+  live/provider checks `3 passed`; deterministic adapter suite `371 passed`;
+  Ruff; `git diff --check`; complete opt-in live matrix
+  `297 passed, 2 skipped in 391.49s`. Strict state is `289/345`
+  native/live-backed and `56/345` fallback-only.
+
+# ETF Holdings UBS ETRACS Native Route - 2026-07-25T15:45Z
+
+- Added a bounded `ubs` adapter for PFFL using UBS ETRACS' public
+  index-components page. It verifies PFFL, the ETRACS Monthly Pay 2xLeveraged
+  Preferred Stock ETN identity, and the Solactive Preferred Stock ETF Index
+  component table before parsing dated component weights.
+- Removed UBS from fallback audit coverage and added exact opt-in PFFL live
+  coverage. Metadata records `disclosure_type=etn_index_components` so the
+  ETN/index exposure is not misrepresented as an ETF fund portfolio.
+- Validation passed: focused UBS deterministic slice `6 passed`; focused UBS
+  live/provider checks `3 passed`; deterministic adapter suite `370 passed`;
+  Ruff; `git diff --check`; complete opt-in live matrix rerun outside the
+  sandbox `296 passed, 2 skipped in 420.56s`. Strict state is `288/345`
+  native/live-backed and `57/345` fallback-only.
+
+# ETF Holdings Warren Native Route and Regan Matrix Repair - 2026-07-25T15:20Z
+
+- Added a bounded `warren` adapter for WarCap WCAP. It verifies WarCap's
+  official product page, issuer scripts, WCAP/fund id `456` binding, and the
+  page-declared NC Funds complete holdings JSON route before parsing dated
+  rows.
+- Removed Warren from fallback audit coverage and added exact opt-in WCAP live
+  coverage.
+- Hardened `regan` after the complete opt-in matrix exposed an MBSF read
+  timeout after async retries; Regan now uses a bounded `requests` transport
+  fallback only after provider-local async retries fail.
+- Validation passed: focused Warren/Regan deterministic slice `8 passed`;
+  focused Warren live/provider checks `3 passed`; focused Regan live/provider
+  checks `3 passed`; deterministic adapter suite `369 passed`; Ruff;
+  `git diff --check`; JSON validation; complete opt-in live matrix
+  `295 passed, 2 skipped in 407.65s`. Strict state is `287/345`
+  native/live-backed and `58/345` fallback-only.
+
+# ETF Holdings PMV Native Route - 2026-07-25T15:00Z
+
+- Added a bounded `pmv` adapter for PMV Capital ARP. It verifies PMV's official
+  ARP product page, the embedded PMV FilePoint holdings iframe, and the iframe
+  bundle-declared dated `SEI_PMV_Tradedate_Holdings_MMDDYYYY.txt` complete
+  holdings text export before parsing ARP rows.
+- Removed PMV from fallback audit coverage and added exact opt-in ARP live
+  coverage.
+- Validation passed: focused PMV deterministic slice `5 passed`; focused PMV
+  live/provider checks `3 passed`; deterministic adapter suite `367 passed`;
+  Ruff; `git diff --check`; JSON validation; complete opt-in live matrix
+  `294 passed, 2 skipped in 431.55s`. Strict state is `286/345`
+  native/live-backed and `59/345` fallback-only.
+
+# ETF Holdings Logan Native Route and Zacks Matrix Repair - 2026-07-25T14:45Z
+
+- Added a bounded `logan` adapter for Logan Capital LCLG using the issuer's
+  full-holdings page, first-party application bundle, and declared FilePoint
+  complete holdings CSV. Removed Logan from fallback audit coverage and added
+  exact opt-in live coverage.
+- Hardened `zacks` after the complete opt-in matrix exposed a ZECP read
+  timeout on the final async retry; Zacks now uses a bounded `requests`
+  transport fallback only after provider-local async retries fail.
+- Validation passed: focused deterministic slices `5 passed` and `8 passed`;
+  deterministic adapter suite `366 passed`; focused Logan/Zacks live checks
+  passed; Ruff; `git diff --check`;
+  complete opt-in live matrix `293 passed, 2 skipped in 439.15s`. Strict state
+  is `285/345` native/live-backed and `60/345` fallback-only.
+
+# ETF Holdings Paralel Native Route and Live Matrix Cleanup - 2026-07-25T13:40Z
+
+- Added a bounded `paralel` adapter for SRH Funds SRHQ/SRHR product pages. It
+  validates the issuer-rendered product page identity and parses the complete
+  dated holdings table; exact live coverage uses SRHQ.
+- Demoted `goldman_sachs`, `redwood`, and `toews` because their current
+  official routes are not executable in the opt-in live matrix: GSAM GVIP
+  workbook timeouts/Akamai `504`, LeaderShares/Redwood empty current CSV body,
+  and Toews HRSK repeated read timeouts. They remain parser-covered and SEC
+  fallback remains fallback-only.
+- Added provider-local timeout retries for Capital Impact, Indexperts, Intech,
+  and Prudential routes exposed by matrix sweeps.
+- Validation passed: deterministic adapter suite `364 passed`; focused
+  affected-route live checks passed; Ruff; `git diff --check`; complete opt-in
+  live matrix `292 passed, 2 skipped in 403.72s`. Strict state is `284/345`
+  native/live-backed and `61/345` fallback-only.
+
+# ETF Holdings Spend Life Wisely Native Route and Matrix Repair - 2026-07-25T13:05Z
+
+- Added a bounded `spend_life_wisely` adapter for SLWS using the issuer product
+  page-declared `/full-holdings?ticker=slws` affordance and the matching public
+  `get_holdings_json` WordPress endpoint. The parser preserves CUSIPs,
+  par/shares, weights, market values, cash rows, and composition date.
+- Demoted `anfield` after its current product page-declared ADFI CSV returned
+  HTTP `404`; the page also links liquidation/closure notices. It is now
+  fallback-only and skipped in the opt-in live matrix with a source-specific
+  reason.
+- Added Lazard timeout retries and fixed SEC-fallback probe readiness for
+  Vontobel, Split Rock, and PTAM unsupported-symbol probes.
+- Validation passed: `363 passed` deterministic adapter tests; focused
+  live/provider checks `4 passed, 1 skipped`; Ruff; `git diff --check`;
+  complete opt-in live matrix `294 passed, 1 skipped in 408.08s`. Strict state
+  remains `286/345` native/live-backed and `59/345` fallback-only.
+
+# ETF Holdings High-Priority Fallback Source Re-Audit - 2026-07-25T12:45Z
+
+- Rechecked WisdomTree/DXJ, SoFi/SFY, Thrivent's ETF surface, Q3/QVOY,
+  PIMCO/MINT, and BMO. WisdomTree and SoFi remain Cloudflare `403` blocked,
+  Thrivent remains `403` blocked through its edge, Q3 returned Cloudflare `503`
+  with `Retry-After: 3600`, and no complete unauthenticated current PIMCO or
+  BMO issuer-owned U.S. ETF holdings route was identified.
+- No provider was promoted; strict state remains `286/345` native/live-backed
+  and `59/345` fallback-only. SEC EDGAR remains fallback-only.
+
 # ETF Holdings Fallback Registry Audit Guard - 2026-07-22T10:10Z
 
 - Added an exhaustive, test-enforced fallback audit manifest for the 57
@@ -12158,6 +13569,32 @@ Append a short entry after each worker session.
   invariant; and concrete-live-route invariant. State: `277/345`
   native/live-backed and `68/345` fallback-only.
 
+# ETF Holdings Live Matrix Repair - 2026-07-25T12:32Z
+
+- Reproduced focused drift from the exported context. Current focused result
+  initially showed REX `403` and Thor stale row/CUSIP assertion failures; the
+  first full rerun additionally showed transient Liberty One and IronHorse
+  timeouts, stale ClearShares/Anfield assertions, and Donoghue Forlines HTTP
+  `401`.
+- REX and Donoghue Forlines were removed from native/live-backed status and
+  added to issuer-access-blocked fallback audits. This avoids counting SEC,
+  generated, or currently inaccessible first-party routes as native provider
+  support.
+- Added bounded provider-local timeout retries for Liberty One, IronHorse, and
+  Goldman Sachs. Updated ClearShares/Anfield/Thor live assertions to current
+  source-faithful invariants.
+- Validation:
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py -k 'liberty_one or ironhorse or donoghue_forlines or recognition_only_adapter_has_an_explicit_source_audit or every_live_backed_adapter_owns_its_fetch_entry_point' --no-cov -q` -> `5 passed, 357 deselected`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit/services/test_etf_holdings_adapters.py -k 'goldman_sachs or recognition_only_adapter_has_an_explicit_source_audit or every_live_backed_adapter_owns_its_fetch_entry_point' --no-cov -q` -> `4 passed, 358 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k '818 or ironhorse or clearshares or donoghue_forlines or anfield or provider_matrix_covers_every_registered_issuer_adapter or live_backed_providers_each_have_a_concrete_live_route_test' --no-cov -q` -> `6 passed, 288 deselected`
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py -k 'goldman_sachs or provider_matrix_covers_every_registered_issuer_adapter or live_backed_providers_each_have_a_concrete_live_route_test' --no-cov -q` -> `3 passed, 291 deselected`
+  - `cd backend && UV_CACHE_DIR=../.uv-cache uv run ruff check app/services/etf_holdings_adapters.py tests/live/test_etf_holdings_live_providers.py tests/unit/services/test_etf_holdings_adapters.py` -> `All checks passed`
+  - `git diff --check` -> passed
+  - `cd backend && RUN_LIVE_ETF_HOLDINGS_TESTS=1 UV_CACHE_DIR=../.uv-cache uv run pytest tests/live/test_etf_holdings_live_providers.py --no-cov -q` -> `294 passed in 398.34s`
+- Strict state after honest reclassification: `286/345` native/live-backed,
+  `59/345` fallback-only. The all-provider native integration goal remains
+  incomplete.
+
 # ETF Holdings Native Reliability Sweep - 2026-07-21T19:10Z
 
 - The opt-in live matrix completed with `283 passed, 2 failed`: ETF Architect
@@ -12217,3 +13654,370 @@ Append a short entry after each worker session.
 - A diagnostic full matrix using an 8-second provider request timeout was not
   completed: the command host reaped its redirected child before output was
   flushed. It is not validation evidence.
+
+# PlanRock/Q3/Vert deep route audit - 2026-07-26T05:29Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`.
+  No provider was promoted. Strict state remains `345` registered, `318`
+  native/live-backed, and `27` fallback-only; SEC EDGAR remains fallback-only.
+- `planrock`: inspected the PRAE page HTML, WordPress REST page object, child
+  scripts, and `admin-ajax.php` actions. The visible
+  `download_holdings=1&account_id=1450` link and REST-rewritten
+  `/wp-json/wp/v2/pages/5848?download_holdings=1&account_id=1450` route both
+  return the same 48-byte opaque `application/octet-stream` attachment named
+  `Holdings.csv`. The only working AJAX action found,
+  `get_premium_discount_data`, returns premium/discount data rather than
+  holdings.
+- `q3`: the rendered official ETF page confirms the exact first-party CSV
+  endpoint `https://www.q3allseasonfunds.com/GetHoldingsCSV1_v3aLIVE.php` and
+  visible current holdings rows, but backend-equivalent `requests` and approved
+  `rtk curl` requests to the page/direct CSV endpoint still return Wordfence
+  `503` with `Retry-After: 3600`.
+- `vert`: Quick Look rendering confirmed the official
+  `Vert-Quarterly-Holdings-Fiscal-202603.pdf` is a complete schedule of
+  investments dated `March 31, 2026`, but it is not maintainably parseable in
+  this backend environment. `pypdf` emits glyph IDs because the PDF uses a
+  Type3 font with no ToUnicode map; `textutil` returns raw PDF bytes;
+  `tesseract`, Poppler, PyMuPDF, Camelot, and Tabula are unavailable; likely
+  issuer-hosted `.htm` siblings all returned `404`.
+- Validation passed after this ops checkpoint: focused fallback/native manifest
+  guards `2 passed`; concrete live-route invariant `1 passed`; strict manifest
+  recompute `345` registered / `318` live-backed / `27` fallback-only with
+  `audit_matches True`; `ops/state.json` parses; and `git diff --check` clean.
+  Latest complete opt-in matrix evidence remains `326 passed in 590.53s` from
+  the current checkout before these audit-only passes.
+
+# SoFi/Westwood/Q3 and public-source retry - 2026-07-26T05:22Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`.
+  No provider was promoted. Strict state remains `345` registered, `318`
+  native/live-backed, and `27` fallback-only; SEC EDGAR remains fallback-only.
+- `westwood`: current MDST product and guessed holdings download query routes
+  returned Cloudflare `403` challenge pages.
+- `sofi`: representative `THTA` and `SFY` ETF pages plus guessed
+  `download_holdings` / `holdings.csv` routes returned SoFi's Cloudflare `403`
+  Welcome/challenge shell.
+- `q3`: the ETF page plus guessed `QVOY-Holdings.csv` and `QTAC-Holdings.csv`
+  upload paths returned Wordfence `503` with `Retry-After: 3600`.
+- `vert`: official pages expose executable quarterly holdings PDFs, including
+  `Vert-Quarterly-Holdings-Fiscal-202603.pdf`, but this is still not a
+  maintainable native backend route: the PDF uses a Type3 font with no
+  ToUnicode map, `pypdf` extracts glyph IDs instead of actual
+  securities/values, Poppler/OCR tooling is unavailable, and no CSV/XLSX/API
+  complete holdings route is exposed.
+- `planrock`: the PRAE advertised holdings download again returned a 48-byte
+  opaque `application/octet-stream` attachment named `Holdings.csv`.
+- `epwa`: EP Wealth / CornerCap routes returned `404` pages without
+  FUNL/ETF/holdings markers.
+- `delaware`: Delaware/Macquarie routes redirect to Nomura and expose ETF
+  navigation/general literature, not complete current holdings.
+- Validation passed after this ops checkpoint: focused fallback/native manifest
+  guards `2 passed`; concrete live-route invariant `1 passed`; strict manifest
+  recompute `345` registered / `318` live-backed / `27` fallback-only with
+  `audit_matches True`; `ops/state.json` parses; and `git diff --check` clean.
+  Latest complete opt-in matrix evidence remains `326 passed in 590.53s` from
+  the current checkout before these audit-only passes.
+
+# Priority blocked-source retry - 2026-07-26T05:17Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`;
+  the shorter runtime objective is not the operative wording. No provider was
+  promoted. Strict state remains `345` registered, `318` native/live-backed,
+  and `27` fallback-only; SEC EDGAR remains fallback-only.
+- `rex`: indexed FEPI holdings content is still not backend-executable.
+  `requests` and `httpx` GETs to `https://www.rexshares.com/fepi/` returned
+  Cloudflare `403`, and the existing adapter's posted CSV route still raises
+  `403 Forbidden`.
+- `wisdomtree`: `DXJ` and `WTV` product pages returned Cloudflare `403`;
+  guessed current media-tree holdings CSV paths returned `404` HTML shells.
+- `bmo`: official BNKU/BULZ/FNGO product routes and guessed
+  holdings/constituents paths on `bmoetns.com` returned Akamai `503` pages.
+- `aegon`: Transamerica fund-center and representative TABD/TALV routes
+  returned only the 212-byte Incapsula shell.
+- `ridgeline`: the official ACVF fund-data page returned nginx `403` through
+  `requests` and Cloudflare `403` through `httpx`; search-indexed holdings
+  were not counted.
+- `neil_azous`: Rareview's old fund domain redirects to Rareview Capital's
+  manager site, while RDFI product and guessed CSV paths returned `404` or
+  empty responses with no official complete holdings artifact.
+- `guinness_atkinson`: current `gafunds.com` ETF catalogue/product/resource
+  routes returned Cloudflare `403` challenges.
+- `nomura`: backend-readable ETF/literature pages expose navigation and
+  Broadridge/reporting documents, not a current complete holdings artifact.
+- `pacific_investments`: current PIMCO/Pacific ETF/product and guessed MINT
+  API routes returned `404` or non-ETF navigation shells; third-party API
+  holdings were not counted.
+- Validation passed after this ops checkpoint: focused fallback/native manifest
+  guards `2 passed`; concrete live-route invariant `1 passed`; strict manifest
+  recompute `345` registered / `318` live-backed / `27` fallback-only with
+  `audit_matches True`; `ops/state.json` parses; and `git diff --check` clean.
+  Latest complete opt-in matrix evidence remains `326 passed in 590.53s` from
+  the current checkout before this audit-only pass.
+
+# John Hancock/Thrivent blocked-route retry - 2026-07-26T04:55Z
+
+- Re-anchored current execution to the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`,
+  not the shorter runtime label: full native per-provider ETF holdings
+  integrations for all 345 registered providers, isolated implementation plus
+  static and live coverage, SEC EDGAR fallback-only and uncounted, priority by
+  ETF count/AUM/U.S. market coverage, repeated provider-resource attempts
+  before marking blockers, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- No provider was promoted. Strict state remains `345` registered, `318`
+  native/live-backed, and `27` fallback-only. SEC EDGAR remains fallback-only.
+- `thrivent`: the public `TSME` ETF page advertises a daily holdings CSV, but
+  backend-equivalent requests to the direct `daily-holdings-tsme.csv` artifact
+  on both `fp.thriventfunds.com` and `www.thriventfunds.com` returned HTTP
+  `403` HTML shells instead of CSV content.
+- `manulife`: John Hancock / Manulife daily trade holdings resource pages and
+  the inferred `jcr:content.securedownload.pdf` route returned Akamai `403
+  Access Denied` / HTML to backend-equivalent `httpx` and `requests` probes.
+  Annual report PDFs are stale reporting artifacts, not current complete
+  holdings, and were not counted as native provider support.
+- Validation passed from the current checkout: focused fallback/native manifest
+  guards `2 passed`; concrete live-route coverage invariant `1 passed`;
+  complete opt-in ETF holdings live matrix `326 passed in 590.53s`; and `git
+  diff --check` clean before the validation-result ops update.
+
+# ETF Holdings Goal Anchor and Live-Matrix Revalidation - 2026-07-26T01:46Z
+
+- Re-anchored current execution to the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`:
+  full native per-provider ETF holdings integrations for all 345 registered
+  providers, isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  provider retries until all pending/left providers have been tried, and
+  concrete live-route coverage for every `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Strict manifest recompute remains clean: `345` registered, `311`
+  native/live-backed, `34` fallback-only, native/fallback disjoint, and
+  `FALLBACK_ISSUER_AUDITS` exactly matches the fallback-only set.
+- High-priority remaining fallback-provider retries found no promotable native
+  route. WisdomTree `DXJ` product and all-holdings modal returned Cloudflare
+  `403`; SoFi `SFY` and `THTA` returned `403`; John Hancock/Manulife ETF and
+  daily trade holdings routes returned Akamai `Access Denied` `403`; REX
+  `FEPI` product page and posted CSV form returned Cloudflare `403`.
+- Full opt-in live matrix is fail-free after the retry pass:
+  `RUN_LIVE_ETF_HOLDINGS_TESTS=1 backend/.venv/bin/pytest
+  backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov` ->
+  `319 passed in 483.05s`.
+- No provider was promoted or falsely counted through SEC EDGAR,
+  search-indexed pages, top-ten data, login-gated documents, or inaccessible
+  first-party forms. The all-345 native integration goal remains active with
+  34 fallback-only identities left.
+
+# ETF Holdings IronHorse and Sterling Fund Restore - 2026-07-26T02:01Z
+
+- Restored `ironhorse` and `sterling_fund` from fallback-only to
+  native/live-backed support after their first-party routes became executable
+  again.
+- `ironhorse` verifies Conductor's official `CGV` product page at
+  `https://conductoretfs.com/global-equity-etf/`, follows the page-declared
+  `dwnld-hlds` CSV link, and live `CGV` returned 100 complete rows dated
+  `2026-07-24` from
+  `https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532`.
+  The IronHorse classifier now covers additional observed ISO currency rows
+  such as `BRL` and `IDR` so they stay non-tradable cash rows.
+- `sterling_fund` uses the existing Sterling Fund Management / Sterling Capital
+  publisher adapter for `SCMC`; the official fund-scoped PDF at
+  `https://sterlingcapital.com/investments/exchange-traded-funds/scmc/export-portfolio-holdings/`
+  again parsed cleanly, returning 183 complete rows dated `2026-07-24`.
+- Removed both providers from fallback audits, set both configs
+  `live_tested_default_route=True`, and added exact opt-in live route coverage
+  for `CGV` and `SCMC`.
+- Validation passed: focused deterministic IronHorse/Sterling/manifest checks
+  `5 passed`; focused opt-in IronHorse/Sterling/manifest live checks
+  `4 passed`; deterministic adapter suite `397 passed`; Ruff; `git diff
+  --check`; strict manifest recompute `345` registered, `313`
+  native/live-backed, `32` fallback-only, `audit_matches True`; and complete
+  opt-in live matrix `321 passed in 496.28s`.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 32 fallback-only identities left.
+
+# ETF Holdings Remaining-Provider Source Audit Tightening - 2026-07-26T02:10Z
+
+- Rechecked `q3`, `planrock`, `aegon`/Transamerica, `nomura`/`delaware`, and
+  `pacific_investments`/PIMCO after the `313/345` restore checkpoint. No native
+  provider was promoted.
+- `q3` remains issuer-access-blocked: the official
+  `https://www.q3allseasonfunds.com/etf/` page returns a Wordfence `503`
+  access-limited page before its advertised holdings CSV can be fetched.
+- `planrock` moved from `not_verified_us_etf_publisher` to
+  `non_executable_public_source`: the current official `PRAE` page at
+  `https://planrockfunds.com/planrock-funds/planrock-alternative-growth-etf-prae/`
+  is readable and advertises `Download Holdings CSV`, but the declared
+  `?download_holdings=1&account_id=1450` route still returns an opaque 48-byte
+  `application/octet-stream` body instead of parseable holdings.
+- `aegon` moved to `issuer_access_blocked`: Transamerica/Aegon ETF fund-center
+  routes, including representative `TABD`/ETF URLs, return only Incapsula
+  challenge shells to backend-equivalent requests.
+- `delaware` and `pacific_investments` moved to
+  `non_executable_public_source`: Nomura's successor ETF catalogue is readable
+  and lists the Macquarie/Delaware successor ETF suite but exposes no complete
+  holdings CSV/XLSX/API route, while PIMCO/Pacific official ETF and fund-detail
+  API retries returned 404/error shells rather than complete holdings payloads.
+- Validation passed: focused fallback/manifest unit guards `3 passed`; Ruff for
+  `backend/app/services/etf_holdings_adapters.py`; strict manifest recompute
+  `345` registered, `313` native/live-backed, `32` fallback-only,
+  `audit_matches True`; and `git diff --check`.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 32 fallback-only identities left.
+
+# ETF Holdings Hotchkis / Wiley HWSM Native Route - 2026-07-26T02:26Z
+
+- Promoted `hwcap` / Hotchkis & Wiley from fallback-only to
+  native/live-backed support through an isolated `HotchkisWileyHoldingsAdapter`
+  for `HWSM`.
+- The adapter verifies the official HWSM literature page at
+  `https://www.hwcm.com/etfs/hw-smid-cap-diversified-value-fund/literature/`,
+  follows its first-party monthly holdings PDF link, and parses the issuer PDF
+  at
+  `https://www.hwcm.com/wp-content/uploads/2025/03/SMID-ETF-Holdings-May-2026.pdf`.
+  The PDF identifies `PORTFOLIO (UNAUDITED) MAY 31, 2026` and `SMID CAP
+  DIVERSIFIED VALUE FUND (ETF)`.
+- Parser coverage keeps equity rows tradable, normalizes slash tickers such as
+  `UHAL/B` to `UHAL.B`, and keeps cash/accrual rows such as `CASHUSD`
+  non-tradable. Legal metadata records the issuer literature page linked
+  monthly holdings PDF route, composition/as-of date `2026-05-31`, and
+  Hotchkis & Wiley source provenance.
+- Removed `hwcap` from fallback audits, marked its config
+  `live_tested_default_route=True`, added it to
+  `LIVE_BACKED_ISSUER_ADAPTERS`, and added exact opt-in live route coverage for
+  `HWSM` with a 100-row minimum.
+- Validation passed: focused deterministic HWSM/manifest checks `4 passed`;
+  focused opt-in HWSM/manifest live checks `3 passed`; deterministic adapter
+  suite `398 passed`; Ruff; strict manifest recompute `345` registered, `314`
+  native/live-backed, `31` fallback-only, `audit_matches True`; `git diff
+  --check`; and complete opt-in live matrix `322 passed in 485.01s`.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 31 fallback-only identities left.
+
+# ETF Holdings NSI Holdings Native Route - 2026-07-26T02:44Z
+
+- Promoted `nsi` / NSI Holdings from fallback-only to native/live-backed
+  support through an isolated `NationalSecurityIndexHoldingsAdapter` for `NSI`.
+- The adapter verifies the official National Security Index ETF page at
+  `https://www.nationalsecurityindex.com/`, requires the page to identify
+  `National Security Emerging Markets Index ETF` / `NSI`, and follows only the
+  page-declared first-party holdings CSV at
+  `https://www.nationalsecurityindex.com/f/holdings.csv`.
+- Live source evidence: `NSI` returned 105 complete rows dated `2026-07-24`
+  from the official holdings CSV. The parser keeps cash/sweep rows such as
+  `GBP` and `9BBH` non-tradable, preserves source cash currency where
+  available, strips U.S. exchange suffixes from tradable equity symbols such as
+  `FN US` -> `FN`, and retains CUSIPs such as `G3323L100` and `722304102`.
+- Removed `nsi` from fallback audits, marked its config
+  `live_tested_default_route=True`, added it to
+  `LIVE_BACKED_ISSUER_ADAPTERS`, and added exact opt-in live route coverage for
+  `NSI` with a 40-row minimum.
+- Same-pass retries did not promote blocked high-value issuers: Thrivent
+  product and daily-holdings endpoints still returned `403`; SoFi `SFY`/`THTA`
+  pages returned managed-challenge `403` shells; WisdomTree `DXJ` product/API
+  paths returned Cloudflare `403` challenge pages.
+- Validation passed: focused deterministic NSI/manifest checks `19 passed`;
+  focused opt-in NSI/manifest live checks `5 passed`; deterministic adapter
+  suite `399 passed`; Ruff; strict manifest recompute `345` registered, `315`
+  native/live-backed, `30` fallback-only, `audit_matches True`; `git diff
+  --check`; and complete opt-in live matrix `323 passed in 453.74s`.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 30 fallback-only identities left.
+
+# ETF Holdings Barclays iPath ATMP Native Route - 2026-07-26T03:12Z
+
+- Promoted `barclays` from fallback-only to native/live-backed support through
+  an isolated `BarclaysIpathHoldingsAdapter` for `ATMP`.
+- The adapter verifies Barclays' official iPath product route
+  `https://ipathetn.barclays/atmp`, calls the first-party details API at
+  `https://ipathetn.cib.barclays/ipath/details/211218`, and requires `ATMP`,
+  ISIN `US06742C7231`, Bloomberg index ticker `BXVWATMP`, and the stable
+  `Select MLP ETN` product-name fragment before accepting constituent rows.
+- Live source evidence: the official iPath API returned 21 `ATMP` index
+  components dated `2026-01-30`; example rows include `Energy Transfer LP`
+  / `ET` / CUSIP `29273V100`. Metadata records
+  `disclosure_type=etn_index_components` so this is not misrepresented as a
+  plain ETF fund portfolio.
+- Removed `barclays` from fallback audits, marked its config
+  `live_tested_default_route=True`, added it to
+  `LIVE_BACKED_ISSUER_ADAPTERS`, and added exact opt-in live route coverage for
+  `ATMP` with a 10-row minimum.
+- Repaired an unrelated full-matrix failure in
+  `IMGlobalPartnerHoldingsAdapter`: the complete live sweep exposed a transient
+  `httpx.ReadTimeout` on the official DBMF product page, so the adapter now uses
+  a bounded three-attempt retry for issuer-page timeouts without weakening page
+  identity or table validation.
+- Validation passed: focused deterministic Barclays/IMGP/manifest checks
+  `6 passed`; focused opt-in Barclays/IMGP/manifest live checks `4 passed`;
+  deterministic adapter suite `401 passed`; Ruff; strict manifest recompute
+  `345` registered, `316` native/live-backed, `29` fallback-only,
+  `audit_matches True`; `git diff --check`; and complete opt-in live matrix
+  `324 passed in 502.38s`.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 29 fallback-only identities left.
+
+# ETF Holdings Remaining-Provider Audit Tightening - 2026-07-26T03:20Z
+
+- Rechecked `bmo`, `ridgeline`, `neil_azous`, `epwa`, `ci_financial`, and
+  `belpointe` after the `316/345` Barclays checkpoint. No native provider was
+  promoted.
+- `bmo` moved from `not_verified_us_etf_publisher` to
+  `issuer_access_blocked`: official `bmoetns.com` routes for the ETN catalogue
+  and representative product pages such as `BULZ`/`BNKU` repeatedly timed out
+  to backend-equivalent requests before any first-party component route could
+  be verified.
+- `ridgeline` moved to `issuer_access_blocked`: the official ACVF fund-data
+  page at `https://acvetfs.com/fund/acv-etf-fund-data/` returned `403
+  Forbidden`, so the searched ACVF holdings page cannot be used as a
+  backend-executable native route.
+- `neil_azous` moved to `issuer_access_blocked`: Rareview's official ETF and
+  representative RDFI routes returned Cloudflare `403` challenge pages before a
+  complete Rareview holdings artifact could be verified.
+- `epwa` and `ci_financial` moved to `non_executable_public_source`:
+  CornerCap/FUNL official routes now resolve to EP Wealth's CornerCap welcome
+  page without FUNL/ETF/holdings content, while the current CI SBH ETF page is
+  readable but exposes no distinct complete CSV/XLSX/API route in the probed
+  page data.
+- `belpointe` moved to `provider_not_a_portfolio_publisher`: current Belpointe
+  and Belpointe OZ public pages describe an investment firm / publicly traded
+  opportunity-zone vehicle, not a U.S. ETF portfolio publisher with complete
+  ETF holdings.
+- Validation passed: focused fallback/manifest guards `2 passed`; Ruff for
+  `backend/app/services/etf_holdings_adapters.py`; strict manifest recompute
+  `345` registered, `316` native/live-backed, `29` fallback-only,
+  `audit_matches True`; and `git diff --check`. No live-backed provider changed
+  in this audit-only pass, so the latest complete opt-in live matrix evidence
+  remains `324 passed in 502.38s` from the Barclays checkpoint.
+- SEC EDGAR remains fallback-only and uncounted. The all-345 native integration
+  goal remains active with 29 fallback-only identities left.
+
+# ETF Holdings Remaining-Provider Retry and Live Matrix Revalidation - 2026-07-26T13:27Z
+
+- Continued under the exact docs-exported goal in
+  `docs/session-exports/2026-07-24-current-goal.json` and `ops/tasks.yaml`
+  lines 7-21, not the shorter runtime goal-tool label.
+- No additional provider was promoted. Strict state remains `345` registered,
+  `324` native/live-backed, and `21` fallback-only. SEC EDGAR remains
+  fallback-only and uncounted.
+- Retried `planrock` / PRAE: the page-declared Download Holdings CSV route
+  still returns HTTP 200 with `filename="Holdings.csv"` but only a 48-byte
+  non-text `application/octet-stream` body. The current product page, WordPress
+  page/search APIs, media API, and premium/discount script expose only
+  prospectus/SAI PDFs, allocation images, page metadata, and premium/discount
+  AJAX, not a complete holdings artifact.
+- Retried blocked issuer routes: `rex` FEPI/CEPI exact CSV form POSTs still
+  return Cloudflare block HTML; `aegon` / Transamerica TALV/TABD still return
+  the 212-byte Incapsula shell; `manulife` / John Hancock JHHY/JHCB still
+  return Akamai Access Denied bodies; and `guinness_atkinson` / SmartETFs ADIV
+  product/resource plus guessed holdings PDF/CSV paths still return Cloudflare
+  managed challenge HTML.
+- Validation passed: strict manifest recompute reports `345` registered, `324`
+  live-backed, `21` fallback-only, `audit_matches True`, `test_matches_config
+  True`, disjoint native/fallback sets, and no missing/extra audits. The full
+  opt-in ETF holdings live matrix passed under the repo network runner:
+  `332 passed in 610.22s`.
+- A direct non-`rtk` pytest attempt was interrupted after systemic DNS failures
+  across unrelated providers (`httpx.ConnectError: [Errno 8] nodename nor
+  servname provided`); it was discarded as execution-environment DNS isolation
+  and superseded by the passing `rtk` matrix run.
