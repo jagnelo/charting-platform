@@ -14234,3 +14234,38 @@ Append a short entry after each worker session.
   fallback-only with `audit_matches True`, `test_matches_config True`,
   disjoint native/fallback sets, and no missing or extra audits; `git diff
   --check` clean.
+
+# ETF Holdings Remaining Fallback Current-Route Audit - 2026-07-27T12:09Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- No provider was promoted or demoted. Recomputed current strict state from
+  code: `345` registered, `326` native/live-backed, and `19` fallback-only with
+  `audit_matches True`.
+- Current access-blocked evidence remains unchanged for high-priority issuers:
+  `q3` / `QTAC` official page and exact `GetHoldingsCSV1_v3aLIVE.php` variants
+  return Wordfence `503` with `Retry-After: 3600`; `westwood` / `MDST`
+  product, exact `1471-Holdings.csv`, and WordPress JSON routes return
+  Cloudflare `403`; `guinness_atkinson` / SmartETFs pages and WordPress JSON
+  routes return Cloudflare `403`; `manulife` / John Hancock ETF, `JHHY`,
+  `JHCB`, announcement, and guessed holdings CSV routes return Akamai `403`;
+  `aegon` / Transamerica fund-center, `TABD`, `TALV`, and guessed API/holdings
+  routes return only the `212` byte Incapsula shell.
+- `sofi` / `SFY`, `SFYF`, `THTA`, ETF catalogue, and guessed
+  `/wealth/backend/api` holdings routes return Cloudflare `403`; only
+  `robots.txt` is readable and it disallows `/wealth/`. `wisdomtree` / `DXJ`,
+  `DTD`, guessed `www.wisdomtree.com/api` routes, and DataSpan
+  details/holdings/top-holdings routes return Cloudflare `403`.
+- Current non-executable public-source evidence also remains unchanged:
+  `epwa` / CornerCap/FUNL domains timed out, failed DNS, or returned EP Wealth
+  `404`; `planrock` / `PRAE` product page is readable, but its declared
+  `download_holdings=1&account_id=1450` route still returns only a `48` byte
+  `application/octet-stream` body.
+- No backend source changed. Latest full opt-in ETF holdings live matrix
+  evidence remains `281 passed in 363.24s` from the Lazard hardening checkpoint.
+  SEC EDGAR, stale filings, search-indexed snippets, and third-party holdings
+  data were not substituted for native provider support.

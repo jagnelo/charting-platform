@@ -1,5 +1,63 @@
 # Active Handoff
 
+## Remaining fallback current-route audit - 2026-07-27T12:09Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by ten
+  local commits through `557c68f fix(etf): retry Lazard transient server
+  errors`. Push remains blocked until SSH authenticates as an account with
+  permission to `jagnelo/charting-platform`.
+- Recomputed the current matrix directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True`. Fallback
+  buckets remain `issuer_access_blocked`: `aegon`, `guinness_atkinson`,
+  `manulife`, `q3`, `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`,
+  `wisdomtree`; `non_executable_public_source`: `epwa`,
+  `pacific_investments`, `planrock`; `provider_not_a_portfolio_publisher`:
+  `epiris`, `eurazeo`, `marathon`, `msc_group`, `orix`, `rock_point`.
+- No provider was promoted or demoted. `q3` / `QTAC` current official page and
+  exact `GetHoldingsCSV1_v3aLIVE.php` variants still return Wordfence `503`
+  with `Retry-After: 3600`, despite search-visible current holdings content.
+  `westwood` / `MDST` product, exact
+  `wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv`, and
+  WordPress JSON search routes still return Cloudflare `403`.
+- `guinness_atkinson` / SmartETFs pages (`our-funds`, `fund-resources`, `ADIV`,
+  `DIVS`) and WordPress JSON searches still return Cloudflare `403`.
+  `manulife` / John Hancock ETF, `JHHY`, `JHCB`, announcement, and guessed
+  holdings CSV document paths still return Akamai `403 Access Denied`.
+  `aegon` / Transamerica fund-center, `TABD`, `TALV`, and guessed API/holdings
+  paths still return only the `212` byte Incapsula shell.
+- `sofi` / `SFY`, `SFYF`, `THTA`, ETF catalogue, and guessed
+  `/wealth/backend/api` fund/ETF holdings paths still return Cloudflare `403`
+  Welcome/challenge HTML; only `robots.txt` is backend-readable and it disallows
+  `/wealth/`. `wisdomtree` / `DXJ`, `DTD`, guessed `www.wisdomtree.com/api`
+  routes, and DataSpan details/holdings/top-holdings routes still return
+  Cloudflare `403`.
+- `epwa` / CornerCap/FUNL remains non-executable: `cornercapfunl-etf.com` and
+  `www.cornercapfunl-etf.com` timed out, `etf.funl.com` did not resolve, and
+  EP Wealth `cornercap` plus guessed WordPress JSON routes returned `404`.
+  `planrock` / `PRAE` remains non-executable: the product page is readable, but
+  its declared `download_holdings=1&account_id=1450` route still returns only a
+  `48` byte `application/octet-stream` body.
+- No backend source changed. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard hardening checkpoint. This pass still
+  moves the broader goal forward by refreshing current blocker evidence for
+  high-priority remaining issuers without substituting SEC, stale filings,
+  search-indexed snippets, or third-party holdings data for native provider
+  support.
+
+### Next step
+
+- Continue periodic route discovery for the same `19` fallback-only providers,
+  prioritizing high-AUM/larger-lineup issuers. Only promote if the exact
+  first-party complete holdings route is backend-executable, then add isolated
+  adapter code plus deterministic and opt-in live coverage.
+
 ## Lazard live-matrix 503 hardening - 2026-07-27T11:59Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
