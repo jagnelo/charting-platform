@@ -44865,20 +44865,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
         page_url = source_url or self.LONGVIEW_FUND_DATA_URL
         if page_url != self.LONGVIEW_FUND_DATA_URL:
             raise ValueError("Longview EBI holdings must use the official fund-data page.")
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                self.LONGVIEW_FUND_DATA_URL,
-                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
-                follow_redirects=True,
-            )
-            if response.status_code == 403:
-                response = await asyncio.to_thread(
-                    requests.get,
-                    self.LONGVIEW_FUND_DATA_URL,
-                    headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
+        response = await self._get_longview_fund_data_page()
         response.raise_for_status()
         if "Longview Advantage ETF" not in response.text or "StockTicker" not in response.text:
             raise ValueError("Longview EBI fund-data page did not expose the verified holdings table.")
@@ -44905,6 +44892,40 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "snapshot_provenance": "longview_fund_data_native_html",
             },
         )
+
+    async def _get_longview_fund_data_page(self) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        timeout = max(float(settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS), 30.0)
+        last_error: Exception | None = None
+        for attempt in range(5):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.get(
+                        self.LONGVIEW_FUND_DATA_URL,
+                        headers=headers,
+                        follow_redirects=True,
+                    )
+                if response.status_code != 403:
+                    return response
+            except (httpx.TimeoutException, httpx.RemoteProtocolError) as exc:
+                last_error = exc
+
+            try:
+                return await asyncio.to_thread(
+                    requests.get,
+                    self.LONGVIEW_FUND_DATA_URL,
+                    headers=headers,
+                    timeout=timeout,
+                    allow_redirects=True,
+                )
+            except requests.exceptions.RequestException as exc:
+                last_error = exc
+                if attempt == 4:
+                    break
+                await asyncio.sleep(0.25 * (attempt + 1))
+        if last_error is not None:
+            raise last_error
+        raise ValueError("Longview EBI fund-data page was unavailable.")
 
     @classmethod
     def _kovitz_headers(cls) -> dict[str, str]:
@@ -53159,6 +53180,13 @@ class IMGlobalPartnerHoldingsAdapter(IssuerCsvHoldingsAdapter):
     ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
         normalized_html = html.unescape(raw_html)
         expected_name = cls._EXPECTED_FUND_NAMES[symbol]
+        if (
+            "scheduled maintenance" in normalized_html.lower()
+            and expected_name.lower() not in re.sub(r"\s+", " ", normalized_html).lower()
+        ):
+            raise ValueError(
+                f"iM Global Partner product page is temporarily under scheduled maintenance for {symbol}."
+            )
         if not re.search(rf'"bloomberg_code"\s*:\s*"{re.escape(symbol)}"', normalized_html, re.I):
             raise ValueError(f"iM Global Partner product page identity did not match requested ETF {symbol}.")
         if expected_name.lower() not in re.sub(r"\s+", " ", normalized_html).lower():

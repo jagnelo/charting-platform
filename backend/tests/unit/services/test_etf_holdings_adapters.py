@@ -2056,6 +2056,33 @@ async def test_imgp_adapter_retries_transient_product_page_timeout(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_imgp_adapter_reports_scheduled_maintenance_shell(monkeypatch):
+    adapter = get_holdings_adapter("im_global_partner")
+    assert adapter is not None
+    product_url = (
+        "https://www.imgp.com/us/fund/"
+        "US53700T8273-imgp-dbi-managed-futures-strategy-etf/"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="""
+                <html>
+                  <head><title>Scheduled Maintenance</title></head>
+                  <body>Scheduled Maintenance</body>
+                </html>
+            """,
+            content_type="text/html",
+            url=product_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="scheduled maintenance"):
+        await adapter.fetch_latest(symbol="DBMF")
+
+
+@pytest.mark.asyncio
 async def test_intech_adapter_resolves_current_fund_scoped_daily_holdings_pdf(monkeypatch):
     adapter = get_holdings_adapter("intech")
     assert adapter is not None
@@ -11597,6 +11624,82 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
     assert ebi_result.rows[1].row_type == "cash"
     assert ebi_result.legal_metadata["composition_date"] == "2026-07-27"
     assert ebi_result.legal_metadata["route_resolution"] == (
+        "focus_financial_longview_fund_data_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
+    adapter = get_holdings_adapter("focus_financial")
+    assert adapter is not None
+
+    rows = [
+        [
+            "Date",
+            "Account",
+            "StockTicker",
+            "CUSIP",
+            "SecurityName",
+            "Shares",
+            "Price",
+            "MarketValue",
+            "Weightings",
+        ]
+    ]
+    for index in range(101):
+        rows.append(
+            [
+                "07/27/2026",
+                "EBI",
+                f"LV{index}",
+                f"7654321{index % 10}A",
+                f"Longview Example Co {index}",
+                "10",
+                "20",
+                "200",
+                "0.01%",
+            ]
+        )
+    table = "".join(
+        "<tr>" + "".join(f"<td>{escape(value)}</td>" for value in row) + "</tr>"
+        for row in rows
+    )
+    success = FakeResponse(
+        text=f"<html><body>Longview Advantage ETF<table>{table}</table></body></html>",
+        content_type="text/html",
+        url="https://longviewresearchpartners.com/ebi/fund-data/",
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(status_code=403, text="blocked"),
+        FakeResponse(status_code=403, text="blocked"),
+    ]
+    request_calls = []
+    request_queue = [
+        requests.exceptions.ReadTimeout("issuer stalled"),
+        success,
+    ]
+
+    def fake_requests_get(url, **kwargs):
+        request_calls.append((url, kwargs))
+        result = request_queue.pop(0)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    async def skip_delay(_seconds):
+        return None
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
+
+    result = await adapter.fetch_latest(symbol="EBI")
+
+    assert len(FakeAsyncClient.requested) == 2
+    assert len(request_calls) == 2
+    assert len(result.rows) == 101
+    assert result.legal_metadata["route_resolution"] == (
         "focus_financial_longview_fund_data_complete_holdings_table"
     )
 

@@ -2027,7 +2027,12 @@ async def test_live_imgp_dbmf_product_page_exposes_complete_holdings_table():
     adapter = get_holdings_adapter("im_global_partner")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="DBMF")
+    try:
+        result = await adapter.fetch_latest(symbol="DBMF")
+    except ValueError as exc:
+        if "scheduled maintenance" in str(exc).lower():
+            pytest.skip(str(exc))
+        raise
 
     _assert_live_holdings_result(result, adapter_key="im_global_partner", min_rows=10)
     assert result.legal_metadata["route_resolution"] == "imgp_verified_fund_scoped_holdings_table"
