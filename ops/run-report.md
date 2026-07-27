@@ -14294,3 +14294,35 @@ Append a short entry after each worker session.
 - No backend source changed. Latest full opt-in ETF holdings live matrix remains
   `281 passed in 363.24s` from the Lazard hardening checkpoint. Strict state is
   unchanged at `326` native/live-backed and `19` fallback-only.
+
+# ETF Holdings Provider-Not-Publisher Identity Audit - 2026-07-27T12:22Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- No provider was promoted or demoted. Recomputed current strict state from
+  code: `345` registered, `326` native/live-backed, and `19` fallback-only with
+  `audit_matches True` and `test_matches_config True`.
+- Refreshed provider-not-publisher identity evidence. `marathonfund.com` is
+  backend-readable and identifies CVC Marathon as an asset manager; its ETF
+  disclosure links users out to John Hancock for `JHHY`, so Marathon remains a
+  sub-adviser identity rather than the first-party portfolio publisher. John
+  Hancock remains the blocked first-party route.
+- Defiance `ORCX` pages are backend-readable and expose current ORCX holdings,
+  but disclosures state Defiance is the ETF sponsor and Tidal Investments is
+  the adviser, with ORCX listed under Defiance economic-interest ETFs. This does
+  not establish `orix` as the portfolio publisher, so `orix` remains
+  fallback-audited and must not be promoted through the Defiance route.
+- `eurazeo.com` investment/shareholder pages are backend-readable but expose
+  corporate/private-market investment information, not a U.S. ETF complete
+  holdings publisher route. `epiris.co.uk` returns Cloudflare `403`, `msc.com`
+  returns access denied, and `rockpoint.com` is backend-readable as a corporate
+  real-estate/investment manager surface without ETF holdings links in the
+  probed page content.
+- No backend source changed. Latest full opt-in ETF holdings live matrix remains
+  `281 passed in 363.24s` from the Lazard hardening checkpoint. SEC EDGAR,
+  third-party holdings pages, and reachable holdings pages for other publishers
+  were not substituted for native provider support.

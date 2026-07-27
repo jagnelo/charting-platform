@@ -1,5 +1,54 @@
 # Active Handoff
 
+## Provider-not-publisher identity audit - 2026-07-27T12:22Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
+  twelve local commits through `57bf69e chore(ops): record ETF provider route
+  audit`. Push remains blocked until SSH authenticates as an account with
+  permission to `jagnelo/charting-platform`.
+- Recomputed current strict state from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True` and
+  `test_matches_config True`. The provider-not-publisher bucket remains
+  `epiris`, `eurazeo`, `marathon`, `msc_group`, `orix`, and `rock_point`.
+- No provider was promoted or demoted. Current official route probes refreshed
+  identity evidence for that bucket. `marathonfund.com` is backend-readable and
+  identifies CVC Marathon as an asset manager; its ETF disclosure modal links
+  users out to John Hancock for `JHHY`, so Marathon remains a sub-adviser
+  identity rather than the portfolio-publishing issuer. The John Hancock
+  first-party route remains Akamai-blocked from backend access.
+- `defianceetfs.com/orcx/` and `defianceetfs.com/orcx-full-holdings/` are
+  backend-readable and expose current ORCX holdings, but the page disclosures
+  state Defiance is the ETF sponsor and Tidal Investments is the adviser; ORCX
+  is also listed under Defiance economic-interest ETFs. This does not establish
+  `orix` as the portfolio publisher, so `orix` must not be promoted through the
+  Defiance route.
+- `eurazeo.com` investment/shareholder pages remain backend-readable but expose
+  corporate/private-market investment information, not a U.S. ETF complete
+  holdings publisher route. `epiris.co.uk` returns Cloudflare `403`, `msc.com`
+  returns access denied, and `rockpoint.com` is backend-readable as a corporate
+  real-estate/investment manager surface without ETF holdings links in the
+  probed page content. No first-party complete holdings route was found for
+  `epiris`, `eurazeo`, `msc_group`, or `rock_point`.
+- No backend source changed. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard hardening checkpoint. This pass
+  preserves the native-support standard by rejecting reachable holdings pages
+  when they belong to a different publisher identity.
+
+### Next step
+
+- Continue periodic discovery on the remaining `19` fallback providers. If an
+  identity is only a sub-adviser, sponsor/economic-interest holder, index name,
+  corporate operating company, or private-market manager, keep it
+  fallback-audited until a first-party complete ETF portfolio route exists for
+  that identity.
+
 ## Ridgeline and John Hancock route audit - 2026-07-27T12:16Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
