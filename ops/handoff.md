@@ -1,5 +1,66 @@
 # Active Handoff
 
+## Remaining provider support and universe audit - 2026-07-27T17:03Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and synced with `origin/feat/etf-holdings-constituents`
+  through `c94b437 chore(ops): record ETF blocked issuer retry`.
+- Recomputed strict state directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True` and
+  `test_matches_config True`.
+- No provider was promoted or demoted. `pacific_investments` / PIMCO remains
+  non-executable: the current public `product-finder` page exposes the
+  `fundexp-ui.pimco.com/fund-explorer-api`; `/api/dashboard/fundDetails` is
+  backend-executable and returns `25` ETF rows, including `MINT`, `BOND`, and
+  `PYLD`, but those rows contain metadata/performance fields only. The
+  representative `MINT` documents route for CUSIP `72201R833` returns
+  prospectus/shareholder/regulatory PDFs and no document title containing
+  holdings/portfolio/schedule. No complete current holdings API/CSV/XLSX route
+  was exposed.
+- `q3` remains access-blocked even on the newer search-visible `QTAC` route:
+  `https://www.q3allseasonfunds.com/etf/`,
+  `https://www.q3allseasonfunds.com/etf-qtac/`, and the advertised
+  `GetHoldingsCSV1_v3aLIVE.php` endpoint all return the same Wordfence
+  `503` limited-access HTML with `Retry-After: 3600`.
+- `wisdomtree` remains access-blocked: the all-holdings modal candidate and a
+  DataSpan probe both return Cloudflare `403` HTML from backend-equivalent
+  requests. Public WisdomTree DataSpan documentation/search evidence points to
+  key-gated access rather than an unauthenticated complete holdings route.
+- `planrock` remains non-executable. The current `PRAE` page-declared
+  `?download_holdings=1&account_id=1450` attachment is still exactly `48`
+  bytes with opaque binary content, not compressed/text CSV holdings.
+- Market-universe check: the repo's `345` registered keys are the current
+  in-repo provider/adviser identity universe, not a confirmed exhaustive list
+  of every live U.S. ETF issuer/brand. Current external market sources are
+  materially different source models: ICI reported `4,873` U.S. ETFs in May
+  `2026` and `288` ETF sponsors at year-end `2025`, while ETF.com describes an
+  issuer/brand page for every U.S.-listed ETF. The repo registry is broader
+  than sponsor count because it includes advisers/parents/subadvisers/legacy
+  ETFDB identities, yet spot comparison against ETF.com-style issuer/brand
+  names shows likely missing or aliased market brands such as Columbia, SP
+  Funds, USCF, Saba, RiverFront, EMQQ, ETF Managers Group, Alerian, Merk, and
+  Robo Global. These were not added to the registered `345` set in this pass
+  because each needs a separate symbol/issuer identity mapping audit.
+- No backend source changed. Latest full opt-in ETF holdings live matrix
+  evidence remains `281 passed in 363.24s` from the Lazard retry-hardening
+  checkpoint. This pass confirms the remaining `19` are all current in-repo
+  fallback providers, but the repo provider registry itself should not be
+  treated as the full current U.S. ETF-market universe without a separate
+  issuer-universe ingestion/reconciliation task.
+
+### Next step
+
+- Keep the `19` current in-repo fallback providers fallback-audited until a
+  first-party complete holdings route is backend-executable. Separately,
+  create or run a current U.S. ETF issuer/brand universe reconciliation before
+  claiming all-market provider coverage.
+
 ## Current blocked issuer retry audit - 2026-07-27T12:49Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

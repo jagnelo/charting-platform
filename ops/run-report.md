@@ -14411,3 +14411,56 @@ Append a short entry after each worker session.
   `281 passed in 363.24s` from the Lazard hardening checkpoint. SEC EDGAR,
   third-party holdings pages, and reachable holdings pages for other publishers
   were not substituted for native provider support.
+
+# ETF Holdings Remaining Provider Support and Universe Audit - 2026-07-27T17:03Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Recomputed current strict state from code: `345` registered,
+  `326` native/live-backed, and `19` fallback-only with `audit_matches True`
+  and `test_matches_config True`.
+- No provider was promoted or demoted. PIMCO / `pacific_investments` is now
+  confirmed public-API-readable but still non-executable for complete holdings:
+  the `product-finder` page exposes
+  `https://fundexp-ui.pimco.com/fund-explorer-api`; direct
+  `/api/dashboard/fundDetails?selectedViewNav=NAV` with the app headers
+  returned `25` ETF rows including `MINT`, `BOND`, and `PYLD`, but those rows
+  carry metadata/performance fields only. The representative `MINT` documents
+  route for CUSIP `72201R833` returned prospectus/shareholder/regulatory PDFs
+  and no returned document title containing holdings, portfolio, or schedule.
+- Q3 remains access-blocked despite a current search-visible `QTAC` page path:
+  `https://www.q3allseasonfunds.com/etf/`,
+  `https://www.q3allseasonfunds.com/etf-qtac/`, and the advertised
+  `https://www.q3allseasonfunds.com/GetHoldingsCSV1_v3aLIVE.php` endpoint all
+  returned the same Wordfence `503` limited-access HTML with
+  `Retry-After: 3600`.
+- WisdomTree remains access-blocked/key-gated. The tested all-holdings modal
+  candidate and DataSpan probe both returned Cloudflare `403` HTML to
+  backend-equivalent requests, and public DataSpan discovery continues to point
+  at an `x-wt-dataspan-key` model rather than an unauthenticated complete
+  holdings route.
+- PlanRock / `PRAE` remains non-executable: the official page-declared
+  `?download_holdings=1&account_id=1450` attachment still returned HTTP `200`
+  with `Content-Disposition: filename="Holdings.csv"`, but the body is exactly
+  `48` opaque binary bytes (`4e17 a96a ...`), not compressed/text CSV holdings.
+- Market-universe check: the repo's `345` registered keys are the in-repo
+  provider/adviser identity universe, not a confirmed exhaustive current U.S.
+  ETF issuer/brand universe. Current external sources use different models:
+  ICI reports `4,873` U.S. ETFs in May `2026` and `288` ETF sponsors at
+  year-end `2025`, while ETF.com describes an issuer/brand page for every
+  U.S.-listed ETF. The repo registry is broader than sponsor count because it
+  includes advisers, parents, subadvisers, and legacy ETFDB identities, but
+  spot comparison against ETF.com-style issuer/brand names still suggests
+  likely missing or aliased market brands such as Columbia, SP Funds, USCF,
+  Saba, RiverFront, EMQQ, ETF Managers Group, Alerian, Merk, and Robo Global.
+  These were not added in this pass because each requires symbol-level
+  source-of-truth mapping before expanding the registry.
+- No backend source changed. Latest complete opt-in ETF holdings live matrix
+  evidence remains `281 passed in 363.24s` from the Lazard retry-hardening
+  checkpoint. Next step is to keep the current `19` in-repo fallback providers
+  audited while separately reconciling the current U.S. ETF issuer/brand
+  universe before claiming all-market provider coverage.
