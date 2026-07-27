@@ -2,6 +2,31 @@
 
 Append a short entry after each worker session.
 
+# ETF Live Matrix Hardening and Final Validation - 2026-07-27T20:52Z
+
+- Continued under the corrected LSEG Lipper broad-market target: `496` U.S. ETF
+  promoters as of `2026-06-30`; repo registry remains `345`, leaving `151`
+  named-promoter identities to reconcile before registration.
+- Committed `9b943fa fix(etf): harden remaining live matrix routes`.
+- Full live matrix initially failed on transient `kingsview`, `zacks`,
+  `lagan`, `beacon_capital`, and `abacus_global` route/network errors that
+  passed on focused rerun; `im_global_partner` / `DBMF` persistently returned
+  an issuer `Scheduled Maintenance` shell.
+- Added DBMF scheduled-maintenance detection and made the DBMF opt-in live test
+  skip only that exact issuer-maintenance condition.
+- A second full live matrix then left only `focus_financial` / `EBI` failing on
+  Longview route read timeout; hardened Longview retrieval with bounded retries
+  across async and issuer-local requests transports.
+- Validation passed: IMGP unit slice `3 passed`; failed-provider focused live
+  rerun `6 passed, 1 skipped`; Focus Financial unit slice `2 passed`; Focus
+  Financial live route `1 passed`; deterministic adapter suite
+  `418 passed in 13.69s`; focused live repair/accounting slice
+  `3 passed, 1 skipped`; final full opt-in ETF holdings live matrix
+  `333 passed, 1 skipped in 445.61s`; Ruff; `git diff --check`.
+- Current strict matrix remains `345` registered, `326` native/live-backed,
+  `19` fallback-only, target `496`, gap `151`, and no generated
+  recognition-only adapters.
+
 # ETF Promoter Universe Target Correction - 2026-07-27T18:20Z
 
 - Corrected the ETF holdings goal from the repo-only `345` provider registry to

@@ -36,6 +36,22 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-27T20:52Z live-matrix hardening pass followed the broad
+        promoter-universe correction. The first full opt-in live matrix after
+        that correction exposed transient route/network failures for kingsview,
+        zacks, lagan, beacon_capital, and abacus_global that passed on focused
+        rerun; im_global_partner/DBMF persistently returned an issuer Scheduled
+        Maintenance shell. The DBMF adapter now detects that maintenance shell,
+        and its opt-in live test skips only that exact issuer-maintenance state.
+        A second full matrix then left focus_financial/EBI failing on Longview
+        route read timeout; the Longview retrieval now uses bounded retries
+        across async and issuer-local requests transports. Validation passed:
+        deterministic ETF adapter suite 418 passed, focused repair/accounting
+        live slice 3 passed and 1 skipped, Ruff, git diff --check, and final
+        full opt-in ETF holdings live matrix 333 passed and 1 skipped in
+        445.61s. The single skip is DBMF issuer scheduled maintenance. Code
+        commit: 9b943fa fix(etf): harden remaining live matrix routes.
+      - >
         A 2026-07-27T18:20Z provider-universe target correction superseded the
         old 345-only registry goal. The broad market target is now the current
         LSEG Lipper U.S. ETF promoter universe: 496 promoters as of 2026-06-30

@@ -1,5 +1,47 @@
 # Active Handoff
 
+## ETF live matrix hardening and final validation - 2026-07-27T20:52Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`), with the repo currently enumerating `345` adapter keys and a
+  `151` named-promoter reconciliation gap.
+- Committed the code/test repair as
+  `9b943fa fix(etf): harden remaining live matrix routes`.
+- The first complete opt-in matrix after the provider-universe change exposed
+  six live failures. A focused rerun showed five were transient route/network
+  failures that passed immediately, while `im_global_partner` / `DBMF`
+  persistently returned an issuer `Scheduled Maintenance` shell instead of the
+  fund page.
+- Added explicit DBMF maintenance detection in `IMGlobalPartnerHoldingsAdapter`
+  and made the DBMF opt-in live test skip only that exact issuer-maintenance
+  condition rather than reporting it as a parser/identity failure.
+- The second complete opt-in matrix then exposed one remaining actual failure:
+  `focus_financial` / `EBI` timed out on the Longview fund-data route after the
+  issuer-local `requests` fallback. Hardened Longview retrieval with bounded
+  retry handling across async and issuer-local requests transports.
+- Current strict matrix: `345` registered / `326` native-live-backed / `19`
+  fallback-only / target `496` promoters / `151` registered-promoter gap /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused IMGP unit slice: `3 passed, 414 deselected`
+  - focused failed-provider live rerun: `6 passed, 1 skipped, 327 deselected`
+  - focused Focus Financial unit slice: `2 passed, 416 deselected`
+  - focused Focus Financial live route: `1 passed, 333 deselected`
+  - full deterministic ETF adapter unit file: `418 passed in 13.69s`
+  - focused live repair/accounting slice: `3 passed, 1 skipped, 330 deselected`
+  - final full opt-in ETF holdings live matrix:
+    `333 passed, 1 skipped in 445.61s`; the single skip is DBMF issuer
+    scheduled maintenance
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Obtain a named current U.S. ETF promoter/brand list matching the LSEG-style
+  promoter universe, reconcile the missing `151` identities, and add only
+  confirmed missing providers as explicit adapter/audit entries.
+
 ## ETF promoter universe target correction - 2026-07-27T18:20Z
 
 - Updated the authoritative task scope from the old `345` repo-registered
