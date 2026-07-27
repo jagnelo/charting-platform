@@ -1,5 +1,58 @@
 # Active Handoff
 
+## Fallback route retry audit - 2026-07-27T12:41Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
+  fourteen local commits through `52db7c7 chore(ops): checkpoint ETF pending
+  push`. Push remains blocked because SSH authenticates as `jagnelo-symbiotech`
+  for `git@github.com:jagnelo/charting-platform.git`.
+- Recomputed strict state directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True` and
+  `test_matches_config True`. Fallback buckets remain
+  `issuer_access_blocked`: `aegon`, `guinness_atkinson`, `manulife`, `q3`,
+  `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`, `wisdomtree`;
+  `non_executable_public_source`: `epwa`, `pacific_investments`, `planrock`;
+  `provider_not_a_portfolio_publisher`: `epiris`, `eurazeo`, `marathon`,
+  `msc_group`, `orix`, `rock_point`.
+- No provider was promoted or demoted. `pacific_investments` / PIMCO remains
+  non-executable: current PIMCO ETF strategy page is backend-readable and
+  advertises the PIMCO ETF suite/quicksheet, but current product URL probes for
+  MINT/BOND returned a generic Sitecore `404` shell and no complete holdings
+  CSV/XLSX/API route was exposed in the backend-readable ETF page content.
+- `planrock` / `PRAE` remains non-executable. The current product page is
+  backend-readable and still declares `Download Holdings CSV` via
+  `?download_holdings=1&account_id=1450`, but that exact first-party route
+  still returns only a `48` byte `application/octet-stream` `Holdings.csv`
+  body with opaque binary bytes, not parseable holdings.
+- `epwa` / CornerCap/FUNL remains non-executable: `cornercapfunds.com/funl/`
+  returned Cloudflare `522`, `cornercapfunl-etf.com` timed out after `20`
+  seconds, and `www.epwealth.com/cornercap` returned a HubSpot `404` page
+  without FUNL/ETF/holdings content.
+- Rechecked two higher-priority access-blocked routes without promotion.
+  `q3` / `QTAC` product and exact `GetHoldingsCSV1_v3aLIVE.php` route still
+  return Wordfence `503` with `Retry-After: 3600`. `rex` / `FEPI` product GET
+  and existing product-page CSV form POST still return Cloudflare managed
+  challenge `403` HTML.
+- No backend source changed. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard retry-hardening checkpoint. This
+  pass preserves the native-support standard by not counting marketing pages,
+  top-ten/quicksheet documents, opaque downloads, WAF challenge shells, stale
+  artifacts, SEC filings, or third-party holdings as native provider support.
+
+### Next step
+
+- Continue current-route discovery on the same remaining `19` fallback
+  providers, prioritizing high-AUM/larger-lineup issuers. Promote only if the
+  exact first-party complete holdings route is backend-executable, then add
+  isolated adapter code plus deterministic and opt-in live coverage.
+
 ## Pending push checkpoint - 2026-07-27T12:29Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

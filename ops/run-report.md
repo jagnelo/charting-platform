@@ -2,6 +2,38 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Fallback Route Retry Audit - 2026-07-27T12:41Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. No provider was promoted or demoted, and no backend source
+  changed.
+- Recomputed strict state directly from code: `345` registered, `326`
+  native/live-backed, `19` fallback-only, `audit_matches True`, and
+  `test_matches_config True`.
+- Rechecked `pacific_investments` / PIMCO. The current PIMCO ETF strategy page
+  is backend-readable and advertises the ETF suite/quicksheet, but current
+  MINT/BOND product URL probes returned generic Sitecore `404` shells and the
+  backend-readable ETF page content exposed no complete holdings CSV/XLSX/API
+  route.
+- Rechecked `planrock` / `PRAE`. The product page is backend-readable and still
+  declares `Download Holdings CSV` through
+  `?download_holdings=1&account_id=1450`, but the exact first-party route still
+  returns only a `48` byte `application/octet-stream` `Holdings.csv` body with
+  opaque binary bytes.
+- Rechecked `epwa` / CornerCap FUNL. `cornercapfunds.com/funl/` returned
+  Cloudflare `522`, `cornercapfunl-etf.com` timed out after `20` seconds, and
+  `www.epwealth.com/cornercap` returned a HubSpot `404` page without
+  FUNL/ETF/holdings content.
+- Rechecked higher-priority blocked routes. `q3` / `QTAC` product and exact
+  `GetHoldingsCSV1_v3aLIVE.php` route still return Wordfence `503` with
+  `Retry-After: 3600`; `rex` / `FEPI` product GET and product-page CSV form
+  POST still return Cloudflare managed challenge `403` HTML.
+- Latest full opt-in live matrix evidence remains `281 passed in 363.24s` from
+  the Lazard retry-hardening checkpoint. This pass deliberately did not count
+  marketing pages, top-ten/quicksheet documents, opaque downloads, WAF
+  challenge shells, stale artifacts, SEC filings, or third-party holdings as
+  native provider support.
+
 # ETF Holdings Pending Push Checkpoint - 2026-07-27T12:29Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
