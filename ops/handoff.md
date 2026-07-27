@@ -1,5 +1,56 @@
 # Active Handoff
 
+## High-priority blocked-route retry - 2026-07-27T11:13Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is clean and ahead of origin by seven local commits through
+  `3127c0a chore(ops): checkpoint Belpointe PLGI promotion`. Push still
+  depends on SSH authenticating as an account with permission to
+  `jagnelo/charting-platform`.
+- Recomputed the current matrix directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only. Fallback buckets are unchanged:
+  `issuer_access_blocked`: `aegon`, `guinness_atkinson`, `manulife`, `q3`,
+  `rex`, `ridgeline`, `sofi`, `thrivent`, `westwood`, `wisdomtree`;
+  `non_executable_public_source`: `epwa`, `pacific_investments`, `planrock`;
+  `provider_not_a_portfolio_publisher`: `epiris`, `eurazeo`, `marathon`,
+  `msc_group`, `orix`, `rock_point`.
+- Retried high-priority official routes with backend-equivalent `rtk curl`
+  / adapter execution. `wisdomtree` DXJ product page still returns Cloudflare
+  `403`. `sofi` SFY still returns a Cloudflare challenge `403` shell. `thrivent`
+  TSME product page and exact advertised
+  `/content/dam/thrivent/fund-data/csv/daily-holdings-tsme.csv` still return
+  CloudFront/S3/Imperva `403` HTML, not CSV. `q3` ETF page and exact
+  `GetHoldingsCSV1_v3aLIVE.php` route still return Wordfence `503` with
+  `Retry-After: 3600`.
+- Existing `RexHoldingsAdapter` was retested against `FEPI`; the verified
+  product-page POST route still raises `403 Forbidden`, and direct product-page
+  GET is still a Cloudflare `403` challenge. Do not re-enable `rex` as
+  live-backed until the exact CSV route becomes executable.
+- Retried `aegon` / Transamerica official ETF/product candidates for `TALV` and
+  `TABD`; Transamerica still returns only the `212`-byte Incapsula bootstrap
+  shell. Retried `guinness_atkinson` / SmartETFs current fund and resources
+  pages; both are Cloudflare challenge `403`. Retried `pacific_investments` /
+  PIMCO `MINT`; the short product URL currently returns a Sitecore-style `404`
+  page and no complete holdings API/CSV/XLSX route was exposed.
+- No provider was promoted or demoted, and no backend source changed. Strict
+  manifest validation remains aligned: `345` registered, `326` live-backed,
+  `19` fallback-only, `audit_matches True`, `test_matches_config True`,
+  disjoint native/fallback sets, and no missing/extra audits. Latest full
+  opt-in ETF holdings live matrix evidence remains `334 passed in 583.42s`
+  from the Belpointe checkpoint.
+
+### Next step
+
+- Continue route discovery for the remaining `19`, but only promote a provider
+  when a first-party complete/current holdings artifact is backend-executable.
+  Current search-indexed pages for Q3/REX/Thrivent are not sufficient because
+  the backend receives WAF/Cloudflare/Incapsula shells for the exact routes.
+
 ## Belpointe PLGI native route promotion - 2026-07-26T23:00Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

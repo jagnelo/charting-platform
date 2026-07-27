@@ -2,6 +2,34 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings High-Priority Blocked-Route Retry - 2026-07-27T11:13Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. No provider was promoted or demoted, and no backend source
+  changed.
+- Recomputed the current matrix from code: `345` registered, `326`
+  native/live-backed, `19` fallback-only. Fallback audits and live-test
+  coverage remain aligned.
+- Retried backend-equivalent official routes for high-priority blocked
+  providers. `wisdomtree` DXJ still returns Cloudflare `403`; `sofi` SFY still
+  returns a Cloudflare challenge `403`; `thrivent` TSME product page and exact
+  advertised daily CSV still return CloudFront/S3/Imperva `403` HTML; `q3`
+  product page and exact `GetHoldingsCSV1_v3aLIVE.php` route still return
+  Wordfence `503` with `Retry-After: 3600`.
+- Retested the existing `rex` native adapter against `FEPI`; the verified
+  product-page POST route still raises `403 Forbidden`, and direct page GET is
+  still a Cloudflare `403` challenge.
+- Retried `aegon` / Transamerica `TALV` and `TABD` official candidates; each
+  returns only the `212`-byte Incapsula bootstrap shell. Retried
+  `guinness_atkinson` / SmartETFs fund and resources pages; both are Cloudflare
+  challenge `403`. Retried `pacific_investments` / PIMCO `MINT`; the short
+  product URL returns a Sitecore-style `404`, with no complete holdings route
+  exposed in this pass.
+- Validation passed: strict manifest recompute reports `345` registered, `326`
+  live-backed, `19` fallback-only, `audit_matches True`, `test_matches_config
+  True`, disjoint sets, and no missing/extra audits. Latest complete opt-in live
+  matrix evidence remains the Belpointe checkpoint: `334 passed in 583.42s`.
+
 # ETF Holdings Belpointe PLGI Native Route Promotion - 2026-07-26T23:00Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
