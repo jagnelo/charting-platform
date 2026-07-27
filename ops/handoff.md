@@ -1,5 +1,59 @@
 # Active Handoff
 
+## Current blocked issuer retry audit - 2026-07-27T12:49Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
+  fifteen local commits through `290bf9a chore(ops): record ETF fallback route
+  retry`. Push remains blocked because SSH authenticates as `jagnelo-symbiotech`
+  for `git@github.com:jagnelo/charting-platform.git`.
+- Recomputed strict state directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True` and
+  `test_matches_config True`.
+- No provider was promoted or demoted. `thrivent` remains access-blocked:
+  current `www.thriventfunds.com` and `fp.thriventfunds.com` TSME pages plus
+  the advertised `daily-holdings-tsme.csv` path return issuer/Imperva
+  CloudFront `403` HTML shells. The issuer-linked
+  `connect.rightprospectus.com/Thrivent/TVT/88588G109/SOI?site=ETF` route
+  returns only a `1.4` KB hosted-site HTML shell that tries to load
+  `/assets/version.txt` and redirects to `/Error/Index?ErrorCode=500` on
+  failure; it is not a document or complete holdings payload.
+- `westwood` remains access-blocked. `westwoodfunds.com/mdst/` now redirects to
+  `westwoodgroup.com/products/mutual-funds/mdst/`; normal TLS verification
+  failed locally before content retrieval, and diagnostic `curl -k` showed the
+  product route and exact `1471-Holdings.csv` path return Cloudflare challenge
+  `403` HTML. WordPress search JSON returned plain `403 Forbidden`.
+- `sofi` remains access-blocked. Current `SFY`, `SFYI`, `SFYF`, and `THTA`
+  pages on `www.sofi.com/invest/etfs/` all return Cloudflare managed-challenge
+  `403` shells of roughly `483` KB. Guessed Tidal Financial Group holdings CSV
+  artifacts for `SFY`, `SFYF`, `SFYI`, and `THTA` all return real Tidal `404`
+  HTML pages, not CSV holdings files.
+- `guinness_atkinson` / SmartETFs remains access-blocked. Search surfaced the
+  current `gafunds.com` host, but `www.gafunds.com/our-funds/`,
+  `/fund-resources/`, `/our-funds/adiv/`, and the WordPress JSON page route
+  all return Cloudflare managed-challenge `403` HTML. No current first-party
+  complete holdings PDF/CSV route was proven from search; SEC filings remain
+  invalid as native support.
+- No backend source changed. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard retry-hardening checkpoint. This
+  pass moves the full goal forward by refreshing current blockers for four
+  higher-priority remaining issuers without substituting access-blocked pages,
+  hosted app shells, guessed 404 artifacts, top-ten data, SEC filings, or
+  third-party indexed snippets for native provider support.
+
+### Next step
+
+- Continue current-route discovery on the remaining fallback providers,
+  prioritizing high-AUM/larger-lineup issuers. The next audit should avoid
+  repeating Thrivent/Westwood/SoFi/Guinness exact routes unless a new public
+  artifact URL is discovered.
+
 ## Fallback route retry audit - 2026-07-27T12:41Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

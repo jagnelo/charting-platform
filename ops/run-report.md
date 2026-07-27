@@ -2,6 +2,37 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Current Blocked Issuer Retry Audit - 2026-07-27T12:49Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label. No provider was promoted or demoted, and no backend source
+  changed.
+- Recomputed strict state directly from code: `345` registered, `326`
+  native/live-backed, `19` fallback-only, `audit_matches True`, and
+  `test_matches_config True`.
+- Rechecked `thrivent` / `TSME`. Current `www.thriventfunds.com` and
+  `fp.thriventfunds.com` product pages plus the advertised
+  `daily-holdings-tsme.csv` path return issuer/Imperva CloudFront `403` HTML
+  shells. The issuer-linked RightProspectus SOI route returns only a `1.4` KB
+  hosted-site HTML shell that tries to load `/assets/version.txt`, not a
+  document or complete holdings payload.
+- Rechecked `westwood` / `MDST`. `westwoodfunds.com/mdst/` now redirects to
+  `westwoodgroup.com/products/mutual-funds/mdst/`; normal TLS verification
+  failed locally before content retrieval, and diagnostic `curl -k` showed the
+  product route and exact `1471-Holdings.csv` path return Cloudflare challenge
+  `403` HTML. WordPress search JSON returned plain `403 Forbidden`.
+- Rechecked `sofi` / `SFY`, `SFYI`, `SFYF`, and `THTA`. Current SoFi product
+  pages return Cloudflare managed-challenge `403` shells of roughly `483` KB,
+  and guessed Tidal Financial Group holdings CSV artifacts for the same symbols
+  all return real Tidal `404` HTML pages.
+- Rechecked `guinness_atkinson` / SmartETFs on the current `gafunds.com` host.
+  `our-funds`, `fund-resources`, `ADIV`, and WordPress JSON routes all return
+  Cloudflare managed-challenge `403` HTML. Search did not prove a current
+  first-party complete holdings PDF/CSV route; SEC filings remain invalid as
+  native support.
+- Latest full opt-in live matrix evidence remains `281 passed in 363.24s` from
+  the Lazard retry-hardening checkpoint.
+
 # ETF Holdings Fallback Route Retry Audit - 2026-07-27T12:41Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
