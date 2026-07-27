@@ -1,5 +1,40 @@
 # Active Handoff
 
+## Pending push checkpoint - 2026-07-27T12:29Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`. Before this ops-only
+  checkpoint, the worktree was clean and ahead of
+  `origin/feat/etf-holdings-constituents` by thirteen local commits through
+  `965f898 chore(ops): record ETF publisher identity audit`.
+- There were no unstaged or uncommitted same-file hunks to split in this pass.
+  The existing local commit stack is already separated by context: provider
+  implementation/repair changes are in `feat(etf)` / `fix(etf)` commits, while
+  discovery, validation, package, and handoff updates are in `chore(ops)`
+  commits.
+- Local repo author email remains `joaoa13portugal@gmail.com`; no local
+  repo-specific `user.name` override is set. Push is still expected to depend
+  on SSH authenticating as an account with permission to
+  `jagnelo/charting-platform`.
+- Push attempt failed because GitHub authenticated SSH as
+  `jagnelo-symbiotech`: `ERROR: Permission to jagnelo/charting-platform.git
+  denied to jagnelo-symbiotech.` A refreshed pending-push package is saved at
+  `/private/tmp/charting-platform-pending-push-20260727T123221Z`.
+- No backend source changed. Latest strict state remains `345` registered /
+  `326` native-live-backed / `19` fallback-only, with `audit_matches True` and
+  `test_matches_config True`. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard retry-hardening checkpoint.
+
+### Next step
+
+- Fix local SSH authentication for `git@github.com:jagnelo/charting-platform.git`
+  or apply/push the saved patch series from the pending-push package.
+
 ## Provider-not-publisher identity audit - 2026-07-27T12:22Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

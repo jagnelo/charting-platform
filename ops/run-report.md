@@ -2,6 +2,28 @@
 
 Append a short entry after each worker session.
 
+# ETF Holdings Pending Push Checkpoint - 2026-07-27T12:29Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
+  goal-tool label.
+- Worktree was clean before this ops-only checkpoint and the branch was ahead
+  of `origin/feat/etf-holdings-constituents` by thirteen local commits through
+  `965f898 chore(ops): record ETF publisher identity audit`.
+- There were no unstaged same-file hunks to split. Existing unpushed commits are
+  already separated by context: native provider implementation/repair commits
+  are separate from discovery, validation, package, and handoff commits.
+- Push failed because GitHub authenticated SSH as `jagnelo-symbiotech` and
+  denied access to `jagnelo/charting-platform`. A refreshed pending-push package
+  is saved at `/private/tmp/charting-platform-pending-push-20260727T123221Z`.
+- No backend source changed. Strict state remains `345` registered, `326`
+  native/live-backed, `19` fallback-only, `audit_matches True`, and
+  `test_matches_config True`.
+- Latest full opt-in live matrix evidence remains `281 passed in 363.24s` from
+  the Lazard retry-hardening checkpoint.
+- Next step is to fix local SSH authentication for
+  `git@github.com:jagnelo/charting-platform.git` or apply/push the saved patch
+  series from the pending-push package.
+
 # ETF Holdings High-Priority Blocked-Route Retry - 2026-07-27T11:13Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime
