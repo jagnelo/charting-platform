@@ -25,6 +25,11 @@ reflect `base_priority` seeding; the runtime's EWMA health scores refine orderin
 
 ## Providers
 
+ETF holdings provider coverage has a separate market-universe reconciliation
+because issuer, promoter, brand, adviser, and white-label publisher identities
+do not map 1:1. See [ETF Provider Universe](etf-provider-universe.md) for the
+current LSEG Lipper promoter target and registry gap.
+
 ### Alpaca Markets (`alpaca`)
 
 **Website**: [alpaca.markets](https://alpaca.markets)  

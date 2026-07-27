@@ -1868,6 +1868,51 @@ class IssuerFallbackAudit:
     last_checked: date
 
 
+@dataclass(frozen=True, slots=True)
+class EtfPromoterUniverseBenchmark:
+    source_name: str
+    source_url: str
+    as_of: date
+    promoter_count: int
+    primary_portfolio_count: int | None
+    note: str
+
+
+US_ETF_PROMOTER_UNIVERSE_BENCHMARK = EtfPromoterUniverseBenchmark(
+    source_name="LSEG Lipper U.S. ETF Industry Review, June 2026",
+    source_url=(
+        "https://lipperalpha.refinitiv.com/reports/2026/07/"
+        "monday-morning-memo-u-s-etf-industry-review-june-2026/"
+    ),
+    as_of=date(2026, 6, 30),
+    promoter_count=496,
+    primary_portfolio_count=5397,
+    note=(
+        "LSEG Lipper reports the broad U.S. ETF promoter universe. This is the "
+        "market target for individually auditable provider/brand identities; it "
+        "is broader than the repo's currently enumerated adapter keys."
+    ),
+)
+
+
+SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS: tuple[EtfPromoterUniverseBenchmark, ...] = (
+    EtfPromoterUniverseBenchmark(
+        source_name="LSEG Lipper U.S. ETF Industry Review, Q1 2026",
+        source_url=(
+            "https://lipperalpha.refinitiv.com/reports/2026/04/"
+            "u-s-etf-industry-review-march-2026-2/"
+        ),
+        as_of=date(2026, 3, 31),
+        promoter_count=478,
+        primary_portfolio_count=5043,
+        note=(
+            "Earlier LSEG Lipper promoter count referenced during the ETF "
+            "provider-universe audit; superseded by the June 2026 count."
+        ),
+    ),
+)
+
+
 class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
     """Issuer-aware CSV adapter driven by ETF identity/profile metadata.
 
@@ -58253,8 +58298,93 @@ FALLBACK_ISSUER_AUDITS: dict[str, IssuerFallbackAudit] = {
 }
 
 
+class AegonAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Aegon/Transamerica ETF identities."""
+
+
+class EpirisAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Epiris-linked recognition identities."""
+
+
+class EpwaAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for EPWA/CornerCap ETF identities."""
+
+
+class EurazeoAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Eurazeo-linked recognition identities."""
+
+
+class GuinnessAtkinsonAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Guinness Atkinson/SmartETFs identities."""
+
+
+class ManulifeAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Manulife/John Hancock ETF identities."""
+
+
+class MarathonAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Marathon-linked recognition identities."""
+
+
+class MscGroupAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for MSC Group recognition identities."""
+
+
+class OrixAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for ORIX-linked recognition identities."""
+
+
+class PacificInvestmentsAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for PIMCO/Pacific Investments identities."""
+
+
+class PlanRockAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for PlanRock ETF identities."""
+
+
+class Q3AuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Q3 All-Season ETF identities."""
+
+
+class RidgelineAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Ridgeline/ACV ETF identities."""
+
+
+class RockPointAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Rock Point-linked recognition identities."""
+
+
+class SofiAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for SoFi ETF identities."""
+
+
+class ThriventAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Thrivent ETF identities."""
+
+
+class WestwoodAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Audited fallback-only adapter for Westwood ETF identities."""
+
+
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
+        "aegon": AegonAuditedFallbackHoldingsAdapter,
+        "epiris": EpirisAuditedFallbackHoldingsAdapter,
+        "epwa": EpwaAuditedFallbackHoldingsAdapter,
+        "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
+        "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
+        "manulife": ManulifeAuditedFallbackHoldingsAdapter,
+        "marathon": MarathonAuditedFallbackHoldingsAdapter,
+        "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
+        "orix": OrixAuditedFallbackHoldingsAdapter,
+        "pacific_investments": PacificInvestmentsAuditedFallbackHoldingsAdapter,
+        "planrock": PlanRockAuditedFallbackHoldingsAdapter,
+        "q3": Q3AuditedFallbackHoldingsAdapter,
+        "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
+        "rock_point": RockPointAuditedFallbackHoldingsAdapter,
+        "sofi": SofiAuditedFallbackHoldingsAdapter,
+        "thrivent": ThriventAuditedFallbackHoldingsAdapter,
+        "westwood": WestwoodAuditedFallbackHoldingsAdapter,
         "acquirers": AcquirersHoldingsAdapter,
         "infrastructure_capital": InfrastructureCapitalHoldingsAdapter,
         "acuitas": AcuitasHoldingsAdapter,
@@ -58586,16 +58716,9 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
     }
     adapter_type = adapter_types.get(config.adapter_key)
     if adapter_type is None:
-        if config.live_tested_default_route:
-            raise ValueError(
-                "A native/live-backed ETF holdings provider must declare an explicit "
-                f"adapter class: {config.adapter_key}"
-            )
-        adapter_type = type(
-            "".join(part.title() for part in config.adapter_key.split("_"))
-            + "RecognitionOnlyHoldingsAdapter",
-            (IssuerCsvHoldingsAdapter,),
-            {},
+        raise ValueError(
+            "Every registered ETF holdings provider must declare an explicit "
+            f"adapter class, even when audited fallback-only: {config.adapter_key}"
         )
     return adapter_type(config)
 
@@ -58616,6 +58739,35 @@ def get_holdings_adapter(adapter_key: str | None) -> ETFHoldingsAdapter | None:
 
 def registered_adapter_keys() -> list[str]:
     return sorted(ADAPTER_REGISTRY)
+
+
+def etf_promoter_universe_status() -> dict[str, Any]:
+    """Summarize registry coverage against the broad U.S. ETF promoter target."""
+
+    registered_count = len(ADAPTER_REGISTRY)
+    target_count = US_ETF_PROMOTER_UNIVERSE_BENCHMARK.promoter_count
+    return {
+        "source_name": US_ETF_PROMOTER_UNIVERSE_BENCHMARK.source_name,
+        "source_url": US_ETF_PROMOTER_UNIVERSE_BENCHMARK.source_url,
+        "as_of": US_ETF_PROMOTER_UNIVERSE_BENCHMARK.as_of.isoformat(),
+        "target_promoter_count": target_count,
+        "registered_adapter_count": registered_count,
+        "registered_promoter_gap": max(target_count - registered_count, 0),
+        "primary_portfolio_count": (
+            US_ETF_PROMOTER_UNIVERSE_BENCHMARK.primary_portfolio_count
+        ),
+        "superseded_promoter_counts": [
+            {
+                "source_name": benchmark.source_name,
+                "source_url": benchmark.source_url,
+                "as_of": benchmark.as_of.isoformat(),
+                "promoter_count": benchmark.promoter_count,
+                "primary_portfolio_count": benchmark.primary_portfolio_count,
+            }
+            for benchmark in SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS
+        ],
+        "note": US_ETF_PROMOTER_UNIVERSE_BENCHMARK.note,
+    }
 
 
 def holdings_adapter_catalog() -> list[dict[str, Any]]:

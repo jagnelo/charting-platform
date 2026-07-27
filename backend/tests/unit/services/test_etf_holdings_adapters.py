@@ -16,6 +16,8 @@ import requests
 from app.services.etf_holdings_adapters import (
     FALLBACK_ISSUER_AUDITS,
     ISSUER_ADAPTER_CONFIGS,
+    SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS,
+    US_ETF_PROMOTER_UNIVERSE_BENCHMARK,
     CanonicalHoldingRow,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
@@ -26,6 +28,7 @@ from app.services.etf_holdings_adapters import (
     _format_template,
     _parse_ishares_inline_top_holdings,
     _row_dict,
+    etf_promoter_universe_status,
     get_holdings_adapter,
     holdings_adapter_catalog,
     infer_adapter_key,
@@ -18062,6 +18065,30 @@ def test_every_recognition_only_adapter_has_an_explicit_source_audit():
         assert audit.reason
         assert audit.next_action
         assert audit.last_checked <= date.today(), adapter_key
+
+
+def test_every_registered_adapter_has_an_explicit_class():
+    generated = []
+    for adapter_key in registered_adapter_keys():
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        if type(adapter).__name__.endswith("RecognitionOnlyHoldingsAdapter"):
+            generated.append(adapter_key)
+
+    assert generated == []
+
+
+def test_us_etf_promoter_universe_status_tracks_broad_market_target():
+    status = etf_promoter_universe_status()
+
+    assert US_ETF_PROMOTER_UNIVERSE_BENCHMARK.promoter_count == 496
+    assert US_ETF_PROMOTER_UNIVERSE_BENCHMARK.as_of == date(2026, 6, 30)
+    assert US_ETF_PROMOTER_UNIVERSE_BENCHMARK.primary_portfolio_count == 5397
+    assert status["target_promoter_count"] == 496
+    assert status["registered_adapter_count"] == len(registered_adapter_keys())
+    assert status["registered_promoter_gap"] == 151
+    assert status["registered_promoter_gap"] == 496 - len(registered_adapter_keys())
+    assert SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS[0].promoter_count == 478
 
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
