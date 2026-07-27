@@ -2,6 +2,31 @@
 
 Append a short entry after each worker session.
 
+# ETF Promoter Universe Target Correction - 2026-07-27T18:20Z
+
+- Corrected the ETF holdings goal from the repo-only `345` provider registry to
+  the broader LSEG Lipper U.S. ETF promoter universe. Current source is LSEG
+  Lipper's June 2026 U.S. ETF industry review: `496` promoters and `5,397`
+  primary ETF portfolios as of `2026-06-30`; the earlier `478` count is
+  documented as superseded Q1 2026 evidence.
+- Added `docs/etf-provider-universe.md` and linked it from
+  `docs/data-providers.md`. Current repo registry remains `345`, leaving a
+  `151` named-promoter reconciliation gap that must not be filled with invented
+  placeholders from a count-only source.
+- Added code-level market target metadata plus
+  `etf_promoter_universe_status()`.
+- Removed the remaining generated recognition-only fallback class path. All
+  registered providers now instantiate explicit adapter classes; the `17`
+  previously generated fallback providers now have named audited fallback
+  classes.
+- Validation passed: focused registry/unit slice `4 passed`; full deterministic
+  adapter suite `416 passed in 15.14s`; opt-in live-provider manifest invariants
+  `2 passed`; Ruff; `git diff --check`; strict matrix `345` registered, `326`
+  native/live-backed, `19` fallback-only, target `496`, gap `151`,
+  `fallback_audit_matches True`, `live_test_matches_config True`,
+  `generated_recognition_only []`.
+- Implementation commit: `d84144a feat(etf): track broad ETF promoter universe`.
+
 # ETF Holdings Current Blocked Issuer Retry Audit - 2026-07-27T12:49Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter runtime

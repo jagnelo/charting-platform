@@ -5,8 +5,12 @@ tasks:
     priority: high
     scope: >
       Replace generated/thin ETF provider adapters with full native per-provider ETF
-      holdings integrations for all 345 registered providers, with each provider having
-      isolated implementation code plus static and live test coverage; SEC EDGAR remains
+      holdings integrations for the broad U.S. ETF promoter universe, currently 496
+      promoters per LSEG Lipper's June 2026 U.S. ETF industry review, with each
+      registered provider having isolated implementation code plus static and live
+      test coverage. The repo currently enumerates 345 adapter keys, so the missing
+      151 promoter identities must be source-reconciled before registration; do not
+      invent placeholder names from a count-only market source. SEC EDGAR remains
       fallback only and must not count as primary provider support. Respect the priority
       ordering of ETF providers based on what was discussed: higher priority to
       implement a native handler should be given to those providers that host more ETFs,
@@ -31,6 +35,18 @@ tasks:
       - adapter-matrix
       - lint
     notes:
+      - >
+        A 2026-07-27T18:20Z provider-universe target correction superseded the
+        old 345-only registry goal. The broad market target is now the current
+        LSEG Lipper U.S. ETF promoter universe: 496 promoters as of 2026-06-30
+        and 5,397 primary ETF portfolios. The earlier 478 number was LSEG
+        Lipper's Q1 2026 count and is documented only as superseded evidence.
+        Current code still has 345 named adapter keys, leaving a 151-promoter
+        named-identity reconciliation gap before those providers can be added
+        without inventing names. Also removed the remaining generated
+        recognition-only fallback adapter path: every registered provider must
+        now have an explicit adapter class even if audited fallback-only. See
+        docs/etf-provider-universe.md for the market/source distinction.
       - >
         A 2026-07-26T15:54Z provider-promotion and live-matrix repair pass
         continued under this exact task-scope wording, not the shorter runtime

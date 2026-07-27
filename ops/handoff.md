@@ -1,5 +1,51 @@
 # Active Handoff
 
+## ETF promoter universe target correction - 2026-07-27T18:20Z
+
+- Updated the authoritative task scope from the old `345` repo-registered
+  provider target to the broader U.S. ETF promoter universe target. Current
+  market source is LSEG Lipper's June 2026 U.S. ETF industry review:
+  `496` U.S. ETF promoters and `5,397` primary ETF portfolios as of
+  `2026-06-30`. The earlier `478` number came from LSEG Lipper's Q1 2026
+  report and is now retained only as superseded evidence.
+- The repo still has `345` named ETF holdings adapter keys, so the current
+  source-count gap is `151` missing named promoter identities. This pass did
+  not invent placeholder providers because the public LSEG article exposes the
+  count, not the full promoter-name table. The next expansion step must obtain
+  a named promoter/brand source and reconcile each identity to an adapter key,
+  alias/successor, inactive status, or non-publisher disposition.
+- Added `docs/etf-provider-universe.md` and linked it from
+  `docs/data-providers.md`. The doc records the current `496` target, the
+  superseded `478` count, the `345` local registry size, and the `151`
+  reconciliation gap.
+- Added code-level market-universe metadata and
+  `etf_promoter_universe_status()` in
+  `backend/app/services/etf_holdings_adapters.py`.
+- Removed the remaining generated recognition-only adapter path. The `17`
+  fallback providers that were previously dynamically generated now have
+  explicit audited fallback adapter classes: `aegon`, `epiris`, `epwa`,
+  `eurazeo`, `guinness_atkinson`, `manulife`, `marathon`, `msc_group`, `orix`,
+  `pacific_investments`, `planrock`, `q3`, `ridgeline`, `rock_point`, `sofi`,
+  `thrivent`, and `westwood`. `rex` and `wisdomtree` were already explicit.
+- Strict matrix after the change: `345` registered / `326` native-live-backed /
+  `19` fallback-only / target `496` promoters / `151` registered-promoter gap /
+  `fallback_audit_matches True` / `live_test_matches_config True` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused registry/unit slice: `4 passed, 412 deselected`
+  - full deterministic ETF adapter unit file: `416 passed in 15.14s`
+  - opt-in live-provider manifest invariants with
+    `RUN_LIVE_ETF_HOLDINGS_TESTS=1`: `2 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Implementation commit: `d84144a feat(etf): track broad ETF promoter universe`.
+
+### Next step
+
+- Obtain a named current U.S. ETF promoter/brand list matching the LSEG-style
+  promoter universe, reconcile the missing `151` identities, and only then add
+  new explicit adapter/audit entries for the confirmed missing providers.
+
 ## Remaining provider support and universe audit - 2026-07-27T17:03Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
