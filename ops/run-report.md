@@ -14269,3 +14269,28 @@ Append a short entry after each worker session.
   evidence remains `281 passed in 363.24s` from the Lazard hardening checkpoint.
   SEC EDGAR, stale filings, search-indexed snippets, and third-party holdings
   data were not substituted for native provider support.
+
+# ETF Holdings Ridgeline and John Hancock Route Audit - 2026-07-27T12:16Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- No provider was promoted or demoted. Recomputed current strict state from
+  code: `345` registered, `326` native/live-backed, and `19` fallback-only with
+  `audit_matches True`.
+- `ridgeline` / ACV remains `issuer_access_blocked`: current official
+  `acvetfs.com`, `acv-fund-material`, `fund/acv-etf-fund-data`, WordPress JSON
+  search/media routes, and guessed `ACVF-Holdings.csv` / `holdings.csv` /
+  `acvf-holdings.csv` artifact paths all returned backend `403` HTML.
+- Rechecked John Hancock / Manulife discovery through current first-party probes
+  and public search. Existing backend probes of `jhinvestments.com` ETF,
+  `JHHY`, `JHCB`, announcement, and guessed holdings CSV document paths still
+  return Akamai `403 Access Denied`. Current public search did not expose a
+  first-party executable complete holdings route; SEC and third-party indexed
+  holdings references remain invalid substitutes for native provider support.
+- No backend source changed. Latest full opt-in ETF holdings live matrix remains
+  `281 passed in 363.24s` from the Lazard hardening checkpoint. Strict state is
+  unchanged at `326` native/live-backed and `19` fallback-only.

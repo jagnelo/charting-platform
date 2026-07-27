@@ -1,5 +1,48 @@
 # Active Handoff
 
+## Ridgeline and John Hancock route audit - 2026-07-27T12:16Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is `feat/etf-holdings-constituents`, clean before this
+  audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
+  eleven local commits through `f4b09db chore(ops): record ETF fallback route
+  recheck`. Push remains blocked until SSH authenticates as an account with
+  permission to `jagnelo/charting-platform`.
+- Recomputed the current matrix directly from code: `345` registered / `326`
+  native-live-backed / `19` fallback-only, with `audit_matches True`. Fallback
+  config details remain recognition-only for all `19` except `rex`, whose
+  configured product-page CSV form route is still access-blocked.
+- No provider was promoted or demoted. `ridgeline` / ACV remains
+  `issuer_access_blocked`: current official `acvetfs.com`, `acv-fund-material`,
+  `fund/acv-etf-fund-data`, WordPress JSON search/media routes, and guessed
+  `ACVF-Holdings.csv` / `holdings.csv` / `acvf-holdings.csv` artifact paths all
+  returned backend `403` HTML.
+- Rechecked current John Hancock / Manulife discovery via first-party probes
+  and public search. Existing backend probes of `jhinvestments.com` ETF, `JHHY`,
+  `JHCB`, announcement, and guessed holdings CSV document paths still return
+  Akamai `403 Access Denied`. Current search did not expose a first-party
+  executable complete holdings route; it surfaced only SEC/third-party indexed
+  holdings references, which remain invalid substitutes for native provider
+  support.
+- No backend source changed. Latest full opt-in live matrix evidence remains
+  `281 passed in 363.24s` from the Lazard hardening checkpoint. Strict state is
+  unchanged at `326` native-live-backed and `19` fallback-only.
+
+### Next step
+
+- Continue route discovery for the remaining fallback providers. The best
+  candidates for future promotion remain those whose official pages clearly
+  publish holdings but currently block backend access (`wisdomtree`, `q3`,
+  `rex`, `thrivent`, `westwood`, `sofi`, `manulife`, `guinness_atkinson`,
+  `ridgeline`, `aegon`) and the non-executable public-source bucket
+  (`pacific_investments`, `planrock`, `epwa`) if they expose a complete current
+  route.
+
 ## Remaining fallback current-route audit - 2026-07-27T12:09Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter
