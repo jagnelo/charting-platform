@@ -1,5 +1,59 @@
 # Active Handoff
 
+## Lazard live-matrix 503 hardening - 2026-07-27T11:59Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Current branch is still `feat/etf-holdings-constituents`; before this pass it
+  was clean and ahead of `origin/feat/etf-holdings-constituents` by nine local
+  commits through `1f51dc8 chore(ops): package ETF holdings pending push`.
+  Push remains blocked until SSH authenticates as an account with permission to
+  `jagnelo/charting-platform`.
+- Recomputed the current matrix directly from code before editing: `345`
+  registered / `326` native-live-backed / `19` fallback-only, with fallback
+  audits matching config exactly.
+- Retried high-priority fallback route discovery before the live repair.
+  `pacific_investments` / PIMCO `MINT` remains unpromoted: the current product
+  page is backend-readable and embeds the fund-detail app for CUSIP
+  `72201R833`, but role/header API probes returned only `{countryGroup:"US"}`,
+  empty top-ten holdings, `204` top-ten export, or `500` breakout/as-of errors;
+  the current bundle exposes top-ten/portfolio-composition routes, not a
+  complete holdings endpoint. PIMCO Coveo searches for `MINT` holdings did not
+  expose a complete holdings CSV/document route.
+- `rex` remains fallback-only / `issuer_access_blocked`: current `FEPI`, `AIPI`,
+  and `CEPI` product-page GETs plus the existing `FEPI` CSV form POST still
+  return Cloudflare `403` challenge HTML to backend/browser-header requests.
+  `thrivent` remains fallback-only / `issuer_access_blocked`: both `www` and
+  `fp` hosts for the `TSME` product page, advertised daily CSV, and schedule PDF
+  still return issuer `403` HTML.
+- Fresh full opt-in live matrix initially failed exactly once:
+  `lazard` / `JPY` raised `httpx.HTTPStatusError` on Lazard's ETF directory
+  returning `503 Backend is unhealthy`. A focused Lazard live rerun passed
+  immediately, confirming issuer-side transient behavior.
+- Hardened only `LazardHoldingsAdapter._get_with_timeout_retry` so Lazard
+  public endpoint responses with retryable server statuses `500`, `502`, `503`,
+  or `504` get the same bounded three-attempt retry treatment as timeouts.
+  Added deterministic regression coverage proving product-id discovery retries
+  a transient directory `503` before parsing the same full issuer API payload.
+- Validation passed after the change: focused Lazard unit slice `2 passed`;
+  focused opt-in Lazard live route `1 passed`; full opt-in ETF holdings live
+  matrix `281 passed in 363.24s`; deterministic adapter suite `414 passed`;
+  Ruff for adapter/unit/live files; strict manifest recompute `345` registered /
+  `326` native-live-backed / `19` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits; `git diff --check` clean.
+
+### Next step
+
+- Commit the Lazard live-matrix hardening and ops checkpoint separately from
+  the earlier pending commits, then attempt to push. If SSH still authenticates
+  as `jagnelo-symbiotech`, save a new local patch/bundle package that includes
+  this tenth pending commit as well.
+
 ## Pending push package and PlanRock retry - 2026-07-27T11:22Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

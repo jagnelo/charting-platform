@@ -14197,3 +14197,40 @@ Append a short entry after each worker session.
   promoted. Strict state remains `345` registered, `326` native/live-backed,
   and `19` fallback-only. Latest full opt-in ETF holdings live matrix evidence
   remains `334 passed in 583.42s` from the Belpointe checkpoint.
+
+# ETF Holdings Lazard Live Matrix Hardening - 2026-07-27T11:59Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Recomputed current strict state before editing: `345` registered, `326`
+  native/live-backed, and `19` fallback-only with `audit_matches True`,
+  `test_matches_config True`, disjoint native/fallback sets, and no missing or
+  extra audits.
+- Retried high-priority fallback route discovery without promotion. PIMCO/MINT's
+  backend-readable product page embeds the fund-detail app for CUSIP
+  `72201R833`, but role/header API probes returned only `countryGroup`,
+  empty/204 top-ten data, or errors, and the current bundle/Coveo discovery did
+  not expose a complete holdings endpoint. REX FEPI/AIPI/CEPI product GETs and
+  FEPI CSV form POST still returned Cloudflare `403`; Thrivent TSME product,
+  daily CSV, and schedule PDF routes on both `www` and `fp` hosts still
+  returned issuer `403` HTML.
+- A fresh complete opt-in live matrix initially found one real failure:
+  `lazard` / `JPY` hit `503 Backend is unhealthy` on Lazard's ETF directory
+  during product-id discovery. A focused Lazard live rerun passed immediately,
+  identifying transient issuer server-status drift rather than a parser issue.
+- Hardened `LazardHoldingsAdapter._get_with_timeout_retry` to retry Lazard
+  public endpoint responses with retryable server statuses `500`, `502`, `503`,
+  and `504` using the existing bounded three-attempt pattern. Added deterministic
+  regression coverage that a transient directory `503` is retried before the
+  same full issuer API payload is parsed.
+- Validation passed: focused Lazard unit slice `2 passed`; focused opt-in
+  Lazard live route `1 passed`; full opt-in ETF holdings live matrix
+  `281 passed in 363.24s`; deterministic adapter suite `414 passed`; Ruff;
+  strict manifest recompute `345` registered / `326` native-live-backed / `19`
+  fallback-only with `audit_matches True`, `test_matches_config True`,
+  disjoint native/fallback sets, and no missing or extra audits; `git diff
+  --check` clean.

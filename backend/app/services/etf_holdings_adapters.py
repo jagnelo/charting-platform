@@ -4174,6 +4174,7 @@ class LazardHoldingsAdapter(IssuerCsvHoldingsAdapter):
         r'(?P<path>/us/en_us/investment-solutions/how-to-invest/108/(?P<id>\d+))["\']',
         re.IGNORECASE,
     )
+    RETRYABLE_STATUS_CODES = {500, 502, 503, 504}
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         product_id = _identifier(identifiers, "issuer_product_id", "fund_id", "product_id")
@@ -4295,11 +4296,16 @@ class LazardHoldingsAdapter(IssuerCsvHoldingsAdapter):
     ) -> httpx.Response:
         for attempt in range(3):
             try:
-                return await client.get(url, headers=headers, follow_redirects=True)
+                response = await client.get(url, headers=headers, follow_redirects=True)
             except httpx.TimeoutException:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(0.25 * (attempt + 1))
+                continue
+            if response.status_code in LazardHoldingsAdapter.RETRYABLE_STATUS_CODES and attempt < 2:
+                await asyncio.sleep(0.25 * (attempt + 1))
+                continue
+            return response
         raise AssertionError("unreachable")
 
     @staticmethod

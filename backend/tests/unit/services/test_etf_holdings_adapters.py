@@ -14175,6 +14175,79 @@ async def test_lazard_adapter_discovers_product_id_and_parses_full_holdings(monk
 
 
 @pytest.mark.asyncio
+async def test_lazard_adapter_retries_transient_directory_server_error(monkeypatch):
+    adapter = get_holdings_adapter("lazard")
+    assert adapter is not None
+
+    async def fake_sleep(delay):
+        del delay
+
+    directory_html = '''
+    <a href="/us/en_us/investment-solutions/how-to-invest/108/6244">Japanese ETF</a>
+    '''
+    payload = [
+        {
+            "id": "6244",
+            "data": {
+                "etfg": {
+                    "asOfDate": "2026-07-09",
+                    "ticker": "JPY",
+                    "constituents": [
+                        {
+                            "entityName": "MITSUBISHI UFJ FINANCIAL GROUP",
+                            "constituentTicker": "8306",
+                            "cusip": "633517909",
+                            "weight": "5.41015898",
+                            "sharesHeld": "205100",
+                            "marketValue": "4312310.39",
+                            "securityType": "S",
+                            "securityTypeName": "Equity",
+                        },
+                    ],
+                }
+            },
+        }
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='{"error": "Backend is unhealthy"}',
+            content_type="application/json",
+            status_code=503,
+            url="https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        ),
+        FakeResponse(
+            text=directory_html,
+            content_type="text/html",
+            url="https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="JPY", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        "https://www.lazardassetmanagement.com/us/en_us/investment-solutions/how-to-invest/etfs",
+        "https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+        "https://lazardassetmanagement.com/api/products?id=6244&type=Fund",
+    ]
+    assert result.source_identifier == "6244"
+    assert result.rows[0].symbol == "8306"
+
+
+@pytest.mark.asyncio
 async def test_waverly_adapter_validates_product_page_and_normalizes_holdings_weights(monkeypatch):
     adapter = get_holdings_adapter("waverly")
     assert adapter is not None
