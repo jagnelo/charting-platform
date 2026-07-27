@@ -1,5 +1,46 @@
 # Active Handoff
 
+## Pending push package and PlanRock retry - 2026-07-27T11:22Z
+
+- Continued under the exact `ops/tasks.yaml` scope text, not the shorter
+  runtime goal-tool label. Authoritative current goal remains the full
+  `ops/tasks.yaml` task scope: replace generated/thin ETF provider adapters
+  with full native per-provider ETF holdings integrations for all `345`
+  registered providers, with isolated implementation plus static and live
+  coverage; SEC EDGAR remains fallback-only and uncounted.
+- Before this ops-only checkpoint, the worktree was clean and the branch was
+  ahead of `origin/feat/etf-holdings-constituents` by eight commits through
+  `30068ee chore(ops): record ETF blocked-route retry`. Local repo email is
+  `joaoa13portugal@gmail.com`; no local repo user.name override is set.
+- No backend source changed in this packaging pass. Existing pending commits
+  are already separated by context: native ETF implementation work is in
+  feature commits, while discovery, validation, and handoff state are in
+  separate `chore(ops)` commits.
+- Verified saved PlanRock retry artifacts before recording them. The current
+  official PlanRock Funds product page for `PRAE` is backend-readable at
+  `https://planrockfunds.com/planrock-funds/planrock-alternative-growth-etf-prae/`
+  and declares `Download Holdings CSV` via
+  `?download_holdings=1&account_id=1450`, but that exact route still returns
+  only a `48` byte `application/octet-stream` `Holdings.csv` body. The current
+  premium/discount script only posts `get_premium_discount_data` for
+  `account_id=1450`, so it does not expose complete holdings. `planrock`
+  remains fallback-only / `non_executable_public_source`.
+- Also retried official Westwood and Ridgeline/ACV pages in this session;
+  Westwood returned Cloudflare `403`, and Ridgeline/ACV returned `403`, so
+  neither is promotable until a complete backend-executable holdings artifact
+  is reachable.
+- Strict manifest state remains `345` registered / `326` native-live-backed /
+  `19` fallback-only. Latest full opt-in ETF holdings live matrix evidence
+  remains `334 passed in 583.42s` from the Belpointe checkpoint.
+
+### Next step
+
+- Commit this ops-only checkpoint separately, attempt to push
+  `feat/etf-holdings-constituents` to `origin`, and if SSH still authenticates
+  as an account without permission to `jagnelo/charting-platform`, write a
+  local patch bundle with the exact commits and commit messages intended for
+  push.
+
 ## High-priority blocked-route retry - 2026-07-27T11:13Z
 
 - Continued under the exact `ops/tasks.yaml` scope text, not the shorter

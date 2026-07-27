@@ -14169,3 +14169,31 @@ Append a short entry after each worker session.
   across unrelated providers (`httpx.ConnectError: [Errno 8] nodename nor
   servname provided`); it was discarded as execution-environment DNS isolation
   and superseded by the passing `rtk` matrix run.
+
+# ETF Holdings Pending Push Package - 2026-07-27T11:22Z
+
+- Continued under the exact docs-exported goal in `ops/tasks.yaml`: native
+  per-provider ETF holdings integrations for all `345` registered providers,
+  isolated implementation plus static and live coverage, SEC EDGAR
+  fallback-only, priority by ETF count/AUM/U.S. market coverage, continued
+  retries before blocking, and concrete live-route coverage for every
+  `LIVE_BACKED_ISSUER_ADAPTERS` member.
+- Before this ops-only checkpoint, the worktree was clean and the branch was
+  ahead of `origin/feat/etf-holdings-constituents` by eight commits through
+  `30068ee chore(ops): record ETF blocked-route retry`. Local repo email is
+  `joaoa13portugal@gmail.com`; no local repo user.name override is set.
+- No backend source changed in this packaging pass. Existing pending commits
+  are already separated by context: native ETF implementation work is in
+  feature commits, while discovery, validation, and handoff state are in
+  separate `chore(ops)` commits.
+- Verified saved PlanRock retry artifacts: the current official PlanRock Funds
+  `PRAE` page is backend-readable and declares `Download Holdings CSV` via
+  `?download_holdings=1&account_id=1450`, but the exact route still returns
+  only a `48` byte `application/octet-stream` `Holdings.csv` body. The current
+  premium/discount script only posts `get_premium_discount_data` for
+  `account_id=1450`, so it does not expose complete holdings. `planrock`
+  remains fallback-only / `non_executable_public_source`.
+- Westwood and Ridgeline/ACV official route retries returned `403`; neither was
+  promoted. Strict state remains `345` registered, `326` native/live-backed,
+  and `19` fallback-only. Latest full opt-in ETF holdings live matrix evidence
+  remains `334 passed in 583.42s` from the Belpointe checkpoint.
