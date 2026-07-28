@@ -2,6 +2,36 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-28T17:34:34Z EMQQ Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `emqq` from the ETF.com issuer-page reconciliation fallback-only
+  batch to native/live-backed support through EMQQ Global's public CMS complete
+  holdings API.
+- Live route evidence:
+  - `EMQQ`: `https://cms.etc-webmaker.com/holdings/19` returned dated row-level
+    holdings with FIGI, ticker, quantity, market value, and percent-of-NAV data.
+  - Same issuer route family was identified for `FMQQ`
+    (`https://cms.etc-webmaker.com/holdings/170`) and `INQQ`
+    (`https://cms.etc-webmaker.com/holdings/184`).
+- Current strict state: `496` registered / `339` native-live-backed / `157`
+  fallback-only / target `496` / arithmetic registered gap `0` /
+  `generated_recognition_only []`.
+- Implementation/docs commit:
+  `1b17e54 feat(etf): add native EMQQ Global holdings route`.
+- Validation passed:
+  - focused deterministic EMQQ/reconciliation/source-audit/ownership slice:
+    `5 passed, 444 deselected`
+  - full deterministic ETF adapter suite:
+    `449 passed`
+  - Ruff for changed ETF backend files: passed
+  - `git diff --check`: passed
+  - strict manifest recompute:
+    `496` registered / `339` native / `157` fallback / gap `0`
+  - exact opt-in EMQQ live route plus concrete-route invariant slice:
+    `2 passed, 345 deselected`
+
 ## 2026-07-28T17:34Z Provider-Specific Route Split Batch
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`
