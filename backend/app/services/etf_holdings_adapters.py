@@ -1643,7 +1643,16 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"american_beacon", "avantis", "sp_funds", "touchstone", "tradr", "vident"}
+    {
+        "american_beacon",
+        "avantis",
+        "congress",
+        "day_hagan",
+        "sp_funds",
+        "touchstone",
+        "tradr",
+        "vident",
+    }
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -9067,6 +9076,25 @@ class LaganHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date
+
+
+class CongressHoldingsAdapter(LaganHoldingsAdapter):
+    """Read Congress Asset Management ETF holdings from its native product routes."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class VertHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -32087,6 +32115,25 @@ class AraqHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "BOND" in text or "TREASURY" in text or "FLOATING RT" in text:
             return "fixed_income", "security"
         return "equity", "security"
+
+
+class DayHaganHoldingsAdapter(AraqHoldingsAdapter):
+    """Fetch Day Hagan ETF holdings from its native product-page-declared route."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class EstateCounselorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -55701,6 +55748,22 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "through browser-readable Airtable data that may be subject to issuer terms."
         ),
     ),
+    "day_hagan": IssuerCsvAdapterConfig(
+        adapter_key="day_hagan",
+        source_provider="day_hagan",
+        source_access="issuer_product_page_declared_airtable_complete_holdings_json",
+        product_page_templates=(
+            "https://dhfunds.com/day-hagan-smart-sector-etf",
+            "https://dhfunds.com/day-hagan-smart-buffer-etf",
+            "https://dhfunds.com/day-hagan-smart-sector-international-etf",
+            "https://dhfunds.com/day-hagan-smart-sector-fixed-income-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Day Hagan public ETF product pages declare complete holdings through "
+            "browser-readable Airtable data that may be subject to issuer terms."
+        ),
+    ),
     "estate_counselors": IssuerCsvAdapterConfig(
         adapter_key="estate_counselors",
         source_provider="estate_counselors",
@@ -58536,6 +58599,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "through a public, account-scoped daily FilePoint CSV."
         ),
     ),
+    "congress": IssuerCsvAdapterConfig(
+        adapter_key="congress",
+        source_provider="congress_asset_management",
+        source_access="issuer_product_page_declared_account_scoped_daily_holdings_csv",
+        product_page_templates=(
+            "https://etfs.congressasset.com/smid-growth-etf",
+            "https://etfs.congressasset.com/large-cap-growth-etf.html",
+            "https://etfs.congressasset.com/intermediate-bond-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Congress Asset Management publishes complete current ETF holdings through "
+            "public product pages and an account-scoped daily FilePoint CSV."
+        ),
+    ),
     "beacon_capital": IssuerCsvAdapterConfig(
         adapter_key="beacon_capital",
         source_provider="beacon_investing",
@@ -58968,7 +59046,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphamark_advisors", "amg_national",
         "argent", "azimut", "baillie_gifford",
         "bancreek", "bridgeway", "calvert",
-        "congress", "credit_suisse", "day_hagan",
+        "credit_suisse",
         "desjardins", "dvx_ventures", "elements",
         "emirate_abu_dhabi", "emqq", "esoterica",
         "etf_managers_group", "everence", "falconx",
@@ -59427,9 +59505,9 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "calvert": CalvertReconciledFallbackHoldingsAdapter,
-        "congress": CongressReconciledFallbackHoldingsAdapter,
+        "congress": CongressHoldingsAdapter,
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
-        "day_hagan": DayHaganReconciledFallbackHoldingsAdapter,
+        "day_hagan": DayHaganHoldingsAdapter,
         "desjardins": DesjardinsReconciledFallbackHoldingsAdapter,
         "dvx_ventures": DvxVenturesReconciledFallbackHoldingsAdapter,
         "elements": ElementsReconciledFallbackHoldingsAdapter,

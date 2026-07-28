@@ -50,12 +50,14 @@ They were initially registered as explicit audited fallback-only adapters under
 `needs_first_party_route_discovery` until a first-party complete holdings route
 was proven for each provider. `american_beacon` has since been promoted through
 American Beacon product-page-declared holdings CSVs, `avantis` through its
-Avantis Investors product-page embedded holdings route, `sp_funds` through SP
-Funds product-page-declared daily holdings CSVs, `touchstone` through
-Touchstone ETF product-page full-holdings payloads, `tradr` through Tradr dated
-aggregate holdings CSVs, and `vident` through Vident product-page holdings
-tables. The other identities from this batch remain audited fallback-only until
-proven otherwise.
+Avantis Investors product-page embedded holdings route, `congress` through
+Congress Asset Management product-page-declared daily holdings CSVs,
+`day_hagan` through Day Hagan product-page-declared Airtable holdings,
+`sp_funds` through SP Funds product-page-declared daily holdings CSVs,
+`touchstone` through Touchstone ETF product-page full-holdings payloads,
+`tradr` through Tradr dated aggregate holdings CSVs, and `vident` through
+Vident product-page holdings tables. The other identities from this batch remain
+audited fallback-only until proven otherwise.
 
 Batch source:
 `https://www.etf.com/sections/etf-league-tables/etf-league-tables-state-street-gathers-52b`

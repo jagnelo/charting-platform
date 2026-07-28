@@ -9365,8 +9365,9 @@ async def test_allianz_adapter_filters_multi_fund_csv_and_preserves_option_rows(
 
 
 @pytest.mark.asyncio
-async def test_araq_adapter_uses_day_hagan_declared_airtable_holdings(monkeypatch):
-    adapter = get_holdings_adapter("araq")
+@pytest.mark.parametrize("adapter_key", ["araq", "day_hagan"])
+async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, adapter_key):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_page = """
@@ -9475,8 +9476,8 @@ async def test_araq_adapter_uses_day_hagan_declared_airtable_holdings(monkeypatc
     assert result.rows[0].market_value == Decimal("19252082.96")
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].symbol is None
-    assert result.legal_metadata["adapter_key"] == "araq"
-    assert result.legal_metadata["source_provider"] == "arax_investment_partners"
+    assert result.legal_metadata["adapter_key"] == adapter_key
+    assert result.legal_metadata["source_provider"] == adapter.source_provider
     assert result.legal_metadata["publisher"] == "day_hagan"
     assert result.legal_metadata["parent_issuer"] == "arax_investment_partners"
     assert result.legal_metadata["composition_date"] == "2026-07-23"
@@ -14644,8 +14645,9 @@ async def test_swp_adapter_validates_declared_daily_csv_and_preserves_row_types(
 
 
 @pytest.mark.asyncio
-async def test_lagan_adapter_validates_congress_chain_and_filters_account_rows(monkeypatch):
-    adapter = get_holdings_adapter("lagan")
+@pytest.mark.parametrize("adapter_key", ["lagan", "congress"])
+async def test_congress_chain_adapter_filters_account_rows(monkeypatch, adapter_key):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_page_html = """
@@ -14697,6 +14699,7 @@ async def test_lagan_adapter_validates_congress_chain_and_filters_account_rows(m
         Decimal("0.025"),
     ]
     assert result.legal_metadata["composition_date"] == "2026-07-21"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["route_resolution"] == (
         "congress_product_page_declared_daily_holdings_csv"
     )
