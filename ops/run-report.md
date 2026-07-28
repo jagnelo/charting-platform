@@ -14686,6 +14686,44 @@ Append a short entry after each worker session.
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
 
+## 2026-07-28T15:36Z StockAnalysis Provider Reconciliation Batch
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Added a sixth named reconciliation batch from the StockAnalysis ETF provider
+  table captured on `2026-07-28`; the table listed `469` named provider rows
+  ranked by assets, ETF count, and average expense ratio.
+- Registered `10` high-ranked distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`: `putnam`,
+  `columbia_threadneedle`, `mfs`, `bluemonte`, `vistashares`, `ershares`,
+  `portfolio_building_block`, `kovitz`, `sapient`, and `strategas`.
+- Added StockAnalysis alias dispositions for display names/product lines that
+  resolve to existing adapters rather than new provider keys: `PIMCO` ->
+  `pacific_investments`, `VictoryShares` -> `victory`, `AB Funds` ->
+  `alliancebernstein`, `REX Microsectors` -> `rex`, `Akre` -> `akre`,
+  `Tema` -> `tema`, `Davis` -> `davis`, `Distillate` -> `distillate`, and
+  `CCM` -> `ccm`. The unsafe short `iM` display name was deliberately not
+  added because it creates substring false positives such as `PIMCO`.
+- Current strict state: `430` registered / `332` native-live-backed / `98`
+  fallback-only / target `496` / registered gap `66` /
+  `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by `10`; it does not add
+  native routes for those providers yet.
+- Implementation/docs commit:
+  `dbc7c72 feat(etf): add StockAnalysis provider reconciliation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `5 passed, 436 deselected`
+  - deterministic ETF adapter suite:
+    `441 passed in 17.71s`
+  - strict manifest recompute:
+    `430` registered / `332` native / `98` fallback / gap `66`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
 ## 2026-07-28T15:16Z Congress and Day Hagan Native Promotions plus Live-Matrix Repair
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`

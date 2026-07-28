@@ -8,8 +8,8 @@ tasks:
       holdings integrations for the broad U.S. ETF promoter universe, currently 496
       promoters per LSEG Lipper's June 2026 U.S. ETF industry review, with each
       registered provider having isolated implementation code plus static and live
-      test coverage. The repo currently enumerates 420 adapter keys, so the missing
-      76 promoter identities must be source-reconciled before registration; do not
+      test coverage. The repo currently enumerates 430 adapter keys, so the missing
+      66 promoter identities must be source-reconciled before registration; do not
       invent placeholder names from a count-only market source. SEC EDGAR remains
       fallback only and must not count as primary provider support. Respect the priority
       ordering of ETF providers based on what was discussed: higher priority to
@@ -35,6 +35,29 @@ tasks:
       - adapter-matrix
       - lint
     notes:
+      - >
+        A 2026-07-28T15:36Z StockAnalysis provider reconciliation batch added
+        10 high-ranked distinct provider identities from
+        https://stockanalysis.com/etf/provider/ as explicit audited
+        fallback-only adapters under needs_first_party_route_discovery: putnam,
+        columbia_threadneedle, mfs, bluemonte, vistashares, ershares,
+        portfolio_building_block, kovitz, sapient, and strategas. Added
+        source-row alias dispositions for PIMCO -> pacific_investments,
+        VictoryShares -> victory, AB Funds -> alliancebernstein, REX
+        Microsectors -> rex, Akre -> akre, Tema -> tema, Davis -> davis,
+        Distillate -> distillate, and CCM -> ccm. The unsafe short iM display
+        name was not added because it creates substring false positives.
+        Current strict state is 430 registered / 332 native-live-backed / 98
+        fallback-only / target 496 / registered gap 66 /
+        generated_recognition_only []. This reduces the named
+        source-reconciliation gap by 10 without claiming native holdings routes
+        for the new providers. Implementation commit: dbc7c72 feat(etf): add
+        StockAnalysis provider reconciliation batch. Validation passed: focused
+        StockAnalysis/provider-universe/explicit-class/source-audit slice 5
+        passed; deterministic ETF adapter suite 441 passed; strict manifest
+        recompute 430 registered / 332 native / 98 fallback / gap 66; opt-in
+        live-provider manifest/accounting invariants 2 passed; Ruff; ops
+        YAML/JSON parse check; git diff --check.
       - >
         A 2026-07-28T15:16Z Congress and Day Hagan native promotion plus
         live-matrix repair moved congress and day_hagan from ETF.com-reconciled
