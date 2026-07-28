@@ -13529,23 +13529,23 @@ class CyberHornetHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            page_response = await client.get(
+            page_response = await self._get_with_timeout_retry(
+                client,
                 product_url,
                 headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
-                follow_redirects=True,
             )
             page_response.raise_for_status()
             holdings_url, composition_date = self._parse_product_page(
                 page_response.text,
                 symbol=normalized_symbol,
             )
-            holdings_response = await client.get(
+            holdings_response = await self._get_with_timeout_retry(
+                client,
                 holdings_url,
                 headers={
                     **_issuer_page_request_headers(accept="text/csv,text/plain,application/download,*/*"),
                     "Referer": str(page_response.url),
                 },
-                follow_redirects=True,
             )
         holdings_response.raise_for_status()
         rows = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
@@ -13575,6 +13575,26 @@ class CyberHornetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @staticmethod
+    async def _get_with_timeout_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        for attempt in range(3):
+            try:
+                return await client.get(url, headers=headers, follow_redirects=True)
+            except (
+                httpx.ConnectError,
+                httpx.RemoteProtocolError,
+                httpx.TimeoutException,
+            ):
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise AssertionError("unreachable")
 
     @classmethod
     def _parse_product_page(cls, raw_html: str, *, symbol: str) -> tuple[str, date | None]:

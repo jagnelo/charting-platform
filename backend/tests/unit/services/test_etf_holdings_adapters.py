@@ -610,6 +610,29 @@ async def test_cyber_hornet_adapter_fetches_issuer_declared_complete_holdings_cs
     assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
 
 
+@pytest.mark.asyncio
+async def test_cyber_hornet_adapter_retries_transient_page_or_csv_transport_errors():
+    adapter = get_holdings_adapter("cyber_hornet")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ConnectError("issuer TLS connect failed"),
+        FakeResponse(text="holdings", url="https://www.cyberhornets.com/download-holdings?fund=XXX"),
+    ]
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_with_timeout_retry(
+            client,
+            "https://www.cyberhornets.com/download-holdings?fund=XXX",
+            headers={"Referer": "https://www.cyberhornets.com/fund/xxx"},
+        )
+
+    assert response.text == "holdings"
+    assert len(FakeAsyncClient.requested) == 2
+    assert FakeAsyncClient.requested[1][0].endswith("download-holdings?fund=XXX")
+
+
 def test_dividend_assets_parser_uses_issuer_complete_holdings_table_and_units():
     adapter = get_holdings_adapter("dividend_assets")
     assert adapter is not None
