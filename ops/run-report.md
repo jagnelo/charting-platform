@@ -2,6 +2,43 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-28T16:30Z StockAnalysis Sixth Continuation Reconciliation Batch
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Added a twelfth named reconciliation batch from the refreshed StockAnalysis
+  ETF provider table; the table listed `469` named provider rows ranked by
+  assets, ETF count, and average expense ratio.
+- Registered the final `16` source-backed provider identities needed to close
+  the arithmetic adapter-count gap to the LSEG `496` promoter target:
+  `capforce`, `arin`, `matrix`, `towle`, `fitzgerald`, `ea_series_trust`,
+  `siren`, `bufferlabs`, `performance_trust`, `anydrus`,
+  `sammons_enterprises`, `moonvest`, `avory`, `suncoast`, `even_herd`, and
+  `logiq`.
+- These are explicit audited fallback-only adapters under
+  `needs_first_party_route_discovery`; no native holdings routes were claimed
+  for this batch.
+- Current strict state: `496` registered / `332` native-live-backed / `164`
+  fallback-only / target `496` / arithmetic registered gap `0` /
+  `generated_recognition_only []`.
+- The arithmetic LSEG count gap is closed, but the broader objective is not:
+  fallback-only providers still require first-party complete holdings route
+  discovery and promotion before native coverage is complete.
+- Implementation/docs commit:
+  `a58669b feat(etf): close StockAnalysis promoter reconciliation gap`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `11 passed, 436 deselected`
+  - deterministic ETF adapter suite:
+    `447 passed in 17.73s`
+  - strict manifest recompute:
+    `496` registered / `332` native / `164` fallback / gap `0`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
 ## 2026-07-28T16:20Z StockAnalysis Fifth Continuation Reconciliation Batch
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`

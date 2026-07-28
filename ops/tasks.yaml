@@ -8,8 +8,8 @@ tasks:
       holdings integrations for the broad U.S. ETF promoter universe, currently 496
       promoters per LSEG Lipper's June 2026 U.S. ETF industry review, with each
       registered provider having isolated implementation code plus static and live
-      test coverage. The repo currently enumerates 480 adapter keys, so the missing
-      16 promoter identities must be source-reconciled before registration; do not
+      test coverage. The repo currently enumerates 496 adapter keys, so the arithmetic
+      named-promoter gap is closed against the LSEG 496 target; do not
       invent placeholder names from a count-only market source. SEC EDGAR remains
       fallback only and must not count as primary provider support. Respect the priority
       ordering of ETF providers based on what was discussed: higher priority to
@@ -35,6 +35,27 @@ tasks:
       - adapter-matrix
       - lint
     notes:
+      - >
+        A 2026-07-28T16:30Z StockAnalysis sixth continuation reconciliation
+        batch added the final 16 source-backed provider identities from the
+        refreshed StockAnalysis ETF provider table needed to close the arithmetic
+        adapter-count gap to the LSEG 496 promoter target: capforce, arin,
+        matrix, towle, fitzgerald, ea_series_trust, siren, bufferlabs,
+        performance_trust, anydrus, sammons_enterprises, moonvest, avory,
+        suncoast, even_herd, and logiq. They are explicit audited fallback-only
+        adapters under needs_first_party_route_discovery; no native holdings
+        routes were claimed. Current strict state is 496 registered / 332
+        native-live-backed / 164 fallback-only / target 496 / arithmetic
+        registered gap 0 / generated_recognition_only []. The broad objective is
+        still not complete because fallback-only providers must be promoted only
+        after first-party complete holdings routes are proven. Implementation
+        commit: a58669b feat(etf): close StockAnalysis promoter reconciliation gap.
+        Validation passed:
+        focused StockAnalysis/provider-universe/explicit-class/source-audit slice
+        11 passed; deterministic ETF adapter suite 447 passed; strict manifest
+        recompute 496 registered / 332 native / 164 fallback / gap 0; opt-in
+        live-provider manifest/accounting invariants 2 passed; Ruff; ops
+        YAML/JSON parse check; git diff --check.
       - >
         A 2026-07-28T16:20Z StockAnalysis fifth continuation reconciliation
         batch added 10 additional distinct provider identities from the refreshed

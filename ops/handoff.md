@@ -1,5 +1,49 @@
 # Active Handoff
 
+## StockAnalysis sixth continuation reconciliation batch - 2026-07-28T16:30Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added a twelfth named reconciliation batch from the refreshed StockAnalysis
+  ETF provider table (`469` named provider rows ranked by assets, ETF count,
+  and average expense ratio).
+- Registered the final `16` source-backed provider identities needed to close
+  the arithmetic adapter-count gap to the LSEG `496` promoter target:
+  `capforce`, `arin`, `matrix`, `towle`, `fitzgerald`, `ea_series_trust`,
+  `siren`, `bufferlabs`, `performance_trust`, `anydrus`,
+  `sammons_enterprises`, `moonvest`, `avory`, `suncoast`, `even_herd`, and
+  `logiq`.
+- These are explicit audited fallback-only adapters under
+  `needs_first_party_route_discovery`; no native holdings routes were claimed
+  for this batch.
+- Current strict matrix after this source-reconciliation batch: `496`
+  registered / `332` native-live-backed / `164` fallback-only / target `496`
+  promoters / `0` arithmetic registered-promoter gap /
+  `generated_recognition_only []`.
+- The arithmetic LSEG count gap is closed, but the broader objective is not:
+  fallback-only providers still require first-party complete holdings route
+  discovery and promotion before native coverage is complete.
+- Implementation/docs commit:
+  `a58669b feat(etf): close StockAnalysis promoter reconciliation gap`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `11 passed, 436 deselected`
+  - full deterministic ETF adapter unit file: `447 passed in 17.73s`
+  - strict manifest recompute: `496` registered / `332` native /
+    `164` fallback / gap `0`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Resume native-route discovery for high-impact fallback-only providers, or
+  review remaining StockAnalysis unresolved names as alias/product-line/source
+  taxonomy dispositions without changing the already closed arithmetic gap.
+
 ## StockAnalysis fifth continuation reconciliation batch - 2026-07-28T16:20Z
 
 - Continued under the corrected broad-market task scope: the current target is
