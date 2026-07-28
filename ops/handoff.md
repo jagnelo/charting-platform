@@ -1,5 +1,44 @@
 # Active Handoff
 
+## Vident native route promotion - 2026-07-28T14:17Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `vident` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Vident public ETF product pages and their
+  issuer-rendered complete ETF Holdings tables for `VUSE`, `VIDI`, `VBND`, and
+  `PPTY`.
+- Added explicit `VidentHoldingsAdapter`, native config, static parser coverage,
+  and concrete opt-in live coverage for `VUSE`. The existing related `mm_vam`
+  key remains supported separately.
+- Current strict matrix after the promotion: `420` registered / `332`
+  native-live-backed / `88` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for an already registered provider; it
+  does not reduce the remaining `76` source-reconciliation gap to the LSEG
+  target.
+- Implementation/docs commit:
+  `f95113e feat(etf): add native Vident holdings route`.
+- Validation passed:
+  - focused Vident/MM VAM/ETF.com reconciliation/source-audit slice:
+    `6 passed, 430 deselected`
+  - full deterministic ETF adapter unit file: `436 passed in 17.41s`
+  - strict manifest recompute: `420` registered / `332` native /
+    `88` fallback / gap `76` / `audit_matches True`
+  - opt-in Vident plus live-provider manifest/accounting slice:
+    `4 passed, 336 deselected`
+  - complete opt-in ETF holdings live matrix:
+    `339 passed, 1 skipped in 542.93s`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## Tradr native route promotion - 2026-07-28T14:09Z
 
 - Continued under the corrected broad-market task scope: the current target is

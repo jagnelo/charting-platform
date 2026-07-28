@@ -36,6 +36,21 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T14:17Z Vident native promotion moved vident from
+        ETF.com-reconciled fallback-only support to native/live-backed support
+        through Vident public ETF product pages and their issuer-rendered
+        complete ETF Holdings tables for VUSE, VIDI, VBND, and PPTY. Current
+        strict state is 420 registered / 332 native-live-backed / 88
+        fallback-only / target 496 / registered gap 76 /
+        generated_recognition_only []. This improves native support quality but
+        does not reduce the remaining source-reconciliation gap. Validation
+        passed: focused Vident/MM VAM/ETF.com reconciliation/source-audit slice
+        6 passed; deterministic ETF adapter suite 436 passed; strict manifest
+        recompute 420 registered / 332 native / 88 fallback / audit_matches
+        True; opt-in Vident plus manifest/accounting live slice 4 passed; full
+        opt-in ETF holdings live matrix 339 passed and 1 skipped in 542.93s;
+        Ruff; ops YAML/JSON parse check; git diff --check.
+      - >
         A 2026-07-28T14:09Z Tradr native promotion moved tradr from
         ETF.com-reconciled fallback-only support to native/live-backed support
         through Tradr public ETF pages and the dated aggregate FilePoint

@@ -14686,6 +14686,37 @@ Append a short entry after each worker session.
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
 
+## 2026-07-28T14:17Z Vident Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `vident` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Vident public ETF product pages and their
+  issuer-rendered complete ETF Holdings tables for `VUSE`, `VIDI`, `VBND`, and
+  `PPTY`.
+- Added explicit `VidentHoldingsAdapter` wiring, native config, static parser
+  coverage, and concrete opt-in live coverage. The related `mm_vam` key remains
+  supported separately.
+- Implementation/docs commit:
+  `f95113e feat(etf): add native Vident holdings route`.
+- Current strict state: `420` registered / `332` native-live-backed / `88`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused Vident/MM VAM/ETF.com reconciliation/source-audit slice:
+    `6 passed, 430 deselected`
+  - deterministic ETF adapter suite:
+    `436 passed in 17.41s`
+  - strict manifest recompute:
+    `420` registered / `332` native / `88` fallback / `audit_matches True`
+  - opt-in Vident plus live-provider manifest/accounting slice:
+    `4 passed, 336 deselected`
+  - complete opt-in ETF holdings live matrix:
+    `339 passed, 1 skipped in 542.93s`
+  - Ruff: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
 ## 2026-07-28T13:50Z SP Funds Native Route Promotion
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`
