@@ -22,20 +22,20 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `460` ETF holdings adapter keys. These keys are
+The code currently enumerates `470` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current native-route split:
 
 - Native/live-backed providers: `332`
-- Audited fallback-only providers: `128`
+- Audited fallback-only providers: `138`
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `460`
-- Missing named promoter identities: `36`
+- Repo-registered adapter keys: `470`
+- Missing named promoter identities: `26`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -413,6 +413,37 @@ The skipped high-ranked source rows `Eagle`, `iM`, and `Horizon` remain
 unresolved because their short display names are unsafe substring hints without
 a more specific source-row spelling in this table snapshot.
 
+## Tenth Named Reconciliation Batch
+
+On `2026-07-28`, a fourth StockAnalysis provider-table continuation pass added
+`10` more ranked provider identities that were not already distinct repo adapter
+keys after alias checks against existing adapters. They are registered as
+explicit audited fallback-only adapters under `needs_first_party_route_discovery`
+until a first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://stockanalysis.com/etf/provider/`
+
+The same source table listed `469` U.S. ETF providers and ranked them by ETF
+assets, ETF count, and average expense ratio when refreshed on `2026-07-28`.
+
+Added adapter keys:
+
+- `mcelhenny_sheffield`
+- `ballast`
+- `stance`
+- `long_pond`
+- `blueprint`
+- `stratified`
+- `hoya`
+- `genter_capital`
+- `river1`
+- `impact_shares`
+
+Rows such as `Nicholas`, `Myriad Capital`, `Obra`, `ACV`, `The Future Fund`,
+`Absolute`, and `REX-Osprey` require separate alias or identity disposition
+before they can be counted as new provider keys.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -426,7 +457,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `36` promoter identities require a separate source reconciliation
+The missing `26` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,

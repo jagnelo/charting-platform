@@ -1773,6 +1773,19 @@ STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
     "beehive": ["beehive", "bee hive"],
 }
 
+STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
+    "mcelhenny_sheffield": ["mcelhenny sheffield"],
+    "ballast": ["ballast"],
+    "stance": ["stance"],
+    "long_pond": ["long pond"],
+    "blueprint": ["blueprint"],
+    "stratified": ["stratified"],
+    "hoya": ["hoya"],
+    "genter_capital": ["genter capital"],
+    "river1": ["river1", "river 1"],
+    "impact_shares": ["impact shares"],
+}
+
 ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
     "Proshare Advisors LLC": (
         "proshares",
@@ -2200,6 +2213,9 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
 )
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS
+)
+ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
+    STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
 for _source_name, (_adapter_key, _reason) in ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS.items():
@@ -59252,20 +59268,21 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "needs_first_party_route_discovery": (
         "advisors_asset_management", "alerian", "alphaclone",
         "alphamark_advisors", "amg_national", "amplius",
-        "argent", "azimut", "baillie_gifford",
+        "argent", "azimut", "baillie_gifford", "ballast",
         "ars", "bancreek", "beehive", "bluemonte", "bridgeway", "brookstone",
-        "bushido", "calvert",
+        "blueprint", "bushido", "calvert",
         "castellan", "columbia_threadneedle", "credit_suisse", "cresalta",
         "desjardins", "dvx_ventures", "elements", "elm",
         "emirate_abu_dhabi", "emqq", "esoterica",
         "ershares", "etf_managers_group", "everence", "fairlead",
         "falconx", "fcf_advisors", "formula_folio",
-        "framework_digital_advisors", "freedom", "fpa",
+        "framework_digital_advisors", "freedom", "fpa", "genter_capital",
         "fundstrat", "gc_ferry_parent", "gotham",
         "granite_group_advisors", "guggenheim", "hexis",
-        "highland_capital", "hilton", "horizons", "jlens",
+        "highland_capital", "hilton", "horizons", "hoya", "impact_shares", "jlens",
         "knowledge_leaders", "kovitz", "leverage_shares",
-        "lsv", "m2_financial", "m_d_sass", "madison_avenue", "max",
+        "long_pond", "lsv", "m2_financial", "m_d_sass", "madison_avenue", "max",
+        "mcelhenny_sheffield",
         "measured_risk_portfolios",
         "merchant_investment_management", "merk", "meridian", "mfs",
         "merlyn_ai", "mig_capital", "militia", "milliman",
@@ -59276,8 +59293,9 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "portfolio_building_block", "putnam",
         "quadratic", "range", "rareview_funds", "return_stacked",
         "riverfront", "robo_global", "rockefeller_capital",
-        "roc", "saba_capital", "sapient", "saturna", "smi_funds",
-        "segall_bryant_hamill", "srh", "strategas", "strategy_shares", "subversive",
+        "river1", "roc", "saba_capital", "sapient", "saturna", "smi_funds",
+        "segall_bryant_hamill", "srh", "stance", "strategas",
+        "stratified", "strategy_shares", "subversive",
         "swedish_export_credit",
         "trimtabs", "us_benchmark_series",
         "tweedy_browne", "vega_financial", "wellesley_asset_management",
@@ -59862,6 +59880,46 @@ class BeeHiveReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending BeeHive discovery."""
 
 
+class McElhennySheffieldReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending McElhenny Sheffield discovery."""
+
+
+class BallastReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Ballast discovery."""
+
+
+class StanceReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Stance discovery."""
+
+
+class LongPondReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Long Pond discovery."""
+
+
+class BlueprintReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Blueprint discovery."""
+
+
+class StratifiedReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Stratified discovery."""
+
+
+class HoyaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Hoya discovery."""
+
+
+class GenterCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Genter Capital discovery."""
+
+
+class River1ReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending River1 discovery."""
+
+
+class ImpactSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Impact Shares discovery."""
+
+
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "aegon": AegonAuditedFallbackHoldingsAdapter,
@@ -59877,9 +59935,11 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "avantis": AvantisHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
+        "ballast": BallastReconciledFallbackHoldingsAdapter,
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
         "beehive": BeeHiveReconciledFallbackHoldingsAdapter,
         "bluemonte": BluemonteReconciledFallbackHoldingsAdapter,
+        "blueprint": BlueprintReconciledFallbackHoldingsAdapter,
         "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "bushido": BushidoReconciledFallbackHoldingsAdapter,
@@ -59911,6 +59971,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "freedom": FreedomReconciledFallbackHoldingsAdapter,
         "fpa": FpaReconciledFallbackHoldingsAdapter,
         "fundstrat": FundstratReconciledFallbackHoldingsAdapter,
+        "genter_capital": GenterCapitalReconciledFallbackHoldingsAdapter,
         "gc_ferry_parent": GcFerryParentReconciledFallbackHoldingsAdapter,
         "gotham": GothamReconciledFallbackHoldingsAdapter,
         "granite_group_advisors": GraniteGroupAdvisorsReconciledFallbackHoldingsAdapter,
@@ -59920,10 +59981,13 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
         "hilton": HiltonReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
+        "hoya": HoyaReconciledFallbackHoldingsAdapter,
+        "impact_shares": ImpactSharesReconciledFallbackHoldingsAdapter,
         "jlens": JLensReconciledFallbackHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
         "kovitz": KovitzReconciledFallbackHoldingsAdapter,
         "leverage_shares": LeverageSharesReconciledFallbackHoldingsAdapter,
+        "long_pond": LongPondReconciledFallbackHoldingsAdapter,
         "lsv": LsvReconciledFallbackHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,
         "m_d_sass": MDSassReconciledFallbackHoldingsAdapter,
@@ -59931,6 +59995,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "manulife": ManulifeAuditedFallbackHoldingsAdapter,
         "marathon": MarathonAuditedFallbackHoldingsAdapter,
         "max": MaxReconciledFallbackHoldingsAdapter,
+        "mcelhenny_sheffield": McElhennySheffieldReconciledFallbackHoldingsAdapter,
         "merchant_investment_management": MerchantInvestmentManagementReconciledFallbackHoldingsAdapter,
         "merk": MerkReconciledFallbackHoldingsAdapter,
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
@@ -59967,6 +60032,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "return_stacked": ReturnStackedReconciledFallbackHoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
         "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
+        "river1": River1ReconciledFallbackHoldingsAdapter,
         "robo_global": RoboGlobalReconciledFallbackHoldingsAdapter,
         "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
@@ -59978,7 +60044,9 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "smi_funds": SmiFundsReconciledFallbackHoldingsAdapter,
         "sofi": SofiAuditedFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,
+        "stance": StanceReconciledFallbackHoldingsAdapter,
         "strategas": StrategasReconciledFallbackHoldingsAdapter,
+        "stratified": StratifiedReconciledFallbackHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
         "srh": SrhReconciledFallbackHoldingsAdapter,
         "subversive": SubversiveReconciledFallbackHoldingsAdapter,
