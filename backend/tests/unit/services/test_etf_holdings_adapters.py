@@ -27,6 +27,7 @@ from app.services.etf_holdings_adapters import (
     STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS,
     STOCKANALYSIS_PROVIDER_RECONCILIATION_ISSUER_HINTS,
     STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS,
+    STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS,
     SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS,
     US_ETF_PROMOTER_UNIVERSE_BENCHMARK,
     CanonicalHoldingRow,
@@ -18617,6 +18618,28 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
+def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
+    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS)
+
+    assert expected
+    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(STOCKANALYSIS_PROVIDER_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS))
+    assert expected.issubset(set(registered_adapter_keys()))
+    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in expected:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
     assert STOCKANALYSIS_PROVIDER_ALIAS_DISPOSITIONS
 
@@ -18642,7 +18665,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
     assert US_ETF_PROMOTER_UNIVERSE_BENCHMARK.primary_portfolio_count == 5397
     assert status["target_promoter_count"] == 496
     assert status["registered_adapter_count"] == len(registered_adapter_keys())
-    assert status["registered_promoter_gap"] == 46
+    assert status["registered_promoter_gap"] == 36
     assert status["registered_promoter_gap"] == 496 - len(registered_adapter_keys())
     assert SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS[0].promoter_count == 478
 

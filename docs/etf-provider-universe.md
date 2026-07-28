@@ -22,20 +22,20 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `450` ETF holdings adapter keys. These keys are
+The code currently enumerates `460` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current native-route split:
 
 - Native/live-backed providers: `332`
-- Audited fallback-only providers: `118`
+- Audited fallback-only providers: `128`
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `450`
-- Missing named promoter identities: `46`
+- Repo-registered adapter keys: `460`
+- Missing named promoter identities: `36`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -382,6 +382,37 @@ Additional dispositions:
 
 These dispositions are source reconciled but do not create new provider keys.
 
+## Ninth Named Reconciliation Batch
+
+On `2026-07-28`, a third StockAnalysis provider-table continuation pass added
+`10` more ranked provider identities that were not already distinct repo adapter
+keys after alias checks against existing adapters. They are registered as
+explicit audited fallback-only adapters under `needs_first_party_route_discovery`
+until a first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://stockanalysis.com/etf/provider/`
+
+The same source table listed `469` U.S. ETF providers and ranked them by ETF
+assets, ETF count, and average expense ratio when refreshed on `2026-07-28`.
+
+Added adapter keys:
+
+- `brookstone`
+- `fpa`
+- `elm`
+- `segall_bryant_hamill`
+- `amplius`
+- `nestyield`
+- `rareview_funds`
+- `srh`
+- `parnassus_investments`
+- `beehive`
+
+The skipped high-ranked source rows `Eagle`, `iM`, and `Horizon` remain
+unresolved because their short display names are unsafe substring hints without
+a more specific source-row spelling in this table snapshot.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -395,7 +426,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `46` promoter identities require a separate source reconciliation
+The missing `36` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
