@@ -14826,6 +14826,30 @@ Append a short entry after each worker session.
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
 
+## 2026-07-28T16:44Z MFS Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `mfs` from the StockAnalysis provider-table fallback-only batch to
+  native/live-backed support through MFS public daily ETF holdings pages, with
+  `MFSB` as the exact opt-in live route.
+- Split route ownership from `sun_life`: `sun_life` keeps its explicit `MFSV`
+  route while broader MFS ETF daily holdings routes are attributed to `mfs`.
+- Current strict state: `496` registered / `333` native-live-backed / `163`
+  fallback-only / target `496` / registered gap `0` /
+  `generated_recognition_only []`.
+- Implementation/docs commit:
+  `3b12df3 feat(etf): add native MFS holdings route`.
+- Validation passed:
+  - focused MFS/Sun Life deterministic parser slice: `2 passed`
+  - deterministic ETF adapter suite: `448 passed in 19.21s`
+  - strict manifest recompute:
+    `496` registered / `333` native / `163` fallback / gap `0`
+  - opt-in concrete-live-route invariant: `1 passed`
+  - exact opt-in MFS route slice: `2 passed, 285 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+
 ## 2026-07-28T15:36Z StockAnalysis Provider Reconciliation Batch
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`

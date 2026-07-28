@@ -1,5 +1,36 @@
 # Active Handoff
 
+## MFS native route promotion - 2026-07-28T16:44Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `mfs` from the StockAnalysis provider-table fallback-only batch to
+  native/live-backed support through MFS public daily ETF holdings pages, using
+  `MFSB` as the exact live-backed route.
+- Split route ownership from `sun_life`: `sun_life` keeps its explicit `MFSV`
+  route, while the broader MFS ETF daily holdings route set is attributed to
+  `mfs`.
+- Current strict matrix after this native-route promotion: `496` registered /
+  `333` native-live-backed / `163` fallback-only / target `496` promoters /
+  `0` arithmetic registered-promoter gap / `generated_recognition_only []`.
+- Implementation/docs commit:
+  `3b12df3 feat(etf): add native MFS holdings route`.
+- Validation passed:
+  - focused MFS/Sun Life deterministic parser slice: `2 passed`
+  - full deterministic ETF adapter unit file: `448 passed in 19.21s`
+  - strict manifest recompute: `496` registered / `333` native /
+    `163` fallback / gap `0`
+  - opt-in live-provider concrete-route invariant: `1 passed`
+  - exact opt-in MFS route slice: `2 passed, 285 deselected`
+  - Ruff for changed backend files: passed
+
+### Next step
+
+- Continue native-route discovery for the remaining `163` audited
+  fallback-only providers, prioritizing higher-AUM and higher-ETF-count
+  providers with executable first-party complete holdings routes.
+
 ## StockAnalysis sixth continuation reconciliation batch - 2026-07-28T16:30Z
 
 - Continued under the corrected broad-market task scope: the current target is

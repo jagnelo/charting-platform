@@ -36,6 +36,21 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T16:44Z native-route promotion moved mfs from the
+        StockAnalysis provider-table fallback-only batch to native-live-backed
+        support through MFS public daily ETF holdings pages, with MFSB as the
+        exact opt-in live route. Route ownership was split so sun_life keeps its
+        explicit MFSV route while broader MFS ETF daily holdings routes are
+        attributed to mfs. Current strict state is 496 registered / 333
+        native-live-backed / 163 fallback-only / target 496 / arithmetic
+        registered gap 0 / generated_recognition_only []. Implementation
+        commit: 3b12df3 feat(etf): add native MFS holdings route. Validation
+        passed: focused MFS/Sun Life deterministic parser slice 2 passed;
+        deterministic ETF adapter suite 448 passed; strict manifest recompute
+        496 registered / 333 native / 163 fallback / gap 0; opt-in
+        concrete-live-route invariant 1 passed; exact opt-in MFS route slice 2
+        passed, 285 deselected; Ruff.
+      - >
         A 2026-07-28T16:30Z StockAnalysis sixth continuation reconciliation
         batch added the final 16 source-backed provider identities from the
         refreshed StockAnalysis ETF provider table needed to close the arithmetic
