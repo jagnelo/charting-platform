@@ -1,5 +1,46 @@
 # Active Handoff
 
+## SP Funds native route promotion - 2026-07-28T13:50Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `sp_funds` from ETF.com-reconciled fallback-only support to
+  native/live-backed support. The route uses SP Funds official product pages
+  such as `https://www.sp-funds.com/spte/`, which declare fund-scoped daily
+  holdings CSVs such as
+  `https://www.sp-funds.com/wp-content/uploads/data/TidalFG_Holdings_SPTE.csv`.
+- Added an explicit `SpFundsHoldingsAdapter`, native config, static parser
+  coverage, and concrete opt-in live coverage for `SPTE`. The existing
+  `shariaportfolio` key remains supported separately, but `sp_funds` is no
+  longer counted as fallback-only.
+- Current strict matrix after the promotion: `420` registered / `328`
+  native-live-backed / `92` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for an already registered provider; it
+  does not reduce the remaining `76` source-reconciliation gap to the LSEG
+  target.
+- Implementation/docs commit:
+  `1cdbdb1 feat(etf): add native SP Funds holdings route`.
+- Validation passed:
+  - focused SP Funds/ShariaPortfolio/ETF.com reconciliation/source-audit slice:
+    `5 passed, 427 deselected`
+  - full deterministic ETF adapter unit file: `432 passed in 17.46s`
+  - strict manifest recompute: `420` registered / `328` native /
+    `92` fallback / gap `76` / `audit_matches True`
+  - opt-in SP Funds plus live-provider manifest/accounting slice:
+    `4 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; the latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## Avantis native route promotion - 2026-07-28T13:43Z
 
 - Continued under the corrected broad-market task scope: the current target is

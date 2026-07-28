@@ -36,6 +36,18 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T13:50Z SP Funds native promotion moved sp_funds from
+        ETF.com-reconciled fallback-only support to native/live-backed support
+        through SP Funds official SPTE/SPWO product pages and their declared
+        fund-scoped daily holdings CSVs. Current strict state is 420 registered
+        / 328 native-live-backed / 92 fallback-only / target 496 / registered
+        gap 76 / generated_recognition_only []. This improves native support
+        quality but does not reduce the remaining source-reconciliation gap.
+        Validation passed: focused SP Funds/ShariaPortfolio/ETF.com
+        reconciliation/source-audit slice 5 passed; deterministic ETF adapter
+        suite 432 passed; opt-in SP Funds plus manifest/accounting live slice 4
+        passed; Ruff; git diff --check.
+      - >
         A 2026-07-28T13:43Z Avantis native promotion moved avantis from
         ETF.com-reconciled fallback-only support to native/live-backed support
         through the public Avantis Investors AVUV product page, which exposes

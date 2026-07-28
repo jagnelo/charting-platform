@@ -14685,3 +14685,31 @@ Append a short entry after each worker session.
 - Full opt-in network matrix was not rerun after this single-provider
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
+
+## 2026-07-28T13:50Z SP Funds Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `sp_funds` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through SP Funds official `SPTE`/`SPWO` product
+  pages and their declared fund-scoped daily holdings CSVs.
+- Added explicit `SpFundsHoldingsAdapter` wiring, native config, static parser
+  coverage, and concrete opt-in live coverage. `shariaportfolio` remains
+  supported separately as the existing ShariaPortfolio-advised route key.
+- Current strict state: `420` registered / `328` native-live-backed / `92`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused SP Funds/ShariaPortfolio/ETF.com reconciliation/source-audit slice:
+    `5 passed, 427 deselected`
+  - deterministic ETF adapter suite:
+    `432 passed in 17.46s`
+  - strict manifest recompute:
+    `420` registered / `328` native / `92` fallback / `audit_matches True`
+  - opt-in SP Funds plus live-provider manifest/accounting slice:
+    `4 passed, 332 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
