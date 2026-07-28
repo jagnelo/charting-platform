@@ -16868,6 +16868,48 @@ async def test_redwood_adapter_fetches_verified_fund_scoped_holdings_csv(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_redwood_adapter_retries_transient_mismatched_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("redwood")
+    assert adapter is not None
+    holdings_url = (
+        "https://www.leadersharesetfs.com/funds/holdings-download?"
+        "fund=leadershares-dynamic-yield-etf"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "LeaderShares Alphafactor Tactical Focused ETF",
+                    "Fund Holdings Data as of 07/15/2026",
+                    "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value",
+                    "Microsoft Corp,594918104,MSFT US,1.000000000000,400,100,40000",
+                ]
+            ),
+            url=holdings_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "LeaderShares Dynamic Yield ETF",
+                    "Fund Holdings Data as of 07/15/2026",
+                    "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value",
+                    "NVIDIA Corp,67066G104,NVDA US,3.250000000000,170,100,17000",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DYLD")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url, holdings_url]
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["composition_date"] == "2026-07-15"
+
+
+@pytest.mark.asyncio
 async def test_killir_esn_adapter_verifies_essential_page_and_parses_filepoint_json(
     monkeypatch,
 ):
@@ -18338,8 +18380,6 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert "issuer_native_live_route" in adapters["brookmont"]["support_route_types"]
     assert adapters["goldman_sachs"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["goldman_sachs"]["support_route_types"]
-    assert adapters["redwood"]["live_tested_default_route"] is True
-    assert "issuer_native_live_route" in adapters["redwood"]["support_route_types"]
     assert adapters["motley_fool"]["live_tested_default_route"] is True
     assert "issuer_native_live_route" in adapters["motley_fool"]["support_route_types"]
     assert adapters["leuthold"]["live_tested_default_route"] is True

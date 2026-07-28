@@ -27283,20 +27283,37 @@ class RedwoodHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
         slug, expected_fund_name = fund
         holdings_url = self._holdings_url(slug)
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        response: httpx.Response | None = None
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await self._get_with_timeout_retry(
-                client,
-                holdings_url,
-                headers=_holdings_request_headers(accept="text/csv,*/*"),
-            )
-        response.raise_for_status()
-        rows, composition_date = self._parse_holdings_csv(
-            response.text,
-            symbol=normalized_symbol,
-            expected_fund_name=expected_fund_name,
-        )
+            for attempt in range(3):
+                response = await self._get_with_timeout_retry(
+                    client,
+                    holdings_url,
+                    headers=_holdings_request_headers(accept="text/csv,*/*"),
+                )
+                response.raise_for_status()
+                try:
+                    rows, composition_date = self._parse_holdings_csv(
+                        response.text,
+                        symbol=normalized_symbol,
+                        expected_fund_name=expected_fund_name,
+                    )
+                except ValueError:
+                    if attempt == 2:
+                        raise
+                    await asyncio.sleep(0.25 * (attempt + 1))
+                    continue
+                if rows:
+                    break
+                if attempt == 2:
+                    break
+                await asyncio.sleep(0.25 * (attempt + 1))
         if not rows:
             raise ValueError(f"Redwood returned no holdings for {normalized_symbol}.")
+        if response is None or composition_date is None:
+            raise ValueError(f"Redwood returned incomplete holdings for {normalized_symbol}.")
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -56477,7 +56494,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         product_page_templates=(
             "https://sterlingcapital.com/investments/exchange-traded-funds/scmc/",
         ),
-        live_tested_default_route=True,
+        live_tested_default_route=False,
         terms_note=(
             "Sterling Fund Management's SCMC portfolio is published through Sterling Capital's "
             "public fund-scoped holdings PDF and may be subject to issuer terms."
@@ -58514,7 +58531,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_provider="redwood",
         source_access="issuer_public_fund_scoped_complete_holdings_csv",
         product_page_templates=("https://www.leadersharesetfs.com/funds",),
-        live_tested_default_route=True,
+        live_tested_default_route=False,
         terms_note=(
             "Redwood's LeaderShares holdings downloads are issuer-published "
             "complete current holdings CSV files and may be subject to issuer terms."
@@ -59035,6 +59052,8 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     ),
     "non_executable_public_source": (
         "epwa", "pacific_investments", "planrock",
+        "redwood",
+        "sterling_fund",
     ),
     "provider_not_a_portfolio_publisher": (
         "epiris", "eurazeo",
