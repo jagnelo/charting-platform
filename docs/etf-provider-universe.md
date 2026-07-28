@@ -22,20 +22,20 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `430` ETF holdings adapter keys. These keys are
+The code currently enumerates `440` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current native-route split:
 
 - Native/live-backed providers: `332`
-- Audited fallback-only providers: `98`
+- Audited fallback-only providers: `108`
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `430`
-- Missing named promoter identities: `66`
+- Repo-registered adapter keys: `440`
+- Missing named promoter identities: `56`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -294,6 +294,50 @@ These dispositions are source reconciled but do not create new provider keys.
 They prevent StockAnalysis display names and product-line labels from inflating
 the adapter-count gap.
 
+## Seventh Named Reconciliation Batch
+
+On `2026-07-28`, a StockAnalysis provider-table continuation pass added `10`
+more ranked provider identities that were not already distinct repo adapter
+keys after alias checks against existing adapters. They are registered as
+explicit audited fallback-only adapters under `needs_first_party_route_discovery`
+until a first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://stockanalysis.com/etf/provider/`
+
+The same source table listed `469` U.S. ETF providers and ranked them by ETF
+assets, ETF count, and average expense ratio when refreshed on `2026-07-28`.
+
+Added adapter keys:
+
+- `castellan`
+- `bushido`
+- `opus_capital_management`
+- `lsv`
+- `max`
+- `tweedy_browne`
+- `ars`
+- `subversive`
+- `fairlead`
+- `jlens`
+
+Additional dispositions:
+
+- `iPath` -> `barclays`
+- `ETRACS` -> `ubs`
+- `Monarch` -> `kingsview`
+- `InfraCap` -> `infrastructure_capital`
+- `Scharf` -> `scharf`
+- `Corgi` -> `corgi`
+- `Longview` -> `focus_financial`
+- `MIG` -> `mig_capital`
+- `The Brinsmere Funds` -> `estate_counselors`
+
+These dispositions are source reconciled but do not create new provider keys.
+The `Eagle`, `iM`, and `Horizon` rows remain unresolved because their short
+display names are unsafe substring hints without a more specific source-row
+spelling in this table snapshot.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -307,7 +351,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `66` promoter identities require a separate source reconciliation
+The missing `56` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
