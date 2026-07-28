@@ -1,5 +1,43 @@
 # Active Handoff
 
+## Tradr native route promotion - 2026-07-28T14:09Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `tradr` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Tradr public ETF pages and the dated
+  aggregate FilePoint holdings CSV used by the existing AXS route.
+- Added explicit `TradrHoldingsAdapter`, native config, static parser coverage,
+  and concrete opt-in live coverage for `TARK`. The existing related `axs`
+  key remains supported separately.
+- Current strict matrix after the promotion: `420` registered / `331`
+  native-live-backed / `89` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for an already registered provider; it
+  does not reduce the remaining `76` source-reconciliation gap to the LSEG
+  target.
+- Implementation/docs commit:
+  `61e1057 feat(etf): add native Tradr holdings route`.
+- Validation passed:
+  - focused Tradr/AXS/ETF.com reconciliation/source-audit slice:
+    `5 passed, 430 deselected`
+  - full deterministic ETF adapter unit file: `435 passed in 17.51s`
+  - strict manifest recompute: `420` registered / `331` native /
+    `89` fallback / gap `76` / `audit_matches True`
+  - opt-in Tradr plus live-provider manifest/accounting slice:
+    `4 passed, 335 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; the latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## Touchstone and American Beacon native promotions - 2026-07-28T14:01Z
 
 - Continued under the corrected broad-market task scope: the current target is

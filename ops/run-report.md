@@ -14748,3 +14748,31 @@ Append a short entry after each worker session.
 - Full opt-in network matrix was not rerun after these two single-provider
   promotions; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
+
+## 2026-07-28T14:09Z Tradr Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `tradr` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Tradr public ETF pages and the dated
+  aggregate FilePoint holdings CSV already used by the AXS route.
+- Added explicit `TradrHoldingsAdapter` wiring, native config, static parser
+  coverage, and concrete opt-in live coverage. The related `axs` key remains
+  supported separately.
+- Current strict state: `420` registered / `331` native-live-backed / `89`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused Tradr/AXS/ETF.com reconciliation/source-audit slice:
+    `5 passed, 430 deselected`
+  - deterministic ETF adapter suite:
+    `435 passed in 17.51s`
+  - strict manifest recompute:
+    `420` registered / `331` native / `89` fallback / `audit_matches True`
+  - opt-in Tradr plus live-provider manifest/accounting slice:
+    `4 passed, 335 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.

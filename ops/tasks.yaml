@@ -36,6 +36,18 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T14:09Z Tradr native promotion moved tradr from
+        ETF.com-reconciled fallback-only support to native/live-backed support
+        through Tradr public ETF pages and the dated aggregate FilePoint
+        holdings CSV already used by the AXS route. Current strict state is
+        420 registered / 331 native-live-backed / 89 fallback-only / target 496
+        / registered gap 76 / generated_recognition_only []. This improves
+        native support quality but does not reduce the remaining
+        source-reconciliation gap. Validation passed: focused Tradr/AXS/ETF.com
+        reconciliation/source-audit slice 5 passed; deterministic ETF adapter
+        suite 435 passed; opt-in Tradr plus manifest/accounting live slice 4
+        passed; Ruff; git diff --check.
+      - >
         A 2026-07-28T14:01Z American Beacon native promotion moved
         american_beacon from ETF.com-reconciled fallback-only support to
         native/live-backed support through American Beacon official AHLT/MGNR/CPII
