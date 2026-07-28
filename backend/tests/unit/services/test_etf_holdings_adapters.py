@@ -1949,8 +1949,12 @@ async def test_natixis_investment_managers_adapter_has_its_own_native_route(monk
 
 
 @pytest.mark.asyncio
-async def test_western_southern_adapter_parses_touchstone_full_holdings_payload(monkeypatch):
-    adapter = get_holdings_adapter("western_southern")
+@pytest.mark.parametrize("adapter_key", ["western_southern", "touchstone"])
+async def test_touchstone_adapter_parses_full_holdings_payload(
+    monkeypatch,
+    adapter_key,
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
     product_url = "https://www.westernsouthern.com/touchstone/etfs/us-large-cap-focused-etf"
     FakeAsyncClient.requested = []
@@ -1985,6 +1989,7 @@ async def test_western_southern_adapter_parses_touchstone_full_holdings_payload(
     assert result.rows[0].market_value == Decimal("1636821")
     assert result.rows[0].weight == Decimal("0.0243")
     assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_full_holdings_payload"
 
 

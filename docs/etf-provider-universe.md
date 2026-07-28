@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `328`
-- Audited fallback-only providers: `92`
+- Native/live-backed providers: `329`
+- Audited fallback-only providers: `91`
 
 Current gap to the broad LSEG promoter target:
 
@@ -51,8 +51,9 @@ They were initially registered as explicit audited fallback-only adapters under
 was proven for each provider. `avantis` has since been promoted to native
 support through its Avantis Investors product-page embedded holdings route, and
 `sp_funds` has been promoted through SP Funds product-page-declared daily
-holdings CSVs. The other identities from this batch remain audited
-fallback-only until proven otherwise.
+holdings CSVs, and `touchstone` has been promoted through Touchstone ETF
+product-page full-holdings payloads. The other identities from this batch
+remain audited fallback-only until proven otherwise.
 
 Batch source:
 `https://www.etf.com/sections/etf-league-tables/etf-league-tables-state-street-gathers-52b`

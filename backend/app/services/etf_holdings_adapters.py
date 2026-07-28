@@ -1643,7 +1643,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"avantis", "sp_funds"}
+    {"avantis", "sp_funds", "touchstone"}
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -5975,6 +5975,25 @@ class WesternSouthernHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 except ValueError:
                     continue
         return None
+
+
+class TouchstoneHoldingsAdapter(WesternSouthernHoldingsAdapter):
+    """Native Touchstone integration for issuer-owned ETF product-page holdings."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class IntechHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -56137,6 +56156,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Touchstone public ETF product-page holdings data may be subject to issuer terms.",
     ),
+    "touchstone": IssuerCsvAdapterConfig(
+        adapter_key="touchstone",
+        source_provider="touchstone_investments",
+        source_access="issuer_product_page_complete_holdings_payload",
+        product_page_templates=(
+            "https://www.westernsouthern.com/touchstone/etfs/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Touchstone public ETF product-page holdings data may be subject to issuer terms.",
+    ),
     "intech": IssuerCsvAdapterConfig(
         adapter_key="intech",
         source_provider="intech_etfs",
@@ -58853,7 +58882,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "quadratic", "range", "return_stacked",
         "riverfront", "robo_global", "rockefeller_capital",
         "saba_capital", "saturna",
-        "strategy_shares", "swedish_export_credit", "touchstone",
+        "strategy_shares", "swedish_export_credit",
         "tradr", "trimtabs", "us_benchmark_series",
         "vega_financial", "vident", "wellesley_asset_management",
         "worth_charting",
@@ -59362,7 +59391,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
         "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
         "thrivent": ThriventAuditedFallbackHoldingsAdapter,
-        "touchstone": TouchstoneReconciledFallbackHoldingsAdapter,
+        "touchstone": TouchstoneHoldingsAdapter,
         "tradr": TradrReconciledFallbackHoldingsAdapter,
         "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
         "us_benchmark_series": UsBenchmarkSeriesReconciledFallbackHoldingsAdapter,
