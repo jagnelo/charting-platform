@@ -1643,7 +1643,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"american_beacon", "avantis", "sp_funds", "touchstone"}
+    {"american_beacon", "avantis", "sp_funds", "touchstone", "tradr"}
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -28928,6 +28928,25 @@ class AxsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 except ValueError:
                     continue
         return None
+
+
+class TradrHoldingsAdapter(AxsHoldingsAdapter):
+    """Native Tradr integration for Tradr/AXS dated aggregate holdings CSVs."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class BahlGaynorHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -57326,6 +57345,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AXS/Tradr public ETF holdings files may be subject to issuer terms.",
     ),
+    "tradr": IssuerCsvAdapterConfig(
+        adapter_key="tradr",
+        source_provider="tradr",
+        source_access="issuer_dated_aggregate_holdings_csv",
+        product_page_templates=(
+            "https://www.tradretfs.com/{symbol_lower}",
+        ),
+        live_tested_default_route=True,
+        terms_note="Tradr public ETF holdings files may be subject to issuer terms.",
+    ),
     "bahl_gaynor": IssuerCsvAdapterConfig(
         adapter_key="bahl_gaynor",
         source_provider="bahl_gaynor",
@@ -58927,7 +58956,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "riverfront", "robo_global", "rockefeller_capital",
         "saba_capital", "saturna",
         "strategy_shares", "swedish_export_credit",
-        "tradr", "trimtabs", "us_benchmark_series",
+        "trimtabs", "us_benchmark_series",
         "vega_financial", "vident", "wellesley_asset_management",
         "worth_charting",
     ),
@@ -59436,7 +59465,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
         "thrivent": ThriventAuditedFallbackHoldingsAdapter,
         "touchstone": TouchstoneHoldingsAdapter,
-        "tradr": TradrReconciledFallbackHoldingsAdapter,
+        "tradr": TradrHoldingsAdapter,
         "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
         "us_benchmark_series": UsBenchmarkSeriesReconciledFallbackHoldingsAdapter,
         "vega_financial": VegaFinancialReconciledFallbackHoldingsAdapter,

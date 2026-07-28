@@ -13572,8 +13572,12 @@ async def test_schwab_adapter_discovers_only_its_fund_scoped_holdings_csv(monkey
 
 
 @pytest.mark.asyncio
-async def test_axs_adapter_filters_dated_aggregate_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("axs")
+@pytest.mark.parametrize("adapter_key", ["axs", "tradr"])
+async def test_tradr_dated_aggregate_adapter_filters_holdings_csv(
+    monkeypatch,
+    adapter_key,
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     FakeAsyncClient.requested = []
@@ -13624,7 +13628,7 @@ async def test_axs_adapter_filters_dated_aggregate_holdings_csv(monkeypatch):
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].symbol is None
     assert result.legal_metadata["route_resolution"] == "issuer_dated_aggregate_holdings_csv"
-    assert result.legal_metadata["source_provider"] == "axs"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["composition_date"] == "2026-06-11"
 
 

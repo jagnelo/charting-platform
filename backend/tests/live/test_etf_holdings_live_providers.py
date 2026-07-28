@@ -92,6 +92,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "arrow",
     "astoria",
     "axs",
+    "tradr",
     "bahl_gaynor",
     "baird",
     "barclays",
@@ -943,6 +944,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ),
         (
             "axs",
+            "TARK",
+            None,
+            {},
+            5,
+        ),
+        (
+            "tradr",
             "TARK",
             None,
             {},
