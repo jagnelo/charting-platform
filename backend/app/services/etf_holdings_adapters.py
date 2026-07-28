@@ -1691,6 +1691,19 @@ ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
     "gc_ferry_parent": ["gc ferry parent"],
 }
 
+ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
+    "emirate_abu_dhabi": [
+        "emirate of abu dhabi",
+        "abu dhabi united arab emirates",
+    ],
+    "measured_risk_portfolios": ["measured risk portfolios"],
+    "dvx_ventures": ["dvx ventures"],
+    "everence": ["everence", "everence association"],
+    "hexis": ["hexis"],
+    "milliman": ["milliman"],
+    "baillie_gifford": ["baillie gifford"],
+}
+
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_LONG_TAIL_RECOGNITION_ONLY_ISSUER_HINTS
 )
@@ -1702,6 +1715,9 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
 )
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS
+)
+ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
+    ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
 
@@ -58444,18 +58460,21 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "needs_first_party_route_discovery": (
         "advisors_asset_management", "alerian", "alphaclone",
         "alphamark_advisors", "american_beacon", "amg_national",
-        "argent", "avantis", "azimut", "bancreek",
-        "bridgeway", "calvert", "congress",
-        "credit_suisse", "day_hagan", "desjardins",
-        "elements", "emqq", "esoterica",
-        "etf_managers_group", "falconx", "fcf_advisors",
-        "formula_folio", "framework_digital_advisors",
-        "freedom", "fundstrat", "gc_ferry_parent",
-        "gotham", "granite_group_advisors", "guggenheim",
+        "argent", "avantis", "azimut", "baillie_gifford",
+        "bancreek", "bridgeway", "calvert",
+        "congress", "credit_suisse", "day_hagan",
+        "desjardins", "dvx_ventures", "elements",
+        "emirate_abu_dhabi", "emqq", "esoterica",
+        "etf_managers_group", "everence", "falconx",
+        "fcf_advisors", "formula_folio",
+        "framework_digital_advisors", "freedom",
+        "fundstrat", "gc_ferry_parent", "gotham",
+        "granite_group_advisors", "guggenheim", "hexis",
         "highland_capital", "horizons", "knowledge_leaders",
         "leverage_shares", "m2_financial", "m_d_sass",
+        "measured_risk_portfolios",
         "merchant_investment_management", "merk", "meridian",
-        "merlyn_ai", "new_age_alpha", "nicholas_wealth",
+        "merlyn_ai", "milliman", "new_age_alpha", "nicholas_wealth",
         "norris_perne_french", "oakmark", "oshares",
         "panagram", "premise_capital", "pzena",
         "quadratic", "range", "return_stacked",
@@ -58785,12 +58804,28 @@ class AzimutReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Azimut route discovery."""
 
 
+class BaillieGiffordReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Baillie Gifford discovery."""
+
+
 class BancreekReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Bancreek route discovery."""
 
 
 class DesjardinsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Desjardins discovery."""
+
+
+class DvxVenturesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending DVX Ventures discovery."""
+
+
+class EmirateAbuDhabiReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Abu Dhabi route discovery."""
+
+
+class EverenceReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Everence route discovery."""
 
 
 class FalconXReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -58813,6 +58848,10 @@ class GuggenheimReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Guggenheim route discovery."""
 
 
+class HexisReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Hexis route discovery."""
+
+
 class M2FinancialReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending M2 Financial discovery."""
 
@@ -58823,6 +58862,14 @@ class MDSassReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class MerchantInvestmentManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Merchant discovery."""
+
+
+class MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Measured Risk discovery."""
+
+
+class MillimanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending Milliman route discovery."""
 
 
 class NicholasWealthReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -58865,6 +58912,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "argent": ArgentReconciledFallbackHoldingsAdapter,
         "avantis": AvantisReconciledFallbackHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
+        "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "calvert": CalvertReconciledFallbackHoldingsAdapter,
@@ -58872,13 +58920,16 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
         "day_hagan": DayHaganReconciledFallbackHoldingsAdapter,
         "desjardins": DesjardinsReconciledFallbackHoldingsAdapter,
+        "dvx_ventures": DvxVenturesReconciledFallbackHoldingsAdapter,
         "elements": ElementsReconciledFallbackHoldingsAdapter,
+        "emirate_abu_dhabi": EmirateAbuDhabiReconciledFallbackHoldingsAdapter,
         "emqq": EmqqReconciledFallbackHoldingsAdapter,
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
         "epwa": EpwaAuditedFallbackHoldingsAdapter,
         "esoterica": EsotericaReconciledFallbackHoldingsAdapter,
         "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
+        "everence": EverenceReconciledFallbackHoldingsAdapter,
         "falconx": FalconXReconciledFallbackHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
         "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
@@ -58890,6 +58941,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "granite_group_advisors": GraniteGroupAdvisorsReconciledFallbackHoldingsAdapter,
         "guggenheim": GuggenheimReconciledFallbackHoldingsAdapter,
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
+        "hexis": HexisReconciledFallbackHoldingsAdapter,
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
@@ -58902,6 +58954,8 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "merk": MerkReconciledFallbackHoldingsAdapter,
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
+        "measured_risk_portfolios": MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter,
+        "milliman": MillimanReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
         "nicholas_wealth": NicholasWealthReconciledFallbackHoldingsAdapter,

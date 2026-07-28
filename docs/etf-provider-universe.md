@@ -22,15 +22,15 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `412` ETF holdings adapter keys. These keys are
+The code currently enumerates `419` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `412`
-- Missing named promoter identities: `84`
+- Repo-registered adapter keys: `419`
+- Missing named promoter identities: `77`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -152,6 +152,31 @@ Added adapter keys:
 - `saturna`
 - `gc_ferry_parent`
 
+## Fourth Named Reconciliation Batch
+
+On `2026-07-28`, the fourth named reconciliation batch added `7` additional
+ETFDB/VettaFi issuer-league identities that remained distinct after alias
+checks against existing adapters. They are registered as explicit audited
+fallback-only adapters under `needs_first_party_route_discovery` until a
+first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://etfdb.com/issuers/`
+
+The same ETFDB/VettaFi source table was last updated on `2026-07-27`.
+High-ranked legal-parent or spelling variants that were already covered by
+existing adapters were not duplicated.
+
+Added adapter keys:
+
+- `emirate_abu_dhabi`
+- `measured_risk_portfolios`
+- `dvx_ventures`
+- `everence`
+- `hexis`
+- `milliman`
+- `baillie_gifford`
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -165,7 +190,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `84` promoter identities require a separate source reconciliation
+The missing `77` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
