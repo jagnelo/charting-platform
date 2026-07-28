@@ -53,7 +53,8 @@ tasks:
         deterministic ETF adapter suite 449 passed; Ruff for changed ETF backend
         files; git diff --check; strict manifest recompute 496 registered / 339
         native / 157 fallback / gap 0; exact opt-in EMQQ live route plus
-        concrete-route invariant slice 2 passed.
+        concrete-route invariant slice 2 passed; full opt-in ETF holdings live
+        matrix on current HEAD 346 passed, 1 skipped in 568.44s.
       - >
         A 2026-07-28T17:34Z native-route split batch moved bluemonte,
         ershares, kovitz, and strategas from the StockAnalysis provider-table

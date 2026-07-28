@@ -30,6 +30,8 @@
     `157` fallback / gap `0`
   - exact opt-in EMQQ live route plus concrete-route invariant slice:
     `2 passed, 345 deselected`
+  - full opt-in ETF holdings live matrix on current HEAD:
+    `346 passed, 1 skipped in 568.44s`
 
 ### Next step
 
