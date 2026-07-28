@@ -22,25 +22,30 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `480` ETF holdings adapter keys. These keys are
+The code currently enumerates `496` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current native-route split:
 
 - Native/live-backed providers: `332`
-- Audited fallback-only providers: `148`
+- Audited fallback-only providers: `164`
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `480`
-- Missing named promoter identities: `16`
+- Repo-registered adapter keys: `496`
+- Missing named promoter identities: `0`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
 added to the registry only after a concrete name and identity relationship are
 known.
+
+The arithmetic gap to the `496` LSEG promoter count is now closed through
+source-backed named-provider reconciliation. This does not mean every registered
+provider has native route support; many source-reconciled providers remain
+audited fallback-only until first-party complete holdings routes are proven.
 
 ## First Named Reconciliation Batch
 
@@ -475,6 +480,43 @@ Generic or short adjacent rows such as `PLUS`, `Smart`, `MC`, and `Man` remain
 unresolved until they can be safely mapped without introducing broad substring
 false positives.
 
+## Twelfth Named Reconciliation Batch
+
+On `2026-07-28`, a sixth StockAnalysis provider-table continuation pass added
+the final `16` source-backed provider identities needed to close the arithmetic
+gap to the LSEG `496` promoter target. They are registered as explicit audited
+fallback-only adapters under `needs_first_party_route_discovery` until a
+first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://stockanalysis.com/etf/provider/`
+
+The same source table listed `469` U.S. ETF providers and ranked them by ETF
+assets, ETF count, and average expense ratio when refreshed on `2026-07-28`.
+
+Added adapter keys:
+
+- `capforce`
+- `arin`
+- `matrix`
+- `towle`
+- `fitzgerald`
+- `ea_series_trust`
+- `siren`
+- `bufferlabs`
+- `performance_trust`
+- `anydrus`
+- `sammons_enterprises`
+- `moonvest`
+- `avory`
+- `suncoast`
+- `even_herd`
+- `logiq`
+
+The StockAnalysis table still contains unresolved names after the arithmetic
+gap closes. Those rows require alias, product-line, inactive, or source-taxonomy
+disposition before they should affect registry accounting.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -488,7 +530,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `16` promoter identities require a separate source reconciliation
+Any future promoter identity changes require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
