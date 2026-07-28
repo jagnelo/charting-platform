@@ -8,8 +8,8 @@ tasks:
       holdings integrations for the broad U.S. ETF promoter universe, currently 496
       promoters per LSEG Lipper's June 2026 U.S. ETF industry review, with each
       registered provider having isolated implementation code plus static and live
-      test coverage. The repo currently enumerates 460 adapter keys, so the missing
-      36 promoter identities must be source-reconciled before registration; do not
+      test coverage. The repo currently enumerates 470 adapter keys, so the missing
+      26 promoter identities must be source-reconciled before registration; do not
       invent placeholder names from a count-only market source. SEC EDGAR remains
       fallback only and must not count as primary provider support. Respect the priority
       ordering of ETF providers based on what was discussed: higher priority to
@@ -35,6 +35,26 @@ tasks:
       - adapter-matrix
       - lint
     notes:
+      - >
+        A 2026-07-28T16:13Z StockAnalysis fourth continuation reconciliation
+        batch added 10 additional distinct provider identities from the refreshed
+        StockAnalysis ETF provider table as explicit audited fallback-only
+        adapters under needs_first_party_route_discovery: mcelhenny_sheffield,
+        ballast, stance, long_pond, blueprint, stratified, hoya,
+        genter_capital, river1, and impact_shares. Adjacent rows such as
+        Nicholas, Myriad Capital, Obra, ACV, The Future Fund, Absolute, and
+        REX-Osprey require separate alias or identity disposition before any new
+        provider-key accounting. Current strict state is 470 registered / 332
+        native-live-backed / 138 fallback-only / target 496 / registered gap 26
+        / generated_recognition_only []. This reduces the named
+        source-reconciliation gap by another 10 without claiming native
+        holdings routes for the new providers. Implementation commit: fd7cf63
+        feat(etf): add fourth StockAnalysis continuation batch. Validation passed: focused
+        StockAnalysis/provider-universe/explicit-class/source-audit slice 9
+        passed; deterministic ETF adapter suite 445 passed; strict manifest
+        recompute 470 registered / 332 native / 138 fallback / gap 26; opt-in
+        live-provider manifest/accounting invariants 2 passed; Ruff; ops
+        YAML/JSON parse check; git diff --check.
       - >
         A 2026-07-28T16:05Z StockAnalysis third continuation reconciliation
         batch added 10 additional distinct provider identities from the refreshed

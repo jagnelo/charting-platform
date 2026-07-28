@@ -1,5 +1,45 @@
 # Active Handoff
 
+## StockAnalysis fourth continuation reconciliation batch - 2026-07-28T16:13Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added a tenth named reconciliation batch from the refreshed StockAnalysis ETF
+  provider table (`469` named provider rows ranked by assets, ETF count, and
+  average expense ratio).
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `mcelhenny_sheffield`, `ballast`, `stance`, `long_pond`, `blueprint`,
+  `stratified`, `hoya`, `genter_capital`, `river1`, and `impact_shares`.
+- Left adjacent StockAnalysis rows such as `Nicholas`, `Myriad Capital`,
+  `Obra`, `ACV`, `The Future Fund`, `Absolute`, and `REX-Osprey` for separate
+  alias or identity disposition before any new provider-key accounting.
+- Current strict matrix after this source-reconciliation batch: `470`
+  registered / `332` native-live-backed / `138` fallback-only / target `496`
+  promoters / `26` registered-promoter gap / `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `fd7cf63 feat(etf): add fourth StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `9 passed, 436 deselected`
+  - full deterministic ETF adapter unit file: `445 passed in 17.82s`
+  - strict manifest recompute: `470` registered / `332` native /
+    `138` fallback / gap `26`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue StockAnalysis reconciliation below the current batch, with special
+  attention to rows that may be aliases or product-line names before creating
+  additional provider keys.
+
 ## StockAnalysis third continuation reconciliation batch - 2026-07-28T16:05Z
 
 - Continued under the corrected broad-market task scope: the current target is
