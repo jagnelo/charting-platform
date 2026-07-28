@@ -8,8 +8,8 @@ tasks:
       holdings integrations for the broad U.S. ETF promoter universe, currently 496
       promoters per LSEG Lipper's June 2026 U.S. ETF industry review, with each
       registered provider having isolated implementation code plus static and live
-      test coverage. The repo currently enumerates 345 adapter keys, so the missing
-      151 promoter identities must be source-reconciled before registration; do not
+      test coverage. The repo currently enumerates 420 adapter keys, so the missing
+      76 promoter identities must be source-reconciled before registration; do not
       invent placeholder names from a count-only market source. SEC EDGAR remains
       fallback only and must not count as primary provider support. Respect the priority
       ordering of ETF providers based on what was discussed: higher priority to
@@ -35,6 +35,20 @@ tasks:
       - adapter-matrix
       - lint
     notes:
+      - >
+        A 2026-07-28T13:36Z ETFDB issuer-league exhaustion pass added
+        mig_capital as the remaining distinct uncovered ETFDB/VettaFi
+        issuer-league row and recorded TFG Parent Holdings LLC as a
+        legal-parent/platform alias disposition to the existing sponsor-scoped
+        tidal adapter. The locally captured ETFDB/VettaFi table now reconciles
+        to zero unresolved rows: 363 rows / 420 registered adapter keys / 68
+        alias dispositions / rough_missing 0. Current strict state is 420
+        registered / 326 native-live-backed / 94 fallback-only / target 496 /
+        registered gap 76 / generated_recognition_only []. This exhausts that
+        ETFDB source table, not the broader LSEG 496-promoter goal. Validation
+        passed: focused registry/provider-universe slice 6 passed; deterministic
+        ETF adapter suite 430 passed; opt-in live-provider manifest/accounting
+        slice 2 passed; Ruff; git diff --check.
       - >
         A 2026-07-28T13:25Z ETFDB alias-disposition pass added executable
         mappings for 67 ETFDB/VettaFi issuer-league rows that resolve to

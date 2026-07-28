@@ -14628,3 +14628,31 @@ Append a short entry after each worker session.
   checkpoint. Next step is to keep the current `19` in-repo fallback providers
   audited while separately reconciling the current U.S. ETF issuer/brand
   universe before claiming all-market provider coverage.
+
+## 2026-07-28T13:36Z ETFDB Issuer-League Exhaustion Pass
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Added `mig_capital` as the remaining distinct uncovered ETFDB/VettaFi
+  issuer-league row. It is registered as an explicit audited fallback-only
+  adapter under `needs_first_party_route_discovery`.
+- Added `TFG Parent Holdings LLC` as a legal-parent/platform alias disposition
+  to the existing sponsor-scoped `tidal` adapter. This does not create a
+  generic Tidal route.
+- Independent ETFDB reconciliation after the change: `363` source rows, `420`
+  registered adapter keys, `68` alias dispositions, `rough_missing 0`.
+- Current strict state: `420` registered / `326` native-live-backed / `94`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused registry/provider-universe slice:
+    `6 passed, 424 deselected`
+  - deterministic ETF adapter suite:
+    `430 passed in 17.46s`
+  - opt-in live-provider manifest/accounting slice:
+    `2 passed, 332 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this fallback-only/source-row
+  pass; latest full matrix evidence remains `333 passed, 1 skipped in 540.89s`
+  from the 2026-07-28T12:44Z Cyber Hornet checkpoint.

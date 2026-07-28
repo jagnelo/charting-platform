@@ -1,5 +1,50 @@
 # Active Handoff
 
+## ETFDB issuer-league exhaustion pass - 2026-07-28T13:36Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Reconciled the locally captured ETFDB/VettaFi issuer-league table to zero
+  unresolved rows. The independent recompute now reports `363` table rows,
+  `420` registered adapter keys, `68` alias dispositions, and
+  `rough_missing 0`.
+- Added `mig_capital` as the remaining distinct uncovered ETFDB/VettaFi
+  issuer-league identity. It is an explicit audited fallback-only adapter under
+  `needs_first_party_route_discovery` until a first-party complete holdings
+  route is proven.
+- Added `TFG Parent Holdings LLC` as an alias disposition to the existing
+  `tidal` adapter. This is only a legal-parent/platform source-row disposition:
+  it does not create a generic Tidal route, and the `tidal` adapter remains
+  limited to verified sponsor-published fund-scoped holdings files.
+- Current strict matrix after the batch: `420` registered / `326`
+  native-live-backed / `94` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This exhausts the captured ETFDB issuer table. It does not complete the
+  broader LSEG 496-promoter objective; the remaining `76` identities require
+  additional source-backed reconciliation from other named market-universe
+  sources or native promotion of existing fallback-only providers only after
+  first-party complete holdings routes are proven.
+- Implementation/docs commit: `83ba74f feat(etf): exhaust ETFDB issuer reconciliation`.
+- Validation passed:
+  - focused ETFDB registry/provider-universe slice:
+    `6 passed, 424 deselected`
+  - full deterministic ETF adapter unit file: `430 passed in 17.46s`
+  - independent ETFDB table reconciliation: `rough_missing 0`
+  - opt-in live-provider manifest/accounting slice:
+    `2 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this fallback-only/source-row
+  pass; the latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue toward the remaining `76` adapter-count gap using additional named
+  sources beyond ETFDB, or promote high-priority fallback-only providers only
+  when a backend-executable first-party complete holdings route is proven.
+
 ## ETFDB issuer-league alias disposition pass - 2026-07-28T13:25Z
 
 - Continued under the corrected broad-market task scope: the current target is
