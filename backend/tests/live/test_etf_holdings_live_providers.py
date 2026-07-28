@@ -82,6 +82,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "american_century",
     "avantis",
     "ameriprise",
+    "columbia_threadneedle",
     "amplify",
     "anfield",
     "angel_oak",
@@ -2108,6 +2109,30 @@ async def test_live_ameriprise_columbia_threadneedle_cusip_holdings_export():
 
     _assert_live_holdings_result(result, adapter_key="ameriprise", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "ameriprise_columbia_cusip_holdings_csv"
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("columbia_threadneedle")
+async def test_live_columbia_threadneedle_cusip_holdings_export():
+    adapter = get_holdings_adapter("columbia_threadneedle")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(
+        symbol="RECS",
+        identifiers={"cusip": "19761L706"},
+    )
+
+    _assert_live_holdings_result(
+        result,
+        adapter_key="columbia_threadneedle",
+        min_rows=100,
+    )
+    assert result.legal_metadata["route_resolution"] == (
+        "columbia_threadneedle_cusip_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
 
 

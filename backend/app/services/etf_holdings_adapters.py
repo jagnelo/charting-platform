@@ -4474,6 +4474,80 @@ class AmeripriseHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return result
 
 
+class ColumbiaThreadneedleHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Columbia Threadneedle ETF holdings from its CUSIP CSV export.
+
+    Columbia's ETF product pages expose a fund CUSIP in their holdings route and
+    the same public export service returns the complete portfolio as CSV.  The
+    CUSIP is required so the adapter resolves only the requested Columbia ETF.
+    """
+
+    HOLDINGS_EXPORT = (
+        "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+        "?fundGroupName=ETF&fileType=csv&cusip={cusip}"
+    )
+    _COMPOSITION_DATE_PATTERN = re.compile(
+        r"as of date\s+(?P<as_of>\d{1,2}/\d{1,2}/\d{4})",
+        re.IGNORECASE,
+    )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        explicit = super().resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if explicit:
+            return explicit
+        cusip = _identifier(identifiers or {}, "cusip")
+        if not cusip:
+            return None
+        return self.HOLDINGS_EXPORT.format(cusip=cusip)
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
+        headers["Referer"] = "https://www.columbiathreadneedleus.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        composition_date = self._composition_date(result.raw_text or "")
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": "columbia_threadneedle_cusip_holdings_csv",
+            **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+        }
+        return result
+
+    @classmethod
+    def _composition_date(cls, raw_csv: str) -> date | None:
+        first_line = next((line for line in raw_csv.splitlines() if line.strip()), "")
+        match = cls._COMPOSITION_DATE_PATTERN.search(first_line)
+        if not match:
+            return None
+        return _parse_issuer_date(match.group("as_of"))
+
+
 class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch VanEck's US fund-scoped daily holdings workbooks.
 
@@ -56477,6 +56551,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Global X public product pages and holdings files."
         ),
     ),
+    "columbia_threadneedle": IssuerCsvAdapterConfig(
+        adapter_key="columbia_threadneedle",
+        source_provider="columbia_threadneedle",
+        source_access="issuer_public_columbia_threadneedle_cusip_holdings_csv",
+        url_templates=(
+            "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+            "?fundGroupName=ETF&fileType=csv&cusip={cusip}",
+        ),
+        required_identifiers=("cusip",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Columbia Threadneedle public ETF product pages expose a CUSIP-addressed "
+            "complete holdings CSV export that may be subject to issuer terms."
+        ),
+    ),
     "ameriprise": IssuerCsvAdapterConfig(
         adapter_key="ameriprise",
         source_provider="ameriprise",
@@ -59358,7 +59447,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "argent", "arin", "avos", "avory", "azimut", "baillie_gifford", "ballast",
         "ars", "bancreek", "beehive", "bluemonte", "bridgeway", "brookstone",
         "blueprint", "bufferlabs", "bushido", "calvert",
-        "capforce", "castellan", "columbia_threadneedle", "conductor_fund",
+        "capforce", "castellan", "conductor_fund",
         "credit_suisse", "cresalta",
         "desjardins", "discipline_funds", "dvx_ventures", "ea_series_trust",
         "elements", "elm",
@@ -60151,7 +60240,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "calvert": CalvertReconciledFallbackHoldingsAdapter,
         "capforce": CapForceReconciledFallbackHoldingsAdapter,
         "castellan": CastellanReconciledFallbackHoldingsAdapter,
-        "columbia_threadneedle": ColumbiaThreadneedleReconciledFallbackHoldingsAdapter,
+        "columbia_threadneedle": ColumbiaThreadneedleHoldingsAdapter,
         "conductor_fund": ConductorFundReconciledFallbackHoldingsAdapter,
         "congress": CongressHoldingsAdapter,
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,

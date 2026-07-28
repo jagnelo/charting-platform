@@ -18179,6 +18179,22 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     )
     assert ameriprise.probe(symbol="XCEM", name="", identifiers={}).status == "needs_issuer_route"
 
+    columbia_threadneedle = get_holdings_adapter("columbia_threadneedle")
+    assert columbia_threadneedle is not None
+    assert type(columbia_threadneedle).__name__ == "ColumbiaThreadneedleHoldingsAdapter"
+    assert columbia_threadneedle.resolve_source_url(
+        symbol="RECS",
+        identifiers={"cusip": "19761L706"},
+    ) == (
+        "https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings"
+        "?fundGroupName=ETF&fileType=csv&cusip=19761L706"
+    )
+    assert columbia_threadneedle.probe(
+        symbol="RECS",
+        name="Columbia Research Enhanced Core ETF",
+        identifiers={},
+    ).status == "needs_issuer_route"
+
     rafferty = get_holdings_adapter("rafferty")
     assert rafferty is not None
     assert type(rafferty).__name__ == "RaffertyHoldingsAdapter"
@@ -18641,7 +18657,7 @@ def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
 
 def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited():
     expected = set(STOCKANALYSIS_PROVIDER_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"mfs"}
+    promoted_native = {"columbia_threadneedle", "mfs"}
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -18655,6 +18671,10 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
     assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
     assert ISSUER_ADAPTER_CONFIGS["mfs"].live_tested_default_route is True
     assert type(get_holdings_adapter("mfs")).__name__ == "MfsHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["columbia_threadneedle"].live_tested_default_route is True
+    assert type(get_holdings_adapter("columbia_threadneedle")).__name__ == (
+        "ColumbiaThreadneedleHoldingsAdapter"
+    )
     for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
