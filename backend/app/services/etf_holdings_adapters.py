@@ -1643,7 +1643,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"american_beacon", "avantis", "sp_funds", "touchstone", "tradr"}
+    {"american_beacon", "avantis", "sp_funds", "touchstone", "tradr", "vident"}
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -45290,6 +45290,25 @@ class MmVamHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class VidentHoldingsAdapter(MmVamHoldingsAdapter):
+    """Fetch Vident ETF holdings from issuer-rendered product pages."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+
+
 class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Focus-linked Kovitz and Longview ETF holdings from native routes."""
 
@@ -55737,6 +55756,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Vident/MM VAM public ETF product-page holdings tables may be subject to issuer terms.",
     ),
+    "vident": IssuerCsvAdapterConfig(
+        adapter_key="vident",
+        source_provider="vident",
+        source_access="issuer_public_product_page_complete_holdings_table",
+        product_page_templates=(
+            "https://videntam.com/etf/vident-us-strategy-etf/",
+            "https://videntam.com/etf/vident-international-equity-strategy-etf/",
+            "https://videntam.com/etf/vident-us-bond-strategy-etf/",
+            "https://videntam.com/etf/us-diversified-real-estate-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Vident public ETF product-page holdings tables may be subject to issuer terms.",
+    ),
     "focus_financial": IssuerCsvAdapterConfig(
         adapter_key="focus_financial",
         source_provider="focus_financial_kovitz_longview",
@@ -58957,7 +58989,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "saba_capital", "saturna",
         "strategy_shares", "swedish_export_credit",
         "trimtabs", "us_benchmark_series",
-        "vega_financial", "vident", "wellesley_asset_management",
+        "vega_financial", "wellesley_asset_management",
         "worth_charting",
     ),
 }
@@ -59469,7 +59501,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
         "us_benchmark_series": UsBenchmarkSeriesReconciledFallbackHoldingsAdapter,
         "vega_financial": VegaFinancialReconciledFallbackHoldingsAdapter,
-        "vident": VidentReconciledFallbackHoldingsAdapter,
+        "vident": VidentHoldingsAdapter,
         "wellesley_asset_management": WellesleyAssetManagementReconciledFallbackHoldingsAdapter,
         "westwood": WestwoodAuditedFallbackHoldingsAdapter,
         "worth_charting": WorthChartingReconciledFallbackHoldingsAdapter,

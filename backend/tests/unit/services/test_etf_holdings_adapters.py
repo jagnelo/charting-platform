@@ -11527,8 +11527,9 @@ async def test_saracen_adapter_verifies_sanjac_data_feed_and_parses_account_csv(
 
 
 @pytest.mark.asyncio
-async def test_mm_vam_adapter_parses_vident_product_page_holdings_table(monkeypatch):
-    adapter = get_holdings_adapter("mm_vam")
+@pytest.mark.parametrize("adapter_key", ["mm_vam", "vident"])
+async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, adapter_key):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_url = "https://videntam.com/etf/vident-us-bond-strategy-etf/"
@@ -11602,6 +11603,7 @@ async def test_mm_vam_adapter_parses_vident_product_page_holdings_table(monkeypa
     assert result.rows[2].symbol == "MSFT"
     assert result.rows[2].weight == Decimal("0.0125")
     assert result.legal_metadata["composition_date"] == "2026-06-30"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["route_resolution"] == (
         "vident_product_page_complete_holdings_table"
     )
