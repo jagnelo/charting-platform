@@ -22,20 +22,61 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `345` ETF holdings adapter keys. These keys are
+The code currently enumerates `372` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `345`
-- Missing named promoter identities: `151`
+- Repo-registered adapter keys: `372`
+- Missing named promoter identities: `124`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
 added to the registry only after a concrete name and identity relationship are
 known.
+
+## First Named Reconciliation Batch
+
+On `2026-07-28`, the first named reconciliation batch added `27` ETF.com
+issuer/brand table identities that were not already distinct repo adapter keys.
+They are registered as explicit audited fallback-only adapters under
+`needs_first_party_route_discovery` until a first-party complete holdings route
+is proven for each provider.
+
+Batch source:
+`https://www.etf.com/sections/etf-league-tables/etf-league-tables-state-street-gathers-52b`
+
+Added adapter keys:
+
+- `alerian`
+- `american_beacon`
+- `avantis`
+- `bridgeway`
+- `calvert`
+- `congress`
+- `day_hagan`
+- `fcf_advisors`
+- `freedom`
+- `fundstrat`
+- `gotham`
+- `horizons`
+- `leverage_shares`
+- `meridian`
+- `oakmark`
+- `panagram`
+- `quadratic`
+- `range`
+- `return_stacked`
+- `robo_global`
+- `rockefeller_capital`
+- `sp_funds`
+- `strategy_shares`
+- `touchstone`
+- `tradr`
+- `us_benchmark_series`
+- `vident`
 
 ## Implementation Rule
 
