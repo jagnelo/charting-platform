@@ -36,6 +36,28 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T14:01Z American Beacon native promotion moved
+        american_beacon from ETF.com-reconciled fallback-only support to
+        native/live-backed support through American Beacon official AHLT/MGNR/CPII
+        product pages and their declared holdings CSVs. Current strict state is
+        420 registered / 330 native-live-backed / 90 fallback-only / target 496
+        / registered gap 76 / generated_recognition_only []. This improves
+        native support quality but does not reduce the remaining
+        source-reconciliation gap. Validation passed: focused American
+        Beacon/Resolute/ETF.com reconciliation/source-audit slice 6 passed;
+        deterministic ETF adapter suite 434 passed; opt-in American Beacon plus
+        manifest/accounting live slice 4 passed; Ruff; git diff --check.
+      - >
+        A 2026-07-28T13:58Z Touchstone native promotion moved touchstone from
+        ETF.com-reconciled fallback-only support to native/live-backed support
+        through Touchstone ETF product-page full-holdings payloads. Current
+        strict state after that promotion was 420 registered / 329
+        native-live-backed / 91 fallback-only / target 496 / registered gap 76
+        / generated_recognition_only []. Validation passed: focused
+        Touchstone/Western Southern/ETF.com reconciliation/source-audit slice 5
+        passed; deterministic ETF adapter suite 433 passed; opt-in Touchstone
+        plus manifest/accounting live slice 4 passed; Ruff; git diff --check.
+      - >
         A 2026-07-28T13:50Z SP Funds native promotion moved sp_funds from
         ETF.com-reconciled fallback-only support to native/live-backed support
         through SP Funds official SPTE/SPWO product pages and their declared

@@ -14713,3 +14713,38 @@ Append a short entry after each worker session.
 - Full opt-in network matrix was not rerun after this single-provider
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
+
+## 2026-07-28T14:01Z Touchstone and American Beacon Native Route Promotions
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `touchstone` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Touchstone ETF product-page full-holdings
+  payloads.
+- Promoted `american_beacon` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through American Beacon official ETF product pages
+  and their declared holdings CSVs for `AHLT`, `MGNR`, and `CPII`.
+- Added explicit native adapter classes/configs, static parser coverage, and
+  concrete opt-in live coverage. Existing related keys `western_southern` and
+  `resolute` remain supported separately.
+- Current strict state: `420` registered / `330` native-live-backed / `90`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused Touchstone/Western Southern/ETF.com reconciliation/source-audit
+    slice: `5 passed, 428 deselected`
+  - focused American Beacon/Resolute/ETF.com reconciliation/source-audit slice:
+    `6 passed, 428 deselected`
+  - deterministic ETF adapter suite after American Beacon:
+    `434 passed in 17.43s`
+  - strict manifest recompute:
+    `420` registered / `330` native / `90` fallback / `audit_matches True`
+  - opt-in Touchstone plus live-provider manifest/accounting slice:
+    `4 passed, 333 deselected`
+  - opt-in American Beacon plus live-provider manifest/accounting slice:
+    `4 passed, 334 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after these two single-provider
+  promotions; latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.

@@ -1,5 +1,55 @@
 # Active Handoff
 
+## Touchstone and American Beacon native promotions - 2026-07-28T14:01Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `touchstone` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Touchstone ETF product-page
+  full-holdings payloads. The route uses Touchstone ETF pages under
+  `https://www.westernsouthern.com/touchstone/etfs/`, such as LCF.
+- Promoted `american_beacon` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through American Beacon official ETF product pages
+  and their declared holdings CSVs for `AHLT`, `MGNR`, and `CPII`.
+- Added explicit native adapter classes/configs plus static and concrete
+  opt-in live coverage for both provider keys. The existing related parent keys
+  `western_southern` and `resolute` remain supported separately.
+- Current strict matrix after both promotions: `420` registered / `330`
+  native-live-backed / `90` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for two already registered providers; it
+  does not reduce the remaining `76` source-reconciliation gap to the LSEG
+  target.
+- Implementation/docs commits:
+  - `c6feaf6 feat(etf): add native Touchstone holdings route`
+  - `8a5e12f feat(etf): add native American Beacon holdings route`
+- Validation passed:
+  - focused Touchstone/Western Southern/ETF.com reconciliation/source-audit
+    slice: `5 passed, 428 deselected`
+  - focused American Beacon/Resolute/ETF.com reconciliation/source-audit slice:
+    `6 passed, 428 deselected`
+  - full deterministic ETF adapter unit file after Touchstone:
+    `433 passed in 17.41s`
+  - full deterministic ETF adapter unit file after American Beacon:
+    `434 passed in 17.43s`
+  - strict manifest recompute after American Beacon: `420` registered / `330`
+    native / `90` fallback / gap `76` / `audit_matches True`
+  - opt-in Touchstone plus live-provider manifest/accounting slice:
+    `4 passed, 333 deselected`
+  - opt-in American Beacon plus live-provider manifest/accounting slice:
+    `4 passed, 334 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after these two single-provider
+  promotions; the latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## SP Funds native route promotion - 2026-07-28T13:50Z
 
 - Continued under the corrected broad-market task scope: the current target is
