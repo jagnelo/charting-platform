@@ -177,6 +177,40 @@ Added adapter keys:
 - `milliman`
 - `baillie_gifford`
 
+## ETFDB Issuer-League Alias Dispositions
+
+On `2026-07-28`, a follow-up ETFDB/VettaFi issuer-league pass added code-level
+alias dispositions for source rows that are legal-parent, spelling, platform,
+or jurisdiction variants of existing adapter keys. These rows are source
+reconciled, but they do not create new provider keys and do not reduce the
+adapter-count gap to the LSEG promoter target.
+
+Batch source:
+`https://etfdb.com/issuers/`
+
+Representative dispositions:
+
+- `Proshare Advisors LLC` -> `proshares`
+- `Mirae Asset Global Investments Co., Ltd.` -> `mirae_asset`
+- `The Charles Schwab Corp.` -> `schwab`
+- `SS&C Technologies Holdings, Inc.` -> `ssc`
+- `TIAA Board of Governors` and `Nuveen Securities LLC` -> `tiaa`
+- `BNY` -> `bny_mellon`
+- `Deutsche Bank AG` -> `deutsche_bank`
+- `Cohen & Steers, Inc. (New York)` -> `cohen_steers`
+- `Arax Investment Partners LLC` -> `araq`
+- `Corgi Insurance Services, Inc.` -> `corgi`
+- `Man Group Plc (Jersey)` -> `man_group`
+- `Natixis Investment Managers` -> `natixis`
+- `CYBER HORNET ETFs LLC` -> `cyber_hornet`
+- `21Shares AG` -> `21shares`
+- `Colliers International Group, Inc.` -> `colliers`
+
+The full executable mapping is
+`ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS` in
+`backend/app/services/etf_holdings_adapters.py`; unit coverage verifies each
+source row resolves to its intended existing adapter.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.

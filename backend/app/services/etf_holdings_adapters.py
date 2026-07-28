@@ -1356,7 +1356,7 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS: dict[str, list[str]] = {
     "graff": ["graff capital"],
     "graniteshares": ["graniteshares", "granite shares"],
     "grayscale": ["grayscale"],
-    "groupe_bpce": ["groupe bpce", "natixis"],
+    "groupe_bpce": ["groupe bpce"],
     "guardian": ["guardian capital"],
     "guinness_atkinson": ["guinness atkinson"],
     "harbor": ["harbor"],
@@ -1704,6 +1704,277 @@ ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
     "baillie_gifford": ["baillie gifford"],
 }
 
+ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
+    "Proshare Advisors LLC": (
+        "proshares",
+        "ETFDB legal issuer spelling for the existing ProShares adapter.",
+    ),
+    "Mirae Asset Global Investments Co., Ltd.": (
+        "mirae_asset",
+        "Mirae parent identity for the existing Global X/Mirae adapter.",
+    ),
+    "The Charles Schwab Corp.": (
+        "schwab",
+        "Legal parent identity for the existing Schwab adapter.",
+    ),
+    "Franklin Templeton": (
+        "franklin",
+        "ETFDB brand spelling for the existing Franklin adapter.",
+    ),
+    "SS&C Technologies Holdings, Inc.": (
+        "ssc",
+        "Legal parent identity for the existing SS&C/ALPS adapter.",
+    ),
+    "ARK Invest LLC": (
+        "ark",
+        "Legal issuer spelling for the existing ARK adapter.",
+    ),
+    "Virtus Investment Partners": (
+        "virtus",
+        "Legal parent identity for the existing Virtus adapter.",
+    ),
+    "TIAA Board of Governors": (
+        "tiaa",
+        "TIAA/Nuveen parent identity for the existing TIAA adapter.",
+    ),
+    "BNY": (
+        "bny_mellon",
+        "Short issuer spelling for the existing BNY Mellon adapter.",
+    ),
+    "iM Global Partner US LLC": (
+        "im_global_partner",
+        "U.S. legal spelling for the existing iM Global Partner adapter.",
+    ),
+    "The Hartford Insurance Group, Inc.": (
+        "hartford",
+        "Legal parent identity for the existing Hartford adapter.",
+    ),
+    "Teucrium Trading LLC": (
+        "teucrium",
+        "Legal issuer spelling for the existing Teucrium adapter.",
+    ),
+    "Calamos Family Partners, Inc.": (
+        "calamos",
+        "Legal parent identity for the existing Calamos adapter.",
+    ),
+    "Dawn Global Topco Ltd.": (
+        "dawn_global",
+        "Legal parent spelling for the existing Dawn Global adapter.",
+    ),
+    "Thrivent Financial for Lutherans": (
+        "thrivent",
+        "Legal issuer spelling for the existing Thrivent adapter.",
+    ),
+    "Focus Financial Partners, Inc": (
+        "focus_financial",
+        "Legal parent identity for the existing Focus Financial adapter.",
+    ),
+    "Kingsview Partners LLC": (
+        "kingsview",
+        "Legal issuer spelling for the existing Kingsview adapter.",
+    ),
+    "Doubleline ETF Holdings LP": (
+        "doubleline",
+        "ETFDB legal issuer spelling for the existing DoubleLine adapter.",
+    ),
+    "Deutsche Bank AG": (
+        "deutsche_bank",
+        "DWS/Xtrackers parent identity for the existing Deutsche Bank adapter.",
+    ),
+    "Convergence Investment Partners, LLC": (
+        "convergence",
+        "Legal issuer spelling for the existing Convergence adapter.",
+    ),
+    "Western & Southern Mutual Holding Co.": (
+        "western_southern",
+        "Legal parent identity for the existing Western & Southern adapter.",
+    ),
+    "Resolute Investment Managers, Inc.": (
+        "resolute",
+        "Legal parent identity for the existing Resolute adapter.",
+    ),
+    "Twin Oak ETF Company": (
+        "twin_oak",
+        "Legal issuer spelling for the existing Twin Oak adapter.",
+    ),
+    "Cohen & Steers, Inc. (New York)": (
+        "cohen_steers",
+        "ETFDB legal spelling for the existing Cohen & Steers adapter.",
+    ),
+    "PlanRock Wealth Management LLC": (
+        "planrock",
+        "Legal issuer spelling for the existing PlanRock adapter.",
+    ),
+    "Neil Azous Revocable Trust": (
+        "neil_azous",
+        "Legal owner identity for the existing Rareview/Neil Azous adapter.",
+    ),
+    "Lagan Holding Co. Trust": (
+        "lagan",
+        "Legal owner identity for the existing Lagan adapter.",
+    ),
+    "Brandes Worldwide Holdings": (
+        "brandes",
+        "Legal parent identity for the existing Brandes adapter.",
+    ),
+    "3Fourteen & SMI Advisory Services LLC": (
+        "3fourteen",
+        "Joint legal issuer spelling for the existing 3Fourteen adapter.",
+    ),
+    "Arax Investment Partners LLC": (
+        "araq",
+        "Arax parent identity for the existing Araq/Day Hagan adapter.",
+    ),
+    "Hedgeye Risk Management LLC": (
+        "hedgeye",
+        "Legal issuer spelling for the existing Hedgeye adapter.",
+    ),
+    "Eldridge Industries LLC": (
+        "eldridge",
+        "Legal parent identity for the existing Eldridge adapter.",
+    ),
+    "GQG Partners Inc": (
+        "gqg",
+        "Legal issuer spelling for the existing GQG adapter.",
+    ),
+    "Corgi Insurance Services, Inc.": (
+        "corgi",
+        "Corgi legal issuer spelling for the existing Corgi adapter.",
+    ),
+    "Cary Street Partners Financial LLC /VA/": (
+        "cary_street",
+        "Legal issuer spelling for the existing Cary Street adapter.",
+    ),
+    "Rock Point Partners LLC": (
+        "rock_point",
+        "Legal issuer spelling for the existing Rock Point disposition.",
+    ),
+    "Alexis Investment Partners LLC": (
+        "alexis",
+        "Legal issuer spelling for the existing Alexis adapter.",
+    ),
+    "Reverence Capital Partners LLC": (
+        "reverence",
+        "Legal issuer spelling for the existing Reverence adapter.",
+    ),
+    "Astoria Portfolio Advisors LLC": (
+        "astoria",
+        "Legal issuer spelling for the existing Astoria adapter.",
+    ),
+    "Ridgeline Research LLC": (
+        "ridgeline",
+        "Legal issuer spelling for the existing Ridgeline adapter.",
+    ),
+    "Paralel Technologies LLC": (
+        "paralel",
+        "Legal platform spelling for the existing Paralel adapter.",
+    ),
+    "Sound Capital Solutions LLC": (
+        "sound_capital",
+        "Legal issuer spelling for the existing Sound Capital adapter.",
+    ),
+    "Man Group Plc (Jersey)": (
+        "man_group",
+        "ETFDB jurisdictional spelling for the existing Man Group adapter.",
+    ),
+    "Miller Value Partners LLC": (
+        "miller_value",
+        "Legal issuer spelling for the existing Miller Value adapter.",
+    ),
+    "GAMCO Investors, Inc.": (
+        "gamco",
+        "Legal parent identity for the existing GAMCO/Gabelli adapter.",
+    ),
+    "Yorkville America LLC": (
+        "yorkville",
+        "Legal issuer spelling for the existing Yorkville adapter.",
+    ),
+    "Pictet Asset Managment": (
+        "pictet",
+        "ETFDB spelling variant for the existing Pictet adapter.",
+    ),
+    "Pettee Investors": (
+        "pettee",
+        "Legal issuer spelling for the existing Pettee adapter.",
+    ),
+    "Split Rock Private Trading & Wealth Management LLC": (
+        "split_rock",
+        "Legal issuer spelling for the existing Split Rock adapter.",
+    ),
+    "Azimut Holding SpA": (
+        "azimut",
+        "Legal parent spelling for the existing Azimut adapter.",
+    ),
+    "Wedbush Family Partners LLC": (
+        "wedbush",
+        "Wedbush legal-parent spelling for the existing Wedbush adapter.",
+    ),
+    "Wellington Management Group LLP": (
+        "wellington",
+        "Legal parent identity for the existing Wellington adapter.",
+    ),
+    "iM Global Partner SAS": (
+        "im_global_partner",
+        "International legal spelling for the existing iM Global Partner adapter.",
+    ),
+    "Texas Capital Bancshares, Inc.": (
+        "texas_capital",
+        "Legal parent identity for the existing Texas Capital adapter.",
+    ),
+    "Msc Group SA": (
+        "msc_group",
+        "Legal issuer spelling for the existing MSC Group disposition.",
+    ),
+    "Prospera Funds, Inc.": (
+        "prospera",
+        "Legal issuer spelling for the existing Prospera adapter.",
+    ),
+    "Nuveen Securities LLC": (
+        "tiaa",
+        "Nuveen/TIAA distribution identity for the existing TIAA adapter.",
+    ),
+    "Natixis Investment Managers": (
+        "natixis",
+        "Legal issuer spelling for the existing Natixis adapter.",
+    ),
+    "CYBER HORNET ETFs LLC": (
+        "cyber_hornet",
+        "Legal issuer spelling for the existing Cyber Hornet adapter.",
+    ),
+    "Alternative Access Funds LLC": (
+        "alternative_access",
+        "Legal issuer spelling for the existing Alternative Access adapter.",
+    ),
+    "The Eighth Wonder Foundation": (
+        "eighth_wonder",
+        "Legal issuer spelling for the existing Eighth Wonder adapter.",
+    ),
+    "Vontobel Holding AG": (
+        "vontobel",
+        "Legal parent identity for the existing Vontobel adapter.",
+    ),
+    "Defiance ETFs": (
+        "defiance",
+        "Brand spelling for the existing Defiance adapter.",
+    ),
+    "21Shares AG": (
+        "21shares",
+        "Legal issuer spelling for the existing 21Shares adapter.",
+    ),
+    "UBS Global Asset Management": (
+        "ubs",
+        "Asset-management unit spelling for the existing UBS adapter.",
+    ),
+    "Thor Analytics LLC": (
+        "thor",
+        "ETFDB issuer spelling for the existing Thor adapter.",
+    ),
+    "Colliers International Group, Inc.": (
+        "colliers",
+        "Legal parent identity for the existing Colliers adapter.",
+    ),
+}
+
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_LONG_TAIL_RECOGNITION_ONLY_ISSUER_HINTS
 )
@@ -1720,6 +1991,8 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
+for _source_name, (_adapter_key, _reason) in ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS.items():
+    ISSUER_NAME_HINTS.setdefault(_adapter_key, []).append(_source_name.lower())
 
 ISSUER_DOMAIN_HINTS: dict[str, list[str]] = {
     "ishares": ["ishares.com", "blackrock.com"],

@@ -16,6 +16,7 @@ import requests
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
     ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS,
+    ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS,
     ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS,
     ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS,
     FALLBACK_ISSUER_AUDITS,
@@ -18429,6 +18430,23 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
+def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
+    assert ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS
+
+    for source_name, (adapter_key, reason) in ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS.items():
+        probe = infer_adapter_key(
+            issuer=source_name,
+            fund_family=None,
+            name=f"{source_name} ETF",
+        )
+
+        assert reason
+        assert adapter_key in registered_adapter_keys()
+        assert probe.adapter_key == adapter_key, source_name
+        assert probe.status == "candidate"
+        assert get_holdings_adapter(adapter_key) is not None
 
 
 def test_us_etf_promoter_universe_status_tracks_broad_market_target():
