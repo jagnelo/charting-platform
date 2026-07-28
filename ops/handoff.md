@@ -1,5 +1,46 @@
 # Active Handoff
 
+## StockAnalysis fifth continuation reconciliation batch - 2026-07-28T16:20Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added an eleventh named reconciliation batch from the refreshed StockAnalysis
+  ETF provider table (`469` named provider rows ranked by assets, ETF count,
+  and average expense ratio).
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `conductor_fund`, `acsi_funds`, `first_manhattan`, `keating`,
+  `truth_social`, `altshares`, `academy`, `discipline_funds`, `avos`, and
+  `sophus`.
+- Left generic or short adjacent rows such as `PLUS`, `Smart`, `MC`, and `Man`
+  unresolved until they can be mapped without introducing broad substring false
+  positives.
+- Current strict matrix after this source-reconciliation batch: `480`
+  registered / `332` native-live-backed / `148` fallback-only / target `496`
+  promoters / `16` registered-promoter gap / `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `6f4702c feat(etf): add fifth StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `10 passed, 436 deselected`
+  - full deterministic ETF adapter unit file: `446 passed in 17.73s`
+  - strict manifest recompute: `480` registered / `332` native /
+    `148` fallback / gap `16`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue source-backed reconciliation for the remaining `16` named identities
+  against the `496` target, prioritizing safe distinct names and recording
+  explicit alias dispositions for ambiguous/product-line rows.
+
 ## StockAnalysis fourth continuation reconciliation batch - 2026-07-28T16:13Z
 
 - Continued under the corrected broad-market task scope: the current target is
