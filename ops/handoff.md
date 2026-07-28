@@ -1,5 +1,38 @@
 # Active Handoff
 
+## Columbia Threadneedle native route promotion - 2026-07-28T17:08Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `columbia_threadneedle` from the StockAnalysis provider-table
+  fallback-only batch to native/live-backed support through Columbia
+  Threadneedle's public CUSIP-addressed ETF holdings CSV export.
+- Verified the RECS route directly:
+  `https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings?fundGroupName=ETF&fileType=csv&cusip=19761L706`
+  returned a complete `text/csv` portfolio with `367` lines, position-level
+  ticker/CUSIP/ISIN/quantity/weight/market-value fields, and an as-of date of
+  `2026-07-27`.
+- Current strict matrix after this native-route promotion: `496` registered /
+  `334` native-live-backed / `162` fallback-only / target `496` promoters /
+  `0` arithmetic registered-promoter gap / `generated_recognition_only []`.
+- Implementation/docs commit:
+  `94163be feat(etf): add native Columbia Threadneedle holdings route`.
+- Validation passed:
+  - focused deterministic registry/source-audit slice:
+    `3 passed, 445 deselected`
+  - strict manifest recompute: `496` registered / `334` native /
+    `162` fallback / gap `0`
+  - exact opt-in Columbia Threadneedle live route:
+    `1 passed, 341 deselected`
+  - opt-in live-provider concrete-route invariant: `1 passed`
+
+### Next step
+
+- Continue native-route discovery for the remaining `162` audited
+  fallback-only providers, prioritizing higher-AUM and higher-ETF-count
+  providers with executable first-party complete holdings routes.
+
 ## MFS native route promotion - 2026-07-28T16:44Z
 
 - Continued under the corrected broad-market task scope: the current target is

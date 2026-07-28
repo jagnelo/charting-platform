@@ -2,6 +2,33 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-28T17:08Z Columbia Threadneedle Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `columbia_threadneedle` from the StockAnalysis provider-table
+  fallback-only batch to native/live-backed support through Columbia
+  Threadneedle's public CUSIP-addressed ETF holdings CSV export.
+- Verified RECS directly through
+  `https://www.columbiathreadneedleus.com/cmg.svc/exportETFholdings?fundGroupName=ETF&fileType=csv&cusip=19761L706`;
+  it returned `text/csv`, `367` lines, position-level
+  ticker/CUSIP/ISIN/quantity/weight/market-value fields, and an as-of date of
+  `2026-07-27`.
+- Current strict state: `496` registered / `334` native-live-backed / `162`
+  fallback-only / target `496` / arithmetic registered gap `0` /
+  `generated_recognition_only []`.
+- Implementation/docs commit:
+  `94163be feat(etf): add native Columbia Threadneedle holdings route`.
+- Validation passed:
+  - focused deterministic registry/source-audit slice:
+    `3 passed, 445 deselected`
+  - strict manifest recompute:
+    `496` registered / `334` native / `162` fallback / gap `0`
+  - exact opt-in Columbia Threadneedle live route:
+    `1 passed, 341 deselected`
+  - opt-in live-provider concrete-route invariant:
+    `1 passed`
+
 ## 2026-07-28T16:30Z StockAnalysis Sixth Continuation Reconciliation Batch
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`
