@@ -26,6 +26,11 @@ The code currently enumerates `420` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
+Current native-route split:
+
+- Native/live-backed providers: `327`
+- Audited fallback-only providers: `93`
+
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
@@ -41,9 +46,12 @@ known.
 
 On `2026-07-28`, the first named reconciliation batch added `27` ETF.com
 issuer/brand table identities that were not already distinct repo adapter keys.
-They are registered as explicit audited fallback-only adapters under
+They were initially registered as explicit audited fallback-only adapters under
 `needs_first_party_route_discovery` until a first-party complete holdings route
-is proven for each provider.
+was proven for each provider. `avantis` has since been promoted to native
+support through its Avantis Investors product-page embedded holdings route; the
+other identities from this batch remain audited fallback-only until proven
+otherwise.
 
 Batch source:
 `https://www.etf.com/sections/etf-league-tables/etf-league-tables-state-street-gathers-52b`

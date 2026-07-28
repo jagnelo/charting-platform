@@ -15,6 +15,7 @@ import requests
 
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
+    ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS,
     ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS,
     ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS,
     ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS,
@@ -8853,8 +8854,12 @@ async def test_virtus_adapter_uses_scoped_transport_fallback_after_product_page_
 
 
 @pytest.mark.asyncio
-async def test_american_century_adapter_parses_avantis_embedded_holdings(monkeypatch):
-    adapter = get_holdings_adapter("american_century")
+@pytest.mark.parametrize("adapter_key", ["american_century", "avantis"])
+async def test_avantis_product_page_adapter_parses_embedded_holdings(
+    monkeypatch,
+    adapter_key,
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     FakeAsyncClient.requested = []
@@ -8926,6 +8931,7 @@ async def test_american_century_adapter_parses_avantis_embedded_holdings(monkeyp
     assert result.rows[0].market_value == Decimal("328118417.00")
     assert result.rows[0].extra_data["sector"] == "INFORMATION TECHNOLOGY"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_embedded_holdings"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["composition_date"] == "2026-06-11"
 
 
@@ -18373,16 +18379,25 @@ def test_every_registered_adapter_has_an_explicit_class():
 
 def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS)
+    native = set(ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS)
+    fallback_expected = expected - native
 
     assert expected
+    assert native.issubset(expected)
     assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in native:
+        assert adapter_key not in FALLBACK_ISSUER_AUDITS
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():

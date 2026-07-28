@@ -1642,6 +1642,10 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
     "vident": ["vident"],
 }
 
+ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
+    {"avantis"}
+)
+
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
     "advisors_asset_management": ["advisors asset management", "aam"],
     "alphaclone": ["alphaclone", "alpha clone"],
@@ -37980,6 +37984,8 @@ class StriveHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class AmericanCenturyHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    holdings_page_label = "American Century/Avantis"
+
     AVANTIS_PRODUCT_SLUGS: dict[str, str] = {
         "AVUV": "avantis-us-small-cap-value-etf",
     }
@@ -38170,7 +38176,9 @@ class AmericanCenturyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         as_of_date, rows = self._parse_embedded_avantis_holdings(response.text)
         if not rows:
-            raise ValueError(f"American Century/Avantis holdings page did not expose rows for {symbol}.")
+            raise ValueError(
+                f"{self.holdings_page_label} holdings page did not expose rows for {symbol}."
+            )
 
         return HoldingsFetchResult(
             rows=rows,
@@ -38185,6 +38193,27 @@ class AmericanCenturyHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "composition_date": as_of_date.isoformat() if as_of_date else None,
                 "as_of_date": as_of_date.isoformat() if as_of_date else None,
             },
+        )
+
+
+class AvantisHoldingsAdapter(AmericanCenturyHoldingsAdapter):
+    """Fetch Avantis product-page embedded ETF holdings from Avantis Investors."""
+
+    holdings_page_label = "Avantis"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
         )
 
 
@@ -57325,6 +57354,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "to issuer terms."
         ),
     ),
+    "avantis": IssuerCsvAdapterConfig(
+        adapter_key="avantis",
+        source_provider="avantis",
+        source_access="issuer_product_page_embedded_holdings",
+        product_page_templates=(
+            "https://www.avantisinvestors.com/avantis-investments/{issuer_product_id}/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Avantis Investors public ETF product pages may be subject "
+            "to issuer terms."
+        ),
+    ),
     "kraneshares": IssuerCsvAdapterConfig(
         adapter_key="kraneshares",
         source_provider="kraneshares",
@@ -58744,7 +58786,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     "needs_first_party_route_discovery": (
         "advisors_asset_management", "alerian", "alphaclone",
         "alphamark_advisors", "american_beacon", "amg_national",
-        "argent", "avantis", "azimut", "baillie_gifford",
+        "argent", "azimut", "baillie_gifford",
         "bancreek", "bridgeway", "calvert",
         "congress", "credit_suisse", "day_hagan",
         "desjardins", "dvx_ventures", "elements",
@@ -59199,7 +59241,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amg_national": AmgNationalReconciledFallbackHoldingsAdapter,
         "american_beacon": AmericanBeaconReconciledFallbackHoldingsAdapter,
         "argent": ArgentReconciledFallbackHoldingsAdapter,
-        "avantis": AvantisReconciledFallbackHoldingsAdapter,
+        "avantis": AvantisHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
