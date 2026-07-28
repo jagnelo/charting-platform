@@ -1,5 +1,43 @@
 # Active Handoff
 
+## ETFDB issuer-league continuation batch - 2026-07-28T13:13Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Reconciled a fourth named source batch from `https://etfdb.com/issuers/`,
+  using the same ETFDB/VettaFi issuer league table extracted from a source that
+  states its calculations are based on U.S.-listed ETFs and one issuer per ETF.
+- Added `7` confirmed named identities as explicit audited fallback-only
+  adapters under `needs_first_party_route_discovery`:
+  `emirate_abu_dhabi`, `measured_risk_portfolios`, `dvx_ventures`,
+  `everence`, `hexis`, `milliman`, and `baillie_gifford`.
+- Current strict matrix after the batch: `419` registered / `326`
+  native-live-backed / `93` fallback-only / target `496` promoters / `77`
+  registered-promoter gap / `generated_recognition_only []`.
+- This batch is named-provider reconciliation, not native route completion.
+  Remaining ETFDB rows are now mostly spelling, legal-parent, or route-owner
+  aliases of existing adapters and need careful mapping before any additional
+  registration.
+- Validation passed:
+  - focused fourth-batch registry slice: `7 passed, 421 deselected`
+  - full deterministic ETF adapter unit file: `428 passed in 17.40s`
+  - opt-in live-provider manifest/accounting slice:
+    `2 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this fallback-only batch; the
+  latest full matrix evidence remains `333 passed, 1 skipped in 540.89s` from
+  the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue source-backed reconciliation for the remaining `77` identities.
+  Before adding more ETFDB rows, resolve whether each remaining row is a true
+  distinct promoter identity, a legal-parent alias, or already covered by a
+  brand/platform route. Then continue native route discovery by ETF count, AUM,
+  and U.S. market coverage.
+
 ## ETFDB issuer-league reconciliation batch - 2026-07-28T13:02Z
 
 - Continued under the corrected broad-market task scope: the current target is

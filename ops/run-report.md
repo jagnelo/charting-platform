@@ -2,6 +2,27 @@
 
 Append a short entry after each worker session.
 
+# ETFDB Issuer-League Continuation Batch - 2026-07-28T13:13Z
+
+- Continued under the corrected broad-market target: `496` U.S. ETF promoters
+  as of `2026-06-30`.
+- Added `7` ETFDB/VettaFi issuer-league identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `emirate_abu_dhabi`, `measured_risk_portfolios`, `dvx_ventures`,
+  `everence`, `hexis`, `milliman`, and `baillie_gifford`.
+- Registry accounting is now `419` registered, `326` native/live-backed, `93`
+  fallback-only, target `496`, gap `77`, and no generated recognition-only
+  adapters.
+- Documented the fourth named reconciliation batch in
+  `docs/etf-provider-universe.md`. The batch reduces the named gap but does not
+  count as native provider support.
+- Validation passed: focused registry slice `7 passed`; full deterministic
+  adapter suite `428 passed in 17.40s`; opt-in live-provider
+  manifest/accounting slice `2 passed`; Ruff; `git diff --check`.
+- Full opt-in network matrix was not rerun after this fallback-only batch; the
+  latest full matrix evidence remains `333 passed, 1 skipped in 540.89s` from
+  the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
 # ETFDB Issuer-League Reconciliation Batch - 2026-07-28T13:02Z
 
 - Continued under the corrected broad-market target: `496` U.S. ETF promoters
