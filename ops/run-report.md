@@ -2,6 +2,40 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-28T16:05Z StockAnalysis Third Continuation Reconciliation Batch
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Added a ninth named reconciliation batch from the refreshed StockAnalysis ETF
+  provider table; the table listed `469` named provider rows ranked by assets,
+  ETF count, and average expense ratio.
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `brookstone`, `fpa`, `elm`, `segall_bryant_hamill`, `amplius`, `nestyield`,
+  `rareview_funds`, `srh`, `parnassus_investments`, and `beehive`.
+- Continued leaving the high-ranked `Eagle`, `iM`, and `Horizon` rows
+  unresolved because their short display names are unsafe substring hints
+  without more specific source-row spelling in this table snapshot.
+- Current strict state: `460` registered / `332` native-live-backed / `128`
+  fallback-only / target `496` / registered gap `36` /
+  `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `274d50d feat(etf): add third StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `8 passed, 436 deselected`
+  - deterministic ETF adapter suite:
+    `444 passed in 17.66s`
+  - strict manifest recompute:
+    `460` registered / `332` native / `128` fallback / gap `36`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
 # ETFDB Issuer-League Alias Disposition Pass - 2026-07-28T13:25Z
 
 - Continued under the corrected broad-market target: `496` U.S. ETF promoters

@@ -1,5 +1,46 @@
 # Active Handoff
 
+## StockAnalysis third continuation reconciliation batch - 2026-07-28T16:05Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added a ninth named reconciliation batch from the refreshed StockAnalysis ETF
+  provider table (`469` named provider rows ranked by assets, ETF count, and
+  average expense ratio).
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `brookstone`, `fpa`, `elm`, `segall_bryant_hamill`, `amplius`, `nestyield`,
+  `rareview_funds`, `srh`, `parnassus_investments`, and `beehive`.
+- Continued leaving the high-ranked `Eagle`, `iM`, and `Horizon` rows
+  unresolved because their short display names are unsafe substring hints
+  without more specific source-row spelling in this table snapshot.
+- Current strict matrix after this source-reconciliation batch: `460`
+  registered / `332` native-live-backed / `128` fallback-only / target `496`
+  promoters / `36` registered-promoter gap / `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `274d50d feat(etf): add third StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `8 passed, 436 deselected`
+  - full deterministic ETF adapter unit file: `444 passed in 17.66s`
+  - strict manifest recompute: `460` registered / `332` native /
+    `128` fallback / gap `36`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue StockAnalysis reconciliation below the current batch, separating
+  distinct missing providers from aliases/product-line display names before
+  registration, or promote high-impact fallback-only providers only after a
+  backend-executable first-party complete holdings route is proven.
+
 ## StockAnalysis second continuation reconciliation batch - 2026-07-28T15:54Z
 
 - Continued under the corrected broad-market task scope: the current target is
