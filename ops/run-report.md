@@ -14723,6 +14723,42 @@ Append a short entry after each worker session.
   - Ruff: passed
   - ops YAML/JSON parse check: passed
   - `git diff --check`: passed
+
+## 2026-07-28T15:54Z StockAnalysis Second Continuation Reconciliation Batch
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Added an eighth named reconciliation batch from the refreshed StockAnalysis
+  ETF provider table; the table listed `469` named provider rows ranked by
+  assets, ETF count, and average expense ratio.
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `smi_funds`, `militia`, `roc`, `madison_avenue`, `pathfinder`, `yoke`,
+  `pabrai`, `cresalta`, `hilton`, and `north_square`.
+- Added StockAnalysis alias dispositions for display names/product lines that
+  resolve to existing adapters rather than new provider keys: `HCM` ->
+  `howard_capital`, `Convergence` -> `convergence`, `Swan` -> `swan_global`,
+  `Polen` -> `polen`, `Counterpoint` -> `counterpoint`, `Abacus` ->
+  `abacus_global`, `Baron` -> `baron`, `NPF` -> `norris_perne_french`,
+  `TappAlpha` -> `tapp`, `Canary` -> `canary`, `Transamerica` -> `aegon`, and
+  `KKM Financial` -> `killir`.
+- Current strict state: `450` registered / `332` native-live-backed / `118`
+  fallback-only / target `496` / registered gap `46` /
+  `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `677931c feat(etf): add second StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `7 passed, 436 deselected`
+  - deterministic ETF adapter suite:
+    `443 passed in 17.69s`
+  - strict manifest recompute:
+    `450` registered / `332` native / `118` fallback / gap `46`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff: passed
   - ops YAML/JSON parse check: passed
   - `git diff --check`: passed
 

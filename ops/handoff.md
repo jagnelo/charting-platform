@@ -1,5 +1,50 @@
 # Active Handoff
 
+## StockAnalysis second continuation reconciliation batch - 2026-07-28T15:54Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added an eighth named reconciliation batch from the refreshed StockAnalysis
+  ETF provider table (`469` named provider rows ranked by assets, ETF count,
+  and average expense ratio).
+- Registered `10` additional distinct provider identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `smi_funds`, `militia`, `roc`, `madison_avenue`, `pathfinder`, `yoke`,
+  `pabrai`, `cresalta`, `hilton`, and `north_square`.
+- Added StockAnalysis alias dispositions for display names/product lines that
+  resolve to existing adapters rather than new provider keys: `HCM` ->
+  `howard_capital`, `Convergence` -> `convergence`, `Swan` -> `swan_global`,
+  `Polen` -> `polen`, `Counterpoint` -> `counterpoint`, `Abacus` ->
+  `abacus_global`, `Baron` -> `baron`, `NPF` -> `norris_perne_french`,
+  `TappAlpha` -> `tapp`, `Canary` -> `canary`, `Transamerica` -> `aegon`, and
+  `KKM Financial` -> `killir`.
+- Current strict matrix after this source-reconciliation batch: `450`
+  registered / `332` native-live-backed / `118` fallback-only / target `496`
+  promoters / `46` registered-promoter gap / `generated_recognition_only []`.
+- This reduces the named source-reconciliation gap by another `10`; it does not
+  add native routes for those providers yet.
+- Implementation/docs commit:
+  `677931c feat(etf): add second StockAnalysis continuation batch`.
+- Validation passed:
+  - focused StockAnalysis/provider-universe/explicit-class/source-audit slice:
+    `7 passed, 436 deselected`
+  - full deterministic ETF adapter unit file: `443 passed in 17.69s`
+  - strict manifest recompute: `450` registered / `332` native /
+    `118` fallback / gap `46`
+  - opt-in live-provider manifest/accounting invariants:
+    `2 passed, 338 deselected`
+  - Ruff for changed backend files: passed
+  - ops YAML/JSON parse check: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue StockAnalysis reconciliation below the current batch, separating
+  distinct missing providers from aliases/product-line display names before
+  registration, or promote high-impact fallback-only providers only after a
+  backend-executable first-party complete holdings route is proven.
+
 ## StockAnalysis continuation reconciliation batch - 2026-07-28T15:45Z
 
 - Continued under the corrected broad-market task scope: the current target is
