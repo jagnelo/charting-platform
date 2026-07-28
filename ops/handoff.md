@@ -1,5 +1,39 @@
 # Active Handoff
 
+## ETFDB issuer-league alias disposition pass - 2026-07-28T13:25Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Added executable alias dispositions for `67` ETFDB/VettaFi issuer-league rows
+  that are legal-parent, spelling, platform, or jurisdiction variants of
+  existing adapter keys. These source rows are now handled by
+  `ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS` and verified by unit inference
+  coverage.
+- Tightened the `groupe_bpce` name hint so `Natixis Investment Managers`
+  resolves to the existing `natixis` adapter instead of being shadowed by the
+  broader BPCE parent hint.
+- Current strict matrix is unchanged by this alias pass: `419` registered /
+  `326` native-live-backed / `93` fallback-only / target `496` promoters /
+  `77` registered-promoter gap / `generated_recognition_only []`.
+- Validation passed:
+  - focused ETFDB alias/registry/inference slice: `27 passed, 402 deselected`
+  - full deterministic ETF adapter unit file: `429 passed in 17.40s`
+  - opt-in live-provider manifest/accounting slice:
+    `2 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this non-route alias pass; the
+  latest full matrix evidence remains `333 passed, 1 skipped in 540.89s` from
+  the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue reconciliation for the remaining `77` adapter-count gap using
+  additional named sources beyond ETFDB, or promote high-priority fallback-only
+  providers only when a backend-executable first-party complete holdings route
+  is proven.
+
 ## ETFDB issuer-league continuation batch - 2026-07-28T13:13Z
 
 - Continued under the corrected broad-market task scope: the current target is

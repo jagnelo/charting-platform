@@ -36,6 +36,23 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T13:25Z ETFDB alias-disposition pass added executable
+        mappings for 67 ETFDB/VettaFi issuer-league rows that resolve to
+        existing adapter keys rather than new provider registrations. The
+        mapping is ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS and unit coverage
+        verifies each source row resolves to its intended adapter. Tightened
+        Natixis/BPCE inference so Natixis Investment Managers resolves to
+        natixis while Groupe BPCE remains owned by groupe_bpce. Current strict
+        state is unchanged: 419 registered / 326 native-live-backed / 93
+        fallback-only / target 496 / registered gap 77 /
+        generated_recognition_only []. Validation passed: focused
+        alias/registry/inference slice 27 passed; deterministic ETF adapter
+        suite 429 passed; opt-in live-provider manifest/accounting slice 2
+        passed; Ruff; git diff --check. Full opt-in network matrix was not
+        rerun after this non-route alias pass; latest full matrix evidence
+        remains 333 passed and 1 skipped in 540.89s from the
+        2026-07-28T12:44Z Cyber Hornet checkpoint.
+      - >
         A 2026-07-28T13:13Z fourth named-reconciliation pass added 7
         ETFDB/VettaFi issuer-league identities as explicit audited
         fallback-only adapters under needs_first_party_route_discovery:

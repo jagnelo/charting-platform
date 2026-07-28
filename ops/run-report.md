@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+# ETFDB Issuer-League Alias Disposition Pass - 2026-07-28T13:25Z
+
+- Continued under the corrected broad-market target: `496` U.S. ETF promoters
+  as of `2026-06-30`.
+- Added executable alias dispositions for `67` ETFDB/VettaFi issuer-league rows
+  that resolve to existing adapter keys instead of creating duplicate provider
+  registrations. The mapping is
+  `ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS`.
+- Tightened Natixis/BPCE inference so `Natixis Investment Managers` resolves to
+  `natixis` while `Groupe BPCE` remains owned by `groupe_bpce`.
+- Registry accounting is unchanged: `419` registered, `326` native/live-backed,
+  `93` fallback-only, target `496`, gap `77`, and no generated
+  recognition-only adapters.
+- Validation passed: focused alias/registry/inference slice `27 passed`; full
+  deterministic adapter suite `429 passed in 17.40s`; opt-in live-provider
+  manifest/accounting slice `2 passed`; Ruff; `git diff --check`.
+- Full opt-in network matrix was not rerun after this non-route alias pass; the
+  latest full matrix evidence remains `333 passed, 1 skipped in 540.89s` from
+  the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
 # ETFDB Issuer-League Continuation Batch - 2026-07-28T13:13Z
 
 - Continued under the corrected broad-market target: `496` U.S. ETF promoters
