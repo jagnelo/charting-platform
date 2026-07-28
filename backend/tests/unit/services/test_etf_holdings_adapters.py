@@ -15222,8 +15222,12 @@ async def test_gladius_adapter_verifies_complete_cmbo_fund_page_holdings(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_shariaportfolio_adapter_verifies_spte_page_and_parses_declared_csv(monkeypatch):
-    adapter = get_holdings_adapter("shariaportfolio")
+@pytest.mark.parametrize("adapter_key", ["shariaportfolio", "sp_funds"])
+async def test_sp_funds_page_adapter_verifies_spte_page_and_parses_declared_csv(
+    monkeypatch,
+    adapter_key,
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_page_html = """
@@ -15258,9 +15262,14 @@ async def test_shariaportfolio_adapter_verifies_spte_page_and_parses_declared_cs
     assert [row.holding_type for row in result.rows] == ["equity", "cash", "derivative"]
     assert result.rows[0].cusip == "67066G104"
     assert result.rows[0].weight == Decimal("0.50")
+    assert result.rows[0].source_row_id == f"{adapter_key}-SPTE-1"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["composition_date"] == "2026-07-21"
     assert result.legal_metadata["route_resolution"] == (
         "sp_funds_product_page_declared_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        f"{adapter_key}_native_current_holdings_csv"
     )
 
 

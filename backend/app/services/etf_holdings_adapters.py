@@ -1643,7 +1643,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"avantis"}
+    {"avantis", "sp_funds"}
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -10570,6 +10570,10 @@ class GladiusHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch ShariaPortfolio ETF portfolios from page-declared SP Funds CSVs."""
 
+    adapter_label = "ShariaPortfolio"
+    snapshot_provenance = "shariaportfolio_native_current_holdings_csv"
+    source_row_prefix = "shariaportfolio"
+
     _ROUTES = {
         "SPTE": (
             "SP Funds S&P Global Technology ETF",
@@ -10595,10 +10599,10 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
             reason=(
                 "SP Funds publishes this ETF's complete current holdings CSV from its public product page."
                 if route
-                else "No verified ShariaPortfolio native holdings route is configured for this ETF; "
+                else f"No verified {self.adapter_label} native holdings route is configured for this ETF; "
                 "SEC EDGAR remains available as fallback."
                 if has_sec_fallback
-                else "No verified ShariaPortfolio native holdings route is configured for this ETF."
+                else f"No verified {self.adapter_label} native holdings route is configured for this ETF."
             ),
             source_url=route[1] if route else None,
             issuer_product_id=normalized_symbol or None,
@@ -10617,7 +10621,7 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
         route = self._ROUTES.get(normalized_symbol)
         if route is None:
             raise ValueError(
-                f"No verified ShariaPortfolio native holdings route is configured for "
+                f"No verified {self.adapter_label} native holdings route is configured for "
                 f"{normalized_symbol or 'an empty symbol'}."
             )
         expected_fund_name, product_page_url, holdings_csv_url = route
@@ -10625,7 +10629,9 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
             product_page_url.rstrip("/"),
             holdings_csv_url.rstrip("/"),
         }:
-            raise ValueError("ShariaPortfolio holdings must use the official SP Funds page or declared CSV.")
+            raise ValueError(
+                f"{self.adapter_label} holdings must use the official SP Funds page or declared CSV."
+            )
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             page_response = await client.get(
@@ -10653,7 +10659,7 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError(
-                f"ShariaPortfolio's official {normalized_symbol} holdings CSV returned no portfolio rows."
+                f"{self.adapter_label}'s official {normalized_symbol} holdings CSV returned no portfolio rows."
             )
         return HoldingsFetchResult(
             rows=rows,
@@ -10668,15 +10674,16 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "csv",
                 "route_resolution": "sp_funds_product_page_declared_daily_holdings_csv",
                 "product_page_url": str(page_response.url),
-                "snapshot_provenance": "shariaportfolio_native_current_holdings_csv",
+                "snapshot_provenance": self.snapshot_provenance,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
             },
         )
 
-    @staticmethod
+    @classmethod
     def _validate_product_page(
+        cls,
         raw_html: str,
         *,
         symbol: str,
@@ -10690,11 +10697,13 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
             or urlparse(holdings_csv_url).path not in page
         ):
             raise ValueError(
-                "ShariaPortfolio's official SP Funds page did not declare its complete holdings CSV."
+                f"{cls.adapter_label}'s official SP Funds page did not declare its complete holdings CSV."
             )
 
-    @staticmethod
-    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+    @classmethod
+    def _parse_holdings_csv(
+        cls, raw_csv: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
         reader = csv.DictReader(StringIO(raw_csv))
         required_headers = {
             "Date", "Account", "StockTicker", "CUSIP", "SecurityName", "Shares", "MarketValue", "Weightings"
@@ -10736,11 +10745,34 @@ class ShariaPortfolioHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if is_cash else None,
                     holding_type="cash" if is_cash else "derivative" if is_derivative else "equity",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"shariaportfolio-{symbol}-{index}",
+                    source_row_id=f"{cls.source_row_prefix}-{symbol}-{index}",
                     extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
                 )
             )
         return rows, composition_date
+
+
+class SpFundsHoldingsAdapter(ShariaPortfolioHoldingsAdapter):
+    """Fetch SP Funds ETF portfolios from official product-page-declared CSVs."""
+
+    adapter_label = "SP Funds"
+    snapshot_provenance = "sp_funds_native_current_holdings_csv"
+    source_row_prefix = "sp_funds"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class NightviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -58477,6 +58509,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "fund-scoped daily holdings CSVs."
         ),
     ),
+    "sp_funds": IssuerCsvAdapterConfig(
+        adapter_key="sp_funds",
+        source_provider="sp_funds",
+        source_access="issuer_product_page_declared_daily_holdings_csv",
+        product_page_templates=(
+            "https://www.sp-funds.com/spte/",
+            "https://www.sp-funds.com/spwo/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "SP Funds publishes complete current ETF portfolios in public, "
+            "fund-scoped daily holdings CSVs."
+        ),
+    ),
     "tidal": IssuerCsvAdapterConfig(
         adapter_key="tidal",
         source_provider="tidal",
@@ -58806,7 +58852,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "panagram", "premise_capital", "pzena",
         "quadratic", "range", "return_stacked",
         "riverfront", "robo_global", "rockefeller_capital",
-        "saba_capital", "saturna", "sp_funds",
+        "saba_capital", "saturna",
         "strategy_shares", "swedish_export_credit", "touchstone",
         "tradr", "trimtabs", "us_benchmark_series",
         "vega_financial", "vident", "wellesley_asset_management",
@@ -59312,7 +59358,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "saba_capital": SabaCapitalReconciledFallbackHoldingsAdapter,
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,
         "sofi": SofiAuditedFallbackHoldingsAdapter,
-        "sp_funds": SpFundsReconciledFallbackHoldingsAdapter,
+        "sp_funds": SpFundsHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
         "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
         "thrivent": ThriventAuditedFallbackHoldingsAdapter,

@@ -70,6 +70,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "gladius",
     "guardian",
     "shariaportfolio",
+    "sp_funds",
     "x_square",
     "advisor_shares",
     "akre",
@@ -1955,6 +1956,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("nightview", "NITE", None, {}, 10),
         ("gladius", "CMBO", None, {}, 6),
         ("shariaportfolio", "SPTE", None, {}, 50),
+        ("sp_funds", "SPTE", None, {}, 50),
     ],
 )
 async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
