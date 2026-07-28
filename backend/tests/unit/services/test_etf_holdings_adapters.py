@@ -10671,6 +10671,43 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_zacks_adapter_falls_back_to_requests_after_remote_disconnect(monkeypatch):
+    adapter = get_holdings_adapter("zacks")
+    assert adapter is not None
+
+    requests_seen = []
+
+    def fake_requests_get(url, **kwargs):
+        requests_seen.append((url, kwargs))
+        return FakeResponse(
+            text="holdings",
+            url="https://www.zacksetfs.com/webservices/holdings.php",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_holdings_with_timeout_retry(
+            client,
+            "https://www.zacksetfs.com/webservices/holdings.php",
+            headers={"Referer": "https://www.zacksetfs.com/"},
+        )
+
+    assert response.text == "holdings"
+    assert len(FakeAsyncClient.requested) == 3
+    assert requests_seen[0][0] == "https://www.zacksetfs.com/webservices/holdings.php"
+    assert requests_seen[0][1]["headers"] == {"Referer": "https://www.zacksetfs.com/"}
+    assert requests_seen[0][1]["allow_redirects"] is True
+
+
+@pytest.mark.asyncio
 async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
@@ -10705,6 +10742,75 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 2
+
+
+@pytest.mark.asyncio
+async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypatch):
+    adapter = get_holdings_adapter("zacks")
+    assert adapter is not None
+
+    requests_seen = []
+
+    def fake_requests_get(url, **kwargs):
+        requests_seen.append((url, kwargs))
+        if len(requests_seen) == 1:
+            raise requests.ConnectionError("remote disconnected")
+        return FakeResponse(
+            text="holdings",
+            url="https://www.zacksetfs.com/webservices/holdings.php",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ReadTimeout("issuer stalled"),
+        httpx.ReadTimeout("issuer stalled"),
+        httpx.ReadTimeout("issuer stalled"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_holdings_with_timeout_retry(
+            client,
+            "https://www.zacksetfs.com/webservices/holdings.php",
+            headers={"Referer": "https://www.zacksetfs.com/"},
+        )
+
+    assert response.text == "holdings"
+    assert len(FakeAsyncClient.requested) == 3
+    assert len(requests_seen) == 2
+
+
+@pytest.mark.asyncio
+async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(monkeypatch):
+    adapter = get_holdings_adapter("zacks")
+    assert adapter is not None
+
+    requests_seen = []
+
+    def fake_requests_get(url, **kwargs):
+        requests_seen.append((url, kwargs))
+        raise requests.ConnectionError("remote disconnected")
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+        httpx.RemoteProtocolError("Server disconnected without sending a response."),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    async with FakeAsyncClient() as client:
+        with pytest.raises(ValueError, match="closed the backend connection"):
+            await adapter._get_holdings_with_timeout_retry(
+                client,
+                "https://www.zacksetfs.com/webservices/holdings.php",
+                headers={"Referer": "https://www.zacksetfs.com/"},
+            )
+
+    assert len(FakeAsyncClient.requested) == 3
+    assert len(requests_seen) == 3
 
 
 @pytest.mark.asyncio
@@ -12083,6 +12189,37 @@ async def test_resolute_adapter_discovers_american_beacon_holdings_csv(monkeypat
     assert result.legal_metadata["route_resolution"] == (
         "resolute_american_beacon_product_page_declared_holdings_csv"
     )
+
+
+@pytest.mark.asyncio
+async def test_resolute_adapter_retries_transient_holdings_gateway_timeout(monkeypatch):
+    adapter = get_holdings_adapter("resolute")
+    assert adapter is not None
+
+    holdings_url = (
+        "https://americanbeaconfunds.com/downloads/holdings/"
+        "07242026_AHLT_Holdings.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(status_code=504, url=holdings_url),
+        FakeResponse(text="holdings", url=holdings_url),
+    ]
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._get_holdings_csv_with_retry(
+            client,
+            holdings_url,
+            headers={
+                "Referer": (
+                    "https://americanbeaconfunds.com/products/etfs/"
+                    "american-beacon-ahl-trend-etf/"
+                )
+            },
+        )
+
+    assert response.text == "holdings"
+    assert len(FakeAsyncClient.requested) == 2
 
 
 @pytest.mark.asyncio
@@ -17121,6 +17258,30 @@ async def test_kingsview_adapter_verifies_monarch_resources_and_parses_json(monk
     assert len(result.rows) == 2
     assert result.legal_metadata["composition_date"] == "2026-07-24"
     assert result.legal_metadata["route_resolution"] == "monarch_resources_page_declared_filepoint_holdings_json"
+
+
+@pytest.mark.asyncio
+async def test_kingsview_adapter_retries_transient_holdings_post_timeout():
+    adapter = get_holdings_adapter("kingsview")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.ReadTimeout("issuer stalled"),
+        FakeResponse(text="[]", content_type="application/json", url=adapter.holdings_api_url),
+    ]
+
+    async with FakeAsyncClient() as client:
+        response = await adapter._post_holdings_with_timeout_retry(
+            client,
+            adapter.holdings_api_url,
+            data={"fundID": "1456"},
+            headers={"Referer": adapter.resources_page_url},
+        )
+
+    assert response.text == "[]"
+    assert len(FakeAsyncClient.requested) == 2
+    assert FakeAsyncClient.requested[1][1]["data"] == {"fundID": "1456"}
 
 
 @pytest.mark.asyncio

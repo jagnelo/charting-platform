@@ -23159,7 +23159,8 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             bundle_response.raise_for_status()
             self._verify_bundle_route(bundle_response.text, symbol=normalized_symbol, fund_id=fund_id)
-            holdings_response = await client.post(
+            holdings_response = await self._post_holdings_with_timeout_retry(
+                client,
                 self.holdings_api_url,
                 data={"fundID": fund_id},
                 headers={
@@ -23167,7 +23168,6 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     "Origin": "https://monarchfunds.com",
                     "Referer": str(resources_response.url),
                 },
-                follow_redirects=True,
             )
             holdings_response.raise_for_status()
 
@@ -23221,6 +23221,28 @@ class KingsviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError("Monarch bundle did not declare the holdings JSON API.")
         if f'S("{fund_id}")' not in raw_javascript and f'"{fund_id}"' not in raw_javascript:
             raise ValueError(f"Monarch bundle did not bind {symbol} to fund ID {fund_id}.")
+
+    @staticmethod
+    async def _post_holdings_with_timeout_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        data: dict[str, str],
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        for attempt in range(3):
+            try:
+                return await client.post(
+                    url,
+                    data=data,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            except (httpx.TimeoutException, httpx.RemoteProtocolError):
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise AssertionError("unreachable")
 
     @classmethod
     def _parse_holdings_payload(
@@ -40727,7 +40749,7 @@ class ZacksHoldingsAdapter(IssuerCsvHoldingsAdapter):
         for attempt in range(3):
             try:
                 return await client.get(source_url, headers=headers, follow_redirects=True)
-            except httpx.TimeoutException:
+            except (httpx.TimeoutException, httpx.RemoteProtocolError):
                 if attempt == 2:
                     break
                 await asyncio.sleep(0.25 * (attempt + 1))
@@ -40742,7 +40764,14 @@ class ZacksHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
                 response.raise_for_status()
                 return response
-            except requests.Timeout:
+            except requests.exceptions.ConnectionError as exc:
+                if attempt == 2:
+                    raise ValueError(
+                        "Zacks holdings endpoint closed the backend connection "
+                        "without a response after retries."
+                    ) from exc
+                await asyncio.sleep(0.25 * (attempt + 1))
+            except requests.exceptions.Timeout:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(0.25 * (attempt + 1))
@@ -45563,25 +45592,14 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(f"American Beacon product page did not declare a {requested_symbol} holdings CSV.")
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            holdings_response = await client.get(
+            holdings_response = await self._get_holdings_csv_with_retry(
+                client,
                 holdings_url,
                 headers={
                     **_holdings_request_headers(accept="text/csv,application/csv,*/*"),
                     "Referer": product_page_url,
                 },
-                follow_redirects=True,
             )
-            if holdings_response.status_code == 403:
-                holdings_response = await asyncio.to_thread(
-                    requests.get,
-                    holdings_url,
-                    headers={
-                        **_holdings_request_headers(accept="text/csv,application/csv,*/*"),
-                        "Referer": product_page_url,
-                    },
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
         holdings_response.raise_for_status()
         rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=requested_symbol)
         if len(rows) < 10 or composition_date is None:
@@ -45622,6 +45640,47 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if match is None:
             return None
         return urljoin(page_url, html.unescape(match.group("link")))
+
+    @staticmethod
+    async def _get_holdings_csv_with_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        headers: dict[str, str],
+    ) -> httpx.Response | requests.Response:
+        retryable_statuses = {500, 502, 503, 504}
+        for attempt in range(3):
+            try:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+                if response.status_code == 403:
+                    break
+                if response.status_code in retryable_statuses and attempt < 2:
+                    await asyncio.sleep(0.25 * (attempt + 1))
+                    continue
+                return response
+            except (httpx.TimeoutException, httpx.RemoteProtocolError):
+                if attempt == 2:
+                    break
+                await asyncio.sleep(0.25 * (attempt + 1))
+
+        for attempt in range(3):
+            try:
+                response = await asyncio.to_thread(
+                    requests.get,
+                    url,
+                    headers=headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                if response.status_code in retryable_statuses and attempt < 2:
+                    await asyncio.sleep(0.25 * (attempt + 1))
+                    continue
+                return response
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise AssertionError("unreachable")
 
     @classmethod
     def _parse_holdings_csv(
