@@ -36,6 +36,24 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T17:34Z native-route split batch moved bluemonte,
+        ershares, kovitz, and strategas from the StockAnalysis provider-table
+        fallback-only batch to native-live-backed support by splitting already
+        proven parent/platform route logic into provider-specific adapter
+        classes. Exact live routes were BLUC through Bluemonte public fund-page
+        holdings payloads, XOVR through EntrepreneurShares/ERShares public SS&C
+        full-holdings API, EQTY through Kovitz public FilePoint complete
+        holdings JSON, and SAGP through Strategas public current holdings CSV.
+        Implementation commit: acedc2d feat(etf): split native routes for
+        Bluemonte ERShares Kovitz and Strategas.
+        Current strict state is 496 registered / 338 native-live-backed / 158
+        fallback-only / target 496 / arithmetic registered gap 0 /
+        generated_recognition_only []. Validation passed: deterministic ETF
+        adapter suite 448 passed; Ruff for changed ETF backend files; git diff
+        --check; ops YAML/JSON parse checks; strict manifest recompute 496
+        registered / 338 native / 158 fallback / gap 0; exact opt-in live
+        route plus concrete-route invariant slice 5 passed.
+      - >
         A 2026-07-28T17:08Z native-route promotion moved
         columbia_threadneedle from the StockAnalysis provider-table
         fallback-only batch to native-live-backed support through Columbia

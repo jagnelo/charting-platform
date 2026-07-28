@@ -2,6 +2,35 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-28T17:34Z Provider-Specific Route Split Batch
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted four StockAnalysis provider-table fallback-only keys to
+  native/live-backed support by splitting already proven parent/platform route
+  logic into provider-specific adapter classes:
+  `bluemonte`, `ershares`, `kovitz`, and `strategas`.
+- Live route evidence:
+  - `bluemonte` / `BLUC`: Bluemonte public fund-page holdings payload
+  - `ershares` / `XOVR`: EntrepreneurShares/ERShares public SS&C full-holdings API
+  - `kovitz` / `EQTY`: Kovitz public FilePoint complete holdings JSON
+  - `strategas` / `SAGP`: Strategas public current holdings CSV
+- Current strict state: `496` registered / `338` native-live-backed / `158`
+  fallback-only / target `496` / arithmetic registered gap `0` /
+  `generated_recognition_only []`.
+- Implementation/docs commit:
+  `acedc2d feat(etf): split native routes for Bluemonte ERShares Kovitz and Strategas`.
+- Validation passed:
+  - full deterministic ETF adapter suite:
+    `448 passed`
+  - Ruff for changed ETF backend files: passed
+  - `git diff --check`: passed
+  - ops YAML/JSON parse checks: passed
+  - strict manifest recompute:
+    `496` registered / `338` native / `158` fallback / gap `0`
+  - exact opt-in live route plus concrete-route invariant slice:
+    `5 passed, 341 deselected`
+
 ## 2026-07-28T17:08Z Columbia Threadneedle Native Route Promotion
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`
