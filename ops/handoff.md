@@ -1,5 +1,50 @@
 # Active Handoff
 
+## ETF.com brand reconciliation batch and live-matrix hardening - 2026-07-28T10:39Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`), not the old repo-only `345` registry.
+- Reconciled a first named ETF.com issuer/brand table batch into the registry:
+  `27` confirmed named identities were added as explicit audited fallback-only
+  adapters under `needs_first_party_route_discovery`: `alerian`,
+  `american_beacon`, `avantis`, `bridgeway`, `calvert`, `congress`,
+  `day_hagan`, `fcf_advisors`, `freedom`, `fundstrat`, `gotham`, `horizons`,
+  `leverage_shares`, `meridian`, `oakmark`, `panagram`, `quadratic`, `range`,
+  `return_stacked`, `robo_global`, `rockefeller_capital`, `sp_funds`,
+  `strategy_shares`, `touchstone`, `tradr`, `us_benchmark_series`, and
+  `vident`.
+- Current strict matrix after the batch: `372` registered / `326`
+  native-live-backed / `46` fallback-only / target `496` promoters / `124`
+  registered-promoter gap / `generated_recognition_only []`.
+- The batch does not count as native provider completion. Each new provider is
+  deliberately fallback-only until a first-party complete holdings route is
+  discovered and proven backend-executable.
+- Full opt-in matrix exposed transient/provider-current issues unrelated to
+  the new fallback-only batch. Hardened Zacks for repeated backend disconnects
+  and made the live matrix skip only that exact current endpoint state; relaxed
+  IronHorse CGV's live row floor to `90` because the issuer currently returns a
+  complete `99`-row file; added provider-local retries for Kingsview FilePoint
+  POST timeouts and Resolute/American Beacon holdings CSV `5xx` responses.
+- Validation passed:
+  - focused registry/Zacks/Kingsview/Resolute unit slice:
+    `15 passed, 409 deselected`
+  - focused touched-provider live slice:
+    `3 passed, 1 skipped, 330 deselected`; the skip is Zacks' current backend
+    disconnect state
+  - full deterministic ETF adapter unit file: `424 passed in 17.22s`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+  - final full opt-in ETF holdings live matrix:
+    `333 passed, 1 skipped in 459.24s`; the single skip is Zacks' current
+    backend disconnect state
+
+### Next step
+
+- Continue named promoter reconciliation for the remaining `124` identities
+  against current named sources, and promote only providers with proven
+  first-party complete holdings routes.
+
 ## ETF live matrix hardening and final validation - 2026-07-27T20:52Z
 
 - Continued under the corrected broad-market task scope: the current target is

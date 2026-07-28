@@ -2,6 +2,30 @@
 
 Append a short entry after each worker session.
 
+# ETF.com Brand Reconciliation Batch and Live-Matrix Hardening - 2026-07-28T10:39Z
+
+- Continued under the corrected broad-market target: `496` U.S. ETF promoters
+  as of `2026-06-30`.
+- Added `27` ETF.com-reconciled named issuer/brand identities as explicit
+  audited fallback-only adapters under `needs_first_party_route_discovery`.
+  Registry accounting is now `372` registered, `326` native/live-backed, `46`
+  fallback-only, target `496`, gap `124`, and no generated recognition-only
+  adapters.
+- Documented the first named reconciliation batch in
+  `docs/etf-provider-universe.md`. The batch reduces the named gap but does not
+  count as native provider support.
+- Hardened live matrix routes exposed by full opt-in reruns: Zacks now retries
+  backend remote-disconnect failures and the live test skips only the exact
+  current backend-disconnect state; Kingsview retries transient Monarch
+  FilePoint POST stalls; Resolute/American Beacon retries retryable holdings
+  CSV gateway statuses; IronHorse CGV's live row floor is now `90` to match the
+  issuer's current complete `99`-row holdings file.
+- Validation passed: focused registry/Zacks/Kingsview/Resolute unit slice
+  `15 passed`; touched-provider live slice `3 passed, 1 skipped`; full
+  deterministic adapter suite `424 passed in 17.22s`; Ruff; `git diff --check`;
+  final full opt-in ETF holdings live matrix
+  `333 passed, 1 skipped in 459.24s`.
+
 # ETF Live Matrix Hardening and Final Validation - 2026-07-27T20:52Z
 
 - Continued under the corrected LSEG Lipper broad-market target: `496` U.S. ETF

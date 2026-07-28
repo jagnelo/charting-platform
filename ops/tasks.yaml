@@ -36,6 +36,28 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T10:39Z named-reconciliation pass added the first ETF.com
+        issuer/brand table batch against the broad 496-promoter target. The 27
+        confirmed names were registered as explicit audited fallback-only
+        adapters under needs_first_party_route_discovery: alerian,
+        american_beacon, avantis, bridgeway, calvert, congress, day_hagan,
+        fcf_advisors, freedom, fundstrat, gotham, horizons, leverage_shares,
+        meridian, oakmark, panagram, quadratic, range, return_stacked,
+        robo_global, rockefeller_capital, sp_funds, strategy_shares,
+        touchstone, tradr, us_benchmark_series, and vident. Current strict
+        state is 372 registered / 326 native-live-backed / 46 fallback-only /
+        target 496 / registered gap 124 / generated_recognition_only [].
+        This is named-provider reconciliation, not native route completion.
+        Same pass hardened current live-matrix failures: Zacks backend
+        disconnect retries plus a precise live skip for that issuer state,
+        Kingsview FilePoint POST timeout retries, Resolute/American Beacon
+        holdings CSV 5xx retries, and IronHorse's live row floor adjusted to
+        the issuer's current complete 99-row file. Validation passed: focused
+        unit slice 15 passed; focused touched-provider live slice 3 passed and
+        1 skipped; deterministic ETF adapter suite 424 passed; Ruff; git diff
+        --check; final full opt-in ETF holdings live matrix 333 passed and 1
+        skipped in 459.24s.
+      - >
         A 2026-07-27T20:52Z live-matrix hardening pass followed the broad
         promoter-universe correction. The first full opt-in live matrix after
         that correction exposed transient route/network failures for kingsview,
