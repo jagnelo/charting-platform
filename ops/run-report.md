@@ -2,6 +2,30 @@
 
 Append a short entry after each worker session.
 
+# ETF.com Issuer-Page Reconciliation Batch and Cyber Hornet Hardening - 2026-07-28T12:44Z
+
+- Continued under the corrected broad-market target: `496` U.S. ETF promoters
+  as of `2026-06-30`.
+- Added `20` ETF.com issuer-page identities as explicit audited fallback-only
+  adapters under `needs_first_party_route_discovery`: `advisors_asset_management`,
+  `alphaclone`, `alphamark_advisors`, `credit_suisse`, `elements`, `emqq`,
+  `esoterica`, `etf_managers_group`, `formula_folio`, `highland_capital`,
+  `knowledge_leaders`, `merk`, `merlyn_ai`, `new_age_alpha`, `oshares`,
+  `premise_capital`, `riverfront`, `saba_capital`, `swedish_export_credit`,
+  and `trimtabs`.
+- Registry accounting is now `392` registered, `326` native/live-backed, `66`
+  fallback-only, target `496`, gap `104`, and no generated recognition-only
+  adapters.
+- Hardened Cyber Hornet after a full opt-in live matrix exposed persistent
+  issuer-route transport instability for `XXX`; Weitz and Eldridge failures
+  from that same run cleared on focused rerun. Cyber Hornet now has
+  provider-local retries for its issuer page and complete holdings CSV GETs.
+- Validation passed: focused registry slice `5 passed`; live manifest slice
+  `2 passed`; full deterministic adapter suite `426 passed in 17.47s`; focused
+  Cyber Hornet unit/live checks `8 passed` and `1 passed`; Ruff;
+  `git diff --check`; final full opt-in ETF holdings live matrix
+  `333 passed, 1 skipped in 540.89s`.
+
 # ETF.com Brand Reconciliation Batch and Live-Matrix Hardening - 2026-07-28T10:39Z
 
 - Continued under the corrected broad-market target: `496` U.S. ETF promoters

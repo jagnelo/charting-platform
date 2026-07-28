@@ -1,5 +1,47 @@
 # Active Handoff
 
+## ETF.com issuer-page reconciliation batch and Cyber Hornet hardening - 2026-07-28T12:44Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Reconciled a second ETF.com source batch from `https://www.etf.com/etf-issuer`
+  into the registry. Added `20` confirmed named identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `advisors_asset_management`, `alphaclone`, `alphamark_advisors`,
+  `credit_suisse`, `elements`, `emqq`, `esoterica`, `etf_managers_group`,
+  `formula_folio`, `highland_capital`, `knowledge_leaders`, `merk`,
+  `merlyn_ai`, `new_age_alpha`, `oshares`, `premise_capital`, `riverfront`,
+  `saba_capital`, `swedish_export_credit`, and `trimtabs`.
+- Current strict matrix after the batch: `392` registered / `326`
+  native-live-backed / `66` fallback-only / target `496` promoters / `104`
+  registered-promoter gap / `generated_recognition_only []`.
+- This batch is named-provider reconciliation, not native route completion.
+  Names that were already clear aliases of existing route-backed providers
+  were not duplicated in this pass.
+- Full opt-in matrix initially exposed three current live-route failures:
+  `weitz` read timeout, `cyber_hornet` TLS/connect/read instability, and
+  `eldridge` read timeout. Focused rerun cleared Weitz and Eldridge. Added
+  Cyber Hornet-only bounded retries around its issuer page and holdings CSV GET
+  paths; focused Cyber Hornet live route then passed.
+- Validation passed:
+  - focused second-batch registry/live manifest slice:
+    `5 passed, 420 deselected` and `2 passed, 332 deselected`
+  - full deterministic ETF adapter unit file: `426 passed in 17.47s`
+  - focused Cyber Hornet unit/live slice:
+    `8 passed, 418 deselected` and `1 passed, 333 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+  - final full opt-in ETF holdings live matrix:
+    `333 passed, 1 skipped in 540.89s`; the single skip remains Zacks' current
+    backend disconnect state
+
+### Next step
+
+- Continue named promoter reconciliation for the remaining `104` identities
+  against current named sources, and promote only providers with proven
+  first-party complete holdings routes.
+
 ## ETF.com brand reconciliation batch and live-matrix hardening - 2026-07-28T10:39Z
 
 - Continued under the corrected broad-market task scope: the current target is
