@@ -2,6 +2,31 @@
 
 Append a short entry after each worker session.
 
+# ETFDB Issuer-League Reconciliation Batch - 2026-07-28T13:02Z
+
+- Continued under the corrected broad-market target: `496` U.S. ETF promoters
+  as of `2026-06-30`.
+- Added `20` ETFDB/VettaFi issuer-league identities as explicit audited
+  fallback-only adapters under `needs_first_party_route_discovery`:
+  `merchant_investment_management`, `norris_perne_french`,
+  `granite_group_advisors`, `falconx`, `desjardins`, `amg_national`,
+  `m2_financial`, `guggenheim`, `m_d_sass`, `worth_charting`, `azimut`,
+  `pzena`, `argent`, `bancreek`, `nicholas_wealth`, `vega_financial`,
+  `wellesley_asset_management`, `framework_digital_advisors`, `saturna`, and
+  `gc_ferry_parent`.
+- Registry accounting is now `412` registered, `326` native/live-backed, `86`
+  fallback-only, target `496`, gap `84`, and no generated recognition-only
+  adapters.
+- Documented the third named reconciliation batch in
+  `docs/etf-provider-universe.md`. The batch reduces the named gap but does not
+  count as native provider support.
+- Validation passed: focused registry slice `6 passed`; full deterministic
+  adapter suite `427 passed in 17.43s`; opt-in live-provider
+  manifest/accounting slice `2 passed`; Ruff; `git diff --check`.
+- Full opt-in network matrix was not rerun after this fallback-only batch; the
+  latest full matrix evidence remains `333 passed, 1 skipped in 540.89s` from
+  the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
 # ETF.com Issuer-Page Reconciliation Batch and Cyber Hornet Hardening - 2026-07-28T12:44Z
 
 - Continued under the corrected broad-market target: `496` U.S. ETF promoters
