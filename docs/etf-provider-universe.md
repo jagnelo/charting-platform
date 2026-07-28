@@ -22,15 +22,15 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `419` ETF holdings adapter keys. These keys are
+The code currently enumerates `420` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `419`
-- Missing named promoter identities: `77`
+- Repo-registered adapter keys: `420`
+- Missing named promoter identities: `76`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -177,6 +177,31 @@ Added adapter keys:
 - `milliman`
 - `baillie_gifford`
 
+## Fifth Named Reconciliation Batch
+
+On `2026-07-28`, the fifth named reconciliation batch exhausted the locally
+captured ETFDB/VettaFi issuer-league table rows by adding the remaining
+distinct uncovered issuer as an explicit audited fallback-only adapter and by
+disposing the final legal-parent/platform row to an existing adapter.
+
+Batch source:
+`https://etfdb.com/issuers/`
+
+The same ETFDB/VettaFi source table was last updated on `2026-07-27`.
+
+Added adapter key:
+
+- `mig_capital`
+
+Additional disposition:
+
+- `TFG Parent Holdings LLC` -> `tidal`
+
+`TFG Parent Holdings LLC` is treated only as an ETFDB legal-parent/platform
+source-row disposition. It does not create a new generic Tidal route, and it
+does not change the existing `tidal` adapter rule: Tidal-backed funds must be
+supported only through verified sponsor-published fund-scoped holdings files.
+
 ## ETFDB Issuer-League Alias Dispositions
 
 On `2026-07-28`, a follow-up ETFDB/VettaFi issuer-league pass added code-level
@@ -205,6 +230,7 @@ Representative dispositions:
 - `CYBER HORNET ETFs LLC` -> `cyber_hornet`
 - `21Shares AG` -> `21shares`
 - `Colliers International Group, Inc.` -> `colliers`
+- `TFG Parent Holdings LLC` -> `tidal`
 
 The full executable mapping is
 `ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS` in
@@ -224,7 +250,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `77` promoter identities require a separate source reconciliation
+The missing `76` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,

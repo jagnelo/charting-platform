@@ -18,6 +18,7 @@ from app.services.etf_holdings_adapters import (
     ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS,
     ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS,
     ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS,
+    ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS,
     ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS,
     FALLBACK_ISSUER_AUDITS,
     ISSUER_ADAPTER_CONFIGS,
@@ -18432,6 +18433,24 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
+def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
+    expected = set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS)
+
+    assert expected
+    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
+    assert expected.issubset(set(registered_adapter_keys()))
+    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in expected:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
 def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
     assert ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS
 
@@ -18457,7 +18476,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
     assert US_ETF_PROMOTER_UNIVERSE_BENCHMARK.primary_portfolio_count == 5397
     assert status["target_promoter_count"] == 496
     assert status["registered_adapter_count"] == len(registered_adapter_keys())
-    assert status["registered_promoter_gap"] == 77
+    assert status["registered_promoter_gap"] == 76
     assert status["registered_promoter_gap"] == 496 - len(registered_adapter_keys())
     assert SUPERSEDED_US_ETF_PROMOTER_BENCHMARKS[0].promoter_count == 478
 

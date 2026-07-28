@@ -1704,6 +1704,10 @@ ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
     "baillie_gifford": ["baillie gifford"],
 }
 
+ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS: dict[str, list[str]] = {
+    "mig_capital": ["mig capital", "mig capital llc"],
+}
+
 ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
     "Proshare Advisors LLC": (
         "proshares",
@@ -1973,6 +1977,10 @@ ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
         "colliers",
         "Legal parent identity for the existing Colliers adapter.",
     ),
+    "TFG Parent Holdings LLC": (
+        "tidal",
+        "ETFDB legal parent/platform identity for the existing sponsor-scoped Tidal adapter.",
+    ),
 }
 
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
@@ -1989,6 +1997,9 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
 )
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS
+)
+ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
+    ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
 for _source_name, (_adapter_key, _reason) in ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS.items():
@@ -58747,7 +58758,8 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "leverage_shares", "m2_financial", "m_d_sass",
         "measured_risk_portfolios",
         "merchant_investment_management", "merk", "meridian",
-        "merlyn_ai", "milliman", "new_age_alpha", "nicholas_wealth",
+        "merlyn_ai", "mig_capital", "milliman",
+        "new_age_alpha", "nicholas_wealth",
         "norris_perne_french", "oakmark", "oshares",
         "panagram", "premise_capital", "pzena",
         "quadratic", "range", "return_stacked",
@@ -59141,6 +59153,10 @@ class MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsA
     """ETFDB issuer-league fallback adapter pending Measured Risk discovery."""
 
 
+class MigCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETFDB issuer-league fallback adapter pending MIG Capital route discovery."""
+
+
 class MillimanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Milliman route discovery."""
 
@@ -59228,6 +59244,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
         "measured_risk_portfolios": MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter,
+        "mig_capital": MigCapitalReconciledFallbackHoldingsAdapter,
         "milliman": MillimanReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
