@@ -22,15 +22,15 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `392` ETF holdings adapter keys. These keys are
+The code currently enumerates `412` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `392`
-- Missing named promoter identities: `104`
+- Repo-registered adapter keys: `412`
+- Missing named promoter identities: `84`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -113,6 +113,45 @@ Added adapter keys:
 - `swedish_export_credit`
 - `trimtabs`
 
+## Third Named Reconciliation Batch
+
+On `2026-07-28`, the third named reconciliation batch added `20` ETFDB/VettaFi
+issuer-league identities that were not already distinct repo adapter keys after
+checking for clear aliases and parent-name variants. They are registered as
+explicit audited fallback-only adapters under
+`needs_first_party_route_discovery` until a first-party complete holdings route
+is proven for each provider.
+
+Batch source:
+`https://etfdb.com/issuers/`
+
+The source table was ranked by estimated issuer ETF revenue and stated that the
+issuer calculations are based on U.S.-listed ETFs with one issuer per ETF. The
+extracted table was last updated on `2026-07-27`.
+
+Added adapter keys:
+
+- `merchant_investment_management`
+- `norris_perne_french`
+- `granite_group_advisors`
+- `falconx`
+- `desjardins`
+- `amg_national`
+- `m2_financial`
+- `guggenheim`
+- `m_d_sass`
+- `worth_charting`
+- `azimut`
+- `pzena`
+- `argent`
+- `bancreek`
+- `nicholas_wealth`
+- `vega_financial`
+- `wellesley_asset_management`
+- `framework_digital_advisors`
+- `saturna`
+- `gc_ferry_parent`
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -126,7 +165,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `104` promoter identities require a separate source reconciliation
+The missing `84` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
