@@ -16068,6 +16068,67 @@ async def test_exchange_traded_concepts_adapter_parses_only_requested_bluemonte_
 
 
 @pytest.mark.asyncio
+async def test_emqq_adapter_parses_public_cms_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("emqq")
+    assert adapter is not None
+
+    payload = {
+        "id": 19,
+        "titleText": "EMQQ Holdings",
+        "date": "07/27/2026",
+        "finData": [
+            {
+                "figi": "BBG000GQPB11",
+                "ticker": "MELI",
+                "quantity": 12241,
+                "description": "MERCADOLIBRE INC",
+                "market_value": "22,275,437.34",
+                "percent_of_nav": "8.40%",
+            },
+            {
+                "figi": "BBG000BKVP93",
+                "ticker": "RELIANCE IN",
+                "quantity": 1492488,
+                "description": "RELIANCE INDUSTRIES LTD ORD",
+                "market_value": "19,919,811.69",
+                "percent_of_nav": "7.51%",
+            },
+        ]
+        + [
+            {
+                "ticker": f"TEST{position}",
+                "quantity": 1,
+                "description": f"Test Holding {position}",
+                "market_value": "100.00",
+                "percent_of_nav": "1.00%",
+            }
+            for position in range(3, 12)
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://cms.etc-webmaker.com/holdings/19",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EMQQ")
+
+    assert FakeAsyncClient.requested[0][0] == "https://cms.etc-webmaker.com/holdings/19"
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "MELI"
+    assert result.rows[0].weight == Decimal("0.084")
+    assert result.rows[0].shares == Decimal("12241")
+    assert result.rows[0].market_value == Decimal("22275437.34")
+    assert result.rows[0].extra_data["figi"] == "BBG000GQPB11"
+    assert result.legal_metadata["route_resolution"] == "emqq_global_cms_holdings_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-27"
+
+
+@pytest.mark.asyncio
 async def test_aot_adapter_parses_issuer_product_page_holdings_and_scales_millions(monkeypatch):
     adapter = get_holdings_adapter("aot")
     assert adapter is not None
@@ -18600,17 +18661,25 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
+    promoted_native = {"emqq"}
+    fallback_expected = expected - promoted_native
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
     assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in promoted_native:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():

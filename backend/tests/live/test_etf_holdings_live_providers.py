@@ -165,6 +165,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "eagle_capital",
     "eighth_wonder",
     "emles",
+    "emqq",
     "ershares",
     "direxion",
     "distillate",
@@ -2212,6 +2213,21 @@ async def test_live_bluemonte_fund_page_payload():
 
     _assert_live_holdings_result(result, adapter_key="bluemonte", min_rows=3)
     assert result.legal_metadata["route_resolution"] == "bluemonte_fund_page_payload"
+    assert any(row.extra_data.get("figi") for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("emqq")
+async def test_live_emqq_global_cms_holdings_api():
+    adapter = get_holdings_adapter("emqq")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="EMQQ")
+
+    _assert_live_holdings_result(result, adapter_key="emqq", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "emqq_global_cms_holdings_api"
+    assert result.legal_metadata["composition_date"]
     assert any(row.extra_data.get("figi") for row in result.rows)
 
 

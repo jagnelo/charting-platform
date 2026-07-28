@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `338`
-- Audited fallback-only providers: `158`
+- Native/live-backed providers: `339`
+- Audited fallback-only providers: `157`
 
 Current gap to the broad LSEG promoter target:
 
@@ -101,10 +101,11 @@ Added adapter keys:
 
 On `2026-07-28`, the second named reconciliation batch added `20` ETF.com
 issuer-page identities that were not already distinct repo adapter keys and
-were not clear aliases of existing route-backed providers. They are registered
+were not clear aliases of existing route-backed providers. They were registered
 as explicit audited fallback-only adapters under
 `needs_first_party_route_discovery` until a first-party complete holdings route
-is proven for each provider.
+was proven for each provider. `emqq` has since been promoted through EMQQ
+Global's public CMS complete holdings API.
 
 Batch source:
 `https://www.etf.com/etf-issuer`

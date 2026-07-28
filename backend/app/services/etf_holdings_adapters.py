@@ -18623,6 +18623,117 @@ class BluemonteHoldingsAdapter(ExchangeTradedConceptsHoldingsAdapter):
         )
 
 
+class EmqqHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch EMQQ Global ETF holdings from its public CMS holdings API."""
+
+    _ROUTES_BY_SYMBOL = {
+        "EMQQ": (
+            "https://emqqglobaletfs.com/emqq-fund-materials",
+            "https://cms.etc-webmaker.com/holdings/19",
+            "19",
+        ),
+        "FMQQ": (
+            "https://emqqglobaletfs.com/fmqq-fund-materials",
+            "https://cms.etc-webmaker.com/holdings/170",
+            "170",
+        ),
+        "INQQ": (
+            "https://emqqglobaletfs.com/inqq-fund-materials",
+            "https://cms.etc-webmaker.com/holdings/184",
+            "184",
+        ),
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        route = self._ROUTES_BY_SYMBOL.get(normalized_symbol)
+        if route is None:
+            return IssuerCsvHoldingsAdapter.probe(self, symbol=symbol, name="", identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason="EMQQ Global publishes complete ETF holdings through its public CMS holdings API.",
+            source_url=route[1],
+            issuer_product_id=route[2],
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        route = self._ROUTES_BY_SYMBOL.get(normalized_symbol)
+        if route is None:
+            raise ValueError("EMQQ Global native holdings support is bounded to EMQQ, FMQQ, and INQQ.")
+        product_page_url, holdings_url, holdings_id = route
+        requested_id = _clean(issuer_product_id)
+        if requested_id is not None and requested_id != holdings_id:
+            raise ValueError("EMQQ Global holdings must use the issuer-declared CMS holdings id.")
+        requested_source_url = source_url or holdings_url
+        if requested_source_url != holdings_url:
+            raise ValueError("EMQQ Global holdings must use the issuer-declared CMS holdings API route.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=self.source_request_headers(source_url=product_page_url),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        rows, composition_date = self._parse_holdings_payload(payload, symbol=normalized_symbol)
+        if len(rows) < 10 or composition_date is None:
+            raise ValueError("EMQQ Global CMS holdings API returned incomplete or undated holdings.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=payload if isinstance(payload, dict) else None,
+            source_url=str(response.url),
+            source_identifier=holdings_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "emqq_global_cms_holdings_api",
+                "product_page_url": product_page_url,
+                "holdings_id": holdings_id,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "emqq_global_native_cms_json",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict):
+            return [], None
+        source_rows = payload.get("finData")
+        if not isinstance(source_rows, list):
+            return [], None
+        typed_rows = [row for row in source_rows if isinstance(row, dict)]
+        rows = _canonical_nuxt_holdings_rows(
+            typed_rows,
+            source_row_prefix=f"emqq-{symbol.lower()}",
+        )
+        composition_date = _parse_issuer_date(payload.get("date"))
+        return rows, composition_date
+
+
 class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch AOT Invest ETFs' complete public product-page holdings tables."""
 
@@ -56051,6 +56162,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "issuer terms."
         ),
     ),
+    "emqq": IssuerCsvAdapterConfig(
+        adapter_key="emqq",
+        source_provider="emqq",
+        source_access="issuer_public_cms_complete_holdings_json",
+        product_page_templates=(
+            "https://emqqglobaletfs.com/emqq-fund-materials",
+            "https://emqqglobaletfs.com/fmqq-fund-materials",
+            "https://emqqglobaletfs.com/inqq-fund-materials",
+        ),
+        live_tested_default_route=True,
+        terms_note="EMQQ Global public ETF holdings API data may be subject to issuer terms.",
+    ),
     "aot": IssuerCsvAdapterConfig(
         adapter_key="aot",
         source_provider="aot",
@@ -59677,7 +59800,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "credit_suisse", "cresalta",
         "desjardins", "discipline_funds", "dvx_ventures", "ea_series_trust",
         "elements", "elm",
-        "emirate_abu_dhabi", "emqq", "esoterica",
+        "emirate_abu_dhabi", "esoterica",
         "etf_managers_group", "even_herd", "everence", "fairlead",
         "falconx", "fcf_advisors", "formula_folio",
         "first_manhattan", "fitzgerald", "framework_digital_advisors", "freedom",
@@ -60479,7 +60602,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "elements": ElementsReconciledFallbackHoldingsAdapter,
         "elm": ElmReconciledFallbackHoldingsAdapter,
         "emirate_abu_dhabi": EmirateAbuDhabiReconciledFallbackHoldingsAdapter,
-        "emqq": EmqqReconciledFallbackHoldingsAdapter,
+        "emqq": EmqqHoldingsAdapter,
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
         "epwa": EpwaAuditedFallbackHoldingsAdapter,
         "ershares": ErSharesHoldingsAdapter,
