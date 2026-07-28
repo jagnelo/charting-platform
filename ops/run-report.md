@@ -14686,6 +14686,47 @@ Append a short entry after each worker session.
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
 
+## 2026-07-28T15:16Z Congress and Day Hagan Native Promotions plus Live-Matrix Repair
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `congress` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Congress Asset Management public product
+  pages and declared account-scoped daily FilePoint CSV rows for `CSMD`, `CAML`,
+  and `CAFX`. The related `lagan` key remains supported separately.
+- Promoted `day_hagan` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Day Hagan public ETF product pages and
+  declared Airtable complete-holdings rows for `SSUS`, `DHSB`, `SSXU`, and
+  `SSFI`. The related `araq` key remains supported separately.
+- Demoted `sterling_fund` and `redwood` to audited
+  `non_executable_public_source` fallback-only status after complete live-matrix
+  runs exposed current non-executable artifacts: SCMC's Sterling PDF is dated
+  `12.31.1969` with no parseable positions, and DYLD's LeaderShares
+  holdings-download route returns repeated zero-byte bodies.
+- The Redwood adapter now retries transient mismatched/empty LeaderShares CSV
+  bodies before failing; the isolated Redwood and Sterling parsers remain in
+  place for future restoration when issuer artifacts become complete again.
+- Current strict state: `420` registered / `332` native-live-backed / `88`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Implementation/test commits:
+  - `7eb6d54 feat(etf): add native Congress and Day Hagan routes`
+  - `a841e1e fix(etf): align live matrix with current Redwood and Sterling routes`
+- Validation passed:
+  - focused Day Hagan/Arax/Congress/Lagan/Redwood/Sterling/source-audit slice:
+    `12 passed, 427 deselected`
+  - deterministic ETF adapter suite:
+    `439 passed in 17.75s`
+  - strict manifest recompute:
+    `420` registered / `332` native / `88` fallback / `audit_matches True`
+  - opt-in Day Hagan/Congress/current-demotion plus live-provider
+    manifest/accounting slice:
+    `8 passed, 332 deselected`
+  - complete opt-in ETF holdings live matrix:
+    `339 passed, 1 skipped in 522.40s`
+  - Ruff: passed
+  - `git diff --check`: passed
+
 ## 2026-07-28T14:17Z Vident Native Route Promotion
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`

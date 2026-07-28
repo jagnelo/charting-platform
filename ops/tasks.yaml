@@ -36,6 +36,31 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T15:16Z Congress and Day Hagan native promotion plus
+        live-matrix repair moved congress and day_hagan from ETF.com-reconciled
+        fallback-only support to native/live-backed support through their
+        existing related first-party routes: Congress Asset Management
+        product-page-declared daily FilePoint holdings CSVs for CSMD/CAML/CAFX
+        and Day Hagan product-page-declared Airtable holdings for
+        SSUS/DHSB/SSXU/SSFI. Same checkpoint demoted sterling_fund and redwood
+        to audited non_executable_public_source fallback-only status because
+        current live artifacts are non-executable: Sterling SCMC returns a
+        12.31.1969 PDF with no parseable positions, and LeaderShares DYLD
+        returns repeated zero-byte holdings-download bodies. Current strict
+        state is 420 registered / 332 native-live-backed / 88 fallback-only /
+        target 496 / registered gap 76 / generated_recognition_only []. This
+        improves native support quality for two already registered providers,
+        keeps current live coverage honest, and does not reduce the remaining
+        source-reconciliation gap. Validation passed: focused
+        Day Hagan/Arax/Congress/Lagan/Redwood/Sterling/source-audit slice 12
+        passed; deterministic ETF adapter suite 439 passed; strict manifest
+        recompute 420 registered / 332 native / 88 fallback / audit_matches
+        True; focused opt-in live/accounting slice 8 passed; full opt-in ETF
+        holdings live matrix 339 passed and 1 skipped in 522.40s; Ruff.
+        Implementation commits: 7eb6d54 feat(etf): add native Congress and Day
+        Hagan routes; a841e1e fix(etf): align live matrix with current Redwood
+        and Sterling routes. git diff --check passed.
+      - >
         A 2026-07-28T14:17Z Vident native promotion moved vident from
         ETF.com-reconciled fallback-only support to native/live-backed support
         through Vident public ETF product pages and their issuer-rendered

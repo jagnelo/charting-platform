@@ -1,5 +1,57 @@
 # Active Handoff
 
+## Congress and Day Hagan native promotions plus live-matrix repair - 2026-07-28T15:16Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `congress` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Congress Asset Management public ETF
+  product pages and their declared account-scoped daily FilePoint CSV for
+  `CSMD`, `CAML`, and `CAFX`. The existing related `lagan` key remains supported
+  separately.
+- Promoted `day_hagan` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through Day Hagan public ETF product pages and
+  their declared Airtable complete-holdings route for `SSUS`, `DHSB`, `SSXU`,
+  and `SSFI`. The existing related `araq` key remains supported separately.
+- The first complete live-matrix reruns exposed current non-executable issuer
+  artifacts unrelated to those promotions:
+  - `sterling_fund` / `SCMC` now returns a Sterling PDF dated `12.31.1969` with
+    no parseable positions.
+  - `redwood` / `DYLD` now returns HTTP 200 `application/octet-stream` responses
+    with zero-byte bodies on repeated direct attempts.
+- Demoted `sterling_fund` and `redwood` to audited
+  `non_executable_public_source` fallback-only status. Their isolated parsers
+  remain in place for future restoration when issuer artifacts become complete
+  again. The Redwood adapter also now retries transient mismatched/empty
+  LeaderShares CSV bodies before failing.
+- Current strict matrix after the promotions and demotions: `420` registered /
+  `332` native-live-backed / `88` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for two already registered providers and
+  keeps the opt-in live matrix honest; it does not reduce the remaining `76`
+  source-reconciliation gap to the LSEG target.
+- Implementation/test commits:
+  - `7eb6d54 feat(etf): add native Congress and Day Hagan routes`
+  - `a841e1e fix(etf): align live matrix with current Redwood and Sterling routes`
+- Validation passed:
+  - focused Day Hagan/Arax/Congress/Lagan/Redwood/Sterling/source-audit slice:
+    `12 passed, 427 deselected`
+  - full deterministic ETF adapter unit file: `439 passed in 17.75s`
+  - strict manifest recompute: `420` registered / `332` native /
+    `88` fallback / gap `76` / `audit_matches True`
+  - opt-in Day Hagan/Congress/current-demotion plus live-provider
+    manifest/accounting slice: `8 passed, 332 deselected`
+  - complete opt-in ETF holdings live matrix:
+    `339 passed, 1 skipped in 522.40s`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## Vident native route promotion - 2026-07-28T14:17Z
 
 - Continued under the corrected broad-market task scope: the current target is
