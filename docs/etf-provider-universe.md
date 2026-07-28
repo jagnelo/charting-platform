@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `332`
-- Audited fallback-only providers: `164`
+- Native/live-backed providers: `333`
+- Audited fallback-only providers: `163`
 
 Current gap to the broad LSEG promoter target:
 
@@ -260,9 +260,11 @@ source row resolves to its intended existing adapter.
 
 On `2026-07-28`, a StockAnalysis provider-table pass added `10` high-ranked
 provider identities that were not already distinct repo adapter keys after
-alias checks against existing adapters. They are registered as explicit audited
-fallback-only adapters under `needs_first_party_route_discovery` until a
-first-party complete holdings route is proven for each provider.
+alias checks against existing adapters. They were initially registered as
+explicit audited fallback-only adapters under
+`needs_first_party_route_discovery` until a first-party complete holdings route
+was proven for each provider. `mfs` has since been promoted through MFS public
+daily ETF holdings pages.
 
 Batch source:
 `https://stockanalysis.com/etf/provider/`

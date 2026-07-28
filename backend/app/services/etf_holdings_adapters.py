@@ -32816,22 +32816,17 @@ class CorientHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Sun Life-owned MFS ETFs from MFS' public daily holdings pages."""
 
+    _ADAPTER_LABEL = "Sun Life/MFS"
+    _PUBLISHER_LABEL = "Sun Life-owned MFS"
+    _ROUTE_RESOLUTION = "sun_life_mfs_public_daily_holdings_table"
+    _ISSUER_RELATIONSHIP = "Sun Life parent identity / MFS public ETF publisher"
+    _SOURCE_ROW_PREFIX = "sun-life-mfs"
     _BASE_URL = (
         "https://www.mfs.com/en-us/individual-investor/product-strategies/"
         "exchange-traded-funds/daily-holdings/{slug}.html"
     )
     _ROUTES: dict[str, tuple[str, str]] = {
-        "BRCE": ("Blended Research Core Equity ETF", "BRCE-blended-research-core-equity-etf"),
-        "BREE": ("Blended Research Emerging Markets Equity ETF", "BREE-blended-research-emerging-markets-equity-etf"),
-        "BRIE": ("Blended Research International Equity ETF", "BRIE-blended-research-international-equity-etf"),
-        "BRSM": ("Blended Research Small-Mid Cap ETF", "BRSM-blended-research-small-mid-cap-etf"),
-        "MFSB": ("Active Core Plus Bond ETF", "MFSB-active-core-plus-bond-etf"),
-        "MFSG": ("Active Growth ETF", "MFSG-active-growth-etf"),
-        "MFSI": ("Active International ETF", "MFSI-active-international-etf"),
-        "MFSM": ("Active Intermediate Muni Bond ETF", "MFSM-active-intermediate-muni-bond-etf"),
         "MFSV": ("Active Value ETF", "MFSV-active-value-etf"),
-        "MIVL": ("Active International Value ETF", "MIVL-active-international-value-etf"),
-        "MMID": ("Active Mid Cap ETF", "MMID-active-mid-cap-etf"),
     }
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
@@ -32844,13 +32839,13 @@ class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             confidence=Decimal("0.9500") if route else Decimal("0.3000"),
             status="ready" if route or has_sec_fallback else "needs_issuer_route",
             reason=(
-                "Sun Life-owned MFS publishes this ETF's complete current daily holdings "
+                f"{self._PUBLISHER_LABEL} publishes this ETF's complete current daily holdings "
                 "in its public MFS daily holdings page."
                 if route
-                else "No verified Sun Life/MFS native holdings route is configured for this ETF; "
+                else f"No verified {self._ADAPTER_LABEL} native holdings route is configured for this ETF; "
                 "SEC EDGAR remains available as fallback."
                 if has_sec_fallback
-                else "No verified Sun Life/MFS native holdings route is configured for this ETF."
+                else f"No verified {self._ADAPTER_LABEL} native holdings route is configured for this ETF."
             ),
             source_url=self._source_url(normalized_symbol) if route else None,
             issuer_product_id=normalized_symbol or None,
@@ -32869,13 +32864,15 @@ class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         route = self._ROUTES.get(normalized_symbol)
         if route is None:
             raise ValueError(
-                f"No verified Sun Life/MFS native holdings route is configured for "
+                f"No verified {self._ADAPTER_LABEL} native holdings route is configured for "
                 f"{normalized_symbol or 'an empty symbol'}."
             )
         expected_product_name, _slug = route
         resolved_source_url = source_url or self._source_url(normalized_symbol)
         if resolved_source_url.rstrip("/") != self._source_url(normalized_symbol).rstrip("/"):
-            raise ValueError("Sun Life/MFS holdings must use the configured public MFS daily holdings page.")
+            raise ValueError(
+                f"{self._ADAPTER_LABEL} holdings must use the configured public MFS daily holdings page."
+            )
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
@@ -32906,8 +32903,8 @@ class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
-                "route_resolution": "sun_life_mfs_public_daily_holdings_table",
-                "issuer_relationship": "Sun Life parent identity / MFS public ETF publisher",
+                "route_resolution": self._ROUTE_RESOLUTION,
+                "issuer_relationship": self._ISSUER_RELATIONSHIP,
                 "product_page_url": str(response.url),
                 "snapshot_provenance": "mfs_native_current_daily_holdings_table",
                 "composition_date": composition_date.isoformat() if composition_date else None,
@@ -33020,7 +33017,7 @@ class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if row_type == "cash" else None,
                     holding_type=holding_type,
                     row_type=row_type,
-                    source_row_id=f"sun-life-mfs-{symbol}-{index}",
+                    source_row_id=f"{cls._SOURCE_ROW_PREFIX}-{symbol}-{index}",
                     extra_data={key: value for key, value in raw.items() if key and _clean(value) is not None},
                 )
             )
@@ -33049,6 +33046,43 @@ class SunLifeMfsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "BOND" in text or "MUNI" in text or "TREASURY" in text or "CORPORATE" in text:
             return "fixed_income", "security"
         return "equity", "security"
+
+
+class MfsHoldingsAdapter(SunLifeMfsHoldingsAdapter):
+    """Fetch MFS ETFs from MFS' public daily holdings pages."""
+
+    _ADAPTER_LABEL = "MFS"
+    _PUBLISHER_LABEL = "MFS"
+    _ROUTE_RESOLUTION = "mfs_public_daily_holdings_table"
+    _ISSUER_RELATIONSHIP = "MFS public ETF publisher"
+    _SOURCE_ROW_PREFIX = "mfs"
+    _ROUTES: dict[str, tuple[str, str]] = {
+        "BRCE": ("Blended Research Core Equity ETF", "BRCE-blended-research-core-equity-etf"),
+        "BREE": ("Blended Research Emerging Markets Equity ETF", "BREE-blended-research-emerging-markets-equity-etf"),
+        "BRIE": ("Blended Research International Equity ETF", "BRIE-blended-research-international-equity-etf"),
+        "BRSM": ("Blended Research Small-Mid Cap ETF", "BRSM-blended-research-small-mid-cap-etf"),
+        "MFSB": ("Active Core Plus Bond ETF", "MFSB-active-core-plus-bond-etf"),
+        "MFSG": ("Active Growth ETF", "MFSG-active-growth-etf"),
+        "MFSI": ("Active International ETF", "MFSI-active-international-etf"),
+        "MFSM": ("Active Intermediate Muni Bond ETF", "MFSM-active-intermediate-muni-bond-etf"),
+        "MIVL": ("Active International Value ETF", "MIVL-active-international-value-etf"),
+        "MMID": ("Active Mid Cap ETF", "MMID-active-mid-cap-etf"),
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class SymmetryHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -56366,6 +56400,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Swan Global public ETF product pages and holdings files may be subject to issuer terms.",
     ),
+    "mfs": IssuerCsvAdapterConfig(
+        adapter_key="mfs",
+        source_provider="mfs",
+        source_access="issuer_public_daily_holdings_html_table",
+        product_page_templates=(
+            "https://www.mfs.com/en-us/individual-investor/product-strategies/"
+            "exchange-traded-funds/daily-holdings/{symbol_upper}-{product_slug}.html",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "MFS publishes complete current ETF daily holdings in public MFS daily "
+            "holdings pages; data may be subject to issuer terms."
+        ),
+    ),
     "sun_life": IssuerCsvAdapterConfig(
         adapter_key="sun_life",
         source_provider="sun_life_mfs",
@@ -59327,7 +59375,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "madison_avenue", "matrix", "max",
         "mcelhenny_sheffield",
         "measured_risk_portfolios",
-        "merchant_investment_management", "merk", "meridian", "mfs",
+        "merchant_investment_management", "merk", "meridian",
         "merlyn_ai", "mig_capital", "militia", "milliman", "moonvest",
         "new_age_alpha", "nestyield", "nicholas_wealth", "north_square",
         "norris_perne_french", "oakmark", "oshares",
@@ -60168,7 +60216,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
         "measured_risk_portfolios": MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter,
-        "mfs": MfsReconciledFallbackHoldingsAdapter,
+        "mfs": MfsHoldingsAdapter,
         "mig_capital": MigCapitalReconciledFallbackHoldingsAdapter,
         "militia": MilitiaReconciledFallbackHoldingsAdapter,
         "milliman": MillimanReconciledFallbackHoldingsAdapter,

@@ -6546,6 +6546,84 @@ async def test_sun_life_mfs_adapter_parses_public_daily_holdings_table(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_mfs_adapter_parses_public_daily_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("mfs")
+    assert adapter is not None
+
+    daily_page = """
+    <html><body>
+      <h1>Daily Holdings</h1>
+      <h1 class="product-name">Active Core Plus Bond ETF</h1>
+      <p>MFSB</p>
+      <a class="js-download-btn">Download Daily Fund Holdings</a>
+      <table>
+        <tr><th></th><th>Based on Market Value</th><th></th></tr>
+        <tr>
+          <th>CUSIP/SEDOL</th>
+          <th>Ticker</th>
+          <th>Securities (on 07-27-26)</th>
+          <th>Shares or Par Amount</th>
+          <th>Value</th>
+          <th>Percent of Net Assets</th>
+          <th>GICS Sectors</th>
+          <th>Country</th>
+        </tr>
+        <tr>
+          <td>912810UQ9</td>
+          <td>-</td>
+          <td>US TREASURY N/B</td>
+          <td>50,295,000.00</td>
+          <td>$47,041,542.19</td>
+          <td>8.86%</td>
+          <td>U.S. Governments</td>
+          <td>United States</td>
+        </tr>
+        <tr>
+          <td>999999999</td>
+          <td>Cash</td>
+          <td>Cash &amp; Other</td>
+          <td>100.00</td>
+          <td>$100.00</td>
+          <td>0.01%</td>
+          <td>Cash</td>
+          <td>United States</td>
+        </tr>
+      </table>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=daily_page,
+            content_type="text/html",
+            url=(
+                "https://www.mfs.com/en-us/individual-investor/product-strategies/"
+                "exchange-traded-funds/daily-holdings/MFSB-active-core-plus-bond-etf.html"
+            ),
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MFSB", identifiers={})
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.mfs.com/en-us/individual-investor/product-strategies/"
+        "exchange-traded-funds/daily-holdings/MFSB-active-core-plus-bond-etf.html"
+    )
+    assert [row.holding_type for row in result.rows] == ["fixed_income", "cash"]
+    assert result.rows[0].cusip == "912810UQ9"
+    assert result.rows[0].weight == Decimal("0.0886")
+    assert result.rows[0].shares == Decimal("50295000.00")
+    assert result.rows[0].market_value == Decimal("47041542.19")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["adapter_key"] == "mfs"
+    assert result.legal_metadata["source_provider"] == "mfs"
+    assert result.legal_metadata["route_resolution"] == "mfs_public_daily_holdings_table"
+    assert result.legal_metadata["composition_date"] == "2026-07-27"
+    assert result.legal_metadata["issuer_relationship"] == "MFS public ETF publisher"
+
+
+@pytest.mark.asyncio
 async def test_symmetry_adapter_verifies_panoramic_filepoint_chain_and_parses_smom(monkeypatch):
     adapter = get_holdings_adapter("symmetry")
     assert adapter is not None
@@ -18563,6 +18641,8 @@ def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
 
 def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited():
     expected = set(STOCKANALYSIS_PROVIDER_RECONCILIATION_ISSUER_HINTS)
+    promoted_native = {"mfs"}
+    fallback_expected = expected - promoted_native
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -18571,8 +18651,11 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
     assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
     assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS))
     assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    assert ISSUER_ADAPTER_CONFIGS["mfs"].live_tested_default_route is True
+    assert type(get_holdings_adapter("mfs")).__name__ == "MfsHoldingsAdapter"
+    for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)

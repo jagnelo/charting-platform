@@ -241,6 +241,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "mairs_power",
     "madison",
     "matthews",
+    "mfs",
     "morgan_stanley",
     "miller_value",
     "mitsubishi_ufj",
@@ -1589,6 +1590,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             10,
+        ),
+        (
+            "mfs",
+            "MFSB",
+            None,
+            {},
+            50,
         ),
         (
             "sun_life",
