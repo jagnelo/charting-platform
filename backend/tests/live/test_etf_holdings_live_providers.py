@@ -100,6 +100,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "barclays",
     "baron",
     "belpointe",
+    "bluemonte",
     "bmo",
     "bcp_cc",
     "build",
@@ -164,6 +165,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "eagle_capital",
     "eighth_wonder",
     "emles",
+    "ershares",
     "direxion",
     "distillate",
     "doubleline",
@@ -229,6 +231,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "jpmorgan",
     "kingsview",
     "killir",
+    "kovitz",
     "kraneshares",
     "kensington",
     "kurv",
@@ -296,6 +299,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "split_rock",
     "ssc",
     "sterling_capital",
+    "strategas",
     "stf",
     "natixis",
     "western_southern",
@@ -2195,6 +2199,69 @@ async def test_live_exchange_traded_concepts_bluemonte_fund_page_payload():
         "exchange_traded_concepts_bluemonte_fund_page_payload"
     )
     assert any(row.extra_data.get("figi") for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("bluemonte")
+async def test_live_bluemonte_fund_page_payload():
+    adapter = get_holdings_adapter("bluemonte")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="BLUC")
+
+    _assert_live_holdings_result(result, adapter_key="bluemonte", min_rows=3)
+    assert result.legal_metadata["route_resolution"] == "bluemonte_fund_page_payload"
+    assert any(row.extra_data.get("figi") for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("ershares")
+async def test_live_ershares_ssnc_full_holdings_api():
+    adapter = get_holdings_adapter("ershares")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="XOVR")
+
+    _assert_live_holdings_result(result, adapter_key="ershares", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "ershares_public_ssnc_full_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("kovitz")
+async def test_live_kovitz_filepoint_complete_holdings_json():
+    adapter = get_holdings_adapter("kovitz")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="EQTY")
+
+    _assert_live_holdings_result(result, adapter_key="kovitz", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == (
+        "kovitz_filepoint_complete_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("strategas")
+async def test_live_strategas_current_holdings_csv():
+    adapter = get_holdings_adapter("strategas")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SAGP")
+
+    _assert_live_holdings_result(result, adapter_key="strategas", min_rows=100)
+    assert result.legal_metadata["route_resolution"] == "strategas_symbol_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
 
 
 @pytest.mark.asyncio

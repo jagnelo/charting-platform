@@ -18432,6 +18432,8 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Parse Exchange Traded Concepts' first-party Bluemonte ETF page payload."""
 
     product_page_template = "https://bluemontefunds.com/{symbol_lower}"
+    route_resolution = "exchange_traded_concepts_bluemonte_fund_page_payload"
+    source_row_prefix = "exchange-traded-concepts"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         source_url = self.resolve_source_url(
@@ -18507,7 +18509,7 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "nuxt_payload",
-                "route_resolution": "exchange_traded_concepts_bluemonte_fund_page_payload",
+                "route_resolution": self.route_resolution,
                 "source_quality": "issuer_reported_current_holdings",
                 "snapshot_provenance": "issuer_native_fund_page_payload",
                 "terms_note": self.config.terms_note,
@@ -18524,7 +18526,7 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if hydrated_rows:
             return _canonical_nuxt_holdings_rows(
                 hydrated_rows,
-                source_row_prefix="exchange-traded-concepts",
+                source_row_prefix=cls.source_row_prefix,
             )
 
         component_match = re.search(
@@ -18569,7 +18571,7 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     market_value=_decimal(parsed.get("market_value")),
                     holding_type=holding_type,
                     row_type=row_type,
-                    source_row_id=f"exchange-traded-concepts-{position}",
+                    source_row_id=f"{cls.source_row_prefix}-{position}",
                     extra_data={
                         key: value
                         for key, value in parsed.items()
@@ -18580,6 +18582,45 @@ class ExchangeTradedConceptsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows
+
+
+class BluemonteHoldingsAdapter(ExchangeTradedConceptsHoldingsAdapter):
+    """Parse Bluemonte ETF holdings from its public fund-page payload."""
+
+    route_resolution = "bluemonte_fund_page_payload"
+    source_row_prefix = "bluemonte"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000"),
+            status="ready",
+            reason="Bluemonte publishes current ETF holdings in its public fund-page payload.",
+            source_url=source_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class AotHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -22210,6 +22251,7 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch EntrepreneurShares ETF holdings from its issuer-embedded SS&C client."""
 
     product_page_template = "https://entrepreneurshares.com/ershares-etfs/{symbol_lower}-etf/"
+    route_resolution = "entrepreneurshares_public_ssnc_full_holdings_api"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -22321,7 +22363,7 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
-                "route_resolution": "entrepreneurshares_public_ssnc_full_holdings_api",
+                "route_resolution": self.route_resolution,
                 "product_page_url": str(product_response.url),
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
@@ -22444,6 +22486,49 @@ class CapitalImpactHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date
+
+
+class ErSharesHoldingsAdapter(CapitalImpactHoldingsAdapter):
+    """Fetch ERShares ETF holdings from EntrepreneurShares' public SS&C client."""
+
+    route_resolution = "ershares_public_ssnc_full_holdings_api"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id"),
+            source_url=_identifier(identifiers, *self.source_url_aliases),
+            identifiers=identifiers,
+        )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9000") if source_url else Decimal("0.5000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "ERShares publishes complete ETF holdings through its public SS&C client."
+                if source_url
+                else "ERShares needs an ETF symbol to resolve its public product page."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class CorgiHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -26930,6 +27015,9 @@ class BairdHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     _SYMBOLS = frozenset({"SAGP", "SAMM", "SAMT"})
     _HOLDINGS_URL_TEMPLATE = "https://www.strategasetfs.com/holding/download/{symbol_lower}"
+    route_resolution = "baird_strategas_symbol_holdings_csv"
+    snapshot_provenance = "baird_strategas_native_current_holdings_csv"
+    source_row_prefix = "baird"
     _REQUIRED_HEADERS = frozenset(
         {"ETF", "Ticker", "Description", "Date", "CUSIP", "SEDOL", "Quantity", "Weight"}
     )
@@ -26978,13 +27066,14 @@ class BairdHoldingsAdapter(IssuerCsvHoldingsAdapter):
             source_url=str(response.url),
             source_identifier=issuer_product_id or normalized_symbol,
             legal_metadata={
-                "source_access": "baird_strategas_current_holdings_csv",
-                "source_provider": "baird",
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
                 "publisher": "strategas_asset_management",
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
-                "route_resolution": "baird_strategas_symbol_holdings_csv",
-                "snapshot_provenance": "baird_strategas_native_current_holdings_csv",
+                "route_resolution": self.route_resolution,
+                "snapshot_provenance": self.snapshot_provenance,
+                "terms_note": self.config.terms_note,
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
                 **({"as_of_date": composition_date.isoformat()} if composition_date else {}),
             },
@@ -27034,7 +27123,7 @@ class BairdHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     shares=_decimal(raw.get("Quantity")),
                     holding_type=holding_type,
                     row_type=row_type,
-                    source_row_id=f"baird-{symbol}-{position}",
+                    source_row_id=f"{cls.source_row_prefix}-{symbol}-{position}",
                     extra_data={key: value for key, value in raw.items() if _clean(value) is not None},
                 )
             )
@@ -27079,6 +27168,42 @@ class BairdHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if " ETF" in text or " FUND" in text:
             return "fund", "security"
         return "equity", "security"
+
+
+class StrategasHoldingsAdapter(BairdHoldingsAdapter):
+    """Read Strategas ETFs' complete issuer-published current holdings CSVs."""
+
+    route_resolution = "strategas_symbol_holdings_csv"
+    snapshot_provenance = "strategas_native_current_holdings_csv"
+    source_row_prefix = "strategas"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self._SYMBOLS:
+            return IssuerCsvHoldingsAdapter.probe(self, symbol=symbol, name=name, identifiers=identifiers)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason="Strategas publishes this ETF's complete current holdings CSV.",
+            source_url=self._HOLDINGS_URL_TEMPLATE.format(symbol_lower=normalized_symbol.lower()),
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class AffiliatedManagersGroupHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -45732,6 +45857,8 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
     KOVITZ_PRODUCT_PAGE_URL = "https://kovitzetf.com/"
     KOVITZ_APP_URL = "https://kovitz.filepoint.live/"
     KOVITZ_HOLDINGS_URL = "https://filepoint.live/kovitz_getholdings_cached4.php"
+    kovitz_route_resolution = "focus_financial_kovitz_filepoint_complete_holdings_json"
+    kovitz_snapshot_provenance = "kovitz_filepoint_native_json"
     LONGVIEW_SYMBOL = "EBI"
     LONGVIEW_PRODUCT_PAGE_URL = "https://longviewresearchpartners.com/ebi/"
     LONGVIEW_FUND_DATA_URL = "https://longviewresearchpartners.com/ebi/fund-data/"
@@ -45819,7 +45946,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
-                "route_resolution": "focus_financial_kovitz_filepoint_complete_holdings_json",
+                "route_resolution": self.kovitz_route_resolution,
                 "product_page_url": self.KOVITZ_PRODUCT_PAGE_URL,
                 "app_url": self.KOVITZ_APP_URL,
                 "fund_id": self.KOVITZ_FUND_ID,
@@ -45827,7 +45954,7 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
-                "snapshot_provenance": "kovitz_filepoint_native_json",
+                "snapshot_provenance": self.kovitz_snapshot_provenance,
             },
         )
 
@@ -46059,6 +46186,59 @@ class FocusFinancialHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "ETF" in text or "FUND" in text:
             return "security", "fund"
         return "security", "equity"
+
+
+class KovitzHoldingsAdapter(FocusFinancialHoldingsAdapter):
+    """Fetch Kovitz EQTY holdings from its public FilePoint route."""
+
+    kovitz_route_resolution = "kovitz_filepoint_complete_holdings_json"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        requested_symbol = symbol.strip().upper()
+        if requested_symbol != self.KOVITZ_SYMBOL:
+            sec_cik = _identifier(identifiers, "sec_cik", "cik")
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.3000") if sec_cik else Decimal("0"),
+                status="ready" if sec_cik else "unsupported",
+                reason=(
+                    "Kovitz native holdings support is currently bounded to EQTY; "
+                    "SEC EDGAR remains available as fallback."
+                    if sec_cik
+                    else "Kovitz native holdings support is currently bounded to EQTY."
+                ),
+                source_url=(
+                    f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json"
+                    if sec_cik
+                    else None
+                ),
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason=(
+                "Kovitz publishes complete current EQTY holdings through its "
+                "public product-page-declared FilePoint route."
+            ),
+            source_url=self.KOVITZ_HOLDINGS_URL,
+            issuer_product_id=self.KOVITZ_FUND_ID,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        requested_symbol = symbol.strip().upper()
+        if requested_symbol != self.KOVITZ_SYMBOL:
+            raise ValueError("Kovitz native holdings support is currently bounded to EQTY.")
+        return await self._fetch_kovitz_eqty(issuer_product_id=issuer_product_id)
 
 
 class AlbertMasonHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -55860,6 +56040,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "be subject to issuer terms."
         ),
     ),
+    "bluemonte": IssuerCsvAdapterConfig(
+        adapter_key="bluemonte",
+        source_provider="bluemonte",
+        source_access="issuer_public_bluemonte_server_rendered_holdings_payload",
+        product_page_templates=("https://bluemontefunds.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Bluemonte public ETF fund-page holdings payloads may be subject to "
+            "issuer terms."
+        ),
+    ),
     "aot": IssuerCsvAdapterConfig(
         adapter_key="aot",
         source_provider="aot",
@@ -55989,6 +56180,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         terms_note=(
             "EntrepreneurShares/Capital Impact public SS&C full-holdings API data may be "
             "subject to issuer terms."
+        ),
+    ),
+    "ershares": IssuerCsvAdapterConfig(
+        adapter_key="ershares",
+        source_provider="ershares",
+        source_access="issuer_public_ssnc_full_holdings_api",
+        product_page_templates=(
+            "https://entrepreneurshares.com/ershares-etfs/{symbol_lower}-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "ERShares public ETF product pages and SS&C full-holdings API data may "
+            "be subject to issuer terms."
         ),
     ),
     "corgi": IssuerCsvAdapterConfig(
@@ -56211,6 +56415,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note=(
             "Kovitz and Longview public ETF product/fund-data holdings routes may be "
+            "subject to issuer terms."
+        ),
+    ),
+    "kovitz": IssuerCsvAdapterConfig(
+        adapter_key="kovitz",
+        source_provider="kovitz",
+        source_access="issuer_public_product_page_declared_filepoint_complete_holdings_json",
+        product_page_templates=(
+            "https://kovitzetf.com/",
+            "https://kovitz.filepoint.live/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Kovitz public ETF product page and FilePoint holdings JSON may be "
             "subject to issuer terms."
         ),
     ),
@@ -58397,6 +58615,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Strategas publishes Baird ETF current holdings CSVs subject to issuer terms.",
     ),
+    "strategas": IssuerCsvAdapterConfig(
+        adapter_key="strategas",
+        source_provider="strategas",
+        source_access="issuer_public_strategas_current_holdings_csv",
+        url_templates=("https://www.strategasetfs.com/holding/download/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note="Strategas public ETF current holdings CSVs may be subject to issuer terms.",
+    ),
     "yieldmax": IssuerCsvAdapterConfig(
         adapter_key="yieldmax",
         source_provider="yieldmax",
@@ -59445,21 +59671,21 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphaclone", "alphamark_advisors", "altshares",
         "amg_national", "amplius", "anydrus",
         "argent", "arin", "avos", "avory", "azimut", "baillie_gifford", "ballast",
-        "ars", "bancreek", "beehive", "bluemonte", "bridgeway", "brookstone",
+        "ars", "bancreek", "beehive", "bridgeway", "brookstone",
         "blueprint", "bufferlabs", "bushido", "calvert",
         "capforce", "castellan", "conductor_fund",
         "credit_suisse", "cresalta",
         "desjardins", "discipline_funds", "dvx_ventures", "ea_series_trust",
         "elements", "elm",
         "emirate_abu_dhabi", "emqq", "esoterica",
-        "ershares", "etf_managers_group", "even_herd", "everence", "fairlead",
+        "etf_managers_group", "even_herd", "everence", "fairlead",
         "falconx", "fcf_advisors", "formula_folio",
         "first_manhattan", "fitzgerald", "framework_digital_advisors", "freedom",
         "fpa", "genter_capital",
         "fundstrat", "gc_ferry_parent", "gotham",
         "granite_group_advisors", "guggenheim", "hexis",
         "highland_capital", "hilton", "horizons", "hoya", "impact_shares", "jlens",
-        "keating", "knowledge_leaders", "kovitz", "leverage_shares",
+        "keating", "knowledge_leaders", "leverage_shares",
         "logiq", "long_pond", "lsv", "m2_financial", "m_d_sass",
         "madison_avenue", "matrix", "max",
         "mcelhenny_sheffield",
@@ -59476,7 +59702,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "riverfront", "robo_global", "rockefeller_capital",
         "river1", "roc", "saba_capital", "sammons_enterprises", "sapient",
         "saturna", "siren", "smi_funds", "suncoast",
-        "segall_bryant_hamill", "sophus", "srh", "stance", "strategas",
+        "segall_bryant_hamill", "sophus", "srh", "stance",
         "stratified", "strategy_shares", "subversive",
         "swedish_export_credit",
         "towle", "trimtabs", "truth_social", "us_benchmark_series",
@@ -60231,7 +60457,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ballast": BallastReconciledFallbackHoldingsAdapter,
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
         "beehive": BeeHiveReconciledFallbackHoldingsAdapter,
-        "bluemonte": BluemonteReconciledFallbackHoldingsAdapter,
+        "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintReconciledFallbackHoldingsAdapter,
         "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
@@ -60256,7 +60482,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "emqq": EmqqReconciledFallbackHoldingsAdapter,
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
         "epwa": EpwaAuditedFallbackHoldingsAdapter,
-        "ershares": ErSharesReconciledFallbackHoldingsAdapter,
+        "ershares": ErSharesHoldingsAdapter,
         "esoterica": EsotericaReconciledFallbackHoldingsAdapter,
         "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
@@ -60287,7 +60513,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "jlens": JLensReconciledFallbackHoldingsAdapter,
         "keating": KeatingReconciledFallbackHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
-        "kovitz": KovitzReconciledFallbackHoldingsAdapter,
+        "kovitz": KovitzHoldingsAdapter,
         "leverage_shares": LeverageSharesReconciledFallbackHoldingsAdapter,
         "logiq": LogiqReconciledFallbackHoldingsAdapter,
         "long_pond": LongPondReconciledFallbackHoldingsAdapter,
@@ -60354,7 +60580,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "sophus": SophusReconciledFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,
         "stance": StanceReconciledFallbackHoldingsAdapter,
-        "strategas": StrategasReconciledFallbackHoldingsAdapter,
+        "strategas": StrategasHoldingsAdapter,
         "stratified": StratifiedReconciledFallbackHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
         "srh": SrhReconciledFallbackHoldingsAdapter,

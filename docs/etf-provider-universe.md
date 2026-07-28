@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `334`
-- Audited fallback-only providers: `162`
+- Native/live-backed providers: `338`
+- Audited fallback-only providers: `158`
 
 Current gap to the broad LSEG promoter target:
 
@@ -263,9 +263,12 @@ provider identities that were not already distinct repo adapter keys after
 alias checks against existing adapters. They were initially registered as
 explicit audited fallback-only adapters under
 `needs_first_party_route_discovery` until a first-party complete holdings route
-was proven for each provider. `columbia_threadneedle` has since been promoted
-through Columbia Threadneedle's public CUSIP-addressed holdings CSV export, and
-`mfs` has since been promoted through MFS public daily ETF holdings pages.
+was proven for each provider. `bluemonte` has since been promoted through
+Bluemonte fund-page holdings payloads, `columbia_threadneedle` through Columbia
+Threadneedle's public CUSIP-addressed holdings CSV export, `ershares` through
+EntrepreneurShares/ERShares SS&C full-holdings API pages, `kovitz` through
+Kovitz FilePoint holdings JSON, `mfs` through MFS public daily ETF holdings
+pages, and `strategas` through Strategas current holdings CSVs.
 
 Batch source:
 `https://stockanalysis.com/etf/provider/`

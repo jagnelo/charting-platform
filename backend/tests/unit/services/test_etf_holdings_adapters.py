@@ -18205,6 +18205,32 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert type(exchange_traded_concepts).__name__ == "ExchangeTradedConceptsHoldingsAdapter"
     assert exchange_traded_concepts.resolve_source_url(symbol="BLUC") == "https://bluemontefunds.com/bluc"
 
+    bluemonte = get_holdings_adapter("bluemonte")
+    assert bluemonte is not None
+    assert type(bluemonte).__name__ == "BluemonteHoldingsAdapter"
+    assert bluemonte.resolve_source_url(symbol="BLUC") == "https://bluemontefunds.com/bluc"
+
+    ershares = get_holdings_adapter("ershares")
+    assert ershares is not None
+    assert type(ershares).__name__ == "ErSharesHoldingsAdapter"
+    assert ershares.resolve_source_url(symbol="XOVR") == (
+        "https://entrepreneurshares.com/ershares-etfs/xovr-etf/"
+    )
+
+    kovitz = get_holdings_adapter("kovitz")
+    assert kovitz is not None
+    assert type(kovitz).__name__ == "KovitzHoldingsAdapter"
+    assert kovitz.probe(symbol="EQTY", name="", identifiers={}).source_url == (
+        "https://filepoint.live/kovitz_getholdings_cached4.php"
+    )
+
+    strategas = get_holdings_adapter("strategas")
+    assert strategas is not None
+    assert type(strategas).__name__ == "StrategasHoldingsAdapter"
+    assert strategas.resolve_source_url(symbol="SAGP") == (
+        "https://www.strategasetfs.com/holding/download/sagp"
+    )
+
     aot = get_holdings_adapter("aot")
     assert aot is not None
     assert type(aot).__name__ == "AotHoldingsAdapter"
@@ -18657,7 +18683,14 @@ def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
 
 def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited():
     expected = set(STOCKANALYSIS_PROVIDER_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"columbia_threadneedle", "mfs"}
+    promoted_native = {
+        "bluemonte",
+        "columbia_threadneedle",
+        "ershares",
+        "kovitz",
+        "mfs",
+        "strategas",
+    }
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -18675,6 +18708,11 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
     assert type(get_holdings_adapter("columbia_threadneedle")).__name__ == (
         "ColumbiaThreadneedleHoldingsAdapter"
     )
+    for adapter_key in {"bluemonte", "ershares", "kovitz", "strategas"}:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
