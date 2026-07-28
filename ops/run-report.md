@@ -14656,3 +14656,32 @@ Append a short entry after each worker session.
 - Full opt-in network matrix was not rerun after this fallback-only/source-row
   pass; latest full matrix evidence remains `333 passed, 1 skipped in 540.89s`
   from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
+
+## 2026-07-28T13:43Z Avantis Native Route Promotion
+
+- Continued under the corrected broad-market target: LSEG Lipper reports `496`
+  U.S. ETF promoters as of `2026-06-30`.
+- Promoted `avantis` from ETF.com-reconciled fallback-only support to
+  native/live-backed support through the public Avantis Investors `AVUV`
+  product page:
+  `https://www.avantisinvestors.com/avantis-investments/avantis-us-small-cap-value-etf/`.
+- Added explicit `AvantisHoldingsAdapter` wiring, native config, static parser
+  coverage, and concrete opt-in live coverage. `american_century` remains
+  supported separately as the existing parent/legacy route key.
+- Current strict state: `420` registered / `327` native-live-backed / `93`
+  fallback-only / target `496` / registered gap `76` /
+  `generated_recognition_only []`.
+- Validation passed:
+  - focused Avantis/ETF.com reconciliation/source-audit slice:
+    `5 passed, 426 deselected`
+  - deterministic ETF adapter suite:
+    `431 passed in 17.41s`
+  - strict manifest recompute:
+    `420` registered / `327` native / `93` fallback / `audit_matches True`
+  - opt-in Avantis plus live-provider manifest/accounting slice:
+    `3 passed, 332 deselected`
+  - Ruff: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.

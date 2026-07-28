@@ -36,6 +36,18 @@ tasks:
       - lint
     notes:
       - >
+        A 2026-07-28T13:43Z Avantis native promotion moved avantis from
+        ETF.com-reconciled fallback-only support to native/live-backed support
+        through the public Avantis Investors AVUV product page, which exposes
+        embedded complete holdings data parsed by an explicit Avantis adapter.
+        Current strict state is 420 registered / 327 native-live-backed / 93
+        fallback-only / target 496 / registered gap 76 /
+        generated_recognition_only []. This improves native support quality but
+        does not reduce the remaining source-reconciliation gap. Validation
+        passed: focused Avantis/ETF.com reconciliation/source-audit slice 5
+        passed; deterministic ETF adapter suite 431 passed; opt-in Avantis plus
+        manifest/accounting live slice 3 passed; Ruff; git diff --check.
+      - >
         A 2026-07-28T13:36Z ETFDB issuer-league exhaustion pass added
         mig_capital as the remaining distinct uncovered ETFDB/VettaFi
         issuer-league row and recorded TFG Parent Holdings LLC as a

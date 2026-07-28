@@ -1,5 +1,45 @@
 # Active Handoff
 
+## Avantis native route promotion - 2026-07-28T13:43Z
+
+- Continued under the corrected broad-market task scope: the current target is
+  the LSEG Lipper U.S. ETF promoter universe (`496` promoters as of
+  `2026-06-30`).
+- Promoted `avantis` from ETF.com-reconciled fallback-only support to
+  native/live-backed support. The route uses the public Avantis Investors AVUV
+  product page at
+  `https://www.avantisinvestors.com/avantis-investments/avantis-us-small-cap-value-etf/`,
+  which exposes embedded complete holdings data.
+- Added an explicit `AvantisHoldingsAdapter`, native config, static parser
+  coverage, and concrete opt-in live coverage for `AVUV`. The existing
+  `american_century` route remains supported for the parent/legacy key, but
+  `avantis` is no longer counted as fallback-only.
+- Current strict matrix after the promotion: `420` registered / `327`
+  native-live-backed / `93` fallback-only / target `496` promoters / `76`
+  registered-promoter gap / `generated_recognition_only []`.
+- This improves native support quality for a high-impact ETF brand, but it does
+  not reduce the remaining `76` source-reconciliation gap to the LSEG target.
+- Implementation/docs commit:
+  `0b2ec1a feat(etf): add native Avantis holdings route`.
+- Validation passed:
+  - focused Avantis/ETF.com reconciliation/source-audit slice:
+    `5 passed, 426 deselected`
+  - full deterministic ETF adapter unit file: `431 passed in 17.41s`
+  - strict manifest recompute: `420` registered / `327` native /
+    `93` fallback / gap `76` / `audit_matches True`
+  - opt-in Avantis plus live-provider manifest/accounting slice:
+    `3 passed, 332 deselected`
+  - Ruff for changed backend files: passed
+  - `git diff --check`: passed
+- Full opt-in network matrix was not rerun after this single-provider
+  promotion; the latest full matrix evidence remains `333 passed, 1 skipped in
+  540.89s` from the 2026-07-28T12:44Z Cyber Hornet hardening checkpoint.
+
+### Next step
+
+- Continue native route discovery for high-impact fallback-only providers, or
+  resume named-source reconciliation for the remaining `76` adapter-count gap.
+
 ## ETFDB issuer-league exhaustion pass - 2026-07-28T13:36Z
 
 - Continued under the corrected broad-market task scope: the current target is
