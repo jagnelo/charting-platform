@@ -1642,11 +1642,37 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
     "vident": ["vident"],
 }
 
+ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
+    "advisors_asset_management": ["advisors asset management", "aam"],
+    "alphaclone": ["alphaclone", "alpha clone"],
+    "alphamark_advisors": ["alphamark advisors", "alphamark"],
+    "credit_suisse": ["credit suisse"],
+    "elements": ["elements"],
+    "emqq": ["emqq"],
+    "esoterica": ["esoterica"],
+    "etf_managers_group": ["etf managers group", "etfmg"],
+    "formula_folio": ["formula folio"],
+    "highland_capital": ["highland capital"],
+    "knowledge_leaders": ["knowledge leaders"],
+    "merk": ["merk"],
+    "merlyn_ai": ["merlyn ai", "merlyn.ai", "merlyn"],
+    "new_age_alpha": ["new age alpha"],
+    "oshares": ["oshares", "o'shares"],
+    "premise_capital": ["premise capital"],
+    "riverfront": ["riverfront"],
+    "saba_capital": ["saba capital"],
+    "swedish_export_credit": ["swedish export credit"],
+    "trimtabs": ["trimtabs", "trim tabs"],
+}
+
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETFDB_LONG_TAIL_RECOGNITION_ONLY_ISSUER_HINTS
 )
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS
+)
+ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
+    ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
 
@@ -58367,15 +58393,22 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "rock_point",
     ),
     "needs_first_party_route_discovery": (
-        "alerian", "american_beacon", "avantis",
+        "advisors_asset_management", "alerian", "alphaclone",
+        "alphamark_advisors", "american_beacon", "avantis",
         "bridgeway", "calvert", "congress",
-        "day_hagan", "fcf_advisors", "freedom",
-        "fundstrat", "gotham", "horizons",
-        "leverage_shares", "meridian", "oakmark",
-        "panagram", "quadratic", "range",
-        "return_stacked", "robo_global", "rockefeller_capital",
-        "sp_funds", "strategy_shares", "touchstone",
-        "tradr", "us_benchmark_series", "vident",
+        "credit_suisse", "day_hagan", "elements",
+        "emqq", "esoterica", "etf_managers_group",
+        "fcf_advisors", "formula_folio", "freedom",
+        "fundstrat", "gotham", "highland_capital",
+        "horizons", "knowledge_leaders", "leverage_shares",
+        "merk", "meridian", "merlyn_ai",
+        "new_age_alpha", "oakmark", "oshares",
+        "panagram", "premise_capital", "quadratic",
+        "range", "return_stacked", "riverfront",
+        "robo_global", "rockefeller_capital", "saba_capital",
+        "sp_funds", "strategy_shares", "swedish_export_credit",
+        "touchstone", "tradr", "trimtabs",
+        "us_benchmark_series", "vident",
     ),
 }
 
@@ -58604,49 +58637,149 @@ class VidentReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETF.com-reconciled fallback adapter pending Vident route discovery."""
 
 
+class AdvisorsAssetManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending AAM route discovery."""
+
+
+class AlphaCloneReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending AlphaClone route discovery."""
+
+
+class AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending AlphaMark route discovery."""
+
+
+class CreditSuisseReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Credit Suisse route discovery."""
+
+
+class ElementsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending ELEMENTS route discovery."""
+
+
+class EmqqReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending EMQQ route discovery."""
+
+
+class EsotericaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Esoterica route discovery."""
+
+
+class EtfManagersGroupReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending ETF Managers Group discovery."""
+
+
+class FormulaFolioReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending FormulaFolios route discovery."""
+
+
+class HighlandCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Highland route discovery."""
+
+
+class KnowledgeLeadersReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Knowledge Leaders discovery."""
+
+
+class MerkReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Merk route discovery."""
+
+
+class MerlynAiReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Merlyn.AI route discovery."""
+
+
+class NewAgeAlphaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending New Age Alpha route discovery."""
+
+
+class OSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending O'Shares route discovery."""
+
+
+class PremiseCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Premise Capital discovery."""
+
+
+class RiverFrontReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending RiverFront route discovery."""
+
+
+class SabaCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Saba Capital route discovery."""
+
+
+class SwedishExportCreditReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending Swedish Export Credit discovery."""
+
+
+class TrimTabsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """ETF.com issuer-page fallback adapter pending TrimTabs route discovery."""
+
+
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "aegon": AegonAuditedFallbackHoldingsAdapter,
+        "advisors_asset_management": AdvisorsAssetManagementReconciledFallbackHoldingsAdapter,
         "alerian": AlerianReconciledFallbackHoldingsAdapter,
+        "alphaclone": AlphaCloneReconciledFallbackHoldingsAdapter,
+        "alphamark_advisors": AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter,
         "american_beacon": AmericanBeaconReconciledFallbackHoldingsAdapter,
         "avantis": AvantisReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "calvert": CalvertReconciledFallbackHoldingsAdapter,
         "congress": CongressReconciledFallbackHoldingsAdapter,
+        "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
         "day_hagan": DayHaganReconciledFallbackHoldingsAdapter,
+        "elements": ElementsReconciledFallbackHoldingsAdapter,
+        "emqq": EmqqReconciledFallbackHoldingsAdapter,
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
         "epwa": EpwaAuditedFallbackHoldingsAdapter,
+        "esoterica": EsotericaReconciledFallbackHoldingsAdapter,
+        "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
+        "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
         "freedom": FreedomReconciledFallbackHoldingsAdapter,
         "fundstrat": FundstratReconciledFallbackHoldingsAdapter,
         "gotham": GothamReconciledFallbackHoldingsAdapter,
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
+        "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
+        "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
         "leverage_shares": LeverageSharesReconciledFallbackHoldingsAdapter,
         "manulife": ManulifeAuditedFallbackHoldingsAdapter,
         "marathon": MarathonAuditedFallbackHoldingsAdapter,
+        "merk": MerkReconciledFallbackHoldingsAdapter,
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
+        "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
+        "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
         "oakmark": OakmarkReconciledFallbackHoldingsAdapter,
         "orix": OrixAuditedFallbackHoldingsAdapter,
+        "oshares": OSharesReconciledFallbackHoldingsAdapter,
         "pacific_investments": PacificInvestmentsAuditedFallbackHoldingsAdapter,
         "panagram": PanagramReconciledFallbackHoldingsAdapter,
         "planrock": PlanRockAuditedFallbackHoldingsAdapter,
+        "premise_capital": PremiseCapitalReconciledFallbackHoldingsAdapter,
         "quadratic": QuadraticReconciledFallbackHoldingsAdapter,
         "q3": Q3AuditedFallbackHoldingsAdapter,
         "range": RangeReconciledFallbackHoldingsAdapter,
         "return_stacked": ReturnStackedReconciledFallbackHoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
+        "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
         "robo_global": RoboGlobalReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
         "rockefeller_capital": RockefellerCapitalReconciledFallbackHoldingsAdapter,
+        "saba_capital": SabaCapitalReconciledFallbackHoldingsAdapter,
         "sofi": SofiAuditedFallbackHoldingsAdapter,
         "sp_funds": SpFundsReconciledFallbackHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
+        "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
         "thrivent": ThriventAuditedFallbackHoldingsAdapter,
         "touchstone": TouchstoneReconciledFallbackHoldingsAdapter,
         "tradr": TradrReconciledFallbackHoldingsAdapter,
+        "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
         "us_benchmark_series": UsBenchmarkSeriesReconciledFallbackHoldingsAdapter,
         "vident": VidentReconciledFallbackHoldingsAdapter,
         "westwood": WestwoodAuditedFallbackHoldingsAdapter,

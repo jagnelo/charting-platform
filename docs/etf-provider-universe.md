@@ -22,15 +22,15 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `372` ETF holdings adapter keys. These keys are
+The code currently enumerates `392` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `372`
-- Missing named promoter identities: `124`
+- Repo-registered adapter keys: `392`
+- Missing named promoter identities: `104`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -78,6 +78,41 @@ Added adapter keys:
 - `us_benchmark_series`
 - `vident`
 
+## Second Named Reconciliation Batch
+
+On `2026-07-28`, the second named reconciliation batch added `20` ETF.com
+issuer-page identities that were not already distinct repo adapter keys and
+were not clear aliases of existing route-backed providers. They are registered
+as explicit audited fallback-only adapters under
+`needs_first_party_route_discovery` until a first-party complete holdings route
+is proven for each provider.
+
+Batch source:
+`https://www.etf.com/etf-issuer`
+
+Added adapter keys:
+
+- `advisors_asset_management`
+- `alphaclone`
+- `alphamark_advisors`
+- `credit_suisse`
+- `elements`
+- `emqq`
+- `esoterica`
+- `etf_managers_group`
+- `formula_folio`
+- `highland_capital`
+- `knowledge_leaders`
+- `merk`
+- `merlyn_ai`
+- `new_age_alpha`
+- `oshares`
+- `premise_capital`
+- `riverfront`
+- `saba_capital`
+- `swedish_export_credit`
+- `trimtabs`
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -91,7 +126,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `151` promoter identities require a separate source reconciliation
+The missing `104` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
