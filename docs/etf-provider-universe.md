@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `329`
-- Audited fallback-only providers: `91`
+- Native/live-backed providers: `330`
+- Audited fallback-only providers: `90`
 
 Current gap to the broad LSEG promoter target:
 
@@ -48,12 +48,12 @@ On `2026-07-28`, the first named reconciliation batch added `27` ETF.com
 issuer/brand table identities that were not already distinct repo adapter keys.
 They were initially registered as explicit audited fallback-only adapters under
 `needs_first_party_route_discovery` until a first-party complete holdings route
-was proven for each provider. `avantis` has since been promoted to native
-support through its Avantis Investors product-page embedded holdings route, and
-`sp_funds` has been promoted through SP Funds product-page-declared daily
-holdings CSVs, and `touchstone` has been promoted through Touchstone ETF
-product-page full-holdings payloads. The other identities from this batch
-remain audited fallback-only until proven otherwise.
+was proven for each provider. `american_beacon` has since been promoted through
+American Beacon product-page-declared holdings CSVs, `avantis` through its
+Avantis Investors product-page embedded holdings route, `sp_funds` through SP
+Funds product-page-declared daily holdings CSVs, and `touchstone` through
+Touchstone ETF product-page full-holdings payloads. The other identities from
+this batch remain audited fallback-only until proven otherwise.
 
 Batch source:
 `https://www.etf.com/sections/etf-league-tables/etf-league-tables-state-street-gathers-52b`

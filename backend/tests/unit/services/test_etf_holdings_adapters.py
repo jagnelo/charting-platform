@@ -12100,8 +12100,12 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
 
 
 @pytest.mark.asyncio
-async def test_resolute_adapter_discovers_american_beacon_holdings_csv(monkeypatch):
-    adapter = get_holdings_adapter("resolute")
+@pytest.mark.parametrize("adapter_key", ["resolute", "american_beacon"])
+async def test_american_beacon_page_adapter_discovers_holdings_csv(
+    monkeypatch,
+    adapter_key,
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_url = "https://americanbeaconfunds.com/products/etfs/american-beacon-ahl-trend-etf/"
@@ -12224,9 +12228,12 @@ async def test_resolute_adapter_discovers_american_beacon_holdings_csv(monkeypat
     assert result.rows[3].holding_type == "equity"
     assert result.rows[3].symbol == "MSFT"
     assert result.rows[3].isin == "US5949181045"
+    assert result.legal_metadata["adapter_key"] == adapter_key
     assert result.legal_metadata["composition_date"] == "2026-07-23"
     assert result.legal_metadata["route_resolution"] == (
-        "resolute_american_beacon_product_page_declared_holdings_csv"
+        "american_beacon_product_page_declared_holdings_csv"
+        if adapter_key == "american_beacon"
+        else "resolute_american_beacon_product_page_declared_holdings_csv"
     )
 
 

@@ -60,6 +60,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "beacon_capital",
     "retireful",
     "resolute",
+    "american_beacon",
     "srn",
     "myriad",
     "reckoner",
@@ -414,6 +415,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("focus_financial", "EBI", None, {}, 1000),
         ("graff", "PFDE", None, {}, 50),
         ("resolute", "AHLT", None, {}, 200),
+        ("american_beacon", "AHLT", None, {}, 200),
         (
             "corgi",
             "FDRS",

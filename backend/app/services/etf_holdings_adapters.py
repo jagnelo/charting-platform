@@ -1643,7 +1643,7 @@ ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
 }
 
 ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
-    {"avantis", "sp_funds", "touchstone"}
+    {"american_beacon", "avantis", "sp_funds", "touchstone"}
 )
 
 ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS: dict[str, list[str]] = {
@@ -45968,6 +45968,10 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch American Beacon/Resolute ETF holdings from issuer-declared CSVs."""
 
+    adapter_label = "Resolute/American Beacon"
+    route_resolution = "resolute_american_beacon_product_page_declared_holdings_csv"
+    snapshot_provenance = "american_beacon_native_csv"
+
     FUND_PAGES = {
         "AHLT": "https://americanbeaconfunds.com/products/etfs/american-beacon-ahl-trend-etf/",
         "MGNR": "https://americanbeaconfunds.com/products/etfs/american-beacon-glg-natural-resources-etf/",
@@ -45989,10 +45993,10 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 confidence=Decimal("0.3000") if has_sec_fallback else Decimal("0"),
                 status="ready" if has_sec_fallback else "unsupported",
                 reason=(
-                    "Resolute/American Beacon's configured native routes currently cover "
+                    f"{self.adapter_label}'s configured native routes currently cover "
                     "AHLT, MGNR, and CPII only; SEC EDGAR remains available as fallback."
                     if has_sec_fallback
-                    else "Resolute/American Beacon's configured native routes currently cover AHLT, MGNR, and CPII only."
+                    else f"{self.adapter_label}'s configured native routes currently cover AHLT, MGNR, and CPII only."
                 ),
             )
         return HoldingsAdapterProbe(
@@ -46019,7 +46023,9 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
         requested_symbol = symbol.strip().upper()
         product_page_url = source_url or self.FUND_PAGES.get(requested_symbol)
         if requested_symbol not in self.FUND_PAGES or not product_page_url:
-            raise ValueError("Resolute/American Beacon's configured native routes currently cover AHLT, MGNR, and CPII only.")
+            raise ValueError(
+                f"{self.adapter_label}'s configured native routes currently cover AHLT, MGNR, and CPII only."
+            )
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             page_response = await client.get(
@@ -46069,13 +46075,13 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "csv",
-                "route_resolution": "resolute_american_beacon_product_page_declared_holdings_csv",
+                "route_resolution": self.route_resolution,
                 "product_page_url": product_page_url,
                 "composition_date": composition_date.isoformat(),
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
-                "snapshot_provenance": "american_beacon_native_csv",
+                "snapshot_provenance": self.snapshot_provenance,
             },
         )
 
@@ -46218,6 +46224,29 @@ class ResoluteHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "ETF" in text or "FUND" in text:
             return "security", "fund"
         return "security", "equity"
+
+
+class AmericanBeaconHoldingsAdapter(ResoluteHoldingsAdapter):
+    """Native American Beacon integration for issuer-declared ETF holdings CSVs."""
+
+    adapter_label = "American Beacon"
+    route_resolution = "american_beacon_product_page_declared_holdings_csv"
+    snapshot_provenance = "american_beacon_native_csv"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
 
 
 class LeutholdHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -55746,6 +55775,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "be subject to issuer terms."
         ),
     ),
+    "american_beacon": IssuerCsvAdapterConfig(
+        adapter_key="american_beacon",
+        source_provider="american_beacon",
+        source_access="issuer_public_product_page_declared_complete_holdings_csv",
+        product_page_templates=(
+            "https://americanbeaconfunds.com/products/etfs/american-beacon-ahl-trend-etf/",
+            "https://americanbeaconfunds.com/products/etfs/american-beacon-glg-natural-resources-etf/",
+            "https://americanbeaconfunds.com/products/etfs/american-beacon-ionic-inflation-protection-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "American Beacon public ETF product pages and holdings CSV downloads may "
+            "be subject to issuer terms."
+        ),
+    ),
     "applied_finance": IssuerCsvAdapterConfig(
         adapter_key="applied_finance",
         source_provider="applied_finance",
@@ -58860,7 +58904,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management", "alerian", "alphaclone",
-        "alphamark_advisors", "american_beacon", "amg_national",
+        "alphamark_advisors", "amg_national",
         "argent", "azimut", "baillie_gifford",
         "bancreek", "bridgeway", "calvert",
         "congress", "credit_suisse", "day_hagan",
@@ -59314,7 +59358,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "alphaclone": AlphaCloneReconciledFallbackHoldingsAdapter,
         "alphamark_advisors": AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter,
         "amg_national": AmgNationalReconciledFallbackHoldingsAdapter,
-        "american_beacon": AmericanBeaconReconciledFallbackHoldingsAdapter,
+        "american_beacon": AmericanBeaconHoldingsAdapter,
         "argent": ArgentReconciledFallbackHoldingsAdapter,
         "avantis": AvantisHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
