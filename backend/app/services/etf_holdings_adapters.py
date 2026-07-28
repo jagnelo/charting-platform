@@ -1747,6 +1747,19 @@ STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
     "jlens": ["jlens"],
 }
 
+STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS: dict[str, list[str]] = {
+    "smi_funds": ["smi funds"],
+    "militia": ["militia"],
+    "roc": ["roc etf"],
+    "madison_avenue": ["madison avenue"],
+    "pathfinder": ["pathfinder"],
+    "yoke": ["yoke"],
+    "pabrai": ["pabrai"],
+    "cresalta": ["cresalta"],
+    "hilton": ["hilton"],
+    "north_square": ["north square"],
+}
+
 ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
     "Proshare Advisors LLC": (
         "proshares",
@@ -2095,6 +2108,54 @@ STOCKANALYSIS_PROVIDER_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
         "estate_counselors",
         "StockAnalysis fund-family display name for the existing Estate Counselors/Brinsmere adapter.",
     ),
+    "HCM": (
+        "howard_capital",
+        "StockAnalysis short display name for the existing Howard Capital Management adapter.",
+    ),
+    "Convergence": (
+        "convergence",
+        "StockAnalysis short display name for the existing Convergence adapter.",
+    ),
+    "Swan": (
+        "swan_global",
+        "StockAnalysis short display name for the existing Swan Global adapter.",
+    ),
+    "Polen": (
+        "polen",
+        "StockAnalysis short display name for the existing Polen adapter.",
+    ),
+    "Counterpoint": (
+        "counterpoint",
+        "StockAnalysis short display name for the existing Counterpoint adapter.",
+    ),
+    "Abacus": (
+        "abacus_global",
+        "StockAnalysis short display name for the existing Abacus Global adapter.",
+    ),
+    "Baron": (
+        "baron",
+        "StockAnalysis short display name for the existing Baron adapter.",
+    ),
+    "NPF": (
+        "norris_perne_french",
+        "StockAnalysis abbreviation for the existing Norris Perne French adapter.",
+    ),
+    "TappAlpha": (
+        "tapp",
+        "StockAnalysis brand display name for the existing TappAlpha adapter.",
+    ),
+    "Canary": (
+        "canary",
+        "StockAnalysis short display name for the existing Canary Capital adapter.",
+    ),
+    "Transamerica": (
+        "aegon",
+        "StockAnalysis brand display name for the existing Aegon/Transamerica adapter.",
+    ),
+    "KKM Financial": (
+        "killir",
+        "StockAnalysis fund-family display name for the existing Killir/KKM adapter.",
+    ),
 }
 
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
@@ -2120,6 +2181,9 @@ ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
 )
 ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
     STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS
+)
+ETFDB_RECOGNITION_ONLY_ISSUER_HINTS.update(
+    STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS
 )
 ISSUER_NAME_HINTS.update(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS)
 for _source_name, (_adapter_key, _reason) in ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS.items():
@@ -59174,7 +59238,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphamark_advisors", "amg_national",
         "argent", "azimut", "baillie_gifford",
         "ars", "bancreek", "bluemonte", "bridgeway", "bushido", "calvert",
-        "castellan", "columbia_threadneedle", "credit_suisse",
+        "castellan", "columbia_threadneedle", "credit_suisse", "cresalta",
         "desjardins", "dvx_ventures", "elements",
         "emirate_abu_dhabi", "emqq", "esoterica",
         "ershares", "etf_managers_group", "everence", "fairlead",
@@ -59182,24 +59246,25 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "framework_digital_advisors", "freedom",
         "fundstrat", "gc_ferry_parent", "gotham",
         "granite_group_advisors", "guggenheim", "hexis",
-        "highland_capital", "horizons", "jlens",
+        "highland_capital", "hilton", "horizons", "jlens",
         "knowledge_leaders", "kovitz", "leverage_shares",
-        "lsv", "m2_financial", "m_d_sass", "max",
+        "lsv", "m2_financial", "m_d_sass", "madison_avenue", "max",
         "measured_risk_portfolios",
         "merchant_investment_management", "merk", "meridian", "mfs",
-        "merlyn_ai", "mig_capital", "milliman",
-        "new_age_alpha", "nicholas_wealth",
+        "merlyn_ai", "mig_capital", "militia", "milliman",
+        "new_age_alpha", "nicholas_wealth", "north_square",
         "norris_perne_french", "oakmark", "oshares",
-        "opus_capital_management", "panagram", "premise_capital", "pzena",
+        "opus_capital_management", "pabrai", "panagram", "pathfinder",
+        "premise_capital", "pzena",
         "portfolio_building_block", "putnam",
         "quadratic", "range", "return_stacked",
         "riverfront", "robo_global", "rockefeller_capital",
-        "saba_capital", "sapient", "saturna",
+        "roc", "saba_capital", "sapient", "saturna", "smi_funds",
         "strategas", "strategy_shares", "subversive",
         "swedish_export_credit",
         "trimtabs", "us_benchmark_series",
         "tweedy_browne", "vega_financial", "wellesley_asset_management",
-        "vistashares", "worth_charting",
+        "vistashares", "worth_charting", "yoke",
     ),
 }
 
@@ -59700,6 +59765,46 @@ class JLensReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending JLens discovery."""
 
 
+class SmiFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending SMI Funds discovery."""
+
+
+class MilitiaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Militia discovery."""
+
+
+class RocReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending ROC discovery."""
+
+
+class MadisonAvenueReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Madison Avenue discovery."""
+
+
+class PathfinderReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Pathfinder discovery."""
+
+
+class YokeReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Yoke discovery."""
+
+
+class PabraiReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Pabrai discovery."""
+
+
+class CresAltaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending CresAlta discovery."""
+
+
+class HiltonReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending Hilton discovery."""
+
+
+class NorthSquareReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """StockAnalysis provider-table fallback adapter pending North Square discovery."""
+
+
 def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAdapter:
     adapter_types: dict[str, type[IssuerCsvHoldingsAdapter]] = {
         "aegon": AegonAuditedFallbackHoldingsAdapter,
@@ -59723,6 +59828,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "columbia_threadneedle": ColumbiaThreadneedleReconciledFallbackHoldingsAdapter,
         "congress": CongressHoldingsAdapter,
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
+        "cresalta": CresAltaReconciledFallbackHoldingsAdapter,
         "day_hagan": DayHaganHoldingsAdapter,
         "desjardins": DesjardinsReconciledFallbackHoldingsAdapter,
         "dvx_ventures": DvxVenturesReconciledFallbackHoldingsAdapter,
@@ -59750,6 +59856,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
         "hexis": HexisReconciledFallbackHoldingsAdapter,
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
+        "hilton": HiltonReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
         "jlens": JLensReconciledFallbackHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
@@ -59758,6 +59865,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "lsv": LsvReconciledFallbackHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,
         "m_d_sass": MDSassReconciledFallbackHoldingsAdapter,
+        "madison_avenue": MadisonAvenueReconciledFallbackHoldingsAdapter,
         "manulife": ManulifeAuditedFallbackHoldingsAdapter,
         "marathon": MarathonAuditedFallbackHoldingsAdapter,
         "max": MaxReconciledFallbackHoldingsAdapter,
@@ -59768,17 +59876,21 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "measured_risk_portfolios": MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter,
         "mfs": MfsReconciledFallbackHoldingsAdapter,
         "mig_capital": MigCapitalReconciledFallbackHoldingsAdapter,
+        "militia": MilitiaReconciledFallbackHoldingsAdapter,
         "milliman": MillimanReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
         "nicholas_wealth": NicholasWealthReconciledFallbackHoldingsAdapter,
+        "north_square": NorthSquareReconciledFallbackHoldingsAdapter,
         "norris_perne_french": NorrisPerneFrenchReconciledFallbackHoldingsAdapter,
         "oakmark": OakmarkReconciledFallbackHoldingsAdapter,
         "orix": OrixAuditedFallbackHoldingsAdapter,
         "oshares": OSharesReconciledFallbackHoldingsAdapter,
         "opus_capital_management": OpusCapitalManagementReconciledFallbackHoldingsAdapter,
         "pacific_investments": PacificInvestmentsAuditedFallbackHoldingsAdapter,
+        "pabrai": PabraiReconciledFallbackHoldingsAdapter,
         "panagram": PanagramReconciledFallbackHoldingsAdapter,
+        "pathfinder": PathfinderReconciledFallbackHoldingsAdapter,
         "planrock": PlanRockAuditedFallbackHoldingsAdapter,
         "portfolio_building_block": PortfolioBuildingBlockReconciledFallbackHoldingsAdapter,
         "premise_capital": PremiseCapitalReconciledFallbackHoldingsAdapter,
@@ -59791,11 +59903,13 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
         "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
         "robo_global": RoboGlobalReconciledFallbackHoldingsAdapter,
+        "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
         "rockefeller_capital": RockefellerCapitalReconciledFallbackHoldingsAdapter,
         "saba_capital": SabaCapitalReconciledFallbackHoldingsAdapter,
         "sapient": SapientReconciledFallbackHoldingsAdapter,
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,
+        "smi_funds": SmiFundsReconciledFallbackHoldingsAdapter,
         "sofi": SofiAuditedFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,
         "strategas": StrategasReconciledFallbackHoldingsAdapter,
@@ -59814,6 +59928,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "westwood": WestwoodAuditedFallbackHoldingsAdapter,
         "vistashares": VistaSharesReconciledFallbackHoldingsAdapter,
         "worth_charting": WorthChartingReconciledFallbackHoldingsAdapter,
+        "yoke": YokeReconciledFallbackHoldingsAdapter,
         "acquirers": AcquirersHoldingsAdapter,
         "infrastructure_capital": InfrastructureCapitalHoldingsAdapter,
         "acuitas": AcuitasHoldingsAdapter,

@@ -22,20 +22,20 @@ The earlier `478` figure came from LSEG Lipper's Q1 2026 report, as of
 
 ## Repo Coverage
 
-The code currently enumerates `440` ETF holdings adapter keys. These keys are
+The code currently enumerates `450` ETF holdings adapter keys. These keys are
 all explicit adapter classes; dynamically generated recognition-only fallback
 classes are not allowed.
 
 Current native-route split:
 
 - Native/live-backed providers: `332`
-- Audited fallback-only providers: `108`
+- Audited fallback-only providers: `118`
 
 Current gap to the broad LSEG promoter target:
 
 - Market target: `496`
-- Repo-registered adapter keys: `440`
-- Missing named promoter identities: `56`
+- Repo-registered adapter keys: `450`
+- Missing named promoter identities: `46`
 
 Do not fill this gap by inventing placeholder provider names. The public LSEG
 article publishes the count, not the full promoter-name table. A provider may be
@@ -338,6 +338,50 @@ The `Eagle`, `iM`, and `Horizon` rows remain unresolved because their short
 display names are unsafe substring hints without a more specific source-row
 spelling in this table snapshot.
 
+## Eighth Named Reconciliation Batch
+
+On `2026-07-28`, a second StockAnalysis provider-table continuation pass added
+`10` more ranked provider identities that were not already distinct repo adapter
+keys after alias checks against existing adapters. They are registered as
+explicit audited fallback-only adapters under `needs_first_party_route_discovery`
+until a first-party complete holdings route is proven for each provider.
+
+Batch source:
+`https://stockanalysis.com/etf/provider/`
+
+The same source table listed `469` U.S. ETF providers and ranked them by ETF
+assets, ETF count, and average expense ratio when refreshed on `2026-07-28`.
+
+Added adapter keys:
+
+- `smi_funds`
+- `militia`
+- `roc`
+- `madison_avenue`
+- `pathfinder`
+- `yoke`
+- `pabrai`
+- `cresalta`
+- `hilton`
+- `north_square`
+
+Additional dispositions:
+
+- `HCM` -> `howard_capital`
+- `Convergence` -> `convergence`
+- `Swan` -> `swan_global`
+- `Polen` -> `polen`
+- `Counterpoint` -> `counterpoint`
+- `Abacus` -> `abacus_global`
+- `Baron` -> `baron`
+- `NPF` -> `norris_perne_french`
+- `TappAlpha` -> `tapp`
+- `Canary` -> `canary`
+- `Transamerica` -> `aegon`
+- `KKM Financial` -> `killir`
+
+These dispositions are source reconciled but do not create new provider keys.
+
 ## Implementation Rule
 
 Every registered provider identity must have an explicit adapter class.
@@ -351,7 +395,7 @@ Every registered provider identity must have an explicit adapter class.
 
 ## Reconciliation Rule
 
-The missing `56` promoter identities require a separate source reconciliation
+The missing `46` promoter identities require a separate source reconciliation
 step before code registration:
 
 1. Obtain a current named U.S. ETF promoter/brand universe from LSEG Lipper,
