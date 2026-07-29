@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T22:50:00Z
+
+- Added a bounded persisted tool registry and the real `Add tool` control. It offers
+  only currently implemented primary-workstation tools, creates a unique serializable
+  window/configuration, inserts the virtual component into Golden Layout, marks it
+  active, and saves the resulting workspace snapshot. Generic reopened charts, notes,
+  alerts, EasyScan, gauges, and Study Lab tools render through their real tool paths.
+- Pushed `df5039a feat(workstation): reopen persisted tools from registry`.
+- Validation passed: focused workspace-store/Study Lab suites `6 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement user-visible recovery copies for stale workspace revisions and corrupt or
+  unknown serializable tool/layout state. Only disjoint layout changes may merge; all
+  other conflicts must preserve both copies for export/recovery.
+
 ## Continuation update — 2026-07-29T22:47:00Z
 
 - Study Lab event selections now publish their timestamp in addition to the symbol.

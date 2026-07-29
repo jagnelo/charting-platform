@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T22:50:00Z Persisted tool registry
+
+- Added the first real tool-library/open path. It offers only implemented tools,
+  creates unique JSON-only workspace-window state, appends a Golden Layout component,
+  selects it, and persists the snapshot. Reopened generic chart, notes, alerts,
+  EasyScan, gauge, and Study Lab windows follow their existing real render paths.
+- Pushed `df5039a feat(workstation): reopen persisted tools from registry`.
+- Validation passed: focused workspace-store and StudyLabTool suites `6 passed`,
+  frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-29T22:47:00Z Study Lab occurrence timestamp linking
 
 - Extended the workstation link event with an optional historical timestamp. Selecting
