@@ -10,6 +10,8 @@ Condition tree format (new):
   ]}
 """
 
+import json
+
 
 class TestScreenerCRUD:
     def test_create_screener(self, client, auth_headers):
@@ -203,6 +205,40 @@ class TestScreenerRun:
         )
         assert results_res.status_code == 200
         assert len(results_res.json()) >= 1
+
+    def test_streaming_scan_reports_missing_local_history_without_provider_fetch(
+        self, client, auth_headers, instrument_b
+    ):
+        """Cold scan members are coverage exclusions, not interactive provider calls."""
+        created = client.post(
+            "/api/v1/screeners",
+            headers=auth_headers,
+            json={
+                "name": "Local history only",
+                "conditions": {"operator": "AND", "conditions": []},
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument_b.id],
+                "timeframe": "D1",
+            },
+        )
+        assert created.status_code == 201
+
+        response = client.post(
+            f"/api/v1/screeners/{created.json()['id']}/run/stream", headers=auth_headers
+        )
+        assert response.status_code == 200
+        events = [json.loads(line) for line in response.text.splitlines()]
+        assert {
+            "type": "error",
+            "instrument_id": instrument_b.id,
+            "code": "coverage_missing_ohlcv",
+            "message": "Fewer than two canonical local bars are available for this timeframe.",
+        } in events
+        done = events[-1]
+        assert done["type"] == "done"
+        assert (
+            done["coverage"]["excluded"][str(instrument_b.id)]["code"] == "coverage_missing_ohlcv"
+        )
 
     def test_or_logic_screener(self, client, auth_headers, instrument, ohlcv_bars):
         """OR screener: either impossible OR definitely-true → should match."""

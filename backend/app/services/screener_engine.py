@@ -9,7 +9,6 @@ Indicator results are cached in the `indicator_cache` table so subsequent
 runs only need to compute bars added since the last cache entry.
 """
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -33,9 +32,6 @@ from app.models.watchlist import Watchlist, WatchlistItem
 from app.services.indicators import OHLCVSeries, compute_indicator, normalize_indicator_params
 
 GRACE_PERIOD_DAYS = 7
-
-# Global semaphore: caps concurrent provider fetches during screener Pass 2.
-_FETCH_SEMAPHORE = asyncio.Semaphore(3)
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +436,9 @@ async def _evaluate_condition(
         cur_indicator = indicator_series[n - 1]
         prev_indicator = indicator_series[n - 2]
         computed[field] = cur_price
-        computed[f"{ind_type}_{key}"] = float(cur_indicator) if not np.isnan(cur_indicator) else None
+        computed[f"{ind_type}_{key}"] = (
+            float(cur_indicator) if not np.isnan(cur_indicator) else None
+        )
 
         if np.isnan(cur_indicator):
             return False, computed
@@ -644,6 +642,7 @@ async def run_screener(
 
     matched_ids: list[int] = []
     result_data: dict[str, dict] = {}
+    excluded: dict[str, dict[str, str]] = {}
     error: str | None = None
 
     try:
@@ -665,6 +664,10 @@ async def run_screener(
             try:
                 data = await _load_bars(db, inst_id, screener.timeframe)
                 if len(data.closes) < 2:
+                    excluded[str(inst_id)] = {
+                        "code": "coverage_missing_ohlcv",
+                        "message": "Fewer than two canonical local bars are available for this timeframe.",
+                    }
                     continue
                 matched, computed = await _evaluate_condition(
                     screener.conditions, data, inst, screener.timeframe, db
@@ -674,6 +677,13 @@ async def run_screener(
                     result_data[str(inst_id)] = {k: v for k, v in computed.items() if v is not None}
             except Exception as e:
                 logger.warning(f"Screener error on instrument {inst_id}: {e}")
+                excluded[str(inst_id)] = {"code": "evaluation_error", "message": str(e)}
+
+        result_data["_coverage"] = {
+            "universe_count": len(instrument_ids),
+            "evaluated_count": len(instrument_ids) - len(excluded),
+            "excluded": excluded,
+        }
 
         # Flush cache writes
         await db.commit()
@@ -881,21 +891,18 @@ async def stream_screener(
     screener: ScreenerDefinition,
 ) -> AsyncIterator[dict]:
     """
-    Two-pass screener that yields events as results arrive.
+    Local-canonical screener that yields events as results arrive.
 
-    Pass 1 — instruments with OHLCV already in the DB: fast, emits matches
-              immediately without any outbound network calls.
-    Pass 2 — instruments with no cached OHLCV: fetches from the configured provider
-              (rate-limited via _FETCH_SEMAPHORE), then evaluates.
+    Scans only the platform's canonical local history. Missing history is a
+    per-instrument coverage error, never a provider request from a UI action.
 
     Yielded event shapes:
       {"type": "progress", "evaluated": int, "total": int, "matches": int}
       {"type": "match",    "instrument_id": int, "computed": dict}
+      {"type": "error",    "instrument_id": int, "code": str, "message": str}
       {"type": "done",     "evaluated": int, "total": int, "matches": int,
-                           "duration_ms": int, "result_id": int}
+                           "duration_ms": int, "result_id": int, "coverage": dict}
     """
-    from app.services.market_data import fetch_ohlcv_latest  # avoid circular at module level
-
     t_start = time.monotonic()
     run_at = datetime.now(UTC)
 
@@ -926,12 +933,13 @@ async def stream_screener(
     has_data_set = set((await db.execute(has_data_stmt)).scalars().all())
 
     has_data_ids = [iid for iid in instrument_ids if iid in has_data_set]
-    needs_fetch_ids = [iid for iid in instrument_ids if iid not in has_data_set]
+    missing_data_ids = [iid for iid in instrument_ids if iid not in has_data_set]
 
     evaluated = 0
     matched = 0
     matched_ids: list[int] = []
     result_data: dict[str, dict] = {}
+    excluded: dict[str, dict[str, str]] = {}
 
     # ── Pass 1: evaluate instruments with cached OHLCV ────────────────────────
     for inst_id in has_data_ids:
@@ -956,12 +964,13 @@ async def stream_screener(
                     }
         except Exception as exc:
             logger.warning("Screener Pass 1 error on %d: %s", inst_id, exc)
+            excluded[str(inst_id)] = {"code": "evaluation_error", "message": str(exc)}
 
         evaluated += 1
         if evaluated % 20 == 0:
             yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
 
-    # Flush indicator cache writes accumulated during Pass 1
+    # Flush indicator cache writes accumulated during local evaluation.
     try:
         await db.commit()
     except Exception:
@@ -969,43 +978,22 @@ async def stream_screener(
 
     yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
 
-    # ── Pass 2: fetch-then-evaluate instruments with no cached OHLCV ──────────
-    for inst_id in needs_fetch_ids:
-        inst = instruments.get(inst_id)
-        if inst is None:
-            evaluated += 1
-            yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
-            continue
-        try:
-            async with _FETCH_SEMAPHORE:
-                bars = await fetch_ohlcv_latest(
-                    db, inst, screener.timeframe, SCREENER_LOOKBACK_BARS
-                )
-            if len(bars) >= 2:
-                data = OHLCVSeries.from_orm_bars(bars)
-                ok, computed = await _evaluate_condition(
-                    screener.conditions, data, inst, screener.timeframe, db
-                )
-                if ok:
-                    matched += 1
-                    matched_ids.append(inst_id)
-                    result_data[str(inst_id)] = {k: v for k, v in computed.items() if v is not None}
-                    yield {
-                        "type": "match",
-                        "instrument_id": inst_id,
-                        "computed": result_data[str(inst_id)],
-                    }
-        except Exception as exc:
-            logger.warning("Screener Pass 2 error on %d: %s", inst_id, exc)
-
+    # Missing local data is visible to callers and does not trigger a provider fan-out.
+    for inst_id in missing_data_ids:
+        excluded[str(inst_id)] = {
+            "code": "coverage_missing_ohlcv",
+            "message": "Fewer than two canonical local bars are available for this timeframe.",
+        }
         evaluated += 1
+        yield {"type": "error", "instrument_id": inst_id, **excluded[str(inst_id)]}
         yield {"type": "progress", "evaluated": evaluated, "total": total, "matches": matched}
 
-    # Flush final cache writes from Pass 2
-    try:
-        await db.commit()
-    except Exception:
-        pass
+    coverage = {
+        "universe_count": total,
+        "evaluated_count": total - len(excluded),
+        "excluded": excluded,
+    }
+    result_data["_coverage"] = coverage
 
     duration_ms = int((time.monotonic() - t_start) * 1000)
     logger.info(
@@ -1038,4 +1026,5 @@ async def stream_screener(
         "matches": matched,
         "duration_ms": duration_ms,
         "result_id": result.id,
+        "coverage": coverage,
     }
