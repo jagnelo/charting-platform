@@ -17,7 +17,7 @@
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
     <p v-else-if="busy" class="easy-scan__state">{{ status }}</p>
-    <p v-else-if="result" class="easy-scan__result"><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}</p>
+    <div v-else-if="result" class="easy-scan__result"><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}<span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span></div>
     <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
 </template>
@@ -40,6 +40,9 @@ const busy = ref(false)
 const status = ref('')
 const error = ref('')
 const result = ref<ScanResult | null>(null)
+const scanId = ref<number | null>(null)
+const alertTrigger = ref('entered')
+const alertCreated = ref(false)
 const validCondition = computed(() => Boolean(conditionName.value) && Number.isFinite(Number(value.value)))
 const coverageText = computed(() => {
   const coverage = result.value?.result_data._coverage as { evaluated_count?: number; universe_count?: number; excluded?: Record<string, unknown> } | undefined
@@ -75,7 +78,7 @@ async function saveCondition() {
 }
 async function run() {
   if (!selectedKey.value || !scanName.value) return
-  busy.value = true; error.value = ''; result.value = null; status.value = 'Preparing local EasyScan…'
+  busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; status.value = 'Preparing local EasyScan…'
   try {
     let scan: { id: number }
     try {
@@ -87,9 +90,17 @@ async function run() {
       if (!found) throw cause
       scan = found
     }
+    scanId.value = scan.id
     status.value = 'Evaluating canonical local data…'
     result.value = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
+  finally { busy.value = false }
+}
+async function createAlert() {
+  if (!scanId.value || alertCreated.value) return
+  busy.value = true; error.value = ''; status.value = 'Creating scan alert…'
+  try { await api.post('/alerts/screener', { screener_id: scanId.value, trigger_type: alertTrigger.value, repeat: true }); alertCreated.value = true }
+  catch (cause: any) { error.value = cause?.message ?? 'Unable to create scan alert' }
   finally { busy.value = false }
 }
 watch(selectedKey, key => { if (key && !scanName.value) scanName.value = `${conditions.value.find(item => item.stable_key === key)?.name ?? 'EasyScan'} Scan` })
@@ -102,5 +113,5 @@ onMounted(() => { void load() })
 .easy-scan__controls { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(80px, 1fr) 38px; gap: 3px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
-.easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }
+.easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
 </style>
