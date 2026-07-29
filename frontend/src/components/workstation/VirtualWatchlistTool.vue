@@ -3,9 +3,14 @@
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
+      <select v-model="conditionFilter" :aria-label="`${label} saved condition filter`" :title="conditionFilterState">
+        <option value="">Filter: Off</option>
+        <option v-for="screener in screeners" :key="screener.id" :value="String(screener.id)">Filter: {{ screener.name }}</option>
+      </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <b>{{ filteredRows.length }}</b>
     </header>
+    <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
       <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}</label>
     </div>
@@ -36,7 +41,8 @@
 
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { api } from '@/lib/api'
 
 export interface WatchlistRow {
   instrumentId: number | null
@@ -51,6 +57,16 @@ export interface WatchlistColumn {
   width?: string
 }
 
+interface SavedScreener {
+  id: number
+  name: string
+}
+
+interface ScreenerResult {
+  matched_ids: number[]
+  run_at: string
+}
+
 const props = withDefaults(defineProps<{
   label: string
   rows: WatchlistRow[]
@@ -58,6 +74,7 @@ const props = withDefaults(defineProps<{
   columns?: WatchlistColumn[]
   visibleColumnKeys?: string[]
   filterText?: string
+  conditionScreenerId?: number | null
 }>(), {
   selected: '',
   columns: () => [
@@ -66,10 +83,15 @@ const props = withDefaults(defineProps<{
   ],
   visibleColumnKeys: () => [],
   filterText: '',
+  conditionScreenerId: null,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
+const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
+const screeners = ref<SavedScreener[]>([])
+const conditionMatchedIds = ref<Set<number> | null>(null)
+const conditionFilterState = ref('')
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 const columnMenuOpen = ref(false)
@@ -79,9 +101,12 @@ const visibleColumns = computed(() => props.columns.filter(column => activeColum
 const gridStyle = computed(() => ({ gridTemplateColumns: visibleColumns.value.map(column => column.width ?? 'minmax(72px, 1fr)').join(' ') }))
 const filteredRows = computed(() => {
   const needle = filter.value.trim().toLowerCase()
-  const rows = needle
+  const textRows = needle
     ? props.rows.filter(row => `${row.symbol} ${row.name}`.toLowerCase().includes(needle))
     : [...props.rows]
+  const rows = conditionMatchedIds.value === null
+    ? textRows
+    : textRows.filter(row => row.instrumentId != null && conditionMatchedIds.value?.has(row.instrumentId))
   return rows.sort((left, right) => {
     const leftValue = display(left, sortKey.value)
     const rightValue = display(right, sortKey.value)
@@ -109,6 +134,50 @@ watch(filteredRows, () => {
 })
 watch(filter, value => emit('update:filterText', value))
 watch(() => props.filterText, value => { if (value !== filter.value) filter.value = value })
+watch(() => props.conditionScreenerId, value => {
+  const normalized = value == null ? '' : String(value)
+  if (normalized !== conditionFilter.value) conditionFilter.value = normalized
+})
+watch(conditionFilter, value => { void applyConditionFilter(value) })
+
+async function loadScreeners() {
+  try {
+    screeners.value = await api.get<SavedScreener[]>('/screeners')
+  } catch {
+    conditionFilterState.value = 'Saved condition filters are unavailable.'
+  }
+}
+
+async function applyConditionFilter(value: string) {
+  const screenerId = Number(value)
+  conditionMatchedIds.value = null
+  conditionFilterState.value = ''
+  if (!Number.isInteger(screenerId) || screenerId <= 0) {
+    emit('update:conditionScreenerId', null)
+    return
+  }
+  emit('update:conditionScreenerId', screenerId)
+  conditionFilterState.value = 'Loading saved condition result…'
+  try {
+    const results = await api.get<ScreenerResult[]>(`/screeners/${screenerId}/results`, { limit: 1 })
+    const result = results[0]
+    if (!result) {
+      conditionMatchedIds.value = new Set()
+      conditionFilterState.value = 'Saved condition is active but has not been run yet.'
+      return
+    }
+    conditionMatchedIds.value = new Set(result.matched_ids)
+    conditionFilterState.value = `Saved condition active · latest result ${new Date(result.run_at).toLocaleString()}`
+  } catch {
+    conditionMatchedIds.value = new Set()
+    conditionFilterState.value = 'Saved condition result is unavailable; no rows are shown.'
+  }
+}
+
+onMounted(() => {
+  void loadScreeners()
+  if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
+})
 
 function display(row: WatchlistRow, key: string) {
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
@@ -148,13 +217,15 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <style scoped>
-.watchlist { display: grid; height: 100%; min-height: 0; grid-template-rows: 23px 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
-.watchlist--columns-open { grid-template-rows: 23px auto 22px minmax(0, 1fr); }
+.watchlist { display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist__controls { display: flex; align-items: center; gap: 6px; padding: 0 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
+.watchlist__controls select { min-width: 0; max-width: 120px; padding: 1px 2px; border: 1px solid #3d4a54; background: #11161b; color: #a9c0d0; font: inherit; text-transform: none; }
 .watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }
 .watchlist__controls b { color: #78aac8; font-weight: 600; }
 .watchlist__column-menu { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 4px 7px; background: #253039; border-bottom: 1px solid #384550; color: #b7c6d0; font-size: 10px; text-transform: none; letter-spacing: normal; }
+.watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__column-menu label { white-space: nowrap; }
 .watchlist__header, .watchlist__row { display: grid; min-width: 0; }
 .watchlist__header { background: #20282f; border-bottom: 1px solid #313c45; }

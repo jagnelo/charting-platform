@@ -1,5 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
 
@@ -8,6 +11,9 @@ const rows = [
   { instrumentId: 2, symbol: 'XLE', name: 'Energy', values: { relative_1m: -0.03 } },
   { instrumentId: 3, symbol: 'XLV', name: 'Health Care', values: { relative_1m: 0.02 } },
 ]
+
+beforeEach(() => apiGet.mockResolvedValue([]))
+afterEach(() => apiGet.mockReset())
 
 describe('VirtualWatchlistTool', () => {
   it('filters canonical rows and publishes the selected canonical row', async () => {
@@ -45,6 +51,38 @@ describe('VirtualWatchlistTool', () => {
     expect((wrapper.find('input').element as HTMLInputElement).value).toBe('energy')
     expect(wrapper.text()).toContain('XLE')
     expect(wrapper.text()).not.toContain('XLK')
+  })
+
+  it('applies a saved condition from its latest retained local scan result', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 91, name: 'Close above threshold' }])
+      if (path === '/screeners/91/results') return Promise.resolve([{ matched_ids: [2], run_at: '2026-07-30T00:00:00Z' }])
+      return Promise.resolve([])
+    })
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows },
+    })
+    await vi.waitFor(() => expect(wrapper.findAll('option')).toHaveLength(2))
+    await wrapper.find('select').setValue('91')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved condition active'))
+
+    expect(wrapper.text()).toContain('XLE')
+    expect(wrapper.text()).not.toContain('XLK')
+    expect(wrapper.emitted('update:conditionScreenerId')?.at(-1)).toEqual([91])
+  })
+
+  it('shows no rows rather than silently ignoring an unrun saved condition', async () => {
+    apiGet.mockImplementation((path: string) => path === '/screeners'
+      ? Promise.resolve([{ id: 92, name: 'Unrun condition' }])
+      : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows },
+    })
+    await vi.waitFor(() => expect(wrapper.findAll('option')).toHaveLength(2))
+    await wrapper.find('select').setValue('92')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('has not been run yet'))
+
+    expect(wrapper.findAll('.watchlist__row')).toHaveLength(0)
   })
 
   it('sorts a selected column without losing row identity', async () => {
