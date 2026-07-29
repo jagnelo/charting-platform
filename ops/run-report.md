@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T02:05:00Z Persisted layout-tab cloning
+
+- Made the workstation tab-strip plus control clone the active serializable layout.
+  It remaps every cloned window and Golden Layout component identity before scheduling
+  the normal revisioned workspace snapshot; the tab selection changes to the clone.
+- Pushed `b70ca6d feat(workstation): clone persisted layout tabs`.
+- Validation passed: focused workspace-store suite `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T01:50:00Z Remove obsolete workstation fallback
 
 - Removed the prior hard-coded grid fallback, including static sample analysis and a

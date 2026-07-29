@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T02:05:00Z
+
+- The tab strip's plus control now has a real persisted behavior: it clones the active
+  tab's serializable layout and tool configurations, remapping all window/component
+  identity references so the original and copy do not cross-control each other.
+  The clone is selected and saved through the existing revisioned workspace snapshot.
+- Pushed `b70ca6d feat(workstation): clone persisted layout tabs`.
+- Validation passed: focused store test `1 passed`, frontend type-check, production
+  build, and `git diff --check`.
+
+### Exact next step
+
+- Add rename/reorder/delete and conflict/recovery handling for personal layout tabs,
+  then cover snapshot reload and revision conflicts at the frontend/store boundary.
+  Keep factory tabs immutable/resettable and do not expose a control before it works.
+
 ## Continuation update — 2026-07-30T01:50:00Z
 
 - Removed the competing static workstation fallback from `WorkstationView`. It had
