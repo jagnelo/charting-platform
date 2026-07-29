@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-29T23:10:00Z",
-    "last_commit": "869a46d feat(workstation): render canonical technical summary",
+    "last_handoff_at": "2026-07-29T23:25:00Z",
+    "last_commit": "9e43a98 feat(workstation): add browser tool popouts",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (workstation top-down composition and focused code/research foundation modules, 2026-07-29)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-29T23:25:00Z: Browser pop-out route/control implementation pushed as 9e43a98. Pop-outs reload the requested tool from serializable workspace state, use the cross-window link bus, and retain source docking when the browser blocks a popup. Frontend type-check/build passed. Full active goal remains incomplete.",
         "2026-07-29T23:10:00Z: Added and pushed local canonical technical snapshots (e17cb91) and their workstation rendering (869a46d). The endpoint supplies RSI, SMA, 52-week position, and volume ratio from adjusted local bars with structured availability warnings. Validation: focused workstation integration 8 passed, Ruff/type-check/build/diff check passed. Full active goal remains incomplete.",
         "2026-07-29T22:55:00Z: Grouped and pushed the current TC2000 implementation as ef7c74e (canonical backend/research foundation), 5fc3f05 (docked top-down frontend), and 9c6613a (parity/operational documentation). Branch is synchronized with origin/feat/tc2000-frontend-rework; the full active goal remains incomplete.",
         "2026-07-29T22:50:00Z: Added TanStack Virtual-backed dense workstation lists and rebound benchmark, sector, and ETF/industry constituent tools to canonical rows. The component has focused filter/sort/canonical-selection coverage (2 passed); frontend type-check/build still pass. Full active goal remains incomplete.",

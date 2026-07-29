@@ -104,6 +104,15 @@
 - Pushed as `e17cb91 feat(analysis): add local technical snapshots` and
   `869a46d feat(workstation): render canonical technical summary`.
 
+### Continuation update — 2026-07-29T23:25:00Z
+
+- Float controls now open `/popout/:windowKey` browser windows. Pop-outs reload the
+  requested serializable tool state within the same workspace tab and participate in
+  the existing BroadcastChannel/store synchronization. A blocked popup leaves the
+  source tool docked and reports an explicit error.
+- Validation: frontend type-check and production build passed. Pushed as
+  `9e43a98 feat(workstation): add browser tool popouts`.
+
 ### Commit checkpoint — 2026-07-29T22:55:00Z
 
 - Pushed the current coherent implementation set to `origin/feat/tc2000-frontend-rework`:
