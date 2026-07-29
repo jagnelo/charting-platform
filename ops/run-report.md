@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T23:00:00Z Cross-window persistence leadership
+
+- Added renewable window-ID/heartbeat leadership, automatic stale-owner takeover, and
+  safe owner-only release on teardown for the shared persistence coordinator.
+- Pushed `e344da1 feat(workstation): transfer persistence leadership safely`.
+- Validation passed: focused workspace-store suite `8 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-29T22:57:00Z Unsupported tool recovery export
 
 - Replaced the inert unknown-tool fallback with an explicit recovery surface that

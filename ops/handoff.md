@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T23:00:00Z
+
+- Replaced one-shot persistence leadership with window-ID/heartbeat ownership. A
+  surviving window can take over after expiry, and the closing owner releases only its
+  own record. This avoids a permanently stale leader after a closed pop-out.
+- Pushed `e344da1 feat(workstation): transfer persistence leadership safely`.
+- Validation passed: focused workspace-store suite `8 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement and test closed/disconnected pop-out restoration against the serialized
+  source layout, then run browser-level cross-window/console validation.
+
 ## Continuation update — 2026-07-29T22:57:00Z
 
 - Unsupported saved tool types now render a recovery surface instead of a generic
