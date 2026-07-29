@@ -186,3 +186,42 @@ class TestWorkspaces:
         response = client.get(f"/api/v1/ohlcv/local/{instrument.symbol}/D1", headers=auth_headers)
         assert response.status_code == 200
         assert len(response.json()) == len(ohlcv_bars)
+
+    def test_technical_snapshot_uses_only_local_adjusted_bars(
+        self, client, auth_headers, db, instrument
+    ):
+        from datetime import UTC, datetime, timedelta
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        start = datetime(2025, 1, 1, tzinfo=UTC)
+        for index in range(252):
+            close = Decimal(100 + index)
+            db.add(
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=start + timedelta(days=index),
+                    open=close,
+                    high=close + 1,
+                    low=close - 1,
+                    close=close,
+                    volume=Decimal(1000 + index),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+        response = client.get(
+            f"/api/v1/analysis/instruments/{instrument.symbol}/technical",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["last"] == 351
+        assert payload["rsi14"] == 100
+        assert payload["sma20"] == 341.5
+        assert payload["sma50"] == 326.5
+        assert payload["sma200"] == 251.5
+        assert payload["position_52w"] == 1
+        assert payload["volume_ratio_50"] > 1

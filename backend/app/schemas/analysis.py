@@ -62,3 +62,18 @@ class BreadthOut(BaseModel):
     coverage: float = Field(ge=0, le=1)
     above_ma: dict[str, float | None]
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class TechnicalSnapshotOut(BaseModel):
+    symbol: str
+    timeframe: str
+    as_of: datetime | None
+    adjustment: str
+    last: float | None
+    rsi14: float | None
+    sma20: float | None
+    sma50: float | None
+    sma200: float | None
+    position_52w: float | None
+    volume_ratio_50: float | None
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
