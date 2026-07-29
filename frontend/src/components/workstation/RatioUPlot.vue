@@ -1,0 +1,97 @@
+<template>
+  <div ref="root" class="ratio-chart">
+    <div class="ratio-chart__legend"><strong>{{ symbol }}/{{ benchmark }}</strong><span>{{ status }}</span></div>
+    <div v-if="error" class="ratio-chart__state ratio-chart__state--error">{{ error }}</div>
+    <div v-else-if="!points.length" class="ratio-chart__state">No aligned local bars.</div>
+    <div v-else ref="host" class="ratio-chart__host" />
+    <small v-if="warning" class="ratio-chart__warning">{{ warning }}</small>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import uPlot from 'uplot'
+import 'uplot/dist/uPlot.min.css'
+import { api } from '@/lib/api'
+
+const props = defineProps<{ symbol: string; benchmark: string }>()
+const root = ref<HTMLElement | null>(null)
+const host = ref<HTMLElement | null>(null)
+const points = ref<Array<{ timestamp: string; value: number }>>([])
+const error = ref<string | null>(null)
+const warning = ref<string | null>(null)
+const status = ref('Local adjusted')
+let chart: uPlot | null = null
+let resizeObserver: ResizeObserver | null = null
+
+async function load() {
+  if (!props.symbol || !props.benchmark) return
+  error.value = null
+  try {
+    const payload = await api.get<{
+      points: Array<{ timestamp: string; value: number }>
+      coverage: number
+      warnings: Array<{ message: string }>
+    }>('/analysis/relative-strength', { symbol: props.symbol, benchmark: props.benchmark, adjusted: true })
+    points.value = payload.points
+    warning.value = payload.warnings.map(item => item.message).join(' ')
+    status.value = `${(payload.coverage * 100).toFixed(0)}% overlap · local adjusted`
+    await nextTick()
+    draw()
+  } catch (cause: any) {
+    points.value = []
+    error.value = cause?.message ?? 'Unable to calculate ratio'
+  }
+}
+
+function seriesData(): uPlot.AlignedData {
+  return [
+    points.value.map(point => Math.floor(new Date(point.timestamp).getTime() / 1000)),
+    points.value.map(point => point.value),
+  ]
+}
+
+function draw() {
+  if (!host.value || !points.value.length) return
+  const width = Math.max(180, host.value.clientWidth)
+  const height = Math.max(90, host.value.clientHeight)
+  const data = seriesData()
+  if (chart) {
+    chart.setData(data)
+    chart.setSize({ width, height })
+    return
+  }
+  chart = new uPlot({
+    width, height,
+    cursor: { drag: { x: true, y: false } },
+    scales: { x: { time: true }, y: { auto: true } },
+    axes: [
+      { stroke: '#70808b', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
+      { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
+    ],
+    series: [{}, { label: `${props.symbol}/${props.benchmark}`, stroke: '#6bc0ef', width: 1.5 }],
+  }, data, host.value)
+}
+
+watch(() => `${props.symbol}/${props.benchmark}`, () => { void load() })
+onMounted(() => {
+  resizeObserver = new ResizeObserver(() => draw())
+  if (root.value) resizeObserver.observe(root.value)
+  void load()
+})
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  chart?.destroy()
+  chart = null
+})
+</script>
+
+<style scoped>
+.ratio-chart { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 21px minmax(0, 1fr) auto; background: #101419; }
+.ratio-chart__legend { display: flex; gap: 8px; align-items: center; padding: 0 7px; color: #6bc0ef; border-bottom: 1px solid #26313a; font: 10px "Segoe UI", Arial, sans-serif; }
+.ratio-chart__legend span { color: #8296a4; }
+.ratio-chart__host { min-height: 0; }
+.ratio-chart__state { display: grid; place-items: center; color: #8fa0aa; font: 11px "Segoe UI", Arial, sans-serif; }
+.ratio-chart__state--error { color: #ec8f8f; }
+.ratio-chart__warning { padding: 3px 7px; color: #d0ae6d; font: 9px "Segoe UI", Arial, sans-serif; }
+</style>

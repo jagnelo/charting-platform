@@ -52,9 +52,7 @@
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <strong>{{ activeSymbol }}/SPY</strong>
-      <strong v-if="activeSymbol !== 'XLK'">{{ activeSymbol }}/XLK</strong>
-      <p>Ratios use only aligned canonical bars; gaps are excluded and reported.</p>
+      <RatioUPlot :symbol="activeSymbol" :benchmark="ratioBenchmark" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary'" class="metrics">
       <span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b>
@@ -83,6 +81,7 @@ import { useChartStore } from '@/stores/chart'
 import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
+import RatioUPlot from './RatioUPlot.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -100,6 +99,7 @@ const sectorPerformance = computed(() => Object.fromEntries(
 const breadth = computed(() => workspaceStore.breadth['sp500-sectors'])
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
+const ratioBenchmark = computed(() => selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY')
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
 const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
@@ -162,9 +162,7 @@ function formatRatio(value: number | null | undefined) { return value == null ? 
 .chart-tool { height: 100%; min-height: 0; background: #101419; }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
-.analysis { display: grid; gap: 8px; padding: 10px; color: #aebbc4; font: 11px "Segoe UI", Arial, sans-serif; }
-.analysis strong { color: #71c3f5; font-size: 14px; }
-.analysis p { color: #84929c; line-height: 1.45; }
+.analysis { height: 100%; min-height: 0; }
 .metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
