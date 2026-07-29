@@ -12,7 +12,11 @@ interface DockToolState {
   tool_type: string
 }
 
-const props = defineProps<{ layout: LayoutConfig; renderTool: (tool: DockToolState) => VNode }>()
+export interface DockToolActions {
+  toggleMaximize: () => void
+}
+
+const props = defineProps<{ layout: LayoutConfig; renderTool: (tool: DockToolState, actions: DockToolActions) => VNode }>()
 const emit = defineEmits<{ changed: [layout: Record<string, unknown>] }>()
 const host = ref<HTMLElement | null>(null)
 let goldenLayout: GoldenLayout | null = null
@@ -28,13 +32,18 @@ function install(layout: LayoutConfig) {
   clearMountedTools()
   goldenLayout?.destroy()
   goldenLayout = new GoldenLayout(host.value)
-  goldenLayout.registerComponentFactoryFunction('workstation-tool', (_container, state) => {
+  goldenLayout.registerComponentFactoryFunction('workstation-tool', (container, state) => {
     const tool = (state ?? {}) as DockToolState
     const rootHtmlElement = document.createElement('section')
     rootHtmlElement.className = 'workspace-layout-host__virtual-tool'
     rootHtmlElement.dataset.toolKey = tool.instance_key ?? ''
     mountedToolRoots.push(rootHtmlElement)
-    render(props.renderTool(tool), rootHtmlElement)
+    render(props.renderTool(tool, {
+      toggleMaximize: () => {
+        const stack = container.parent.parentItem as unknown as { toggleMaximise?: () => void }
+        stack.toggleMaximise?.()
+      },
+    }), rootHtmlElement)
     return { rootHtmlElement }
   }, true)
   goldenLayout.on('stateChanged', () => {

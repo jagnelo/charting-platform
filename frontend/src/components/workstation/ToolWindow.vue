@@ -1,7 +1,6 @@
 <template>
   <section class="tool-window" :class="{ 'tool-window--active': active }">
     <header class="tool-window__header">
-      <button class="tool-window__drag" type="button" aria-label="Drag tool">⠿</button>
       <strong class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
@@ -13,7 +12,6 @@
         >
           <option v-for="group in groups" :key="group" :value="group">{{ group }}</option>
         </select>
-        <button type="button" title="Tool menu" @click="emit('menu')">⋯</button>
         <button type="button" title="Maximize" @click="emit('maximize')">□</button>
         <button type="button" title="Float" @click="emit('float')">↗</button>
       </div>
@@ -40,7 +38,6 @@ withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:linkGroup': [value: LinkGroup]
-  menu: []
   maximize: []
   float: []
 }>()
@@ -52,8 +49,8 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 .tool-window { min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--tc-border, #30363c); background: var(--tc-window, #15191e); box-shadow: inset 0 1px rgba(255, 255, 255, 0.035); }
 .tool-window--active { border-color: #607486; }
 .tool-window__header { height: 25px; display: flex; align-items: center; gap: 5px; padding: 0 4px; background: linear-gradient(#2a3036, #1d2227); border-bottom: 1px solid #0d0f11; color: #d7dce0; font: 600 11px/1 "Segoe UI", Arial, sans-serif; user-select: none; }
-.tool-window__drag, .tool-window__actions button { border: 0; color: #aab4bc; background: transparent; cursor: pointer; min-width: 17px; height: 20px; font-size: 12px; }
-.tool-window__drag:hover, .tool-window__actions button:hover { color: #fff; background: #38414a; }
+.tool-window__actions button { border: 0; color: #aab4bc; background: transparent; cursor: pointer; min-width: 17px; height: 20px; font-size: 12px; }
+.tool-window__actions button:hover { color: #fff; background: #38414a; }
 .tool-window__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tool-window__symbol { color: #9fc2e0; font-weight: 700; }
 .tool-window__actions { margin-left: auto; display: flex; align-items: center; }

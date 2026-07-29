@@ -157,7 +157,7 @@ function floatTool(windowKey: string) {
   if (!popup) workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }): VNode {
+function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
@@ -169,6 +169,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),
     onConditionFilter: (windowKey: string, screenerId: number | null) => updateConditionFilter(windowKey, screenerId),
     onFloat: (windowKey: string) => floatTool(windowKey),
+    onMaximize: () => actions.toggleMaximize(),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
   })
 }
