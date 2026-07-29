@@ -225,3 +225,20 @@ class TestWorkspaces:
         assert payload["sma200"] == 251.5
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
+
+    def test_instrument_notes_are_user_scoped_and_autosave_ready(
+        self, client, auth_headers, instrument
+    ):
+        assert (
+            client.get(f"/api/v1/notes/instruments/{instrument.id}", headers=auth_headers).json()
+            is None
+        )
+        saved = client.put(
+            f"/api/v1/notes/instruments/{instrument.id}",
+            headers=auth_headers,
+            json={"content": "Watch relative strength against XLK."},
+        )
+        assert saved.status_code == 200
+        assert saved.json()["content"] == "Watch relative strength against XLK."
+        reloaded = client.get(f"/api/v1/notes/instruments/{instrument.id}", headers=auth_headers)
+        assert reloaded.json()["content"] == "Watch relative strength against XLK."

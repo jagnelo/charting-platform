@@ -72,6 +72,7 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                             component(windows[6]),
                             component(windows[7]),
                             component(windows[8]),
+                            component(windows[9]),
                         ],
                     },
                 ],
@@ -118,6 +119,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
         ("technical-summary", "analysis", "Technicals", {"scope": "selected"}),
         ("breadth-summary", "breadth", "Breadth", {"scope": "selected-sector"}),
         ("coverage-summary", "coverage", "Coverage", {"scope": "selected"}),
+        ("notes", "notes", "Notes", {"scope": "active-instrument"}),
     ]
     tab.layout_config = _factory_layout(default_windows, "us-top-down")
     for position, (instance_key, tool_type, title, configuration) in enumerate(default_windows):
