@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T03:35:00Z Typed Study Lab events and occurrence linking
+
+- Added validated event artifacts to the isolated runner. Every event requires a
+  timestamp and can reference only the prepared dataset's declared symbol; the runner
+  normalizes the symbol before persisting it. Study Lab renders events as occurrence
+  rows, and selecting one publishes its symbol through the workstation's linked flow.
+- Pushed `1e59889 feat(study-lab): link typed event artifacts to workspace`.
+- Validation passed: runner suite `7 passed` with `--no-cov`, Ruff/format, focused
+  StudyLabTool suite `1 passed`, frontend type-check/build, and `git diff --check`.
+
 ## 2026-07-30T03:20:00Z Persisted docked-tool closing
 
 - Golden Layout state changes now report the remaining serialized tool keys. The

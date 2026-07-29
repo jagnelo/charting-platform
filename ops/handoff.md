@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T03:35:00Z
+
+- Study Lab now has typed event artifacts. The isolated runner requires a timestamp
+  and rejects event symbols outside the declared prepared dataset; the UI renders
+  occurrences and publishes selected symbols to linked workstation tools.
+- Pushed `1e59889 feat(study-lab): link typed event artifacts to workspace`.
+- Validation passed: runner suite `7 passed` with `--no-cov`, Ruff/format, focused
+  StudyLabTool test `1 passed`, frontend type-check/build, and `git diff --check`.
+
+### Exact next step
+
+- Extend the link protocol with timestamp/crosshair events so an occurrence selects
+  the historical point in linked charts, then make safe artifact promotions preserve
+  immutable source code, dataset, and event provenance.
+
 ## Continuation update — 2026-07-30T03:20:00Z
 
 - Docked-tool close actions are now serialized correctly: Golden Layout reports the
