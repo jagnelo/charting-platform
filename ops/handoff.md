@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T22:55:00Z
+
+- Revision conflicts now fetch, prove, and retry only a disjoint serialized-window
+  merge: workspace settings, names, tab identity, active window, layout geometry, and
+  window membership must all be unchanged from the persisted baseline. Any overlap or
+  structural uncertainty retains the named recovery-copy path instead.
+- Pushed `cc3c8d1 feat(workstation): merge disjoint snapshot changes`.
+- Validation passed: focused workspace-store suite `7 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Add corrupt/unknown layout-tool recovery and export, then test closed/disconnected
+  pop-out restoration and cross-window leader transfer.
+
 ## Continuation update — 2026-07-29T22:52:00Z
 
 - A stale workspace snapshot now fetches the authoritative layout and creates a named,

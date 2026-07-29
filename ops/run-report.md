@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T22:55:00Z Disjoint workspace conflict merge
+
+- Added a single safe fetch/merge/retry path for revision conflicts. It merges only
+  independently changed serialized window records from a persisted baseline; any
+  structural or overlapping change remains a named recovery-copy case.
+- Pushed `cc3c8d1 feat(workstation): merge disjoint snapshot changes`.
+- Validation passed: focused workspace-store suite `7 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-29T22:52:00Z Stale workspace recovery copies
 
 - A revision-conflicted snapshot now reloads the authoritative workspace and first
