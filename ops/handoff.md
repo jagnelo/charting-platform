@@ -1,5 +1,85 @@
 # Active Handoff
 
+## Complete TC2000/workstation/backend/research plan reconciliation - 2026-07-29T17:18:21Z
+
+- Replaced the outdated section 14 design with the complete agreed implementation
+  specification for the same `feat/tc2000-frontend-rework` branch goal.
+- The canonical TODO now keeps the full TC2000 v20-style workstation scope and adds the
+  complete backend/data work needed to support it:
+  - API-first, multi-source, free-source-first provider reconciliation;
+  - canonical security mastering and listing lifecycle handling;
+  - raw/adjusted historical data and point-in-time correctness;
+  - provider entitlement/terms and honest feed/freshness/coverage semantics;
+  - batch market-group, technical, strength, breadth, rotation, scan, and coverage APIs.
+- Removed the planned standalone PCF engine. One Python-native market-analysis language
+  and versioned SDK now owns chart calculations, watchlist columns, EasyScan conditions,
+  alerts, gauges, reusable signals, Study Lab, and new Strategy Lab signals.
+- Brought the previously deferred open-ended research goal into the branch completion
+  contract as a first-class Study Lab, separate from execution/backtesting Strategy Lab.
+- Locked a dedicated non-root, read-only, no-network sandbox worker with curated
+  libraries, prepared read-only datasets, resource limits, immutable versions, and
+  reproducibility metadata.
+- Locked uPlot as the only axes-based numerical renderer and structured native study
+  outputs; arbitrary study-authored HTML/CSS/JavaScript remains prohibited.
+- Removed yfinance from every default/new-workstation/acceptance path while retaining an
+  explicit temporary legacy fallback only until the legacy audit proves it removable.
+- Reconciled the matching operational task, completion contract, failure behavior,
+  validation matrix, and end-to-end scenarios in `ops/tasks.yaml`.
+- No application source, migration, dependency, test, or runtime implementation changed.
+
+### Next step
+
+- Await an explicit implementation request. When implementation begins, treat the full
+  `docs/project-todos.md` section 14 specification as one continuous completion contract;
+  do not substitute an MVP, phased stopping point, separate formula languages, or a
+  frontend-only reskin.
+
+## Deferred open-ended quantitative research note - 2026-07-29T16:19:01Z
+
+- Added a high-level future objective to `docs/project-todos.md` section 14 and the
+  matching operational task metadata.
+- The note preserves the desire for Optuma-like custom, open-ended market research
+  beyond indicators, ratios, scans, and conventional backtests.
+- It deliberately does not name a product surface or choose an interface, language,
+  execution model, sandbox, visualization stack, or integration architecture.
+- This is deferred context only and is not part of the current TC2000-style frontend
+  replacement completion contract.
+- No application source, migration, dependency, or test implementation changed.
+- Validation: `ops/tasks.yaml` and `ops/state.json` parse, and `git diff --check`
+  passes.
+
+### Next step
+
+- Leave this capability deferred until the user explicitly revisits it; design it then
+  without treating today's examples as a locked solution.
+
+## TC2000 frontend rework planning - 2026-07-28T21:40:33Z
+
+- Created `feat/tc2000-frontend-rework` from a clean `master` checkout at
+  `a8d6189 chore(ops): record current live matrix pass`.
+- Added the canonical, full implementation specification to
+  `docs/project-todos.md`, section 14.
+- Added the matching operational task, locked decisions, implementation areas,
+  failure modes, definition of done, validation matrix, and end-to-end acceptance
+  scenarios to `ops/tasks.yaml` under `tc2000-frontend-rework`.
+- The specification treats delivery as one continuous development stint rather than
+  phases or an MVP. It keeps uPlot as the only chart renderer and covers the complete
+  TC2000 v20-style shell, dockable workspaces, linked tools, watchlists, PCF,
+  EasyScan, top-down US-market analysis, persistence, APIs, failure handling,
+  performance, and legacy compatibility.
+- No frontend, backend, migration, or test implementation was changed.
+- Documentation validation:
+  - `ops/tasks.yaml` parses;
+  - `ops/state.json` parses;
+  - `git diff --check` passes;
+  - the only changed files are planning and operational documentation.
+- The working tree is ready to commit, but no commit was requested or created.
+
+### Next step
+
+- Begin the complete implementation only after an explicit user request. Do not
+  reinterpret the task as phased delivery and do not stop at an intermediate MVP.
+
 ## EMQQ native route promotion - 2026-07-28T17:34:34Z
 
 - Continued under the corrected broad-market task scope: the current target is

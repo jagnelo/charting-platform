@@ -3213,6 +3213,1186 @@ Why this was deferred:
 - It is cross-cutting dashboard architecture, not a small widget tweak.
 - We do not want to bolt it onto one widget first and then retrofit the dashboard model later.
 
+### 14. Replace the primary frontend with a TC2000 v20-style workstation and build its supporting backend/research platform
+Status: `Planned`
+
+Branch:
+- `feat/tc2000-frontend-rework`
+
+Controlling objective:
+- Replace the authenticated primary frontend with a pixel-close, rebranded clone of
+  the current TC2000 v20 desktop interface and interaction model.
+- Treat this as one continuous implementation stint with one completion bar. Internal
+  checkpoints are for repository continuity, not partial delivery, phased scope, or an
+  MVP stopping point.
+- Keep Vue 3, TypeScript, Vite, and uPlot. uPlot remains the only chart renderer because
+  fast rendering, direct canvas control, and flexible plugins are non-negotiable.
+- Use Golden Layout's Vue-compatible virtual-component model for arbitrary docking,
+  tab stacks, maximizing, saved layouts, browser pop-outs, and multi-monitor use.
+- Match TC2000 v20 desktop geometry, density, colors, control styling, window chrome,
+  menus, dialogs, keyboard behavior, and interaction states as closely as practical,
+  while retaining this platform's branding and using original CSS/SVG assets rather
+  than TC2000 logos or proprietary images.
+- Keep the existing frontend available under `/legacy/*`. Do not migrate its dashboards.
+  Radar, Strategy Lab, Baskets, ETF Holdings administration, seasonality, options, and
+  provider diagnostics remain available only through legacy routes and do not appear
+  in the new primary interface.
+- Exclude visible options, brokerage/trading, news, analyst ratings, earnings, and full
+  financial statements. Create explicit capability contracts, source-level TODOs, and
+  extension documentation for all excluded or data-blocked features without rendering
+  misleading disabled shells in the primary interface.
+- Continue using the current provider-neutral polling model. Do not add streaming quote
+  infrastructure as part of this task.
+- Make the backend/data work required by the workstation part of the same completion
+  contract: API-first free-source reconciliation, canonical security mastering,
+  point-in-time market groups, batch analytics, adjusted-history correctness, provider
+  entitlement reporting, and isolated user-code execution are not follow-up projects.
+- Use one Python-native market-analysis language and SDK for chart calculations,
+  watchlist columns, EasyScan conditions, alerts, gauges, reusable signals, and
+  open-ended studies. Do not build or expose separate PCF, Optuma, and Python languages.
+- Add a first-class Study Lab to the primary workstation for Optuma-style event,
+  statistical, breadth, regime, distribution, forward-outcome, and current-versus-
+  history research. Keep it separate from the execution/backtesting Strategy Lab.
+
+#### Completion contract
+
+This work is complete only when:
+- the new TC2000-style workstation is the default authenticated application;
+- every in-scope window, workflow, keyboard interaction, persistence path, linking
+  behavior, and error state below is implemented;
+- the top-down US-market workflow can be completed without leaving the workstation;
+- the unified Python language works consistently across every programmable surface and
+  executes only in the dedicated sandboxed research worker;
+- Study Lab can define, run, reproduce, inspect, and reuse non-chart-centric historical
+  research with structured native results;
+- the new workstation has no required yfinance, paid-API, provider-specific frontend,
+  or reliable consolidated real-time dependency;
+- current canonical watchlists, drawings, alerts, screeners, indicator presets, OHLCV,
+  instrument metadata, ETF holdings, and baskets remain usable;
+- legacy-only surfaces remain directly accessible but absent from the new navigation;
+- backend, frontend, integration, end-to-end, visual, console, log, performance, and
+  sandbox-security, provider, migration, and diff validation all pass;
+- unsupported functions and product domains are documented and stubbed honestly;
+- no temporary placeholder, dead control, unexplained visual mismatch, or unhandled
+  known failure remains before handoff.
+
+#### Desktop shell and workspace mechanics
+
+Replace the icon-sidebar and route-per-feature model with a TC2000-style desktop shell:
+- compact global menu bar;
+- workspace/layout tab strip;
+- active-symbol entry and symbol-history navigation;
+- provider/freshness/status area;
+- central dockable tool-window surface;
+- original platform branding rather than TC2000 branding.
+
+Every tool window must share a dense TC2000-style chrome with:
+- title and active-symbol display where applicable;
+- symbol-link selector;
+- tool-specific menu;
+- drag handle;
+- tab-stack behavior;
+- maximize/restore;
+- float/pop-in;
+- close;
+- minimum-size and resize constraints;
+- focused/active state that is visually distinct without consuming excessive space.
+
+Workspace behavior:
+- allow arbitrary row/column docking, tab stacks, drag rearrangement, maximization,
+  browser pop-outs, and restoration of exact sizes and positions;
+- use Golden Layout virtual components so Vue retains ownership of its component tree;
+- persist only serializable tool configuration and state, never DOM nodes, uPlot
+  instances, request caches, or transient hover/crosshair state;
+- use one elected browser window as persistence leader;
+- synchronize pop-outs using `BroadcastChannel`, with same-origin storage events as a
+  fallback;
+- synchronize symbol changes, active list rows, explicitly linked timeframes, crosshair
+  timestamps, code/library changes, layout changes, and logout;
+- transfer persistence leadership automatically if the leader closes;
+- keep a window docked and show a clear notification if the browser blocks a pop-out;
+- restore an unexpectedly closed pop-out to its source layout on the next load.
+
+Reproduce TC2000 v20 symbol-link semantics:
+- use the exact current v20 link-group names and colors captured in the visual-reference
+  audit;
+- windows in the same normal group follow symbol changes;
+- yellow behaves as the global/wildcard receiver;
+- gray remains isolated until manually changed;
+- link behavior crosses workspace tabs and browser pop-outs;
+- link events carry stable instrument identity, not only a display ticker.
+
+Global keyboard behavior:
+- typing while focus is outside an editor opens symbol search;
+- `Space` and `Shift+Space` traverse the focused list forward/backward;
+- arrow keys move list selection;
+- `Enter` activates the selected item;
+- `Ctrl+mouse-wheel` traverses symbols in the focused list;
+- chart shortcuts retain zoom, pan, log scale, latest-bar, drawing cancel/delete, and
+  help behavior;
+- no global shortcut fires while a text, code, numeric, or search editor owns focus;
+- tool menus expose the current shortcut so the interface remains discoverable.
+
+#### Factory and personal layouts
+
+Ship immutable factory layouts that users can clone:
+
+`US Top Down` is the default layout and contains:
+- major benchmark list;
+- cap-weighted/equal-weight comparison;
+- sector list;
+- industry list;
+- constituent list;
+- primary chart;
+- ratio/relative-strength chart;
+- technical, breadth, provenance, and coverage summary.
+
+`TC Classic` contains:
+- watchlist;
+- main chart;
+- symbol notes in place of unavailable news.
+
+`Drill Down` contains:
+- sector list;
+- industry list;
+- component list;
+- selected-symbol chart;
+- tabbed sector-comparison chart.
+
+`Sector by Year` contains:
+- linked sector, industry, and constituent lists;
+- selectable year-performance columns;
+- selected-symbol and normalized-comparison charts.
+
+`1 Chart` contains:
+- an uncluttered full-workspace chart.
+
+`4 Timeframe` contains:
+- four symbol-linked uPlot charts with independently configurable timeframes.
+
+`Fundamentals` contains:
+- chart;
+- supported fundamental/metadata columns;
+- supported-data report.
+
+`Study Lab` contains:
+- Python editor and parameter controls;
+- universe, benchmark, timeframe, date-range, adjustment, and session selectors;
+- coverage/look-ahead/survivorship preflight;
+- run progress, logs, and cancellation;
+- structured metrics, tables, plots, event occurrences, and linked-chart inspection.
+
+Do not create Trading or Options factory layouts. Personal workspaces and layout tabs
+must support create, clone, rename, reorder, import, export, delete, and reset-from-
+factory operations. Factory definitions remain versioned, read-only, and resettable.
+
+#### uPlot chart-window implementation
+
+Refactor the current large chart component into:
+- a framework-neutral chart model;
+- reusable uPlot host/lifecycle layer;
+- independent uPlot plugins;
+- TC2000-style chart-window wrapper;
+- serializable chart/template configuration.
+
+Preserve and harden:
+- candlestick, OHLC, line, area, baseline, Heikin-Ashi, Renko, Kagi, and Point & Figure;
+- infinite historical backfill;
+- automatic and logarithmic scales;
+- current-price and visible-range projections;
+- comparison series and normalized comparisons;
+- ratio/synthetic expressions such as `=XLK/SPY`, `=XLK/XLE`, and `=NVDA/XLK`;
+- indicator overlays and independent sub-panes;
+- resizing of sub-panes;
+- chart drawings and drawing ordering;
+- alert lines and firing markers;
+- supported dividend and split markers;
+- linked crosshairs;
+- multi-chart layouts;
+- cached-history and background-fetch messaging.
+
+Chart templates must save and restore:
+- plot stack and order;
+- styles and colors;
+- panes and pane heights;
+- axes and scale settings;
+- timeframe;
+- adjustment/transform settings;
+- drawing defaults;
+- comparison settings;
+- event-marker visibility;
+- indicator parameters and timeframe locks.
+
+Applying a template must not replace the active symbol. Templates support save, clone,
+rename, import, export, delete, and factory reset.
+
+The plot library must support:
+- price history;
+- every locally implemented indicator;
+- relative strength against any selected symbol;
+- normalized comparison plots;
+- scan plots;
+- watchlist/basket synthetic indexes;
+- Python calculations that evaluate to numeric series.
+
+Plot interaction must support:
+- hover legend;
+- edit, move, hide, duplicate, and delete;
+- drag a numeric plot/indicator into a watchlist to create a value column;
+- drag a condition into a watchlist to create a Boolean column;
+- copy a plot or condition to another chart, watchlist, EasyScan, or alert through
+  TC2000-style target mode.
+
+uPlot performance rules:
+- Golden Layout resize events flow through a single `ResizeObserver`/`setSize` path;
+- ordinary resize, docking, tab switching, and maximization must not recreate uPlot;
+- identical OHLCV requests are deduplicated across linked charts using symbol,
+  timeframe, adjustment, range, and transformation query keys;
+- hidden tabs suspend polling and expensive redraws;
+- destroyed tool instances release canvases, observers, subscriptions, and plugins.
+
+#### Watchlists, related lists, and column mechanics
+
+Implement a virtualized TC2000-style watchlist window supporting at least 10,000 rows.
+
+Supported list sources:
+- personal lists;
+- managed EasyScan result lists;
+- system market-group lists;
+- ETF/index-proxy constituent lists;
+- sectors;
+- industries;
+- related items;
+- combo lists using union, intersection, and exclusion rules.
+
+Row behavior:
+- mouse or keyboard selection publishes to the window's symbol-link group;
+- active symbols remain visibly selected;
+- personal lists support drag reordering;
+- compatible lists support drag/drop copy or move;
+- multi-select can launch comparison charts and bulk list operations;
+- context menus support add, copy, move, remove, flag, note, chart, alert, related lists,
+  and membership inspection;
+- list selection is retained by instrument ID after sorting/filtering, not by row index.
+
+Reusable column types:
+- raw price and volume;
+- numeric/value;
+- Boolean/condition;
+- tag or list membership;
+- Python calculation;
+- indicator output;
+- relative strength and period performance;
+- supported metadata/fundamental values;
+- provenance/freshness where useful.
+
+Column behavior:
+- insert, delete, duplicate, rename, resize, and reorder;
+- horizontal scrolling;
+- vertical stacking of multiple values in one visual column;
+- column grouping;
+- saved reusable columns and column sets;
+- configurable header, decimals, units, positive/zero/negative colors, alignment, and
+  missing-value display;
+- ascending/descending click sort;
+- manual ordering;
+- Boolean/tag pinning above the remaining value sort;
+- copy/paste through the internal library clipboard;
+- drag an indicator/condition/calculation from another tool to create a column;
+- refresh timestamp, current filter, polling state, and manual refresh in window chrome.
+
+#### Unified Python market-analysis language
+
+Use normal Python syntax with one versioned platform SDK across charts, watchlists,
+EasyScan, alerts, gauges, reusable signals, and Study Lab. A simple calculation is a
+short Python program such as `result = ta.rsi(market.close, 14)`; a larger study uses
+the same syntax, editor, runtime, functions, versioning, and output contracts.
+
+SDK namespaces:
+- `market`: OHLCV, instruments, universes, benchmarks, metadata, events, sessions,
+  memberships, and point-in-time data access;
+- `ta`: the platform's technical indicators and transformations;
+- `stats`: descriptive statistics, streaks, ranks, percentiles, rolling calculations,
+  correlation, regression, and distributions;
+- `research`: occurrences, forward returns, regimes, conditional outcomes, breadth,
+  cross-sectional studies, and current-versus-history comparisons;
+- `output`: typed metrics, tables, plots, event sets, and dashboards.
+
+Language rules:
+- do not implement independently executable PCF or Optuma syntax;
+- reproduce useful TC2000/Optuma semantics through canonical Python SDK functions and
+  searchable migration documentation;
+- use the same saved code asset/version everywhere rather than copying source into each
+  chart, column, scan, alert, or study;
+- let the visual condition builder edit the supported subset of the same Python AST;
+  Python source remains authoritative when code exceeds the visual subset;
+- preserve source positions, dependency/required-lookback analysis, diagnostics, and
+  recursive dependency detection;
+- batch-evaluate by universe and timeframe so watchlists never issue per-cell calls;
+- pin every consumer to an immutable code version and require an explicit upgrade when a
+  newer version is published.
+
+Every saved code version records:
+- stable asset ID, name, intended output contract, source, parameters, and defaults;
+- immutable version, SDK/runtime version, data dependencies, required lookback, and
+  referenced symbols/universes;
+- capability requirements, compile diagnostics, creator, and timestamps.
+
+Code interfaces:
+- SDK/capability registry and documentation;
+- validate/compile and dependency preflight;
+- scalar batch, numeric-series, Boolean-series, event-set, and structured-study execution;
+- saved code CRUD/versioning/import/export through the workspace library;
+- structured diagnostics, warnings, coverage failures, and execution-limit errors.
+
+#### Sandboxed Python execution
+
+Never execute user-authored Python inside FastAPI, the general ARQ worker, a browser
+context, or any process that holds provider credentials.
+
+Create a dedicated research execution service and worker image with:
+- a non-root runtime and read-only root filesystem;
+- an ephemeral per-run writable directory and no host filesystem mounts;
+- no external network, secrets, provider credentials, subprocess creation, or runtime
+  package installation;
+- Linux namespace isolation plus seccomp/AppArmor restrictions where supported;
+- explicit CPU, memory, wall-time, output-size, row-count, and file-size limits;
+- heartbeats, forced termination, orphan cleanup, and structured limit failures.
+
+Curated imports:
+- explicitly approved numerical/research modules from the Python standard library;
+- NumPy, pandas, SciPy, and statsmodels;
+- the internal `market`, `ta`, `stats`, `research`, and `output` SDK namespaces.
+
+Reject arbitrary imports, sockets, subprocesses, reflection into host internals,
+unrestricted filesystem access, dynamic code execution, unsafe deserialization, and
+runtime `pip` or package downloads. AST validation is a preflight and usability layer,
+not the security boundary; the isolated process/container remains mandatory.
+
+Execution flow:
+1. parse the Python AST and return source-positioned diagnostics;
+2. reject prohibited syntax/imports/attributes and validate the declared output type;
+3. derive static data dependencies where possible and combine them with the explicit
+   universe, benchmark, timeframe, date range, adjustment, and session configuration;
+4. resolve all data through the canonical local database, never directly from a provider;
+5. create a versioned dataset manifest and materialize read-only Arrow/Parquet inputs;
+6. execute the pinned code/SDK/worker versions in the isolated worker;
+7. validate and persist bounded structured outputs, logs, warnings, exclusions, resource
+   use, and the reproducibility hash.
+
+Dynamic market access is limited to instruments and universes already present in the run
+manifest. Missing data produces a structured coverage failure rather than a provider
+call. Interactive columns/scans use a warm worker pool and vectorized universe batches;
+long studies use queued runs with progress, cancellation, and durable artifacts.
+
+#### EasyScan, conditions, scan plots, and gauges
+
+Generalize the current screener into a TC2000-style EasyScan workflow:
+- select all instruments, asset class, watchlist, combo list, market group, basket,
+  ETF-derived basket, or explicit symbols as universe;
+- create nested AND/OR/NOT condition trees;
+- add price, volume, indicator, metadata, relative-strength, or Python conditions;
+- choose timeframe per condition;
+- preview match counts;
+- save, clone, rename, reorder, schedule, enable/disable, and delete;
+- run synchronously for small prepared universes or stream progress for large/cold ones;
+- cancel in-progress runs;
+- display per-instrument preparation/evaluation failures;
+- retain historical results.
+
+Reusable actions:
+- apply a saved condition as a watchlist filter;
+- turn a condition into a Boolean column;
+- create an alert from a condition;
+- create a managed watchlist from an EasyScan;
+- plot historical match count or percentage as a scan plot;
+- create a market gauge from a saved scan;
+- copy conditions between scans, columns, plots, and alerts.
+
+Historical scan plots must start only when valid recorded history exists; do not fabricate
+past membership or results.
+
+#### Top-down US-market analysis
+
+Create a versioned market taxonomy containing:
+- logical benchmark identities separated from their official index series and tradable
+  proxies, including SPX/S&P 500 where entitled plus SPY, RSP, QQQ, DIA, and IWM;
+- all 11 Select Sector SPDR ETFs;
+- normalized, source-labelled sectors and industries;
+- verified industry ETF proxy associations;
+- point-in-time ETF holdings memberships;
+- representative, equal-weight, and comparison relationships;
+- source, provenance, known-at time, composition date, and freshness.
+
+Industry ETF semantics:
+- treat industry ETFs as curated proxies associated with an industry, not as fictional
+  children owned by a sector ETF;
+- allow zero, one, or several verified proxy ETFs per industry;
+- require source documentation and holdings/classification validation;
+- expose “No mapped ETF proxy” when none is verified;
+- never infer an ETF relationship solely from a similar name.
+
+Index constituent semantics:
+- use ETF holdings as an explicit proxy when official licensed constituents are absent;
+- label the universe as ETF-proxy membership;
+- surface snapshot date, known-at time, source quality, resolution count, and unresolved
+  rows;
+- fall back to metadata classification only with an equally explicit label;
+- never silently claim official historical index membership.
+
+Index-series semantics:
+- use an official index series only when a configured provider entitlement supplies it;
+- otherwise use a clearly labelled tradable proxy such as SPY;
+- never display SPY data under an SPX label or imply that proxy holdings are official
+  licensed index constituents.
+
+Linked drill-down mechanics:
+- selecting a benchmark loads technicals and its equal-weight comparison;
+- selecting a sector loads industries, constituents, breadth, relative strength, and
+  sector comparison;
+- selecting an industry loads its constituents and verified proxy ETFs;
+- selecting a constituent updates linked stock charts;
+- one action creates sector/benchmark, industry-proxy/sector, stock/sector, and
+  stock/benchmark ratio views;
+- list traversal updates all windows in the same link group without route changes.
+
+Batch ranking columns:
+- 1D, 1W, 1M, 3M, 6M, YTD, and 1Y performance;
+- benchmark-relative performance;
+- ratio trend and momentum;
+- RSI;
+- price relative to 20/50/200 moving averages;
+- distance from 52-week high/low;
+- volume ratio;
+- provider coverage and freshness.
+
+Breadth analytics:
+- percentage above configurable 20/50/200 moving averages;
+- percentage near 52-week highs/lows;
+- percentage making configurable-period highs/lows;
+- percentage in configured uptrend/downtrend;
+- aggregate distance from selected averages;
+- current snapshot and historical series;
+- click-through to passing/failing constituent lists;
+- comparison of multiple groups side by side.
+
+Relative rotation:
+- accept benchmark, peer universe, timeframe, lookback, sampling, and tail length;
+- calculate aligned relative-strength series;
+- derive transparent relative-trend and relative-momentum dimensions;
+- classify leading, weakening, lagging, and improving;
+- calculate heading, distance, velocity, recent transition, and time in state;
+- provide interactive tails and sortable companion table;
+- surface partial-overlap and insufficient-history warnings;
+- call the feature “relative rotation,” not a proprietary JdK/RRG implementation.
+
+#### API-first free-source backend and data foundation
+
+The frontend must consume canonical platform APIs only. It must never know provider
+symbols, credentials, quotas, endpoint shapes, or fallback ordering.
+
+Use the existing capability-oriented provider runtime, priorities, token buckets,
+cooldowns, health measurements, request logs, provenance, and circuit behavior as the
+foundation, but replace single-provider field selection with source reconciliation.
+
+Required free-source provider roles:
+- US security universe: reconcile Massive reference tickers, Alpaca assets, and Alpha
+  Vantage listing/delisting data rather than trusting any one list;
+- corporate identity: use SEC CIK/ticker/exchange associations as an official identity
+  anchor while acknowledging that SEC does not guarantee complete exchange coverage;
+- identifiers: use OpenFIGI v3 for FIGI mapping and listing reconciliation;
+- current/delayed prices: use Alpaca IEX and permitted delayed SIP data, always exposing
+  feed, venue scope, observation time, and freshness;
+- broad EOD corroboration: use Massive free aggregates/reference endpoints only where
+  the configured entitlement currently permits them;
+- deep raw daily history: use Alpha Vantage raw daily history within its quota;
+- adjustments: derive locally reproducible split/dividend-adjusted views from stored raw
+  bars and reconciled corporate actions;
+- corporate actions: reconcile Alpaca and Massive events with SEC evidence where useful;
+- fundamentals: use SEC submissions/XBRL and explicitly identify every derived value;
+- taxonomy: normalize source-labelled sector/industry data, ETF membership evidence,
+  SEC SIC, and curated mappings without claiming licensed GICS data unless entitled;
+- ETF holdings: retain issuer-native adapters, raw artifacts, and SEC N-PORT/N-Q
+  reconstruction;
+- macro/regime inputs: retain FRED;
+- optional validation: allow a quota-limited secondary source such as Twelve Data, but
+  make no core workflow depend on it.
+
+Primary source-documentation anchors:
+- Massive reference tickers: <https://massive.com/docs/rest/stocks/tickers/all-tickers>;
+- Alpha Vantage listing status and raw daily history:
+  <https://www.alphavantage.co/documentation/>;
+- Alpaca market-data plan/feed semantics:
+  <https://docs.alpaca.markets/us/docs/about-market-data-api>;
+- SEC EDGAR company ticker/exchange files and scope caveat:
+  <https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data>;
+- OpenFIGI v3 mapping and limits: <https://www.openfigi.com/api/documentation>.
+
+Nasdaq Trader/exchange directory files may be ingested as audit or backfill evidence.
+They are not the primary master, are not treated as Nasdaq-only coverage, and are never
+a runtime dependency.
+
+yfinance policy:
+- remove yfinance from every default priority and every completion/acceptance path;
+- keep it temporarily only as an explicitly enabled legacy fallback if an existing
+  legacy capability still requires it;
+- attach provider provenance to all retained yfinance-derived values;
+- prohibit new-workstation tests, fixtures, or startup from requiring it;
+- remove the adapter once the legacy capability audit proves it is unused.
+
+The absence of consolidated free real-time data is an accepted product constraint, not a
+reason to fabricate a real-time experience. The workstation must distinguish `current`,
+`delayed`, `stale`, `fetching`, `partial`, `coverage-limited`, and `unavailable`.
+
+#### Canonical security master and provider reconciliation
+
+Retain and extend the active canonical identity model:
+- `Instrument`;
+- `InstrumentListing`;
+- `InstrumentIdentifier`;
+- `InstrumentProviderSymbol`;
+- `InstrumentProviderCapabilityStatus`;
+- field-level provenance.
+
+Consolidate the unused duplicate instrument-listing model so one definition and migration
+source remain authoritative.
+
+For each provider observation:
+- retain the raw record, provider symbol, capability, observation time, and source terms;
+- match strong identifiers before ticker/name text;
+- resolve canonical instrument, listing, exchange/MIC, share class, and active state;
+- store field-level source, confidence, observed-at, effective-at, and known-at metadata;
+- detect ticker reuse, symbol changes, listing moves, class-share ambiguity, mergers,
+  delisting, and relisting;
+- queue ambiguous candidates for review instead of silently merging them;
+- maintain listing/provider status independently so one provider cannot incorrectly
+  deactivate a canonical instrument.
+
+The local database is the authoritative read path. Scheduled/backfill jobs update it;
+ordinary UI reads do not trigger uncontrolled provider fan-out.
+
+#### Historical data, adjustment, and point-in-time correctness
+
+Store raw provider bars separately from canonical derived views and retain provider/feed/
+venue provenance. Add deterministic conflict selection, gap/anomaly detection, corporate
+action reconciliation, rebuildable adjustment factors, cached derived timeframes, and
+coverage ranges.
+
+Support raw, split-adjusted, and total-return modes with a versioned adjustment set.
+Calculations and caches must include adjustment mode/version in their identity.
+
+Research and analysis rules:
+- resolve universe membership as it was known at the evaluation time;
+- never expose future bars, future constituent knowledge, or revised future metadata to
+  a historical signal;
+- distinguish event/signal time from forward-outcome time;
+- exclude and count events that lack a complete requested outcome horizon;
+- align comparisons on intersecting valid timestamps;
+- never forward-fill across a gap that changes ratio/rotation meaning;
+- label survivorship-biased or current-snapshot universes and reject them when a study
+  explicitly requires point-in-time membership;
+- return excluded instruments/events and exact reasons with every batch/study result.
+
+#### Provider entitlement and capability governance
+
+Add a versioned provider-entitlement registry with:
+- provider, capability, configured plan, authentication requirement, and free/paid state;
+- permitted personal/internal/commercial use and redistribution restrictions;
+- request/token quota, historical horizon, venue coverage, and real-time/delayed/EOD
+  semantics;
+- effective/review date, enabled environments, and current live-probe result.
+
+A provider is usable only when both its adapter and configured entitlement permit the
+requested capability. Do not hard-code today's free-plan promises as permanent facts.
+
+Promoting a provider/capability to supported requires:
+- deterministic response fixtures and parser tests;
+- capability/completeness and provenance tests;
+- throttling, retry, cooldown, and failure-classification tests;
+- an opt-in backend-reachable live probe;
+- an entitlement/terms review.
+
+Provider removal, changed terms, throttling, or exhausted quota must degrade the affected
+capability honestly without inventing data or breaking unrelated providers.
+
+#### Batch analytics and coverage APIs
+
+Add batch-oriented backend services for:
+- market-group trees, members, proxies, and related groups;
+- technical/ranking snapshots;
+- relative strength and normalized comparison;
+- breadth and relative rotation;
+- scan and Python-code evaluation;
+- Study Lab runs and artifacts;
+- coverage, provenance, and freshness;
+- notes and workspace persistence.
+
+Batch requests accept a universe selector, timeframe, as-of time, adjustment mode,
+requested built-ins/code versions, filters, sorting, and pagination.
+
+Each returned cell includes value, observation time, adjustment mode, source/freshness,
+and structured warning/error. Each response includes universe provenance/membership
+version, coverage, exclusions/reasons, calculation/code version, and refresh time.
+
+Cache identity must include universe membership version, timeframe/date range/as-of time,
+adjustment set, code/indicator/SDK version, requested fields, and source dataset versions.
+
+#### Alerts, notes, and supported reports
+
+Restyle price, indicator, and screener alerts as TC2000-style tools/dialogs.
+
+Alert creation sources:
+- chart price level;
+- plotted indicator;
+- saved condition;
+- Boolean Python calculation;
+- EasyScan entry/exit.
+
+Retain alert status, repeat/rearm behavior, firing history, chart markers, notification
+delivery, and instrument filtering.
+
+Add per-symbol notes:
+- autosave;
+- modified timestamp;
+- watchlist note indicator;
+- symbol-linked notes window;
+- user isolation.
+
+Supported-data report:
+- instrument identity and listings;
+- sector and industry;
+- market cap, P/E, beta, and dividend yield where available;
+- 52-week range;
+- average volume;
+- identifiers;
+- field-level provider provenance and freshness.
+
+Do not expose earnings estimates/results, analyst opinions, news, or unavailable financial
+statement fields.
+
+#### Frontend architecture
+
+Retain:
+- Vue 3;
+- TypeScript;
+- Vite;
+- Pinia for local interaction/session state;
+- uPlot and the reusable portions of its existing plugins.
+
+Add:
+- `golden-layout` for workspace docking and pop-outs;
+- `@tanstack/vue-query` for server state, polling, caching, invalidation, and deduplication;
+- `@tanstack/vue-table` and `@tanstack/vue-virtual` for dense virtualized lists.
+
+Core modules:
+- `WorkspaceShell`: global menus, tabs, active workspace, search, and status;
+- `WorkspaceLayoutHost`: Golden Layout integration, save/load, pop-outs, and recovery;
+- `ToolRegistry`: tool metadata, factory, capability requirements, and schema version;
+- `ToolWindowHost`: shared dense TC2000 window chrome;
+- `LinkBus`: symbol, timeframe, crosshair, and selection events;
+- `LibraryStore`: code assets, conditions, columns, column sets, scans, studies, chart templates,
+  layout templates, and combo lists;
+- `UPlotHost`: chart lifecycle, data binding, plugins, and resize behavior;
+- `CapabilityRegistry`: supported, partial, and unavailable product/data capabilities.
+
+Create centralized TC2000 v20 design tokens for:
+- typography;
+- spacing;
+- window borders and gradients;
+- toolbar height;
+- menu and dialog geometry;
+- tabs;
+- hover/focus/selection states;
+- scrollbars;
+- table density;
+- positive/negative/neutral colors;
+- z-index and overlay rules.
+
+Use Segoe UI-compatible system typography and validate 100% and 125% browser zoom.
+
+#### New persistence and API contracts
+
+Keep existing dashboard tables and APIs untouched for `/legacy/*`. Create new persistence:
+
+`workspace`:
+- user ID;
+- name;
+- default flag;
+- position;
+- revision;
+- settings;
+- schema version;
+- timestamps.
+
+`workspace_tab`:
+- workspace ID;
+- stable key;
+- name;
+- position;
+- Golden Layout configuration;
+- active-window key;
+- timestamps.
+
+`workspace_window`:
+- tab ID;
+- stable instance key;
+- tool type;
+- title;
+- link group;
+- configuration;
+- style;
+- state-schema version;
+- position;
+- timestamps.
+
+`workspace_library_item`:
+- user ID;
+- kind: code, condition, column, column set, scan, study, chart template, layout
+  template, or combo list;
+- stable key;
+- name;
+- version;
+- payload;
+- dependency metadata;
+- timestamps.
+
+`market_code_asset` and `market_code_version`:
+- user ID, stable key, name, description, and intended output contract;
+- immutable Python source version and SDK/runtime version;
+- parameters/defaults, dependency metadata, required lookback, referenced symbols/
+  universes, capability requirements, diagnostics, and timestamps.
+
+`research_definition`, `research_run`, and `research_artifact`:
+- owner, code-version reference, universe/benchmark/timeframe/date-range configuration,
+  parameters, adjustment/session settings, and timestamps;
+- queued/running/succeeded/failed/cancelled status, progress, heartbeat, resource usage,
+  warnings, exclusions, dataset/reproducibility hash, and structured logs;
+- typed compressed result artifacts for metrics, tables, plots, event sets, and
+  multi-panel dashboards, with queryable metadata retained in PostgreSQL.
+
+`provider_entitlement` and `dataset_snapshot`:
+- provider/capability/plan, authentication, free/paid status, permitted deployment use,
+  redistribution restriction, quota, historical horizon, venue/freshness semantics,
+  review date, and enabled environments;
+- exact input versions, universe membership, adjustments, provenance, coverage, and
+  prepared Arrow/Parquet artifact references used by a code execution.
+
+`instrument_note`:
+- user ID;
+- instrument ID;
+- content;
+- timestamps;
+- unique user/instrument constraint.
+
+`market_group`:
+- stable key;
+- type;
+- name;
+- parent;
+- representative/equal-weight instrument;
+- source and provenance;
+- effective/known-at metadata.
+
+`market_group_member` and `market_group_proxy`:
+- group/instrument relationship;
+- weight;
+- relationship type;
+- source;
+- effective and known-at times;
+- verification state.
+
+Workspace endpoints:
+- list/create/get/patch/delete workspaces;
+- clone workspace;
+- atomically save a complete workspace snapshot;
+- library CRUD;
+- library import/export.
+
+Workspace snapshot writes:
+- accept `base_revision`;
+- atomically persist settings, tabs, layouts, and window states;
+- increment revision;
+- return `409` for stale revisions;
+- let the leader fetch, merge disjoint instance-key changes, and retry once;
+- create a named recovery copy instead of silently overwriting an unresolved conflict.
+
+Code/research endpoints:
+- SDK/capability registry and documentation;
+- validate/compile;
+- dependency and coverage preflight;
+- scalar/series/Boolean/event batch evaluation;
+- code asset/version CRUD and import/export through the workspace library;
+- research definition/version CRUD, run/cancel/progress/log/artifact/compare/export.
+
+Market/analysis endpoints:
+- market-group tree;
+- group details and members;
+- related groups for a symbol;
+- batch analysis snapshot;
+- relative strength;
+- relative rotation;
+- breadth;
+- per-instrument note read/write.
+
+Batch analysis request supports:
+- universe selector;
+- timeframe and as-of time;
+- requested built-in/code-version columns;
+- filter and sort definitions;
+- pagination.
+
+Every returned cell includes:
+- value;
+- observation time;
+- source/freshness status;
+- structured warning/error where applicable.
+
+Every batch response includes:
+- universe provenance;
+- coverage summary;
+- excluded instruments and reasons;
+- refresh time.
+
+#### Polling, caching, and data flow
+
+Use Vue Query as the single client polling coordinator:
+- active latest-price views poll according to provider freshness policy;
+- historical ranges do not poll;
+- hidden tabs suspend chart polling;
+- watchlists use one batch refresh per window rather than one request per cell;
+- pop-outs share invalidation messages;
+- only the elected leader initiates a refresh for a shared query key;
+- stale requests are canceled when symbol, universe, timeframe, or code version changes.
+
+Expose `current`, `delayed`, `stale`, `fetching`, `partial`, `coverage-limited`, and
+`unavailable` states.
+Provider failures leave prior data visible with stale/error labeling and retry actions.
+
+Cache batch code, relative-strength, rotation, breadth, and study-preflight results using:
+- universe membership/version;
+- timeframe;
+- as-of time;
+- code/indicator/SDK version;
+- requested columns;
+- adjustment mode.
+
+Alignment rules:
+- use intersecting valid timestamps for comparisons;
+- never forward-fill across a gap that changes the meaning of a ratio or rotation path;
+- identify and exclude insufficient-history instruments with reasons;
+- preserve point-in-time membership where the requested universe supports it.
+
+#### Legacy interface and capability stubs
+
+Routing:
+- `/` and authenticated default routes open the new workstation;
+- `/chart/:symbol` opens the default workspace and publishes the symbol to the active
+  link group;
+- current authenticated pages move under `/legacy/*`;
+- legacy Radar, Strategy Lab, Baskets, ETF Holdings administration, seasonality,
+  options, and provider diagnostics have no new-shell menu entry.
+
+Preserve canonical data:
+- watchlists;
+- drawings;
+- alerts;
+- screeners;
+- indicator presets;
+- instruments/OHLCV;
+- ETF holdings;
+- baskets.
+
+Do not migrate legacy dashboard layouts.
+
+Create `docs/tc2000-parity.md` with every reviewed TC2000 surface and:
+- supported/partial/excluded status;
+- implementation location;
+- backend/data dependency;
+- validation evidence.
+
+Create `docs/tc2000-capability-stubs.md` covering:
+- options;
+- brokerage/trading;
+- news;
+- analyst ratings;
+- earnings/full financial statements;
+- unavailable data/SDK capabilities.
+
+Each stub must have:
+- stable capability ID;
+- intended inputs/outputs;
+- provider/data requirements;
+- frontend tool contract;
+- explicit source-level TODO;
+- enabling conditions;
+- tests proving unavailable tools stay out of visible menus.
+
+Backend provider protocols and frontend descriptors may exist for these domains, but their
+routers/tools must remain unregistered until implemented.
+
+#### Study Lab
+
+Add Study Lab as a first-class primary-workstation tool. It owns open-ended market and
+statistical research that is not naturally a chart indicator, ratio, scan, alert, or
+position-based backtest.
+
+Study Lab and Strategy Lab remain distinct:
+- Study Lab answers what happened, how often, under which state/regime, how outcomes were
+  distributed, and how the current state compares with history;
+- Strategy Lab owns entries, exits, fills, positions, capital, portfolio state,
+  execution assumptions, walk-forward tests, and paper-forward strategy behavior;
+- both share code assets, indicators/statistics, universe resolution, point-in-time
+  membership, coverage reporting, artifacts, and reproducibility primitives;
+- new Strategy Lab signals reference immutable unified-Python code versions;
+- existing `RULES`, `DSL`, and `PYTHON` strategy versions remain executable through
+  compatibility adapters so saved work is not destroyed, but new authoring converges on
+  the unified language.
+
+Study types:
+- arbitrary event definitions and historical occurrence analysis;
+- positive/negative streaks and general state-duration studies;
+- before/after behavior and forward returns over multiple horizons;
+- breadth events, thrusts, new-high/new-low behavior, and moving-average participation;
+- price/breadth and cross-market divergences;
+- volatility, trend, breadth, and relative-strength regimes;
+- calendar/day/month seasonality;
+- cross-sectional ranking, correlation, regression, and relationship studies;
+- distributions, percentiles, analogues, and current-state-versus-history comparisons.
+
+Authoring and run controls:
+- Python editor with autocomplete, signatures, SDK documentation, source diagnostics,
+  formatting, and parameter declarations;
+- generated parameter controls plus universe, benchmark, timeframe, date-range,
+  adjustment, and session selectors;
+- input-size, coverage, point-in-time membership, look-ahead, and survivorship preflight;
+- run, cancel, clone, version, compare, archive, import, export, rerun-same-snapshot, and
+  rerun-latest-data actions;
+- durable queued status, progress, heartbeat, structured logs, warnings, exclusions,
+  resource use, and artifacts.
+
+Structured native result types:
+- metric cards;
+- time series and range/band plots;
+- numeric/categorical bars and histograms;
+- scatter plots;
+- heatmap/matrix views;
+- event sets;
+- ranked/detail tables;
+- summary-statistics tables;
+- multi-panel dashboards composed from these types.
+
+uPlot plus platform-owned plugins renders every axes-based numeric result. Vue/HTML
+renders tables, metric cards, and layout. Do not add a second chart library and do not
+allow study-authored HTML, CSS, JavaScript, or frontend components.
+
+Result behavior:
+- show sample size, mean, median, percentiles, dispersion, and confidence context where
+  meaningful;
+- highlight the current observation against the historical distribution;
+- allow filtering/drill-down into underlying events and excluded cases;
+- publish a selected occurrence's instrument/date to linked charts;
+- export tabular artifacts;
+- compare code/parameter/dataset versions;
+- promote a suitable Boolean result to an alert, scan condition, watchlist column, or
+  Strategy Lab signal source;
+- save a suitable numeric series as a reusable chart plot.
+
+Ship editable factory studies for:
+- consecutive positive/negative closes;
+- event frequency and occurrence browsing;
+- multi-horizon forward returns;
+- 90/90-style breadth events;
+- new-high/new-low and moving-average breadth;
+- price/breadth divergence;
+- volatility and trend regimes;
+- month/day seasonality;
+- relative-strength regime changes;
+- cross-sectional sector/industry ranking.
+
+#### Failure and recovery behavior
+
+Missing ETF holdings:
+- use metadata-derived constituents only when available;
+- label the fallback source;
+- never imply official index membership.
+
+Missing industry proxy:
+- keep the industry and stocks usable;
+- show “No mapped ETF proxy.”
+
+Missing or misaligned bars:
+- exclude misleading calculations;
+- expose the exact reason;
+- preserve other valid peers.
+
+Unsupported Python/data capability:
+- preserve/save the code version;
+- report every missing SDK/data capability and coverage requirement;
+- block dependent scans/alerts/columns/studies without losing configuration.
+
+Sandbox timeout/resource violation:
+- terminate and clean up the isolated worker;
+- preserve bounded logs and execution metadata;
+- return a structured resource-limit/security error without affecting API workers.
+
+Provider throttling/outage:
+- retain cached data;
+- expose freshness/provider state;
+- follow provider-policy retries and limits.
+
+Changed or invalid provider entitlement:
+- disable only the affected provider/capability;
+- expose the plan/terms/configuration reason;
+- fall through only to independently entitled providers.
+
+Missing SPX/index series:
+- use a clearly labelled tradable proxy such as SPY when configured;
+- never silently rename the proxy to the official index.
+
+Unknown/corrupt workspace tool:
+- retain raw snapshot;
+- load known windows;
+- replace only the affected window with a recovery/export panel.
+
+Concurrent browser sessions:
+- use revision checks;
+- merge only disjoint changes;
+- create a recovery copy when automatic merge is unsafe.
+
+Large lists:
+- virtualize rows and columns;
+- keep stable selection by instrument ID;
+- cancel stale calculations;
+- show incremental scan progress.
+
+#### Required validation and acceptance
+
+Backend unit/integration coverage:
+- workspace CRUD, cloning, snapshots, conflicts, recovery, and user isolation;
+- unified Python behavior across scalar/series/Boolean/event/study output contracts;
+- AST diagnostics, source spans, dependencies, lookback, versioning, and cycles;
+- sandbox network/subprocess/filesystem/import/reflection/dynamic-execution escape tests;
+- CPU, memory, time, output, cancellation, crash, and orphan-cleanup enforcement;
+- implemented SDK/indicator parity against the authoritative indicator engine;
+- structured unsupported-capability and coverage errors;
+- security-master matching, ambiguity, ticker reuse, delisting, listing moves, and
+  provider field conflicts;
+- provider entitlement, quota, cooldown, live-probe, and provenance behavior;
+- raw/adjusted bar rebuilding and corporate-action correction;
+- point-in-time membership, look-ahead prevention, complete forward horizons, and
+  survivorship-bias handling;
+- market taxonomy hierarchy and proxy provenance;
+- no-proxy industries;
+- batch snapshot filtering, sorting, pagination, and partial cell errors;
+- relative-strength alignment and missing-history exclusion;
+- breadth and relative-rotation math;
+- Study Lab definition/version/run/artifact/reproduction behavior;
+- notes and library isolation/import/export;
+- unchanged legacy API behavior.
+
+Frontend unit/component coverage:
+- Golden Layout bind/unbind lifecycle;
+- uPlot cleanup and non-recreation on resize/tab changes;
+- every link-group rule;
+- cross-window message handling and persistence leadership;
+- keyboard routing and input-focus suppression;
+- column add/remove/reorder/stack/pin/sort/manual ordering;
+- Python editor, diagnostics, version-upgrade, and capability states;
+- Study Lab output renderers and occurrence-to-chart linking;
+- template application without symbol replacement;
+- polling suspension and request deduplication;
+- snapshot conflict recovery and schema upgrades;
+- excluded tools absent from primary menus.
+
+End-to-end flows:
+- launch directly into `US Top Down`;
+- select SPY and compare with RSP;
+- rank all 11 sectors against SPY;
+- select XLK and load industries/proxies/constituents;
+- select NVDA and automatically open `NVDA/XLK` and `NVDA/SPY`;
+- traverse constituents with Space while linked charts update;
+- prove different/gray link groups do not change;
+- float a chart and prove symbol/crosshair/persistence synchronization;
+- customize, stack, pin, save, and restore watchlist columns;
+- create a Python value column, use it in EasyScan, and create an alert;
+- create the positive-close streak study, render its metrics/histogram, and inspect
+  historical occurrences on a linked chart;
+- promote a Study Lab Boolean result into a scan or alert;
+- save/reload/import/export chart and layout templates;
+- create/edit/lock/persist drawings;
+- verify missing holdings, missing index series, stale bars, provider/entitlement failure,
+  unsupported Python/data capability, sandbox failure, popup blocking, workspace
+  conflict, and corrupt-tool recovery;
+- verify legacy routes remain usable but absent from the primary interface.
+
+Visual acceptance:
+- maintain baselines at 1920x1080 and 2560x1440 for shell, TC Classic, Drill Down,
+  4 Timeframe, watchlist editor, chart editor, EasyScan, alert dialogs, Study Lab editor,
+  and Study Lab result dashboard;
+- compare spacing, density, typography, borders, gradients, chrome, menus, dialogs,
+  hover, focus, and selection states to measured current TC2000 v20 references;
+- require every visual-regression difference to be explained or fixed;
+- validate at 100% and 125% browser zoom.
+
+Performance acceptance:
+- cached symbol changes render without full-shell reflow;
+- 100,000-point uPlot series remains interactively zoomable/pannable;
+- 10,000-row watchlists do not create DOM proportional to row count;
+- linked charts issue no duplicate identical OHLCV requests;
+- docking/resizing/tab changes do not recreate uPlot;
+- hidden tools do not continue expensive polling/rendering;
+- browser memory remains stable while repeatedly opening/closing chart windows.
+- warm sandbox calculations are responsive enough for interactive columns/scans;
+- long studies remain cancellable and do not degrade API responsiveness.
+
+Final validation:
+- backend unit and integration suites;
+- frontend unit/component suites;
+- TypeScript check;
+- production build;
+- Playwright;
+- sandbox security and resource-limit suites;
+- deterministic provider tests and configured opt-in live probes;
+- visual-regression suite;
+- browser console inspection;
+- backend log inspection;
+- YAML/JSON parsing;
+- migration upgrade/downgrade verification;
+- `git diff --check`.
+
+#### Locked assumptions
+
+- Reference interface: current TC2000 desktop v20.
+- Fidelity: pixel-close geometry and interaction, rebranded with original assets.
+- Runtime: desktop browser with browser pop-outs, not Electron/Tauri and not mobile.
+- Market updates: current polling, not streaming.
+- Programming language: one Python-native market-analysis language and SDK; no separate
+  executable PCF or Optuma language.
+- Python dependencies: curated built-in library set only; no user/runtime package installs.
+- Study output: structured native results only; no arbitrary HTML/CSS/JavaScript.
+- Study Lab: a primary-workstation tool distinct from legacy Strategy Lab.
+- Data providers: API-first, multi-source, reconciled, free-source-first, and never
+  provider-specific in the frontend.
+- yfinance: absent from default/new-workstation paths and retained only as an explicit
+  temporary legacy fallback until audited away.
+- Security master: canonical local records reconciled from multiple APIs; exchange
+  directory files are optional evidence only.
+- Market truth: provider/feed/freshness/coverage are always visible; consolidated
+  real-time data is not promised.
+- Legacy dashboards: retained only in the legacy frontend and not migrated.
+- Extra current platform tools: hidden outside the core clone rather than removed.
+- External unsupported domains: hidden, stubbed, and documented.
+- Delivery model: one continuous full implementation stint followed by user-led
+  fine-tuning and bug fixing, with no MVP or phase boundary treated as completion.
+
+Why this is planned:
+- The current frontend exposes powerful backend capabilities as separate routes and dense,
+  unrelated surfaces rather than as one coherent analysis workstation.
+- The backend already provides the reusable instrument, OHLCV, indicator, drawing, alert,
+  screener, synthetic-expression, basket, and ETF-holdings foundations.
+- Rebuilding the primary interaction model around TC2000-style linked workspaces makes the
+  requested top-down daily market analysis fast while retaining uPlot's performance.
+
 ## Notes
 
 - This file intentionally focuses on postponed work that already came up in discussion.

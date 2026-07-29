@@ -2,6 +2,26 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T17:18:21Z Complete TC2000/Backend/Study-Lab Plan Reconciliation
+
+- Updated the full canonical branch plan in `docs/project-todos.md` section 14 and the
+  matching `tc2000-frontend-rework` operational task.
+- Retained the complete TC2000 v20-style frontend clone, uPlot, Golden Layout, linked
+  top-down US workflow, watchlists, EasyScan, alerts, persistence, legacy compatibility,
+  validation, and single-stint completion requirements.
+- Replaced the separate PCF-engine plan with one versioned Python-native market-analysis
+  language and SDK used by every programmable surface.
+- Added the dedicated no-network curated-library sandbox, immutable code/data/runtime
+  versions, structured native outputs, and reproducibility contract.
+- Promoted open-ended Optuma-style research from deferred context into a first-class
+  Study Lab, separate from position/execution-oriented Strategy Lab.
+- Added the complete API-first free-source backend plan: reconciled security master,
+  provider roles and entitlements, yfinance removal from default/new paths, raw/adjusted
+  history, point-in-time correctness, batch analytics, provenance, coverage, and honest
+  delayed/feed semantics.
+- Updated handoff/state context. No application code, dependency, migration, test, or
+  runtime implementation changed.
+
 ## 2026-07-28T17:34:34Z EMQQ Native Route Promotion
 
 - Continued under the corrected broad-market target: LSEG Lipper reports `496`
@@ -15214,3 +15234,28 @@ Append a short entry after each worker session.
 - Full opt-in network matrix was not rerun after this single-provider
   promotion; latest full matrix evidence remains `333 passed, 1 skipped in
   540.89s` from the 2026-07-28T12:44Z Cyber Hornet checkpoint.
+
+## 2026-07-28T21:40:33Z TC2000 Frontend Rework Planning
+
+- Created `feat/tc2000-frontend-rework` from clean `master` at `a8d6189`.
+- Recorded the complete, single-stint TC2000 v20-style frontend replacement
+  specification in `docs/project-todos.md` section 14.
+- Added the operational `tc2000-frontend-rework` task to `ops/tasks.yaml`, including
+  locked architecture decisions, full implementation scope, failure behavior,
+  definition of done, validation matrix, and acceptance scenarios.
+- Kept uPlot as the sole chart renderer and documented the complete US top-down
+  benchmark, equal-weight, sector, industry, constituent, ratio, breadth, and
+  relative-strength workflow.
+- No application source, test, dependency, or migration was changed.
+- Validation: YAML and JSON parse checks passed; `git diff --check` passed.
+- No commit was requested or created.
+
+## 2026-07-29T16:19:01Z Deferred Open-Ended Quantitative Research Note
+
+- Recorded a deliberately high-level future objective for Optuma-like custom and
+  open-ended market studies in `docs/project-todos.md` section 14 and `ops/tasks.yaml`.
+- Kept it outside the current TC2000-style replacement completion contract.
+- Avoided assigning a product name or locking an interface, language, execution model,
+  sandbox boundary, visualization stack, or integration architecture.
+- No application implementation was performed.
+- Validation: YAML and JSON parse checks passed; `git diff --check` passed.
