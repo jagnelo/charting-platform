@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T02:45:00Z
+
+- Study Lab now renders scalar outputs as metric cards and table outputs as real
+  result tables. Other declared artifact kinds remain visible as structured payloads
+  until their dedicated renderers exist; this avoids misrepresenting series/events as
+  charts before uPlot-backed implementations are added.
+- Pushed `4a534a1 feat(study-lab): render scalar and table artifacts`.
+- Validation passed: focused StudyLabTool test `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Extend the runner/output contracts and Study Lab with uPlot-backed numeric series
+  and event occurrence linking, then support promotion only for validated Boolean or
+  numeric artifacts. Preserve artifact type/provenance through each conversion.
+
 ## Continuation update — 2026-07-30T02:35:00Z
 
 - The factory Study Lab layout now renders a real workstation-native authoring tool;

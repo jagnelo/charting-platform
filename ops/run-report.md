@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T02:45:00Z Structured Study Lab artifacts
+
+- Rendered runner scalar artifacts as metric cards and table artifacts as native,
+  bounded HTML tables with derived column headers. Unsupported artifacts remain
+  explicit structured payload output rather than fabricated visualizations.
+- Pushed `4a534a1 feat(study-lab): render scalar and table artifacts`.
+- Validation passed: focused `StudyLabTool` suite `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T02:35:00Z Study Lab workstation tool
 
 - Mounted first-class Study Lab authoring inside the factory Study Lab layout and made
