@@ -55,57 +55,12 @@
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
     </main>
-    <main v-else class="workstation__grid" :class="{ 'workstation__grid--loading': workspaceStore.loading }">
-      <ToolWindow title="Benchmarks" :symbol="activeSymbol" active @update:link-group="updateLinkGroup('benchmark-list', $event)">
-        <SymbolListTool label="Major US benchmarks" :symbols="benchmarks" :selected="activeSymbol" :descriptions="descriptions" @select="selectSymbol" />
-      </ToolWindow>
-
-      <ToolWindow title="S&P 500 Sectors" :symbol="activeSymbol" @update:link-group="updateLinkGroup('sector-list', $event)">
-        <SymbolListTool label="Relative to SPY" :symbols="sectors" :selected="activeSymbol" comparison="SPY" :descriptions="descriptions" :metrics="sectorPerformance" @select="selectSymbol" />
-      </ToolWindow>
-
-      <ToolWindow title="Chart" :symbol="activeSymbol" @update:link-group="updateLinkGroup('primary-chart', $event)">
-        <div class="workstation__chart">
-          <div v-if="chartStore.isLoading" class="workstation__chart-state">Loading {{ activeSymbol }}…</div>
-          <div v-else-if="chartStore.error" class="workstation__chart-state workstation__chart-state--error">{{ chartStore.error }}</div>
-          <UPlotChart v-else-if="chartStore.symbol" />
-          <div v-else class="workstation__chart-state">Select a canonical instrument.</div>
-        </div>
-      </ToolWindow>
-
-      <ToolWindow title="Industries / Proxies" :symbol="activeSymbol" @update:link-group="updateLinkGroup('industry-list', $event)">
-        <SymbolListTool label="Selected-sector proxies" :symbols="industryProxies" :selected="activeSymbol" comparison="XLK" :descriptions="descriptions" @select="selectSymbol" />
-      </ToolWindow>
-
-      <ToolWindow title="Constituents" :symbol="activeSymbol" @update:link-group="updateLinkGroup('constituent-list', $event)">
-        <SymbolListTool label="Selected group" :symbols="constituents" :selected="activeSymbol" comparison="XLK" :descriptions="descriptions" @select="selectSymbol" />
-      </ToolWindow>
-
-      <ToolWindow title="Relative Strength" :symbol="activeSymbol" @update:link-group="updateLinkGroup('ratio-chart', $event)">
-        <div class="workstation__analysis">
-          <strong>{{ activeSymbol }}/SPY</strong>
-          <strong v-if="activeSymbol !== 'XLK'">{{ activeSymbol }}/XLK</strong>
-          <p>Ratio views are resolved through canonical synthetic instruments. Missing or misaligned bars remain explicitly excluded.</p>
-        </div>
-      </ToolWindow>
-
-      <ToolWindow title="Technicals" :symbol="activeSymbol">
-        <div class="workstation__metrics">
-          <span>RSI</span><b>Coverage pending</b>
-          <span>20/50/200 MA</span><b>Canonical batch API</b>
-          <span>52-week position</span><b>Source-labelled</b>
-          <span>Volume ratio</span><b>Freshness-aware</b>
-        </div>
-      </ToolWindow>
-
-      <ToolWindow title="Breadth & Coverage" :symbol="activeSymbol">
-        <div class="workstation__metrics">
-          <span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b>
-          <span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b>
-          <span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b>
-          <span>Coverage</span><b>{{ breadthCoverage }}</b>
-        </div>
-      </ToolWindow>
+    <main v-else-if="!isPopout" class="workstation__layout-state" role="status">
+      <span v-if="workspaceStore.loading">Loading saved workstation…</span>
+      <template v-else>
+        <span>Unable to load a serializable workstation layout.</span>
+        <button type="button" @click="workspaceStore.loadDefault()">Retry</button>
+      </template>
     </main>
 
     <footer v-if="!isPopout" class="workstation__footer">
@@ -120,11 +75,8 @@
 <script setup lang="ts">
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ToolWindow from '@/components/workstation/ToolWindow.vue'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
-import SymbolListTool from '@/components/workstation/SymbolListTool.vue'
-import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { useChartStore } from '@/stores/chart'
 import { useWorkspaceStore, type LinkGroup } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
@@ -136,24 +88,16 @@ const workspaceStore = useWorkspaceStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
 
-const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
-const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
-const industryProxies = ['SMH', 'IGV', 'SOXX', 'HACK', 'SKYY']
-const constituents = ['NVDA', 'MSFT', 'AAPL', 'AVGO', 'CRM', 'ORCL', 'AMD', 'ADBE']
-const descriptions: Record<string, string> = {
-  SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
-  XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care',
-  XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
-  NVDA: 'NVIDIA', MSFT: 'Microsoft', AAPL: 'Apple', AVGO: 'Broadcom', CRM: 'Salesforce', ORCL: 'Oracle', AMD: 'AMD', ADBE: 'Adobe',
-}
-
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')
   return workspaceStore.activeTab?.windows.find(window => window.instance_key === key) ?? null
 })
-const allSymbols = computed(() => [...benchmarks.value, ...sectors.value, ...industryProxies, ...constituents])
+const allSymbols = computed(() => [
+  ...(workspaceStore.marketGroups['us-benchmarks']?.members ?? []),
+  ...(workspaceStore.marketGroups['sp500-sectors']?.members ?? []),
+].map(member => member.instrument.symbol))
 const goldenLayoutConfig = computed(() => {
   const layout = workspaceStore.activeTab?.layout_config
   if (layout?.root) return layout as LayoutConfig
@@ -169,16 +113,6 @@ const goldenLayoutConfig = computed(() => {
     },
   } as unknown as LayoutConfig
 })
-const sectorPerformance = computed(() => Object.fromEntries(
-  (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
-))
-const sectorBreadth = computed(() => workspaceStore.breadth['sp500-sectors'])
-const breadthCoverage = computed(() => sectorBreadth.value ? `${(sectorBreadth.value.coverage * 100).toFixed(0)}% · ${sectorBreadth.value.evaluated_count} symbols` : 'Unavailable')
-function breadthMetric(key: string) {
-  const value = sectorBreadth.value?.above_ma[key]
-  return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`
-}
-
 async function selectSymbol(raw: string) {
   const symbol = raw.trim().toUpperCase()
   if (!symbol) return
@@ -311,16 +245,8 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__tabs > button:not(.workstation__tab-add) { min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__workspace-name { margin-left: auto; padding: 7px 9px; color: #697782; font-size: 10px; }
-.workstation__grid { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(180px, 18%) minmax(190px, 19%) minmax(420px, 1fr); grid-template-rows: minmax(150px, 1fr) minmax(160px, 1fr) minmax(110px, .65fr); gap: 3px; padding: 3px; background: #090c0f; }
-.workstation__grid > :nth-child(1) { grid-column: 1; grid-row: 1; }
-.workstation__grid > :nth-child(2) { grid-column: 2; grid-row: 1; }
-.workstation__grid > :nth-child(3) { grid-column: 3; grid-row: 1 / span 2; }
-.workstation__grid > :nth-child(4) { grid-column: 1; grid-row: 2; }
-.workstation__grid > :nth-child(5) { grid-column: 2; grid-row: 2; }
-.workstation__grid > :nth-child(6) { grid-column: 1; grid-row: 3; }
-.workstation__grid > :nth-child(7) { grid-column: 2; grid-row: 3; }
-.workstation__grid > :nth-child(8) { grid-column: 3; grid-row: 3; }
-.workstation__grid--loading { opacity: .7; }
+.workstation__layout-state { display: grid; min-height: 0; place-content: center; gap: 9px; padding: 20px; background: #090c0f; color: #9baab4; font: 12px "Segoe UI", Arial, sans-serif; text-align: center; }
+.workstation__layout-state button { justify-self: center; border: 1px solid #43525d; background: #1a242c; color: #c5d8e4; cursor: pointer; font: inherit; padding: 4px 10px; }
 .workstation__chart { height: 100%; min-height: 0; position: relative; background: #101419; }
 .workstation__chart-state { display: grid; height: 100%; place-items: center; color: #98a7b2; font-size: 12px; }
 .workstation__chart-state--error { color: #ec8f8f; }
