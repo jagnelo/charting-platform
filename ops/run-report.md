@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T02:35:00Z Study Lab workstation tool
+
+- Mounted first-class Study Lab authoring inside the factory Study Lab layout and made
+  the workstation Tools menu select that layout. The tool validates unified Python,
+  creates immutable code assets, starts/polls/cancels isolated canonical-data runs,
+  and renders returned artifact payloads and reproducibility hashes.
+- Pushed `01d1a59 feat(study-lab): add workstation study authoring tool`.
+- Validation passed: focused `StudyLabTool` suite `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T02:20:00Z Docked tool maximization
 
 - Connected the visible tool maximize control to Golden Layout's real stack

@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T02:35:00Z
+
+- The factory Study Lab layout now renders a real workstation-native authoring tool;
+  Tools selects it in the main workspace rather than routing away. It validates the
+  one Python language, creates immutable study assets, submits canonical local data
+  to the isolated runner, polls/cancels, and shows artifact/reproducibility output.
+- Pushed `01d1a59 feat(study-lab): add workstation study authoring tool`.
+- Validation passed: focused StudyLabTool test `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Add structured Study Lab artifact renderers (metrics, tables, series/events) and
+  occurrence linking/promotion. Replace the remaining generic research-results
+  placeholder only with a real persisted result viewer.
+
 ## Continuation update — 2026-07-30T02:20:00Z
 
 - The shared tool-window maximize control now invokes Golden Layout's owning stack
