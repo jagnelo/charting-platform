@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.ohlcv import Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
+from app.models.workstation import WorkspaceLibraryItem
 
 router = APIRouter(prefix="/screeners", tags=["screeners"])
 
@@ -60,6 +61,19 @@ class ScreenerResultOut(BaseModel):
     matched_ids: list
     result_data: dict
     error: str | None
+
+
+class ScreenerFromCondition(BaseModel):
+    name: str
+    description: str | None = None
+    universe_type: str = "all"
+    universe_watchlist_id: int | None = None
+    universe_asset_class_id: int | None = None
+    universe_basket_id: int | None = None
+    universe_instrument_ids: list[int] | None = None
+    timeframe: Timeframe = Timeframe.D1
+    schedule: str | None = None
+    is_active: bool = True
 
 
 @router.get("", response_model=list[ScreenerOut])
@@ -125,6 +139,54 @@ async def create_screener(
     if existing > 0:
         raise HTTPException(409, f"A screener named '{body.name}' already exists")
     screener = ScreenerDefinition(**body.model_dump(), user_id=current_user.id)
+    db.add(screener)
+    await db.commit()
+    await db.refresh(screener)
+    return screener
+
+
+@router.post("/from-condition/{stable_key}", response_model=ScreenerOut, status_code=201)
+async def create_screener_from_condition(
+    stable_key: str,
+    body: ScreenerFromCondition,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Copy a versioned condition into an EasyScan definition with explicit provenance."""
+    condition = (
+        await db.execute(
+            select(WorkspaceLibraryItem).where(
+                WorkspaceLibraryItem.user_id == current_user.id,
+                WorkspaceLibraryItem.kind == "condition",
+                WorkspaceLibraryItem.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if condition is None:
+        raise HTTPException(status_code=404, detail="Condition not found")
+    condition_tree = condition.payload.get("condition")
+    if not isinstance(condition_tree, dict) or not condition_tree:
+        raise HTTPException(
+            status_code=422, detail="Condition asset has no executable condition AST"
+        )
+    existing = (
+        await db.execute(
+            select(func.count())
+            .select_from(ScreenerDefinition)
+            .where(
+                ScreenerDefinition.user_id == current_user.id,
+                func.lower(ScreenerDefinition.name) == body.name.lower(),
+            )
+        )
+    ).scalar_one()
+    if existing > 0:
+        raise HTTPException(409, f"A screener named '{body.name}' already exists")
+    screener = ScreenerDefinition(
+        **body.model_dump(exclude={"description"}),
+        conditions=condition_tree,
+        user_id=current_user.id,
+        description=body.description or condition.payload.get("description"),
+    )
     db.add(screener)
     await db.commit()
     await db.refresh(screener)

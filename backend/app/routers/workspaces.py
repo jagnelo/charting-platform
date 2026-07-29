@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,6 +24,15 @@ from app.schemas.workstation import (
 )
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+
+
+class ConditionAssetWrite(BaseModel):
+    """A reusable visual-condition AST stored in the workstation library."""
+
+    name: str = Field(min_length=1, max_length=160)
+    condition: dict = Field(default_factory=dict)
+    description: str | None = Field(default=None, max_length=2_000)
+    dependency_metadata: dict = Field(default_factory=dict)
 
 
 def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) -> dict:
@@ -525,3 +535,79 @@ async def upsert_library_item(
         item.version += 1
     await db.flush()
     return item
+
+
+@router.get("/library/conditions", response_model=list[WorkspaceLibraryItemOut])
+async def list_condition_assets(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List reusable condition ASTs without exposing generic library internals to tools."""
+    result = await db.execute(
+        select(WorkspaceLibraryItem)
+        .where(
+            WorkspaceLibraryItem.user_id == current_user.id,
+            WorkspaceLibraryItem.kind == "condition",
+        )
+        .order_by(WorkspaceLibraryItem.name)
+    )
+    return result.scalars().all()
+
+
+@router.put("/library/conditions/{stable_key}", response_model=WorkspaceLibraryItemOut)
+async def upsert_condition_asset(
+    stable_key: str,
+    body: ConditionAssetWrite,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Version a reusable condition with a stable identity for scans and filters."""
+    if not body.condition:
+        raise HTTPException(status_code=422, detail="Condition AST must not be empty")
+    item = (
+        await db.execute(
+            select(WorkspaceLibraryItem).where(
+                WorkspaceLibraryItem.user_id == current_user.id,
+                WorkspaceLibraryItem.kind == "condition",
+                WorkspaceLibraryItem.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    payload = {"condition": body.condition, "description": body.description}
+    if item is None:
+        item = WorkspaceLibraryItem(
+            user_id=current_user.id,
+            kind="condition",
+            stable_key=stable_key,
+            name=body.name,
+            payload=payload,
+            dependency_metadata=body.dependency_metadata,
+        )
+        db.add(item)
+    else:
+        item.name = body.name
+        item.payload = payload
+        item.dependency_metadata = body.dependency_metadata
+        item.version += 1
+    await db.flush()
+    return item
+
+
+@router.delete("/library/conditions/{stable_key}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_condition_asset(
+    stable_key: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = (
+        await db.execute(
+            select(WorkspaceLibraryItem).where(
+                WorkspaceLibraryItem.user_id == current_user.id,
+                WorkspaceLibraryItem.kind == "condition",
+                WorkspaceLibraryItem.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Condition not found")
+    await db.delete(item)

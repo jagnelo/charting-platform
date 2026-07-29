@@ -14,6 +14,25 @@ import json
 
 
 class TestScreenerCRUD:
+    def test_create_screener_from_saved_condition(self, client, auth_headers):
+        condition = {
+            "operator": "AND",
+            "conditions": [{"type": "price_threshold", "field": "close", "op": "gt", "value": 100}],
+        }
+        saved = client.put(
+            "/api/v1/workspaces/library/conditions/close-above-100",
+            headers=auth_headers,
+            json={"name": "Close above 100", "condition": condition},
+        )
+        assert saved.status_code == 200
+        created = client.post(
+            "/api/v1/screeners/from-condition/close-above-100",
+            headers=auth_headers,
+            json={"name": "Saved condition scan", "universe_type": "all", "timeframe": "D1"},
+        )
+        assert created.status_code == 201
+        assert created.json()["conditions"] == condition
+
     def test_create_screener(self, client, auth_headers):
         res = client.post(
             "/api/v1/screeners",

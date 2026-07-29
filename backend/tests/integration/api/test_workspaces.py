@@ -87,6 +87,45 @@ class TestWorkspaces:
         assert second.status_code == 200
         assert second.json()["version"] == 2
 
+    def test_condition_assets_are_versioned_and_user_isolated(self, client, auth_headers):
+        payload = {
+            "name": "Close above 100",
+            "description": "Reusable price condition",
+            "condition": {
+                "operator": "AND",
+                "conditions": [
+                    {"type": "price_threshold", "field": "close", "op": "gt", "value": 100}
+                ],
+            },
+            "dependency_metadata": {"visual_editor": "v25"},
+        }
+        first = client.put(
+            "/api/v1/workspaces/library/conditions/close-above-100",
+            headers=auth_headers,
+            json=payload,
+        )
+        assert first.status_code == 200
+        assert first.json()["kind"] == "condition"
+        assert first.json()["payload"]["condition"] == payload["condition"]
+        assert first.json()["version"] == 1
+
+        payload["name"] = "Close above 100 updated"
+        second = client.put(
+            "/api/v1/workspaces/library/conditions/close-above-100",
+            headers=auth_headers,
+            json=payload,
+        )
+        assert second.status_code == 200
+        assert second.json()["version"] == 2
+        listed = client.get("/api/v1/workspaces/library/conditions", headers=auth_headers)
+        assert [item["stable_key"] for item in listed.json()] == ["close-above-100"]
+        assert (
+            client.delete(
+                "/api/v1/workspaces/library/conditions/close-above-100", headers=auth_headers
+            ).status_code
+            == 204
+        )
+
     def test_market_group_roots_are_source_labelled(self, client, auth_headers):
         response = client.get("/api/v1/market-groups", headers=auth_headers)
         assert response.status_code == 200
