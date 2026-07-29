@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T22:57:00Z Unsupported tool recovery export
+
+- Replaced the inert unknown-tool fallback with an explicit recovery surface that
+  preserves and exports the exact serializable state while valid sibling tools load.
+- Pushed `a60fef6 feat(workstation): export unsupported tool recovery state`.
+- Validation passed: focused recovery/tool-window suites `2 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
 ## 2026-07-29T22:55:00Z Disjoint workspace conflict merge
 
 - Added a single safe fetch/merge/retry path for revision conflicts. It merges only

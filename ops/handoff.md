@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T22:57:00Z
+
+- Unsupported saved tool types now render a recovery surface instead of a generic
+  placeholder. The unaffected layout continues loading and the exact serialized tool
+  state can be exported as JSON for recovery; no runtime object is reconstructed.
+- Pushed `a60fef6 feat(workstation): export unsupported tool recovery state`.
+- Validation passed: focused recovery/tool-window suites `2 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement closed/disconnected pop-out restoration and cross-window leadership
+  transfer, then continue full layout-corruption recovery/export coverage.
+
 ## Continuation update — 2026-07-29T22:55:00Z
 
 - Revision conflicts now fetch, prove, and retry only a disjoint serialized-window

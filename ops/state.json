@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-29T22:55:00Z",
-    "last_commit": "cc3c8d1 feat(workstation): merge disjoint snapshot changes",
+    "last_handoff_at": "2026-07-29T22:57:00Z",
+    "last_commit": "a60fef6 feat(workstation): export unsupported tool recovery state",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (isolated Study Lab runner/deployment guard and focused code/research foundation modules, 2026-07-30)",
         "backend_tests": "isolated Study Lab runner/deployment guard 8 passed with --no-cov; focused screener/analysis integration 19 passed with --no-cov, 2026-07-30",
         "frontend_tests": "passed (focused workspace-store tests: 7 passed; StudyLabTool test: 1 passed; ToolWindow test: 1 passed; VirtualWatchlistTool suite: 6 passed, 2026-07-29)",
-        "frontend_build": "passed (type-check and production build, disjoint workspace conflict merge, 2026-07-29)",
+        "frontend_build": "passed (type-check and production build, unsupported-tool recovery export, 2026-07-29)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-29T22:55:00Z disjoint workspace conflict merge checkpoint)",
+        "diff_check": "passed (2026-07-29T22:57:00Z unsupported-tool recovery checkpoint)",
         "playwright": "not_run (new workstation E2E coverage still required)",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-29T22:57:00Z: Added/pushed a60fef6: unsupported/corrupt serialized tools no longer render as inert generic panels. Valid tools continue loading while only the affected tool displays an explicit recovery surface and can export its exact retained JSON state. Focused recovery/tool-window tests 2 passed; frontend type-check/build and diff check passed. Full layout corruption recovery, cross-window recovery, and broad acceptance remain incomplete.",
         "2026-07-29T22:55:00Z: Added/pushed cc3c8d1: workspace revision conflicts now perform one fetch/merge/retry only when baseline, local, and remote layouts prove that structure/settings/tabs are unchanged and edits affect disjoint serialized windows. Any structural/overlapping/unknown change falls back to the existing named recovery copy. Focused workspace-store suite 7 passed; frontend type-check/build and diff check passed. Corrupt/unknown tool recovery/export, full cross-window recovery, and broad acceptance remain incomplete.",
         "2026-07-29T22:52:00Z: Added/pushed daf7fe6: a revision-conflicted workspace snapshot now fetches the authoritative current layout and persists the local serializable state as a named non-factory recovery workspace before replacing the active stale view. It never silently overwrites/discards user changes. Focused workspace-store suite 6 passed; frontend type-check/build and diff check passed. Disjoint-change merge/retry, unknown/corrupt-tool recovery/export, full cross-window recovery, and broad acceptance remain incomplete.",
         "2026-07-29T22:50:00Z: Added/pushed df5039a: the workstation now reopens implemented tools from a bounded serializable registry. Added tools receive unique persisted window identity, JSON-only configuration, Golden Layout component state, and a saved active selection; generic added chart/notes/alerts/scans/gauges/Study Lab tools render through their real implementations. Focused workspace/Study Lab tests 6 passed; frontend type-check/build and diff check passed. Revision-conflict recovery, corrupt-layout recovery/export, complete tool registry, and broad acceptance remain incomplete.",
