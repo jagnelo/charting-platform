@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:10:00Z Local-only scan execution
+
+- Removed provider fetching from the streaming screener path. Both ordinary and streamed
+  scans now evaluate only canonical local history; missing history produces explicit
+  per-instrument `coverage_missing_ohlcv` errors and persisted coverage metadata.
+- Pushed `a3f0b60 feat(scans): keep interactive runs local and coverage-aware`.
+- Validation passed: focused screener integration suite `16 passed` with `--no-cov`,
+  focused Ruff check/format, and `git diff --check`.
+- The complete goal remains active. This is backend alignment work, not completion of
+  the required Version-25 integrated EasyScan/filter/gauge UI or acceptance matrix.
+
 ## 2026-07-29T23:59:00Z TC2000 workstation symbol-linked alerts
 
 - Added the default workstation `Alerts` tool and serializable factory-layout entry.

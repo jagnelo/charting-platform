@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-29T23:59:00Z",
-    "last_commit": "f5460e3 feat(workstation): add symbol-linked alerts tool",
+    "last_handoff_at": "2026-07-30T00:10:00Z",
+    "last_commit": "a3f0b60 feat(scans): keep interactive runs local and coverage-aware",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (workstation top-down composition and focused code/research foundation modules, 2026-07-29)",
-        "backend_tests": "selected 24 passed (workspace/alerts); command coverage-gate nonzero at 27.40% vs global 55%, 2026-07-29",
+        "backend_tests": "focused screener integration 16 passed with --no-cov (local-only coverage-aware scan path), 2026-07-30",
         "frontend_tests": "passed (VirtualWatchlistTool focused component suite: 2 passed, 2026-07-29)",
         "frontend_build": "passed (type-check and production build, alert workstation tool, 2026-07-29)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-29T23:59:00Z symbol-linked alerts checkpoint)",
+        "diff_check": "passed (2026-07-30T00:10:00Z local-only scan checkpoint)",
         "playwright": "not_run (new workstation E2E coverage still required)",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-30T00:10:00Z: Added/pushed a3f0b60: ordinary and streamed scans now evaluate canonical local history only. Missing/cold history is returned as per-instrument coverage_missing_ohlcv metadata; provider fan-out was removed. Focused screener integration 16 passed with --no-cov, Ruff/diff check passed. Full goal remains incomplete.",
         "2026-07-29T23:59:00Z: Added/pushed f5460e3, default symbol-linked workstation Alerts tool; it reuses authenticated price/indicator alert APIs for list/create/rearm/delete. Focused workspace/alert selection had 24 passing tests, but pytest exits at the global coverage gate (27.40% selected coverage vs 55% threshold). Frontend type-check/build/diff check passed. Full goal remains incomplete.",
         "2026-07-29T23:55:00Z: Added/pushed canonical local factory-study materialization (dc0edc6) and the positive-close streak Study Lab authoring default (a9fac53). Isolated runner/research API focused suite has 8 passing tests; no provider data or credentials enter the runner. Full active goal remains incomplete.",
         "2026-07-29T23:40:00Z: Added/pushed a serialized factory Notes tool (dd6fbc2) and user-isolated autosave UI (5ddb28f). Focused workstation API now has 9 passing tests; Ruff/frontend type-check/build/diff checks pass. Full active goal remains incomplete.",

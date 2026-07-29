@@ -100,6 +100,25 @@
 - Pushed as `f5460e3 feat(workstation): add symbol-linked alerts tool` to
   `origin/feat/tc2000-frontend-rework`; worktree was clean immediately afterwards.
 
+### Continuation update — 2026-07-30T00:10:00Z
+
+- Removed the legacy streaming screener's provider-fetch second pass. Interactive
+  scan evaluation now reads canonical local bars only, just like the synchronous
+  path. Every missing/cold instrument emits a structured `coverage_missing_ohlcv`
+  event and is retained in the persisted scan-result coverage metadata; evaluation
+  errors are likewise visible per instrument.
+- This closes a direct violation of the workstation contract that ordinary UI requests
+  must not trigger uncontrolled provider fan-out. It does not yet complete the required
+  integrated column/filter/condition/EasyScan/gauge UX.
+- Validation: focused screener integration suite `16 passed` with `--no-cov`; focused
+  Ruff check/format passed; `git diff --check` passed. Pushed implementation commit
+  `a3f0b60 feat(scans): keep interactive runs local and coverage-aware`.
+
+### Exact next step
+
+- Make saved conditions first-class reusable assets and consume them in the workstation
+  EasyScan/column/filter surfaces, including condition-to-screener-alert actions.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
