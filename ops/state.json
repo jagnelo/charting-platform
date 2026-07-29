@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T00:25:00Z",
-    "last_commit": "bdcf9eb feat(scans): add reusable condition assets",
+    "last_handoff_at": "2026-07-30T00:40:00Z",
+    "last_commit": "8f2599a feat(workstation): add EasyScan condition tool",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (workstation top-down composition and focused code/research foundation modules, 2026-07-29)",
         "backend_tests": "focused workspace/screener integration 27 passed with --no-cov (condition assets and local-only scan path), 2026-07-30",
         "frontend_tests": "passed (VirtualWatchlistTool focused component suite: 2 passed, 2026-07-29)",
-        "frontend_build": "passed (type-check and production build, alert workstation tool, 2026-07-29)",
+        "frontend_build": "passed (type-check and production build, workstation EasyScan tool, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T00:25:00Z reusable condition asset checkpoint)",
+        "diff_check": "passed (2026-07-30T00:40:00Z workstation EasyScan checkpoint)",
         "playwright": "not_run (new workstation E2E coverage still required)",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-30T00:40:00Z: Added/pushed 8f2599a: default workstation EasyScan builds/saves basic price/volume conditions, creates/reuses local-only scans, and renders match/coverage counts. Focused workspace integration 10 passed with --no-cov; frontend type-check/build and diff check passed. Advanced condition/filter/gauge requirements remain incomplete.",
         "2026-07-30T00:25:00Z: Added/pushed bdcf9eb: reusable versioned condition AST assets are user-isolated and can create an EasyScan without copying raw condition JSON. Focused workspace/screener integration 27 passed with --no-cov, Ruff/diff check passed. Workstation condition UI/filter/gauge integration remains incomplete.",
         "2026-07-30T00:10:00Z: Added/pushed a3f0b60: ordinary and streamed scans now evaluate canonical local history only. Missing/cold history is returned as per-instrument coverage_missing_ohlcv metadata; provider fan-out was removed. Focused screener integration 16 passed with --no-cov, Ruff/diff check passed. Full goal remains incomplete.",
         "2026-07-29T23:59:00Z: Added/pushed f5460e3, default symbol-linked workstation Alerts tool; it reuses authenticated price/indicator alert APIs for list/create/rearm/delete. Focused workspace/alert selection had 24 passing tests, but pytest exits at the global coverage gate (27.40% selected coverage vs 55% threshold). Frontend type-check/build/diff check passed. Full goal remains incomplete.",

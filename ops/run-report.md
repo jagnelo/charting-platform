@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:40:00Z Workstation EasyScan tool
+
+- Added `EasyScan` to the default Golden Layout workstation. It can build a basic
+  price/volume condition, save the versioned asset, create/reuse and run a local-only
+  scan, and display match/coverage results in place.
+- Pushed `8f2599a feat(workstation): add EasyScan condition tool`.
+- Validation passed: focused workspace integration `10 passed` with `--no-cov`,
+  frontend type-check, frontend production build, and `git diff --check`.
+- The goal remains active: nested Python/relative-strength conditions, persisted
+  watchlist filters/Boolean columns, scan alerts, gauges, and full acceptance remain.
+
 ## 2026-07-30T00:25:00Z Reusable condition assets
 
 - Added versioned, user-isolated workstation condition assets with list/upsert/delete

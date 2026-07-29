@@ -138,6 +138,24 @@
 - Add the workstation EasyScan/condition library tool and connect condition actions to
   watchlist Boolean/filter columns and screener entry/exit alert creation.
 
+### Continuation update — 2026-07-30T00:40:00Z
+
+- Added the default-workspace `EasyScan` tool. It builds and versions basic price/volume
+  conditions through the condition library, selects any saved condition, creates or
+  reuses a same-named scan, runs it against canonical local data, and reports match plus
+  local-coverage/exclusion counts. It is a functional tool window, not a legacy-route
+  link or a disabled shell.
+- Factory layout is now version 4 and includes `easy-scan`; the generic tool registry
+  mounts it through Golden Layout alongside the top-down workflow.
+- Validation: focused workspace integration `10 passed` with `--no-cov`; frontend
+  type-check and production build passed; `git diff --check` passed. Pushed
+  `8f2599a feat(workstation): add EasyScan condition tool`.
+
+### Exact next step
+
+- Extend the virtual watchlist into persisted Boolean condition/filter columns and use
+  saved scans to create/rearm entry/exit alerts and Market Gauge calculations.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
