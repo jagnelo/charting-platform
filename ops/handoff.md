@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T03:20:00Z
+
+- Docked-tool close actions are now serialized correctly: Golden Layout reports the
+  visible component identities, and the workspace store reconciles/removes only
+  windows absent from that saved layout. It also repairs the active-window key when
+  necessary before snapshot persistence, preventing closed tools from reappearing.
+- Pushed `271246e feat(workstation): persist closed docked tools`.
+- Validation passed: focused workspace-store suite `2 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Add an explicit persisted tool-library/open mechanism and recovery for an empty or
+  corrupt layout, then validate cross-window closed/pop-out restoration behavior.
+
 ## Continuation update — 2026-07-30T03:05:00Z
 
 - The actual isolated runner now supports a prepared-dataset market/TA subset instead

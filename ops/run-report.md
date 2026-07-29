@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T03:20:00Z Persisted docked-tool closing
+
+- Golden Layout state changes now report the remaining serialized tool keys. The
+  workspace store saves the resulting layout and removes only closed tool windows,
+  preserving valid active-window selection and preventing stale invisible tools from
+  returning on reload.
+- Pushed `271246e feat(workstation): persist closed docked tools`.
+- Validation passed: focused workspace-store suite `2 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T03:05:00Z Prepared-market Study Lab series
 
 - Implemented the isolated runner's prepared-data `market.close(symbol)` and
