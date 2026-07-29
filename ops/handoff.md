@@ -1,5 +1,40 @@
 # Active Handoff
 
+## TC2000 Version 25 controlling-plan and visual-reference refinement - 2026-07-29T19:30:57Z
+
+- Replaced TC2000 Version 20 as the visual target with the current TC2000 Version 25
+  desktop generation, pinned to release-notes build `25.0.9571`.
+- Made `docs/project-todos.md` section 14 and `docs/tc2000-visual-parity.md` the
+  controlling branch specification. They supersede older or narrower frontend-rework
+  notes where anything conflicts.
+- Added the complete visual-reference system:
+  - source/evidence hierarchy headed by authorised live Version 25 desktop captures;
+  - official release and help-source catalogue;
+  - capture manifest schema, reference status lifecycle, hashes, measurements, and
+    protected-material handling;
+  - full surface/state capture matrix for shell, layouts, docking, charts, watchlists,
+    columns/filters, gauges, alerts, notes, Study Lab, failures, and recovery;
+  - 1920x1080 and 2560x1440 at 100% and 125% display scale;
+  - exact geometry, typography, color, pixel-difference, masking, and baseline-review
+    acceptance rules.
+- Corrected the scan/editor plan to follow Version 25's integrated watchlist column,
+  True/False condition, filter, grouping, stacking, and Market Gauge model while
+  retaining EasyScan as the reusable saved-scan capability.
+- Preserved the full previously agreed product contract: uPlot-only chart rendering,
+  Golden Layout workspaces, linked US top-down analysis, unified Python SDK and isolated
+  sandbox, Study Lab, free-source-first backend reconciliation, point-in-time data,
+  provenance, entitlements, batch analytics, legacy compatibility, and one continuous
+  implementation stint.
+- No application source, migration, dependency, test, or runtime implementation changed.
+- Documentation validation passed: `ops/tasks.yaml` and `ops/state.json` parse, no
+  controlling plan retains a Version 20 target, and `git diff --check` passes.
+
+### Next step
+
+- Begin implementation only when explicitly requested. Use the complete Version 25
+  branch plan as one indivisible completion contract; do not substitute Version 20
+  references, informal visual approximation, an MVP, or a frontend-only reskin.
+
 ## Complete TC2000/workstation/backend/research plan reconciliation - 2026-07-29T17:18:21Z
 
 - Replaced the outdated section 14 design with the complete agreed implementation

@@ -1,13 +1,13 @@
 tasks:
   - id: tc2000-frontend-rework
-    title: Replace the primary frontend with a TC2000 v20-style workstation and build its supporting backend/research platform
+    title: Replace the primary frontend with a TC2000 Version 25-style workstation and build its supporting backend/research platform
     branch: feat/tc2000-frontend-rework
     status: planned
     priority: high
-    canonical_todo: docs/project-todos.md#14-replace-the-primary-frontend-with-a-tc2000-v20-style-workstation-and-build-its-supporting-backendresearch-platform
+    canonical_todo: docs/project-todos.md#14-replace-the-primary-frontend-with-a-tc2000-version-25-style-workstation-and-build-its-supporting-backendresearch-platform
     scope: >
       Replace the authenticated primary frontend with a pixel-close, rebranded clone of
-      the current TC2000 v20 desktop interface and interaction model. Keep Vue 3,
+      TC2000 Version 25 desktop build 25.0.9571 and its interaction model. Keep Vue 3,
       TypeScript, Vite, and uPlot; uPlot remains the only chart renderer. Use Golden
       Layout virtual components for arbitrary docking, tab stacks, maximizing, saved
       layouts, browser pop-outs, and multi-monitor behavior. Reproduce TC2000-style
@@ -22,7 +22,8 @@ tasks:
       stint with a single completion bar, followed by user-led visual fine-tuning and
       bug fixing; do not stop at an MVP or intermediate phase.
     locked_decisions:
-      - Current TC2000 desktop v20 is the visual and interaction reference.
+      - TC2000 Version 25 desktop build 25.0.9571 is the pinned visual and interaction reference.
+      - docs/project-todos.md section 14 and docs/tc2000-visual-parity.md supersede all older or narrower frontend-rework plans where they conflict.
       - Match geometry, density, colors, window chrome, menus, dialogs, and mechanics while retaining original platform branding and assets.
       - Keep Vue 3, TypeScript, Vite, Pinia, and uPlot.
       - Use golden-layout virtual components for docking and browser pop-outs.
@@ -40,13 +41,21 @@ tasks:
       - Exclude visible options, trading/brokerage, news, analyst ratings, earnings, and full financial statements.
       - Create documented backend/frontend capability stubs for every excluded or unsupported domain without visible disabled shells.
     implementation:
+      visual_reference_system:
+        - Treat docs/tc2000-visual-parity.md as the visual implementation contract and pin all comparisons to TC2000 Version 25 desktop build 25.0.9571.
+        - Use authorised live Version 25 captures first, Version 25 official help second, confirmed-unchanged Version 23/24 help third, Version 20 only as behavioral history, and third-party media only for discovery.
+        - Create tests/visual/references/tc2000-v25/manifest.yaml with source, build, capture environment, crop, masks, measurements, interaction recipe, hash, review state, and permission/storage classification.
+        - Capture every required shell, layout, docking, chart, watchlist, column/filter, gauge, alert, notes, Study Lab, loading, error, and recovery state at 1920x1080 and 2560x1440 at both 100 and 125 percent display scale.
+        - Measure centralized geometry, typography, spacing, border, gradient, color, icon, scrollbar, shadow, overlay, and interaction-state tokens instead of approximating them by eye.
+        - Store protected TC2000 material only as permitted reference evidence and never ship TC2000 branding, screenshots, or proprietary artwork in product bundles.
+        - Require interaction tests alongside screenshot comparisons because static captures do not prove linking, keyboard routing, docking, pop-outs, editors, chart mechanics, or recovery.
       workspace_shell:
         - Replace the icon sidebar and route-per-feature navigation with a dense TC2000-style menu bar, workspace tabs, status bar, and dockable tool surface.
         - Implement shared tool-window chrome with title, link selector, tool menu, drag, tab stack, maximize, float, pop-in, close, focus, and minimum sizing.
         - Support arbitrary row/column docking, stacked tabs, persisted sizes, browser pop-outs, and multi-monitor placement.
         - Synchronize symbol, list selection, linked timeframe, crosshair, library, layout, and logout events across windows through BroadcastChannel with a storage-event fallback.
         - Elect one persistence leader and transfer leadership safely when it closes.
-        - Implement exact TC2000 v20 link groups, yellow wildcard behavior, and gray isolation across tabs and pop-outs.
+        - Implement exact TC2000 Version 25 link groups, yellow wildcard behavior, and gray isolation across tabs and pop-outs.
         - Implement global typed-symbol search, Space/Shift+Space traversal, arrow/Enter selection, Ctrl+wheel traversal, and context-safe chart shortcuts.
       factory_layouts:
         - Make US Top Down the default with benchmarks, SPY/RSP comparison, sectors, industries, constituents, primary chart, ratio chart, technicals, breadth, and coverage.
@@ -80,7 +89,7 @@ tasks:
         - Persist code/SDK/worker/dataset versions, parameters, warnings, exclusions, logs, resource use, artifacts, and a reproducibility hash.
         - Use warm vectorized workers for interactive calculations and durable cancellable queued jobs for long studies.
       easyscan:
-        - Generalize screeners into TC2000-style EasyScan with all current universes plus combo lists and market groups.
+        - Generalize screeners into TC2000-style EasyScan with all current universes plus combo lists and market groups, using the current Version 25 integrated column, True/False condition, filter, group, stack, and Market Gauge interaction model.
         - Support nested conditions, per-condition timeframes, price/volume/indicator/metadata/relative-strength/Python conditions, preview counts, streaming progress, cancelation, schedules, and historical results.
         - Convert conditions into filters, Boolean columns, alerts, managed lists, scan plots, and market gauges.
         - Never fabricate historical scan results before valid recorded history exists.
@@ -129,7 +138,7 @@ tasks:
       frontend_architecture:
         - Add WorkspaceShell, WorkspaceLayoutHost, ToolRegistry, ToolWindowHost, LinkBus, LibraryStore, UPlotHost, and CapabilityRegistry layers.
         - Persist serializable state only and version every tool state.
-        - Build centralized TC2000 v20 design tokens and validate Segoe-compatible rendering at 100 and 125 percent zoom.
+        - Build centralized TC2000 Version 25 design tokens and validate Segoe-compatible rendering at 100 and 125 percent display scale.
         - Use original CSS/SVG controls and no TC2000 branding assets.
       persistence_and_apis:
         - Add workspace/tab/window/library, code asset/version, instrument note, market group/member/proxy, research definition/run/artifact, provider entitlement, and dataset snapshot persistence.
@@ -162,6 +171,8 @@ tasks:
       - Unknown workspace tools preserve raw state and open a recovery/export panel.
       - Concurrent snapshots use revisions, merge only disjoint window changes, and create recovery copies otherwise.
       - Large lists remain virtualized and preserve selection by instrument ID.
+      - Missing, stale, conflicting, or unapproved visual references block parity acceptance for only the affected surface and remain explicit in the manifest; they never fall back silently to an older generation.
+      - Protected reference images remain outside distributable bundles, with reproducible manifest metadata and controlled-storage identifiers when repository storage is not permitted.
     definition_of_done:
       - New TC2000-style workstation is the default authenticated frontend.
       - All documented in-scope factory layouts, tools, linking, keyboard mechanics, dialogs, persistence, polling, and recovery behavior are implemented.
@@ -174,6 +185,7 @@ tasks:
       - No application is described as complete while temporary placeholders, known broken flows, unexplained visual mismatches, console errors, or backend errors remain.
       - Backend, frontend, sandbox, provider, integration, E2E, visual, performance, console, log, migration, and diff validation pass.
       - Handoff, state, run report, API, architecture, testing, parity, and capability-stub documentation are current.
+      - Every required Version 25 reference is approved, every design token is measured, and all four deterministic display environments pass interaction and visual comparisons.
     validation:
       - backend-unit
       - backend-integration
@@ -185,7 +197,10 @@ tasks:
       - type-check
       - production-build
       - playwright-e2e
-      - visual-regression-1920x1080-and-2560x1440
+      - visual-manifest-completeness-and-reference-hashes
+      - visual-regression-1920x1080-and-2560x1440-at-100-and-125-percent-display-scale
+      - visual-regression-one-css-pixel-delta-e-2-and-0.5-percent-diff-limits
+      - visual-baseline-human-review-and-mask-audit
       - browser-console
       - backend-logs
       - alembic-upgrade-downgrade

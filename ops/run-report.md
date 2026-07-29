@@ -2,6 +2,24 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T19:30:57Z TC2000 Version 25 Visual-Authority Plan
+
+- Promoted TC2000 Version 25 desktop build `25.0.9571` to the pinned visual and
+  interaction target and marked the complete branch plan as controlling over older
+  conflicting notes.
+- Added `docs/tc2000-visual-parity.md` with the official source catalogue, authority
+  hierarchy, deterministic capture environments, complete surface/state matrix,
+  measurement/token workflow, protected-reference policy, interaction requirements,
+  and objective screenshot acceptance thresholds.
+- Updated the canonical TODO and operational task to use Version 25's integrated
+  watchlist column/filter/condition/Gauge mechanics and the new visual manifest,
+  baseline, mask-review, and parity completion gates.
+- Preserved the full frontend, top-down analysis, backend/data, unified Python,
+  sandbox, Study Lab, legacy, failure-handling, and single-stint contract.
+- No application implementation changed.
+- Validation passed: operational YAML/JSON parsing, controlling-plan Version 20 target
+  scan, and `git diff --check`.
+
 ## 2026-07-29T17:18:21Z Complete TC2000/Backend/Study-Lab Plan Reconciliation
 
 - Updated the full canonical branch plan in `docs/project-todos.md` section 14 and the

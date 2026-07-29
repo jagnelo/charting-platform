@@ -3213,15 +3213,19 @@ Why this was deferred:
 - It is cross-cutting dashboard architecture, not a small widget tweak.
 - We do not want to bolt it onto one widget first and then retrofit the dashboard model later.
 
-### 14. Replace the primary frontend with a TC2000 v20-style workstation and build its supporting backend/research platform
+### 14. Replace the primary frontend with a TC2000 Version 25-style workstation and build its supporting backend/research platform
 Status: `Planned`
 
 Branch:
 - `feat/tc2000-frontend-rework`
 
 Controlling objective:
+- This section and `docs/tc2000-visual-parity.md` are the controlling specification for
+  the branch and supersede every older or narrower frontend-rework plan where they
+  conflict. Do not silently reduce, defer, phase, reinterpret, or substitute any part
+  of this completion contract during implementation.
 - Replace the authenticated primary frontend with a pixel-close, rebranded clone of
-  the current TC2000 v20 desktop interface and interaction model.
+  TC2000 Version 25 desktop build `25.0.9571` and its interaction model.
 - Treat this as one continuous implementation stint with one completion bar. Internal
   checkpoints are for repository continuity, not partial delivery, phased scope, or an
   MVP stopping point.
@@ -3229,7 +3233,7 @@ Controlling objective:
   fast rendering, direct canvas control, and flexible plugins are non-negotiable.
 - Use Golden Layout's Vue-compatible virtual-component model for arbitrary docking,
   tab stacks, maximizing, saved layouts, browser pop-outs, and multi-monitor use.
-- Match TC2000 v20 desktop geometry, density, colors, control styling, window chrome,
+- Match TC2000 Version 25 desktop geometry, density, colors, control styling, window chrome,
   menus, dialogs, keyboard behavior, and interaction states as closely as practical,
   while retaining this platform's branding and using original CSS/SVG assets rather
   than TC2000 logos or proprietary images.
@@ -3273,8 +3277,60 @@ This work is complete only when:
 - backend, frontend, integration, end-to-end, visual, console, log, performance, and
   sandbox-security, provider, migration, and diff validation all pass;
 - unsupported functions and product domains are documented and stubbed honestly;
+- every in-scope visual surface and interaction state is backed by an approved
+  Version 25 reference, measured design tokens, deterministic baselines, and passing
+  behavioral plus screenshot comparisons;
 - no temporary placeholder, dead control, unexplained visual mismatch, or unhandled
   known failure remains before handoff.
+
+#### Version 25 visual-reference and parity contract
+
+`docs/tc2000-visual-parity.md` is the complete visual implementation contract. It pins
+TC2000 desktop build `25.0.9571`, records the official source catalogue, defines the
+capture and measurement process, and prevents visual implementation from being based on
+memory or informal resemblance.
+
+Visual authority, highest to lowest:
+1. authorised live desktop captures from Version 25 build `25.0.9571`;
+2. official help material explicitly tagged Version 25;
+3. official Version 23/24 help only when a live Version 25 capture proves the surface
+   remains materially unchanged;
+4. Version 20 help only as behavioral history;
+5. third-party material for discovery only, never pixel acceptance.
+
+The release notes at <https://www.tc2000.com/features/whatsnew> are the generation/build
+authority. The generic download page currently exposes stale Version 24 copy and does not
+override the dated release record or a captured Version 25 desktop.
+
+Before a tool can satisfy visual completion:
+- create `tests/visual/references/tc2000-v25/manifest.yaml`;
+- obtain approved references for every required shell, window, menu, dialog, chart,
+  watchlist, column/filter, gauge, alert, notes, and Study Lab state;
+- record build, date, source, resolution, display scale, theme, crop, dynamic masks,
+  measurements, interaction recipe, SHA-256, review status, and permission/storage
+  classification for every reference;
+- measure and centralize geometry, typography, spacing, borders, gradients, colors,
+  icon boxes, scrollbars, shadows, overlay order, and interactive states;
+- capture deterministic product baselines at 1920x1080 and 2560x1440, each at 100% and
+  125% display scale with 100% browser zoom;
+- separately verify layout robustness at 125% browser zoom;
+- validate the corresponding mechanics through interaction tests; a static screenshot
+  never proves linking, keyboard navigation, docking, pop-outs, chart interaction,
+  editors, or recovery behavior.
+
+Pixel acceptance:
+- no unexplained geometry difference greater than one CSS pixel;
+- tokenized dimensions and declared typography exactly match approved values;
+- solid-color CIEDE2000 delta E is at most 2;
+- the unmasked differing-pixel ratio is at most 0.5% per approved image;
+- dynamic masks are minimal, named, owned, and justified;
+- no broad mask or raised global threshold may hide a structural mismatch;
+- every baseline change receives human review and an intentional-change note.
+
+Reference images remain non-distributable test/reference material. Ship only original
+platform branding, CSS, SVG, and iconography. If protected captures cannot be committed,
+keep them in controlled storage and commit the manifest metadata, hashes, capture
+instructions, and measurements needed to reproduce the comparison.
 
 #### Desktop shell and workspace mechanics
 
@@ -3313,8 +3369,8 @@ Workspace behavior:
 - keep a window docked and show a clear notification if the browser blocks a pop-out;
 - restore an unexpectedly closed pop-out to its source layout on the next load.
 
-Reproduce TC2000 v20 symbol-link semantics:
-- use the exact current v20 link-group names and colors captured in the visual-reference
+Reproduce TC2000 Version 25 symbol-link semantics:
+- use the exact current Version 25 link-group names and colors captured in the visual-reference
   audit;
 - windows in the same normal group follow symbol changes;
 - yellow behaves as the global/wildcard receiver;
@@ -3612,6 +3668,12 @@ Reusable actions:
 Historical scan plots must start only when valid recorded history exists; do not fabricate
 past membership or results.
 
+The current Version 25 interaction model is authoritative: columns, True/False
+conditions, filters, groups, stacks, and Market Gauges are edited as one integrated
+watchlist workflow. Preserve EasyScan as the name and reusable saved-scan capability,
+but do not reproduce the obsolete standalone Version 20 editor when current Version 25
+behavior has replaced it.
+
 #### Top-down US-market analysis
 
 Create a versioned market taxonomy containing:
@@ -3895,7 +3957,7 @@ Core modules:
 - `UPlotHost`: chart lifecycle, data binding, plugins, and resize behavior;
 - `CapabilityRegistry`: supported, partial, and unavailable product/data capabilities.
 
-Create centralized TC2000 v20 design tokens for:
+Create centralized TC2000 Version 25 design tokens for:
 - typography;
 - spacing;
 - window borders and gradients;
@@ -3908,7 +3970,9 @@ Create centralized TC2000 v20 design tokens for:
 - positive/negative/neutral colors;
 - z-index and overlay rules.
 
-Use Segoe UI-compatible system typography and validate 100% and 125% browser zoom.
+Use the measured Version 25 font stack with Segoe-compatible fallbacks. Validate the
+four required display-scale environments and the separate 125% browser-zoom robustness
+case defined in `docs/tc2000-visual-parity.md`.
 
 #### New persistence and API contracts
 
@@ -4326,13 +4390,15 @@ End-to-end flows:
 - verify legacy routes remain usable but absent from the primary interface.
 
 Visual acceptance:
-- maintain baselines at 1920x1080 and 2560x1440 for shell, TC Classic, Drill Down,
-  4 Timeframe, watchlist editor, chart editor, EasyScan, alert dialogs, Study Lab editor,
-  and Study Lab result dashboard;
-- compare spacing, density, typography, borders, gradients, chrome, menus, dialogs,
-  hover, focus, and selection states to measured current TC2000 v20 references;
-- require every visual-regression difference to be explained or fixed;
-- validate at 100% and 125% browser zoom.
+- complete the full capture matrix in `docs/tc2000-visual-parity.md`, not only the
+  representative happy-path screens;
+- maintain deterministic baselines at 1920x1080 and 2560x1440 at both 100% and 125%
+  display scale, plus the separate 125% browser-zoom robustness check;
+- compare component crops and full layouts against approved TC2000 Version 25 references;
+- enforce one-CSS-pixel geometry, exact token/typography, delta-E-at-most-2 solid-color,
+  and at-most-0.5-percent unmasked pixel-difference limits;
+- require every mask and visual-regression difference to be narrowly justified,
+  reviewed, and fixed when it is not an intentional product divergence.
 
 Performance acceptance:
 - cached symbol changes render without full-shell reflow;
@@ -4362,7 +4428,7 @@ Final validation:
 
 #### Locked assumptions
 
-- Reference interface: current TC2000 desktop v20.
+- Reference interface: TC2000 Version 25 desktop, pinned to build `25.0.9571`.
 - Fidelity: pixel-close geometry and interaction, rebranded with original assets.
 - Runtime: desktop browser with browser pop-outs, not Electron/Tauri and not mobile.
 - Market updates: current polling, not streaming.

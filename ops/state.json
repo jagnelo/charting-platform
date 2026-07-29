@@ -1,11 +1,11 @@
 {
     "active_task_id": "tc2000-frontend-rework",
-    "active_task_phase": "planning_complete_not_implemented",
+    "active_task_phase": "version_25_plan_complete_not_implemented",
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-29T17:18:21Z",
-    "last_commit": "a8d6189 chore(ops): record current live matrix pass",
+    "last_handoff_at": "2026-07-29T19:30:57Z",
+    "last_commit": "687ec8b docs: expand TC2000 workstation rework plan",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "not_run (documentation-only branch setup; no backend source changed)",
@@ -13,14 +13,15 @@
         "frontend_tests": "not_run (documentation-only branch setup; no frontend source changed)",
         "frontend_build": "not_run (documentation-only branch setup; no frontend source changed)",
         "alembic_upgrade": "not_run (documentation-only branch setup; no migration changed)",
-        "diff_check": "passed (2026-07-29T17:18:21Z complete TC2000/backend/research documentation reconciliation)",
+        "diff_check": "passed (2026-07-29T19:30:57Z Version 25 controlling-plan documentation update)",
         "playwright": "not_run (documentation-only branch setup; no application behavior changed)",
         "console_check": "not_run (documentation-only branch setup)",
         "backend_log_check": "not_run (documentation-only branch setup)",
         "provider_live_tests": "not_run (documentation-only branch setup; no provider implementation changed)",
-        "yaml_json_parse": "passed (2026-07-29T17:18:21Z ops/tasks.yaml and ops/state.json)"
+        "yaml_json_parse": "passed (2026-07-29T19:30:57Z ops/tasks.yaml and ops/state.json)"
     },
     "notes": [
+        "2026-07-29T19:30:57Z TC2000 Version 25 controlling-plan and visual-reference refinement: promoted TC2000 Version 25 desktop build 25.0.9571 to the pinned visual and interaction target. docs/project-todos.md section 14 and docs/tc2000-visual-parity.md now supersede older or narrower frontend-rework notes where they conflict. The new visual contract defines the official source hierarchy, capture manifest and review lifecycle, reference hashes and permission handling, full surface/state matrix, 1920x1080 and 2560x1440 at 100 and 125 percent display scale, token measurement, interaction validation, one-CSS-pixel geometry, delta-E-at-most-2 solid-color, 0.5-percent unmasked-diff, narrow-mask, and human baseline-review gates. The scan/editor design now follows Version 25's integrated watchlist column, True/False condition, filter, group, stack, and Market Gauge model while retaining EasyScan as the reusable saved-scan feature. The full uPlot, Golden Layout, top-down US analysis, unified Python sandbox, Study Lab, free-source backend, point-in-time, legacy, and one-stint contract remains intact. No application implementation changed. Next action is to begin the complete documented contract only when explicitly requested.",
         "2026-07-29T17:18:21Z complete TC2000/workstation/backend/research planning reconciliation: updated the canonical docs/project-todos.md section 14 and matching ops task from the former PCF-plus-deferred-research design to the full agreed branch specification. The task retains the pixel-close rebranded TC2000 v20 workstation, uPlot, Golden Layout, linked top-down US workflow, watchlists, EasyScan, alerts, persistence, legacy routing, and one-stint completion contract. It now uses one Python-native market-analysis language and SDK for every programmable surface; adds a first-class Study Lab separate from Strategy Lab; locks a dedicated no-network curated-library sandbox with prepared datasets, limits, immutable versions, and reproducibility; and includes the API-first free-source provider reconciliation, canonical security master, raw/adjusted history, point-in-time membership, provider entitlement, batch analytics, provenance, coverage, and honest delayed/feed semantics needed by the frontend. yfinance is removed from default/new-workstation/acceptance paths and may remain only as an explicit temporary legacy fallback. No application source, migration, dependency, test, or runtime implementation changed. Next action is to await an explicit request to implement the complete documented contract.",
         "2026-07-29T16:19:01Z deferred open-ended quantitative research note: recorded a high-level future objective for Optuma-like custom market studies beyond indicators, ratios, scans, and conventional backtests. The note intentionally leaves the product name, interface, language, execution model, sandbox boundary, visualization stack, and integration architecture undecided. It is outside the current TC2000-style frontend replacement completion contract, and no application implementation was performed.",
         "2026-07-28T21:40:33Z TC2000 frontend rework planning: created feat/tc2000-frontend-rework from the clean master branch at a8d6189. Added the complete single-stint TC2000 v20-style frontend replacement specification to docs/project-todos.md section 14 and the tc2000-frontend-rework task to ops/tasks.yaml. The plan locks uPlot as the only chart renderer; keeps Vue 3, TypeScript, Vite, and Pinia; specifies Golden Layout virtual-component docking and browser pop-outs; covers the US benchmark-to-sector-to-industry-to-constituent workflow, ratios, breadth, rotation, watchlists, PCF, EasyScan, alerts, notes, persistence, APIs, polling, legacy routing, capability stubs, failure handling, validation, and completion acceptance. No application implementation was performed. Next action is to begin the complete implementation only when the user explicitly requests it.",
