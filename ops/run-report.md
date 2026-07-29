@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T01:40:00Z Saved-condition watchlist filters
+
+- Added a persisted saved-scan condition control to benchmark, sector, and
+  constituent workstation lists. It filters only against the latest retained local
+  scan result; an unrun or unavailable result explicitly produces no rows and a
+  status message rather than silently displaying unfiltered data.
+- Pushed `67c7b53 feat(workstation): apply saved scan conditions to watchlists`.
+- Validation passed: focused `VirtualWatchlistTool` suite `6 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T01:25:00Z Persisted workstation watchlist filters
 
 - Persisted the Version-25-style text filter in each watchlist tool's serializable

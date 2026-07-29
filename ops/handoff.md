@@ -1,5 +1,26 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T01:40:00Z
+
+- Benchmark, sector, and constituent lists can now select a saved EasyScan-derived
+  condition as a persisted list filter. The browser requests the latest result using
+  the authenticated screener API and intersects its canonical matched IDs with the
+  displayed universe. It never silently treats an unrun/unavailable result as "off":
+  those states are visible and intentionally display zero rows.
+- This is an explicit retained-result filter, not a hidden provider fetch or a new
+  competing condition language. The scan remains the reproducible, local-data-backed
+  evaluation record and the tool configuration stores only its screener ID.
+- Pushed `67c7b53 feat(workstation): apply saved scan conditions to watchlists`.
+- Validation passed: focused Vitest `6 passed`, frontend type-check, production build,
+  and `git diff --check`.
+
+### Exact next step
+
+- Add active/inactive saved-condition state plus true Boolean condition columns and
+  safe batch evaluation metadata; then build persisted group/stack presentation over
+  those columns. Continue to preserve explicit data coverage and retained-scan
+  provenance rather than running provider calls from a watchlist.
+
 ## Continuation update — 2026-07-30T01:25:00Z
 
 - The virtualized benchmark, sector, and constituent watchlists now serialize their
