@@ -73,4 +73,16 @@ describe('workspace store layout tabs', () => {
     expect(apiPost).toHaveBeenCalledWith('/workspaces/10/reset-factory', {})
     expect(store.activeTabKey).toBe('us-top-down')
   })
+
+  it('publishes an occurrence timestamp and clears it for ordinary symbol navigation', () => {
+    const store = useWorkspaceStore()
+
+    store.publishSymbol({ symbol: 'SPY', timestamp: '2026-01-02', group: 'blue' })
+    expect(store.linkedSymbol).toBe('SPY')
+    expect(store.linkedTimestamp).toBe('2026-01-02')
+
+    store.publishSymbol({ symbol: 'XLK', group: 'blue' })
+    expect(store.linkedSymbol).toBe('XLK')
+    expect(store.linkedTimestamp).toBeNull()
+  })
 })

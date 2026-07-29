@@ -178,6 +178,7 @@ import { useDrawingsStore }     from '@/stores/drawings'
 import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -263,6 +264,7 @@ const drawStore          = useDrawingsStore()
 const alertsStore        = useAlertsStore()
 const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
+const workspaceStore = useWorkspaceStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
@@ -1644,6 +1646,7 @@ async function initChart() {
   }
   syncCanvasSize(w, h)
   await buildSubPanes()
+  applyLinkedTimestamp(workspaceStore.linkedTimestamp)
   startLivePolling()
 }
 
@@ -3000,7 +3003,10 @@ onMounted(async () => {
 
 onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
-watch(() => chartStore.bars, () => { if (uplot) updateData(); else initChart() }, { deep: false })
+watch(() => chartStore.bars, () => {
+  if (uplot) updateData(); else void initChart()
+  applyLinkedTimestamp(workspaceStore.linkedTimestamp)
+}, { deep: false })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
 watch(visibleComparisonSeries, () => { if (uplot) updateData(); else initChart() }, { deep: true })
@@ -3067,6 +3073,13 @@ function jumpToTs(isoTs: string) {
   // if the bar is scrolled off-screen, which would show the wrong OHLCV data.
   updateTooltip(uplot, idx)
 }
+
+/** Publish Study Lab occurrences into every linked chart without treating them as a new data request. */
+function applyLinkedTimestamp(timestamp: string | null) {
+  if (timestamp) jumpToTs(timestamp)
+}
+
+watch(() => workspaceStore.linkedTimestamp, applyLinkedTimestamp)
 
 defineExpose({ jumpToTs })
 </script>

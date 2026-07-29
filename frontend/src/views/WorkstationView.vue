@@ -48,6 +48,7 @@
         :tool="popoutTool"
         :active-window-key="popoutTool.instance_key"
         @select="selectSymbol"
+        @occurrence="selectOccurrence"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
         @columns="updateColumns"
         @filter="updateFilter"
@@ -114,17 +115,21 @@ const goldenLayoutConfig = computed(() => {
     },
   } as unknown as LayoutConfig
 })
-async function selectSymbol(raw: string) {
+async function selectSymbol(raw: string, timestamp?: string) {
   const symbol = raw.trim().toUpperCase()
   if (!symbol) return
   symbolDraft.value = symbol
-  workspaceStore.publishSymbol({ symbol, group: 'blue', sourceWindowKey: 'workstation' })
+  workspaceStore.publishSymbol({ symbol, timestamp, group: 'blue', sourceWindowKey: 'workstation' })
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadETFHoldings(symbol),
     workspaceStore.loadETFIndustries(symbol),
     workspaceStore.loadTechnical(symbol),
   ])
+}
+
+function selectOccurrence(symbol: string, timestamp: string) {
+  void selectSymbol(symbol, timestamp)
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup) {
@@ -165,6 +170,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     tool,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     onSelect: (symbol: string) => void selectSymbol(symbol),
+    onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
     onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),

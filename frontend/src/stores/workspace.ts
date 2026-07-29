@@ -41,6 +41,8 @@ export interface WorkspaceState {
 export interface LinkEvent {
   instrumentId?: number
   symbol: string
+  /** Optional historical point selected by a linked research occurrence. */
+  timestamp?: string
   sourceWindowKey?: string
   group: LinkGroup
 }
@@ -150,6 +152,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
   const activeTabKey = ref<string>('us-top-down')
   const linkedSymbol = ref('SPY')
+  const linkedTimestamp = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const isPersistenceLeader = ref(false)
@@ -180,6 +183,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function handleMessage(event: MessageEvent<LinkEvent & { type?: string }>) {
     if (event.data.type !== 'symbol' || event.data.group === 'grey') return
     linkedSymbol.value = event.data.symbol
+    linkedTimestamp.value = event.data.timestamp ?? null
   }
 
   function becomeLeader() {
@@ -208,7 +212,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function onStorage(event: StorageEvent) {
     if (event.key !== CHANNEL_NAME + ':symbol' || !event.newValue) return
     const message = JSON.parse(event.newValue) as LinkEvent
-    if (message.group !== 'grey') linkedSymbol.value = message.symbol
+    if (message.group !== 'grey') {
+      linkedSymbol.value = message.symbol
+      linkedTimestamp.value = message.timestamp ?? null
+    }
   }
 
   function disconnect() {
@@ -222,6 +229,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
     linkedSymbol.value = event.symbol
+    linkedTimestamp.value = event.timestamp ?? null
     channel?.postMessage({ ...event, type: 'symbol' })
     localStorage.setItem(CHANNEL_NAME + ':symbol', JSON.stringify(event))
   }
@@ -450,6 +458,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTab,
     activeTabKey,
     linkedSymbol,
+    linkedTimestamp,
     loading,
     error,
     isPersistenceLeader,

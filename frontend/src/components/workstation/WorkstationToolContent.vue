@@ -86,7 +86,7 @@
     <InstrumentAlertsTool v-else-if="tool.instance_key === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <EasyScanTool v-else-if="tool.instance_key === 'easy-scan'" />
     <MarketGaugeTool v-else-if="tool.instance_key === 'market-gauge'" />
-    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('select', $event.symbol)" />
+    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>
 </template>
@@ -109,7 +109,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; selectIndustry: [industry: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
