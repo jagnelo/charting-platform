@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T01:10:00Z Workstation Market Gauge tool
+
+- Mounted the saved-scan, coverage-aware Market Gauge in the default Golden Layout.
+- Validation passed: workspace integration `10 passed` with `--no-cov`, frontend
+  type-check/build, and `git diff --check`.
+
 ## 2026-07-30T00:55:00Z Saved-scan Market Gauge backend
 
 - Added a coverage-aware `/analysis/gauges/{screener_id}` contract based on the latest

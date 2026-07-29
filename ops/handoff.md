@@ -171,6 +171,15 @@
 - Mount the saved-scan gauge in the workstation, then implement persisted Boolean
   condition/filter columns and condition-to-entry/exit-alert actions.
 
+### Continuation update — 2026-07-30T01:10:00Z
+
+- Added the default docked `Market Gauge` tool. It selects a saved EasyScan, renders its
+  retained percentage/matches/coverage/exclusions, and keeps unrun scans explicitly
+  unavailable. Factory layout is now version 5. Pushed `c73776c feat(workstation): add
+  saved scan market gauge tool`.
+- Validation: focused workspace integration `10 passed` with `--no-cov`; frontend
+  type-check, production build, and `git diff --check` passed.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
