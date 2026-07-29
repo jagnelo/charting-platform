@@ -1,5 +1,128 @@
 # Active Handoff
 
+## TC2000 Version 25 implementation started - 2026-07-29
+
+- The authenticated default route is now the new `WorkstationView`; the original
+  frontend is preserved beneath `/legacy/*` without attempting to migrate it.
+- Added workspace persistence with atomic revisioned snapshots, default `US Top Down`
+  factory state, per-user library-item versioning, per-instrument notes, recovery-ready
+  serializable window state, and a matching Alembic migration.
+- Added canonical market-group persistence and a source-labelled top-down taxonomy seed.
+  It attaches only already-mastered instruments, never fabricates tickers or claims ETF
+  proxy membership is official index membership.
+- Added first provider-neutral local-database analysis contracts for aligned ratio series
+  and batch group snapshots with cell-level insufficient-history/no-bar/unaligned warnings.
+- Added Vue Query, TanStack Table/Virtual dependencies, Golden Layout dependency and a
+  virtual-component layout host foundation. The current primary visual shell has compact
+  menus, workspace tabs, symbol linking, top-down tool chrome, keyboard symbol traversal,
+  uPlot chart reuse, and explicit pending/coverage copy while the remaining live tool
+  surfaces are connected.
+- Added the Version 25 visual-reference manifest with the required capture environments
+  and missing-reference gates; no protected TC2000 capture has been fabricated.
+- Validation so far: focused workspace integration tests `3 passed`; backend Ruff passed;
+  frontend `type-check` and production build passed. The full acceptance matrix has not
+  been run and completion is not claimed.
+
+### Next step
+
+- Continue the same implementation stint: replace the temporary shell lists with market
+  group/snapshot reads, bind all default tools into Golden Layout, then complete the
+  shared chart, virtual lists, Python sandbox/Study Lab, provider, and visual-parity work.
+
+### Continuation update — 2026-07-29T22:05:00Z
+
+- The factory workspace is now persisted as a Golden Layout virtual-component tree
+  (`version: 2`) instead of a grid-only metadata marker. The host mounts real Vue tool
+  instances through the virtual-component registry, rather than placeholder HTML.
+- The default tool instances render the benchmark/sector group reads, local-only uPlot
+  chart, relative-strength explanation, breadth, and coverage inside Golden Layout.
+  Legacy workspaces without a persisted layout receive an in-browser serializable
+  fallback tree; no DOM/canvas/request cache is written to workspace state.
+- The local canonical OHLCV route is explicitly tested to ensure the new workstation
+  chart path does not initiate provider fetches. Focused workstation API coverage is
+  now `6 passed`.
+- Validation at this checkpoint: backend Ruff format/check passed; frontend type-check
+  and production build passed; `git diff --check` passed. Visual browser capture and
+  interaction acceptance remain unavailable/incomplete, and the full goal is still
+  active with no completion claim.
+
+### Exact next step
+
+- Replace the remaining hard-coded industry/constituent display data with canonical,
+  point-in-time market-group/ETF-holdings-backed drill-down contracts, then implement
+  virtualized integrated watchlist columns/filters on those contracts.
+
+### Continuation update — 2026-07-29T22:35:00Z
+
+- Replaced the static constituent list with the selected ETF's stored, point-in-time
+  holdings endpoint. Only resolved canonical instruments are selectable; missing data
+  remains a labelled missing snapshot rather than an invented membership list.
+- Added dated ETF-composition industry and industry-constituent APIs under
+  `/market-groups/etf/{symbol}/industries`. They join resolved holdings to canonical
+  `EquityDetail.industry`, retain composition/known/source/completeness metadata, and
+  report unresolved/unclassified exclusions. The frontend uses the selected industry to
+  narrow constituents without a route transition.
+- The industry-proxy window now explicitly reports `No mapped ETF proxy` while no
+  curated mapping with holdings/classification evidence exists; it no longer renders a
+  fabricated static proxy list.
+- Validation: focused workstation API `7 passed`; Ruff format/check passed; frontend
+  type-check and production build passed; `git diff --check` passed.
+
+### Exact next step
+
+- Implement the virtualized Version-25-style list surface against these batch/group
+  contracts, beginning with stable canonical selection, columns, sorting, and the
+  integrated filter-state model.
+
+### Continuation update — 2026-07-29T22:50:00Z
+
+- Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
+  instrument IDs, provides local filter/sort controls, keyboard selection, dense column
+  headers, and never expands an unmeasured/hidden dock tab into a full row DOM.
+- Rebound benchmark, sector, and ETF/industry-derived constituent tools to the virtual
+  list. Sector relative-performance and constituent weight are explicit columns sourced
+  from the existing batch snapshot/holdings contracts.
+- Added focused frontend component coverage for filtering, sorting, and canonical-row
+  selection (`2 passed`). Frontend type-check and production build pass.
+
+### Exact next step
+
+- Extend this list into the integrated persisted column/filter/stack/group model, then
+  bind saved Boolean/Python conditions and EasyScan results rather than stopping at
+  local display sorting.
+
+### Commit checkpoint — 2026-07-29T22:55:00Z
+
+- Pushed the current coherent implementation set to `origin/feat/tc2000-frontend-rework`:
+  - `ef7c74e` — canonical backend/research foundation;
+  - `5fc3f05` — docked top-down frontend;
+  - `9c6613a` — parity and operational documentation.
+- The remote tracking branch is synchronized. This checkpoint is not a completion
+  claim; all remaining controlling-plan acceptance work stays active.
+
+### Continuation update
+
+- The active Codex goal now uses the full controlling completion contract as its only
+  completion condition. It must remain active until the documented definition of done
+  and acceptance matrix have complete passing evidence.
+- Market-group read responses now carry canonical instrument identity; the primary shell
+  consumes benchmark and sector groups rather than static values. Taxonomy initialization
+  is enforced at the API boundary as well as application startup.
+- Added tested local-bar aligned-ratio analysis (`5` focused workstation API tests pass)
+  and a tested authenticated `/code/validate` AST gate. The latter is validation only:
+  it explicitly cannot execute code in FastAPI or a general worker.
+- Added immutable `/code/assets` and version creation APIs. Only syntactically valid,
+  approved-namespace source can create a version; each saved version retains its SDK,
+  dependency, lookback, output-contract, and validation metadata. The focused code API
+  suite now has `2` passing tests. Isolated execution and Study Lab run orchestration are
+  still required before any code is runnable.
+- The Golden Layout virtual-component host now compiles into the primary app for persisted
+  Golden-layout configurations. The default factory layout still needs to be converted to
+  full virtual Vue tool instances before docking can be accepted.
+- Browser capture access is unavailable in this environment. Official help references were
+  expanded, while required authorised-live-capture manifest entries remain blocked rather
+  than being marked approved without evidence.
+
 ## TC2000 Version 25 controlling-plan and visual-reference refinement - 2026-07-29T19:30:57Z
 
 - Replaced TC2000 Version 20 as the visual target with the current TC2000 Version 25

@@ -1,0 +1,20 @@
+# TC2000 Version 25 Parity Matrix
+
+This is the implementation-facing matrix for the controlling plan. `Blocked` means
+the source reference is required before visual acceptance; it is not an approval.
+
+| Surface | Implementation ownership | Reference state | Functional status | Required evidence |
+| --- | --- | --- | --- | --- |
+| Application shell and US Top Down | `WorkstationView.vue` | Blocked | In progress | V25 capture, interaction/E2E, visual baseline |
+| Workspace tabs and factory layouts | `workspaces.py` | Blocked | In progress | persistence, reset, layout visual reference |
+| Docking/pop-outs | `WorkspaceLayoutHost.vue` | Blocked | In progress | pop-out/recovery, golden layout lifecycle, screenshots |
+| Chart | `UPlotChart.vue` | Blocked | Existing/rework in progress | uPlot lifecycle, transforms, visual states |
+| Watchlists/columns/filters | workstation tools + batch APIs | Blocked | In progress | 10k virtual-list, editor/scan/gauge tests |
+| Top-down sector/breadth workflow | `analysis.py`, market groups | Blocked | In progress | point-in-time and E2E drill-down evidence |
+| Unified Python | `/code`, runner | N/A | In progress | sandbox escape/resource suite |
+| Study Lab | `/research`, `StudyLabView.vue` | Blocked | In progress | reproducibility/artifact/rendering suite |
+| Notes and alerts | `/notes`, existing alerts | Blocked | In progress | user isolation and linked-tool tests |
+| Excluded capabilities | `tc2000-capability-stubs.md` | N/A | Documented | primary-menu absence test |
+
+No row can change to `Complete` until its full functional and visual acceptance evidence
+is recorded in the referenced test/baseline system.

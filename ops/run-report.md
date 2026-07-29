@@ -2,6 +2,30 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29 TC2000 Version 25 implementation foundation
+
+- Started the complete documented implementation rather than changing the plan.
+- Added revisioned workspace, tab/window, library, note, and market-group persistence;
+  migration `c0a1b2c3d4e5`; `/workspaces`, `/market-groups`, `/notes`, and first
+  `/analysis` APIs.
+- Added an honest curated top-down taxonomy seed, aligned relative-strength calculation,
+  and batch group snapshot calculation. These read canonical database bars only and
+  surface coverage warnings rather than calling a provider from a UI request.
+- Made `/` the authenticated workstation and moved prior routes to `/legacy/*`; added
+  the first TC2000-style shell, tool chrome, cross-window link bus, status behaviour,
+  uPlot reuse, visual manifest, and dependency foundations.
+- Validation passed: focused workspace API suite `3 passed`; Ruff for changed backend
+  modules; frontend type check; frontend production build. Full E2E, migration upgrade,
+  visual, performance, sandbox, and provider suites remain required.
+
+### Continuation update
+
+- Goal created with the complete controlling contract as its sole completion condition.
+- Focused workstation API suite is now `5 passed`, including taxonomy provenance and
+  aligned-local-bar ratio behavior; unified-Python AST gate/endpoint tests are `4 passed`.
+- Browser access for authorised Version 25 capture is unavailable; official help catalogue
+  was extended, and no visual reference was falsely approved.
+
 ## 2026-07-29T19:30:57Z TC2000 Version 25 Visual-Authority Plan
 
 - Promoted TC2000 Version 25 desktop build `25.0.9571` to the pinned visual and
@@ -15267,6 +15291,54 @@ Append a short entry after each worker session.
 - No application source, test, dependency, or migration was changed.
 - Validation: YAML and JSON parse checks passed; `git diff --check` passed.
 - No commit was requested or created.
+
+## 2026-07-29T22:50:00Z TC2000 Virtualized Watchlist Foundation Checkpoint
+
+- Added a TanStack Virtual-backed dense `VirtualWatchlistTool` for workstation lists.
+  It supports canonical-row selection, filtering, sortable columns, keyboard traversal,
+  and a bounded hidden-tab fallback rather than creating a DOM row per instrument.
+- Replaced benchmark, sector, and point-in-time ETF constituent list renderers with the
+  virtualized surface. Sector relative performance and constituent weight are shown as
+  explicit batch-backed columns.
+- Focused component suite passes: `2 passed`; frontend type-check/build pass.
+- The completed unit is a list foundation only. Persisted column sets, Boolean/Python
+  conditions, integrated filters/stacks/groups, scans/gauges, and the remaining global
+  workstation acceptance work are still required.
+
+## 2026-07-29T22:35:00Z TC2000 Point-In-Time Top-Down Drill-Down Checkpoint
+
+- Replaced the primary workstation's hard-coded stock constituents with resolved
+  canonical rows from the selected ETF's stored point-in-time holdings snapshot.
+- Added `/market-groups/etf/{symbol}/industries` and its industry-constituent route.
+  Both retain composition date, known-at, provider/provenance, completeness, and
+  unresolved/unclassified exclusion context, and never infer classifications from
+  ticker text.
+- Industry selection narrows the workstation constituent list without navigation. The
+  separate proxy panel is deliberately explicit when an evidence-backed curated proxy
+  mapping is absent.
+- Validation: focused workstation API `7 passed`; Ruff format/check passed; frontend
+  type-check and production build passed; `git diff --check` passed.
+- This does not complete the active goal; virtualized lists/columns/filters, full
+  chart mechanics, pop-outs/recovery, Python/Study Lab completion, visual captures,
+  and the broader acceptance matrix remain required.
+
+## 2026-07-29T22:05:00Z TC2000 Docked Workstation Foundation Checkpoint
+
+- Converted the default factory workspace from a grid-only metadata state to a
+  `version: 2` Golden Layout serialisable virtual-component tree.
+- Replaced the virtual-component host's generic HTML labels with mounted Vue tool
+  content, so the dock surface contains real benchmark/sector lists, local-only uPlot
+  chart, ratio, breadth, and coverage tools.
+- Kept persisted state limited to tool identity/configuration and Golden Layout state;
+  runtime Vue instances, uPlot canvases, and caches are not persisted.
+- Added an API assertion that `/ohlcv/local/{symbol}/{timeframe}` returns stored bars
+  without the normal provider-fetch path.
+- Validation: focused workstation API suite `6 passed`; backend Ruff format/check
+  passed; frontend type-check and production build passed; `git diff --check` passed.
+- This is only an implementation checkpoint. Full top-down canonical drill-down,
+  virtualized columns/filters, pop-outs/recovery, complete chart mechanics, Python SDK
+  integration, Study Lab, visual reference capture, and the full acceptance matrix are
+  still required before the active goal can be completed.
 
 ## 2026-07-29T16:19:01Z Deferred Open-Ended Quantitative Research Note
 

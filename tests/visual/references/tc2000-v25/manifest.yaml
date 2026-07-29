@@ -1,0 +1,81 @@
+version: 1
+product:
+  generation: "25"
+  build: "25.0.9571"
+  browser_zoom: 100
+reference_policy:
+  source_order:
+    - authorised_live_capture
+    - official_v25_help
+    - confirmed_v23_v24_surface
+    - v20_behavioral_history
+  acceptance_requires: approved
+environments:
+  - id: desktop-1080p-100
+    viewport: { width: 1920, height: 1080 }
+    display_scale: 100
+  - id: desktop-1080p-125
+    viewport: { width: 1920, height: 1080 }
+    display_scale: 125
+  - id: desktop-1440p-100
+    viewport: { width: 2560, height: 1440 }
+    display_scale: 100
+  - id: desktop-1440p-125
+    viewport: { width: 2560, height: 1440 }
+    display_scale: 125
+surfaces:
+  - id: application-shell-default
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [default, menu_open, search_focused, stale_data]
+    reproduction: "Open the factory US Top Down layout with SPY active."
+    masks: []
+  - id: workspace-docking
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [tabbed, maximized, floating, restored, drag_target, blocked_popout]
+    reproduction: "Move Chart into a watchlist stack; float then restore it."
+    masks: []
+  - id: chart-window
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [daily_candles, linked_crosshair, drawing, alert_marker, loading, error]
+    reproduction: "Open SPY D1 chart in the default workspace."
+    masks: []
+  - id: watchlist-column-filter
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [sorted, grouped, stacked, filtered, selected, partial_coverage]
+    reproduction: "Open S&P 500 Sector ranking with SPY comparison."
+    masks: []
+  - id: study-lab
+    state: required_missing
+    tc2000: { generation: "25", build: "25.0.9571", capture_date: null, operator: null }
+    source: { type: authorised_live_capture, locator: null, sha256: null, permission: controlled_reference_only }
+    environment: { resolution: null, display_scale: null, theme: null, locale: null, timezone: null, device_pixel_ratio: null }
+    bounds: { window: null, crop: null }
+    measurements: { tokens: {}, approved_by: null }
+    review: { status: required_missing, reviewer: null, supersedes: null }
+    required_states: [editor, validation_error, running, histogram, occurrence_table, sandbox_error]
+    reproduction: "Run the consecutive positive closes factory study."
+    masks: []

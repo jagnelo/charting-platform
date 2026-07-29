@@ -90,6 +90,13 @@ reason that it is out of scope.
   <https://help.tc2000.com/m/69401/l/1701300-how-to-tab-tool-windows>
 - Floating tool windows:
   <https://help.tc2000.com/m/69401/l/324100-how-to-float-tool-windows>
+- Factory default workspace and Drill Down / Sector by Year / 1-Chart / 4-Timeframe
+  behavior:
+  <https://help.tc2000.com/m/69401/l/743982-factory-default-layout-workspace>
+- Workspace save/restore:
+  <https://help.tc2000.com/m/69401/l/793640-how-to-save-a-workspace>
+- Create layout tab:
+  <https://help.tc2000.com/m/69401/l/323126-how-to-create-a-new-layout-tab>
 
 The captures must establish:
 
@@ -111,6 +118,8 @@ The captures must establish:
   <https://help.tc2000.com/m/125751/l/1874601-how-to-group-columns>
 - Add/remove columns:
   <https://help.tc2000.com/m/125751/l/1874629-how-to-add-or-remove-a-column-in-the-watchlist-window>
+- Rearrange/group/stack columns:
+  <https://help.tc2000.com/m/69401/l/1678518-how-to-change-the-order-of-columns-in-a-watchlist>
 - Condition/filter editor:
   <https://help.tc2000.com/m/125751/l/1659573-how-to-create-filters-with-the-new-condition-editor>
 - Market Gauge:
