@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T02:20:00Z Docked tool maximization
+
+- Connected the visible tool maximize control to Golden Layout's real stack
+  `toggleMaximise()` API. Removed duplicate inert drag/menu buttons; docking drag
+  remains provided by Golden Layout itself and float remains a working browser pop-out.
+- Pushed `53ff4aa feat(workstation): wire docked tool maximization`.
+- Validation passed: focused `ToolWindow` suite `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T02:05:00Z Persisted layout-tab cloning
 
 - Made the workstation tab-strip plus control clone the active serializable layout.

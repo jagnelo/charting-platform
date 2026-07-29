@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T02:20:00Z
+
+- The shared tool-window maximize control now invokes Golden Layout's owning stack
+  directly and toggles maximize/restore. Inert duplicate drag/menu controls were
+  removed rather than presented as functional; Golden Layout supplies actual drag
+  mechanics and the existing float control remains wired to browser pop-outs.
+- Pushed `53ff4aa feat(workstation): wire docked tool maximization`.
+- Validation passed: focused ToolWindow test `1 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement saved close/pop-in and tool-menu semantics through the layout model, then
+  verify persistence/recovery around maximized/floated tool states. Do not reintroduce
+  controls until their state changes are serializable and recoverable.
+
 ## Continuation update — 2026-07-30T02:05:00Z
 
 - The tab strip's plus control now has a real persisted behavior: it clones the active
