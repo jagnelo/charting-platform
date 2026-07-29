@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T22:52:00Z
+
+- A stale workspace snapshot now fetches the authoritative layout and creates a named,
+  non-factory recovery workspace containing the local serialized state before replacing
+  the stale active view. This prevents silent overwrite/loss on a revision conflict.
+  It deliberately does not claim an automatic disjoint-change merge yet.
+- Pushed `daf7fe6 feat(workstation): preserve stale layout recovery copies`.
+- Validation passed: focused workspace-store suite `6 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement one safe fetch/merge/retry path for disjoint window changes, then add
+  corrupt/unknown layout-tool recovery and export. Retain a recovery copy whenever
+  safe automatic merging cannot be proven.
+
 ## Continuation update — 2026-07-29T22:50:00Z
 
 - Added a bounded persisted tool registry and the real `Add tool` control. It offers

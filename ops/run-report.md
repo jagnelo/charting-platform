@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T22:52:00Z Stale workspace recovery copies
+
+- A revision-conflicted snapshot now reloads the authoritative workspace and first
+  preserves local serialized state as a named non-factory recovery workspace. This
+  prevents silent overwrite/loss; it does not yet claim a disjoint-change merge.
+- Pushed `daf7fe6 feat(workstation): preserve stale layout recovery copies`.
+- Validation passed: focused workspace-store suite `6 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-29T22:50:00Z Persisted tool registry
 
 - Added the first real tool-library/open path. It offers only implemented tools,
