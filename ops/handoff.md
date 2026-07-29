@@ -74,6 +74,27 @@
   contracts, beginning with stable canonical selection, columns, sorting, and the
   integrated filter-state model.
 
+### Continuation update — 2026-07-29T23:59:00Z
+
+- Added an `Alerts` tool to the serialized default `US Top Down` Golden Layout tree.
+  It is symbol-linked through the active canonical instrument and uses the existing
+  authenticated price/indicator-alert APIs: it lists both classes, creates supported
+  close-price level alerts, rearms triggered alerts, and deletes either alert class.
+  The tool does not duplicate alert state or bypass the existing alert engine,
+  notification, history, repeat, and projection contracts.
+- Incremented the default layout schema marker to version 3 and added an integration
+  assertion that the factory includes the alerts tool.
+- Validation: focused workspace and alert API tests selected `24 passed`; their normal
+  command exits after passing because the repository-wide 55% coverage gate is applied
+  to the narrow selection (27.40% aggregate), not because a selected test failed.
+  Frontend type-check and production build passed; `git diff --check` passed.
+
+### Exact next step
+
+- Build the integrated Version-25 column/filter/condition model and reusable EasyScan
+  contracts, then connect saved conditions to alert creation rather than treating the
+  newly wired price/indicator surface as the complete alert requirement.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical

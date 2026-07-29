@@ -2,6 +2,23 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T23:59:00Z TC2000 workstation symbol-linked alerts
+
+- Added the default workstation `Alerts` tool and serializable factory-layout entry.
+  It loads authenticated price and indicator alerts for the selected canonical
+  instrument, creates close-price crossing/touch alerts, and supports rearm/delete.
+  It deliberately reuses the established alert API and engine rather than creating a
+  workstation-only mechanism.
+- Updated default-workspace integration assertions for the v3 factory layout and its
+  alerts tool.
+- Validation: focused workspace/alert tests selected `24 passed`; pytest then returned
+  nonzero solely at the global 55% coverage threshold because this narrow selection
+  yields 27.40% project coverage. Frontend type-check and production build passed,
+  as did `git diff --check`.
+- This is an active, incomplete goal checkpoint. Full EasyScan/Python-alert integration,
+  visual acceptance, E2E, migration, security, performance, and full-suite evidence
+  remain outstanding.
+
 ## 2026-07-29 TC2000 Version 25 implementation foundation
 
 - Started the complete documented implementation rather than changing the plan.
