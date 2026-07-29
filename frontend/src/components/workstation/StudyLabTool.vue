@@ -20,6 +20,7 @@
       <article v-for="artifact in nonScalarArtifacts" :key="artifact.id">
         <strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
+        <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
     </section>
@@ -31,6 +32,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
 interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null }
 interface Run { id: number; status: string; diagnostics?: unknown[]; reproducibility_hash?: string | null; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
@@ -60,6 +62,13 @@ function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
 }
 function tableColumns(artifact: Artifact) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
+function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<number | null> } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { timestamps?: unknown; values?: unknown }
+  if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
+  return { timestamps: candidate.timestamps, values: candidate.values }
+}
 
 async function validate() {
   busy.value = true; error.value = ''

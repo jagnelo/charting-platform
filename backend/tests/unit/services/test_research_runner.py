@@ -28,3 +28,35 @@ def test_runner_executes_factory_positive_close_streak_study():
     assert result["artifacts"]["records"]["value"] == [
         {"end_index": 2, "end_timestamp": "2026-01-03", "length": 2}
     ]
+
+
+def test_runner_exposes_only_declared_market_symbol_and_structured_ta_series():
+    result = execute_job(
+        {
+            "source": "trend = ta.sma(market.close('SPY'), 2)\noutput.series('trend', trend)",
+            "dataset": {
+                "symbol": "SPY",
+                "timestamps": ["2026-01-01", "2026-01-02", "2026-01-03"],
+                "closes": [10, 12, 14],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["trend"] == {
+        "type": "series",
+        "value": {
+            "timestamps": ["2026-01-01", "2026-01-02", "2026-01-03"],
+            "values": [None, 11.0, 13.0],
+        },
+    }
+
+
+def test_runner_rejects_market_access_outside_the_prepared_dataset():
+    result = execute_job(
+        {
+            "source": "output.series('close', market.close('QQQ'))",
+            "dataset": {"symbol": "SPY", "closes": [10]},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "not declared" in result["diagnostics"][0]["message"]

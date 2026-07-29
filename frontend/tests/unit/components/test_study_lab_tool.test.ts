@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 
@@ -14,6 +15,7 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs') return Promise.resolve({ id: 9, status: 'completed', reproducibility_hash: 'sha256:test', artifacts: [
         { id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } },
         { id: 4, name: 'completed_streaks', artifact_type: 'table', payload: { value: [{ length: 2, end_timestamp: '2026-01-03' }] } },
+        { id: 5, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [null, 11] } } },
       ] })
       return Promise.resolve({})
     })
@@ -29,5 +31,6 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('4')
     expect(wrapper.text()).toContain('completed_streaks')
     expect(wrapper.find('table').text()).toContain('end_timestamp')
+    expect(wrapper.find('.series-chart').exists()).toBe(true)
   })
 })
