@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T04:10:00Z Factory workspace recovery
+
+- Added a confirmed reset action for the versioned `US Top Down` factory workspace.
+  It calls the existing backend factory-reset endpoint, replaces local snapshot state,
+  and selects the restored factory tab; it is not exposed for personal workspaces.
+- Pushed `b7a1e3a feat(workstation): add factory workspace recovery`.
+- Validation passed: focused workspace-store suite `3 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T03:55:00Z Remove inert workstation app menus
 
 - Removed the nonfunctional File, Edit, Chart, Watchlist, and Help buttons from the

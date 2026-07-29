@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T04:10:00Z
+
+- Added the actual recovery path for the immutable factory workspace. A confirmed
+  reset action invokes the backend reset endpoint, replaces current local workspace
+  state, and returns to the restored factory tab. Personal workspace layouts are not
+  exposed to this destructive factory reset.
+- Pushed `b7a1e3a feat(workstation): add factory workspace recovery`.
+- Validation passed: focused workspace-store suite `3 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Add personal-layout recovery copies for stale revision conflicts and corrupt tool
+  state, then implement reopening tools from the persisted library without restoring
+  vanished or stale runtime objects.
+
 ## Continuation update — 2026-07-30T03:55:00Z
 
 - Removed inert primary-workstation application menu buttons. Tools remains because
