@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T03:45:00Z Research-runner deployment isolation guard
+
+- Added a regression test for the actual compose service boundary: no network,
+  read-only root, non-root UID, all capabilities dropped, no-new-privileges, bounded
+  noexec tmpfs, and only the jobs/results volumes with explicit paths.
+- Pushed `0ed04e4 test(sandbox): guard research runner deployment isolation`.
+- Validation passed: deployment/runner suite `8 passed` with `--no-cov`, Ruff check
+  and format, and `git diff --check`.
+
 ## 2026-07-30T03:35:00Z Typed Study Lab events and occurrence linking
 
 - Added validated event artifacts to the isolated runner. Every event requires a

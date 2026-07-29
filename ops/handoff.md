@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T03:45:00Z
+
+- The research-runner compose isolation boundary is now regression-tested: no network,
+  read-only root, non-root UID, capabilities dropped, no-new-privileges, constrained
+  tmpfs, and only jobs/results mounts. This makes deployment isolation a checked
+  contract rather than an untested comment.
+- Pushed `0ed04e4 test(sandbox): guard research runner deployment isolation`.
+- Validation passed: deployment/runner suite `8 passed` with `--no-cov`, Ruff check
+  and format, and `git diff --check`.
+
+### Exact next step
+
+- Add process-level resource/cancellation/orphan acceptance coverage and validate the
+  mounted data protocol. Then continue timestamp-level occurrence linking and artifact
+  promotion without weakening the prepared-manifest boundary.
+
 ## Continuation update — 2026-07-30T03:35:00Z
 
 - Study Lab now has typed event artifacts. The isolated runner requires a timestamp
