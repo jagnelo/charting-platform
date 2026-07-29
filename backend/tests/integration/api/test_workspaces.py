@@ -7,15 +7,17 @@ class TestWorkspaces:
         assert workspace["revision"] == 1
         assert workspace["tabs"][0]["stable_key"] == "us-top-down"
         assert workspace["tabs"][0]["layout_config"]["root"]["type"] == "row"
-        assert workspace["tabs"][0]["layout_config"]["version"] == 3
+        assert workspace["tabs"][0]["layout_config"]["version"] == 4
         assert {window["tool_type"] for window in workspace["tabs"][0]["windows"]} >= {
             "watchlist",
             "chart",
             "breadth",
             "coverage",
             "alerts",
+            "scan",
         }
         assert "alerts" in {window["instance_key"] for window in workspace["tabs"][0]["windows"]}
+        assert "easy-scan" in {window["instance_key"] for window in workspace["tabs"][0]["windows"]}
         assert {tab["stable_key"] for tab in workspace["tabs"]} >= {
             "tc-classic",
             "drill-down",

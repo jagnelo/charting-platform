@@ -72,6 +72,7 @@
     </div>
     <InstrumentNoteTool v-else-if="tool.instance_key === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <InstrumentAlertsTool v-else-if="tool.instance_key === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
+    <EasyScanTool v-else-if="tool.instance_key === 'easy-scan'" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>
 </template>
@@ -86,6 +87,7 @@ import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTo
 import RatioUPlot from './RatioUPlot.vue'
 import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
+import EasyScanTool from './EasyScanTool.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
