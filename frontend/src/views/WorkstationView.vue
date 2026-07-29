@@ -31,6 +31,12 @@
         @click="workspaceStore.activeTabKey = tab.stable_key"
       >{{ tab.name }}</button>
       <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <div class="workstation__tool-library">
+        <button type="button" class="workstation__tab-add" title="Open a workstation tool" @click="toolLibraryOpen = !toolLibraryOpen">Add tool</button>
+        <div v-if="toolLibraryOpen" class="workstation__tool-library-menu">
+          <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" @click="openTool(tool)">{{ tool.title }}</button>
+        </div>
+      </div>
       <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" @click="resetFactoryWorkspace">↺</button>
       <span class="workstation__workspace-name">{{ workspaceStore.workspace?.name ?? 'Loading workspace…' }}</span>
     </div>
@@ -80,7 +86,7 @@ import { useRoute, useRouter } from 'vue-router'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import { useChartStore } from '@/stores/chart'
-import { useWorkspaceStore, type LinkGroup } from '@/stores/workspace'
+import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 
 const route = useRoute()
@@ -89,6 +95,8 @@ const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
+const toolLibraryOpen = ref(false)
+const openableTools = OPENABLE_WORKSTATION_TOOLS
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
 const isPopout = computed(() => route.path.startsWith('/popout/'))
@@ -130,6 +138,11 @@ async function selectSymbol(raw: string, timestamp?: string) {
 
 function selectOccurrence(symbol: string, timestamp: string) {
   void selectSymbol(symbol, timestamp)
+}
+
+function openTool(tool: OpenableToolDefinition) {
+  workspaceStore.openTool(tool)
+  toolLibraryOpen.value = false
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup) {
@@ -252,6 +265,10 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__status { margin-left: auto; display: flex; gap: 8px; color: #81909a; font-size: 10px; }
 .workstation__leader { color: #63bd85; }
 .workstation__tabs { display: flex; align-items: stretch; background: #151a1f; border-bottom: 1px solid #303940; }
+.workstation__tool-library { position: relative; display: flex; }
+.workstation__tool-library-menu { position: absolute; z-index: 60; top: 28px; left: 0; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; }
+.workstation__tool-library-menu button { border: 0; background: transparent; color: #cbd6dc; padding: 5px 8px; font: 11px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
+.workstation__tool-library-menu button:hover { background: #31424d; color: #fff; }
 .workstation__tabs > button:not(.workstation__tab-add) { min-width: 112px; padding: 0 11px; border: 0; border-right: 1px solid #303940; background: #1b2126; color: #9facb5; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__workspace-name { margin-left: auto; padding: 7px 9px; color: #697782; font-size: 10px; }

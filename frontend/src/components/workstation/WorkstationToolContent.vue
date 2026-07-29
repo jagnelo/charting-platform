@@ -27,7 +27,7 @@
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
     />
-    <div v-else-if="tool.tool_type === 'chart' && tool.instance_key === 'primary-chart'" class="chart-tool">
+    <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
       <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
       <UPlotChart v-else-if="chartStore.symbol" />
@@ -82,10 +82,10 @@
       <span>Universe coverage</span><b>{{ breadthCoverage }}</b>
       <span>Membership</span><b>ETF-proxy labelled</b>
     </div>
-    <InstrumentNoteTool v-else-if="tool.instance_key === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentAlertsTool v-else-if="tool.instance_key === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
-    <EasyScanTool v-else-if="tool.instance_key === 'easy-scan'" />
-    <MarketGaugeTool v-else-if="tool.instance_key === 'market-gauge'" />
+    <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
+    <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
+    <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
+    <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>

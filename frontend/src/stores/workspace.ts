@@ -38,6 +38,26 @@ export interface WorkspaceState {
   tabs: WorkspaceTabState[]
 }
 
+/**
+ * The browser-only tool registry deliberately contains only implemented, serializable
+ * primary-workstation tools. It is not a substitute for a runtime component registry.
+ */
+export interface OpenableToolDefinition {
+  tool_type: 'chart' | 'notes' | 'alerts' | 'scan' | 'gauge' | 'study_lab'
+  title: string
+  instance_prefix: string
+  configuration?: Record<string, unknown>
+}
+
+export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
+  { tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
+  { tool_type: 'alerts', title: 'Alerts', instance_prefix: 'alerts', configuration: { scope: 'active-instrument' } },
+  { tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },
+  { tool_type: 'gauge', title: 'Market Gauge', instance_prefix: 'market-gauge', configuration: { scope: 'saved-scans' } },
+  { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } },
+]
+
 export interface LinkEvent {
   instrumentId?: number
   symbol: string
@@ -406,6 +426,49 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot()
   }
 
+  function openTool(definition: OpenableToolDefinition) {
+    const tab = activeTab.value
+    if (!tab) return null
+    const instanceKey = `${definition.instance_prefix}-${Date.now().toString(36)}`
+    const window: WorkspaceWindowState = {
+      id: -Date.now(),
+      instance_key: instanceKey,
+      tool_type: definition.tool_type,
+      title: definition.title,
+      link_group: 'blue',
+      configuration: { ...(definition.configuration ?? {}) },
+      style: {},
+      state_schema_version: 1,
+      position: Math.max(-1, ...tab.windows.map(item => item.position)) + 1,
+    }
+    const component = {
+      type: 'component',
+      componentType: 'workstation-tool',
+      title: window.title,
+      componentState: {
+        instance_key: window.instance_key,
+        tool_type: window.tool_type,
+        title: window.title,
+      },
+    }
+    // Workspace layouts are intentionally JSON-only; this also unwraps Pinia's
+    // reactive proxy before persistence or Golden Layout receives the config.
+    const layout = JSON.parse(JSON.stringify(tab.layout_config)) as Record<string, unknown>
+    const root = layout.root as Record<string, unknown> | undefined
+    if (root && Array.isArray(root.content)) {
+      root.content.push(component)
+    } else if (root) {
+      layout.root = { type: 'row', content: [root, component] }
+    } else {
+      layout.root = { type: 'row', content: [component] }
+    }
+    tab.windows = [...tab.windows, window]
+    tab.layout_config = layout
+    tab.active_window_key = instanceKey
+    scheduleSnapshot()
+    return window
+  }
+
   function cloneActiveTab() {
     if (!workspace.value || !activeTab.value) return
     const source = activeTab.value
@@ -486,6 +549,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     saveSnapshot,
     scheduleSnapshot,
     applyActiveLayout,
+    openTool,
     cloneActiveTab,
     resetFactoryWorkspace,
   }

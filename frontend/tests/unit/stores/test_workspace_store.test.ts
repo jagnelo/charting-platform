@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiPost, apiPut } = vi.hoisted(() => ({ apiPost: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { post: apiPost, put: apiPut } }))
 
-import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
 
 describe('workspace store layout tabs', () => {
   beforeEach(() => {
@@ -84,5 +84,21 @@ describe('workspace store layout tabs', () => {
     store.publishSymbol({ symbol: 'XLK', group: 'blue' })
     expect(store.linkedSymbol).toBe('XLK')
     expect(store.linkedTimestamp).toBeNull()
+  })
+
+  it('opens an implemented tool with serializable state and adds it to the saved layout', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
+    }
+    const definition: OpenableToolDefinition = { tool_type: 'study_lab', title: 'Study Lab', instance_prefix: 'study-lab', configuration: { symbol: 'SPY' } }
+
+    const opened = store.openTool(definition)
+
+    expect(opened?.tool_type).toBe('study_lab')
+    expect(store.activeTab?.windows).toHaveLength(1)
+    expect((store.activeTab?.layout_config.root as { content: unknown[] }).content).toHaveLength(1)
+    expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
   })
 })
