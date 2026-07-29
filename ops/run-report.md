@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-29T22:47:00Z Study Lab occurrence timestamp linking
+
+- Extended the workstation link event with an optional historical timestamp. Selecting
+  a Study Lab event now updates linked symbol state and moves every mounted uPlot
+  chart to the corresponding historical bar, including pop-outs; ordinary navigation
+  explicitly clears that selected historical point.
+- Pushed `c3c4023 feat(study-lab): link occurrences to chart timestamps`.
+- Validation passed: focused workspace-store and StudyLabTool suites `5 passed`,
+  frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T04:10:00Z Factory workspace recovery
 
 - Added a confirmed reset action for the versioned `US Top Down` factory workspace.

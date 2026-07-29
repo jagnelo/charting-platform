@@ -1,5 +1,23 @@
 # Active Handoff
 
+## Continuation update — 2026-07-29T22:47:00Z
+
+- Study Lab event selections now publish their timestamp in addition to the symbol.
+  The workstation link store relays that selection to same-session and pop-out
+  windows; mounted uPlot charts move their crosshair to the matching historical
+  bar after data initialization. Normal symbol navigation clears this timestamp,
+  preventing a stale occurrence marker from being retained.
+- Pushed `c3c4023 feat(study-lab): link occurrences to chart timestamps`.
+- Validation passed: focused workspace-store/Study Lab suites `5 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Add personal-layout recovery copies for stale revision conflicts and corrupt tool
+  state, then implement reopening tools from the persisted library without restoring
+  vanished or stale runtime objects. Preserve the timestamp link protocol as the
+  foundation for subsequent cross-window cursor synchronization.
+
 ## Continuation update — 2026-07-30T04:10:00Z
 
 - Added the actual recovery path for the immutable factory workspace. A confirmed
