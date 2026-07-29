@@ -384,6 +384,39 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     snapshotTimer = setTimeout(() => { void saveSnapshot() }, 350)
   }
 
+  function cloneActiveTab() {
+    if (!workspace.value || !activeTab.value) return
+    const source = activeTab.value
+    const suffix = Date.now().toString(36)
+    const remappedKeys = new Map(source.windows.map(window => [window.instance_key, `${window.instance_key}-${suffix}`]))
+    const cloneLayout = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(cloneLayout)
+      if (!value || typeof value !== 'object') return value
+      return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+        key,
+        key === 'instance_key' && typeof child === 'string' ? (remappedKeys.get(child) ?? child) : cloneLayout(child),
+      ]))
+    }
+    const copiedTab: WorkspaceTabState = {
+      id: -Date.now(),
+      stable_key: `layout-${suffix}`,
+      name: `${source.name} Copy`,
+      position: workspace.value.tabs.length,
+      layout_config: cloneLayout(source.layout_config) as Record<string, unknown>,
+      active_window_key: source.active_window_key ? (remappedKeys.get(source.active_window_key) ?? source.active_window_key) : null,
+      windows: source.windows.map(window => ({
+        ...window,
+        id: -(Date.now() + window.position + 1),
+        instance_key: remappedKeys.get(window.instance_key) ?? window.instance_key,
+        configuration: cloneLayout(window.configuration) as Record<string, unknown>,
+        style: cloneLayout(window.style) as Record<string, unknown>,
+      })),
+    }
+    workspace.value = { ...workspace.value, tabs: [...workspace.value.tabs, copiedTab] }
+    activeTabKey.value = copiedTab.stable_key
+    scheduleSnapshot()
+  }
+
   return {
     workspace,
     activeTab,
@@ -415,5 +448,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadTechnical,
     saveSnapshot,
     scheduleSnapshot,
+    cloneActiveTab,
   }
 })

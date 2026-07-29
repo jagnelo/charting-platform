@@ -30,7 +30,7 @@
         :class="{ 'workstation__tab--active': tab.stable_key === workspaceStore.activeTabKey }"
         @click="workspaceStore.activeTabKey = tab.stable_key"
       >{{ tab.name }}</button>
-      <button type="button" class="workstation__tab-add" title="New workspace tab">+</button>
+      <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <span class="workstation__workspace-name">{{ workspaceStore.workspace?.name ?? 'Loading workspace…' }}</span>
     </div>
 
