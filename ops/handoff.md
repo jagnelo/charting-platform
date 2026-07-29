@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T00:04:00Z
+
+- Added canonical local batch technical state to group snapshots: RSI14, price above
+  20/50/200-SMA, 52-week position, and 50-day volume ratio. Each unavailable field
+  keeps an explicit insufficient-history warning, and the sector ranking exposes
+  sortable columns alongside its multi-horizon performance and SPY ratio.
+- Pushed `ebd9cf0 feat(top-down): add batch sector technical states`.
+- Validation passed: workspace/analysis integration `10 passed`, focused virtual
+  watchlist suite `6 passed`, frontend type-check, production build, and diff check.
+
+### Exact next step
+
+- Implement transparent historical relative rotation and breadth series with coverage
+  warnings, then extend the same batch ranking workflow to industry proxies and ETF
+  constituents.
+
 ## Continuation update — 2026-07-30T00:02:00Z
 
 - Expanded the top-down sector ranking surface with the full local batch performance

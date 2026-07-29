@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:04:00Z Batch sector technical states
+
+- Added local group-snapshot RSI14, above-20/50/200-SMA, 52-week position, and
+  50-day volume-ratio cells with explicit insufficient-history warnings, then exposed
+  them as sortable top-down sector ranking columns.
+- Pushed `ebd9cf0 feat(top-down): add batch sector technical states`.
+- Validation passed: workspace/analysis integration `10 passed`, virtual-watchlist
+  suite `6 passed`, frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T00:02:00Z Expanded sector strength ranking
 
 - Added local batch 1D, 1W, 1M, 3M, 6M, YTD, 1Y, and aligned sector/SPY ratio columns
