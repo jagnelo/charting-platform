@@ -1,5 +1,22 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T01:25:00Z
+
+- The virtualized benchmark, sector, and constituent watchlists now serialize their
+  active text filter into their individual workspace tool configuration. Reloading a
+  snapshot restores it; later workspace-state updates also update the mounted filter.
+  The filter remains client-side list presentation state: it does not alter the
+  canonical universe, server-side calculation, or selected instrument identity.
+- Pushed `4e6d53e feat(workstation): persist integrated watchlist filters`.
+- Validation passed: focused Vitest `4 passed`, frontend type-check, production build,
+  and `git diff --check`.
+
+### Exact next step
+
+- Continue the integrated Version-25 column/filter model: add persisted Boolean/saved
+  condition filter application and grouping/stacking semantics backed by canonical
+  batch values, then cover the workspace reload path at the view/store boundary.
+
 ## TC2000 Version 25 implementation started - 2026-07-29
 
 - The authenticated default route is now the new `WorkstationView`; the original

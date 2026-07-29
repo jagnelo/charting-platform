@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T01:25:00Z Persisted workstation watchlist filters
+
+- Persisted the Version-25-style text filter in each watchlist tool's serializable
+  workspace configuration. Benchmark, sector, and constituent filters now survive
+  an atomic workspace snapshot/reload and follow restored workspace state without
+  changing canonical row identity or route.
+- Pushed `4e6d53e feat(workstation): persist integrated watchlist filters`.
+- Validation passed: focused `VirtualWatchlistTool` suite `4 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T01:20:00Z EasyScan alert action
 
 - Added a workstation action to create repeating entry, exit, or both screener alerts
