@@ -70,6 +70,7 @@
       <span>Universe coverage</span><b>{{ breadthCoverage }}</b>
       <span>Membership</span><b>ETF-proxy labelled</b>
     </div>
+    <InstrumentNoteTool v-else-if="tool.instance_key === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>
 </template>
@@ -82,6 +83,7 @@ import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
 import RatioUPlot from './RatioUPlot.vue'
+import InstrumentNoteTool from './InstrumentNoteTool.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
