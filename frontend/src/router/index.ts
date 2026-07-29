@@ -22,6 +22,7 @@ export const router = createRouter({
     { path: '/', component: WorkstationView },
     { path: '/chart', component: WorkstationView },
     { path: '/chart/:symbol(.*)', component: WorkstationView },
+    { path: '/popout/:windowKey', component: WorkstationView },
     { path: '/study-lab', component: StudyLabView },
     { path: '/legacy/dashboard', component: DashboardView },
     { path: '/legacy/chart', component: ChartView },

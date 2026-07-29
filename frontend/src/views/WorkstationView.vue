@@ -1,6 +1,6 @@
 <template>
   <div class="workstation" @keydown="handleKeydown">
-    <header class="workstation__menu">
+    <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
         <button v-for="item in ['File', 'Edit', 'Chart', 'Watchlist', 'Tools', 'Help']" :key="item" type="button" @click="item === 'Tools' && router.push('/study-lab')">{{ item }}</button>
@@ -22,7 +22,7 @@
       </div>
     </header>
 
-    <div class="workstation__tabs">
+    <div v-if="!isPopout" class="workstation__tabs">
       <button
         v-for="tab in workspaceStore.workspace?.tabs ?? []"
         :key="tab.stable_key"
@@ -35,12 +35,24 @@
     </div>
 
     <WorkspaceLayoutHost
-      v-if="goldenLayoutConfig"
+      v-if="!isPopout && goldenLayoutConfig"
       class="workstation__dock"
       :layout="goldenLayoutConfig"
       :render-tool="renderDockTool"
       @changed="persistGoldenLayout"
     />
+    <main v-if="isPopout" class="workstation__popout">
+      <WorkstationToolContent
+        v-if="popoutTool"
+        :tool="popoutTool"
+        :active-window-key="popoutTool.instance_key"
+        @select="selectSymbol"
+        @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
+        @columns="updateColumns"
+        @update-link-group="updateLinkGroup"
+      />
+      <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
+    </main>
     <main v-else class="workstation__grid" :class="{ 'workstation__grid--loading': workspaceStore.loading }">
       <ToolWindow title="Benchmarks" :symbol="activeSymbol" active @update:link-group="updateLinkGroup('benchmark-list', $event)">
         <SymbolListTool label="Major US benchmarks" :symbols="benchmarks" :selected="activeSymbol" :descriptions="descriptions" @select="selectSymbol" />
@@ -94,7 +106,7 @@
       </ToolWindow>
     </main>
 
-    <footer class="workstation__footer">
+    <footer v-if="!isPopout" class="workstation__footer">
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
       <span>{{ workspaceStore.error ?? 'Ready' }}</span>
@@ -134,6 +146,11 @@ const descriptions: Record<string, string> = {
 }
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
+const isPopout = computed(() => route.path.startsWith('/popout/'))
+const popoutTool = computed(() => {
+  const key = String(route.params.windowKey ?? '')
+  return workspaceStore.activeTab?.windows.find(window => window.instance_key === key) ?? null
+})
 const allSymbols = computed(() => [...benchmarks.value, ...sectors.value, ...industryProxies, ...constituents])
 const goldenLayoutConfig = computed(() => {
   const layout = workspaceStore.activeTab?.layout_config
@@ -185,6 +202,13 @@ function updateColumns(windowKey: string, columnKeys: string[]) {
   workspaceStore.scheduleSnapshot()
 }
 
+function floatTool(windowKey: string) {
+  const tab = workspaceStore.activeTabKey
+  const href = router.resolve({ path: `/popout/${encodeURIComponent(windowKey)}`, query: { tab } }).href
+  const popup = window.open(href, `workstation-${windowKey}`, 'popup=yes,width=1100,height=760,resizable=yes,scrollbars=no')
+  if (!popup) workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
+}
+
 function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
@@ -194,6 +218,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
+    onFloat: (windowKey: string) => floatTool(windowKey),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
   })
 }
@@ -234,6 +259,10 @@ watch(activeSymbol, symbol => {
 onMounted(async () => {
   workspaceStore.connect()
   await workspaceStore.loadDefault()
+  const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
+  if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
+    workspaceStore.activeTabKey = requestedTab
+  }
   await Promise.all([
     workspaceStore.loadMarketGroup('us-benchmarks'),
     workspaceStore.loadMarketGroup('sp500-sectors'),
@@ -250,6 +279,8 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 
 <style scoped>
 .workstation { --tc-border: #303940; --tc-window: #15191e; width: 100%; height: 100%; min-width: 980px; display: grid; grid-template-rows: 29px 28px minmax(0, 1fr) 21px; overflow: hidden; color: #d5dde4; background: #0d1013; font-family: "Segoe UI", Arial, sans-serif; }
+.workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
+.workstation__popout { min-width: 0; min-height: 0; padding: 2px; background: #090c0f; }
 .workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(#2c3339, #1c2227); border-bottom: 1px solid #090b0d; }
 .workstation__brand { color: #8fc7ea; font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
 .workstation__menu nav { display: flex; align-self: stretch; }
