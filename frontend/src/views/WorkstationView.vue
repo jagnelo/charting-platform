@@ -3,7 +3,7 @@
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
-        <button v-for="item in ['File', 'Edit', 'Chart', 'Watchlist', 'Tools', 'Help']" :key="item" type="button" @click="item === 'Tools' && router.push('/study-lab')">{{ item }}</button>
+        <button v-for="item in ['File', 'Edit', 'Chart', 'Watchlist', 'Tools', 'Help']" :key="item" type="button" @click="item === 'Tools' && (workspaceStore.activeTabKey = 'study-lab')">{{ item }}</button>
       </nav>
       <div class="workstation__search">
         <input

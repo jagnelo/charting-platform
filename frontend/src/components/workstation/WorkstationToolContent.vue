@@ -86,6 +86,7 @@
     <InstrumentAlertsTool v-else-if="tool.instance_key === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <EasyScanTool v-else-if="tool.instance_key === 'easy-scan'" />
     <MarketGaugeTool v-else-if="tool.instance_key === 'market-gauge'" />
+    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>
 </template>
@@ -102,6 +103,7 @@ import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
 import EasyScanTool from './EasyScanTool.vue'
 import MarketGaugeTool from './MarketGaugeTool.vue'
+import StudyLabTool from './StudyLabTool.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
