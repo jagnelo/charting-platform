@@ -11,3 +11,20 @@ def test_runner_rejects_forbidden_source_before_execution():
     result = execute_job({"source": "import os", "dataset": {}})
     assert result["status"] == "failed"
     assert result["diagnostics"][0]["code"] == "forbidden_syntax"
+
+
+def test_runner_executes_factory_positive_close_streak_study():
+    result = execute_job(
+        {
+            "source": "streaks = stats.positive_close_streaks(dataset)\noutput.scalar('current', streaks['current'])\noutput.table('records', streaks['records'])",
+            "dataset": {
+                "timestamps": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"],
+                "closes": [10, 11, 12, 11],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["current"]["value"] == 0
+    assert result["artifacts"]["records"]["value"] == [
+        {"end_index": 2, "end_timestamp": "2026-01-03", "length": 2}
+    ]
