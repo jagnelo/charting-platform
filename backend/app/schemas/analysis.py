@@ -77,3 +77,14 @@ class TechnicalSnapshotOut(BaseModel):
     position_52w: float | None
     volume_ratio_50: float | None
     warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class MarketGaugeOut(BaseModel):
+    screener_id: int
+    screener_name: str
+    run_at: datetime | None
+    matched_count: int
+    evaluated_count: int
+    universe_count: int
+    percentage: float | None
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)

@@ -225,6 +225,23 @@ class TestScreenerRun:
         assert results_res.status_code == 200
         assert len(results_res.json()) >= 1
 
+    def test_market_gauge_uses_the_latest_saved_scan_with_coverage(
+        self, client, auth_headers, screener
+    ):
+        client.post(f"/api/v1/screeners/{screener.id}/run", headers=auth_headers)
+        gauge = client.get(f"/api/v1/analysis/gauges/{screener.id}", headers=auth_headers)
+        assert gauge.status_code == 200
+        payload = gauge.json()
+        assert payload["screener_id"] == screener.id
+        assert payload["run_at"] is not None
+        assert payload["universe_count"] >= payload["evaluated_count"]
+
+    def test_market_gauge_is_honest_before_a_scan_is_run(self, client, auth_headers, screener):
+        gauge = client.get(f"/api/v1/analysis/gauges/{screener.id}", headers=auth_headers)
+        assert gauge.status_code == 200
+        assert gauge.json()["percentage"] is None
+        assert gauge.json()["exclusions"][0]["code"] == "scan_not_run"
+
     def test_streaming_scan_reports_missing_local_history_without_provider_fetch(
         self, client, auth_headers, instrument_b
     ):

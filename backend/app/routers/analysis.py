@@ -13,6 +13,7 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import MarketGroup
 from app.schemas.analysis import (
@@ -22,6 +23,7 @@ from app.schemas.analysis import (
     BreadthOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
+    MarketGaugeOut,
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
@@ -29,6 +31,71 @@ from app.schemas.analysis import (
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": 252, "1Y": 252}
+
+
+@router.get("/gauges/{screener_id}", response_model=MarketGaugeOut)
+async def market_gauge(
+    screener_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Expose a Market Gauge from a retained local-only EasyScan result."""
+    screener = (
+        await db.execute(
+            select(ScreenerDefinition).where(
+                ScreenerDefinition.id == screener_id,
+                ScreenerDefinition.user_id == current_user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if screener is None:
+        raise HTTPException(404, detail={"code": "screener_not_found"})
+    latest = (
+        await db.execute(
+            select(ScreenerResult)
+            .where(ScreenerResult.screener_id == screener.id)
+            .order_by(ScreenerResult.run_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if latest is None:
+        return MarketGaugeOut(
+            screener_id=screener.id,
+            screener_name=screener.name,
+            run_at=None,
+            matched_count=0,
+            evaluated_count=0,
+            universe_count=0,
+            percentage=None,
+            exclusions=[
+                AnalysisWarning(
+                    code="scan_not_run", message="Run this EasyScan before using it as a gauge."
+                )
+            ],
+        )
+    coverage = latest.result_data.get("_coverage", {})
+    excluded = coverage.get("excluded", {}) if isinstance(coverage, dict) else {}
+    universe_count = int(coverage.get("universe_count", 0)) if isinstance(coverage, dict) else 0
+    evaluated_count = int(coverage.get("evaluated_count", 0)) if isinstance(coverage, dict) else 0
+    warnings = [
+        AnalysisWarning(
+            code=value.get("code", "excluded"),
+            message=value.get("message", "Excluded"),
+            instrument_id=int(key),
+        )
+        for key, value in excluded.items()
+        if isinstance(value, dict) and key.isdigit()
+    ]
+    return MarketGaugeOut(
+        screener_id=screener.id,
+        screener_name=screener.name,
+        run_at=latest.run_at,
+        matched_count=len(latest.matched_ids),
+        evaluated_count=evaluated_count,
+        universe_count=universe_count,
+        percentage=(len(latest.matched_ids) / evaluated_count) if evaluated_count else None,
+        exclusions=warnings,
+    )
 
 
 async def _instrument(db: AsyncSession, symbol: str) -> Instrument:
