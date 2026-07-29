@@ -131,6 +131,19 @@ export interface ETFIndustryConstituentsState {
   exclusions: string[]
 }
 
+export interface TechnicalSnapshotState {
+  symbol: string
+  as_of: string | null
+  last: number | null
+  rsi14: number | null
+  sma20: number | null
+  sma50: number | null
+  sma200: number | null
+  position_52w: number | null
+  volume_ratio_50: number | null
+  warnings: Array<{ code: string; message: string }>
+}
+
 const CHANNEL_NAME = 'charting-platform-workstation'
 
 export const useWorkspaceStore = defineStore('workspace', () => {
@@ -146,6 +159,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
+  const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
   const constituentETF = ref<string | null>(null)
   const selectedIndustry = ref<string | null>(null)
   let channel: BroadcastChannel | null = null
@@ -316,6 +330,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function loadTechnical(symbol: string) {
+    const normalized = symbol.trim().toUpperCase()
+    if (!normalized) return null
+    try {
+      const snapshot = await api.get<TechnicalSnapshotState>(`/analysis/instruments/${encodeURIComponent(normalized)}/technical`)
+      technicals.value = { ...technicals.value, [normalized]: snapshot }
+      return snapshot
+    } catch (cause: any) {
+      if (cause?.status === 404) {
+        technicals.value = { ...technicals.value, [normalized]: null }
+        return null
+      }
+      error.value = cause?.message ?? `Unable to calculate technicals for ${normalized}`
+      return null
+    }
+  }
+
   async function saveSnapshot() {
     if (!workspace.value) return
     const current = workspace.value
@@ -367,6 +398,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     etfHoldings,
     etfIndustries,
     industryConstituents,
+    technicals,
     constituentETF,
     selectedIndustry,
     isEditorTarget,
@@ -380,6 +412,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadETFHoldings,
     loadETFIndustries,
     selectIndustry,
+    loadTechnical,
     saveSnapshot,
     scheduleSnapshot,
   }

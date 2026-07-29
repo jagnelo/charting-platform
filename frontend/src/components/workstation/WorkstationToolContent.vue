@@ -63,8 +63,10 @@
       <span>Coverage</span><b>{{ breadthCoverage }}</b>
     </div>
     <div v-else-if="tool.instance_key === 'technical-summary'" class="metrics">
-      <span>Technical snapshot</span><b>Awaiting selected instrument data</b>
-      <span>Source</span><b>Canonical local database</b>
+      <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
+      <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
+      <span>52-week position</span><b>{{ formatPercent(technical?.position_52w) }}</b>
+      <span>Volume ratio (50)</span><b>{{ formatRatio(technical?.volume_ratio_50) }}</b>
     </div>
     <div v-else-if="tool.instance_key === 'coverage-summary'" class="metrics">
       <span>Universe coverage</span><b>{{ breadthCoverage }}</b>
@@ -96,6 +98,7 @@ const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
 const breadth = computed(() => workspaceStore.breadth['sp500-sectors'])
+const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
 const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])
@@ -144,10 +147,15 @@ const descriptions: Record<string, string> = {
   NVDA: 'NVIDIA', MSFT: 'Microsoft', AAPL: 'Apple', AVGO: 'Broadcom', CRM: 'Salesforce', ORCL: 'Oracle', AMD: 'AMD', ADBE: 'Adobe',
 }
 const breadthCoverage = computed(() => breadth.value ? `${(breadth.value.coverage * 100).toFixed(0)}% · ${breadth.value.evaluated_count} symbols` : 'Unavailable')
+const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sma50, technical.value?.sma200]
+  .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
   const value = breadth.value?.above_ma[key]
   return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`
 }
+function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
+function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
+function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
 </script>
 
 <style scoped>

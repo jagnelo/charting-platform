@@ -169,6 +169,7 @@ async function selectSymbol(raw: string) {
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadETFHoldings(symbol),
     workspaceStore.loadETFIndustries(symbol),
+    workspaceStore.loadTechnical(symbol),
   ])
 }
 
@@ -226,6 +227,7 @@ watch(activeSymbol, symbol => {
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadETFHoldings(symbol),
     workspaceStore.loadETFIndustries(symbol),
+    workspaceStore.loadTechnical(symbol),
   ])
 })
 
