@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T01:50:00Z Remove obsolete workstation fallback
+
+- Removed the prior hard-coded grid fallback, including static sample analysis and a
+  dead new-tab control. The authenticated workstation now renders either its real
+  serializable Golden Layout or an explicit loading/retry state.
+- Pushed `a2716e7 fix(workstation): remove static placeholder fallback`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T01:40:00Z Saved-condition watchlist filters
 
 - Added a persisted saved-scan condition control to benchmark, sector, and

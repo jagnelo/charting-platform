@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T01:50:00Z
+
+- Removed the competing static workstation fallback from `WorkstationView`. It had
+  hard-coded symbols, placeholder coverage text, and an intentionally unimplemented
+  new-tab button. A missing layout now shows only a truthful loading/retry state;
+  regular operation is solely the persisted Golden Layout surface.
+- Pushed `a2716e7 fix(workstation): remove static placeholder fallback`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement real workspace-tab creation/clone/reorder mechanics and remaining layout
+  recovery before adding any visible control for them. Then continue Boolean columns,
+  active/inactive filters, grouping, and stacks.
+
 ## Continuation update — 2026-07-30T01:40:00Z
 
 - Benchmark, sector, and constituent lists can now select a saved EasyScan-derived
