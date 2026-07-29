@@ -143,7 +143,19 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
   instrumentId: member.instrument.id,
   symbol: member.instrument.symbol,
   name: member.instrument.name,
-  values: { relative_1m: workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(row => row.instrument_id === member.instrument.id)?.performance['1M']?.value ?? null },
+  values: (() => {
+    const row = workspaceStore.groupSnapshots['sp500-sectors']?.rows.find(item => item.instrument_id === member.instrument.id)
+    return {
+      performance_1d: row?.performance['1D']?.value ?? null,
+      performance_1w: row?.performance['1W']?.value ?? null,
+      performance_1m: row?.performance['1M']?.value ?? null,
+      performance_3m: row?.performance['3M']?.value ?? null,
+      performance_6m: row?.performance['6M']?.value ?? null,
+      performance_ytd: row?.performance.YTD?.value ?? null,
+      performance_1y: row?.performance['1Y']?.value ?? null,
+      relative_ratio: row?.relative_to_benchmark?.value == null ? null : row.relative_to_benchmark.value.toFixed(4),
+    }
+  })(),
 })))
 const constituentRows = computed(() => {
   const source = selectedETF.value && selectedIndustry.value
@@ -155,7 +167,16 @@ const constituentRows = computed(() => {
   return source.map(row => ({ instrumentId: row.id, symbol: row.symbol, name: row.name, values: { weight: 'weight' in row ? row.weight ?? null : null } }))
 })
 const sectorColumns: WatchlistColumn[] = [
-  { key: 'symbol', label: 'Symbol', width: '54px' }, { key: 'name', label: 'Sector', width: 'minmax(90px, 1fr)' }, { key: 'relative_1m', label: '1M / SPY', width: '70px' },
+  { key: 'symbol', label: 'Symbol', width: '54px' },
+  { key: 'name', label: 'Sector', width: 'minmax(90px, 1fr)' },
+  { key: 'performance_1d', label: '1D', width: '58px' },
+  { key: 'performance_1w', label: '1W', width: '58px' },
+  { key: 'performance_1m', label: '1M', width: '58px' },
+  { key: 'performance_3m', label: '3M', width: '58px' },
+  { key: 'performance_6m', label: '6M', width: '58px' },
+  { key: 'performance_ytd', label: 'YTD', width: '58px' },
+  { key: 'performance_1y', label: '1Y', width: '58px' },
+  { key: 'relative_ratio', label: '/ SPY', width: '64px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' }, { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' }, { key: 'weight', label: 'Weight', width: '62px' },
