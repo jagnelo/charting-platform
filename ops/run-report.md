@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:55:00Z Saved-scan Market Gauge backend
+
+- Added a coverage-aware `/analysis/gauges/{screener_id}` contract based on the latest
+  retained local EasyScan result. It does not fabricate a reading before a scan runs.
+- Pushed `554f34d feat(analysis): add saved scan market gauges`.
+- Validation passed: focused screener/analysis integration `19 passed` with `--no-cov`,
+  focused Ruff check/format, and `git diff --check`.
+
 ## 2026-07-30T00:40:00Z Workstation EasyScan tool
 
 - Added `EasyScan` to the default Golden Layout workstation. It can build a basic

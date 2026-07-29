@@ -156,6 +156,21 @@
 - Extend the virtual watchlist into persisted Boolean condition/filter columns and use
   saved scans to create/rearm entry/exit alerts and Market Gauge calculations.
 
+### Continuation update — 2026-07-30T00:55:00Z
+
+- Added a local-only Market Gauge API derived from the latest retained EasyScan result.
+  It returns match count, evaluated/universe count, percentage, run timestamp, and every
+  per-instrument exclusion. A scan which has not run remains explicitly unavailable,
+  rather than displaying a fabricated zero-percent gauge.
+- Validation: focused screener/analysis integration `19 passed` with `--no-cov`; focused
+  Ruff check/format and `git diff --check` passed. Pushed `554f34d feat(analysis): add
+  saved scan market gauges`.
+
+### Exact next step
+
+- Mount the saved-scan gauge in the workstation, then implement persisted Boolean
+  condition/filter columns and condition-to-entry/exit-alert actions.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
