@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T03:55:00Z Remove inert workstation app menus
+
+- Removed the nonfunctional File, Edit, Chart, Watchlist, and Help buttons from the
+  primary workstation chrome. The remaining Tools action is functional and selects
+  the real Study Lab layout; other menus will return only with implemented commands.
+- Pushed `190b58d fix(workstation): remove inert application menu actions`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T03:45:00Z Research-runner deployment isolation guard
 
 - Added a regression test for the actual compose service boundary: no network,

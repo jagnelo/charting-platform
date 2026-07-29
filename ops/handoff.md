@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T03:55:00Z
+
+- Removed inert primary-workstation application menu buttons. Tools remains because
+  it selects the implemented Study Lab layout; remaining menu categories must not be
+  reintroduced until each command maps to persisted, working behavior.
+- Pushed `190b58d fix(workstation): remove inert application menu actions`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Build the actual File/Chart/Watchlist menu command model alongside tool-library and
+  recovery actions, with every visible command wired, persisted, and tested.
+
 ## Continuation update — 2026-07-30T03:45:00Z
 
 - The research-runner compose isolation boundary is now regression-tested: no network,

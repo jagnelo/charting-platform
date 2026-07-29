@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T03:45:00Z",
-    "last_commit": "0ed04e4 test(sandbox): guard research runner deployment isolation",
+    "last_handoff_at": "2026-07-30T03:55:00Z",
+    "last_commit": "190b58d fix(workstation): remove inert application menu actions",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (isolated Study Lab runner/deployment guard and focused code/research foundation modules, 2026-07-30)",
         "backend_tests": "isolated Study Lab runner/deployment guard 8 passed with --no-cov; focused screener/analysis integration 19 passed with --no-cov, 2026-07-30",
         "frontend_tests": "passed (focused workspace-store tests: 2 passed; StudyLabTool and ToolWindow tests: 1 passed each; VirtualWatchlistTool suite: 6 passed, 2026-07-30)",
-        "frontend_build": "passed (type-check and production build, typed Study Lab event linking, 2026-07-30)",
+        "frontend_build": "passed (type-check and production build, inert app-menu removal, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T03:45:00Z sandbox deployment guard checkpoint)",
+        "diff_check": "passed (2026-07-30T03:55:00Z inert app-menu removal checkpoint)",
         "playwright": "not_run (new workstation E2E coverage still required)",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-30T03:55:00Z: Added/pushed 190b58d: removed nonfunctional File/Edit/Chart/Watchlist/Help buttons from workstation chrome; Tools remains because it selects the real Study Lab layout. Frontend type-check/build and diff check passed. Full working menu model, tool library/recovery, and broad acceptance remain incomplete.",
         "2026-07-30T03:45:00Z: Added/pushed 0ed04e4: compose research-runner isolation (no network/read-only/non-root/cap-drop/no-new-privileges/bounded tmpfs/only job-result volumes) is now regression-tested. Deployment/runner suite 8 passed with --no-cov, Ruff/format and diff check passed. Process resource/cancellation/orphan acceptance, mounted-data protocol evidence, and broad acceptance remain incomplete.",
         "2026-07-30T03:35:00Z: Added/pushed 1e59889: Study Lab event artifacts require timestamps and declared dataset symbols, render as occurrence rows, and publish selected symbols into the workstation link flow. Runner 7 passed with --no-cov, Ruff/format, frontend StudyLabTool test/type-check/build, and diff check passed. Timestamp/crosshair linking, artifact promotion, expanded SDK, and broad acceptance remain incomplete.",
         "2026-07-30T03:20:00Z: Added/pushed 271246e: Golden Layout close changes reconcile persisted workspace windows and active selection so invisible closed tools do not reappear on reload. Focused workspace-store suite 2 passed; frontend type-check/build and diff check passed. Tool-library reopen/recovery and cross-window restore acceptance remain incomplete.",
