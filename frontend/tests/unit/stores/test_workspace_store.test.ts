@@ -36,4 +36,26 @@ describe('workspace store layout tabs', () => {
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }))
   })
+
+  it('persists a closed layout tool by removing only that serialized window', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+    apiPut.mockResolvedValue(store.workspace)
+
+    store.applyActiveLayout({ root: { componentState: { instance_key: 'chart' } } }, ['chart'])
+
+    expect(store.activeTab?.windows.map(window => window.instance_key)).toEqual(['chart'])
+    expect(store.activeTab?.active_window_key).toBe('chart')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalled()
+  })
 })

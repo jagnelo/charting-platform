@@ -174,11 +174,8 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
   })
 }
 
-function persistGoldenLayout(layout: Record<string, unknown>) {
-  if (workspaceStore.activeTab) {
-    workspaceStore.activeTab.layout_config = layout
-    workspaceStore.scheduleSnapshot()
-  }
+function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
+  workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 
 function handleKeydown(event: KeyboardEvent) {

@@ -384,6 +384,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     snapshotTimer = setTimeout(() => { void saveSnapshot() }, 350)
   }
 
+  function applyActiveLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
+    const tab = activeTab.value
+    if (!tab) return
+    tab.layout_config = layout
+    if (visibleToolKeys.length) {
+      const visible = new Set(visibleToolKeys)
+      tab.windows = tab.windows.filter(window => visible.has(window.instance_key))
+      if (!tab.windows.some(window => window.instance_key === tab.active_window_key)) {
+        tab.active_window_key = tab.windows[0]?.instance_key ?? null
+      }
+    }
+    scheduleSnapshot()
+  }
+
   function cloneActiveTab() {
     if (!workspace.value || !activeTab.value) return
     const source = activeTab.value
@@ -448,6 +462,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadTechnical,
     saveSnapshot,
     scheduleSnapshot,
+    applyActiveLayout,
     cloneActiveTab,
   }
 })

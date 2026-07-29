@@ -17,7 +17,7 @@ export interface DockToolActions {
 }
 
 const props = defineProps<{ layout: LayoutConfig; renderTool: (tool: DockToolState, actions: DockToolActions) => VNode }>()
-const emit = defineEmits<{ changed: [layout: Record<string, unknown>] }>()
+const emit = defineEmits<{ changed: [layout: Record<string, unknown>, visibleToolKeys: string[]] }>()
 const host = ref<HTMLElement | null>(null)
 let goldenLayout: GoldenLayout | null = null
 let suppressChange = false
@@ -47,11 +47,25 @@ function install(layout: LayoutConfig) {
     return { rootHtmlElement }
   }, true)
   goldenLayout.on('stateChanged', () => {
-    if (!suppressChange && goldenLayout) emit('changed', goldenLayout.saveLayout() as unknown as Record<string, unknown>)
+    if (!suppressChange && goldenLayout) {
+      const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
+      emit('changed', saved, extractToolKeys(saved))
+    }
   })
   suppressChange = true
   goldenLayout.loadLayout(layout)
   suppressChange = false
+}
+
+function extractToolKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(extractToolKeys)
+  if (!value || typeof value !== 'object') return []
+  const record = value as Record<string, unknown>
+  const state = record.componentState
+  const key = state && typeof state === 'object' && typeof (state as Record<string, unknown>).instance_key === 'string'
+    ? [(state as Record<string, string>).instance_key]
+    : []
+  return [...key, ...Object.values(record).flatMap(extractToolKeys)]
 }
 
 watch(() => props.layout, layout => install(layout), { deep: true })
