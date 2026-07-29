@@ -3,6 +3,7 @@
     <header><strong>Study Lab</strong><span>Reproducible Python research</span><button @click="router.push('/')">Back to workstation</button></header>
     <section class="study-lab__controls">
       <input v-model="name" aria-label="Study name" placeholder="Study name" />
+      <input v-model="symbol" aria-label="Study symbol" placeholder="Symbol" />
       <button @click="validate" :disabled="busy">Validate</button>
       <button @click="saveAndRun" :disabled="busy || !validation?.valid">Save & Run</button>
     </section>
@@ -23,7 +24,8 @@ import { api } from '@/lib/api'
 
 const router = useRouter()
 const name = ref('Consecutive Positive Closes')
-const source = ref("output.scalar('sample_size', 0)")
+const symbol = ref('SPY')
+const source = ref("streaks = stats.positive_close_streaks(dataset)\noutput.scalar('current_streak', streaks['current'])\noutput.scalar('longest_streak', streaks['longest'])\noutput.scalar('average_streak', streaks['average'])\noutput.table('completed_streaks', streaks['records'])")
 const busy = ref(false)
 const validation = ref<any>(null)
 const run = ref<any>(null)
@@ -38,7 +40,7 @@ async function saveAndRun() {
   try {
     const stableKey = name.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'study'
     const asset = await api.post<any>('/code/assets', { stable_key: `${stableKey}-${Date.now()}`, name: name.value, kind: 'study', initial_version: { source: source.value, output_contract: 'study' } })
-    run.value = await api.post('/research/runs', { code_version_id: asset.versions[0].id, dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString() } })
+    run.value = await api.post('/research/runs', { code_version_id: asset.versions[0].id, run_config: { symbol: symbol.value.trim().toUpperCase() }, dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString() } })
     poller = setInterval(async () => {
       if (!run.value || ['completed', 'failed', 'canceled'].includes(run.value.status)) return
       run.value = await api.get(`/research/runs/${run.value.id}`)
