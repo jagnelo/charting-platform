@@ -167,6 +167,9 @@ export interface TechnicalSnapshotState {
 }
 
 const CHANNEL_NAME = 'charting-platform-workstation'
+const LEADER_KEY = `${CHANNEL_NAME}-leader`
+const LEADER_TIMEOUT_MS = 10_000
+const LEADER_HEARTBEAT_MS = 4_000
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
@@ -189,6 +192,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
+  const windowId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `window-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
   const activeTab = computed(() =>
     workspace.value?.tabs.find(tab => tab.stable_key === activeTabKey.value) ?? workspace.value?.tabs[0] ?? null,
@@ -215,18 +221,29 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     linkedTimestamp.value = event.data.timestamp ?? null
   }
 
-  function becomeLeader() {
-    const key = 'charting-platform-workstation-leader'
-    const current = Number(localStorage.getItem(key) ?? 0)
-    const now = Date.now()
-    if (!current || now - current > 10_000) {
-      localStorage.setItem(key, String(now))
-      isPersistenceLeader.value = true
+  function refreshLeadership() {
+    let current: { id: string; heartbeat: number } | null = null
+    try {
+      const raw = localStorage.getItem(LEADER_KEY)
+      current = raw ? JSON.parse(raw) as { id: string; heartbeat: number } : null
+    } catch {
+      current = null
     }
+    const now = Date.now()
+    if (!current || current.id === windowId || now - current.heartbeat > LEADER_TIMEOUT_MS) {
+      localStorage.setItem(LEADER_KEY, JSON.stringify({ id: windowId, heartbeat: now }))
+      isPersistenceLeader.value = true
+      return
+    }
+    isPersistenceLeader.value = false
+  }
+
+  function becomeLeader() {
+    refreshLeadership()
     if (!leaderTimer) {
       leaderTimer = setInterval(() => {
-        if (isPersistenceLeader.value) localStorage.setItem(key, String(Date.now()))
-      }, 4_000)
+        refreshLeadership()
+      }, LEADER_HEARTBEAT_MS)
     }
   }
 
@@ -239,6 +256,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function onStorage(event: StorageEvent) {
+    if (event.key === LEADER_KEY) {
+      refreshLeadership()
+      return
+    }
     if (event.key !== CHANNEL_NAME + ':symbol' || !event.newValue) return
     const message = JSON.parse(event.newValue) as LinkEvent
     if (message.group !== 'grey') {
@@ -253,6 +274,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     window.removeEventListener('storage', onStorage)
     if (leaderTimer) clearInterval(leaderTimer)
     leaderTimer = null
+    if (isPersistenceLeader.value) {
+      try {
+        const current = JSON.parse(localStorage.getItem(LEADER_KEY) ?? 'null') as { id?: string } | null
+        if (current?.id === windowId) localStorage.removeItem(LEADER_KEY)
+      } catch {
+        localStorage.removeItem(LEADER_KEY)
+      }
+    }
+    isPersistenceLeader.value = false
   }
 
   function publishSymbol(event: LinkEvent) {

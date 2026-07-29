@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
@@ -13,6 +13,8 @@ describe('workspace store layout tabs', () => {
     apiPost.mockReset()
     apiGet.mockReset()
   })
+
+  afterEach(() => vi.unstubAllGlobals())
 
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
     const store = useWorkspaceStore()
@@ -149,5 +151,22 @@ describe('workspace store layout tabs', () => {
     expect(apiPut).toHaveBeenCalledTimes(2)
     expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
     expect(store.workspace?.revision).toBe(6)
+  })
+
+  it('releases leadership when its owning window disconnects', () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const store = useWorkspaceStore()
+
+    store.connect()
+    expect(store.isPersistenceLeader).toBe(true)
+    store.disconnect()
+
+    expect(store.isPersistenceLeader).toBe(false)
+    expect(localStorage.getItem('charting-platform-workstation-leader')).toBeNull()
   })
 })
