@@ -4,12 +4,12 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-29T22:50:00Z",
-    "last_commit": "9c6613a docs(workstation): record parity and handoff evidence",
+    "last_handoff_at": "2026-07-29T23:10:00Z",
+    "last_commit": "8a35e87 docs(workstation): record technical snapshot checkpoint",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (workstation top-down composition and focused code/research foundation modules, 2026-07-29)",
-        "backend_tests": "passed (focused workstation API: 7 passed; code validator: 4 passed, 2026-07-29)",
+        "backend_tests": "passed (focused workstation API: 8 passed; code validator: 4 passed, 2026-07-29)",
         "frontend_tests": "passed (VirtualWatchlistTool focused component suite: 2 passed, 2026-07-29)",
         "frontend_build": "passed (type-check and production build, 2026-07-29)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json parsed, 2026-07-29)"
     },
     "notes": [
+        "2026-07-29T23:10:00Z: Added and pushed local canonical technical snapshots (e17cb91) and their workstation rendering (869a46d). The endpoint supplies RSI, SMA, 52-week position, and volume ratio from adjusted local bars with structured availability warnings. Validation: focused workstation integration 8 passed, Ruff/type-check/build/diff check passed. Full active goal remains incomplete.",
         "2026-07-29T22:55:00Z: Grouped and pushed the current TC2000 implementation as ef7c74e (canonical backend/research foundation), 5fc3f05 (docked top-down frontend), and 9c6613a (parity/operational documentation). Branch is synchronized with origin/feat/tc2000-frontend-rework; the full active goal remains incomplete.",
         "2026-07-29T22:50:00Z: Added TanStack Virtual-backed dense workstation lists and rebound benchmark, sector, and ETF/industry constituent tools to canonical rows. The component has focused filter/sort/canonical-selection coverage (2 passed); frontend type-check/build still pass. Full active goal remains incomplete.",
         "2026-07-29T22:35:00Z: Replaced static workstation constituents with resolved canonical rows from selected ETF point-in-time holdings. Added dated ETF composition industry and industry-constituent APIs; frontend narrows the list by a selected industry without route change, while missing proxy mappings stay explicit. Validation: workstation integration 7 passed, Ruff passed, frontend type-check/build passed, diff check passed. Full active goal remains incomplete.",

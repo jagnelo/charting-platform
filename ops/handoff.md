@@ -91,6 +91,19 @@
   bind saved Boolean/Python conditions and EasyScan results rather than stopping at
   local display sorting.
 
+### Continuation update — 2026-07-29T23:10:00Z
+
+- Added `/analysis/instruments/{symbol}/technical`, a local-canonical-only endpoint
+  calculating RSI(14), 20/50/200 SMAs, 52-week position, and 50-day volume ratio.
+  It returns explicit insufficient-history/no-bar/zero-volume warnings and never
+  triggers a provider fetch.
+- Replaced the primary workstation Technicals placeholder with these values. The
+  selection path loads technicals with the chart/holdings/industry requests.
+- Validation: workstation integration `8 passed`, including exact deterministic
+  technical values; backend Ruff passed; frontend type-check/build passed.
+- Pushed as `e17cb91 feat(analysis): add local technical snapshots` and
+  `869a46d feat(workstation): render canonical technical summary`.
+
 ### Commit checkpoint — 2026-07-29T22:55:00Z
 
 - Pushed the current coherent implementation set to `origin/feat/tc2000-frontend-rework`:
