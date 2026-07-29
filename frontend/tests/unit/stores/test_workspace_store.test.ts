@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiPut } = vi.hoisted(() => ({ apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { put: apiPut } }))
+const { apiPost, apiPut } = vi.hoisted(() => ({ apiPost: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { post: apiPost, put: apiPut } }))
 
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -10,6 +10,7 @@ describe('workspace store layout tabs', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     apiPut.mockReset()
+    apiPost.mockReset()
   })
 
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
@@ -57,5 +58,19 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.active_window_key).toBe('chart')
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalled()
+  })
+
+  it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [{ id: 20, stable_key: 'custom', name: 'Custom', position: 0, active_window_key: null, layout_config: {}, windows: [] }],
+    }
+    const reset = { ...store.workspace, revision: 5, tabs: [{ ...store.workspace.tabs[0], stable_key: 'us-top-down', name: 'US Top Down' }] }
+    apiPost.mockResolvedValue(reset)
+
+    await expect(store.resetFactoryWorkspace()).resolves.toBe(true)
+    expect(apiPost).toHaveBeenCalledWith('/workspaces/10/reset-factory', {})
+    expect(store.activeTabKey).toBe('us-top-down')
   })
 })

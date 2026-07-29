@@ -431,6 +431,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot()
   }
 
+  async function resetFactoryWorkspace() {
+    if (!workspace.value || workspace.value.settings.factory_id !== 'us-top-down') return false
+    try {
+      const reset = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/reset-factory`, {})
+      workspace.value = reset
+      activeTabKey.value = reset.tabs[0]?.stable_key ?? 'us-top-down'
+      error.value = null
+      return true
+    } catch (cause: any) {
+      error.value = cause?.message ?? 'Unable to reset factory workspace'
+      return false
+    }
+  }
+
   return {
     workspace,
     activeTab,
@@ -464,5 +478,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot,
     applyActiveLayout,
     cloneActiveTab,
+    resetFactoryWorkspace,
   }
 })

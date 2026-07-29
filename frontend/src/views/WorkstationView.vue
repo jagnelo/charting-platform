@@ -31,6 +31,7 @@
         @click="workspaceStore.activeTabKey = tab.stable_key"
       >{{ tab.name }}</button>
       <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" @click="resetFactoryWorkspace">↺</button>
       <span class="workstation__workspace-name">{{ workspaceStore.workspace?.name ?? 'Loading workspace…' }}</span>
     </div>
 
@@ -178,6 +179,11 @@ function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: s
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 
+async function resetFactoryWorkspace() {
+  if (!window.confirm('Reset this factory workspace? Your current layout changes will be replaced.')) return
+  await workspaceStore.resetFactoryWorkspace()
+}
+
 function handleKeydown(event: KeyboardEvent) {
   if (workspaceStore.isEditorTarget(event.target)) return
   if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -232,8 +238,8 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(#2c3339, #1c2227); border-bottom: 1px solid #090b0d; }
 .workstation__brand { color: #8fc7ea; font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
 .workstation__menu nav { display: flex; align-self: stretch; }
-.workstation__menu nav button, .workstation__tab-add { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
-.workstation__menu nav button:hover, .workstation__tab-add:hover { background: #3a444d; color: #fff; }
+.workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+.workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
 .workstation__search { display: flex; height: 21px; margin-left: 10px; }
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
 .workstation__search button { border: 1px solid #4d5a63; border-left: 0; background: #26333d; color: #dce9f2; padding: 0 7px; font-size: 10px; cursor: pointer; }
