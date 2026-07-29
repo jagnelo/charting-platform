@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const LoginView = () => import('@/views/LoginView.vue')
+const WorkstationView = () => import('@/views/WorkstationView.vue')
+const StudyLabView = () => import('@/views/StudyLabView.vue')
 const DashboardView = () => import('@/views/DashboardView.vue')
 const ChartView = () => import('@/views/ChartView.vue')
 const AlertsView = () => import('@/views/AlertsView.vue')
@@ -17,18 +19,30 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginView, meta: { public: true } },
-    { path: '/',              redirect: '/dashboard' },
-    { path: '/dashboard',     component: DashboardView },
-    { path: '/chart',         component: ChartView },
-    { path: '/chart/:symbol(.*)', component: ChartView },
-    { path: '/alerts',        component: AlertsView },
-    { path: '/radar',         component: RadarView },
-    { path: '/strategy-lab',  component: StrategyLabView },
-    { path: '/baskets',       component: BasketsView },
-    { path: '/etf-holdings',  component: ETFHoldingsView },
-    { path: '/screener',      component: ScreenerView },
-    { path: '/watchlist',     component: WatchlistView },
-    { path: '/settings',      component: SettingsView },
+    { path: '/', component: WorkstationView },
+    { path: '/chart', component: WorkstationView },
+    { path: '/chart/:symbol(.*)', component: WorkstationView },
+    { path: '/study-lab', component: StudyLabView },
+    { path: '/legacy/dashboard', component: DashboardView },
+    { path: '/legacy/chart', component: ChartView },
+    { path: '/legacy/chart/:symbol(.*)', component: ChartView },
+    { path: '/legacy/alerts', component: AlertsView },
+    { path: '/legacy/radar', component: RadarView },
+    { path: '/legacy/strategy-lab', component: StrategyLabView },
+    { path: '/legacy/baskets', component: BasketsView },
+    { path: '/legacy/etf-holdings', component: ETFHoldingsView },
+    { path: '/legacy/screener', component: ScreenerView },
+    { path: '/legacy/watchlist', component: WatchlistView },
+    { path: '/legacy/settings', component: SettingsView },
+    { path: '/dashboard', redirect: '/legacy/dashboard' },
+    { path: '/alerts', redirect: '/legacy/alerts' },
+    { path: '/radar', redirect: '/legacy/radar' },
+    { path: '/strategy-lab', redirect: '/legacy/strategy-lab' },
+    { path: '/baskets', redirect: '/legacy/baskets' },
+    { path: '/etf-holdings', redirect: '/legacy/etf-holdings' },
+    { path: '/screener', redirect: '/legacy/screener' },
+    { path: '/watchlist', redirect: '/legacy/watchlist' },
+    { path: '/settings', redirect: '/legacy/settings' },
   ],
 })
 

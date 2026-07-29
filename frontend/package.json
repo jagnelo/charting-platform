@@ -14,7 +14,11 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@tanstack/vue-query": "^5.101.4",
+    "@tanstack/vue-table": "^8.21.3",
+    "@tanstack/vue-virtual": "^3.13.35",
     "axios": "^1.7.2",
+    "golden-layout": "^2.6.0",
     "pinia": "^2.1.7",
     "uplot": "^1.6.31",
     "vue": "^3.4.0",

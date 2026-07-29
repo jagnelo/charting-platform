@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // golden-layout 2.6.0 currently publishes TypeScript source without its
+      // advertised dist directory. Vite compiles the verified source entry.
+      'golden-layout': fileURLToPath(new URL('./node_modules/golden-layout/src/index.ts', import.meta.url)),
     },
   },
   server: {

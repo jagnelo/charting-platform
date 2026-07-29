@@ -88,7 +88,7 @@ function createChartStore(storeId: string) {
     async function fetchBarsPage(
       sym: string,
       tf: Timeframe,
-      opts: { before?: string; limit?: number; type?: ChartBarType } = {},
+      opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean } = {},
     ): Promise<OHLCVBar[]> {
       const type = opts.type ?? barType.value
       const params: Record<string, any> = {}
@@ -96,6 +96,10 @@ function createChartStore(storeId: string) {
       if (opts.limit) params.limit = opts.limit
 
       const encoded = encodeURIComponent(sym)
+      if (opts.localOnly) {
+        const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, { limit: opts.limit ?? PAGE_SIZE })
+        return _mapBars(raw)
+      }
       const basketId = basketIdFromSymbol(sym)
       if (basketId != null) {
         const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
@@ -110,7 +114,7 @@ function createChartStore(storeId: string) {
       return _mapBars(raw)
     }
 
-    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value) {
+    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false) {
       if (!sym || !tf) return
       isLoading.value = true
       error.value = null
@@ -149,7 +153,7 @@ function createChartStore(storeId: string) {
       await loadIndicatorsForInstrument(loadedInstrument.id)
 
       try {
-        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })
+        const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
         bars.value = mapped
         // A short initial page can mean either "brand-new listing" or "cache is
         // currently incomplete". Let the older-page path make that decision so

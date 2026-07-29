@@ -1,25 +1,25 @@
 <template>
   <div id="app">
-    <template v-if="!isLoginPage">
+    <template v-if="isLegacyPage">
       <nav class="sidebar">
         <div class="sidebar-logo" title="Charting Platform">
           <span class="logo-mark">◈</span>
         </div>
-        <router-link to="/dashboard" class="nav-link" title="Dashboard">▦</router-link>
-        <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/chart') }" title="Chart">📈</router-link>
-        <router-link to="/alerts" class="nav-link nav-link--bell" title="Alerts">
+        <router-link to="/legacy/dashboard" class="nav-link" title="Dashboard">▦</router-link>
+        <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/legacy/chart') }" title="Chart">📈</router-link>
+        <router-link to="/legacy/alerts" class="nav-link nav-link--bell" title="Alerts">
           🔔
           <span v-if="alertsStore.unviewedCount > 0" class="nav-badge">
             {{ alertsStore.unviewedCount > 99 ? '99+' : alertsStore.unviewedCount }}
           </span>
         </router-link>
-        <router-link to="/radar" class="nav-link" title="Radar">◎</router-link>
-        <router-link to="/strategy-lab" class="nav-link" title="Strategy Lab">⚗</router-link>
-        <router-link to="/baskets" class="nav-link" title="Baskets">◫</router-link>
-        <router-link to="/etf-holdings" class="nav-link" title="ETF Holdings">▤</router-link>
-        <router-link to="/watchlist" class="nav-link" title="Watchlist">★</router-link>
-        <router-link to="/screener"  class="nav-link" title="Screener">🔍</router-link>
-        <router-link to="/settings"  class="nav-link" title="Settings">⚙</router-link>
+        <router-link to="/legacy/radar" class="nav-link" title="Radar">◎</router-link>
+        <router-link to="/legacy/strategy-lab" class="nav-link" title="Strategy Lab">⚗</router-link>
+        <router-link to="/legacy/baskets" class="nav-link" title="Baskets">◫</router-link>
+        <router-link to="/legacy/etf-holdings" class="nav-link" title="ETF Holdings">▤</router-link>
+        <router-link to="/legacy/watchlist" class="nav-link" title="Watchlist">★</router-link>
+        <router-link to="/legacy/screener"  class="nav-link" title="Screener">🔍</router-link>
+        <router-link to="/legacy/settings"  class="nav-link" title="Settings">⚙</router-link>
         <div class="sidebar-spacer" />
         <button
           class="user-avatar logout-btn"
@@ -63,9 +63,9 @@ onMounted(() => {
   alertsStore.connectWebSocket()
 })
 
-const isLoginPage  = computed(() => route.path === '/login')
+const isLegacyPage = computed(() => route.path.startsWith('/legacy/'))
 const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
-const chartLink    = computed(() => chartStore.symbol ? `/chart/${chartStore.symbol}` : '/chart')
+const chartLink = computed(() => chartStore.symbol ? `/legacy/chart/${chartStore.symbol}` : '/legacy/chart')
 </script>
 
 <style>
