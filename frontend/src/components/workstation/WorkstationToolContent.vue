@@ -86,7 +86,7 @@
     <InstrumentAlertsTool v-else-if="tool.instance_key === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <EasyScanTool v-else-if="tool.instance_key === 'easy-scan'" />
     <MarketGaugeTool v-else-if="tool.instance_key === 'market-gauge'" />
-    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" />
+    <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('select', $event.symbol)" />
     <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
   </ToolWindow>
 </template>

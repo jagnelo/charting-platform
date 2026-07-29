@@ -60,3 +60,28 @@ def test_runner_rejects_market_access_outside_the_prepared_dataset():
     )
     assert result["status"] == "failed"
     assert "not declared" in result["diagnostics"][0]["message"]
+
+
+def test_runner_normalizes_only_declared_symbol_events():
+    result = execute_job(
+        {
+            "source": "output.events('signals', [{'timestamp': '2026-01-02', 'kind': 'positive_close'}])",
+            "dataset": {"symbol": "SPY"},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["signals"] == {
+        "type": "events",
+        "value": [{"timestamp": "2026-01-02", "kind": "positive_close", "symbol": "SPY"}],
+    }
+
+
+def test_runner_rejects_event_for_undeclared_symbol():
+    result = execute_job(
+        {
+            "source": "output.events('signals', [{'timestamp': '2026-01-02', 'symbol': 'QQQ'}])",
+            "dataset": {"symbol": "SPY"},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "not declared" in result["diagnostics"][0]["message"]
