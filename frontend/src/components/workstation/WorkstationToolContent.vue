@@ -87,7 +87,7 @@
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
-    <div v-else class="tool-state">{{ tool.title || tool.tool_type }}</div>
+    <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>
 
@@ -104,6 +104,7 @@ import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
 import EasyScanTool from './EasyScanTool.vue'
 import MarketGaugeTool from './MarketGaugeTool.vue'
 import StudyLabTool from './StudyLabTool.vue'
+import UnknownToolRecovery from './UnknownToolRecovery.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
