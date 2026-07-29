@@ -49,6 +49,7 @@
         @select="selectSymbol"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
         @columns="updateColumns"
+        @filter="updateFilter"
         @update-link-group="updateLinkGroup"
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
@@ -201,6 +202,12 @@ function updateColumns(windowKey: string, columnKeys: string[]) {
   windowState.configuration = { ...windowState.configuration, column_keys: columnKeys }
   workspaceStore.scheduleSnapshot()
 }
+function updateFilter(windowKey: string, filterText: string) {
+  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!windowState) return
+  windowState.configuration = { ...windowState.configuration, filter_text: filterText }
+  workspaceStore.scheduleSnapshot()
+}
 
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
@@ -218,6 +225,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
+    onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
   })

@@ -26,9 +26,25 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.find('input').setValue('energy')
     expect(wrapper.text()).toContain('XLE')
     expect(wrapper.text()).not.toContain('XLK')
+    expect(wrapper.emitted('update:filterText')?.at(-1)).toEqual(['energy'])
 
     await wrapper.find('.watchlist__row').trigger('click')
     expect(wrapper.emitted('select')?.[0]).toEqual([rows[1]])
+  })
+
+  it('restores a persisted filter and follows a workspace-state update', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows, filterText: 'technology' },
+    })
+
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('technology')
+    expect(wrapper.text()).toContain('XLK')
+    expect(wrapper.text()).not.toContain('XLE')
+
+    await wrapper.setProps({ filterText: 'energy' })
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('energy')
+    expect(wrapper.text()).toContain('XLE')
+    expect(wrapper.text()).not.toContain('XLK')
   })
 
   it('sorts a selected column without losing row identity', async () => {

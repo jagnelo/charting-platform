@@ -57,6 +57,7 @@ const props = withDefaults(defineProps<{
   selected?: string
   columns?: WatchlistColumn[]
   visibleColumnKeys?: string[]
+  filterText?: string
 }>(), {
   selected: '',
   columns: () => [
@@ -64,10 +65,11 @@ const props = withDefaults(defineProps<{
     { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
   ],
   visibleColumnKeys: () => [],
+  filterText: '',
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string] }>()
 const scrollElement = ref<HTMLElement | null>(null)
-const filter = ref('')
+const filter = ref(props.filterText)
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 const columnMenuOpen = ref(false)
@@ -105,6 +107,8 @@ watch(filteredRows, () => {
   renderEpoch.value += 1
   virtualizer.value.measure()
 })
+watch(filter, value => emit('update:filterText', value))
+watch(() => props.filterText, value => { if (value !== filter.value) filter.value = value })
 
 function display(row: WatchlistRow, key: string) {
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
