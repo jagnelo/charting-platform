@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T00:02:00Z
+
+- Expanded the top-down sector ranking surface with the full local batch performance
+  horizon set (1D through 1Y) and the existing aligned sector/SPY ratio. It introduces
+  no provider fetch or gap-fill behavior and makes strength sorting immediately useful.
+- Pushed `f5b5d0a feat(top-down): expand sector strength ranking columns`.
+- Validation passed: focused virtual-watchlist suite `6 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Add batch technical, breadth, and transparent rotation columns/visuals to the same
+  top-down flow, then complete industry-proxy and constituent relative rankings.
+
 ## Continuation update — 2026-07-29T23:00:00Z
 
 - Replaced one-shot persistence leadership with window-ID/heartbeat ownership. A

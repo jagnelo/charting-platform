@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:02:00Z Expanded sector strength ranking
+
+- Added local batch 1D, 1W, 1M, 3M, 6M, YTD, 1Y, and aligned sector/SPY ratio columns
+  to the top-down sector watchlist, retaining no-forward-fill and local-only semantics.
+- Pushed `f5b5d0a feat(top-down): expand sector strength ranking columns`.
+- Validation passed: focused virtual-watchlist suite `6 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-29T23:00:00Z Cross-window persistence leadership
 
 - Added renewable window-ID/heartbeat leadership, automatic stale-owner takeover, and
