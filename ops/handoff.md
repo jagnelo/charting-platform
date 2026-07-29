@@ -113,6 +113,15 @@
 - Validation: frontend type-check and production build passed. Pushed as
   `9e43a98 feat(workstation): add browser tool popouts`.
 
+### Continuation update — 2026-07-29T23:40:00Z
+
+- Added the top-down Notes tool. It follows the selected canonical instrument, loads
+  only the current user's note, and autosaves bounded text after edits. The factory
+  layout persists it as a serializable `notes` tool window.
+- Validation: focused workstation API `9 passed`, including notes save/reload; backend
+  Ruff and frontend type-check/build passed. Pushed as `dd6fbc2` (factory) and
+  `5ddb28f` (workstation autosave UI).
+
 ### Commit checkpoint — 2026-07-29T22:55:00Z
 
 - Pushed the current coherent implementation set to `origin/feat/tc2000-frontend-rework`:
