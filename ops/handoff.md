@@ -119,6 +119,25 @@
 - Make saved conditions first-class reusable assets and consume them in the workstation
   EasyScan/column/filter surfaces, including condition-to-screener-alert actions.
 
+### Continuation update — 2026-07-30T00:25:00Z
+
+- Added first-class, user-isolated reusable condition assets under
+  `/workspaces/library/conditions`. They have stable keys, versions, descriptions,
+  dependency metadata, list/update/delete contracts, and preserve the visual-condition
+  AST rather than a copied string expression.
+- Added `/screeners/from-condition/{stable_key}` to create an EasyScan definition from
+  a saved condition. The scan keeps the condition AST and condition-description provenance;
+  it is intentionally a versioned copy so later condition edits do not silently change
+  prior saved scan behavior.
+- Validation: workspace/screener integration `27 passed` with `--no-cov`; focused Ruff
+  check/format and `git diff --check` passed. Pushed `bdcf9eb feat(scans): add reusable
+  condition assets`.
+
+### Exact next step
+
+- Add the workstation EasyScan/condition library tool and connect condition actions to
+  watchlist Boolean/filter columns and screener entry/exit alert creation.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical

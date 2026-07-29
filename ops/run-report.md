@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:25:00Z Reusable condition assets
+
+- Added versioned, user-isolated workstation condition assets with list/upsert/delete
+  contracts and a condition-to-EasyScan creation endpoint. Scan creation makes an
+  explicit snapshot of the selected condition AST, avoiding invisible behavior changes
+  from future condition edits.
+- Pushed `bdcf9eb feat(scans): add reusable condition assets`.
+- Validation passed: focused workspace/screener integration `27 passed` with `--no-cov`,
+  focused Ruff check/format, and `git diff --check`.
+- The complete goal remains active; workstation condition UI, Boolean/filter columns,
+  Market Gauges, and full acceptance evidence are still outstanding.
+
 ## 2026-07-30T00:10:00Z Local-only scan execution
 
 - Removed provider fetching from the streaming screener path. Both ordinary and streamed
