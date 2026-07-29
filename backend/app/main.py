@@ -10,29 +10,36 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.routers import (
     alert_history,
     alerts,
+    analysis,
     auth,
     baskets,
     calendar,
+    code,
     dashboards,
     drawings,
     etf_holdings,
     indicators,
     instrument_indicators,
     instruments,
+    market_groups,
+    notes,
     ohlcv,
     options,
     options_exposure,
     presets,
     providers,
     radar,
+    research,
     screener,
     screener_alerts,
     strategy_lab,
     watchlists,
+    workspaces,
 )
 from app.services.alert_engine import run_alert_check
 from app.services.e2e_seed import seed_e2e_instruments
 from app.services.provider_runtime import seed_provider_runtime
+from app.services.top_down_taxonomy import seed_top_down_taxonomy
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -52,6 +59,7 @@ async def lifespan(app: FastAPI):
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
             await seed_e2e_instruments(db)
+        await seed_top_down_taxonomy(db)
         await db.commit()
 
     logger.info(f"Starting alert scheduler (every {settings.ALERT_POLL_INTERVAL}s)")
@@ -107,6 +115,12 @@ app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)
 app.include_router(screener_alerts.router, prefix=PREFIX)
 app.include_router(calendar.router, prefix=PREFIX)
+app.include_router(analysis.router, prefix=PREFIX)
+app.include_router(code.router, prefix=PREFIX)
+app.include_router(research.router, prefix=PREFIX)
+app.include_router(workspaces.router, prefix=PREFIX)
+app.include_router(market_groups.router, prefix=PREFIX)
+app.include_router(notes.router, prefix=PREFIX)
 
 
 @app.get("/health")

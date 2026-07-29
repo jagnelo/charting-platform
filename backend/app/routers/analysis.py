@@ -1,0 +1,204 @@
+"""Canonical local-database analysis endpoints for workstation tools."""
+
+from __future__ import annotations
+
+from collections import defaultdict
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.auth.dependencies import get_current_user
+from app.database import get_db
+from app.models.instrument import Instrument
+from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.user import User
+from app.models.workstation import MarketGroup
+from app.schemas.analysis import (
+    AnalysisCell,
+    AnalysisPoint,
+    AnalysisWarning,
+    BreadthOut,
+    GroupSnapshotOut,
+    GroupSnapshotRow,
+    RelativeStrengthOut,
+)
+
+router = APIRouter(prefix="/analysis", tags=["analysis"])
+
+_PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": 252, "1Y": 252}
+
+
+async def _instrument(db: AsyncSession, symbol: str) -> Instrument:
+    result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
+    instrument = result.scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, detail={"code": "instrument_not_found", "symbol": symbol.upper()})
+    return instrument
+
+
+async def _bars_by_instrument(
+    db: AsyncSession, instrument_ids: list[int], timeframe: Timeframe, adjusted: bool
+) -> dict[int, list[OHLCVBar]]:
+    if not instrument_ids:
+        return {}
+    bars = (
+        await db.execute(
+            select(OHLCVBar)
+            .where(
+                OHLCVBar.instrument_id.in_(instrument_ids),
+                OHLCVBar.timeframe == timeframe,
+                OHLCVBar.is_adjusted.is_(adjusted),
+            )
+            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+        )
+    ).scalars()
+    result: dict[int, list[OHLCVBar]] = defaultdict(list)
+    for bar in bars:
+        result[bar.instrument_id].append(bar)
+    return result
+
+
+def _cell(value: float | None, bar: OHLCVBar | None, warning: AnalysisWarning | None = None) -> AnalysisCell:
+    return AnalysisCell(value=value, observation_time=bar.ts if bar else None, warning=warning)
+
+
+@router.get("/relative-strength", response_model=RelativeStrengthOut)
+async def relative_strength(
+    symbol: str,
+    benchmark: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    primary, comparator = await _instrument(db, symbol), await _instrument(db, benchmark)
+    grouped = await _bars_by_instrument(db, [primary.id, comparator.id], timeframe, adjusted)
+    primary_by_time = {bar.ts: bar for bar in grouped.get(primary.id, [])}
+    comparator_by_time = {bar.ts: bar for bar in grouped.get(comparator.id, [])}
+    timestamps = sorted(primary_by_time.keys() & comparator_by_time.keys())
+    points = [
+        AnalysisPoint(timestamp=timestamp, value=float(primary_by_time[timestamp].close / comparator_by_time[timestamp].close))
+        for timestamp in timestamps
+        if comparator_by_time[timestamp].close != 0
+    ]
+    maximum = max(len(primary_by_time), len(comparator_by_time), 1)
+    warnings: list[AnalysisWarning] = []
+    if not points:
+        warnings.append(AnalysisWarning(code="no_aligned_bars", message="No aligned bars are available for this ratio."))
+    elif len(points) < maximum:
+        warnings.append(AnalysisWarning(code="partial_overlap", message="Only intersecting timestamps were used; gaps were not forward-filled."))
+    return RelativeStrengthOut(
+        symbol=primary.symbol,
+        benchmark=comparator.symbol,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        points=points,
+        overlap_start=points[0].timestamp if points else None,
+        overlap_end=points[-1].timestamp if points else None,
+        coverage=len(points) / maximum,
+        warnings=warnings,
+    )
+
+
+@router.get("/groups/{group_key}/snapshot", response_model=GroupSnapshotOut)
+async def group_snapshot(
+    group_key: str,
+    benchmark: str | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == group_key)
+        )
+    ).scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    instrument_ids = [member.instrument_id for member in group.members]
+    instruments = {
+        item.id: item
+        for item in (await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))).scalars()
+    }
+    benchmark_instrument = await _instrument(db, benchmark) if benchmark else None
+    all_ids = instrument_ids + ([benchmark_instrument.id] if benchmark_instrument else [])
+    bars_by_id = await _bars_by_instrument(db, all_ids, timeframe, adjusted)
+    benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])} if benchmark_instrument else {}
+    rows: list[GroupSnapshotRow] = []
+    exclusions: list[AnalysisWarning] = []
+    covered = 0
+    for member in sorted(group.members, key=lambda item: item.position):
+        instrument = instruments.get(member.instrument_id)
+        if instrument is None:
+            exclusions.append(AnalysisWarning(code="missing_instrument", message="Membership refers to an unavailable canonical instrument.", instrument_id=member.instrument_id))
+            continue
+        bars = bars_by_id.get(instrument.id, [])
+        latest = bars[-1] if bars else None
+        if latest is None:
+            warning = AnalysisWarning(code="no_bars", message="No local bars are available.", instrument_id=instrument.id)
+            exclusions.append(warning)
+            rows.append(GroupSnapshotRow(instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name, last=_cell(None, None, warning), performance={period: _cell(None, None, warning) for period in _PERIODS}))
+            continue
+        covered += 1
+        performance: dict[str, AnalysisCell] = {}
+        for period, offset in _PERIODS.items():
+            if len(bars) <= offset:
+                performance[period] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message=f"{period} requires more history.", instrument_id=instrument.id))
+            else:
+                performance[period] = _cell(float(latest.close / bars[-offset - 1].close - 1), latest)
+        relative: AnalysisCell | None = None
+        if benchmark_instrument:
+            benchmark_bar = benchmark_bars.get(latest.ts)
+            if benchmark_bar is None or benchmark_bar.close == 0:
+                relative = _cell(None, latest, AnalysisWarning(code="unaligned_benchmark", message="No aligned benchmark bar is available.", instrument_id=instrument.id))
+            else:
+                relative = _cell(float(latest.close / benchmark_bar.close), latest)
+        rows.append(GroupSnapshotRow(instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name, last=_cell(float(latest.close), latest), performance=performance, relative_to_benchmark=relative))
+    return GroupSnapshotOut(
+        group_key=group.stable_key,
+        timeframe=timeframe.value,
+        as_of=max((row.last.observation_time for row in rows if row.last.observation_time), default=None),
+        adjustment="split_adjusted" if adjusted else "raw",
+        membership_version=group.id,
+        coverage=covered / max(len(group.members), 1),
+        exclusions=exclusions,
+        rows=rows,
+    )
+
+
+@router.get("/groups/{group_key}/breadth", response_model=BreadthOut)
+async def group_breadth(
+    group_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    group = (
+        await db.execute(select(MarketGroup).options(selectinload(MarketGroup.members)).where(MarketGroup.stable_key == group_key))
+    ).scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    bars_by_id = await _bars_by_instrument(db, [member.instrument_id for member in group.members], timeframe, adjusted)
+    counts = {20: 0, 50: 0, 200: 0}
+    eligible = {20: 0, 50: 0, 200: 0}
+    exclusions: list[AnalysisWarning] = []
+    as_of = None
+    for member in group.members:
+        bars = bars_by_id.get(member.instrument_id, [])
+        if bars:
+            as_of = max(as_of, bars[-1].ts) if as_of else bars[-1].ts
+        for period in counts:
+            if len(bars) < period:
+                continue
+            eligible[period] += 1
+            if float(bars[-1].close) > sum(float(bar.close) for bar in bars[-period:]) / period:
+                counts[period] += 1
+        if not bars:
+            exclusions.append(AnalysisWarning(code="no_bars", message="No local bars are available.", instrument_id=member.instrument_id))
+    return BreadthOut(group_key=group_key, timeframe=timeframe.value, as_of=as_of, evaluated_count=len(group.members), coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(group.members), 1), above_ma={f"ma{period}": counts[period] / eligible[period] if eligible[period] else None for period in counts}, exclusions=exclusions)

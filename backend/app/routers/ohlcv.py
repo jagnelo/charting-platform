@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
@@ -19,6 +19,30 @@ router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
 # Number of bars returned in one page. Chosen to be comfortable for rendering
 # while giving enough history context for indicators (e.g. 200-period SMA).
 PAGE_SIZE = 500
+
+
+@router.get("/local/{symbol:path}/{timeframe}", response_model=list[OHLCVBarOut])
+async def get_local_ohlcv(
+    symbol: str,
+    timeframe: Timeframe,
+    limit: int = Query(PAGE_SIZE, ge=1, le=5000),
+    adjusted: bool = Query(True),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Canonical local read path; never triggers provider fan-out."""
+    instrument = (await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, f"Instrument '{symbol}' not found.")
+    bars = (
+        await db.execute(
+            select(OHLCVBar)
+            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == timeframe, OHLCVBar.is_adjusted.is_(adjusted))
+            .order_by(OHLCVBar.ts.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    return list(reversed(bars))
 
 
 @router.get("/{symbol:path}/{timeframe}/transformed", response_model=list[OHLCVBarOut])

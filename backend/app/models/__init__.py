@@ -63,6 +63,14 @@ from app.models.radar import (
     RadarSetupType,
     RadarState,
 )
+from app.models.research import (
+    CodeAsset,
+    CodeAssetKind,
+    CodeVersion,
+    ResearchArtifact,
+    ResearchRun,
+    ResearchRunStatus,
+)
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.screener_alert import ScreenerAlert
 from app.models.strategy import (
@@ -78,6 +86,16 @@ from app.models.strategy import (
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.workstation import (
+    InstrumentNote,
+    MarketGroup,
+    MarketGroupMember,
+    MarketGroupProxy,
+    Workspace,
+    WorkspaceLibraryItem,
+    WorkspaceTab,
+    WorkspaceWindow,
+)
 
 __all__ = [
     "TimestampMixin",
@@ -134,6 +152,14 @@ __all__ = [
     "TIMEFRAME_SECONDS",
     "Watchlist",
     "WatchlistItem",
+    "Workspace",
+    "WorkspaceTab",
+    "WorkspaceWindow",
+    "WorkspaceLibraryItem",
+    "InstrumentNote",
+    "MarketGroup",
+    "MarketGroupMember",
+    "MarketGroupProxy",
     "IndicatorCache",
     "ChartDrawing",
     "Dashboard",
@@ -149,6 +175,12 @@ __all__ = [
     "RadarState",
     "RadarSetupThread",
     "RadarSetupType",
+    "CodeAsset",
+    "CodeAssetKind",
+    "CodeVersion",
+    "ResearchRun",
+    "ResearchRunStatus",
+    "ResearchArtifact",
     "IndicatorAlert",
     "IndicatorAlertCondition",
     "ScreenerDefinition",

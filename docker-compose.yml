@@ -14,6 +14,8 @@ volumes:
     #   device: /volume1/docker/charting/pgdata   # Synology example
     #   device: /mnt/pool/charting/pgdata         # TrueNAS example
   redis_data:
+  research_jobs:
+  research_results:
 
 networks:
   charting:
@@ -106,6 +108,8 @@ services:
     networks: [charting]
     volumes:
       - ./backend/proxies.txt:/app/proxies.txt:ro
+      - research_jobs:/jobs
+      - research_results:/results
 
   # ── ARQ worker (background tasks) ──────────────────────────────────────────
   worker:
@@ -148,6 +152,29 @@ services:
       redis:
         condition: service_healthy
     networks: [charting]
+
+  # User code never runs in FastAPI or the general worker. This service has no
+  # network, no provider credentials, a read-only root filesystem, dropped Linux
+  # capabilities, and only the constrained job/result volume.
+  research-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.research-runner
+    restart: unless-stopped
+    network_mode: "none"
+    read_only: true
+    user: "10001:10001"
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    environment:
+      RESEARCH_JOB_DIR: /jobs
+      RESEARCH_RESULT_DIR: /results
+      RESEARCH_MAX_SECONDS: ${RESEARCH_MAX_SECONDS:-15}
+      RESEARCH_MAX_MEMORY_BYTES: ${RESEARCH_MAX_MEMORY_BYTES:-536870912}
+    volumes:
+      - research_jobs:/jobs
+      - research_results:/results
 
   # ── Vue frontend ────────────────────────────────────────────────────────────
   frontend:
