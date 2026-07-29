@@ -122,4 +122,32 @@ describe('workspace store layout tabs', () => {
     expect(store.workspace?.revision).toBe(5)
     expect(store.error).toContain('preserved as')
   })
+
+  it('retries a snapshot when independent windows changed from the same persisted baseline', async () => {
+    const store = useWorkspaceStore()
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: { root: { type: 'row', content: [] } }, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+        { id: 31, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    await store.loadDefault()
+    store.workspace!.tabs[0].windows[0].configuration = { symbol: 'QQQ' }
+    const latest = structuredClone(baseline)
+    latest.revision = 5
+    latest.tabs[0].windows[1].configuration = { draft: 'remote note' }
+    const saved = structuredClone(latest)
+    saved.revision = 6
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict')).mockResolvedValueOnce(saved)
+    apiGet.mockResolvedValueOnce(latest)
+
+    await store.saveSnapshot()
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
+    expect(store.workspace?.revision).toBe(6)
+  })
 })

@@ -185,6 +185,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
   const constituentETF = ref<string | null>(null)
   const selectedIndustry = ref<string | null>(null)
+  let persistedWorkspace: WorkspaceState | null = null
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
@@ -192,6 +193,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeTab = computed(() =>
     workspace.value?.tabs.find(tab => tab.stable_key === activeTabKey.value) ?? workspace.value?.tabs[0] ?? null,
   )
+
+  function cloneSerializable<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T
+  }
+
+  function sameJson(left: unknown, right: unknown) {
+    return JSON.stringify(left) === JSON.stringify(right)
+  }
 
   function isEditorTarget(target: EventTarget | null) {
     return target instanceof HTMLInputElement
@@ -259,6 +268,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     error.value = null
     try {
       workspace.value = await api.get<WorkspaceState>('/workspaces/default')
+      persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
     } catch (cause: any) {
       error.value = cause?.message ?? 'Unable to load workstation'
@@ -302,6 +312,50 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       position: 0,
       settings: { ...settings, recovery_of_workspace_id: current.id, recovery_of_revision: current.revision },
     })
+  }
+
+  /**
+   * Merge only independently changed window records. Dock structure, tab identity,
+   * settings, names and active-window changes are intentionally treated as conflicts:
+   * without a common structural editor they cannot be proven safe to combine.
+   */
+  function mergeDisjointWindowChanges(
+    baseline: WorkspaceState | null,
+    local: WorkspaceState,
+    remote: WorkspaceState,
+  ): WorkspaceState | null {
+    if (!baseline
+      || !sameJson(local.settings, baseline.settings)
+      || !sameJson(remote.settings, baseline.settings)
+      || local.name !== baseline.name
+      || remote.name !== baseline.name
+      || local.schema_version !== baseline.schema_version
+      || remote.schema_version !== baseline.schema_version
+      || local.tabs.length !== baseline.tabs.length
+      || remote.tabs.length !== baseline.tabs.length) return null
+    const merged = cloneSerializable(remote)
+    for (const baseTab of baseline.tabs) {
+      const localTab = local.tabs.find(tab => tab.stable_key === baseTab.stable_key)
+      const remoteTab = remote.tabs.find(tab => tab.stable_key === baseTab.stable_key)
+      const mergedTab = merged.tabs.find(tab => tab.stable_key === baseTab.stable_key)
+      if (!localTab || !remoteTab || !mergedTab
+        || localTab.name !== baseTab.name || remoteTab.name !== baseTab.name
+        || localTab.position !== baseTab.position || remoteTab.position !== baseTab.position
+        || localTab.active_window_key !== baseTab.active_window_key || remoteTab.active_window_key !== baseTab.active_window_key
+        || !sameJson(localTab.layout_config, baseTab.layout_config) || !sameJson(remoteTab.layout_config, baseTab.layout_config)
+        || localTab.windows.length !== baseTab.windows.length || remoteTab.windows.length !== baseTab.windows.length) return null
+      for (const baseWindow of baseTab.windows) {
+        const localWindow = localTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        const remoteWindow = remoteTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        const mergedWindow = mergedTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        if (!localWindow || !remoteWindow || !mergedWindow) return null
+        const localChanged = !sameJson(localWindow, baseWindow)
+        const remoteChanged = !sameJson(remoteWindow, baseWindow)
+        if (localChanged && remoteChanged && !sameJson(localWindow, remoteWindow)) return null
+        if (localChanged) Object.assign(mergedWindow, cloneSerializable(localWindow))
+      }
+    }
+    return merged
   }
 
   async function loadMarketGroup(stableKey: string) {
@@ -417,12 +471,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const current = workspace.value
     try {
       workspace.value = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
+      persistedWorkspace = cloneSerializable(workspace.value)
     } catch (cause: any) {
       if (String(cause?.message ?? '').includes(' 409:')) {
         try {
           const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
+          const merged = mergeDisjointWindowChanges(persistedWorkspace, current, latest)
+          if (merged) {
+            const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
+            workspace.value = saved
+            persistedWorkspace = cloneSerializable(saved)
+            error.value = null
+            return
+          }
           const recovery = await preserveConflictRecovery(current)
           workspace.value = latest
+          persistedWorkspace = cloneSerializable(latest)
           activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
           error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
           return
@@ -535,6 +599,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       const reset = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/reset-factory`, {})
       workspace.value = reset
+      persistedWorkspace = cloneSerializable(reset)
       activeTabKey.value = reset.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
       return true
