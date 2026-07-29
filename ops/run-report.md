@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T03:05:00Z Prepared-market Study Lab series
+
+- Implemented the isolated runner's prepared-data `market.close(symbol)` and
+  vector-only `ta.sma`/`ta.ema`/`ta.rsi` SDK subset. Market access rejects any symbol
+  not present in the materialized dataset. Series output now carries aligned timestamps
+  and is rendered through a dedicated uPlot component in Study Lab.
+- Pushed `5f1e94d feat(study-lab): execute and plot prepared market series`.
+- Validation passed: isolated runner suite `5 passed` with `--no-cov`, Ruff check and
+  format, focused StudyLabTool suite `1 passed`, frontend type-check/build, and diff check.
+
 ## 2026-07-30T02:45:00Z Structured Study Lab artifacts
 
 - Rendered runner scalar artifacts as metric cards and table artifacts as native,

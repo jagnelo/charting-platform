@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T03:05:00Z
+
+- The actual isolated runner now supports a prepared-dataset market/TA subset instead
+  of merely validating those namespace references. `market.close()` accepts only the
+  manifest's declared symbol; `ta.sma`, `ta.ema`, and `ta.rsi` are deterministic
+  vector operations. Numeric series retain aligned timestamps and render with uPlot.
+- Pushed `5f1e94d feat(study-lab): execute and plot prepared market series`.
+- Validation passed: runner suite `5 passed` with `--no-cov`, Ruff/format, focused
+  StudyLabTool test `1 passed`, frontend type-check/build, and `git diff --check`.
+
+### Exact next step
+
+- Add typed event outputs and occurrence-to-chart publication; then broaden the SDK
+  with remaining approved namespaces only when they use the explicit prepared manifest
+  and preserve point-in-time/provenance constraints.
+
 ## Continuation update — 2026-07-30T02:45:00Z
 
 - Study Lab now renders scalar outputs as metric cards and table outputs as real
