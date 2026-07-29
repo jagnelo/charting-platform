@@ -180,6 +180,12 @@
 - Validation: focused workspace integration `10 passed` with `--no-cov`; frontend
   type-check, production build, and `git diff --check` passed.
 
+### Continuation update — 2026-07-30T01:20:00Z
+
+- EasyScan results can now create repeating entry, exit, or entry/exit screener alerts
+  directly through the existing alert engine. Pushed `e8e6fec feat(workstation): create
+  scan alerts from EasyScan`; frontend type-check/build and diff check passed.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical

@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T01:20:00Z EasyScan alert action
+
+- Added a workstation action to create repeating entry, exit, or both screener alerts
+  from a completed EasyScan result using the established alert engine.
+- Pushed `e8e6fec feat(workstation): create scan alerts from EasyScan`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T01:10:00Z Workstation Market Gauge tool
 
 - Mounted the saved-scan, coverage-aware Market Gauge in the default Golden Layout.
