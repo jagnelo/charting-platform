@@ -95,6 +95,11 @@
   contracts, then connect saved conditions to alert creation rather than treating the
   newly wired price/indicator surface as the complete alert requirement.
 
+### Commit status
+
+- Pushed as `f5460e3 feat(workstation): add symbol-linked alerts tool` to
+  `origin/feat/tc2000-frontend-rework`; worktree was clean immediately afterwards.
+
 ### Continuation update — 2026-07-29T22:50:00Z
 
 - Added `VirtualWatchlistTool`, backed by TanStack Virtual. It carries canonical
