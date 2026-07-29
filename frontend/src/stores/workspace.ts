@@ -267,6 +267,43 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  function snapshotPayload(current: WorkspaceState) {
+    return {
+      base_revision: current.revision,
+      name: current.name,
+      settings: current.settings,
+      schema_version: current.schema_version,
+      tabs: current.tabs.map(tab => ({
+        stable_key: tab.stable_key,
+        name: tab.name,
+        position: tab.position,
+        layout_config: tab.layout_config,
+        active_window_key: tab.active_window_key,
+        windows: tab.windows.map(window => ({
+          instance_key: window.instance_key,
+          tool_type: window.tool_type,
+          title: window.title,
+          link_group: window.link_group,
+          configuration: window.configuration,
+          style: window.style,
+          state_schema_version: window.state_schema_version,
+          position: window.position,
+        })),
+      })),
+    }
+  }
+
+  async function preserveConflictRecovery(current: WorkspaceState) {
+    const { factory_id: _factoryId, factory_version: _factoryVersion, ...settings } = current.settings
+    return api.post<WorkspaceState>('/workspaces', {
+      ...snapshotPayload(current),
+      name: `${current.name} Recovery`,
+      is_default: false,
+      position: 0,
+      settings: { ...settings, recovery_of_workspace_id: current.id, recovery_of_revision: current.revision },
+    })
+  }
+
   async function loadMarketGroup(stableKey: string) {
     try {
       const group = await api.get<MarketGroupState>(`/market-groups/${encodeURIComponent(stableKey)}`)
@@ -379,30 +416,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!workspace.value) return
     const current = workspace.value
     try {
-      workspace.value = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, {
-        base_revision: current.revision,
-        name: current.name,
-        settings: current.settings,
-        schema_version: current.schema_version,
-        tabs: current.tabs.map(tab => ({
-          stable_key: tab.stable_key,
-          name: tab.name,
-          position: tab.position,
-          layout_config: tab.layout_config,
-          active_window_key: tab.active_window_key,
-          windows: tab.windows.map(window => ({
-            instance_key: window.instance_key,
-            tool_type: window.tool_type,
-            title: window.title,
-            link_group: window.link_group,
-            configuration: window.configuration,
-            style: window.style,
-            state_schema_version: window.state_schema_version,
-            position: window.position,
-          })),
-        })),
-      })
+      workspace.value = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
     } catch (cause: any) {
+      if (String(cause?.message ?? '').includes(' 409:')) {
+        try {
+          const latest = await api.get<WorkspaceState>(`/workspaces/${current.id}`)
+          const recovery = await preserveConflictRecovery(current)
+          workspace.value = latest
+          activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+          error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
+          return
+        } catch (recoveryCause: any) {
+          error.value = `Workspace changed elsewhere and recovery failed: ${recoveryCause?.message ?? 'unknown error'}`
+          return
+        }
+      }
       error.value = cause?.message ?? 'Unable to save workspace snapshot'
     }
   }

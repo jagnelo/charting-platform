@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiPost, apiPut } = vi.hoisted(() => ({ apiPost: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { post: apiPost, put: apiPut } }))
+const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
 
 import { useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
 
@@ -11,6 +11,7 @@ describe('workspace store layout tabs', () => {
     setActivePinia(createPinia())
     apiPut.mockReset()
     apiPost.mockReset()
+    apiGet.mockReset()
   })
 
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
@@ -100,5 +101,25 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.windows).toHaveLength(1)
     expect((store.activeTab?.layout_config.root as { content: unknown[] }).content).toHaveLength(1)
     expect(store.activeTab?.active_window_key).toBe(opened?.instance_key)
+  })
+
+  it('preserves a local recovery workspace when snapshot revision is stale', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: { factory_id: 'us-top-down' },
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
+    }
+    const latest = { ...store.workspace, revision: 5, name: 'Remote Personal' }
+    const recovery = { ...store.workspace, id: 11, name: 'Personal Recovery', is_default: false, settings: { recovery_of_workspace_id: 10, recovery_of_revision: 4 } }
+    apiPut.mockRejectedValue(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+    apiGet.mockResolvedValue(latest)
+    apiPost.mockResolvedValue(recovery)
+
+    await store.saveSnapshot()
+
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/10')
+    expect(apiPost).toHaveBeenCalledWith('/workspaces', expect.objectContaining({ name: 'Personal Recovery', is_default: false, settings: recovery.settings }))
+    expect(store.workspace?.revision).toBe(5)
+    expect(store.error).toContain('preserved as')
   })
 })
