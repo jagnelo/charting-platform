@@ -122,6 +122,17 @@
   Ruff and frontend type-check/build passed. Pushed as `dd6fbc2` (factory) and
   `5ddb28f` (workstation autosave UI).
 
+### Continuation update — 2026-07-29T23:55:00Z
+
+- Study Lab now starts with an editable consecutive-positive-close factory study. It
+  explicitly declares a symbol, materializes up to 5,000 local split-adjusted daily
+  bars into the run manifest, and executes only a deterministic `stats` SDK primitive
+  in the isolated no-network runner. Outputs include current/longest/average metrics
+  and a typed completed-streak table artifact.
+- Validation: runner and research API focused suite `8 passed`; backend Ruff and
+  frontend type-check/build passed. Pushed as `dc0edc6` (runner/materialization) and
+  `a9fac53` (Study Lab UI).
+
 ### Commit checkpoint — 2026-07-29T22:55:00Z
 
 - Pushed the current coherent implementation set to `origin/feat/tc2000-frontend-rework`:
