@@ -177,6 +177,13 @@ function updateLinkGroup(windowKey: string, group: LinkGroup) {
   if (windowState) windowState.link_group = group
 }
 
+function updateColumns(windowKey: string, columnKeys: string[]) {
+  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!windowState) return
+  windowState.configuration = { ...windowState.configuration, column_keys: columnKeys }
+  workspaceStore.scheduleSnapshot()
+}
+
 function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
@@ -185,6 +192,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
+    onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
   })
 }

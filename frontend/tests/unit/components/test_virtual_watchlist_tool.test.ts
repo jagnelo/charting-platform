@@ -39,4 +39,21 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.find('.watchlist__row').trigger('click')
     expect(wrapper.emitted('select')?.[0]?.[0]).toMatchObject({ instrumentId: 3, symbol: 'XLV' })
   })
+
+  it('publishes a persisted visible-column set without allowing an empty table', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'name', label: 'Name' }],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    const choices = wrapper.findAll('.watchlist__column-menu input')
+    await choices[1].setValue(false)
+    expect(wrapper.emitted('update:visibleColumnKeys')?.[0]).toEqual([['symbol']])
+
+    await wrapper.setProps({ visibleColumnKeys: ['symbol'] })
+    await choices[0].setValue(false)
+    expect(wrapper.emitted('update:visibleColumnKeys')).toHaveLength(1)
+  })
 })

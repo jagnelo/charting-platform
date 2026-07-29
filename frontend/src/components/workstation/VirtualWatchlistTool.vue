@@ -1,10 +1,14 @@
 <template>
-  <section class="watchlist" :aria-label="label">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen }" :aria-label="label">
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
+      <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <b>{{ filteredRows.length }}</b>
     </header>
+    <div v-if="columnMenuOpen" class="watchlist__column-menu">
+      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}</label>
+    </div>
     <div class="watchlist__header" :style="gridStyle">
       <button v-for="column in visibleColumns" :key="column.key" type="button" @click="toggleSort(column.key)">
         {{ column.label }}<small v-if="sortKey === column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
@@ -52,20 +56,24 @@ const props = withDefaults(defineProps<{
   rows: WatchlistRow[]
   selected?: string
   columns?: WatchlistColumn[]
+  visibleColumnKeys?: string[]
 }>(), {
   selected: '',
   columns: () => [
     { key: 'symbol', label: 'Symbol', width: '72px' },
     { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
   ],
+  visibleColumnKeys: () => [],
 })
-const emit = defineEmits<{ select: [row: WatchlistRow] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref('')
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
+const columnMenuOpen = ref(false)
 const renderEpoch = ref(0)
-const visibleColumns = computed(() => props.columns)
+const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : props.columns.map(column => column.key))
+const visibleColumns = computed(() => props.columns.filter(column => activeColumnKeys.value.includes(column.key)))
 const gridStyle = computed(() => ({ gridTemplateColumns: visibleColumns.value.map(column => column.width ?? 'minmax(72px, 1fr)').join(' ') }))
 const filteredRows = computed(() => {
   const needle = filter.value.trim().toLowerCase()
@@ -112,6 +120,16 @@ function toggleSort(key: string) {
   }
 }
 
+function toggleColumn(key: string) {
+  const current = activeColumnKeys.value
+  if (current.includes(key)) {
+    if (current.length === 1) return
+    emit('update:visibleColumnKeys', current.filter(item => item !== key))
+  } else {
+    emit('update:visibleColumnKeys', props.columns.filter(column => current.includes(column.key) || column.key === key).map(column => column.key))
+  }
+}
+
 function onKeydown(event: KeyboardEvent) {
   if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return
   event.preventDefault()
@@ -127,9 +145,13 @@ function onKeydown(event: KeyboardEvent) {
 
 <style scoped>
 .watchlist { display: grid; height: 100%; min-height: 0; grid-template-rows: 23px 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist--columns-open { grid-template-rows: 23px auto 22px minmax(0, 1fr); }
 .watchlist__controls { display: flex; align-items: center; gap: 6px; padding: 0 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
+.watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }
 .watchlist__controls b { color: #78aac8; font-weight: 600; }
+.watchlist__column-menu { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 4px 7px; background: #253039; border-bottom: 1px solid #384550; color: #b7c6d0; font-size: 10px; text-transform: none; letter-spacing: normal; }
+.watchlist__column-menu label { white-space: nowrap; }
 .watchlist__header, .watchlist__row { display: grid; min-width: 0; }
 .watchlist__header { background: #20282f; border-bottom: 1px solid #313c45; }
 .watchlist__header button { min-width: 0; border: 0; border-right: 1px solid #303a43; background: transparent; color: #97a9b6; overflow: hidden; padding: 4px 6px; text-align: left; text-overflow: ellipsis; white-space: nowrap; font: 600 9px "Segoe UI", Arial, sans-serif; text-transform: uppercase; cursor: pointer; }

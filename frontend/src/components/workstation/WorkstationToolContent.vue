@@ -5,7 +5,9 @@
       label="Major US benchmarks"
       :rows="benchmarkRows"
       :selected="activeSymbol"
+      :visible-column-keys="configuredColumnKeys"
       @select="emit('select', $event.symbol)"
+      @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -13,7 +15,9 @@
       :rows="sectorRows"
       :selected="activeSymbol"
       :columns="sectorColumns"
+      :visible-column-keys="configuredColumnKeys"
       @select="emit('select', $event.symbol)"
+      @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
     />
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key === 'primary-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
@@ -43,7 +47,9 @@
       :rows="constituentRows"
       :selected="activeSymbol"
       :columns="constituentColumns"
+      :visible-column-keys="configuredColumnKeys"
       @select="emit('select', $event.symbol)"
+      @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <strong>{{ activeSymbol }}/SPY</strong>
@@ -80,7 +86,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; selectIndustry: [industry: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; selectIndustry: [industry: string]; columns: [windowKey: string, keys: string[]]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -128,6 +134,10 @@ const sectorColumns: WatchlistColumn[] = [
 const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' }, { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' }, { key: 'weight', label: 'Weight', width: '62px' },
 ]
+const configuredColumnKeys = computed(() => {
+  const keys = props.tool.configuration.column_keys
+  return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
+})
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
