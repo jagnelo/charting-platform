@@ -97,6 +97,7 @@ export interface GroupSnapshotRow {
   name: string
   performance: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
   relative_to_benchmark?: { value: number | null; warning?: { code: string; message: string } | null } | null
+  technical?: Record<string, { value: number | null; warning?: { code: string; message: string } | null }>
 }
 
 export interface GroupSnapshotState {

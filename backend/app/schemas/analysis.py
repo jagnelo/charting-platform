@@ -41,6 +41,7 @@ class GroupSnapshotRow(BaseModel):
     last: AnalysisCell
     performance: dict[str, AnalysisCell]
     relative_to_benchmark: AnalysisCell | None = None
+    technical: dict[str, AnalysisCell] = Field(default_factory=dict)
 
 
 class GroupSnapshotOut(BaseModel):

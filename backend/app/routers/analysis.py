@@ -365,6 +365,42 @@ async def group_snapshot(
                 performance[period] = _cell(
                     float(latest.close / bars[-offset - 1].close - 1), latest
                 )
+        closes = [float(bar.close) for bar in bars]
+        volumes = [float(bar.volume) for bar in bars]
+        technical: dict[str, AnalysisCell] = {}
+        for period in (20, 50, 200):
+            key = f"above_ma{period}"
+            if len(closes) < period:
+                technical[key] = _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="insufficient_history",
+                        message=f"Price versus SMA({period}) requires {period} bars.",
+                        instrument_id=instrument.id,
+                    ),
+                )
+            else:
+                average = _mean(closes[-period:])
+                technical[key] = _cell(1.0 if closes[-1] > average else 0.0, latest)
+        if len(closes) >= 15:
+            changes = [closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))]
+            gain = _mean([max(change, 0.0) for change in changes])
+            loss = _mean([max(-change, 0.0) for change in changes])
+            technical["rsi14"] = _cell(100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)), latest)
+        else:
+            technical["rsi14"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="RSI(14) requires 15 bars.", instrument_id=instrument.id))
+        if len(closes) >= 252:
+            window = closes[-252:]
+            spread = max(window) - min(window)
+            technical["position_52w"] = _cell((closes[-1] - min(window)) / spread if spread else 1.0, latest)
+        else:
+            technical["position_52w"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="52-week position requires 252 bars.", instrument_id=instrument.id))
+        if len(volumes) >= 51:
+            average_volume = _mean(volumes[-51:-1])
+            technical["volume_ratio_50"] = _cell(volumes[-1] / average_volume if average_volume else None, latest)
+        else:
+            technical["volume_ratio_50"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="50-day volume ratio requires 51 bars.", instrument_id=instrument.id))
         relative: AnalysisCell | None = None
         if benchmark_instrument:
             benchmark_bar = benchmark_bars.get(latest.ts)
@@ -388,6 +424,7 @@ async def group_snapshot(
                 last=_cell(float(latest.close), latest),
                 performance=performance,
                 relative_to_benchmark=relative,
+                technical=technical,
             )
         )
     return GroupSnapshotOut(

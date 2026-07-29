@@ -154,6 +154,12 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
       performance_ytd: row?.performance.YTD?.value ?? null,
       performance_1y: row?.performance['1Y']?.value ?? null,
       relative_ratio: row?.relative_to_benchmark?.value == null ? null : row.relative_to_benchmark.value.toFixed(4),
+      rsi14: row?.technical?.rsi14?.value ?? null,
+      above_ma20: row?.technical?.above_ma20?.value ?? null,
+      above_ma50: row?.technical?.above_ma50?.value ?? null,
+      above_ma200: row?.technical?.above_ma200?.value ?? null,
+      position_52w: row?.technical?.position_52w?.value ?? null,
+      volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
     }
   })(),
 })))
@@ -177,6 +183,12 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'performance_ytd', label: 'YTD', width: '58px' },
   { key: 'performance_1y', label: '1Y', width: '58px' },
   { key: 'relative_ratio', label: '/ SPY', width: '64px' },
+  { key: 'rsi14', label: 'RSI', width: '54px' },
+  { key: 'above_ma20', label: '>20', width: '54px' },
+  { key: 'above_ma50', label: '>50', width: '54px' },
+  { key: 'above_ma200', label: '>200', width: '58px' },
+  { key: 'position_52w', label: '52W Pos', width: '64px' },
+  { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' }, { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' }, { key: 'weight', label: 'Weight', width: '62px' },
