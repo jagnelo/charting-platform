@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T16:06:16Z",
-    "last_commit": "fedfb55 feat(charts): persist template indicator stacks",
+    "last_handoff_at": "2026-07-30T16:10:40Z",
+    "last_commit": "32d0998 feat(charts): add workstation plot library",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T16:10:40Z: Added workstation Chart Plot Library for local indicators: add, edit style, hide/show, reorder, duplicate and delete; hidden plots remain template-serializable. Plot/template component tests 3 passed, TypeScript/build/diff passed. Browser regression remains next before claiming broader chart mechanics.",
         "2026-07-30T16:06:16Z: Templates now persist/apply indicator stacks with type, params, pane, style and timeframe locks. Invalid imported indicator types are rejected before chart-store application. Component test 2 passed, TypeScript/build, rebuilt F9c and full Chromium 22 passed. Commit/push then continue missing plot library mechanics.",
         "2026-07-30T16:05:00Z: Workstation uPlot settings now emit serializable chart-local configuration rather than changing only global user settings. Chart templates restore bar type, current-price/high-low projection and volume-profile settings on the live panel. TypeScript/build, rebuilt F9c and full Chromium 22 passed. Commit/push then continue chart plot-library mechanics.",
         "2026-07-30T15:56:52Z: Chart templates now apply a serializable chart-local bar type to the live uPlot panel and canonical transformed-bars request. Fixed Golden Layout virtual-component configuration replacement by retaining/mutating reactive configuration plus live local tool state. Rebuilt stack, TypeScript/build/diff and full Chromium flows 22 passed. Commit/push then continue plot-library/remaining chart mechanics.",

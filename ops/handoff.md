@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:10:40Z
+
+- Added the primary-workstation Chart Plot Library. It manages locally supported
+  indicator plots with add, style edit, hide/show, move, duplicate, and delete actions;
+  hidden plots remain serializable in templates rather than being silently removed.
+- Validation: chart plot/template component tests (`3 passed`), TypeScript, production
+  build, and diff check. Exact next step: run rebuilt browser regression and then
+  continue plot target-mode/cross-tool reuse mechanics.
+
 ## Continuation update — 2026-07-30T16:06:16Z
 
 - Chart templates now persist the chart's indicator stack (type, parameters, pane,

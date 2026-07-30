@@ -16238,3 +16238,10 @@ Append a short entry after each worker session.
   identity-free application contracts.
 - Validation: component tests `2 passed`; TypeScript; production build; rebuilt branch
   stack; focused F9c; full Chromium `flows.spec.ts` (`22 passed`); diff check.
+# 2026-07-30T16:10:40Z Workstation plot-library checkpoint
+
+- Added the dense primary-workstation plot library for supported indicator plots:
+  add, style edit, hide/show, reorder, duplicate, and delete. Hidden plots remain in
+  the saved template stack and are excluded from uPlot rendering.
+- Validation: plot/template unit coverage `3 passed`; TypeScript; production build;
+  diff check. Browser regression remains the immediate next action.
