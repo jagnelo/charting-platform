@@ -59,7 +59,10 @@ Resolve visual or behavioral ambiguity in this order:
 
 1. **Authorised live Version 25 desktop capture at the pinned build.** This is the
    primary source for exact geometry, fonts, colors, spacing, icons, states, overlay
-   order, and interaction timing.
+   order, and interaction timing. "Live capture" identifies evidence of the actual
+   desktop application; it does not require the implementation machine to have made
+   the capture. A permission-cleared, provenance-verifiable online or controlled-
+   storage capture is equally eligible when the manifest proves its build and state.
 2. **Official help material explicitly tagged Version 25.** Use it for controls or
    states that cannot be reproduced in the live capture environment.
 3. **Official Version 23 or Version 24 help material.** Use it only after a live
@@ -71,8 +74,16 @@ Resolve visual or behavioral ambiguity in this order:
    colors, or acceptance.
 
 Written descriptions do not overrule visible live behavior. If sources conflict,
-record the conflict in the reference manifest and obtain a current capture before
-implementing the affected surface.
+record the conflict in the reference manifest and obtain an approved authoritative
+Version 25 reference before accepting the affected surface.
+
+Online acquisition is an approved reference path. An online or controlled-storage
+reference can be approved when its source is authoritative, its Version 25 build and
+required state are verifiable, its unmodified source hash and capture environment are
+recorded, its permission/storage classification is known, and a reviewer approves it.
+Official Version 25 material can therefore supply a baseline without a local capture.
+Third-party material remains discovery-only unless those same facts are independently
+verified and recorded; it must never be silently promoted to an acceptance baseline.
 
 ## Official behavior and visual-source catalogue
 
@@ -201,16 +212,17 @@ Implementation must create:
 - a visual-test helper that validates manifest completeness before comparisons run.
 
 The repository may contain authorised reference captures only when their storage and
-use are permitted. Otherwise, the manifest stores stable local/operator paths, source
-URLs, hashes, measurements, and capture instructions while the protected reference
-pack remains outside the distributable source tree. No visual test may silently fall
-back to an absent or older-generation image.
+use are permitted. Otherwise, the manifest stores a stable controlled-storage
+identifier or source URL, hashes, measurements, and capture instructions while the
+protected reference pack remains outside the distributable source tree. No visual test
+may silently fall back to an absent or older-generation image.
 
 Each manifest entry must record:
 
 - stable reference ID and semantic surface/state;
 - product generation, exact build, capture date, and capture operator;
-- source kind: authorised desktop capture, official help image, or behavior-only help;
+- source kind: authorised desktop capture, official Version 25 image/help, or
+  behavior-only help; an authorised capture may be online or in controlled storage;
 - source URL or controlled capture identifier;
 - operating system, display resolution, display scale, browser/app zoom, and theme;
 - full-window bounds and crop bounds;

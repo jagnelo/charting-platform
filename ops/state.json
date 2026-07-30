@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T12:50:00Z",
-    "last_commit": "085f97b fix(workstation): show actual data state",
+    "last_handoff_at": "2026-07-30T13:20:00Z",
+    "last_commit": "8c32d29 docs(ops): record linked timeframe work",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -14,13 +14,15 @@
         "frontend_build": "passed (type-check and production build after visible analysis freshness and actual data-state footer, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
         "diff_check": "passed (2026-07-30T12:50:00Z actual workstation data state)",
-        "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
+        "playwright": "Playwright discovery passed (four dedicated visual projects); visual acceptance awaits approved authoritative V25 evidence, which may be verified online or controlled-storage material rather than a local capture, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
         "provider_live_tests": "not_run (no provider adapter change in this foundation)",
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T13:20:00Z: Clarified the controlling parity contract: authoritative, provenance-verifiable Version 25 references may be permission-cleared online or controlled-storage evidence and do not need local capture. Every required state still needs approved build/state/environment/hash/permission/review evidence before visual acceptance; all remain required_missing until then.",
+        "2026-07-30T13:05:00Z: Added/pushed ba34c54 through 7401722 and docs checkpoint 8c32d29: linked timeframe selection now synchronizes/persists across windows, respects grey isolation, and controls chart reloads. Focused workspace-store suite 11 passed; frontend TypeScript and production build passed. Full interactive/visual acceptance remains incomplete.",
         "2026-07-30T12:50:00Z: Added/pushed cfaa614, 316805b, and 085f97b: ETF constituent and verified industry-proxy batches now derive persisted local freshness; the workstation displays freshness in Breadth, Industry Proxy, and Rotation; its footer now uses actual chart fetching/backfill/unavailable/no-observations/cached state instead of a static provider claim. Backend workstation integration 13 passed, frontend TypeScript/production build passed, Ruff and diff checks passed. Full interactive/visual acceptance remains incomplete.",
         "2026-07-30T12:40:00Z: Added/pushed b7802e4: technical snapshots and direct relative-strength ratios now derive current/stale/partial/unavailable freshness plus counts from persisted canonical OHLCV state. Workstation-analysis integration 13 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. ETF proxy batches and workstation status rendering remain incomplete.",
         "2026-07-30T12:35:00Z: Added/pushed 71c9610: relative rotation and historical breadth now derive current/stale/partial/unavailable freshness plus counts from persisted local OHLCV state. Workstation-analysis integration 13 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. ETF proxy, ratio, technical batches and workstation status rendering remain incomplete.",

@@ -3298,6 +3298,14 @@ Visual authority, highest to lowest:
 4. Version 20 help only as behavioral history;
 5. third-party material for discovery only, never pixel acceptance.
 
+"Authorised live capture" means a provenance-verifiable capture of the actual pinned
+desktop build, not a capture that must be made locally by the implementation machine.
+Permission-cleared online captures and controlled-storage reference packs are eligible
+when the manifest verifies the build, state, capture environment, unmodified hash,
+source/permission classification, and reviewer approval. Official Version 25 online
+material is likewise eligible where it covers the required state. Third-party material
+cannot become a visual baseline without independently establishing those facts.
+
 The release notes at <https://www.tc2000.com/features/whatsnew> are the generation/build
 authority. The generic download page currently exposes stale Version 24 copy and does not
 override the dated release record or a captured Version 25 desktop.

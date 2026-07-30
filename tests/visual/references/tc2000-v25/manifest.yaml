@@ -4,6 +4,9 @@ product:
   build: "25.0.9571"
   browser_zoom: 100
 reference_policy:
+  # An authorised live capture may be permission-cleared online evidence or controlled
+  # storage; it need not be captured on the implementation machine. Approval still
+  # requires verifiable V25 build/state, environment, source hash, permissions, and review.
   source_order:
     - authorised_live_capture
     - official_v25_help

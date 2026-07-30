@@ -11,8 +11,10 @@
 
 ### Exact next step
 
-- Continue the remaining tool-window and cross-window interaction acceptance audit;
-  visual acceptance remains blocked on authorised V25 captures.
+- Continue the remaining tool-window and cross-window interaction acceptance audit.
+  Visual acceptance remains pending until approved, provenance-verifiable V25 references
+  are registered; they may be permission-cleared online or controlled-storage evidence,
+  and do not need to be captured on this machine.
 
 ## Continuation update — 2026-07-30T12:50:00Z
 
