@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:40:00Z Persisted Industry proxy-list configuration
+
+- Connected the verified proxy list to all existing serialized workstation list
+  controls: columns, filters, conditions, pins, groups, and stacking. Pushed `20655dc`.
+- Validation: TypeScript, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:38:00Z Virtualized Industry proxy ranking checkpoint
 
 - Replaced proxy cards with a sortable shared virtualized list showing proxy, 1M,

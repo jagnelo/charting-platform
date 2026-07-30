@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:40:00Z
+
+- Made the virtualized verified-proxy ranking a fully persisted workstation list. It
+  now carries the same column, filter, saved-condition, Boolean pin, group, and stack
+  configuration contract as the sector and constituent lists.
+- Pushed `20655dc`; TypeScript and diff checks passed.
+
+### Exact next step
+
+- Add explicit proxy provenance/freshness/unavailable columns and continue the
+  top-down workflow acceptance paths.
+
 ## Continuation update — 2026-07-30T10:38:00Z
 
 - Replaced Industry proxy cards with the shared virtualized sortable workstation list.
