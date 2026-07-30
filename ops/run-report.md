@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:35:00Z Cross-window workspace revision sync
+
+- Persisted workspace saves now announce a revision through `BroadcastChannel` with a
+  storage fallback. Other windows reload only a newer revision of the same workspace,
+  preserving their active tab when it remains valid.
+- Validation: workspace-store `14 passed`, TypeScript, production build, and diff check.
+
 ## 2026-07-30T16:20:00Z Cross-window session logout
 
 - Auth now propagates logout between the workstation and same-origin pop-outs through

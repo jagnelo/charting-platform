@@ -69,6 +69,22 @@ export interface LinkEvent {
   group: LinkGroup
 }
 
+interface WorkspaceSnapshotEvent {
+  type: 'workspace-snapshot'
+  workspaceId: number
+  revision: number
+  sourceWindowId: string
+}
+
+type CrossWindowEvent = (LinkEvent & { type?: string }) | WorkspaceSnapshotEvent
+
+function isWorkspaceSnapshotEvent(event: CrossWindowEvent): event is WorkspaceSnapshotEvent {
+  return event.type === 'workspace-snapshot'
+    && typeof (event as WorkspaceSnapshotEvent).workspaceId === 'number'
+    && typeof (event as WorkspaceSnapshotEvent).revision === 'number'
+    && typeof (event as WorkspaceSnapshotEvent).sourceWindowId === 'string'
+}
+
 export interface MarketGroupInstrument {
   id: number
   symbol: string
@@ -301,7 +317,40 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  function handleMessage(event: MessageEvent<LinkEvent & { type?: string }>) {
+  async function reloadSharedWorkspace(event: WorkspaceSnapshotEvent) {
+    const current = workspace.value
+    if (!current || current.id !== event.workspaceId || current.revision >= event.revision || event.sourceWindowId === windowId) return
+    try {
+      const latest = await api.get<WorkspaceState>(`/workspaces/${event.workspaceId}`)
+      if (latest.revision <= current.revision) return
+      workspace.value = latest
+      persistedWorkspace = cloneSerializable(latest)
+      if (!latest.tabs.some(tab => tab.stable_key === activeTabKey.value)) {
+        activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+      }
+      error.value = null
+    } catch (cause: any) {
+      error.value = cause?.message ?? 'Unable to synchronize the shared workspace'
+    }
+  }
+
+  function announceWorkspaceSnapshot(saved: WorkspaceState) {
+    const event: WorkspaceSnapshotEvent = {
+      type: 'workspace-snapshot', workspaceId: saved.id, revision: saved.revision, sourceWindowId: windowId,
+    }
+    channel?.postMessage(event)
+    try {
+      localStorage.setItem(CHANNEL_NAME + ':workspace-snapshot', JSON.stringify(event))
+    } catch {
+      // BroadcastChannel remains the primary same-origin transport when storage is unavailable.
+    }
+  }
+
+  function handleMessage(event: MessageEvent<CrossWindowEvent>) {
+    if (isWorkspaceSnapshotEvent(event.data)) {
+      void reloadSharedWorkspace(event.data)
+      return
+    }
     if (event.data.group === 'grey') return
     if (event.data.type === 'symbol') applySharedSymbol(event.data)
     if (event.data.type === 'timeframe' && event.data.timeframe) linkedTimeframe.value = event.data.timeframe
@@ -346,13 +395,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       refreshLeadership()
       return
     }
-    if (!event.key || ![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe'].includes(event.key) || !event.newValue) return
-    const message = JSON.parse(event.newValue) as LinkEvent
-    if (message.group !== 'grey') {
+    if (!event.key || !event.newValue) return
+    const message = JSON.parse(event.newValue) as CrossWindowEvent
+    if (event.key === CHANNEL_NAME + ':workspace-snapshot' && isWorkspaceSnapshotEvent(message)) {
+      void reloadSharedWorkspace(message)
+      return
+    }
+    if (![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe'].includes(event.key)) return
+    const linkMessage = message as LinkEvent & { type?: string }
+    if (linkMessage.group !== 'grey') {
       if (event.key === CHANNEL_NAME + ':symbol') {
-        applySharedSymbol(message)
+        applySharedSymbol(linkMessage)
       }
-      if (event.key === CHANNEL_NAME + ':timeframe' && message.timeframe) linkedTimeframe.value = message.timeframe
+      if (event.key === CHANNEL_NAME + ':timeframe' && linkMessage.timeframe) linkedTimeframe.value = linkMessage.timeframe
     }
   }
 
@@ -681,6 +736,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       workspace.value = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
       persistedWorkspace = cloneSerializable(workspace.value)
+      announceWorkspaceSnapshot(workspace.value)
     } catch (cause: any) {
       if (String(cause?.message ?? '').includes(' 409:')) {
         try {
@@ -690,6 +746,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             const saved = await api.put<WorkspaceState>(`/workspaces/${latest.id}/snapshot`, snapshotPayload(merged))
             workspace.value = saved
             persistedWorkspace = cloneSerializable(saved)
+            announceWorkspaceSnapshot(saved)
             error.value = null
             return
           }

@@ -1,6 +1,13 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T16:20:00Z
+## Continuation update — 2026-07-30T16:35:00Z
+
+- Atomic workspace snapshots now announce their saved revision across same-origin
+  windows. A receiver reloads only the same workspace when its local revision is
+  stale, avoiding an unnecessary state reset for current or unrelated workspaces.
+- Validation: workspace-store `14 passed`, TypeScript, production build, diff check.
+
+## Prior continuation update — 2026-07-30T16:20:00Z
 
 - Auth logout now synchronizes between same-origin workstation windows and pop-outs by
   BroadcastChannel with storage fallback. Receiving a remote logout clears credentials

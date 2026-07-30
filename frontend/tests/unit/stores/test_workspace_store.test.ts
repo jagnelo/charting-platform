@@ -253,6 +253,34 @@ describe('workspace store layout tabs', () => {
     expect(localStorage.getItem('charting-platform-workstation-leader')).toBeNull()
   })
 
+  it('reloads a newer persisted workspace snapshot announced by another window', async () => {
+    class FakeBroadcastChannel {
+      addEventListener() {}
+      close() {}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const store = useWorkspaceStore()
+    const current = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: null, layout_config: {}, windows: [] }],
+    }
+    const latest = { ...current, revision: 5, name: 'US Top Down Updated' }
+    store.workspace = current
+    apiGet.mockResolvedValue(latest)
+    store.connect()
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'charting-platform-workstation:workspace-snapshot',
+      newValue: JSON.stringify({ type: 'workspace-snapshot', workspaceId: 10, revision: 5, sourceWindowId: 'another-window' }),
+    }))
+
+    await vi.waitFor(() => expect(store.workspace?.revision).toBe(5))
+    expect(store.workspace?.name).toBe('US Top Down Updated')
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/10')
+    store.disconnect()
+  })
+
   it('loads and caches verified industry-proxy rankings with the proxy evidence', async () => {
     const store = useWorkspaceStore()
     apiGet.mockImplementation((path: string) => {
