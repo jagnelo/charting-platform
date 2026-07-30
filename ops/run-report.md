@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:03:00Z Supported factory-tool rendering checkpoint
+
+- Routed recognised factory watchlists, supported reports, and Study Results to
+  functional shared workstation tools instead of the unknown-tool recovery renderer.
+  Pushed `ef17624`.
+- Validation: TypeScript, production build, and diff check. Full acceptance remains
+  incomplete.
+
 ## 2026-07-30T11:00:00Z Safe docked-tool close checkpoint
 
 - Added a real Close action to shared workstation chrome. It closes Golden Layout

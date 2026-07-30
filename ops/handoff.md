@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:03:00Z
+
+- Removed recognised factory-layout tool fall-throughs into recovery UI. Generic
+  factory watchlists now use the shared virtualized list; supported reports render
+  existing provenance-aware instrument details; Study Results renders the actual
+  Study Lab surface.
+- Pushed `ef17624`; TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Continue complete desktop-shell/factory-layout behavior and the remaining
+  workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T11:00:00Z
 
 - Completed functional window-close mechanics: the shared tool header emits Close,
