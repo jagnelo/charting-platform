@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:50:00Z
+
+- Provider resolution now respects each entitlement's explicit allowed-environment
+  list. An empty list is intentionally eligible in every environment; a production-only
+  entitlement is excluded when the running `APP_ENV` is development. Pushed `9276190`.
+- Provider-runtime `7 passed` with `--no-cov`, Ruff, and diff checks passed.
+
+### Exact next step
+
+- Enforce reviewed entitlement state and surface provider governance through a
+  provider-neutral workstation coverage/freshness contract without exposing provider
+  internals or fallback order in tool APIs.
+
 ## Continuation update — 2026-07-30T11:46:00Z
 
 - Enforced the free-source boundary in canonical provider resolution. A non-free

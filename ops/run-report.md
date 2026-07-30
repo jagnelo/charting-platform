@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:50:00Z Entitlement environment enforcement
+
+- Provider resolution now excludes a capability if its explicit environment list does
+  not include the running `APP_ENV`; empty lists remain intentionally universal.
+  Pushed `9276190`.
+- Validation: provider runtime `7 passed` with `--no-cov`, Ruff, and diff check.
+  Entitlement review enforcement and provider-neutral coverage consumption remain
+  incomplete.
+
 ## 2026-07-30T11:46:00Z Free entitlement provider-resolution enforcement
 
 - Provider resolution now excludes any non-free entitlement before execution; direct
