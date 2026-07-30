@@ -207,4 +207,10 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__header button').text()).toContain('Name')
     expect(wrapper.find('.watchlist__row--active').exists()).toBe(true)
   })
+
+  it('traverses canonical rows with Ctrl+wheel in the focused list', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLE' } })
+    wrapper.find('.watchlist__scroll').element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLK', instrumentId: 1 })
+  })
 })

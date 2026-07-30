@@ -29,7 +29,7 @@
       </button>
       </template>
     </div>
-    <div ref="scrollElement" class="watchlist__scroll" tabindex="0" @keydown="onKeydown">
+    <div ref="scrollElement" class="watchlist__scroll" tabindex="0" @keydown="onKeydown" @wheel.ctrl.prevent="onCtrlWheel">
       <div :data-render-epoch="renderEpoch" :style="{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }">
         <button
           v-for="virtualRow in virtualItems"
@@ -300,6 +300,13 @@ function onKeydown(event: KeyboardEvent) {
     return
   }
   const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1)))
+  if (filteredRows.value[next]) emit('select', filteredRows.value[next])
+}
+
+function onCtrlWheel(event: WheelEvent) {
+  const current = filteredRows.value.findIndex(row => row.symbol === props.selected)
+  const direction = event.deltaY > 0 ? 1 : -1
+  const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + direction))
   if (filteredRows.value[next]) emit('select', filteredRows.value[next])
 }
 </script>
