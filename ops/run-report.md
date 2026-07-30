@@ -15660,3 +15660,13 @@ Append a short entry after each worker session.
 - Pushed code commit `0790173`. This remains a narrow top-down checkpoint; curated
   industry proxy ranking, dual sector/SPY ratio action, visual references, and the
   broad goal acceptance matrix remain incomplete.
+## 2026-07-30T10:00:00Z Dual top-down relative-strength comparison checkpoint
+
+- The primary relative-strength uPlot now requests and draws selected-symbol/sector ETF
+  plus selected-symbol/SPY together, with distinct series, individual overlap reporting,
+  and no missing-bar interpolation. This covers sector/SPY and stock/sector plus
+  stock/SPY in the same linked workstation action.
+- Validation: RatioUPlot and workspace-store tests `9 passed`; frontend type-check and
+  production build; diff check. Pushed code commit `1b31969`.
+- Curated industry-proxy mapping and the remaining broad completion criteria are still
+  incomplete.

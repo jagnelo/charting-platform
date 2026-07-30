@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:00:00Z
+
+- Relative Strength now retains two local, unfilled ratio series simultaneously:
+  selected constituent/sector ETF and constituent/SPY. The same behaviour naturally
+  compares a selected sector to SPY. Series use common timestamp union with `null`
+  gaps, rather than changing historical ratios through forward filling.
+- Pushed `1b31969 feat(top-down): compare sector and market ratios`.
+- Validation passed: focused RatioUPlot plus workspace-store tests `9 passed`, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Establish the explicit curated industry-proxy registry and source/provenance-backed
+  industry proxy tool. Do not infer ETF mappings from names or classifications.
+
 ## Continuation update — 2026-07-30T09:57:00Z
 
 - Added `/analysis/etf/{symbol}/constituents/snapshot`: a single canonical local
