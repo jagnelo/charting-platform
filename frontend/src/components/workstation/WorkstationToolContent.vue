@@ -68,7 +68,11 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
       <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
-      <UPlotChart v-else-if="chartStore.symbol" />
+      <UPlotChart
+        v-else-if="chartStore.symbol"
+        :workspace-link-group="tool.link_group"
+        :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
+      />
       <div v-else class="tool-state">Select a canonical instrument.</div>
     </div>
     <div v-else-if="tool.instance_key === 'industry-list' && industries.length" class="industry-list">

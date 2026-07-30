@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:50:00Z Group-aware linked uPlot crosshairs
+
+- uPlot now publishes timestamp changes through the workstation cross-window bus and
+  chart windows consume only their own link-group timestamp. Yellow follows all
+  non-grey groups; grey remains isolated. Duplicate publication within a bar is avoided.
+- Validation: workspace-store `15 passed`, TypeScript, production build, and diff check.
+
 ## 2026-07-30T16:35:00Z Cross-window workspace revision sync
 
 - Persisted workspace saves now announce a revision through `BroadcastChannel` with a

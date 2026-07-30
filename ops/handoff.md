@@ -1,6 +1,13 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T16:35:00Z
+## Continuation update — 2026-07-30T16:50:00Z
+
+- uPlot now publishes crosshair timestamps through the workstation cross-window bus.
+  Each tool consumes only its own link-group timestamp; yellow is a wildcard receiver
+  and grey remains isolated. Repeated movement within one bar does not rebroadcast.
+- Validation: workspace-store `15 passed`, TypeScript, production build, diff check.
+
+## Prior continuation update — 2026-07-30T16:35:00Z
 
 - Atomic workspace snapshots now announce their saved revision across same-origin
   windows. A receiver reloads only the same workspace when its local revision is

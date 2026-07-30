@@ -262,6 +262,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   })
   const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
+  const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
+  const wildcardTimestamp = ref<string | null>(null)
   const linkedTimeframe = ref('D1')
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -311,10 +313,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (event.group === 'grey') return
     linkedSymbols.value = { ...linkedSymbols.value, [event.group]: { ...event } }
     wildcardSymbol.value = { ...event }
+    linkedTimestamps.value = { ...linkedTimestamps.value, [event.group]: event.timestamp ?? null }
+    wildcardTimestamp.value = event.timestamp ?? null
     if (event.group === 'blue') {
       linkedSymbol.value = event.symbol
       linkedTimestamp.value = event.timestamp ?? null
     }
+  }
+
+  function applySharedTimestamp(event: LinkEvent) {
+    if (event.group === 'grey' || !event.timestamp) return
+    linkedTimestamps.value = { ...linkedTimestamps.value, [event.group]: event.timestamp }
+    wildcardTimestamp.value = event.timestamp
+    if (event.group === 'blue') linkedTimestamp.value = event.timestamp
   }
 
   async function reloadSharedWorkspace(event: WorkspaceSnapshotEvent) {
@@ -353,6 +364,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     if (event.data.group === 'grey') return
     if (event.data.type === 'symbol') applySharedSymbol(event.data)
+    if (event.data.type === 'cursor') applySharedTimestamp(event.data)
     if (event.data.type === 'timeframe' && event.data.timeframe) linkedTimeframe.value = event.data.timeframe
   }
 
@@ -401,12 +413,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       void reloadSharedWorkspace(message)
       return
     }
-    if (![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe'].includes(event.key)) return
+    if (![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe', CHANNEL_NAME + ':cursor'].includes(event.key)) return
     const linkMessage = message as LinkEvent & { type?: string }
     if (linkMessage.group !== 'grey') {
       if (event.key === CHANNEL_NAME + ':symbol') {
         applySharedSymbol(linkMessage)
       }
+      if (event.key === CHANNEL_NAME + ':cursor') applySharedTimestamp(linkMessage)
       if (event.key === CHANNEL_NAME + ':timeframe' && linkMessage.timeframe) linkedTimeframe.value = linkMessage.timeframe
     }
   }
@@ -439,6 +452,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (group === 'grey') return isolatedSymbol?.trim().toUpperCase() || 'SPY'
     if (group === 'yellow') return wildcardSymbol.value.symbol
     return linkedSymbols.value[group]?.symbol ?? (isolatedSymbol?.trim().toUpperCase() || 'SPY')
+  }
+
+  function timestampForLinkGroup(group: LinkGroup) {
+    if (group === 'grey') return null
+    if (group === 'yellow') return wildcardTimestamp.value
+    return linkedTimestamps.value[group] ?? null
+  }
+
+  function publishTimestamp(timestamp: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
+    if (group === 'grey' || !timestamp) return
+    const event: LinkEvent & { type: 'cursor' } = {
+      symbol: symbolForLinkGroup(group), timestamp, group, sourceWindowKey, type: 'cursor',
+    }
+    applySharedTimestamp(event)
+    channel?.postMessage(event)
+    try {
+      localStorage.setItem(CHANNEL_NAME + ':cursor', JSON.stringify(event))
+    } catch {
+      // BroadcastChannel remains the primary same-origin transport when storage is unavailable.
+    }
   }
 
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
@@ -938,6 +971,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     linkedSymbol,
     linkedSymbols,
     linkedTimestamp,
+    linkedTimestamps,
     linkedTimeframe,
     loading,
     error,
@@ -960,7 +994,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     connect,
     disconnect,
     publishSymbol,
+    publishTimestamp,
     symbolForLinkGroup,
+    timestampForLinkGroup,
     publishTimeframe,
     loadDefault,
     loadMarketGroup,

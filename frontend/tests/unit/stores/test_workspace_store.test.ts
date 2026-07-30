@@ -157,6 +157,17 @@ describe('workspace store layout tabs', () => {
     expect(store.linkedTimestamp).toBeNull()
   })
 
+  it('publishes cursor timestamps only to their link group while yellow receives all groups', () => {
+    const store = useWorkspaceStore()
+
+    store.publishTimestamp('2026-07-30T14:00:00Z', 'red', 'red-chart')
+
+    expect(store.timestampForLinkGroup('red')).toBe('2026-07-30T14:00:00Z')
+    expect(store.timestampForLinkGroup('yellow')).toBe('2026-07-30T14:00:00Z')
+    expect(store.timestampForLinkGroup('blue')).toBeNull()
+    expect(store.timestampForLinkGroup('grey')).toBeNull()
+  })
+
   it('publishes a persisted linked timeframe while preserving grey isolation', () => {
     const store = useWorkspaceStore()
     store.workspace = {

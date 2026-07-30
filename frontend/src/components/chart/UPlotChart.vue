@@ -234,12 +234,16 @@ const props = withDefaults(defineProps<{
   enableKeyboard?: boolean
   showControls?: boolean
   comparisonSeries?: ChartComparisonSeries[]
+  workspaceLinkGroup?: import('@/stores/workspace').LinkGroup
+  linkedTimestamp?: string | null
 }>(), {
   showIndicators: true,
   showOverlays: true,
   enableOverlayInteractions: true,
   enableKeyboard: true,
   showControls: true,
+  workspaceLinkGroup: 'blue',
+  linkedTimestamp: null,
 })
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -669,6 +673,7 @@ let manualYMax: number | null = null
 let interactionCleanup: (() => void) | null = null
 let snapGuard = false
 let syncGuard = false
+let lastPublishedWorkspaceCursor: string | null = null
 let suppressNextMouseDown = false
 
 interface ViewSnapshot {
@@ -1595,6 +1600,15 @@ async function initChart() {
           const ts = chartStore.bars[u.cursor.idx]?.ts
           if (ts) layoutStore.setSyncedTs(ts, panelId)
         }
+        if (u.cursor.idx != null && !syncGuard) {
+          const ts = chartStore.bars[u.cursor.idx]?.ts
+          if (ts && ts !== lastPublishedWorkspaceCursor) {
+            // The workstation bus carries cursor positions across docked windows and
+            // browser pop-outs. Grey charts stay deliberately isolated.
+            workspaceStore.publishTimestamp(ts, props.workspaceLinkGroup, panelId)
+            lastPublishedWorkspaceCursor = ts
+          }
+        }
         const idx = u.cursor.idx
         if (idx != null && u.cursor.left != null) {
           const [x] = u.data as number[][]
@@ -1646,7 +1660,7 @@ async function initChart() {
   }
   syncCanvasSize(w, h)
   await buildSubPanes()
-  applyLinkedTimestamp(workspaceStore.linkedTimestamp)
+  applyLinkedTimestamp(props.linkedTimestamp)
   startLivePolling()
 }
 
@@ -3005,7 +3019,7 @@ onUnmounted(() => { destroyAll(); resizeObserver?.disconnect() })
 
 watch(() => chartStore.bars, () => {
   if (uplot) updateData(); else void initChart()
-  applyLinkedTimestamp(workspaceStore.linkedTimestamp)
+  applyLinkedTimestamp(props.linkedTimestamp)
 }, { deep: false })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
@@ -3079,7 +3093,7 @@ function applyLinkedTimestamp(timestamp: string | null) {
   if (timestamp) jumpToTs(timestamp)
 }
 
-watch(() => workspaceStore.linkedTimestamp, applyLinkedTimestamp)
+watch(() => props.linkedTimestamp, applyLinkedTimestamp)
 
 defineExpose({ jumpToTs })
 </script>
