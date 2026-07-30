@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -435,6 +436,7 @@ async def industry_proxy_snapshot(
     symbol: str,
     industry: str,
     market_benchmark: str = Query(default="SPY"),
+    as_of: datetime | None = Query(default=None),
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     current_user: User = Depends(get_current_user),
@@ -448,7 +450,7 @@ async def industry_proxy_snapshot(
     """
     sector = await _instrument(db, symbol)
     evidence = await etf_industry_proxies(
-        symbol=sector.symbol, industry=industry, as_of=None, _=current_user, db=db
+        symbol=sector.symbol, industry=industry, as_of=as_of, _=current_user, db=db
     )
     proxy_symbols = [item.symbol for item in evidence.proxies]
     market = await _instrument(db, market_benchmark)
@@ -462,6 +464,11 @@ async def industry_proxy_snapshot(
     bars_by_id = await _bars_by_instrument(
         db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
     )
+    if as_of is not None:
+        bars_by_id = {
+            instrument_id: [bar for bar in bars if bar.ts <= as_of]
+            for instrument_id, bars in bars_by_id.items()
+        }
     sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
     rows: list[IndustryProxySnapshotRow] = []
