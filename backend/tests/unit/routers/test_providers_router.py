@@ -54,7 +54,12 @@ class TestProvidersRouter:
         updated = client.patch(
             f"/api/v1/providers/entitlements/{target['provider']}/{target['capability']}",
             headers=auth_headers,
-            json={"configured_plan": "free-reviewed", "freshness_semantics": "delayed"},
+            json={
+                "configured_plan": "free-reviewed",
+                "freshness_semantics": "delayed",
+                "effective_at": "2026-01-01T00:00:00Z",
+                "review_due_at": "2030-01-01T00:00:00Z",
+            },
         )
         assert updated.status_code == 200
         refreshed = client.get("/api/v1/providers/entitlements", headers=auth_headers).json()
@@ -65,6 +70,8 @@ class TestProvidersRouter:
         )
         assert changed["configured_plan"] == "free-reviewed"
         assert changed["freshness_semantics"] == "delayed"
+        assert changed["effective_at"].startswith("2026-01-01T00:00:00")
+        assert changed["review_due_at"].startswith("2030-01-01T00:00:00")
 
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)

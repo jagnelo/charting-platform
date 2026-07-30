@@ -51,6 +51,11 @@ _DEFAULT_EFFECTIVE_SCORE = Decimal("0")
 _DEFAULT_BASE_PRIORITY = 100
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize SQLite's naive datetimes before entitlement comparisons."""
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
 @dataclass(slots=True)
 class ResolvedProvider:
     provider_name: str
@@ -405,6 +410,8 @@ async def resolve_provider_chain(
             str(value).strip().lower() for value in entitlement.enabled_environments
         }
         if allowed_environments and current_environment not in allowed_environments:
+            continue
+        if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= now:
             continue
         if health.circuit_open_until and health.circuit_open_until > now:
             continue

@@ -45,6 +45,8 @@ class ProviderEntitlementUpdate(BaseModel):
     venue_coverage: str | None = None
     freshness_semantics: str | None = None
     enabled_environments: list[str] | None = None
+    effective_at: datetime | None = None
+    review_due_at: datetime | None = None
     live_probe_status: str | None = None
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -72,6 +73,25 @@ async def test_provider_chain_excludes_environment_ineligible_entitlements(db, m
     entitlement.enabled_environments = ["production"]
     db.commit()
     monkeypatch.setattr("app.services.provider_runtime.settings.APP_ENV", "development")
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
+async def test_provider_chain_excludes_expired_entitlements(db):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement.review_due_at = datetime.now(UTC) - timedelta(seconds=1)
+    db.commit()
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
 
