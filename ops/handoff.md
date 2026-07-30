@@ -6,8 +6,8 @@
   indicator plots with add, style edit, hide/show, move, duplicate, and delete actions;
   hidden plots remain serializable in templates rather than being silently removed.
 - Validation: chart plot/template component tests (`3 passed`), TypeScript, production
-  build, and diff check. Exact next step: run rebuilt browser regression and then
-  continue plot target-mode/cross-tool reuse mechanics.
+  build, rebuilt isolated stack, full Chromium flows (`22 passed`), and diff check.
+  Exact next step: continue plot target-mode/cross-tool reuse mechanics.
 
 ## Continuation update — 2026-07-30T16:06:16Z
 

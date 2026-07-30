@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:12:00Z Plot-library browser regression
+
+- Rebuilt the isolated branch frontend after adding the primary-workstation plot
+  library and ran the complete Chromium flow suite: `22 passed`.
+- Focused plot/template component tests remain `3 passed`; TypeScript, production build,
+  and diff check also passed. Continue target-mode/cross-tool plot reuse mechanics.
+
 ## 2026-07-30T16:10:00Z Chart-template lifecycle browser proof
 
 - F9c now saves, applies, confirms symbol preservation, and deletes a unique chart
