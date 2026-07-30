@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T17:20:00Z
+
+- Added direct component proof for the linked-chart plot target path: copying an SMA
+  updates only other chart tools with the same non-grey link group and schedules the
+  serialized workspace snapshot. The adjacent grey chart remains untouched. Corrected
+  the plot-row grid to reserve all six actions, including the target-copy control.
+- Validation: plot/template component tests (`4 passed`), TypeScript, production build,
+  rebuilt isolated branch stack, full Chromium `flows.spec.ts` (`22 passed`), and
+  `git diff --check`.
+- Exact next step: add actual target artifacts for supported cross-tool destinations
+  (watchlist columns, saved conditions/scans, and alerts), then cover each direct
+  target path; do not present unavailable target destinations as controls.
+
 ## Continuation update — 2026-07-30T16:15:00Z
 
 - Indicator plots can now be copied to other chart windows in the same symbol-link

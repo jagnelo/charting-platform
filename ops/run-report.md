@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T17:20:00Z Linked-plot target acceptance checkpoint
+
+- Added direct unit coverage proving that the target-copy control clones a plot only
+  into same-link-group chart windows, excludes grey isolation, and schedules snapshot
+  persistence. Corrected the six-action plot-row layout.
+- Validation: chart plot/template component tests `4 passed`; TypeScript; production
+  build; rebuilt isolated stack; full Chromium `flows.spec.ts` `22 passed`; diff check.
+
 ## 2026-07-30T16:15:00Z Linked-chart plot target checkpoint
 
 - Added a serializable target-mode path which copies an indicator to other charts in
