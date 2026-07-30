@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:45:00Z Scoped workstation uPlot data stores
+
+- Each persisted workstation chart window now injects a stable panel ID and owns its
+  own chart store. It loads the symbol resolved for that tool's link group, so a
+  non-blue chart no longer renders the shell's blue/default series.
+- Validation: TypeScript, production build, and diff check passed. Multi-chart browser
+  acceptance with seeded data remains required.
+
 ## 2026-07-30T15:32:00Z Pop-out browser acceptance restored
 
 - Rebuilt the branch-scoped Compose stack from source and reran the F8b Chromium flow.

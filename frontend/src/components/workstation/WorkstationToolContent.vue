@@ -166,9 +166,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, provide, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
-import { useChartStore } from '@/stores/chart'
+import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
@@ -190,7 +190,12 @@ const props = defineProps<{
   activeWindowKey?: string | null
 }>()
 const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
-const chartStore = useChartStore()
+// uPlot already consumes a panel-scoped store through injection. Give every persisted
+// workstation chart its own stable store identity so red/grey/yellow charts cannot
+// accidentally render the shell's blue/default data.
+const chartPanelId = `workstation-${props.tool.instance_key}`
+provide('panelId', chartPanelId)
+const chartStore = usePanelStore(chartPanelId)
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
@@ -205,6 +210,17 @@ function selectProxy(symbol: string) {
   selectSymbol(symbol)
   emit('selectProxy', symbol)
 }
+
+watch(activeSymbol, symbol => {
+  if (props.tool.tool_type !== 'chart' || !symbol) return
+  if (chartStore.symbol === symbol && chartStore.timeframe === workspaceStore.linkedTimeframe) return
+  void chartStore.loadBars(
+    symbol,
+    workspaceStore.linkedTimeframe as typeof chartStore.timeframe,
+    chartStore.barType,
+    true,
+  )
+}, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
 const sectorPerformance = computed(() => Object.fromEntries(

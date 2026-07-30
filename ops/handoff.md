@@ -1,6 +1,14 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T15:32:00Z
+## Continuation update — 2026-07-30T15:45:00Z
+
+- Each persisted workstation chart window now provides a stable, window-scoped panel
+  ID to uPlot and owns a separate chart store. Chart data therefore follows the
+  window's link-group-resolved symbol rather than always using blue/global state.
+- Validation: TypeScript, production build, and diff check. Seeded multi-chart browser
+  verification remains outstanding.
+
+## Prior continuation update — 2026-07-30T15:32:00Z
 
 - Rebuilt the branch-scoped Compose stack and reran the focused F8b Chromium scenario.
   It passes: closing a floated tool preserves its docked source tool.
