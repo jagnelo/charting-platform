@@ -10,7 +10,7 @@
     <section v-if="validation" class="study-lab-tool__validation" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-      <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }}</span>
+      <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
       <div><strong>Run #{{ run.id }}</strong><span :class="`study-lab-tool__run-status--${run.status}`">{{ run.status }}</span><button v-if="canCancel" type="button" @click="cancel">Cancel</button></div>
@@ -35,7 +35,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
-interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null }
+interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null; output_contracts: string[] }
 interface Run { id: number; status: string; diagnostics?: unknown[]; reproducibility_hash?: string | null; artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }> }
 type Artifact = NonNullable<Run['artifacts']>[number]
 

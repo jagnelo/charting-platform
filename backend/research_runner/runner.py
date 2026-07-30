@@ -99,6 +99,11 @@ class _Output:
         else:
             self.values[name] = {"type": "series", "value": values}
 
+    def boolean(self, name: str, value: object) -> None:
+        if not isinstance(value, bool):
+            raise ValueError("boolean output must be true or false")
+        self.values[name] = {"type": "boolean", "value": value}
+
     def table(self, name: str, value: object) -> None:
         self.values[name] = {"type": "table", "value": value}
 

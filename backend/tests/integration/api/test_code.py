@@ -41,6 +41,48 @@ def test_code_assets_are_immutable_versions(client, auth_headers):
     assert next_version.json()["version_number"] == 2
 
 
+def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_headers):
+    wrong_kind = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "bad-column-contract",
+            "name": "Bad column contract",
+            "kind": "column",
+            "initial_version": {"source": "output.series('trend', [1])", "output_contract": "series"},
+        },
+    )
+    assert wrong_kind.status_code == 422
+    assert wrong_kind.json()["detail"]["code"] == "asset_output_contract_mismatch"
+
+    wrong_source = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "bad-source-contract",
+            "name": "Bad source contract",
+            "kind": "column",
+            "initial_version": {"source": "output.series('trend', [1])", "output_contract": "scalar"},
+        },
+    )
+    assert wrong_source.status_code == 422
+    assert wrong_source.json()["detail"] == {
+        "code": "declared_output_contract_mismatch", "declared": "scalar", "observed": ["series"],
+    }
+
+    valid_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "qualified-condition",
+            "name": "Qualified condition",
+            "kind": "condition",
+            "initial_version": {"source": "output.boolean('qualifies', 2 > 1)", "output_contract": "boolean"},
+        },
+    )
+    assert valid_condition.status_code == 201
+
+
 def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_path, monkeypatch):
     monkeypatch.setattr(
         "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")

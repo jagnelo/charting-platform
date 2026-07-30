@@ -7,6 +7,12 @@ def test_runner_executes_only_validated_output_contract_in_its_own_process_modul
     assert result["artifacts"]["sample_size"] == {"type": "scalar", "value": 4}
 
 
+def test_runner_emits_typed_boolean_artifacts():
+    result = execute_job({"source": "output.boolean('qualifies', 2 > 1)", "dataset": {}})
+    assert result["status"] == "completed"
+    assert result["artifacts"]["qualifies"] == {"type": "boolean", "value": True}
+
+
 def test_runner_rejects_forbidden_source_before_execution():
     result = execute_job({"source": "import os", "dataset": {}})
     assert result["status"] == "failed"

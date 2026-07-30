@@ -11,7 +11,7 @@
     <section v-if="validation" class="study-lab__diagnostics" :class="{ bad: !validation.valid }">
       <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
       <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-      <p v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }}</p>
+      <p v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</p>
     </section>
     <section v-if="run" class="study-lab__run"><strong>Run #{{ run.id }}</strong><span>{{ run.status }}</span><button v-if="!['completed','failed','canceled'].includes(run.status)" @click="cancel">Cancel</button><pre v-if="run.diagnostics?.length">{{ run.diagnostics }}</pre><div v-for="artifact in run.artifacts ?? []" :key="artifact.id" class="study-lab__artifact"><strong>{{ artifact.name }}</strong><span>{{ artifact.artifact_type }}</span><pre>{{ artifact.payload.value }}</pre></div></section>
   </main>

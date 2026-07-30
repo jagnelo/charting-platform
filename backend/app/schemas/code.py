@@ -19,6 +19,7 @@ class CodeValidationOut(BaseModel):
     diagnostics: list[CodeDiagnosticOut]
     dependencies: list[str]
     lookback_hint: int | None
+    output_contracts: list[str] = Field(default_factory=list)
     execution_policy: str = "validation_only_isolated_runner_required"
 
 

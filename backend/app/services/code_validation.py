@@ -42,6 +42,7 @@ class ValidationResult:
     diagnostics: tuple[CodeDiagnostic, ...]
     dependencies: tuple[str, ...]
     lookback_hint: int | None
+    output_contracts: tuple[str, ...]
 
     @property
     def valid(self) -> bool:
@@ -53,6 +54,7 @@ class _Validator(ast.NodeVisitor):
         self.diagnostics: list[CodeDiagnostic] = []
         self.dependencies: set[str] = set()
         self.lookback_hint: int | None = None
+        self.output_contracts: set[str] = set()
 
     def add(self, node: ast.AST, code: str, message: str) -> None:
         self.diagnostics.append(CodeDiagnostic(
@@ -92,6 +94,13 @@ class _Validator(ast.NodeVisitor):
             for argument in node.args:
                 if isinstance(argument, ast.Constant) and isinstance(argument.value, int) and argument.value > 0:
                     self.lookback_hint = max(self.lookback_hint or 0, argument.value)
+        if (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "output"
+            and node.func.attr in {"scalar", "series", "boolean", "events", "table"}
+        ):
+            self.output_contracts.add(node.func.attr)
         self.generic_visit(node)
 
 
@@ -111,6 +120,7 @@ def validate_workstation_python(source: str) -> ValidationResult:
             diagnostics=(CodeDiagnostic("syntax_error", exc.msg, exc.lineno or 1, (exc.offset or 1) - 1),),
             dependencies=(),
             lookback_hint=None,
+            output_contracts=(),
         )
     validator = _Validator()
     validator.visit(tree)
@@ -118,4 +128,5 @@ def validate_workstation_python(source: str) -> ValidationResult:
         diagnostics=tuple(validator.diagnostics),
         dependencies=tuple(sorted(validator.dependencies)),
         lookback_hint=validator.lookback_hint,
+        output_contracts=tuple(sorted(validator.output_contracts)),
     )
