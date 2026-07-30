@@ -1,8 +1,25 @@
 """Add provider entitlement and terms governance."""
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
+
+provider_capability = postgresql.ENUM(
+    "INSTRUMENT_SEARCH",
+    "INSTRUMENT_METADATA",
+    "PRICE_HISTORY",
+    "LATEST_PRICE",
+    "INSTRUMENT_EVENTS",
+    "INSTRUMENT_IDENTIFIERS",
+    "UNIVERSE_DISCOVERY",
+    "OPTION_CHAIN",
+    "OPTION_QUOTE_HISTORY",
+    name="providercapability",
+    # This type was introduced by the provider runtime migration.  Reusing it
+    # must not issue a second CREATE TYPE on fresh PostgreSQL installs.
+    create_type=False,
+)
 
 revision: str = "d2a3b4c5d6e7"
 down_revision: str | None = "d1a2b3c4d5e6"
@@ -17,18 +34,7 @@ def upgrade() -> None:
         sa.Column("data_source_id", sa.Integer(), nullable=False),
         sa.Column(
             "capability",
-            sa.Enum(
-                "INSTRUMENT_SEARCH",
-                "INSTRUMENT_METADATA",
-                "PRICE_HISTORY",
-                "LATEST_PRICE",
-                "INSTRUMENT_EVENTS",
-                "INSTRUMENT_IDENTIFIERS",
-                "UNIVERSE_DISCOVERY",
-                "OPTION_CHAIN",
-                "OPTION_QUOTE_HISTORY",
-                name="providercapability",
-            ),
+            provider_capability,
             nullable=False,
         ),
         sa.Column("configured_plan", sa.String(length=80), nullable=False),
@@ -44,8 +50,12 @@ def upgrade() -> None:
         sa.Column("effective_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("review_due_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("live_probe_status", sa.String(length=32), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["data_source_id"], ["data_source.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(

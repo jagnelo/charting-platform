@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:20:00Z
+
+- Started the migration acceptance repair. FastAPI no longer calls `create_all`; the
+  container entrypoint runs `alembic upgrade head`, and the worker waits on the API
+  healthcheck before starting. The entitlement migration now reuses the existing
+  provider-capability enum and gives its audit timestamps database defaults.
+- Fresh-database validation exposed the next historical migration mismatch:
+  `market_group.created_at` is non-null without a server default, so taxonomy seeding
+  fails after a clean Alembic migration. Do not claim migration acceptance yet.
+- Exact next step: audit the TC2000 market-group migration/model timestamp columns,
+  repair the migration defaults, then repeat a fresh stack upgrade/downgrade/upgrade.
+
 ## Continuation update — 2026-07-30T16:15:00Z
 
 - The workstation’s primary Active symbol entry now resolves normal symbols and

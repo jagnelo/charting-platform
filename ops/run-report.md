@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:20:00Z Alembic-owned startup repair in progress
+
+- Replaced runtime `create_all` with an Alembic entrypoint and worker/API ordering.
+- Fresh migration exposed and fixed duplicate `providercapability` creation and missing
+  entitlement timestamp defaults; current remaining fresh-bootstrap blocker is missing
+  `market_group` timestamp defaults in the historical workstation migration.
+
 ## 2026-07-30T16:15:00Z Runtime expression and pop-out recovery
 
 - Primary symbol entry now resolves canonical expressions before chart loading; a

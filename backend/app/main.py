@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import AsyncSessionLocal, Base, engine
+from app.database import AsyncSessionLocal
 from app.routers import (
     alert_history,
     alerts,
@@ -52,10 +52,6 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Creating DB tables…")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     async with AsyncSessionLocal() as db:
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
