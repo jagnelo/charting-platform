@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:21:00Z
+
+- Added persisted vertical column stacking. Selected visible columns are compacted into
+  one dense header/cell while the underlying row remains a single canonical,
+  virtualized selection target.
+- Added direct component coverage; pushed `3a54c93`.
+- Validation passed: focused VirtualWatchlistTool suite `11 passed`, frontend
+  type-check/build, and `git diff --check`.
+
+### Exact next step
+
+- Implement persisted column ordering and formatting controls, then saved column sets;
+  retain stable selection and avoid row-count-proportional DOM.
+
 ## Continuation update — 2026-07-30T10:19:00Z
 
 - Added persisted named column groups to the dense virtualized workstation watchlist.

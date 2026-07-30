@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:21:00Z Persisted watchlist column stacking checkpoint
+
+- Added explicit Stack controls. Selected columns render in a dense vertical cell and
+  persist as serialized configuration without duplicating canonical virtualized rows.
+  Pushed `3a54c93`.
+- Validation: VirtualWatchlistTool `11 passed`, type-check, production build, diff
+  check. Ordering, formatting, column sets, and broad acceptance remain incomplete.
+
 ## 2026-07-30T10:19:00Z Persisted watchlist column grouping checkpoint
 
 - Added persisted named groups in virtualized workstation watchlists. Groups are
