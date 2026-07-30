@@ -143,21 +143,21 @@
             <div class="ed-section-title">Chart Type</div>
             <label class="ed-field-row">
               <span>Primary rendering</span>
-              <select v-model="userSettingsStore.chartType" class="ed-select">
+              <select :value="effectiveChartType" class="ed-select" @change="setChartType(($event.target as HTMLSelectElement).value)">
                 <option v-for="bt in CHART_BAR_TYPES" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
               </select>
             </label>
             <div class="ed-section-title">Y-Axis Projections</div>
             <label class="ed-checkbox-row">
-              <input type="checkbox" v-model="userSettingsStore.showCurrentPriceProjection" class="ed-checkbox" />
+              <input type="checkbox" :checked="showCurrentPriceProjection" class="ed-checkbox" @change="setBooleanChartSetting('current_price_projection', ($event.target as HTMLInputElement).checked)" />
               Show current price on Y axis
             </label>
             <label class="ed-checkbox-row">
-              <input type="checkbox" v-model="userSettingsStore.showHighLowProjection" class="ed-checkbox" />
+              <input type="checkbox" :checked="showHighLowProjection" class="ed-checkbox" @change="setBooleanChartSetting('high_low_projection', ($event.target as HTMLInputElement).checked)" />
               Show visible high / low on Y axis
             </label>
             <label class="ed-checkbox-row">
-              <input type="checkbox" v-model="userSettingsStore.showApproxVolumeProfile" class="ed-checkbox" />
+              <input type="checkbox" :checked="showApproxVolumeProfile" class="ed-checkbox" @change="setBooleanChartSetting('volume_profile', ($event.target as HTMLInputElement).checked)" />
               Show approximate volume profile
             </label>
           </div>
@@ -233,6 +233,7 @@ const props = withDefaults(defineProps<{
   enableOverlayInteractions?: boolean
   enableKeyboard?: boolean
   showControls?: boolean
+  chartSettings?: Record<string, unknown>
   comparisonSeries?: ChartComparisonSeries[]
   workspaceLinkGroup?: import('@/stores/workspace').LinkGroup
   linkedTimestamp?: string | null
@@ -245,6 +246,7 @@ const props = withDefaults(defineProps<{
   workspaceLinkGroup: 'blue',
   linkedTimestamp: null,
 })
+const emit = defineEmits<{ configuration: [changes: Record<string, unknown>] }>()
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_BARS_VISIBLE  = 150
@@ -270,6 +272,24 @@ const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const workspaceStore = useWorkspaceStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
+function configuredBoolean(key: string, fallback: boolean) {
+  const value = props.chartSettings?.[key]
+  return typeof value === 'boolean' ? value : fallback
+}
+function setChartType(value: string) {
+  if (!CHART_BAR_TYPES.some(type => type.value === value)) return
+  if (props.chartType) emit('configuration', { bar_type: value })
+  else userSettingsStore.chartType = value as ChartBarType
+}
+function setBooleanChartSetting(key: 'current_price_projection' | 'high_low_projection' | 'volume_profile', value: boolean) {
+  if (props.chartSettings) {
+    emit('configuration', { [key]: value })
+    return
+  }
+  if (key === 'current_price_projection') userSettingsStore.showCurrentPriceProjection = value
+  if (key === 'high_low_projection') userSettingsStore.showHighLowProjection = value
+  if (key === 'volume_profile') userSettingsStore.showApproxVolumeProfile = value
+}
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
 const keyboardEnabled    = computed(() => props.enableKeyboard)
@@ -430,11 +450,11 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
 const isAtLatest        = ref(true)
 const showShortcuts     = ref(false)
 const showChartSettings = ref(false)
-const isLogScale        = ref(false)
+const isLogScale        = ref(configuredBoolean('log_scale', false))
 const autoY             = ref(true)   // true = auto-fit Y to visible bars; false = manual lock
-const showCurrentPriceProjection = computed(() => userSettingsStore.showCurrentPriceProjection)
-const showHighLowProjection = computed(() => userSettingsStore.showHighLowProjection)
-const showApproxVolumeProfile = computed(() => userSettingsStore.showApproxVolumeProfile)
+const showCurrentPriceProjection = computed(() => configuredBoolean('current_price_projection', userSettingsStore.showCurrentPriceProjection))
+const showHighLowProjection = computed(() => configuredBoolean('high_low_projection', userSettingsStore.showHighLowProjection))
+const showApproxVolumeProfile = computed(() => configuredBoolean('volume_profile', userSettingsStore.showApproxVolumeProfile))
 
 const barTimestamps = computed(() =>
   chartStore.bars.map(b => new Date(b.ts).getTime() / 1000)
@@ -1020,6 +1040,7 @@ function yRangeFn(u: uPlot): [number, number] {
 function toggleLogScale() {
   ctxMenu.visible = false
   isLogScale.value = !isLogScale.value
+  if (props.chartSettings) emit('configuration', { log_scale: isLogScale.value })
   initChart()
 }
 
@@ -3033,6 +3054,11 @@ watch(effectiveChartType, async (type) => {
   }
   await nextTick()
   initChart()
+})
+watch(() => props.chartSettings?.log_scale, value => {
+  if (typeof value !== 'boolean' || value === isLogScale.value) return
+  isLogScale.value = value
+  if (uplot) void initChart()
 })
 watch(() => drawStore.drawings, () => {
   renderVisualOverlays()

@@ -77,8 +77,10 @@
         <UPlotChart
           v-else-if="chartStore.symbol"
           :chart-type="chartBarType"
+          :chart-settings="liveChartConfiguration"
           :workspace-link-group="tool.link_group"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
+          @configuration="applyChartConfiguration"
         />
         <div v-else class="tool-state">Select a canonical instrument.</div>
       </div>
@@ -269,6 +271,10 @@ function applyChartTemplate(configuration: Record<string, unknown>) {
   const applied = { ...configuration, ...identity }
   liveChartConfiguration.value = applied
   emit('configuration', props.tool.instance_key, applied)
+}
+
+function applyChartConfiguration(changes: Record<string, unknown>) {
+  applyChartTemplate({ ...liveChartConfiguration.value, ...changes })
 }
 
 function selectProxy(symbol: string) {
