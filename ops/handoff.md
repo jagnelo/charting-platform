@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:30:00Z
+
+- Replaced the shell's hard-coded Polling label with actual local chart state:
+  fetching, backfill, unavailable/no observations, or cached observation timestamp.
+  Pushed `23c52b0`; TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Continue provider entitlement/freshness contracts and the broader acceptance work.
+
 ## Continuation update — 2026-07-30T11:25:00Z
 
 - Added immutable Study Lab reruns: exact snapshot retains the stored dataset manifest,

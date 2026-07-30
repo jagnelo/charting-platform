@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:30:00Z Honest workstation data-state checkpoint
+
+- Replaced static Polling text with actual fetch, backfill, unavailable/no-data, or
+  cached-observation status. Pushed `23c52b0`.
+- Validation: TypeScript, production build, and diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T11:25:00Z Immutable Study Lab reruns checkpoint
 
 - Added exact-snapshot and canonical-latest rerun modes, each producing a new queued
