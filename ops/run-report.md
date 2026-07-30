@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:28:00Z Verified industry-proxy ranking checkpoint
+
+- Added `/analysis/etf/{symbol}/industries/{industry}/proxies/snapshot`, restricted to
+  independently holdings/classification-verified proxy ETFs. It returns local technical
+  ranking cells, proxy/sector and proxy/market aligned ratios, coverage/exclusions, and
+  the exact verified evidence. Pushed `39faaae`.
+- Validation: workspace integration `13 passed` with `--no-cov` (Python 3.12),
+  Ruff/format, diff check. Workstation proxy-ranking presentation remains incomplete.
+
 ## 2026-07-30T10:22:00Z Persisted watchlist column-order checkpoint
 
 - Added left/right column-order controls backed by existing serialized visible-column

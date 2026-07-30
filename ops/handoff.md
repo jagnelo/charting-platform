@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:28:00Z
+
+- Added a source-labelled local industry-proxy ranking batch endpoint. It admits only
+  holdings/classification-verified ETF proxies and returns technicals plus aligned
+  proxy/sector and proxy/market ratios without provider fan-out or forward filling.
+- Added integration coverage for verified evidence and both ratio values; pushed
+  `39faaae`.
+- Validation passed: workspace/analysis integration `13 passed` with `--no-cov`
+  (Python 3.12), Ruff/format, and `git diff --check`.
+
+### Exact next step
+
+- Bind the Industry tool to the proxy-ranking batch so proxy selection, ranking, and
+  dual-relative-strength evidence are visible directly in the workstation.
+
 ## Continuation update — 2026-07-30T10:22:00Z
 
 - Added persisted visible-column ordering. Dense list headers and cells now honour the

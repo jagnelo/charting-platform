@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T10:22:00Z",
-    "last_commit": "4c5b872 feat(watchlist): persist column order",
+    "last_handoff_at": "2026-07-30T10:28:00Z",
+    "last_commit": "39faaae feat(top-down): rank verified industry proxies",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused VirtualWatchlistTool suite: 12 passed; RatioUPlot/workspace-store tests: 9 passed; StudyLabTool test: 1 passed; ToolWindow test: 1 passed, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after persisted column ordering, four-environment visual screenshot harness, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T10:22:00Z persisted column ordering checkpoint)",
+        "diff_check": "passed (2026-07-30T10:28:00Z verified industry-proxy ranking checkpoint)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T10:28:00Z: Added/pushed 39faaae: verified industry-proxy ETFs now have a local batch ranking endpoint with sector and market aligned ratios, performance, technical cells, coverage/exclusions, and the underlying holdings/classification evidence. Integration suite 13 passed with --no-cov under Python 3.12, Ruff/format and diff check passed. Workstation proxy-ranking UI and broad acceptance remain incomplete.",
         "2026-07-30T10:22:00Z: Added/pushed 4c5b872: visible watchlist columns can now be reordered through persisted workspace state, and rendering honours the configured order without changing selection identity. VirtualWatchlistTool 12 passed, frontend type-check/build and diff check passed. Column formatting, saved sets, and full acceptance remain incomplete.",
         "2026-07-30T10:21:00Z: Added/pushed 3a54c93: watchlists now persist selected stacked columns and render them as a dense multi-line header/cell without duplicating the virtualized canonical row. VirtualWatchlistTool 11 passed, frontend type-check/build and diff check passed. Column reordering, formatting, saved column sets, and full acceptance remain incomplete.",
         "2026-07-30T10:19:00Z: Added/pushed facb5f4: workstation watchlists now persist named column groups in serialized window configuration and render those groups in a dense two-line header without changing virtualized canonical row identity. VirtualWatchlistTool 10 passed, frontend type-check/build and diff check passed. Vertical stacking, broad column editing, and full acceptance remain incomplete.",
