@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:17:00Z Persisted research artifact export checkpoint
+
+- Added JSON export for every persisted structured artifact, preserving run/reproducibility
+  identity and exact payload. Pushed `9c6ad9e`.
+- Validation: focused results test, TypeScript, production build, and diff check. Full
+  acceptance remains incomplete.
+
 ## 2026-07-30T11:14:00Z Persisted structured artifact rendering checkpoint
 
 - Added persisted-result scalar, table, uPlot-series, event, and diagnostic rendering;

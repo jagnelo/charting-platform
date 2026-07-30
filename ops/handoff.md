@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:17:00Z
+
+- Added JSON artifact export from persisted Study Results. Exports retain run identity,
+  reproducibility hash, artifact metadata, and exact structured payload. Pushed
+  `9c6ad9e`; focused results test, TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Continue genuine promotion targets/version comparison and the broader workstation
+  and backend acceptance work.
+
 ## Continuation update — 2026-07-30T11:14:00Z
 
 - Expanded persisted Study Results into a structured artifact renderer for scalar,
