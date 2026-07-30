@@ -195,6 +195,37 @@ class TestWorkspaces:
         assert second.status_code == 200
         assert second.json()["version"] == 2
 
+    def test_library_item_delete_is_user_isolated(self, client, auth_headers, admin_headers):
+        payload = {
+            "kind": "chart_template",
+            "stable_key": "delete-me",
+            "name": "Delete me",
+            "payload": {"configuration": {"timeframe": "W1"}},
+            "dependency_metadata": {"contract": "workstation_chart_template_v1"},
+        }
+        created = client.put(
+            "/api/v1/workspaces/library/items/chart_template/delete-me",
+            headers=auth_headers,
+            json=payload,
+        )
+        assert created.status_code == 200
+
+        hidden = client.delete(
+            "/api/v1/workspaces/library/items/chart_template/delete-me",
+            headers=admin_headers,
+        )
+        assert hidden.status_code == 404
+
+        deleted = client.delete(
+            "/api/v1/workspaces/library/items/chart_template/delete-me",
+            headers=auth_headers,
+        )
+        assert deleted.status_code == 204
+        assert client.delete(
+            "/api/v1/workspaces/library/items/chart_template/delete-me",
+            headers=auth_headers,
+        ).status_code == 404
+
     def test_condition_assets_are_versioned_and_user_isolated(self, client, auth_headers):
         payload = {
             "name": "Close above 100",

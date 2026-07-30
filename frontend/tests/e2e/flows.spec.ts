@@ -117,6 +117,16 @@ test.describe('Chart', () => {
     browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9c — chart templates open from a workstation chart without changing the symbol', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/AAPL')
+    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    await expect(symbolEntry).toHaveValue('AAPL')
+    await page.getByRole('button', { name: 'Chart templates' }).first().click()
+    await expect(page.getByRole('textbox', { name: 'Chart template name' })).toBeVisible()
+    await expect(symbolEntry).toHaveValue('AAPL')
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 // ── TC2000 workstation window mechanics ──────────────────────────────────────

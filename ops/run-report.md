@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:00:00Z Versioned workstation chart templates
+
+- Chart templates now use persistent `WorkspaceLibraryItem` records and offer save,
+  apply, clone, delete, import, export, and default reset from each workstation chart.
+  Application explicitly preserves the active symbol/expression.
+- Added user-isolated generic library deletion. Validation: workspace API `17 passed`
+  (two existing deprecation warnings), Ruff, TypeScript, production build, rebuilt
+  Chromium F9c, and diff check.
+
 ## 2026-07-30T15:40:00Z Primary Alerts tool controls
 
 - Added repeat, pause/resume, rearm/delete and per-instrument firing-history controls

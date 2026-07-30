@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:00:00Z
+
+- Added versioned, user-isolated chart-template lifecycle support to the primary
+  workstation. Chart windows save/load/clone/delete/import/export templates through
+  `WorkspaceLibraryItem`; application preserves the active symbol/instrument/expression
+  and only changes serialized chart mechanics. Reset restores workstation chart defaults.
+- Added generic library-item deletion with authenticated user isolation and direct API
+  coverage. The chart template control is accessible from each standard workstation
+  chart and has browser coverage proving it opens without changing `AAPL`.
+- Validation: workspace API `17 passed` (two existing third-party deprecation
+  warnings), Ruff, TypeScript, production build, rebuilt-stack Chromium F9c, and diff
+  check. Exact next step: commit/push this template library increment, then continue
+  with the remaining chart configuration/plot-library and alert-source contracts.
+
 ## Continuation update — 2026-07-30T15:40:00Z
 
 - Expanded the primary active-symbol Alerts tool with repeat-at-creation, per-alert

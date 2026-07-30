@@ -71,6 +71,7 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
       <div class="chart-tool__surface">
+        <ChartTemplateControl class="chart-tool__templates" :configuration="tool.configuration" @apply="applyChartTemplate" />
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
@@ -179,6 +180,7 @@
 import { computed, provide, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
+import ChartTemplateControl from './ChartTemplateControl.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
@@ -203,7 +205,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
 // accidentally render the shell's blue/default data.
@@ -246,6 +248,12 @@ function setTimeframe(timeframe: string) {
 
 function setTimeframeLinkGroup(group: LinkGroup) {
   workspaceStore.updateToolTimeframeLinkGroup(props.tool.instance_key, group)
+}
+
+function applyChartTemplate(configuration: Record<string, unknown>) {
+  const identity = Object.fromEntries(Object.entries(props.tool.configuration)
+    .filter(([key]) => ['symbol', 'instrument_id', 'expression'].includes(key)))
+  emit('configuration', props.tool.instance_key, { ...configuration, ...identity })
 }
 
 function selectProxy(symbol: string) {
@@ -478,7 +486,8 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 <style scoped>
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
 .chart-tool__drawing-toolbar { flex: 0 0 auto; }
-.chart-tool__surface { min-width: 0; min-height: 0; flex: 1 1 auto; }
+.chart-tool__surface { position: relative; min-width: 0; min-height: 0; flex: 1 1 auto; }
+.chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
 .analysis { height: 100%; min-height: 0; }

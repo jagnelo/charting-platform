@@ -246,6 +246,12 @@ function updateStackedColumnKeys(windowKey: string, keys: string[]) {
   windowState.configuration = { ...windowState.configuration, stacked_column_keys: keys }
   workspaceStore.scheduleSnapshot()
 }
+function updateToolConfiguration(windowKey: string, configuration: Record<string, unknown>) {
+  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!windowState) return
+  windowState.configuration = configuration
+  workspaceStore.scheduleSnapshot()
+}
 
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
@@ -271,6 +277,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onPinnedBooleanKeys: (windowKey: string, keys: string[]) => updatePinnedBooleanKeys(windowKey, keys),
     onColumnGroups: (windowKey: string, groups: Record<string, string>) => updateColumnGroups(windowKey, groups),
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
+    onConfiguration: (windowKey: string, configuration: Record<string, unknown>) => updateToolConfiguration(windowKey, configuration),
     onTimeframe: (timeframe: string, group: LinkGroup) => setLinkedTimeframe(timeframe, group),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),

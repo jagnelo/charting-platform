@@ -582,6 +582,29 @@ async def upsert_library_item(
     return item
 
 
+@router.delete("/library/items/{kind}/{stable_key}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_library_item(
+    kind: str,
+    stable_key: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove one user-owned reusable item without exposing another user's library."""
+    item = (
+        await db.execute(
+            select(WorkspaceLibraryItem).where(
+                WorkspaceLibraryItem.user_id == current_user.id,
+                WorkspaceLibraryItem.kind == kind,
+                WorkspaceLibraryItem.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Library item not found")
+    await db.delete(item)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/library/conditions", response_model=list[WorkspaceLibraryItemOut])
 async def list_condition_assets(
     db: AsyncSession = Depends(get_db),
