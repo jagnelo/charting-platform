@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:58:00Z
+
+- Completed paired Space traversal in focused virtualized lists: Space moves forward
+  and Shift+Space backward through canonical rows.
+- Added direct coverage; pushed `52bd6c7`. VirtualWatchlistTool `14 passed`,
+  TypeScript and diff checks passed.
+
+### Exact next step
+
+- Continue desktop keyboard/menu parity and remaining workstation acceptance work.
+
 ## Continuation update — 2026-07-30T10:56:00Z
 
 - Added Ctrl+wheel canonical row traversal to focused virtualized lists, using the
