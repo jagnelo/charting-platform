@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:05:00Z Current-shell Chromium flow suite
+
+- Added a dense workstation Sign out control; it uses the existing authenticated logout
+  path and restores session termination from the primary shell.
+- Updated retired sidebar/autocomplete/single-canvas assertions to the workspace's
+  direct-symbol entry and multi-window uPlot behavior. The full Chromium flow suite
+  completed without failure artifacts after the focused F7 and F8b flows passed.
+- Validation: TypeScript, production build, diff check, full Chromium `flows.spec.ts`.
+
 ## 2026-07-30T15:45:00Z Scoped workstation uPlot data stores
 
 - Each persisted workstation chart window now injects a stable panel ID and owns its

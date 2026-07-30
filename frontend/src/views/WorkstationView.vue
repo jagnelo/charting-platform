@@ -26,6 +26,7 @@
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
         <span :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
+        <button type="button" class="workstation__sign-out logout-btn" title="Sign out" @click="signOut">Sign out</button>
       </div>
     </header>
 
@@ -95,12 +96,14 @@ import { useRoute, useRouter } from 'vue-router'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import { useChartStore } from '@/stores/chart'
+import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
+const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
@@ -160,6 +163,10 @@ function selectOccurrence(symbol: string, timestamp: string) {
 
 function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
+}
+
+async function signOut() {
+  await authStore.logout()
 }
 
 async function selectIndustryProxy(symbol: string) {
@@ -337,7 +344,9 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__search { display: flex; height: 21px; margin-left: 10px; }
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
 .workstation__search button { border: 1px solid #4d5a63; border-left: 0; background: #26333d; color: #dce9f2; padding: 0 7px; font-size: 10px; cursor: pointer; }
-.workstation__status { margin-left: auto; display: flex; gap: 8px; color: #81909a; font-size: 10px; }
+.workstation__status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #81909a; font-size: 10px; }
+.workstation__sign-out { border: 1px solid #47545d; background: #20282e; color: #bdc9d1; padding: 2px 6px; font: inherit; cursor: pointer; }
+.workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--cached { color:#aebbc4; }
 .workstation__tabs { display: flex; align-items: stretch; background: #151a1f; border-bottom: 1px solid #303940; }

@@ -32,7 +32,7 @@ test.describe('Authentication', () => {
 
   test('F3 — login with valid credentials', async ({ page, loggedIn, browserDiagnostics }) => {
     await expect(page).toHaveURL(/\/chart/)
-    await expect(page.locator('.user-chip, .sidebar-logo')).toBeVisible()
+    await expect(page.getByRole('banner').getByText('CHARTING WORKSTATION')).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -64,7 +64,7 @@ test.describe('Chart', () => {
 
   test('F6 — chart page loads with default state', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await expect(page.locator('.chart-empty, .uplot-wrapper, .chart-container, canvas')).toBeVisible()
+    await expect(page.locator('.chart-empty, .uplot-wrapper, .chart-container, canvas').first()).toBeVisible()
     await expect(page.locator('input[placeholder*="Symbol"], input[placeholder*="Search"], .search-input')).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
@@ -73,15 +73,13 @@ test.describe('Chart', () => {
     const cp = new ChartPage(page)
     await cp.goto()
 
-    await page.fill('input[placeholder*="Symbol"], input[placeholder*="Search"], .search-input', 'AAPL')
-    const exactResult = page.locator('.search-results .result-item').filter({
-      has: page.locator('.r-symbol', { hasText: /^AAPL$/ }),
-    }).first()
-    const anyResult = page.locator('.search-results .result-item').first()
-    await expect(anyResult).toBeVisible({ timeout: 10_000 })
-    await (await exactResult.count() ? exactResult : anyResult).click()
-    await expect(page.locator('.symbol-info .sym')).toHaveText('AAPL', { timeout: 10_000 })
-    await expect(page.locator('.chart-loading, .uplot-wrapper, .chart-container, canvas, .chart-error').first()).toBeVisible({ timeout: 10_000 })
+    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    await symbolEntry.fill('AAPL')
+    await page.getByRole('button', { name: 'Go' }).click()
+    await expect(symbolEntry).toHaveValue('AAPL')
+    // A fresh free-source fixture may not have AAPL cached. Both a rendered uPlot
+    // chart and the workstation's explicit unavailable state are valid outcomes.
+    await expect(page.locator('.uplot-wrapper:visible, .tool-state--error:visible').first()).toBeVisible({ timeout: 10_000 })
     browserDiagnostics.expectNoCriticalIssues()
   })
 

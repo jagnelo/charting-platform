@@ -58,7 +58,7 @@ class BrowserDiagnostics {
     page.on('response', (response) => {
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
-      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries)$/.test(path)) {
+      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
       }
     })

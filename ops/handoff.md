@@ -1,6 +1,17 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T15:45:00Z
+## Continuation update — 2026-07-30T16:05:00Z
+
+- Added a compact primary-workstation Sign out control backed by the existing auth
+  logout path. This restores a required session action after the legacy sidebar was
+  removed from the authenticated default.
+- Replaced retired sidebar/autocomplete/single-canvas e2e assumptions with the current
+  desktop shell, direct symbol entry, and multi-window uPlot behavior. The full
+  Chromium flows file left no failure artifacts after focused F7/F8b passes.
+- Validation: TypeScript, production build, diff check, full Chromium flows. Broader
+  visual/environment/sandbox/backend acceptance remains outstanding.
+
+## Prior continuation update — 2026-07-30T15:45:00Z
 
 - Each persisted workstation chart window now provides a stable, window-scoped panel
   ID to uPlot and owns a separate chart store. Chart data therefore follows the
