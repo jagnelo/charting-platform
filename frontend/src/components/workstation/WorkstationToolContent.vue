@@ -192,7 +192,9 @@ const industryProxyState = computed(() => selectedETF.value && selectedIndustry.
 const industryProxySnapshot = computed(() => selectedETF.value && selectedIndustry.value
   ? workspaceStore.industryProxySnapshots[`${selectedETF.value}:${selectedIndustry.value}`]
   : null)
-const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(row => ({
+const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(row => {
+  const evidence = industryProxyState.value?.proxies.find(proxy => proxy.symbol === row.symbol)
+  return {
   instrumentId: null,
   symbol: row.symbol,
   name: row.name,
@@ -201,8 +203,10 @@ const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(r
     relative_sector: row.relative_to_benchmark?.value ?? null,
     relative_spy: row.relative_to_market?.value ?? null,
     rsi14: row.technical.rsi14?.value ?? null,
+    source: evidence?.source_provider ?? 'Unavailable',
+    as_of: evidence?.composition_date ?? 'Unavailable',
   },
-})))
+}}))
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
     return workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents.map(row => row.symbol) ?? []
@@ -297,6 +301,8 @@ const proxyColumns: WatchlistColumn[] = [
   { key: 'relative_sector', label: `/ ${selectedETF.value || 'Sector'}`, width: '62px', format: 'number' },
   { key: 'relative_spy', label: '/ SPY', width: '58px', format: 'number' },
   { key: 'rsi14', label: 'RSI', width: '48px', format: 'number' },
+  { key: 'as_of', label: 'Holdings', width: '78px', format: 'number' },
+  { key: 'source', label: 'Source', width: '72px', format: 'number' },
 ]
 const configuredColumnKeys = computed(() => {
   const keys = props.tool.configuration.column_keys
