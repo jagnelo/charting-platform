@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T20:10:00Z Watchlist Python batch progress
+
+- Exposed durable Python batch progress and cancellation in shared workstation
+  watchlists for both persisted columns and Boolean condition filters. Direct coverage
+  proves the visible cancellation action invokes the run cancellation endpoint.
+- `VirtualWatchlistTool` `18 passed`; TypeScript, production build, and diff check
+  passed.
+
 ## 2026-07-30T19:55:00Z Prepared-universe progress and cancellation
 
 - Added atomic job claiming, a running-job cancellation sentinel, runner-side

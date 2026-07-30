@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T20:10:00Z
+
+- Shared virtual watchlists now surface real runner progress for immutable Python
+  columns and Boolean condition filters. The dense Columns editor exposes a working
+  cancellation action for an active column batch; condition cancellation appears with
+  the active condition state. Both call the durable backend contract.
+- Validation: `VirtualWatchlistTool` `18 passed`, TypeScript, production build, and
+  diff check passed. Next: add the same execution-progress visibility to Study Lab and
+  integrate immutable condition assets into EasyScan and alerts.
+
 ## Continuation update — 2026-07-30T19:55:00Z
 
 - Prepared-universe jobs now atomically transition from `.json` to `.running`, so a
