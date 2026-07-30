@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:54:00Z
+
+- Replaced the shell's single Tool action with compact functional Workspace clone,
+  Study Lab, and factory Reset actions; no inert menu items were introduced.
+- Pushed `9db9657`; frontend type-check/build and diff checks passed.
+
+### Exact next step
+
+- Continue full desktop-shell menus/keyboard behavior and remaining workstation work.
+
 ## Continuation update — 2026-07-30T10:51:00Z
 
 - Added explicit structured proxy-ranking exclusion feedback beneath the virtualized

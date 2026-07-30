@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:54:00Z Functional desktop-shell actions checkpoint
+
+- Added Workspace clone, Study Lab, and factory Reset shell actions. Pushed `9db9657`.
+- Validation: frontend type-check/build, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:51:00Z Proxy-ranking exclusions checkpoint
 
 - Surface structured proxy-ranking exclusion codes below the table. Pushed `9813c18`.
