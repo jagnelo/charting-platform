@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:10:00Z
+
+- Bound Study Results to persisted runs: the pane is now a selectable run/artifact
+  browser with reproducibility display and terminal-aware polling, not a duplicate
+  Study Lab editor. Pushed `a5d0b62`.
+- Focused Study Lab/results test slice `2 passed`, TypeScript, production build, and
+  diff checks passed.
+
+### Exact next step
+
+- Continue Study Lab structured artifact rendering/promotions and the remaining
+  workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T11:07:00Z
 
 - Added the persisted Study Lab run-list API required by a dedicated results pane.

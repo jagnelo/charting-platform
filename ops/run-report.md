@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:10:00Z Persisted Study Results pane checkpoint
+
+- Implemented a dedicated selectable persisted-run/results pane with terminal-aware
+  polling, reproducibility identifiers, and structured artifact listing. Pushed
+  `a5d0b62`.
+- Validation: focused Study Lab/results `2 passed`, TypeScript, production build, and
+  diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T11:07:00Z Persisted Study Lab run listing checkpoint
 
 - Added authenticated, bounded, newest-first `/research/runs` listing with structured
