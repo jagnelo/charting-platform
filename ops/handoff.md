@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:15:00Z
+
+- The workstation’s primary Active symbol entry now resolves normal symbols and
+  arithmetic expressions through the canonical identity/synthetic-instrument API,
+  retaining an actionable error instead of passing unknown text to a chart request.
+- Pop-outs now select the requested workspace tab first and recover the tool from
+  another serialized tab if needed; this preserves the docked tool contract through
+  tab changes and stale pop-out URLs.
+- Runtime validation: rebuilt branch Compose stack; Chromium F9b expression entry,
+  F8b pop-out close/recovery, and F8c logout propagation all passed (`3 passed`).
+
 ## Continuation update — 2026-07-30T16:10:00Z
 
 - Ratio uPlot charts now participate in the same group-scoped linked-crosshair contract

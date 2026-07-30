@@ -99,6 +99,7 @@ import { useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,7 +124,13 @@ const dataState = computed(() => {
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')
-  return workspaceStore.activeTab?.windows.find(window => window.instance_key === key) ?? null
+  const requestedTab = typeof route.query.tab === 'string' ? route.query.tab : null
+  const preferredTab = requestedTab
+    ? workspaceStore.workspace?.tabs.find(tab => tab.stable_key === requestedTab)
+    : workspaceStore.activeTab
+  return preferredTab?.windows.find(window => window.instance_key === key)
+    ?? workspaceStore.workspace?.tabs.flatMap(tab => tab.windows).find(window => window.instance_key === key)
+    ?? null
 })
 const allSymbols = computed(() => [
   ...(workspaceStore.marketGroups['us-benchmarks']?.members ?? []),
@@ -145,8 +152,15 @@ const goldenLayoutConfig = computed(() => {
   } as unknown as LayoutConfig
 })
 async function selectSymbol(raw: string, timestamp?: string) {
-  const symbol = raw.trim().toUpperCase()
-  if (!symbol) return
+  const requested = raw.trim()
+  if (!requested) return
+  let symbol: string
+  try {
+    symbol = await ensureKnownInstrumentSymbol(requested, 'Workstation symbol')
+  } catch (cause: any) {
+    workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
+    return
+  }
   symbolDraft.value = symbol
   workspaceStore.publishSymbol({ symbol, timestamp, group: 'blue', sourceWindowKey: 'workstation' })
   await Promise.all([

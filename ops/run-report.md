@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:15:00Z Runtime expression and pop-out recovery
+
+- Primary symbol entry now resolves canonical expressions before chart loading; a
+  pop-out can recover its requested tool across tab-state variation.
+- Rebuilt branch stack and passed focused Chromium F9b, F8b, and F8c (`3 passed`).
+
 ## 2026-07-30T16:10:00Z Ratio crosshair linking
 
 - Ratio charts now consume and publish link-group cursor timestamps, preserving

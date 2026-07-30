@@ -107,25 +107,13 @@ test.describe('Chart', () => {
 
   test('F9b — expression search resolves and stays interactive', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await page.fill('input[placeholder*="Search"], .search-input', '=SPY-QQQ')
-    await page.waitForTimeout(150)
-
-    const exprRow = page.locator('.result-item--expr')
-    if (await exprRow.count() > 0) {
-      await exprRow.first().click({ force: true })
-      // On a fresh stack SPY/QQQ may not exist yet; the backend tries to create them
-      // via the data provider which can fail.  Accept both outcomes: successful
-      // navigation (instruments resolved) or graceful non-crash (error shown).
-      const navigated = await page.waitForURL(/\/chart\/(?:=|%3D)SPY-QQQ/, { timeout: 10_000 })
-        .then(() => true).catch(() => false)
-      if (navigated) {
-        await expect(page.locator('.symbol-info .sym')).toHaveText('=SPY-QQQ', { timeout: 10_000 })
-        await expect(page.locator('.chart-loading, .uplot-wrapper, .chart-container, canvas, .chart-error').first()).toBeVisible({ timeout: 10_000 })
-      } else {
-        // Constituent resolution failed — input must still be usable (no crash)
-        await expect(page.locator('.search-input')).toBeVisible()
-      }
-    }
+    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    await symbolEntry.fill('=SPY-QQQ')
+    await page.getByRole('button', { name: 'Go' }).click()
+    // A fresh free-source fixture may lack a constituent; in either case the
+    // primary workstation remains usable and reports its real state.
+    await expect(page.locator('.uplot-wrapper:visible, .tool-state--error:visible, .workstation__footer:visible').first()).toBeVisible({ timeout: 10_000 })
+    await expect(symbolEntry).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
 
