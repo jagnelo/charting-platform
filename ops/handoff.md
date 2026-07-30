@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:00:00Z
+
+- Completed functional window-close mechanics: the shared tool header emits Close,
+  the docked path closes the Golden Layout container and persists the matching
+  serialized-window removal, while pop-outs remove their window before closing.
+- Protected against an empty tab and added direct header/store regression coverage.
+  Pushed `628659d`; focused `11 passed`, TypeScript, production build, and diff
+  checks passed.
+
+### Exact next step
+
+- Continue complete desktop-shell menus, tool lifecycle/recovery, and the remaining
+  workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T10:58:00Z
 
 - Completed paired Space traversal in focused virtualized lists: Space moves forward

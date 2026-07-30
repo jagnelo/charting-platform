@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:00:00Z Safe docked-tool close checkpoint
+
+- Added a real Close action to shared workstation chrome. It closes Golden Layout
+  content and persists the corresponding serialized tool removal; a final tool is
+  protected from removal so the tab remains recoverable. Pushed `628659d`.
+- Validation: ToolWindow/workspace-store `11 passed`, TypeScript, production build,
+  and diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:58:00Z Shift+Space list traversal checkpoint
 
 - Added tested forward/backward Space traversal for focused canonical lists. Pushed
