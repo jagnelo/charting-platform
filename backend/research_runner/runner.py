@@ -358,6 +358,7 @@ def run_once(path: Path) -> None:
         temporary.write_text(json.dumps(progress, separators=(",", ":")))
         temporary.replace(progress_path)
 
+    write_progress({"status": "running"})
     result = execute_job(
         payload,
         progress_callback=write_progress,

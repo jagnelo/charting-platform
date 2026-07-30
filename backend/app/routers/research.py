@@ -212,6 +212,7 @@ async def list_runs(
     )
     for run in runs:
         collect_research_result(run)
+        run.progress = read_research_progress(run.id)
     await db.flush()
     return runs
 
@@ -230,6 +231,7 @@ async def get_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Research run not found")
     collect_research_result(run)
+    run.progress = read_research_progress(run.id)
     await db.flush()
     return run
 

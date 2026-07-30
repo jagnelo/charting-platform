@@ -92,6 +92,7 @@ class ResearchRunOut(BaseModel):
     warnings: list
     resource_usage: dict
     logs: str
+    progress: dict = Field(default_factory=dict)
     artifacts: list[ResearchArtifactOut] = Field(default_factory=list)
 
 
