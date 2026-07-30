@@ -2,6 +2,10 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:10:00Z General workstation expression loading
+
+- Non-ratio arithmetic expressions resolve canonically before uPlot chart loading.
+
 ## 2026-07-30T15:00:00Z Workstation ratio-expression rendering
 
 - Two-symbol persisted ratio expressions now render through aligned uPlot ratios.

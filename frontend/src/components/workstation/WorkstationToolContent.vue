@@ -191,6 +191,7 @@ import RelativeRotationTool from './RelativeRotationTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
+import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -220,6 +221,12 @@ const ratioExpression = computed(() => {
   const match = expression.match(/^=([A-Z0-9.:-]+)\/([A-Z0-9.:-]+)$/)
   return match ? { numerator: match[1], denominator: match[2] } : null
 })
+const syntheticExpression = computed(() => {
+  const expression = typeof props.tool.configuration.expression === 'string'
+    ? props.tool.configuration.expression.trim()
+    : ''
+  return expression.startsWith('=') && !ratioExpression.value ? expression : null
+})
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
@@ -238,11 +245,20 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-watch([activeSymbol, activeTimeframe], ([symbol, timeframe]) => {
+watch([activeSymbol, activeTimeframe, syntheticExpression], async ([symbol, timeframe, expression]) => {
   if (props.tool.tool_type !== 'chart' || !symbol) return
-  if (chartStore.symbol === symbol && chartStore.timeframe === timeframe) return
+  let targetSymbol = symbol
+  if (expression) {
+    try {
+      targetSymbol = await ensureKnownInstrumentSymbol(expression, 'Workstation expression')
+    } catch (cause: any) {
+      chartStore.error = cause?.message ?? 'Unable to resolve expression'
+      return
+    }
+  }
+  if (chartStore.symbol === targetSymbol && chartStore.timeframe === timeframe) return
   void chartStore.loadBars(
-    symbol,
+    targetSymbol,
     timeframe as typeof chartStore.timeframe,
     chartStore.barType,
     true,

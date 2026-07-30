@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:10:00Z
+
+- General arithmetic workstation expressions now resolve through the canonical backend
+  synthetic-instrument path and load in the panel-scoped uPlot store. TypeScript and
+  diff check passed; expression UI/integration acceptance remains outstanding.
+
 ## Continuation update — 2026-07-30T15:00:00Z
 
 - Persisted two-symbol ratio expressions (for example `=XLK/SPY`) now select the

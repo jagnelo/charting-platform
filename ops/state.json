@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T15:00:00Z",
+    "last_handoff_at": "2026-07-30T15:10:00Z",
     "last_commit": "acacaf6 fix(workstation): separate factory chart timeframes",
     "git_ready_to_commit": true,
     "validation": {
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T15:10:00Z: Non-ratio workstation arithmetic expressions now resolve through canonical synthetic instruments before panel-scoped uPlot loading. TypeScript/diff check passed; full expression acceptance remains incomplete.",
         "2026-07-30T15:00:00Z: Two-symbol persisted ratio expressions now use RatioUPlot rather than ordinary symbol charts. TypeScript/build/diff check passed; broader expression support and acceptance remain incomplete.",
         "2026-07-30T14:55:00Z: Four Timeframe factory now has a two-by-two Golden Layout grid and TC Classic includes Notes. Workspace API 16 passed with two existing Nautilus deprecation warnings, Ruff/diff check passed; broader acceptance remains incomplete.",
         "2026-07-30T14:50:00Z: Four Timeframe now uses four blue/symbol-linked charts with distinct timeframe link groups and canonical M15/D1/W1/MN defaults. Chart chrome separates timeframe links from symbol links. The old M1-as-monthly error is normalized to MN on load. Factory reset now awaits transactional replacement and advances factory version 7. Frontend focused 19 passed, workspace API 16 passed with two existing Nautilus deprecation warnings, Ruff/type-check/build/diff check passed; browser interaction and visual acceptance remain incomplete.",
