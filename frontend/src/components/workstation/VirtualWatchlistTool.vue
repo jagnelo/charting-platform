@@ -26,10 +26,10 @@
       <b>{{ filteredRows.length }}</b>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
-    <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}</p>
+    <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button></p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
       <label v-for="column in effectiveColumns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
-      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button></div>
+      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
     <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
       <input v-model.trim="columnSetName" aria-label="Column set name" placeholder="Column set name" @keydown.enter.prevent="saveColumnSet" />
@@ -163,6 +163,8 @@ const selectedPythonVersion = ref('')
 const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
 const pythonConditionAssets = ref<Array<{ versionId: number; name: string }>>([])
 const pythonCells = ref<Record<string, Record<string, { value?: number | boolean; error?: string }>>>({})
+const pythonRunIds = ref<Record<string, number>>({})
+const pythonProgress = ref<Record<string, string>>({})
 const runningPythonColumns = new Set<number>()
 const runningPythonConditions = new Set<number>()
 const renderEpoch = ref(0)
@@ -283,6 +285,20 @@ async function loadPythonAssets() {
   } catch { pythonAssets.value = []; pythonConditionAssets.value = [] }
 }
 function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
+function progressLabel(progress?: { completed_cells?: number; total_cells?: number; status?: string }) {
+  if (!progress) return 'Queued'
+  const completed = Number(progress.completed_cells ?? 0)
+  const total = Number(progress.total_cells ?? 0)
+  return total > 0 ? `Running ${completed}/${total}` : progress.status === 'running' ? 'Running' : 'Queued'
+}
+async function cancelPythonRun(key: string) {
+  const runId = pythonRunIds.value[key]
+  if (!runId) return
+  pythonProgress.value = { ...pythonProgress.value, [key]: 'Canceling…' }
+  if (key === 'python_condition') pythonConditionState.value = 'Canceling Python condition…'
+  try { await api.post(`/research/runs/${runId}/cancel`, {}) }
+  catch (cause: any) { pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Cancel failed' } }
+}
 async function runPythonColumn(column: { code_version_id: number; name: string }) {
   if (runningPythonColumns.has(column.code_version_id)) return
   const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
@@ -290,18 +306,21 @@ async function runPythonColumn(column: { code_version_id: number; name: string }
   runningPythonColumns.add(column.code_version_id)
   const key = pythonKey(column.code_version_id)
   pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: 'Queued' }])) }
+  pythonProgress.value = { ...pythonProgress.value, [key]: 'Queued' }
   try {
     const run = await api.post<{ id: number }>('/research/runs', { code_version_id: column.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    pythonRunIds.value = { ...pythonRunIds.value, [key]: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const result = await api.get<{ status: string; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      pythonProgress.value = { ...pythonProgress.value, [key]: progressLabel(result.progress) }
       if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
         pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(result.cells.map(cell => [cell.symbol, cell.status === 'completed' ? { value: cell.value } : { error: cell.error ?? cell.status }])) }
         return
       }
       await sleep(250)
     }
-  } catch (cause: any) { pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: cause?.message ?? 'Unavailable' }])) } }
-  finally { runningPythonColumns.delete(column.code_version_id) }
+  } catch (cause: any) { pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: cause?.message ?? 'Unavailable' }])) }; pythonProgress.value = { ...pythonProgress.value, [key]: cause?.message ?? 'Unavailable' } }
+  finally { runningPythonColumns.delete(column.code_version_id); const { [key]: _, ...rest } = pythonRunIds.value; pythonRunIds.value = rest }
 }
 function addPythonColumn() {
   const versionId = Number(selectedPythonVersion.value)
@@ -337,10 +356,14 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
   runningPythonConditions.add(condition.code_version_id)
   pythonConditionMatchedSymbols.value = null
   pythonConditionState.value = 'Running Python condition…'
+  pythonProgress.value = { ...pythonProgress.value, python_condition: 'Queued' }
   try {
     const run = await api.post<{ id: number }>('/research/runs', { code_version_id: condition.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    pythonRunIds.value = { ...pythonRunIds.value, python_condition: run.id }
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const result = await api.get<{ status: string; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      const result = await api.get<{ status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      pythonProgress.value = { ...pythonProgress.value, python_condition: progressLabel(result.progress) }
+      if (result.status !== 'completed' && result.status !== 'failed' && result.status !== 'canceled') pythonConditionState.value = `Python condition ${progressLabel(result.progress).toLowerCase()}…`
       if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
         const completed = result.cells.filter(cell => cell.status === 'completed')
         const errors = result.cells.length - completed.length
@@ -355,7 +378,7 @@ async function runPythonCondition(condition: { code_version_id: number; name: st
   } catch (cause: any) {
     pythonConditionMatchedSymbols.value = new Set()
     pythonConditionState.value = `Python condition unavailable: ${cause?.message ?? 'Unknown error'}`
-  } finally { runningPythonConditions.delete(condition.code_version_id) }
+  } finally { runningPythonConditions.delete(condition.code_version_id); const { python_condition: _, ...rest } = pythonRunIds.value; pythonRunIds.value = rest }
 }
 
 function columnSetKey(name: string) {

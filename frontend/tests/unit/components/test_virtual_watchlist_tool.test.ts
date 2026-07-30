@@ -277,6 +277,25 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
   })
 
+  it('shows a working cancellation control while a persisted Python column batch is running', async () => {
+    let resolveBatch: ((value: unknown) => void) | undefined
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs/10/batch-results') return new Promise(resolve => { resolveBatch = resolve })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve({ id: 10 })
+      : Promise.resolve({ status: 'canceled' }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows, pythonColumns: [{ code_version_id: 77, name: 'Last close v1' }] },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Cancel Last close v1"]').exists()).toBe(true))
+    await wrapper.get('button[aria-label="Cancel Last close v1"]').trigger('click')
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/10/cancel', {})
+    resolveBatch?.({ status: 'canceled', cells: [] })
+  })
+
   it('traverses canonical rows with Ctrl+wheel in the focused list', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLE' } })
     wrapper.find('.watchlist__scroll').element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
