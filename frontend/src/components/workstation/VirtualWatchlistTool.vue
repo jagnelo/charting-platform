@@ -17,12 +17,17 @@
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button v-if="column.kind === 'boolean'" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
     </div>
     <div class="watchlist__header" :style="gridStyle">
-      <button v-for="column in visibleColumns" :key="column.key" type="button" @click="toggleSort(column.key)">
+      <template v-for="column in renderedColumns" :key="column.key">
+      <div v-if="column.key === stackedColumnKey" class="watchlist__stack-header">
+        <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" @click="toggleSort(stackedColumn.key)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
+      </div>
+      <button v-else type="button" @click="toggleSort(column.key)">
         <em v-if="columnGroups[column.key]">{{ columnGroups[column.key] }}</em>{{ column.label }}<small v-if="sortKey === column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
       </button>
+      </template>
     </div>
     <div ref="scrollElement" class="watchlist__scroll" tabindex="0" @keydown="onKeydown">
       <div :data-render-epoch="renderEpoch" :style="{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }">
@@ -35,9 +40,10 @@
           :style="{ ...gridStyle, height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }"
           @click="emit('select', filteredRows[virtualRow.index])"
         >
-          <span v-for="column in visibleColumns" :key="column.key" :title="display(filteredRows[virtualRow.index], column.key)">
-            {{ display(filteredRows[virtualRow.index], column.key) }}
-          </span>
+          <template v-for="column in renderedColumns" :key="column.key">
+            <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)">{{ display(filteredRows[virtualRow.index], column.key) }}</span>
+            <span v-else class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :title="display(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em>{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
+          </template>
         </button>
       </div>
     </div>
@@ -85,6 +91,7 @@ const props = withDefaults(defineProps<{
   conditionFilterMode?: 'active' | 'inactive' | 'off'
   pinnedBooleanKeys?: string[]
   columnGroups?: Record<string, string>
+  stackedColumnKeys?: string[]
 }>(), {
   selected: '',
   columns: () => [
@@ -97,8 +104,9 @@ const props = withDefaults(defineProps<{
   conditionFilterMode: 'off',
   pinnedBooleanKeys: () => [],
   columnGroups: () => ({}),
+  stackedColumnKeys: () => [],
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -113,7 +121,13 @@ const renderEpoch = ref(0)
 const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : props.columns.map(column => column.key))
 const visibleColumns = computed(() => props.columns.filter(column => activeColumnKeys.value.includes(column.key)))
 const hasColumnGroups = computed(() => visibleColumns.value.some(column => Boolean(props.columnGroups[column.key])))
-const gridStyle = computed(() => ({ gridTemplateColumns: visibleColumns.value.map(column => column.width ?? 'minmax(72px, 1fr)').join(' ') }))
+const stackedColumnKey = '__stacked_columns__'
+const stackedColumns = computed(() => visibleColumns.value.filter(column => props.stackedColumnKeys.includes(column.key)))
+const renderedColumns = computed(() => [
+  ...visibleColumns.value.filter(column => !props.stackedColumnKeys.includes(column.key)),
+  ...(stackedColumns.value.length ? [{ key: stackedColumnKey, label: 'Stacked', width: 'minmax(120px, 1fr)' }] : []),
+])
+const gridStyle = computed(() => ({ gridTemplateColumns: renderedColumns.value.map(column => column.width ?? 'minmax(72px, 1fr)').join(' ') }))
 const filteredRows = computed(() => {
   const needle = filter.value.trim().toLowerCase()
   const textRows = needle
@@ -256,6 +270,11 @@ function setColumnGroup(key: string, value: string) {
   emit('update:columnGroups', groups)
 }
 
+function toggleStackedColumn(key: string) {
+  const current = props.stackedColumnKeys.filter(columnKey => props.columns.some(column => column.key === columnKey))
+  emit('update:stackedColumnKeys', current.includes(key) ? current.filter(columnKey => columnKey !== key) : [...current, key])
+}
+
 function onKeydown(event: KeyboardEvent) {
   if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return
   event.preventDefault()
@@ -283,10 +302,14 @@ function onKeydown(event: KeyboardEvent) {
 .watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__column-menu label { white-space: nowrap; }
 .watchlist__group-input { width: 52px; margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
+.watchlist__stack-button { margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #a9c0d0; font: inherit; cursor: pointer; }
+.watchlist__stack-button[aria-pressed="true"] { border-color: #5faed7; background: #1d4057; color: #e3f2fb; }
 .watchlist__header, .watchlist__row { display: grid; min-width: 0; }
 .watchlist__header { background: #20282f; border-bottom: 1px solid #313c45; }
 .watchlist__header button { min-width: 0; border: 0; border-right: 1px solid #303a43; background: transparent; color: #97a9b6; overflow: hidden; padding: 4px 6px; text-align: left; text-overflow: ellipsis; white-space: nowrap; font: 600 9px "Segoe UI", Arial, sans-serif; text-transform: uppercase; cursor: pointer; }
 .watchlist__header button:hover { color: #e5f1f7; background: #29343d; }
+.watchlist__stack-header { display: grid; min-width: 0; grid-auto-rows: 1fr; border-right: 1px solid #303a43; }
+.watchlist__stack-header button { border-right: 0; }
 .watchlist__header small { color: #78b9e4; }
 .watchlist__header em { display: block; overflow: hidden; color: #718c9f; font: 8px "Segoe UI", Arial, sans-serif; font-style: normal; text-transform: none; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__scroll { min-height: 0; overflow: auto; outline: none; }
@@ -295,4 +318,7 @@ function onKeydown(event: KeyboardEvent) {
 .watchlist__row--active { background: #1d4057; box-shadow: inset 2px 0 #66b4e8; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
+.watchlist__stack-cell { display: grid; min-width: 0; align-self: stretch; padding: 1px 6px; }
+.watchlist__stack-cell small { overflow: hidden; color: #8999a5; font: 9px/1.15 "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.watchlist__stack-cell em { display: inline-block; min-width: 27px; margin-right: 4px; color: #718c9f; font-style: normal; }
 </style>

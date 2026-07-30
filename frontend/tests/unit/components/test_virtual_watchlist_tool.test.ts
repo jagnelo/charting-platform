@@ -153,7 +153,7 @@ describe('VirtualWatchlistTool', () => {
       },
     })
     await wrapper.find('.watchlist__columns-button').trigger('click')
-    await wrapper.find('.watchlist__column-menu button').trigger('click')
+    await wrapper.find('.watchlist__column-menu button:not(.watchlist__stack-button)').trigger('click')
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
   })
 
@@ -173,5 +173,22 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__header em').text()).toBe('Momentum')
     await wrapper.find('.watchlist__row').trigger('click')
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ instrumentId: 2, symbol: 'XLE' })
+  })
+
+  it('stacks saved columns in one dense cell without duplicating their canonical row', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'relative_1m', label: '1M relative' }],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.find('.watchlist__stack-button').trigger('click')
+    expect(wrapper.emitted('update:stackedColumnKeys')?.at(-1)).toEqual([['symbol']])
+
+    await wrapper.setProps({ stackedColumnKeys: ['symbol', 'relative_1m'] })
+    expect(wrapper.findAll('.watchlist__row')).toHaveLength(1)
+    expect(wrapper.find('.watchlist__stack-cell').text()).toContain('Symbol')
+    expect(wrapper.find('.watchlist__stack-cell').text()).toContain('1M relative')
   })
 })

@@ -11,6 +11,7 @@
       :condition-filter-mode="configuredConditionFilterMode"
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
+      :stacked-column-keys="configuredStackedColumnKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -18,6 +19,7 @@
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+      @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -31,6 +33,7 @@
       :condition-filter-mode="configuredConditionFilterMode"
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
+      :stacked-column-keys="configuredStackedColumnKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -38,6 +41,7 @@
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+      @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
     />
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
@@ -90,6 +94,7 @@
       :condition-filter-mode="configuredConditionFilterMode"
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
+      :stacked-column-keys="configuredStackedColumnKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -97,6 +102,7 @@
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+      @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" />
@@ -146,7 +152,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -271,6 +277,8 @@ const configuredColumnGroups = computed(() => {
   if (!groups || typeof groups !== 'object' || Array.isArray(groups)) return {}
   return Object.fromEntries(Object.entries(groups).filter(([key, value]) => typeof key === 'string' && typeof value === 'string'))
 })
+const configuredStackedColumnKeys = computed(() => Array.isArray(props.tool.configuration.stacked_column_keys)
+  ? props.tool.configuration.stacked_column_keys.filter((key): key is string => typeof key === 'string') : [])
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
