@@ -424,6 +424,7 @@ async def group_relative_rotation(
         lookback=lookback,
         tail_length=tail_length,
         membership_version=group.id,
+        universe_provenance=group.provenance or {},
         rows=rows,
     )
 
@@ -621,6 +622,11 @@ async def industry_proxy_snapshot(
             sum(ord(char) for char in f"{item.symbol}:{item.composition_date}:{item.known_at}")
             for item in evidence.proxies
         ),
+        universe_provenance={
+            "membership_semantics": "verified_industry_etf_proxies",
+            "sector_etf": sector.symbol,
+            "industry": industry,
+        },
         coverage=covered / max(len(ordered), 1),
         exclusions=exclusions,
         rows=rows,
@@ -833,6 +839,12 @@ async def etf_constituent_snapshot(
         ),
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=snapshot.id,
+        universe_provenance={
+            "membership_semantics": "etf_proxy_membership",
+            "etf_symbol": etf.symbol,
+            "composition_date": snapshot.composition_date.isoformat(),
+            "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+        },
         coverage=covered / max(len(holdings), 1),
         exclusions=exclusions,
         rows=rows,
@@ -1028,6 +1040,7 @@ async def group_snapshot(
         ),
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
+        universe_provenance=group.provenance or {},
         coverage=covered / max(len(group.members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -1079,7 +1092,10 @@ async def group_breadth(
     return BreadthOut(
         group_key=group_key,
         timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
         as_of=as_of,
+        membership_version=group.id,
+        universe_provenance=group.provenance or {},
         evaluated_count=len(group.members),
         coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(group.members), 1),
         above_ma={
@@ -1154,6 +1170,7 @@ async def group_breadth_history(
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
+        universe_provenance=group.provenance or {},
         points=points,
         exclusions=exclusions,
     )

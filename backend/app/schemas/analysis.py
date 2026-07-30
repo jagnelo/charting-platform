@@ -1,6 +1,6 @@
 """Provider-neutral batch analysis response contracts."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -11,12 +11,20 @@ class AnalysisWarning(BaseModel):
     instrument_id: int | None = None
 
 
+class AnalysisResponseMetadata(BaseModel):
+    """Common local-data lineage for every analysis response."""
+
+    calculation_version: str = "analysis-v1"
+    data_provenance: str = "canonical_local_database"
+    refreshed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
 class AnalysisPoint(BaseModel):
     timestamp: datetime
     value: float
 
 
-class RelativeStrengthOut(BaseModel):
+class RelativeStrengthOut(AnalysisResponseMetadata):
     symbol: str
     benchmark: str
     timeframe: str
@@ -46,7 +54,7 @@ class RelativeRotationRow(BaseModel):
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class RelativeRotationOut(BaseModel):
+class RelativeRotationOut(AnalysisResponseMetadata):
     group_key: str
     benchmark: str
     timeframe: str
@@ -54,6 +62,7 @@ class RelativeRotationOut(BaseModel):
     lookback: int
     tail_length: int
     membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
     rows: list[RelativeRotationRow]
 
 
@@ -73,12 +82,13 @@ class GroupSnapshotRow(BaseModel):
     technical: dict[str, AnalysisCell] = Field(default_factory=dict)
 
 
-class GroupSnapshotOut(BaseModel):
+class GroupSnapshotOut(AnalysisResponseMetadata):
     group_key: str
     timeframe: str
     as_of: datetime | None
     adjustment: str
     membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     rows: list[GroupSnapshotRow]
@@ -111,10 +121,13 @@ class IndustryProxySnapshotOut(GroupSnapshotOut):
     proxy_evidence: list[dict[str, object]] = Field(default_factory=list)
 
 
-class BreadthOut(BaseModel):
+class BreadthOut(AnalysisResponseMetadata):
     group_key: str
     timeframe: str
+    adjustment: str
     as_of: datetime | None
+    membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
     evaluated_count: int
     coverage: float = Field(ge=0, le=1)
     above_ma: dict[str, float | None]
@@ -127,16 +140,17 @@ class BreadthHistoryPoint(BaseModel):
     coverage: dict[str, float]
 
 
-class BreadthHistoryOut(BaseModel):
+class BreadthHistoryOut(AnalysisResponseMetadata):
     group_key: str
     timeframe: str
     adjustment: str
     membership_version: int
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
     points: list[BreadthHistoryPoint]
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class TechnicalSnapshotOut(BaseModel):
+class TechnicalSnapshotOut(AnalysisResponseMetadata):
     symbol: str
     timeframe: str
     as_of: datetime | None
@@ -151,7 +165,7 @@ class TechnicalSnapshotOut(BaseModel):
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
-class MarketGaugeOut(BaseModel):
+class MarketGaugeOut(AnalysisResponseMetadata):
     screener_id: int
     screener_name: str
     run_at: datetime | None
