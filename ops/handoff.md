@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T13:05:00Z
+
+- Completed a linked-timeframe system: cross-window `BroadcastChannel`/storage sync,
+  workspace persistence and restore, global and per-chart Daily/Weekly/Monthly controls,
+  chart reload on linked changes, direct store coverage, and group-aware publication that
+  preserves grey isolation. Pushed `ba34c54` through `7401722`.
+- Focused workspace-store suite `11 passed`; frontend TypeScript and production build
+  passed where applicable.
+
+### Exact next step
+
+- Continue the remaining tool-window and cross-window interaction acceptance audit;
+  visual acceptance remains blocked on authorised V25 captures.
+
 ## Continuation update — 2026-07-30T12:50:00Z
 
 - Completed persisted-freshness derivation for ETF-proxy batches and exposed it in the

@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T13:05:00Z Linked timeframe completion slice
+
+- Implemented and verified cross-window, persistent, group-aware linked timeframe
+  behavior with global and chart-window controls. Pushed `ba34c54` through `7401722`.
+- Validation: workspace-store `11 passed`, TypeScript, production build, and diff checks.
+
 ## 2026-07-30T12:50:00Z Full top-down freshness visibility
 
 - Finished persisted freshness derivation for ETF-proxy batches, surfaced freshness in
