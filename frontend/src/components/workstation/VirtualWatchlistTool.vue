@@ -295,11 +295,12 @@ function onKeydown(event: KeyboardEvent) {
   if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return
   event.preventDefault()
   const current = filteredRows.value.findIndex(row => row.symbol === props.selected)
-  if (event.key === 'Enter' || event.key === ' ') {
+  if (event.key === 'Enter') {
     if (current >= 0) emit('select', filteredRows.value[current])
     return
   }
-  const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1)))
+  const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.shiftKey)
+  const next = Math.max(0, Math.min(filteredRows.value.length - 1, current + (forward ? 1 : -1)))
   if (filteredRows.value[next]) emit('select', filteredRows.value[next])
 }
 

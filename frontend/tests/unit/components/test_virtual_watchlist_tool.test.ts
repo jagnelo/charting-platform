@@ -213,4 +213,10 @@ describe('VirtualWatchlistTool', () => {
     wrapper.find('.watchlist__scroll').element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLK', instrumentId: 1 })
   })
+
+  it('traverses backward with Shift+Space', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLK' } })
+    await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ', shiftKey: true })
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
+  })
 })
