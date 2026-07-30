@@ -1,0 +1,54 @@
+from pathlib import Path
+
+import pytest
+
+from app.services.visual_manifest import (
+    VisualManifestError,
+    load_visual_manifest,
+    validate_visual_manifest,
+)
+
+MANIFEST = Path(__file__).parents[4] / "tests/visual/references/tc2000-v25/manifest.yaml"
+
+
+def test_current_manifest_is_well_formed_but_cannot_pass_visual_acceptance():
+    manifest = load_visual_manifest(MANIFEST)
+    validate_visual_manifest(manifest)
+    with pytest.raises(VisualManifestError, match="visual acceptance is blocked"):
+        validate_visual_manifest(manifest, require_approved=True)
+
+
+def test_approved_reference_requires_full_capture_evidence():
+    manifest = {
+        "product": {"generation": "25", "build": "25.0.9571"},
+        "reference_policy": {"acceptance_requires": "approved"},
+        "environments": [
+            {"id": key, "viewport": {"width": width, "height": height}, "display_scale": scale}
+            for key, (width, height, scale) in {
+                "desktop-1080p-100": (1920, 1080, 100),
+                "desktop-1080p-125": (1920, 1080, 125),
+                "desktop-1440p-100": (2560, 1440, 100),
+                "desktop-1440p-125": (2560, 1440, 125),
+            }.items()
+        ],
+        "surfaces": [
+            {
+                "id": "shell",
+                "state": "approved",
+                "required_states": ["default"],
+                "reproduction": "Open shell.",
+                "source": {"locator": "controlled://shell", "sha256": "a" * 64},
+                "environment": {
+                    "resolution": "1920x1080",
+                    "display_scale": 100,
+                    "theme": "dark",
+                    "locale": "en-US",
+                    "timezone": "UTC",
+                    "device_pixel_ratio": 1,
+                },
+                "measurements": {"tokens": {"menu_height": 20}},
+                "review": {"status": "approved"},
+            }
+        ],
+    }
+    validate_visual_manifest(manifest, require_approved=True)
