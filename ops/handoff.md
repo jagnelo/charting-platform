@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:20:00Z
+
+- Standardized calculation version, canonical-local provenance, and refresh time across
+  analysis responses. Group-derived responses now also make membership semantics and
+  evidence explicit, including ETF-proxy and verified-industry-proxy universes. Pushed
+  `8e52564`.
+- Workstation-analysis/code integration `20 passed` with `--no-cov` (two existing
+  third-party warnings), Ruff, and diff checks passed.
+
+### Exact next step
+
+- Derive and surface batch freshness from persisted dataset states, then continue the
+  remaining full acceptance and visual-parity work.
+
 ## Continuation update — 2026-07-30T12:10:00Z
 
 - Added the authenticated, provider-neutral `/coverage/instruments/{symbol}` contract.

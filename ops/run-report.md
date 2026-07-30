@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:20:00Z Standardized analysis metadata
+
+- Added common calculation-version, canonical-local provenance, and refresh metadata
+  to analysis responses; market-group/ETF-proxy outputs now include explicit universe
+  membership semantics. Pushed `8e52564`.
+- Validation: workstation-analysis/code API integration `20 passed` with `--no-cov`
+  (two existing third-party warnings), Ruff, and diff check. Full batch freshness and
+  acceptance remain incomplete.
+
 ## 2026-07-30T12:10:00Z Canonical coverage contract
 
 - Added the authenticated provider-neutral local coverage API and bound the workstation
