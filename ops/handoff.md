@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:42:00Z
+
+- Entitlements now seed explicitly as unreviewed for each supported provider/capability,
+  and authenticated API consumers can list/update all governance metadata. Existing
+  policy/health routes remain covered. Pushed `44bf5fa`.
+- Focused provider router `6 passed` with `--no-cov` (two existing third-party warnings),
+  Ruff, and diff checks passed.
+
+### Exact next step
+
+- Enforce reviewed entitlements through provider resolution and surface the canonical
+  status in workstation coverage/freshness tools.
+
 ## Continuation update — 2026-07-30T11:36:00Z
 
 - Added the versioned provider-entitlement persistence foundation, distinct from runtime

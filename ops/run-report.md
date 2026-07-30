@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:42:00Z Provider entitlement governance API
+
+- Seeded explicit unreviewed provider/capability entitlements and added authenticated
+  listing/update APIs alongside existing runtime policy/health data. Pushed `44bf5fa`.
+- Validation: provider router `6 passed` with `--no-cov` (two existing third-party
+  warnings), Ruff, and diff check. Runtime enforcement remains incomplete.
+
 ## 2026-07-30T11:36:00Z Provider entitlement registry foundation
 
 - Added migration-backed provider/capability entitlement records for plan/terms,
