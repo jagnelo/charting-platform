@@ -124,7 +124,7 @@ describe('VirtualWatchlistTool', () => {
       },
     })
     await wrapper.find('.watchlist__columns-button').trigger('click')
-    const choices = wrapper.findAll('.watchlist__column-menu input')
+    const choices = wrapper.findAll('.watchlist__column-menu input[type="checkbox"]')
     await choices[1].setValue(false)
     expect(wrapper.emitted('update:visibleColumnKeys')?.[0]).toEqual([['symbol']])
 
@@ -155,5 +155,23 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.find('.watchlist__columns-button').trigger('click')
     await wrapper.find('.watchlist__column-menu button').trigger('click')
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
+  })
+
+  it('persists column grouping without changing virtualized canonical row identity', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'relative_1m', label: '1M relative' }],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    const groupInput = wrapper.find('input[aria-label="1M relative group"]')
+    await groupInput.setValue('Momentum')
+
+    expect(wrapper.emitted('update:columnGroups')?.at(-1)).toEqual([{ relative_1m: 'Momentum' }])
+    await wrapper.setProps({ columnGroups: { relative_1m: 'Momentum' } })
+    expect(wrapper.find('.watchlist__header em').text()).toBe('Momentum')
+    await wrapper.find('.watchlist__row').trigger('click')
+    expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ instrumentId: 2, symbol: 'XLE' })
   })
 })
