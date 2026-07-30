@@ -71,6 +71,28 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('update:conditionScreenerId')?.at(-1)).toEqual([91])
   })
 
+  it('keeps a saved condition configured while inactive and clears it only when off', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/screeners') return Promise.resolve([{ id: 91, name: 'Close above threshold' }])
+      if (path === '/screeners/91/results') return Promise.resolve([{ matched_ids: [2], run_at: '2026-07-30T00:00:00Z' }])
+      return Promise.resolve([])
+    })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await vi.waitFor(() => expect(wrapper.findAll('option')).toHaveLength(2))
+    await wrapper.find('select').setValue('91')
+    await vi.waitFor(() => expect(wrapper.findAll('select')).toHaveLength(2))
+    await wrapper.findAll('select')[1].setValue('inactive')
+
+    expect(wrapper.text()).toContain('inactive')
+    expect(wrapper.find('.watchlist__controls b').text()).toBe('3')
+    expect(wrapper.emitted('update:conditionFilterMode')?.at(-1)).toEqual(['inactive'])
+    expect(wrapper.emitted('update:conditionScreenerId')?.at(-1)).toEqual([91])
+
+    await wrapper.findAll('select')[1].setValue('off')
+    expect(wrapper.emitted('update:conditionFilterMode')?.at(-1)).toEqual(['off'])
+    expect(wrapper.emitted('update:conditionScreenerId')?.at(-1)).toEqual([null])
+  })
+
   it('shows no rows rather than silently ignoring an unrun saved condition', async () => {
     apiGet.mockImplementation((path: string) => path === '/screeners'
       ? Promise.resolve([{ id: 92, name: 'Unrun condition' }])
