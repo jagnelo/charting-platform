@@ -1,6 +1,15 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T12:12:00Z
+## Continuation update — 2026-07-30T15:20:00Z
+
+- Tool list selections now retain canonical `instrument_id`, persist per-tool selected
+  symbols, and publish only through the tool's configured link group. Grey selections
+  remain isolated; yellow receives the latest non-grey publication.
+- Proxy drill-down no longer performs a second, erroneous blue-group publication.
+- Validation: workspace-store `13 passed`, TypeScript, production build, and diff check.
+  Browser cross-window/per-chart link acceptance remains outstanding.
+
+## Prior continuation update — 2026-07-30T12:12:00Z
 
 - Browser acceptance exposed and fixed three genuine workstation failures: numeric
   Golden Layout sizes/minimum dimensions from persisted legacy snapshots now normalize

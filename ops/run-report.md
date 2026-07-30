@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:20:00Z Link-group selection correctness
+
+- Tool-originated list selections now retain canonical instrument IDs, persist their
+  selected symbol, and publish only to the tool's configured link group. Grey tools
+  retain isolated selections; yellow resolves the latest non-grey publication.
+- Validation: workspace-store `13 passed`, TypeScript, production build, and diff check.
+  Browser cross-group chart rendering remains part of the outstanding full acceptance
+  suite.
+
 ## 2026-07-30T13:05:00Z Linked timeframe completion slice
 
 - Implemented and verified cross-window, persistent, group-aware linked timeframe

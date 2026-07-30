@@ -12,7 +12,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
-      @select="emit('select', $event.symbol)"
+      @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -34,7 +34,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
-      @select="emit('select', $event.symbol)"
+      @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -56,7 +56,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
-      @select="emit('select', $event.symbol)"
+      @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -100,7 +100,7 @@
             :pinned-boolean-keys="configuredPinnedBooleanKeys"
             :column-groups="configuredColumnGroups"
             :stacked-column-keys="configuredStackedColumnKeys"
-            @select="emit('selectProxy', $event.symbol)"
+            @select="selectProxy($event.symbol)"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
             @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -130,7 +130,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
-      @select="emit('select', $event.symbol)"
+      @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -146,7 +146,7 @@
       <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
-    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation'" @select="emit('select', $event)" />
+    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation'" @select="selectSymbol($event)" />
     <div v-else-if="tool.instance_key === 'technical-summary'" class="metrics">
       <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
       <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
@@ -156,7 +156,7 @@
     <CoverageSummaryTool v-else-if="tool.instance_key === 'coverage-summary'" :symbol="activeSymbol" />
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
-    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="emit('select', $event)" />
+    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
@@ -192,7 +192,19 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
-const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
+const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
+  props.tool.link_group,
+  typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
+))
+
+function selectSymbol(symbol: string, instrumentId?: number | null) {
+  workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
+}
+
+function selectProxy(symbol: string) {
+  selectSymbol(symbol)
+  emit('selectProxy', symbol)
+}
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
 const sectorPerformance = computed(() => Object.fromEntries(

@@ -166,7 +166,6 @@ async function selectIndustryProxy(symbol: string) {
   workspaceStore.selectIndustryProxy(symbol)
   symbolDraft.value = symbol
   preserveDrilldownSymbol.value = symbol
-  workspaceStore.publishSymbol({ symbol, group: 'blue', sourceWindowKey: 'industry-proxy' })
 }
 
 function openTool(tool: OpenableToolDefinition) {

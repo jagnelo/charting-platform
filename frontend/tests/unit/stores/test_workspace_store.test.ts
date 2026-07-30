@@ -104,6 +104,33 @@ describe('workspace store layout tabs', () => {
     }))
   })
 
+  it('publishes a selected row only to its owning link group and retains grey isolation', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'blue-chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'blue-chart', tool_type: 'chart', title: 'Blue chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'red-list', tool_type: 'watchlist', title: 'Red list', link_group: 'red', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+          { id: 32, instance_key: 'grey-chart', tool_type: 'chart', title: 'Grey chart', link_group: 'grey', configuration: { symbol: 'IWM' }, style: {}, state_schema_version: 1, position: 2 },
+        ],
+      }],
+    }
+
+    expect(store.selectToolSymbol('red-list', 'XLK', 42)).toBe(true)
+    expect(store.linkedSymbol).toBe('SPY')
+    expect(store.symbolForLinkGroup('red')).toBe('XLK')
+    expect(store.symbolForLinkGroup('yellow')).toBe('XLK')
+    expect(store.activeTab?.windows[1].configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+
+    expect(store.selectToolSymbol('grey-chart', 'XLE', 43)).toBe(true)
+    expect(store.symbolForLinkGroup('grey', 'IWM')).toBe('IWM')
+    expect(store.activeTab?.windows[2].configuration).toMatchObject({ symbol: 'XLE', instrument_id: 43 })
+    expect(store.symbolForLinkGroup('grey', String(store.activeTab?.windows[2].configuration.symbol))).toBe('XLE')
+    expect(store.symbolForLinkGroup('yellow')).toBe('XLK')
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

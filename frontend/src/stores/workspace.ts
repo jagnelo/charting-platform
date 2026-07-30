@@ -236,6 +236,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
   const activeTabKey = ref<string>('us-top-down')
   const linkedSymbol = ref('SPY')
+  /**
+   * Shared selection is keyed by link group. `linkedSymbol` remains the blue/default
+   * shell symbol, while tools resolve their own group below. Grey tools never read
+   * or publish shared state; yellow is the wildcard receiver.
+   */
+  const linkedSymbols = ref<Partial<Record<LinkGroup, LinkEvent>>>({
+    blue: { symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' },
+  })
+  const wildcardSymbol = ref<LinkEvent>({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
   const linkedTimestamp = ref<string | null>(null)
   const linkedTimeframe = ref('D1')
   const loading = ref(false)
@@ -282,12 +291,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       || (target instanceof HTMLElement && target.isContentEditable)
   }
 
+  function applySharedSymbol(event: LinkEvent) {
+    if (event.group === 'grey') return
+    linkedSymbols.value = { ...linkedSymbols.value, [event.group]: { ...event } }
+    wildcardSymbol.value = { ...event }
+    if (event.group === 'blue') {
+      linkedSymbol.value = event.symbol
+      linkedTimestamp.value = event.timestamp ?? null
+    }
+  }
+
   function handleMessage(event: MessageEvent<LinkEvent & { type?: string }>) {
     if (event.data.group === 'grey') return
-    if (event.data.type === 'symbol') {
-      linkedSymbol.value = event.data.symbol
-      linkedTimestamp.value = event.data.timestamp ?? null
-    }
+    if (event.data.type === 'symbol') applySharedSymbol(event.data)
     if (event.data.type === 'timeframe' && event.data.timeframe) linkedTimeframe.value = event.data.timeframe
   }
 
@@ -334,8 +350,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const message = JSON.parse(event.newValue) as LinkEvent
     if (message.group !== 'grey') {
       if (event.key === CHANNEL_NAME + ':symbol') {
-        linkedSymbol.value = message.symbol
-        linkedTimestamp.value = message.timestamp ?? null
+        applySharedSymbol(message)
       }
       if (event.key === CHANNEL_NAME + ':timeframe' && message.timeframe) linkedTimeframe.value = message.timeframe
     }
@@ -360,10 +375,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
-    linkedSymbol.value = event.symbol
-    linkedTimestamp.value = event.timestamp ?? null
+    applySharedSymbol(event)
     channel?.postMessage({ ...event, type: 'symbol' })
     localStorage.setItem(CHANNEL_NAME + ':symbol', JSON.stringify(event))
+  }
+
+  function symbolForLinkGroup(group: LinkGroup, isolatedSymbol?: string | null) {
+    if (group === 'grey') return isolatedSymbol?.trim().toUpperCase() || 'SPY'
+    if (group === 'yellow') return wildcardSymbol.value.symbol
+    return linkedSymbols.value[group]?.symbol ?? (isolatedSymbol?.trim().toUpperCase() || 'SPY')
   }
 
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
@@ -766,6 +786,32 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return true
   }
 
+  /**
+   * A list row is selected by canonical identity and published only to its owning
+   * link group. Persisting the symbol gives grey/isolated windows a durable local
+   * selection and provides a safe fallback before a group receives its first event.
+   */
+  function selectToolSymbol(windowKey: string, symbol: string, instrumentId?: number | null) {
+    const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
+    const normalized = symbol.trim().toUpperCase()
+    if (!tool || !normalized) return false
+    tool.configuration = {
+      ...tool.configuration,
+      symbol: normalized,
+      ...(typeof instrumentId === 'number' ? { instrument_id: instrumentId } : {}),
+    }
+    if (tool.link_group !== 'grey') {
+      publishSymbol({
+        symbol: normalized,
+        ...(typeof instrumentId === 'number' ? { instrumentId } : {}),
+        group: tool.link_group,
+        sourceWindowKey: windowKey,
+      })
+    }
+    scheduleSnapshot()
+    return true
+  }
+
   /** Remove a tool through the same serializable state used by Golden Layout. */
   function closeTool(windowKey: string) {
     const tab = activeTab.value
@@ -833,6 +879,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTab,
     activeTabKey,
     linkedSymbol,
+    linkedSymbols,
     linkedTimestamp,
     linkedTimeframe,
     loading,
@@ -856,6 +903,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     connect,
     disconnect,
     publishSymbol,
+    symbolForLinkGroup,
     publishTimeframe,
     loadDefault,
     loadMarketGroup,
@@ -875,6 +923,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     applyActiveLayout,
     openTool,
     updateToolLinkGroup,
+    selectToolSymbol,
     closeTool,
     cloneActiveTab,
     resetFactoryWorkspace,
