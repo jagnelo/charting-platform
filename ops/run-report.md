@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:56:00Z Ctrl+wheel list traversal checkpoint
+
+- Added tested Ctrl+wheel canonical row traversal in focused virtualized lists. Pushed
+  `453b1bb`.
+- Validation: VirtualWatchlistTool `13 passed`, TypeScript, diff check. Full acceptance
+  remains incomplete.
+
 ## 2026-07-30T10:54:00Z Functional desktop-shell actions checkpoint
 
 - Added Workspace clone, Study Lab, and factory Reset shell actions. Pushed `9db9657`.

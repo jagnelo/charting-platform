@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:56:00Z
+
+- Added Ctrl+wheel canonical row traversal to focused virtualized lists, using the
+  existing stable selection event rather than a duplicate navigation path.
+- Added direct coverage; pushed `453b1bb`. VirtualWatchlistTool `13 passed`,
+  TypeScript and diff checks passed.
+
+### Exact next step
+
+- Continue desktop keyboard/menu parity and remaining workstation acceptance work.
+
 ## Continuation update — 2026-07-30T10:54:00Z
 
 - Replaced the shell's single Tool action with compact functional Workspace clone,
