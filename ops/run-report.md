@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:35:00Z Industry proxy ranking store-coverage checkpoint
+
+- Added a focused store test proving verified proxy evidence initiates and caches the
+  canonical industry-proxy ranking batch. Pushed `41a9b97`.
+- Validation: workspace-store `9 passed`, TypeScript, diff check. Full acceptance
+  remains incomplete.
+
 ## 2026-07-30T10:33:00Z Enriched Industry proxy ranking checkpoint
 
 - Verified industry-proxy cards now show 1M, RSI, proxy/sector, proxy/SPY, and local

@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:35:00Z
+
+- Added focused store coverage that proves verified industry-proxy evidence triggers
+  the canonical batch ranking request and caches the returned rows.
+- Pushed `41a9b97`; workspace-store suite `9 passed`, TypeScript and diff checks
+  passed.
+
+### Exact next step
+
+- Continue the sortable virtualized proxy-ranking presentation and the remaining
+  end-to-end top-down acceptance paths.
+
 ## Continuation update — 2026-07-30T10:33:00Z
 
 - Enriched verified Industry proxy cards with 1M performance, RSI, sector-relative and
