@@ -1,5 +1,25 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:05:00Z
+
+- Added a versioned curated industry-proxy candidate registry. A candidate is exposed
+  only after its own local point-in-time holdings snapshot independently verifies the
+  exact selected industry classification; ETF names are never used as proof.
+- Added `/market-groups/etf/{symbol}/industries/{industry}/proxies`, carrying candidate
+  exclusions plus source snapshot date/known-at/provenance/provider, matching/classified
+  counts, and coverage. The Industry window renders the verified result and selects it
+  without replacing the selected sector ETF drill-down context.
+- Pushed `8387ebf feat(top-down): verify industry ETF proxies`.
+- Validation passed: backend Ruff format/check and focused workstation/analysis API
+  integration `13 passed` (Python 3.12); focused frontend ratio/workspace-store tests
+  `9 passed`; frontend type-check/build; `git diff --check`.
+
+### Exact next step
+
+- Finish batch analytics for industry-filtered constituents and proxy lists, including
+  transparent point-in-time coverage/freshness display; then move into the next major
+  unimplemented full-goal surface rather than treating top-down work as complete.
+
 ## Continuation update — 2026-07-30T10:00:00Z
 
 - Relative Strength now retains two local, unfilled ratio series simultaneously:

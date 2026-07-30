@@ -15670,3 +15670,17 @@ Append a short entry after each worker session.
   production build; diff check. Pushed code commit `1b31969`.
 - Curated industry-proxy mapping and the remaining broad completion criteria are still
   incomplete.
+## 2026-07-30T10:05:00Z Evidence-gated industry-proxy drill-down checkpoint
+
+- Added an explicit versioned industry-proxy candidate registry and a read API that
+  makes a candidate visible only when its own exact classified local holdings provide
+  evidence. The contract reports candidate omissions and source snapshot provenance,
+  date/known-at, matching/classified counts, and coverage; it does not infer mappings
+  from product naming.
+- The Industry tool shows only verified proxies and retains the current sector holdings
+  drill-down when a proxy updates linked charts and ratio comparisons.
+- Validation: focused backend integration `13 passed` under Python 3.12, Ruff
+  format/check, frontend ratio/workspace tests `9 passed`, type-check/build, diff check.
+  Pushed code commit `8387ebf`.
+- Industry-filtered batch calculations, provenance/freshness display, and the broader
+  full-goal acceptance matrix remain incomplete.
