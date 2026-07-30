@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:51:00Z Proxy-ranking exclusions checkpoint
+
+- Surface structured proxy-ranking exclusion codes below the table. Pushed `9813c18`.
+- Validation: TypeScript, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:49:00Z Proxy-ranking as-of regression checkpoint
 
 - Added direct proof that a later proxy bar cannot appear in an as-of constrained

@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:51:00Z
+
+- Added explicit structured proxy-ranking exclusion feedback beneath the virtualized
+  ranking table, so local-history/coverage failures remain visible.
+- Pushed `9813c18`; TypeScript and diff checks passed.
+
+### Exact next step
+
+- Continue complete top-down workflow acceptance and the next unimplemented
+  workstation/backend requirement.
+
 ## Continuation update — 2026-07-30T10:49:00Z
 
 - Added direct regression coverage proving the proxy-ranking endpoint excludes a later

@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T10:49:00Z",
-    "last_commit": "867c0e3 test(top-down): cover proxy ranking as-of boundary",
+    "last_handoff_at": "2026-07-30T10:51:00Z",
+    "last_commit": "9813c18 feat(top-down): show proxy ranking exclusions",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused VirtualWatchlistTool suite: 12 passed; workspace-store suite: 9 passed; StudyLabTool test: 1 passed; ToolWindow test: 1 passed; TypeScript check after proxy-ranking integration, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after enriched industry-proxy ranking, four-environment visual screenshot harness, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T10:49:00Z proxy ranking as-of regression)",
+        "diff_check": "passed (2026-07-30T10:51:00Z proxy ranking exclusions)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T10:51:00Z: Added/pushed 9813c18: Industry proxy rankings now surface structured local-history/coverage exclusions beneath the table. TypeScript and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T10:49:00Z: Added/pushed 867c0e3: direct integration coverage now proves a later proxy bar is excluded by the industry-proxy ranking as-of boundary. Workspace integration 13 passed with --no-cov, Ruff/format and diff check passed. Full acceptance remains incomplete.",
         "2026-07-30T10:47:00Z: Added/pushed 3a0ae35: industry-proxy rankings now apply requested as-of time to both verified disclosure selection and local bars, preventing future disclosure/bar leakage. Workspace integration 13 passed with --no-cov, Ruff/format and diff check passed. Full acceptance remains incomplete.",
         "2026-07-30T10:44:00Z: Added/pushed ce10197: verified proxy rankings now show point-in-time known-at freshness separately from holdings composition date. TypeScript and diff checks passed. Full acceptance remains incomplete.",
