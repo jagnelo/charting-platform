@@ -16220,3 +16220,12 @@ Append a short entry after each worker session.
   full Chromium `flows.spec.ts` (`22 passed`); `git diff --check`.
 - This is not full chart-template/plot-library completion. Continue with remaining
   chart mechanics and the broader active-goal acceptance matrix.
+# 2026-07-30T16:05:00Z Chart-window configuration checkpoint
+
+- Routed workstation uPlot rendering and projection settings through serialized chart
+  configuration. The chart settings popup preserves legacy global-user-settings behavior
+  outside the workstation, while workstation changes emit only chart-local state.
+- Template browser coverage now proves Line rendering and current-price projection are
+  saved, restored, and applied without replacing `AAPL`.
+- Validation: TypeScript; production build; rebuilt isolated branch stack; focused F9c;
+  full Chromium `flows.spec.ts` (`22 passed`); `git diff --check`.

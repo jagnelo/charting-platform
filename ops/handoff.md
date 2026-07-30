@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:05:00Z
+
+- The uPlot chart-settings control now updates serializable workstation-chart state when
+  rendered inside a workstation tool, instead of silently changing only global user
+  preferences. Templates consequently restore bar type and current-price/high-low/
+  volume-profile projection choices to their own live chart window.
+- Validation: TypeScript, production build, rebuilt isolated stack, focused F9c, full
+  Chromium flows (`22 passed`), and `git diff --check` passed. Exact next step:
+  commit/push this chart-configuration increment, then continue the remaining plot
+  library/chart-template mechanics.
+
 ## Continuation update — 2026-07-30T15:56:52Z
 
 - Chart templates now carry a real persisted window mechanic: the selected bar type.
