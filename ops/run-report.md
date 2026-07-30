@@ -2,6 +2,10 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:30:00Z Alembic downgrade/upgrade acceptance
+
+- Isolated stack passed `head → -1 → head` and remained healthy across all services.
+
 ## 2026-07-30T16:25:00Z Fresh migration bootstrap succeeds
 
 - Repaired all workstation migration timestamp defaults. A recreated branch stack

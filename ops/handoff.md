@@ -1,5 +1,10 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:30:00Z
+
+- Migration acceptance now passes: the healthy isolated branch stack downgraded
+  `d2a3b4c5d6e7 → d1a2b3c4d5e6`, upgraded back to head, and all services remained healthy.
+
 ## Continuation update — 2026-07-30T16:25:00Z
 
 - Completed the fresh-bootstrap repair for the TC2000 workstation migration: all eight

@@ -4,7 +4,7 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T16:25:00Z",
+    "last_handoff_at": "2026-07-30T16:30:00Z",
     "last_commit": "9bb7fd3 fix(platform): migrate schema before startup",
     "git_ready_to_commit": true,
     "validation": {
@@ -12,7 +12,7 @@
         "backend_tests": "workspace API 16 passed (two existing Nautilus deprecation warnings); workstation-analysis integration 13 passed; workstation-analysis/code API integration 20 passed; coverage router 2 passed; provider governance router 6 passed and runtime 8 passed (14 combined) with --no-cov; isolated Study Lab runner/deployment guard 8 passed; research API integration 7 passed; screener/analysis integration 19 passed; workspace/analysis integration 13 passed (Python 3.12), 2026-07-30",
         "frontend_tests": "passed (RatioUPlot 3 passed with linked-timeframe and linked-crosshair coverage; workspace-store and ToolWindow 19 passed; focused Chromium expression/pop-out/logout F9b/F8b/F8c 3 passed; auth-store 30 passed; prior persisted-results/Study Lab/VirtualWatchlistTool slices also passed, 2026-07-30)",
         "frontend_build": "passed (production build after expression-entry and pop-out recovery correction, 2026-07-30)",
-        "alembic_upgrade": "fresh branch stack successfully upgrades to d2a3b4c5d6e7 (head), seeds top-down taxonomy, and starts healthy without runtime create_all; downgrade-one then upgrade-head remains required",
+        "alembic_upgrade": "passed: fresh branch stack upgrades to d2a3b4c5d6e7 head, seeds top-down taxonomy, starts healthy without runtime create_all, and completes controlled head-to-minus-one-to-head cycle",
         "diff_check": "passed (2026-07-30T16:15:00Z expression-entry and pop-out recovery correction)",
         "playwright": "focused Chromium F9b expression entry, F8b source-to-pop-out recovery, and F8c cross-window logout passed against rebuilt branch Compose stack (3 passed); visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T16:30:00Z: Fresh Alembic bootstrap and controlled d2a3b4c5d6e7 -> d1a2b3c4d5e6 -> d2a3b4c5d6e7 cycle passed; all isolated branch stack services remained healthy.",
         "2026-07-30T16:25:00Z: Fresh Alembic bootstrap now succeeds: all workstation timestamp migration defaults repaired, entitlement enum/default repair retained, and container startup is Alembic-owned. Branch stack current is d2a3b4c5d6e7 head and healthy. Controlled downgrade/upgrade validation remains.",
         "2026-07-30T16:20:00Z: Runtime create_all replaced by Alembic entrypoint plus API healthcheck/worker ordering. Fresh chain exposed historical provider entitlement enum/timestamp defects, repaired in source; current fresh-bootstrap failure is market_group.created_at non-null without migration server default during taxonomy seed. Continue migration audit and full upgrade/downgrade proof.",
         "2026-07-30T16:15:00Z: Primary Workstation Active symbol entry now canonicalizes symbols/expressions before chart loading; pop-outs recover requested tools across tab variation. Rebuilt stack and focused Chromium F9b/F8b/F8c passed 3 tests. Full visual/multi-environment acceptance remains incomplete.",
