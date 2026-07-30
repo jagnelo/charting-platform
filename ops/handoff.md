@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:19:00Z
+
+- Added persisted named column groups to the dense virtualized workstation watchlist.
+  Group labels flow through serializable workspace window configuration and appear in
+  the header without changing canonical row identity or list virtualization.
+- Added direct component coverage; pushed `facb5f4`.
+- Validation passed: focused VirtualWatchlistTool suite `10 passed`, frontend
+  type-check/build, and `git diff --check`.
+
+### Exact next step
+
+- Implement vertical column stacking and the remaining column editing mechanics,
+  preserving persisted state, virtualization, and stable selection.
+
 ## Continuation update — 2026-07-30T10:17:00Z
 
 - Added persisted Boolean-column pin controls. Pinned truthy rows sort before the

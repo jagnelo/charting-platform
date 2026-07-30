@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:19:00Z Persisted watchlist column grouping checkpoint
+
+- Added persisted named groups in virtualized workstation watchlists. Groups are
+  represented in serialized tool configuration and shown in the dense header without
+  changing canonical selection identity. Pushed `facb5f4`.
+- Validation: VirtualWatchlistTool `10 passed`, type-check, production build, diff
+  check. Vertical stacking and broader column mechanics remain incomplete.
+
 ## 2026-07-30T10:17:00Z Boolean watchlist pinning checkpoint
 
 - Added persisted Boolean pin controls and ordering before secondary sort, plus direct
