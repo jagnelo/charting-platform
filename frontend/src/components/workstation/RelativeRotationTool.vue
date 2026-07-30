@@ -1,6 +1,6 @@
 <template>
   <section class="rotation-tool">
-    <header><strong>Relative Rotation · SPY</strong><small>Trend: ratio return over 20 bars · Momentum: change in that trend</small></header>
+    <header><strong>Relative Rotation · SPY</strong><small>Trend: ratio return over 20 bars · Momentum: change in that trend{{ freshness ? ` · ${freshness}` : '' }}</small></header>
     <p v-if="loading" class="rotation-tool__state">Calculating aligned local ratios…</p>
     <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error">{{ error }}</p>
     <p v-else-if="!rows.length" class="rotation-tool__state">No sector rotation rows are available.</p>
@@ -20,7 +20,7 @@ import { api } from '@/lib/api'
 interface Tail { timestamp: string; trend: number; momentum: number }
 interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; coverage: number; tail: Tail[] }
 const emit = defineEmits<{ select: [symbol: string] }>()
-const rows = ref<Row[]>([]), loading = ref(true), error = ref('')
+const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref('')
 const plotHost = ref<HTMLElement | null>(null)
 let plot: uPlot | null = null
 let observer: ResizeObserver | null = null
@@ -49,7 +49,7 @@ function drawPlot() {
 onMounted(async () => {
   observer = new ResizeObserver(drawPlot)
   if (plotHost.value) observer.observe(plotHost.value)
-  try { const payload = await api.get<{ rows: Row[] }>('/analysis/groups/sp500-sectors/relative-rotation', { benchmark: 'SPY', lookback: 20, tail_length: 10 }); rows.value = payload.rows; await nextTick(); drawPlot() } catch (cause: any) { error.value = cause?.message ?? 'Relative rotation is unavailable.' } finally { loading.value = false }
+  try { const payload = await api.get<{ rows: Row[]; freshness?: string }>('/analysis/groups/sp500-sectors/relative-rotation', { benchmark: 'SPY', lookback: 20, tail_length: 10 }); rows.value = payload.rows; freshness.value = payload.freshness ?? ''; await nextTick(); drawPlot() } catch (cause: any) { error.value = cause?.message ?? 'Relative rotation is unavailable.' } finally { loading.value = false }
 })
 onBeforeUnmount(() => { observer?.disconnect(); plot?.destroy(); plot = null })
 </script>

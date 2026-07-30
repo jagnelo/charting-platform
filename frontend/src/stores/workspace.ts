@@ -103,6 +103,8 @@ export interface GroupSnapshotRow {
 export interface GroupSnapshotState {
   group_key: string
   coverage: number
+  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness_detail?: Record<string, number>
   rows: GroupSnapshotRow[]
 }
 
@@ -111,11 +113,15 @@ export interface BreadthState {
   coverage: number
   evaluated_count: number
   above_ma: Record<string, number | null>
+  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness_detail?: Record<string, number>
 }
 
 export interface BreadthHistoryState {
   group_key: string
   points: Array<{ timestamp: string; above_ma: Record<string, number | null>; coverage: Record<string, number> }>
+  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness_detail?: Record<string, number>
 }
 
 export interface ETFHoldingState {
@@ -200,6 +206,8 @@ export interface IndustryProxySnapshotState {
   }>
   coverage: number
   exclusions: Array<{ code: string; message: string }>
+  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness_detail?: Record<string, number>
 }
 
 export interface TechnicalSnapshotState {
@@ -213,6 +221,8 @@ export interface TechnicalSnapshotState {
   position_52w: number | null
   volume_ratio_50: number | null
   warnings: Array<{ code: string; message: string }>
+  freshness?: 'current' | 'stale' | 'partial' | 'unavailable'
+  freshness_detail?: Record<string, number>
 }
 
 const CHANNEL_NAME = 'charting-platform-workstation'

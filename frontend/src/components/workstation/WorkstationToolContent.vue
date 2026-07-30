@@ -370,7 +370,8 @@ const descriptions: Record<string, string> = {
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
   NVDA: 'NVIDIA', MSFT: 'Microsoft', AAPL: 'Apple', AVGO: 'Broadcom', CRM: 'Salesforce', ORCL: 'Oracle', AMD: 'AMD', ADBE: 'Adobe',
 }
-const breadthCoverage = computed(() => breadth.value ? `${(breadth.value.coverage * 100).toFixed(0)}% · ${breadth.value.evaluated_count} symbols` : 'Unavailable')
+const freshnessLabel = (value?: string) => value ? ` · ${value}` : ''
+const breadthCoverage = computed(() => breadth.value ? `${(breadth.value.coverage * 100).toFixed(0)}% · ${breadth.value.evaluated_count} symbols${freshnessLabel(breadth.value.freshness)}` : 'Unavailable')
 const technicalMAs = computed(() => [technical.value?.sma20, technical.value?.sma50, technical.value?.sma200]
   .map(value => formatNumber(value)).join(' / '))
 function breadthMetric(key: string) {
@@ -381,7 +382,7 @@ function formatNumber(value: number | null | undefined) { return value == null ?
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
 function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
 const proxyCoverage = computed(() => industryProxySnapshot.value
-  ? `${(industryProxySnapshot.value.coverage * 100).toFixed(0)}% local-bar coverage`
+  ? `${(industryProxySnapshot.value.coverage * 100).toFixed(0)}% local-bar coverage${freshnessLabel(industryProxySnapshot.value.freshness)}`
   : 'local-bar coverage pending')
 </script>
 
