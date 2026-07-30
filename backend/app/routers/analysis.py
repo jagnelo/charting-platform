@@ -469,6 +469,9 @@ async def group_relative_rotation(
                 warnings=warnings,
             )
         )
+    freshness, freshness_detail = await _batch_freshness(
+        db, [*instrument_ids, benchmark_instrument.id], timeframe
+    )
     return RelativeRotationOut(
         group_key=group.stable_key,
         benchmark=benchmark_instrument.symbol,
@@ -478,6 +481,8 @@ async def group_relative_rotation(
         tail_length=tail_length,
         membership_version=group.id,
         universe_provenance=group.provenance or {},
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         rows=rows,
     )
 
@@ -1226,12 +1231,17 @@ async def group_breadth_history(
         )
         for timestamp, values in sorted(buckets.items())
     ][-limit:]
+    freshness, freshness_detail = await _batch_freshness(
+        db, [member.instrument_id for member in group.members], timeframe
+    )
     return BreadthHistoryOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
         universe_provenance=group.provenance or {},
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         points=points,
         exclusions=exclusions,
     )
