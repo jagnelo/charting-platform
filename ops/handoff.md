@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:06:16Z
+
+- Chart templates now persist the chart's indicator stack (type, parameters, pane,
+  style, and timeframe locks) and apply it to the active panel through the canonical
+  per-instrument indicator store. Imported template indicator types are validated
+  against the platform's local indicator catalogue before application.
+- Added direct ChartTemplateControl coverage for indicator-stack save and application.
+- Validation: component unit tests (`2 passed`), TypeScript, production build, rebuilt
+  isolated stack, focused F9c, full Chromium flows (`22 passed`), and diff check.
+  Exact next step: push this increment, then continue missing chart plot-library and
+  target-mode mechanics.
+
 ## Continuation update — 2026-07-30T16:05:00Z
 
 - The uPlot chart-settings control now updates serializable workstation-chart state when

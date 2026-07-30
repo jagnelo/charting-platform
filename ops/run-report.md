@@ -16229,3 +16229,12 @@ Append a short entry after each worker session.
   saved, restored, and applied without replacing `AAPL`.
 - Validation: TypeScript; production build; rebuilt isolated branch stack; focused F9c;
   full Chromium `flows.spec.ts` (`22 passed`); `git diff --check`.
+# 2026-07-30T16:06:16Z Chart-template indicator-stack checkpoint
+
+- Templates now capture/apply validated indicator type, parameters, pane, style, and
+  locked-timeframe data. Applying a template keeps active chart identity intact while
+  replacing its active indicator plot stack.
+- Added `ChartTemplateControl` unit coverage for saved indicator-stack payloads and
+  identity-free application contracts.
+- Validation: component tests `2 passed`; TypeScript; production build; rebuilt branch
+  stack; focused F9c; full Chromium `flows.spec.ts` (`22 passed`); diff check.
