@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:14:00Z Persisted structured artifact rendering checkpoint
+
+- Added persisted-result scalar, table, uPlot-series, event, and diagnostic rendering;
+  events publish into the linked-chart occurrence contract. Pushed `9dac376`.
+- Validation: focused results test, TypeScript, production build, and diff check. Full
+  acceptance remains incomplete.
+
 ## 2026-07-30T11:10:00Z Persisted Study Results pane checkpoint
 
 - Implemented a dedicated selectable persisted-run/results pane with terminal-aware

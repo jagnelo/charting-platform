@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:14:00Z
+
+- Expanded persisted Study Results into a structured artifact renderer for scalar,
+  table, uPlot-series, and event outputs. Persisted events now publish the existing
+  symbol/timestamp linked-chart occurrence event. Pushed `9dac376`.
+- Focused results test, TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Continue Study Lab result promotion/export/version comparison and the broader
+  workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T11:10:00Z
 
 - Bound Study Results to persisted runs: the pane is now a selectable run/artifact
