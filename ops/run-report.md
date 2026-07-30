@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:55:00Z Entitlement review-date enforcement
+
+- Expired provider-entitlement reviews are excluded before resolution; entitlement
+  effective/review dates are now administrable through the governance API. Pushed
+  `cac3ea0`.
+- Validation: combined provider runtime/router `14 passed` with `--no-cov` (two
+  existing third-party deprecation warnings), Ruff, and diff check. Provider-neutral
+  coverage consumption remains incomplete.
+
 ## 2026-07-30T11:50:00Z Entitlement environment enforcement
 
 - Provider resolution now excludes a capability if its explicit environment list does

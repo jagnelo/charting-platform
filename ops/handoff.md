@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:55:00Z
+
+- Provider resolution now excludes expired review evidence, using a UTC-safe
+  comparison compatible with SQLite, and the governance API can persist effective and
+  review dates. Pushed `cac3ea0`.
+- Combined provider-runtime/governance-router coverage is `14 passed` with `--no-cov`
+  (two existing third-party deprecation warnings), plus Ruff and diff checks.
+
+### Exact next step
+
+- Expose a provider-neutral canonical coverage/freshness summary to workstation tools;
+  do not expose credentials, raw provider names, or fallback ordering.
+
 ## Continuation update — 2026-07-30T11:50:00Z
 
 - Provider resolution now respects each entitlement's explicit allowed-environment
