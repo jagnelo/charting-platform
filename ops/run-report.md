@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:47:00Z Proxy ranking point-in-time boundary checkpoint
+
+- Bound verified industry-proxy ranking disclosure selection and local price history by
+  requested as-of time. Pushed `3a0ae35`.
+- Validation: workspace/analysis integration `13 passed` with `--no-cov`, Ruff/format,
+  diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:44:00Z Industry proxy known-at freshness checkpoint
 
 - Added the verified disclosure `known_at` date to proxy rankings. Pushed `ce10197`.

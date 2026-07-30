@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:47:00Z
+
+- Corrected industry-proxy ranking point-in-time behavior: requested `as_of` now
+  constrains both its verified disclosure and every local bar before ranking.
+- Pushed `3a0ae35`; workspace/analysis integration `13 passed` with `--no-cov`,
+  Ruff/format, and diff checks passed.
+
+### Exact next step
+
+- Continue point-in-time top-down acceptance and remaining workstation surfaces.
+
 ## Continuation update — 2026-07-30T10:44:00Z
 
 - Added each verified proxy disclosure's `known_at` date to the sortable ranking list,
