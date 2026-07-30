@@ -78,7 +78,7 @@
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
       <span>{{ workspaceStore.error ?? 'Ready' }}</span>
-      <span>Current / delayed / stale states remain provider-derived</span>
+      <span :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
     </footer>
   </div>
 </template>
