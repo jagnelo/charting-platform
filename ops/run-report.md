@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T17:45:00Z Boolean research artifact rendering
+
+- Added first-class True/False metric rendering to Study Lab and persisted research
+  results, so typed condition artifacts no longer fall through to JSON payloads.
+- Validation: Study Lab/persisted-results components `2 passed`; TypeScript; production
+  build; diff check.
+
 ## 2026-07-30T17:40:00Z Unified Python output-contract checkpoint
 
 - Enforced asset-kind/output-contract compatibility and source-level declared-output

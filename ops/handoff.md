@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T17:45:00Z
+
+- Completed the renderer side of typed Boolean research outputs. Study Lab now shows
+  Boolean artifacts as prominent True/False metric cards with deterministic positive/
+  negative treatment; the persisted-results pane renders the same typed result instead
+  of opaque JSON.
+- Validation: Study Lab and persisted-results component tests (`2 passed`), TypeScript,
+  production build, and `git diff --check`.
+- Exact next step: implement the durable prepared-universe batch evaluator for typed
+  column/condition assets, retaining the no-FastAPI-code-execution invariant.
+
 ## Continuation update — 2026-07-30T17:40:00Z
 
 - Hardened the unified-Python asset boundary: `plot`, `column`, `condition`, and
