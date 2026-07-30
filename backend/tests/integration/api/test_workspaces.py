@@ -380,9 +380,11 @@ class TestWorkspaces:
         self, client, auth_headers, db, instrument, instrument_type
     ):
         from datetime import UTC, datetime
+        from decimal import Decimal
 
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
 
         db.add(EquityDetail(instrument_id=instrument.id, industry="Semiconductors"))
         source = Instrument(
@@ -476,6 +478,40 @@ class TestWorkspaces:
             }
         ]
         assert "candidate_not_canonical:SOXX" in payload["exclusions"]
+
+        timestamp = datetime(2024, 6, 3, tzinfo=UTC)
+        for item, close in ((source, "100"), (proxy, "200"), (instrument, "50")):
+            price = Decimal(close)
+            db.add(
+                OHLCVBar(
+                    instrument_id=item.id,
+                    timeframe=Timeframe.D1,
+                    ts=timestamp,
+                    open=price,
+                    high=price,
+                    low=price,
+                    close=price,
+                    volume=Decimal("100"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+        ranked = client.get(
+            "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol},
+        )
+        assert ranked.status_code == 200
+        ranked_payload = ranked.json()
+        assert ranked_payload["group_key"] == "industry-proxy:XLK:Semiconductors"
+        assert ranked_payload["market_benchmark"] == instrument.symbol
+        assert (
+            ranked_payload["proxy_evidence"][0]["verification_state"]
+            == "holdings_classification_verified"
+        )
+        assert ranked_payload["rows"][0]["symbol"] == "SMH"
+        assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
+        assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
 
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument

@@ -95,6 +95,22 @@ class ETFConstituentSnapshotOut(GroupSnapshotOut):
     completeness_status: str
 
 
+class IndustryProxySnapshotRow(GroupSnapshotRow):
+    """One verified industry-proxy ETF with both sector and market comparisons."""
+
+    relative_to_market: AnalysisCell | None = None
+
+
+class IndustryProxySnapshotOut(GroupSnapshotOut):
+    """Batch values for holdings-classification-verified industry ETF proxies."""
+
+    etf_symbol: str
+    industry: str
+    market_benchmark: str
+    rows: list[IndustryProxySnapshotRow]
+    proxy_evidence: list[dict[str, object]] = Field(default_factory=list)
+
+
 class BreadthOut(BaseModel):
     group_key: str
     timeframe: str

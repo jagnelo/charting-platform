@@ -17,6 +17,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import MarketGroup
+from app.routers.market_groups import etf_industry_proxies
 from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
@@ -27,6 +28,8 @@ from app.schemas.analysis import (
     ETFConstituentSnapshotOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
+    IndustryProxySnapshotOut,
+    IndustryProxySnapshotRow,
     MarketGaugeOut,
     RelativeRotationOut,
     RelativeRotationRow,
@@ -421,6 +424,200 @@ async def group_relative_rotation(
         tail_length=tail_length,
         membership_version=group.id,
         rows=rows,
+    )
+
+
+@router.get(
+    "/etf/{symbol}/industries/{industry}/proxies/snapshot",
+    response_model=IndustryProxySnapshotOut,
+)
+async def industry_proxy_snapshot(
+    symbol: str,
+    industry: str,
+    market_benchmark: str = Query(default="SPY"),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rank only independently verified industry-proxy ETFs from local bars.
+
+    The sector ETF is the primary benchmark and ``market_benchmark`` is returned as
+    a second aligned ratio.  The proxy list comes from the holdings-evidence gate;
+    ticker names alone can never enter this batch universe.
+    """
+    sector = await _instrument(db, symbol)
+    evidence = await etf_industry_proxies(
+        symbol=sector.symbol, industry=industry, as_of=None, _=current_user, db=db
+    )
+    proxy_symbols = [item.symbol for item in evidence.proxies]
+    market = await _instrument(db, market_benchmark)
+    instruments = {
+        item.symbol: item
+        for item in (
+            await db.execute(select(Instrument).where(Instrument.symbol.in_(proxy_symbols)))
+        ).scalars()
+    }
+    ordered = [instruments[item.symbol] for item in evidence.proxies if item.symbol in instruments]
+    bars_by_id = await _bars_by_instrument(
+        db, [*(item.id for item in ordered), sector.id, market.id], timeframe, adjusted
+    )
+    sector_bars = {bar.ts: bar for bar in bars_by_id.get(sector.id, [])}
+    market_bars = {bar.ts: bar for bar in bars_by_id.get(market.id, [])}
+    rows: list[IndustryProxySnapshotRow] = []
+    exclusions: list[AnalysisWarning] = []
+    covered = 0
+    for instrument in ordered:
+        bars = bars_by_id.get(instrument.id, [])
+        latest = bars[-1] if bars else None
+        if latest is None:
+            warning = AnalysisWarning(
+                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+            )
+            exclusions.append(warning)
+            rows.append(
+                IndustryProxySnapshotRow(
+                    instrument_id=instrument.id,
+                    symbol=instrument.symbol,
+                    name=instrument.name,
+                    last=_cell(None, None, warning),
+                    performance={period: _cell(None, None, warning) for period in _PERIODS},
+                )
+            )
+            continue
+        covered += 1
+        closes = [float(bar.close) for bar in bars]
+        volumes = [float(bar.volume) for bar in bars]
+        performance = {
+            period: _cell(
+                float(latest.close / bars[-offset - 1].close - 1) if len(bars) > offset else None,
+                latest,
+                None
+                if len(bars) > offset
+                else AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"{period} requires more history.",
+                    instrument_id=instrument.id,
+                ),
+            )
+            for period, offset in _PERIODS.items()
+        }
+        technical: dict[str, AnalysisCell] = {}
+        for period in (20, 50, 200):
+            technical[f"above_ma{period}"] = _cell(
+                1.0
+                if closes[-1] > _mean(closes[-period:])
+                else 0.0
+                if len(closes) >= period
+                else None,
+                latest,
+                None
+                if len(closes) >= period
+                else AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"Price versus SMA({period}) requires {period} bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(closes) >= 15:
+            changes = [
+                closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))
+            ]
+            gain, loss = (
+                _mean([max(change, 0.0) for change in changes]),
+                _mean([max(-change, 0.0) for change in changes]),
+            )
+            technical["rsi14"] = _cell(
+                100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)), latest
+            )
+        else:
+            technical["rsi14"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="RSI(14) requires 15 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(closes) >= 252:
+            window = closes[-252:]
+            spread = max(window) - min(window)
+            technical["position_52w"] = _cell(
+                (closes[-1] - min(window)) / spread if spread else 1.0, latest
+            )
+        else:
+            technical["position_52w"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="52-week position requires 252 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(volumes) >= 51:
+            average_volume = _mean(volumes[-51:-1])
+            technical["volume_ratio_50"] = _cell(
+                volumes[-1] / average_volume if average_volume else None, latest
+            )
+        else:
+            technical["volume_ratio_50"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="50-day volume ratio requires 51 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+
+        def ratio(reference: dict) -> AnalysisCell:
+            reference_bar = reference.get(latest.ts)
+            return (
+                _cell(float(latest.close / reference_bar.close), latest)
+                if reference_bar and reference_bar.close
+                else _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="unaligned_benchmark",
+                        message="No aligned benchmark bar is available.",
+                        instrument_id=instrument.id,
+                    ),
+                )
+            )
+
+        rows.append(
+            IndustryProxySnapshotRow(
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+                name=instrument.name,
+                last=_cell(float(latest.close), latest),
+                performance=performance,
+                technical=technical,
+                relative_to_benchmark=ratio(sector_bars),
+                relative_to_market=ratio(market_bars),
+            )
+        )
+    return IndustryProxySnapshotOut(
+        group_key=f"industry-proxy:{sector.symbol}:{industry}",
+        etf_symbol=sector.symbol,
+        industry=industry,
+        market_benchmark=market.symbol,
+        timeframe=timeframe.value,
+        as_of=max(
+            (row.last.observation_time for row in rows if row.last.observation_time), default=None
+        ),
+        adjustment="split_adjusted" if adjusted else "raw",
+        membership_version=sum(
+            sum(ord(char) for char in f"{item.symbol}:{item.composition_date}:{item.known_at}")
+            for item in evidence.proxies
+        ),
+        coverage=covered / max(len(ordered), 1),
+        exclusions=exclusions,
+        rows=rows,
+        proxy_evidence=[item.model_dump(mode="json") for item in evidence.proxies],
     )
 
 
