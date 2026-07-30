@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T14:50:00Z
+
+- `4 Timeframe` now creates four blue/symbol-linked charts with separate timeframe
+  link groups and actual `M15`, `D1`, `W1`, and `MN` defaults. Timeframe linking can
+  be changed independently from the symbol-link selector in every chart tool.
+- Corrected the workstation's previous `M1`/monthly semantic error: `M1` is a one-
+  minute backend timeframe; monthly is `MN`. Existing workstation values normalize on
+  load so persisted layouts retain their intended monthly behavior.
+- Factory reset now awaits the transactional replacement, advances the factory layout
+  version, and is covered directly by the workspace API integration suite.
+- Validation: workspace-store plus ToolWindow `19 passed`; backend workspace API `16
+  passed` (two existing Nautilus deprecation warnings); Ruff, TypeScript, production
+  build, and diff check passed.
+
 ## Continuation update — 2026-07-30T14:45:00Z
 
 - Linked chart timeframes now follow the same persisted ten-group contract as symbols

@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T14:50:00Z Independent Four Timeframe factory layout
+
+- The factory now gives M15/D1/W1/MN charts one shared symbol-link group and four
+  distinct timeframe-link groups. Chart chrome exposes the separate timeframe-link
+  selector, so independent timeframes do not isolate symbols.
+- Corrected the old monthly selector value from one-minute `M1` to backend-canonical
+  `MN`, normalizing old workstation settings as they load.
+- Factory reset now awaits the transactionally safe tab replacement and advances the
+  factory version; direct API coverage proves the latest defaults return.
+- Validation: frontend focused suite `19 passed`; workspace API `16 passed` (two
+  existing Nautilus deprecation warnings); Ruff, TypeScript, production build, diff check.
+
 ## 2026-07-30T14:45:00Z Group-aware chart timeframes
 
 - Chart timeframes are now resolved per persisted tool link group. Coloured groups

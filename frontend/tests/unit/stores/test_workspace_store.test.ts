@@ -180,12 +180,12 @@ describe('workspace store layout tabs', () => {
     expect(store.workspace.settings.linked_timeframe).toBe('W1')
     expect(store.timeframeForLinkGroup('blue')).toBe('W1')
 
-    store.publishTimeframe('M1', 'red')
+    store.publishTimeframe('MN', 'red')
     expect(store.linkedTimeframe).toBe('W1')
-    expect(store.timeframeForLinkGroup('red')).toBe('M1')
-    expect(store.timeframeForLinkGroup('yellow')).toBe('M1')
-    expect(store.workspace.settings.linked_timeframes).toEqual({ blue: 'W1', red: 'M1' })
-    expect(store.timeframeForLinkGroup('grey', 'M1')).toBe('M1')
+    expect(store.timeframeForLinkGroup('red')).toBe('MN')
+    expect(store.timeframeForLinkGroup('yellow')).toBe('MN')
+    expect(store.workspace.settings.linked_timeframes).toEqual({ blue: 'W1', red: 'MN' })
+    expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
   })
 
   it('keeps a grey chart timeframe local to the persisted tool', () => {
@@ -197,10 +197,29 @@ describe('workspace store layout tabs', () => {
       }] }],
     }
 
-    expect(store.updateToolTimeframe('grey-chart', 'M1')).toBe(true)
-    expect(store.activeTab?.windows[0]?.configuration.timeframe).toBe('M1')
+    expect(store.updateToolTimeframe('grey-chart', 'MN')).toBe(true)
+    expect(store.activeTab?.windows[0]?.configuration.timeframe).toBe('MN')
     expect(store.linkedTimeframe).toBe('D1')
-    expect(store.timeframeForLinkGroup('grey', 'M1')).toBe('M1')
+    expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
+  })
+
+  it('separates a chart timeframe link from its shared symbol link', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: '4 Timeframe', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'four-timeframe', name: '4 Timeframe', position: 0, active_window_key: 'daily', layout_config: {}, windows: [{
+        id: 21, instance_key: 'daily', tool_type: 'chart', title: 'Daily', link_group: 'blue', configuration: { symbol: 'SPY', timeframe: 'D1', timeframe_link_group: 'green' }, style: {}, state_schema_version: 1, position: 0,
+      }] }],
+    }
+    const chart = store.activeTab!.windows[0]!
+
+    expect(store.symbolForLinkGroup(chart.link_group)).toBe('SPY')
+    expect(store.timeframeLinkGroupForTool(chart)).toBe('green')
+    expect(store.updateToolTimeframe('daily', 'W1')).toBe(true)
+    expect(store.timeframeForLinkGroup('green')).toBe('W1')
+    expect(store.timeframeForLinkGroup('blue')).toBe('D1')
+    expect(store.updateToolTimeframeLinkGroup('daily', 'orange')).toBe(true)
+    expect(store.timeframeLinkGroupForTool(chart)).toBe('orange')
   })
 
   it('opens an implemented tool with serializable state and adds it to the saved layout', () => {

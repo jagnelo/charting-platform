@@ -247,6 +247,18 @@ const CHANNEL_NAME = 'charting-platform-workstation'
 const LEADER_KEY = `${CHANNEL_NAME}-leader`
 const LEADER_TIMEOUT_MS = 10_000
 const LEADER_HEARTBEAT_MS = 4_000
+const LINK_GROUPS: readonly LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan', 'pink', 'brown', 'yellow', 'grey']
+
+function configuredLinkGroup(value: unknown, fallback: LinkGroup): LinkGroup {
+  return typeof value === 'string' && (LINK_GROUPS as readonly string[]).includes(value)
+    ? value as LinkGroup
+    : fallback
+}
+
+/** The prior workstation selector incorrectly used M1 for a monthly bar. M1 is one minute; MN is monthly. */
+function normalizeWorkstationTimeframe(value: string) {
+  return value === 'M1' ? 'MN' : value
+}
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
@@ -332,6 +344,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function applySharedTimeframe(timeframe: string, group: LinkGroup) {
     if (group === 'grey') return
+    timeframe = normalizeWorkstationTimeframe(timeframe)
     linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe }
     wildcardTimeframe.value = timeframe
     if (group === 'blue') linkedTimeframe.value = timeframe
@@ -470,9 +483,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function timeframeForLinkGroup(group: LinkGroup, isolatedTimeframe?: string | null) {
-    if (group === 'grey') return isolatedTimeframe ?? 'D1'
+    if (group === 'grey') return normalizeWorkstationTimeframe(isolatedTimeframe ?? 'D1')
     if (group === 'yellow') return wildcardTimeframe.value
-    return linkedTimeframes.value[group] ?? isolatedTimeframe ?? 'D1'
+    return linkedTimeframes.value[group] ?? normalizeWorkstationTimeframe(isolatedTimeframe ?? 'D1')
+  }
+
+  function timeframeLinkGroupForTool(tool: WorkspaceWindowState) {
+    return configuredLinkGroup(tool.configuration.timeframe_link_group, tool.link_group)
   }
 
   function publishTimestamp(timestamp: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
@@ -491,6 +508,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
     if (group === 'grey') return
+    timeframe = normalizeWorkstationTimeframe(timeframe)
     applySharedTimeframe(timeframe, group)
     if (workspace.value) {
       const existing = workspace.value.settings.linked_timeframes
@@ -518,12 +536,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
       const savedTimeframe = workspace.value.settings.linked_timeframe
-      linkedTimeframe.value = typeof savedTimeframe === 'string' ? savedTimeframe : 'D1'
+      linkedTimeframe.value = typeof savedTimeframe === 'string' ? normalizeWorkstationTimeframe(savedTimeframe) : 'D1'
       const savedTimeframes = workspace.value.settings.linked_timeframes
       linkedTimeframes.value = {
         blue: linkedTimeframe.value,
         ...(savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)
-          ? savedTimeframes as Partial<Record<LinkGroup, string>>
+          ? Object.fromEntries(Object.entries(savedTimeframes).map(([group, timeframe]) => [group, typeof timeframe === 'string' ? normalizeWorkstationTimeframe(timeframe) : timeframe])) as Partial<Record<LinkGroup, string>>
           : {}),
       }
       wildcardTimeframe.value = linkedTimeframes.value.blue ?? 'D1'
@@ -917,12 +935,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function updateToolTimeframe(windowKey: string, timeframe: string) {
     const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
     if (!tool || tool.tool_type !== 'chart' || !timeframe) return false
+    timeframe = normalizeWorkstationTimeframe(timeframe)
     tool.configuration = { ...tool.configuration, timeframe }
-    if (tool.link_group === 'grey') {
+    const linkGroup = timeframeLinkGroupForTool(tool)
+    if (linkGroup === 'grey') {
       scheduleSnapshot()
       return true
     }
-    publishTimeframe(timeframe, tool.link_group, windowKey)
+    publishTimeframe(timeframe, linkGroup, windowKey)
+    return true
+  }
+
+  function updateToolTimeframeLinkGroup(windowKey: string, group: LinkGroup) {
+    const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
+    if (!tool || tool.tool_type !== 'chart' || timeframeLinkGroupForTool(tool) === group) return false
+    tool.configuration = { ...tool.configuration, timeframe_link_group: group }
+    scheduleSnapshot()
     return true
   }
 
@@ -1049,6 +1077,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     symbolForLinkGroup,
     timestampForLinkGroup,
     timeframeForLinkGroup,
+    timeframeLinkGroupForTool,
     publishTimeframe,
     loadDefault,
     loadMarketGroup,
@@ -1069,6 +1098,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     openTool,
     updateToolLinkGroup,
     updateToolTimeframe,
+    updateToolTimeframeLinkGroup,
     selectToolSymbol,
     closeTool,
     cloneActiveTab,

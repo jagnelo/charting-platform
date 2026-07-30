@@ -24,6 +24,7 @@ from app.schemas.workstation import (
 )
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+FACTORY_WORKSPACE_VERSION = 7
 
 
 class ConditionAssetWrite(BaseModel):
@@ -59,7 +60,7 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
     if factory_id == "us-top-down":
         return {
             "factory_id": factory_id,
-            "version": 6,
+            "version": FACTORY_WORKSPACE_VERSION,
             "root": {
                 "type": "row",
                 "content": [
@@ -212,8 +213,14 @@ def _factory_tabs() -> list[WorkspaceTab]:
         ],
         start=1,
     ):
+        timeframe_configurations = {
+            "m15": {"symbol": "SPY", "timeframe": "M15", "timeframe_link_group": "red"},
+            "daily": {"symbol": "SPY", "timeframe": "D1", "timeframe_link_group": "green"},
+            "weekly": {"symbol": "SPY", "timeframe": "W1", "timeframe_link_group": "purple"},
+            "monthly": {"symbol": "SPY", "timeframe": "MN", "timeframe_link_group": "orange"},
+        } if stable_key == "four-timeframe" else {}
         layout_windows = [
-            (instance_key, tool_type, title, {"symbol": "SPY"})
+            (instance_key, tool_type, title, timeframe_configurations.get(instance_key, {"symbol": "SPY"}))
             for instance_key, tool_type, title in windows
         ]
         factory_tab = WorkspaceTab(
@@ -230,7 +237,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     tool_type=tool_type,
                     title=title,
                     link_group="blue",
-                    configuration={"symbol": "SPY"},
+                    configuration=timeframe_configurations.get(instance_key, {"symbol": "SPY"}),
                     style={},
                     position=window_position,
                 )
@@ -293,7 +300,7 @@ async def _ensure_default_workspace(db: AsyncSession, user: User) -> Workspace:
         is_default=True,
         position=0,
         schema_version=1,
-        settings={"factory_id": "us-top-down", "factory_version": 1},
+        settings={"factory_id": "us-top-down", "factory_version": FACTORY_WORKSPACE_VERSION},
         tabs=_factory_tabs(),
     )
     db.add(workspace)
@@ -491,7 +498,8 @@ async def reset_factory_workspace(
     workspace = await _load_workspace(db, workspace_id, current_user.id)
     if workspace.settings.get("factory_id") != "us-top-down":
         raise HTTPException(status_code=409, detail={"code": "not_factory_workspace"})
-    _replace_tabs(workspace, _factory_tabs())
+    await _replace_tabs(db, workspace, _factory_tabs())
+    workspace.settings = {**workspace.settings, "factory_version": FACTORY_WORKSPACE_VERSION}
     workspace.revision += 1
     await db.flush()
     return await _load_workspace(db, workspace.id, current_user.id)

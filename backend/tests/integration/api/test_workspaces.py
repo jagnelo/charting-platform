@@ -7,7 +7,8 @@ class TestWorkspaces:
         assert workspace["revision"] == 1
         assert workspace["tabs"][0]["stable_key"] == "us-top-down"
         assert workspace["tabs"][0]["layout_config"]["root"]["type"] == "row"
-        assert workspace["tabs"][0]["layout_config"]["version"] == 6
+        assert workspace["tabs"][0]["layout_config"]["version"] == 7
+        assert workspace["settings"]["factory_version"] == 7
         assert {window["tool_type"] for window in workspace["tabs"][0]["windows"]} >= {
             "watchlist",
             "chart",
@@ -31,6 +32,33 @@ class TestWorkspaces:
             "four-timeframe",
             "study-lab",
         }
+        four_timeframe = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "four-timeframe")
+        configurations = {
+            window["instance_key"]: window["configuration"] for window in four_timeframe["windows"]
+        }
+        assert {key: value["timeframe"] for key, value in configurations.items()} == {
+            "m15": "M15", "daily": "D1", "weekly": "W1", "monthly": "MN",
+        }
+        assert {value["timeframe_link_group"] for value in configurations.values()} == {
+            "red", "green", "purple", "orange",
+        }
+        assert {window["link_group"] for window in four_timeframe["windows"]} == {"blue"}
+
+    def test_factory_reset_recreates_latest_factory_layout(self, client, auth_headers):
+        workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
+        response = client.post(
+            f"/api/v1/workspaces/{workspace['id']}/reset-factory",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        reset = response.json()
+        assert reset["revision"] == workspace["revision"] + 1
+        assert reset["settings"]["factory_version"] == 7
+        four_timeframe = next(tab for tab in reset["tabs"] if tab["stable_key"] == "four-timeframe")
+        assert {
+            window["configuration"]["timeframe"] for window in four_timeframe["windows"]
+        } == {"M15", "D1", "W1", "MN"}
 
     def test_snapshot_is_revision_checked(self, client, auth_headers):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()

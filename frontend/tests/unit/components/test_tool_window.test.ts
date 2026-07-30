@@ -20,4 +20,17 @@ describe('ToolWindow', () => {
     expect(wrapper.emitted('close')).toHaveLength(1)
     expect(wrapper.emitted('update:linkGroup')?.[0]).toEqual(['yellow'])
   })
+
+  it('keeps timeframe linking distinct from symbol linking and uses MN for monthly bars', async () => {
+    const wrapper = mount(ToolWindow, {
+      props: { title: 'Chart', symbol: 'SPY', linkGroup: 'blue', timeframeLinkGroup: 'red', timeframe: 'MN' },
+    })
+
+    expect((wrapper.find('[aria-label="Chart timeframe"]').element as HTMLSelectElement).value).toBe('MN')
+    await wrapper.find('[aria-label="Chart timeframe link group"]').setValue('green')
+    await wrapper.find('[aria-label="Chart timeframe"]').setValue('W1')
+
+    expect(wrapper.emitted('update:timeframeLinkGroup')?.[0]).toEqual(['green'])
+    expect(wrapper.emitted('update:timeframe')?.[0]).toEqual(['W1'])
+  })
 })

@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event)" @update:timeframe="setTimeframe">
+  <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event)" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <VirtualWatchlistTool
       v-if="tool.instance_key === 'benchmark-list'"
       label="Major US benchmarks"
@@ -206,9 +206,10 @@ const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
 ))
 const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
-  props.tool.link_group,
+  timeframeLinkGroup.value,
   typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
 ))
+const timeframeLinkGroup = computed(() => workspaceStore.timeframeLinkGroupForTool(props.tool))
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
@@ -216,6 +217,10 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
 
 function setTimeframe(timeframe: string) {
   workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
+}
+
+function setTimeframeLinkGroup(group: LinkGroup) {
+  workspaceStore.updateToolTimeframeLinkGroup(props.tool.instance_key, group)
 }
 
 function selectProxy(symbol: string) {
