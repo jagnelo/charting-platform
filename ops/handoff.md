@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:15:00Z
+
+- Indicator plots can now be copied to other chart windows in the same symbol-link
+  group. The copied plot is serialized into each destination window and its watcher
+  applies the indicator stack live; this is a real target path, not a library-only
+  placeholder.
+- Validation: TypeScript, focused plot-library test, production build, and diff check.
+  Exact next step: add target paths to watchlist/scan/alert only where they produce
+  actual existing artifacts, then run browser coverage for linked-chart propagation.
+
 ## Continuation update — 2026-07-30T16:10:40Z
 
 - Added the primary-workstation Chart Plot Library. It manages locally supported

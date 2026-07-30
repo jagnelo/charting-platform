@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:15:00Z Linked-chart plot target checkpoint
+
+- Added a serializable target-mode path which copies an indicator to other charts in
+  the same link group and applies it through their live configuration watchers.
+- Validation: TypeScript, focused plot-library test, production build, diff check.
+
 ## 2026-07-30T16:12:00Z Plot-library browser regression
 
 - Rebuilt the isolated branch frontend after adding the primary-workstation plot
