@@ -1,5 +1,29 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T09:57:00Z
+
+- Added `/analysis/etf/{symbol}/constituents/snapshot`: a single canonical local
+  batch response over resolved rows from the newest stored ETF holdings disclosure.
+  It returns multi-horizon performance, aligned constituent/benchmark ratio, RSI,
+  moving-average state, 52-week position, volume ratio, coverage, exclusions, and
+  the snapshot ID/date/known-at/provenance/provider/completeness. Its `etf-proxy:*`
+  identity explicitly prevents it being represented as an official index universe.
+- The default constituent tool requests the batch once after it loads holdings and
+  displays its 1M, ETF-relative, RSI, MA50, and 52-week values for either the whole
+  holdings snapshot or the selected industry subset.
+- Pushed `0790173 feat(top-down): rank ETF proxy constituents`.
+- Validation passed: backend Ruff format/check; focused workstation/analysis API
+  integration `12 passed` (Python 3.12); focused workspace-store tests `8 passed`;
+  frontend type-check and production build; `git diff --check`. The older generic
+  `uv run` command selected Python 3.9 and failed before collection because this
+  repository requires Python 3.12's `datetime.UTC`; it was not an application error.
+
+### Exact next step
+
+- Add the curated industry-proxy comparison/ranking surface and explicit one-action
+  constituent/sector and constituent/SPY ratio selection while retaining this same
+  provenance and point-in-time context.
+
 ## Continuation update — 2026-07-30T09:51:00Z
 
 - Added a uPlot relative-rotation plane: transparent trend/momentum coordinates,

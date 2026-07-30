@@ -15645,3 +15645,18 @@ Append a short entry after each worker session.
   sandbox boundary, visualization stack, or integration architecture.
 - No application implementation was performed.
 - Validation: YAML and JSON parse checks passed; `git diff --check` passed.
+## 2026-07-30T09:57:00Z ETF-proxy constituent batch ranking checkpoint
+
+- Added source-labelled, point-in-time `/analysis/etf/{symbol}/constituents/snapshot`
+  over local canonical holdings and adjusted OHLCV. It emits the normal batch
+  performance/technical fields plus a benchmark-aligned ratio and does not forward-fill
+  bars. The response carries source snapshot identity, date, known-at, provenance,
+  provider, completeness, coverage, exclusions, and the explicit `etf-proxy:*`
+  group identity.
+- The constituent watchlist now renders selected ETF-relative 1M/ratio/RSI/MA50/52W
+  values for full holdings and filtered industry constituents.
+- Validation: backend Ruff format/check; focused API integration `12 passed` under
+  Python 3.12; workspace store tests `8 passed`; frontend type-check/build; diff check.
+- Pushed code commit `0790173`. This remains a narrow top-down checkpoint; curated
+  industry proxy ranking, dual sector/SPY ratio action, visual references, and the
+  broad goal acceptance matrix remain incomplete.
