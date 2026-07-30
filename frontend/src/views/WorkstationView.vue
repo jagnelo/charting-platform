@@ -176,6 +176,12 @@ function updateConditionFilter(windowKey: string, screenerId: number | null) {
   windowState.configuration = { ...windowState.configuration, condition_screener_id: screenerId }
   workspaceStore.scheduleSnapshot()
 }
+function updateConditionFilterMode(windowKey: string, mode: 'active' | 'inactive' | 'off') {
+  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!windowState) return
+  windowState.configuration = { ...windowState.configuration, condition_filter_mode: mode }
+  workspaceStore.scheduleSnapshot()
+}
 
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
@@ -197,6 +203,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
     onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),
     onConditionFilter: (windowKey: string, screenerId: number | null) => updateConditionFilter(windowKey, screenerId),
+    onConditionFilterMode: (windowKey: string, mode: 'active' | 'inactive' | 'off') => updateConditionFilterMode(windowKey, mode),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),

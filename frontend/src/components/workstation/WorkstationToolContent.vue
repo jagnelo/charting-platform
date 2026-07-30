@@ -8,10 +8,12 @@
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
+      :condition-filter-mode="configuredConditionFilterMode"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+      @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -22,10 +24,12 @@
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
+      :condition-filter-mode="configuredConditionFilterMode"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+      @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
     />
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
@@ -75,10 +79,12 @@
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
+      :condition-filter-mode="configuredConditionFilterMode"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+      @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" />
@@ -128,7 +134,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -246,6 +252,7 @@ const configuredColumnKeys = computed(() => {
 })
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
 const configuredConditionScreenerId = computed(() => Number.isInteger(props.tool.configuration.condition_screener_id) ? props.tool.configuration.condition_screener_id as number : null)
+const configuredConditionFilterMode = computed(() => ['active', 'inactive', 'off'].includes(String(props.tool.configuration.condition_filter_mode)) ? props.tool.configuration.condition_filter_mode as 'active' | 'inactive' | 'off' : 'off')
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',

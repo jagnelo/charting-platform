@@ -7,6 +7,11 @@
         <option value="">Filter: Off</option>
         <option v-for="screener in screeners" :key="screener.id" :value="String(screener.id)">Filter: {{ screener.name }}</option>
       </select>
+      <select v-if="conditionFilter" v-model="conditionFilterMode" :aria-label="`${label} saved condition filter mode`">
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="off">Off</option>
+      </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <b>{{ filteredRows.length }}</b>
     </header>
@@ -76,6 +81,7 @@ const props = withDefaults(defineProps<{
   visibleColumnKeys?: string[]
   filterText?: string
   conditionScreenerId?: number | null
+  conditionFilterMode?: 'active' | 'inactive' | 'off'
 }>(), {
   selected: '',
   columns: () => [
@@ -85,11 +91,13 @@ const props = withDefaults(defineProps<{
   visibleColumnKeys: () => [],
   filterText: '',
   conditionScreenerId: null,
+  conditionFilterMode: 'off',
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off'] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
+const conditionFilterMode = ref(props.conditionFilterMode)
 const screeners = ref<SavedScreener[]>([])
 const conditionMatchedIds = ref<Set<number> | null>(null)
 const conditionFilterState = ref('')
@@ -139,7 +147,20 @@ watch(() => props.conditionScreenerId, value => {
   const normalized = value == null ? '' : String(value)
   if (normalized !== conditionFilter.value) conditionFilter.value = normalized
 })
+watch(() => props.conditionFilterMode, value => { if (value !== conditionFilterMode.value) conditionFilterMode.value = value })
 watch(conditionFilter, value => { void applyConditionFilter(value) })
+watch(conditionFilterMode, mode => {
+  emit('update:conditionFilterMode', mode)
+  if (mode === 'active') void applyConditionFilter(conditionFilter.value)
+  else if (mode === 'off') {
+    conditionFilter.value = ''
+    conditionMatchedIds.value = null
+    conditionFilterState.value = ''
+  } else {
+    conditionMatchedIds.value = null
+    conditionFilterState.value = 'Saved condition inactive; its last result is retained but does not filter rows.'
+  }
+})
 
 async function loadScreeners() {
   try {
@@ -157,7 +178,12 @@ async function applyConditionFilter(value: string) {
     emit('update:conditionScreenerId', null)
     return
   }
+  if (conditionFilterMode.value === 'off') conditionFilterMode.value = 'active'
   emit('update:conditionScreenerId', screenerId)
+  if (conditionFilterMode.value === 'inactive') {
+    conditionFilterState.value = 'Saved condition inactive; it does not filter rows.'
+    return
+  }
   conditionFilterState.value = 'Loading saved condition result…'
   try {
     const results = await api.get<ScreenerResult[]>(`/screeners/${screenerId}/results`, { limit: 1 })
