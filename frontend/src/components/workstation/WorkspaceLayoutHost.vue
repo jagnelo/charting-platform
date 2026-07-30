@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, render, watch, type VNode } from 'vue'
 import { GoldenLayout, type LayoutConfig } from 'golden-layout'
+import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 
 interface DockToolState {
   instance_key: string
@@ -22,7 +23,12 @@ const emit = defineEmits<{ changed: [layout: Record<string, unknown>, visibleToo
 const host = ref<HTMLElement | null>(null)
 let goldenLayout: GoldenLayout | null = null
 let suppressChange = false
+let lastLayoutFingerprint: string | null = null
 const mountedToolRoots: HTMLElement[] = []
+
+function layoutFingerprint(layout: LayoutConfig) {
+  return JSON.stringify(normaliseGoldenLayoutConfig(layout))
+}
 
 function clearMountedTools() {
   for (const root of mountedToolRoots.splice(0)) render(null, root)
@@ -30,6 +36,8 @@ function clearMountedTools() {
 
 function install(layout: LayoutConfig) {
   if (!host.value) return
+  const normalised = normaliseGoldenLayoutConfig(layout)
+  lastLayoutFingerprint = layoutFingerprint(normalised)
   clearMountedTools()
   goldenLayout?.destroy()
   goldenLayout = new GoldenLayout(host.value)
@@ -50,12 +58,18 @@ function install(layout: LayoutConfig) {
   }, true)
   goldenLayout.on('stateChanged', () => {
     if (!suppressChange && goldenLayout) {
-      const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
+      const saved = normaliseGoldenLayoutConfig(
+        goldenLayout.saveLayout() as unknown as Record<string, unknown>,
+      )
+      // The parent will persist this exact JSON and pass it back as a prop. Record
+      // it before emitting so the watcher does not destroy/recreate every virtual
+      // tool in response to Golden Layout's own stateChanged notification.
+      lastLayoutFingerprint = layoutFingerprint(saved as LayoutConfig)
       emit('changed', saved, extractToolKeys(saved))
     }
   })
   suppressChange = true
-  goldenLayout.loadLayout(layout)
+  goldenLayout.loadLayout(normalised)
   suppressChange = false
 }
 
@@ -70,7 +84,9 @@ function extractToolKeys(value: unknown): string[] {
   return [...key, ...Object.values(record).flatMap(extractToolKeys)]
 }
 
-watch(() => props.layout, layout => install(layout), { deep: true })
+watch(() => props.layout, layout => {
+  if (layoutFingerprint(layout) !== lastLayoutFingerprint) install(layout)
+})
 onMounted(() => install(props.layout))
 onBeforeUnmount(() => {
   clearMountedTools()

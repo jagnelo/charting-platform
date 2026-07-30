@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
+import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 
 export type LinkGroup = 'blue' | 'red' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'brown' | 'yellow' | 'grey'
 
@@ -695,7 +696,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function applyActiveLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
     const tab = activeTab.value
     if (!tab) return
-    tab.layout_config = layout
+    tab.layout_config = normaliseGoldenLayoutConfig(layout)
     if (visibleToolKeys.length) {
       const visible = new Set(visibleToolKeys)
       tab.windows = tab.windows.filter(window => visible.has(window.instance_key))
@@ -733,7 +734,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     // Workspace layouts are intentionally JSON-only; this also unwraps Pinia's
     // reactive proxy before persistence or Golden Layout receives the config.
-    const layout = JSON.parse(JSON.stringify(tab.layout_config)) as Record<string, unknown>
+    const layout = normaliseGoldenLayoutConfig(
+      JSON.parse(JSON.stringify(tab.layout_config)) as Record<string, unknown>,
+    )
     const root = layout.root as Record<string, unknown> | undefined
     if (root && Array.isArray(root.content)) {
       root.content.push(component)

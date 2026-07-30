@@ -259,14 +259,22 @@ async def _load_workspace(db: AsyncSession, workspace_id: int, user_id: int) -> 
 
 
 async def _ensure_default_workspace(db: AsyncSession, user: User) -> Workspace:
-    existing = (
+    defaults = (
         await db.execute(
             _workspace_query()
             .where(Workspace.user_id == user.id, Workspace.is_default.is_(True))
             .order_by(Workspace.position, Workspace.created_at)
         )
-    ).scalar_one_or_none()
-    if existing is not None:
+    ).scalars().unique().all()
+    if defaults:
+        # Older snapshots or concurrent first-load requests can have left more than
+        # one default. Keep the deterministic first workspace and repair the rest so
+        # the authenticated workstation never fails with MultipleResultsFound.
+        existing = defaults[0]
+        if len(defaults) > 1:
+            for duplicate in defaults[1:]:
+                duplicate.is_default = False
+            await db.flush()
         return existing
 
     existing = (
@@ -293,8 +301,15 @@ async def _ensure_default_workspace(db: AsyncSession, user: User) -> Workspace:
     return await _load_workspace(db, workspace.id, user.id)
 
 
-def _replace_tabs(workspace: Workspace, tabs: list) -> None:
+async def _replace_tabs(db: AsyncSession, workspace: Workspace, tabs: list) -> None:
+    """Replace a snapshot without transiently violating workspace tab uniqueness.
+
+    PostgreSQL checks the `(workspace_id, stable_key)` constraint while SQLAlchemy may
+    otherwise insert replacement tabs before its delete-orphan rows. Flush the clear
+    first, then append the new serializable snapshot.
+    """
     workspace.tabs.clear()
+    await db.flush()
     for tab_input in tabs:
         tab = WorkspaceTab(
             stable_key=tab_input.stable_key,
@@ -374,7 +389,7 @@ async def create_workspace(
         schema_version=body.schema_version,
         settings=body.settings,
     )
-    _replace_tabs(workspace, body.tabs or _factory_tabs())
+    await _replace_tabs(db, workspace, body.tabs or _factory_tabs())
     db.add(workspace)
     await db.flush()
     return await _load_workspace(db, workspace.id, current_user.id)
@@ -417,7 +432,7 @@ async def save_workspace_snapshot(
         workspace.name = body.name.strip()
     workspace.settings = body.settings
     workspace.schema_version = body.schema_version
-    _replace_tabs(workspace, body.tabs)
+    await _replace_tabs(db, workspace, body.tabs)
     workspace.revision += 1
     await db.flush()
     return await _load_workspace(db, workspace.id, current_user.id)

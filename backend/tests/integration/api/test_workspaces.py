@@ -72,6 +72,71 @@ class TestWorkspaces:
         assert stale.status_code == 409
         assert stale.json()["detail"]["code"] == "workspace_revision_conflict"
 
+    def test_snapshot_can_replace_factory_tabs_with_the_same_stable_keys(self, client, auth_headers):
+        workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
+        payload = {
+            "base_revision": workspace["revision"],
+            "name": workspace["name"],
+            "settings": workspace["settings"],
+            "schema_version": workspace["schema_version"],
+            "tabs": [
+                {
+                    "stable_key": tab["stable_key"],
+                    "name": tab["name"],
+                    "position": tab["position"],
+                    "layout_config": tab["layout_config"],
+                    "active_window_key": tab["active_window_key"],
+                    "windows": [
+                        {
+                            "instance_key": window["instance_key"],
+                            "tool_type": window["tool_type"],
+                            "title": window["title"],
+                            "link_group": window["link_group"],
+                            "configuration": window["configuration"],
+                            "style": window["style"],
+                            "state_schema_version": window["state_schema_version"],
+                            "position": window["position"],
+                        }
+                        for window in tab["windows"]
+                    ],
+                }
+                for tab in workspace["tabs"]
+            ],
+        }
+
+        saved = client.put(
+            f"/api/v1/workspaces/{workspace['id']}/snapshot",
+            headers=auth_headers,
+            json=payload,
+        )
+
+        assert saved.status_code == 200
+        assert [tab["stable_key"] for tab in saved.json()["tabs"]] == [
+            tab["stable_key"] for tab in workspace["tabs"]
+        ]
+
+    def test_default_workspace_repairs_legacy_duplicate_defaults(self, client, auth_headers, db):
+        from app.models.workstation import Workspace
+
+        default = client.get("/api/v1/workspaces/default", headers=auth_headers).json()
+        db.add(
+            Workspace(
+                user_id=default["user_id"],
+                name="Interrupted Recovery",
+                is_default=True,
+                position=99,
+                schema_version=1,
+                settings={},
+            )
+        )
+        db.flush()
+
+        resolved = client.get("/api/v1/workspaces/default", headers=auth_headers)
+
+        assert resolved.status_code == 200
+        assert resolved.json()["id"] == default["id"]
+        assert db.query(Workspace).filter_by(user_id=default["user_id"], is_default=True).count() == 1
+
     def test_library_item_is_versioned(self, client, auth_headers):
         payload = {
             "kind": "chart_template",

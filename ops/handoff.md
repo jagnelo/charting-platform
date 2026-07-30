@@ -1,5 +1,27 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:12:00Z
+
+- Browser acceptance exposed and fixed three genuine workstation failures: numeric
+  Golden Layout sizes/minimum dimensions from persisted legacy snapshots now normalize
+  to v2 unit-bearing strings; self-emitted Golden Layout state no longer causes an
+  install/destroy loop; workspace snapshot replacement flushes delete-orphans before
+  reinserting same-key tabs. Default-workspace resolution also repairs legacy duplicate
+  defaults rather than returning HTTP 500.
+- Focused workspace API integration `15 passed`; focused frontend unit suites `14
+  passed`; frontend TypeScript passed. A real Playwright run progressed through a
+  rendered docked workstation and exposed the tool recreation loop.
+- Remaining validation is environment-blocked: the host filesystem has only 116 MiB
+  free (`100%` capacity), so Vite reports `ENOSPC` and Docker BuildKit reports an I/O
+  error writing `metadata_v2.db`. Do not remove user caches, Docker images, or volumes
+  without explicit authorization.
+
+### Exact next step
+
+- After host disk space is made available, rebuild the frontend service and rerun
+  `flows.spec.ts --grep F8b --project=chromium`; then inspect console/backend logs and
+  continue the remaining cross-window interaction audit.
+
 ## Continuation update — 2026-07-30T11:57:00Z
 
 - Corrected the browser pop-out recovery path: closing a pop-out now closes only that

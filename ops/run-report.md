@@ -16020,3 +16020,23 @@ Append a short entry after each worker session.
   schedules an atomic snapshot, rather than remaining an unsaved component mutation.
 - Validation: focused ToolWindow/workspace-store `13 passed`, frontend TypeScript,
   production build, and `git diff --check` passed.
+## 2026-07-30T12:12:00Z Workstation browser-lifecycle repair checkpoint
+
+- The first real Playwright pop-out run exposed numeric `size` and minimum-dimension
+  values in persisted Golden Layout snapshots, which caused v2 `trimStart` crashes.
+  Layout input and persisted output now normalize legacy numeric fractional/pixel values
+  before rendering or saving.
+- The next browser run rendered the whole docked workspace but revealed an install/
+  destroy feedback loop: Golden Layout `stateChanged` snapshots were re-applied through
+  a deep prop watcher. The host now fingerprints self-emitted layouts and skips that
+  reinstallation cycle.
+- API/browser exercise also exposed snapshot replacement ordering for same-key factory
+  tabs and duplicate default workspaces. Replacement now flushes orphan deletion before
+  insertion, workspace creation awaits the async replacement, and default resolution
+  deterministically repairs legacy duplicates.
+- Validation: workspace API integration `15 passed` (two pre-existing third-party
+  deprecation warnings); focused frontend unit suites `14 passed`; TypeScript passed.
+  Full frontend build and final focused browser rerun are pending because the host
+  filesystem is full (116 MiB free): Vite returns `ENOSPC` and Docker BuildKit returns
+  an I/O error writing its metadata DB. No user-owned cache/image/volume cleanup was
+  attempted.

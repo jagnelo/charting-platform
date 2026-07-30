@@ -133,6 +133,35 @@ test.describe('Chart', () => {
 
 })
 
+// ── TC2000 workstation window mechanics ──────────────────────────────────────
+
+test.describe('TC2000 workstation', () => {
+
+  test.beforeEach(async ({ loggedIn }) => {})
+
+  test('F8b — closing a floated tool preserves its source workspace tool', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const floatButton = page.locator('button[title="Float"]').first()
+    await expect(floatButton).toBeVisible({ timeout: 10_000 })
+
+    const popupPromise = context.waitForEvent('page')
+    await floatButton.click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+    const closed = popup.waitForEvent('close')
+    await popup.locator('button[title="Close"]').click()
+    await closed
+
+    // The docked window is the durable source of truth; a disposable pop-out cannot
+    // remove it from the parent layout.
+    await expect(page.locator('button[title="Float"]').first()).toBeVisible()
+    browserDiagnostics.expectNoCriticalIssues()
+  })
+
+})
+
 
 // ── Alert flows ────────────────────────────────────────────────────────────────
 
