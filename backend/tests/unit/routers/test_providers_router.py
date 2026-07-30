@@ -46,6 +46,26 @@ class TestProvidersRouter:
         )
         assert changed["auto_weight_enabled"] is False
 
+    def test_entitlements_are_seeded_and_patchable(self, client, auth_headers):
+        rows = client.get("/api/v1/providers/entitlements", headers=auth_headers)
+        assert rows.status_code == 200
+        assert rows.json()
+        target = rows.json()[0]
+        updated = client.patch(
+            f"/api/v1/providers/entitlements/{target['provider']}/{target['capability']}",
+            headers=auth_headers,
+            json={"configured_plan": "free-reviewed", "freshness_semantics": "delayed"},
+        )
+        assert updated.status_code == 200
+        refreshed = client.get("/api/v1/providers/entitlements", headers=auth_headers).json()
+        changed = next(
+            row
+            for row in refreshed
+            if row["provider"] == target["provider"] and row["capability"] == target["capability"]
+        )
+        assert changed["configured_plan"] == "free-reviewed"
+        assert changed["freshness_semantics"] == "delayed"
+
     def test_observation_summary_and_prune(self, client, auth_headers, db, instrument):
         data_source = DataSource(name="yfinance", is_active=True)
         db.add(data_source)

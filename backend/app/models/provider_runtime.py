@@ -41,40 +41,6 @@ class ProviderPolicy(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-
-class ProviderEntitlement(Base, TimestampMixin):
-    """Versioned terms/capability evidence; separate from operational provider policy."""
-
-    __tablename__ = "provider_entitlement"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    data_source_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    capability: Mapped[ProviderCapability] = mapped_column(
-        SAEnum(ProviderCapability), nullable=False, index=True
-    )
-    configured_plan: Mapped[str] = mapped_column(String(80), nullable=False, default="unreviewed")
-    is_free: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    authentication_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    usage_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
-    redistribution_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    quota_policy: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    history_depth: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    venue_coverage: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    freshness_semantics: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    enabled_environments: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    live_probe_status: Mapped[str] = mapped_column(String(32), nullable=False, default="not_run")
-
-    data_source: Mapped["DataSource"] = relationship(back_populates="provider_entitlements")
-
-    __table_args__ = (
-        UniqueConstraint(
-            "data_source_id", "capability", name="uq_provider_entitlement_source_capability"
-        ),
-    )
     capability: Mapped[ProviderCapability] = mapped_column(
         SAEnum(ProviderCapability), nullable=False, index=True
     )
@@ -113,6 +79,41 @@ class ProviderEntitlement(Base, TimestampMixin):
             "is_pinned",
             "effective_score",
             "base_priority",
+        ),
+    )
+
+
+class ProviderEntitlement(Base, TimestampMixin):
+    """Versioned terms/capability evidence; separate from operational provider policy."""
+
+    __tablename__ = "provider_entitlement"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    configured_plan: Mapped[str] = mapped_column(String(80), nullable=False, default="unreviewed")
+    is_free: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    authentication_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    usage_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
+    redistribution_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    quota_policy: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    history_depth: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    venue_coverage: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    freshness_semantics: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    enabled_environments: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    live_probe_status: Mapped[str] = mapped_column(String(32), nullable=False, default="not_run")
+
+    data_source: Mapped["DataSource"] = relationship(back_populates="provider_entitlements")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id", "capability", name="uq_provider_entitlement_source_capability"
         ),
     )
 

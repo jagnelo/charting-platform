@@ -17,6 +17,7 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
+    ProviderEntitlement,
     ProviderHealthState,
     ProviderPolicy,
     ProviderRequestLog,
@@ -301,6 +302,24 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     freshness_seconds=freshness,
                 )
                 db.add(policy)
+            entitlement = (
+                await db.execute(
+                    select(ProviderEntitlement).where(
+                        ProviderEntitlement.data_source_id == data_source.id,
+                        ProviderEntitlement.capability == capability,
+                    )
+                )
+            ).scalar_one_or_none()
+            if entitlement is None:
+                db.add(
+                    ProviderEntitlement(
+                        data_source_id=data_source.id,
+                        capability=capability,
+                        configured_plan="unreviewed",
+                        is_free=True,
+                        live_probe_status="not_run",
+                    )
+                )
             _apply_policy_defaults(
                 policy,
                 provider_name=provider_name,
