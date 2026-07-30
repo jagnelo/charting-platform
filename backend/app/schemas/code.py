@@ -110,3 +110,4 @@ class ResearchBatchResultOut(BaseModel):
     status: str
     cells: list[ResearchBatchCellOut] = Field(default_factory=list)
     dataset_manifest: dict
+    progress: dict = Field(default_factory=dict)

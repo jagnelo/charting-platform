@@ -343,3 +343,31 @@ def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_abov
     )
     assert rejected.status_code == 422
     assert rejected.json()["detail"] == {"code": "batch_universe_too_large", "maximum": 10000}
+
+
+def test_batch_results_expose_runner_owned_durable_progress(client, auth_headers, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "progress-column",
+            "name": "Progress column",
+            "kind": "column",
+            "initial_version": {"source": "output.scalar('constant', 1)", "output_contract": "scalar"},
+        },
+    ).json()
+    run = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": ["MISSING"]}},
+    ).json()
+    result_dir = tmp_path / "results"
+    result_dir.mkdir()
+    (result_dir / f"{run['id']}.progress.json").write_text(
+        '{"completed_cells":150,"total_cells":1000,"status":"running"}'
+    )
+    response = client.get(f"/api/v1/research/runs/{run['id']}/batch-results", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["progress"] == {"completed_cells": 150, "total_cells": 1000, "status": "running"}

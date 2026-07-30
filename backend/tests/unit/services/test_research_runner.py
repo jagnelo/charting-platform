@@ -58,6 +58,25 @@ def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
     assert result["resource_usage"]["cell_count"] == 2
 
 
+def test_runner_batch_reports_durable_progress_and_honors_cancellation():
+    progress = []
+    result = execute_job(
+        {
+            "source": "output.boolean('qualifies', True)",
+            "output_contract": "boolean",
+            "dataset": {"datasets": [
+                {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
+                {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
+            ]},
+        },
+        progress_callback=progress.append,
+        cancellation_check=lambda: len(progress) > 0,
+    )
+    assert result["status"] == "canceled"
+    assert result["diagnostics"][0]["code"] == "batch_canceled"
+    assert progress == [{"completed_cells": 0, "total_cells": 2, "status": "running"}]
+
+
 def test_runner_rejects_forbidden_source_before_execution():
     result = execute_job({"source": "import os", "dataset": {}})
     assert result["status"] == "failed"

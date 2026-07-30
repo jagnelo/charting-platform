@@ -41,8 +41,25 @@ def collect_research_result(run: ResearchRun) -> bool:
     return True
 
 
+def read_research_progress(run_id: int) -> dict:
+    """Return a runner-owned durable progress snapshot without executing code."""
+    path = Path(settings.RESEARCH_RESULT_DIR) / f"{run_id}.progress.json"
+    if not path.exists():
+        return {}
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def cancel_research_run(run: ResearchRun) -> None:
     path = Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.json"
     if path.exists():
         path.rename(path.with_suffix(".canceled"))
+    else:
+        # A runner claims jobs by atomically renaming them to .running. The sentinel
+        # is visible across the constrained shared job volume and checked between
+        # batch cells; it never asks FastAPI to execute user code.
+        (Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.cancel").touch()
     run.status = "canceled"

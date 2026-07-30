@@ -12,6 +12,7 @@ import os
 import resource
 import signal
 import time
+from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
 
@@ -38,7 +39,12 @@ def _timeout(_signal, _frame) -> None:
     raise TimeoutError("research execution wall-time limit exceeded")
 
 
-def execute_job(job: dict) -> dict:
+def execute_job(
+    job: dict,
+    *,
+    progress_callback: Callable[[dict], None] | None = None,
+    cancellation_check: Callable[[], bool] | None = None,
+) -> dict:
     source = str(job["source"])
     validation = validate_workstation_python(source)
     if not validation.valid:
@@ -48,7 +54,14 @@ def execute_job(job: dict) -> dict:
         }
     datasets = job.get("dataset", {}).get("datasets")
     if isinstance(datasets, list):
-        return _execute_batch(source, datasets, str(job.get("output_contract") or ""), job)
+        return _execute_batch(
+            source,
+            datasets,
+            str(job.get("output_contract") or ""),
+            job,
+            progress_callback=progress_callback,
+            cancellation_check=cancellation_check,
+        )
     return _execute_single(source, job.get("dataset", {}), job)
 
 
@@ -96,16 +109,34 @@ def _execute_single(
     }
 
 
-def _execute_batch(source: str, datasets: list[object], output_contract: str, hash_input: dict) -> dict:
+def _execute_batch(
+    source: str,
+    datasets: list[object],
+    output_contract: str,
+    hash_input: dict,
+    *,
+    progress_callback: Callable[[dict], None] | None = None,
+    cancellation_check: Callable[[], bool] | None = None,
+) -> dict:
     if output_contract not in {"scalar", "boolean"}:
         return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar or boolean output."}]}
     cells: list[dict] = []
     started = time.monotonic()
+    total = len(datasets)
+    if progress_callback:
+        progress_callback({"completed_cells": 0, "total_cells": total, "status": "running"})
     _limit_resources()
     signal.signal(signal.SIGALRM, _timeout)
     signal.alarm(MAX_SECONDS)
     try:
         for candidate in datasets:
+            if cancellation_check and cancellation_check():
+                return {
+                    "status": "canceled",
+                    "diagnostics": [{"code": "batch_canceled", "message": "prepared-universe batch canceled"}],
+                    "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
+                    "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
+                }
             if not isinstance(candidate, dict):
                 continue
             instrument_id = candidate.get("instrument_id")
@@ -132,6 +163,8 @@ def _execute_batch(source: str, datasets: list[object], output_contract: str, ha
                 cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": "Scalar output must be numeric."})
                 continue
             cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "completed", "value": value})
+            if progress_callback and (len(cells) == total or len(cells) % 50 == 0):
+                progress_callback({"completed_cells": len(cells), "total_cells": total, "status": "running"})
     except TimeoutError:
         return {
             "status": "failed",
@@ -310,12 +343,32 @@ class _Ta:
 
 
 def run_once(path: Path) -> None:
-    payload = json.loads(path.read_text())
-    result = execute_job(payload)
+    running_path = path.with_suffix(".running")
+    try:
+        path.replace(running_path)
+    except FileNotFoundError:
+        return
+    payload = json.loads(running_path.read_text())
+    progress_path = RESULT_DIR / f"{path.stem}.progress.json"
+    cancel_path = JOB_DIR / f"{path.stem}.cancel"
+    RESULT_DIR.mkdir(parents=True, exist_ok=True)
+
+    def write_progress(progress: dict) -> None:
+        temporary = progress_path.with_suffix(".progress.tmp")
+        temporary.write_text(json.dumps(progress, separators=(",", ":")))
+        temporary.replace(progress_path)
+
+    result = execute_job(
+        payload,
+        progress_callback=write_progress,
+        cancellation_check=cancel_path.exists,
+    )
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     destination = RESULT_DIR / f"{path.stem}.json"
     destination.write_text(json.dumps(result, separators=(",", ":")))
-    path.rename(path.with_suffix(".processed"))
+    progress_path.unlink(missing_ok=True)
+    cancel_path.unlink(missing_ok=True)
+    running_path.rename(path.with_suffix(".processed"))
 
 
 def main() -> None:

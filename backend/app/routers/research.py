@@ -16,6 +16,7 @@ from app.services.research_jobs import (
     cancel_research_run,
     collect_research_result,
     enqueue_research_run,
+    read_research_progress,
 )
 
 router = APIRouter(prefix="/research", tags=["research"])
@@ -259,6 +260,7 @@ async def get_batch_results(
         status=run.status,
         cells=cells if isinstance(cells, list) else [],
         dataset_manifest=run.dataset_manifest,
+        progress=read_research_progress(run.id),
     )
 
 
