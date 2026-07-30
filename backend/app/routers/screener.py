@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
+from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import WorkspaceLibraryItem
+from app.services.research_jobs import collect_research_result, enqueue_research_run
 
 router = APIRouter(prefix="/screeners", tags=["screeners"])
 
@@ -74,6 +77,10 @@ class ScreenerFromCondition(BaseModel):
     timeframe: Timeframe = Timeframe.D1
     schedule: str | None = None
     is_active: bool = True
+
+
+class ScreenerFromPythonCondition(ScreenerFromCondition):
+    """A persisted Boolean code version is the authoritative scan condition."""
 
 
 @router.get("", response_model=list[ScreenerOut])
@@ -193,6 +200,116 @@ async def create_screener_from_condition(
     return screener
 
 
+@router.post("/from-python-condition/{code_version_id}", response_model=ScreenerOut, status_code=201)
+async def create_screener_from_python_condition(
+    code_version_id: int,
+    body: ScreenerFromPythonCondition,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    version = (
+        await db.execute(
+            select(CodeVersion)
+            .join(CodeAsset)
+            .where(
+                CodeVersion.id == code_version_id,
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.kind == "condition",
+                CodeVersion.output_contract == "boolean",
+            )
+        )
+    ).scalar_one_or_none()
+    if version is None:
+        raise HTTPException(404, "Boolean Python condition version not found")
+    existing = (
+        await db.execute(
+            select(func.count()).select_from(ScreenerDefinition).where(
+                ScreenerDefinition.user_id == current_user.id,
+                func.lower(ScreenerDefinition.name) == body.name.lower(),
+            )
+        )
+    ).scalar_one()
+    if existing > 0:
+        raise HTTPException(409, f"A screener named '{body.name}' already exists")
+    screener = ScreenerDefinition(
+        **body.model_dump(exclude={"description"}),
+        conditions={"type": "python_condition", "code_version_id": version.id},
+        user_id=current_user.id,
+        description=body.description,
+    )
+    db.add(screener)
+    await db.commit()
+    await db.refresh(screener)
+    return screener
+
+
+async def _queue_python_screener_run(db: AsyncSession, screener: ScreenerDefinition) -> ScreenerResult:
+    """Materialize a screener universe and queue it in the isolated Boolean runner."""
+    code_version_id = screener.conditions.get("code_version_id")
+    if not isinstance(code_version_id, int):
+        raise HTTPException(422, "Python screener has no immutable condition version")
+    version = (await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))).scalar_one()
+    from app.routers.research import _materialize_declared_dataset
+    from app.services.screener_engine import _get_universe
+
+    instrument_ids = await _get_universe(db, screener)
+    instruments = (
+        await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+    ).scalars().all()
+    symbols = [instrument.symbol for instrument in instruments]
+    manifest = await _materialize_declared_dataset(db, {}, {"symbols": symbols})
+    run = ResearchRun(
+        user_id=screener.user_id,
+        code_version_id=version.id,
+        run_config={"symbols": symbols, "screener_id": screener.id},
+        dataset_manifest=manifest,
+    )
+    run.code_version = version
+    db.add(run)
+    await db.flush()
+    enqueue_research_run(run)
+    result = ScreenerResult(
+        screener_id=screener.id,
+        run_at=datetime.now(),
+        duration_ms=None,
+        matched_ids=[],
+        result_data={"_python_research_run_id": run.id, "_status": "queued"},
+        error=None,
+    )
+    db.add(result)
+    await db.commit()
+    await db.refresh(result)
+    return result
+
+
+async def _collect_python_screener_result(db: AsyncSession, result: ScreenerResult) -> None:
+    run_id = result.result_data.get("_python_research_run_id")
+    if not isinstance(run_id, int) or result.result_data.get("_status") in {"completed", "failed", "canceled"}:
+        return
+    run = (await db.execute(select(ResearchRun).where(ResearchRun.id == run_id))).scalar_one_or_none()
+    if run is None:
+        result.result_data = {**result.result_data, "_status": "failed"}
+        result.error = "Isolated Python scan run is unavailable"
+        await db.commit()
+        return
+    collect_research_result(run)
+    if run.status not in {"completed", "failed", "canceled"}:
+        result.result_data = {**result.result_data, "_status": run.status}
+        await db.commit()
+        return
+    artifact = next((item for item in run.artifacts if item.artifact_type == "batch" and item.name == "batch_cells"), None)
+    cells = artifact.payload.get("value", {}).get("cells", []) if artifact else []
+    matches = [cell.get("instrument_id") for cell in cells if isinstance(cell, dict) and cell.get("status") == "completed" and cell.get("value") is True and isinstance(cell.get("instrument_id"), int)]
+    result.matched_ids = matches
+    result.result_data = {
+        **result.result_data,
+        "_status": run.status,
+        "_coverage": {"universe_count": len(run.run_config.get("symbols", [])), "evaluated_count": len(cells), "excluded": run.dataset_manifest.get("exclusions", [])},
+    }
+    result.error = next((item.get("message") for item in run.diagnostics if isinstance(item, dict) and item.get("message")), None)
+    await db.commit()
+
+
 @router.get("/{screener_id}", response_model=ScreenerOut)
 async def get_screener(
     screener_id: int,
@@ -215,6 +332,9 @@ async def run_screener_now(
     screener = await db.get(ScreenerDefinition, screener_id)
     if screener is None or screener.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Screener not found")
+
+    if screener.conditions.get("type") == "python_condition":
+        return await _queue_python_screener_run(db, screener)
 
     from app.services.screener_engine import run_screener
 
@@ -256,7 +376,10 @@ async def get_screener_results(
         .order_by(ScreenerResult.run_at.desc())
         .limit(limit)
     )
-    return results.scalars().all()
+    values = results.scalars().all()
+    for result in values:
+        await _collect_python_screener_result(db, result)
+    return values
 
 
 @router.delete("/{screener_id}", status_code=204)

@@ -12,8 +12,12 @@
         <option value="">Select saved condition</option>
         <option v-for="condition in conditions" :key="condition.stable_key" :value="condition.stable_key">{{ condition.name }} · v{{ condition.version }}</option>
       </select>
-      <input v-model.trim="scanName" :disabled="busy || !selectedKey" aria-label="Scan name" placeholder="EasyScan name" />
-      <button type="button" :disabled="busy || !selectedKey || !scanName" @click="run">Run</button>
+      <select v-model="selectedPythonVersion" :disabled="busy" aria-label="Python condition">
+        <option value="">Python condition: Off</option>
+        <option v-for="asset in pythonConditions" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option>
+      </select>
+      <input v-model.trim="scanName" :disabled="busy || (!selectedKey && !selectedPythonVersion)" aria-label="Scan name" placeholder="EasyScan name" />
+      <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
     <p v-else-if="busy" class="easy-scan__state">{{ status }}</p>
@@ -30,7 +34,9 @@ type ConditionAsset = { stable_key: string; name: string; version: number; paylo
 type ScanResult = { matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
 
 const conditions = ref<ConditionAsset[]>([])
+const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
 const selectedKey = ref('')
+const selectedPythonVersion = ref('')
 const conditionName = ref('')
 const field = ref('close')
 const operator = ref('gt')
@@ -52,7 +58,14 @@ const coverageText = computed(() => {
 })
 
 async function load() {
-  try { conditions.value = await api.get<ConditionAsset[]>('/workspaces/library/conditions') }
+  try {
+    const [saved, assets] = await Promise.all([
+      api.get<ConditionAsset[]>('/workspaces/library/conditions'),
+      api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number }> }>>('/code/assets'),
+    ])
+    conditions.value = saved
+    pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
+  }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load conditions' }
 }
 function stableKey(name: string) {
@@ -77,12 +90,14 @@ async function saveCondition() {
   finally { busy.value = false }
 }
 async function run() {
-  if (!selectedKey.value || !scanName.value) return
+  if ((!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
   busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; status.value = 'Preparing local EasyScan…'
   try {
     let scan: { id: number }
     try {
-      scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, universe_type: 'all', timeframe: 'D1' })
+      scan = await api.post<{ id: number }>(selectedPythonVersion.value
+        ? `/screeners/from-python-condition/${encodeURIComponent(selectedPythonVersion.value)}`
+        : `/screeners/from-condition/${encodeURIComponent(selectedKey.value)}`, { name: scanName.value, universe_type: 'all', timeframe: 'D1' })
     } catch (cause: any) {
       if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
       const existing = await api.get<Array<{ id: number; name: string }>>('/screeners')
@@ -93,6 +108,15 @@ async function run() {
     scanId.value = scan.id
     status.value = 'Evaluating canonical local data…'
     result.value = await api.post<ScanResult>(`/screeners/${scan.id}/run`, {})
+    if (selectedPythonVersion.value) {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const status = String(result.value.result_data._status ?? '')
+        if (['completed', 'failed', 'canceled'].includes(status)) break
+        await new Promise(resolve => setTimeout(resolve, 250))
+        const retained = await api.get<ScanResult[]>(`/screeners/${scan.id}/results`, { limit: 1 })
+        if (retained[0]) result.value = retained[0]
+      }
+    }
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
   finally { busy.value = false }
 }
@@ -104,6 +128,7 @@ async function createAlert() {
   finally { busy.value = false }
 }
 watch(selectedKey, key => { if (key && !scanName.value) scanName.value = `${conditions.value.find(item => item.stable_key === key)?.name ?? 'EasyScan'} Scan` })
+watch(selectedPythonVersion, version => { if (version && !scanName.value) scanName.value = `${pythonConditions.value.find(item => item.versionId === Number(version))?.name ?? 'Python'} Scan` })
 onMounted(() => { void load() })
 </script>
 
