@@ -55,6 +55,7 @@ export interface WatchlistColumn {
   key: string
   label: string
   width?: string
+  format?: 'percent' | 'number'
 }
 
 interface SavedScreener {
@@ -182,7 +183,9 @@ onMounted(() => {
 function display(row: WatchlistRow, key: string) {
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
   if (value == null || value === '') return '—'
-  return typeof value === 'number' ? `${(value * 100).toFixed(2)}%` : String(value)
+  if (typeof value !== 'number') return String(value)
+  const format = props.columns.find(column => column.key === key)?.format ?? 'percent'
+  return format === 'number' ? value.toFixed(2) : `${(value * 100).toFixed(2)}%`
 }
 
 function toggleSort(key: string) {

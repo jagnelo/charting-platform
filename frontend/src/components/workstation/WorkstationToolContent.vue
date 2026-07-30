@@ -183,7 +183,7 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'performance_ytd', label: 'YTD', width: '58px' },
   { key: 'performance_1y', label: '1Y', width: '58px' },
   { key: 'relative_ratio', label: '/ SPY', width: '64px' },
-  { key: 'rsi14', label: 'RSI', width: '54px' },
+  { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' },
   { key: 'above_ma20', label: '>20', width: '54px' },
   { key: 'above_ma50', label: '>50', width: '54px' },
   { key: 'above_ma200', label: '>200', width: '58px' },

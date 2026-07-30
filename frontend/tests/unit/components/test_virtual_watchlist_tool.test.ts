@@ -110,4 +110,15 @@ describe('VirtualWatchlistTool', () => {
     await choices[0].setValue(false)
     expect(wrapper.emitted('update:visibleColumnKeys')).toHaveLength(1)
   })
+
+  it('renders explicitly numeric technical columns without percentage scaling', () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows: [{ instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { rsi14: 67.2, performance_1m: 0.12 } }],
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'rsi14', label: 'RSI', format: 'number' }, { key: 'performance_1m', label: '1M' }],
+      },
+    })
+    expect(wrapper.text()).toContain('67.20')
+    expect(wrapper.text()).toContain('12.00%')
+  })
 })
