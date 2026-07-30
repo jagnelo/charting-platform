@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T10:42:00Z",
-    "last_commit": "7504ba1 feat(top-down): show proxy provenance",
+    "last_handoff_at": "2026-07-30T10:44:00Z",
+    "last_commit": "ce10197 feat(top-down): show proxy known-at freshness",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused VirtualWatchlistTool suite: 12 passed; workspace-store suite: 9 passed; StudyLabTool test: 1 passed; ToolWindow test: 1 passed; TypeScript check after proxy-ranking integration, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after enriched industry-proxy ranking, four-environment visual screenshot harness, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T10:42:00Z proxy provenance columns)",
+        "diff_check": "passed (2026-07-30T10:44:00Z proxy known-at freshness)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T10:44:00Z: Added/pushed ce10197: verified proxy rankings now show point-in-time known-at freshness separately from holdings composition date. TypeScript and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T10:42:00Z: Added/pushed 7504ba1: verified Industry proxy rankings now expose source provider and holdings composition date as sortable fields alongside technical and relative-strength values. TypeScript and diff checks passed. Freshness/status handling and broad acceptance remain incomplete.",
         "2026-07-30T10:40:00Z: Added/pushed 20655dc: the verified Industry proxy list now persists its full shared list configuration through the Industry tool: columns, filters, saved conditions, Boolean pins, groups, and stacking. TypeScript and diff checks passed. Provenance/unavailable columns and broad acceptance remain incomplete.",
         "2026-07-30T10:38:00Z: Added/pushed 4bf339e: verified Industry proxy rankings now use the shared sortable virtualized list with 1M, sector ratio, SPY ratio, and RSI columns while preserving linked selection. Frontend type-check/build and diff check passed. Persisted proxy columns/provenance display and broad acceptance remain incomplete.",

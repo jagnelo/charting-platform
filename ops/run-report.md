@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:44:00Z Industry proxy known-at freshness checkpoint
+
+- Added the verified disclosure `known_at` date to proxy rankings. Pushed `ce10197`.
+- Validation: TypeScript, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:42:00Z Industry proxy provenance checkpoint
 
 - Added visible sortable source-provider and holdings-date fields to verified Industry

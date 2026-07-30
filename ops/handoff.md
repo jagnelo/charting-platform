@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:44:00Z
+
+- Added each verified proxy disclosure's `known_at` date to the sortable ranking list,
+  separating the holdings composition date from point-in-time availability.
+- Pushed `ce10197`; TypeScript and diff checks passed.
+
+### Exact next step
+
+- Continue remaining top-down end-to-end acceptance and broader workstation surfaces.
+
 ## Continuation update — 2026-07-30T10:42:00Z
 
 - Added source-provider and holdings composition-date columns to verified proxy
