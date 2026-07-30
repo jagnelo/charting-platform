@@ -64,7 +64,7 @@
         <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
         <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
         <template v-else>
-          <small>Verified ETF proxies · point-in-time holdings</small>
+          <small>Verified ETF proxies · point-in-time holdings · {{ proxyCoverage }}</small>
           <button
             v-for="proxy in industryProxyState.proxies"
             :key="proxy.symbol"
@@ -300,8 +300,11 @@ function formatRatio(value: number | null | undefined) { return value == null ? 
 function proxyMetrics(symbol: string) {
   const row = industryProxySnapshot.value?.rows.find(item => item.symbol === symbol)
   if (!row) return 'Ranking local bars…'
-  return `${formatRatio(row.relative_to_benchmark?.value)} / ${selectedETF.value} · ${formatRatio(row.relative_to_market?.value)} / SPY`
+  return `${formatPercent(row.performance['1M']?.value)} 1M · RSI ${formatNumber(row.technical.rsi14?.value)} · ${formatRatio(row.relative_to_benchmark?.value)} / ${selectedETF.value} · ${formatRatio(row.relative_to_market?.value)} / SPY`
 }
+const proxyCoverage = computed(() => industryProxySnapshot.value
+  ? `${(industryProxySnapshot.value.coverage * 100).toFixed(0)}% local-bar coverage`
+  : 'local-bar coverage pending')
 </script>
 
 <style scoped>

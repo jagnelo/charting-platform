@@ -190,7 +190,14 @@ export interface ETFIndustryProxyState {
 }
 
 export interface IndustryProxySnapshotState {
-  rows: Array<{ symbol: string; name: string; relative_to_benchmark: { value: number | null } | null; relative_to_market: { value: number | null } | null }>
+  rows: Array<{
+    symbol: string
+    name: string
+    performance: Record<string, { value: number | null }>
+    technical: Record<string, { value: number | null }>
+    relative_to_benchmark: { value: number | null } | null
+    relative_to_market: { value: number | null } | null
+  }>
   coverage: number
   exclusions: Array<{ code: string; message: string }>
 }
