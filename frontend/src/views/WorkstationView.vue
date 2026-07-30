@@ -62,6 +62,7 @@
         @filter="updateFilter"
         @condition-filter="updateConditionFilter"
         @update-link-group="updateLinkGroup"
+        @close="closePopoutTool"
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
     </main>
@@ -210,7 +211,7 @@ function floatTool(windowKey: string) {
   if (!popup) workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void }): VNode {
+function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; close: () => void }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
@@ -229,8 +230,17 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
+    onClose: () => {
+      if (workspaceStore.closeTool(dockTool.instance_key)) actions.close()
+    },
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),
   })
+}
+
+function closePopoutTool(windowKey: string) {
+  const tab = workspaceStore.activeTab
+  if (!tab?.windows.some(window => window.instance_key === windowKey)) return
+  if (workspaceStore.closeTool(windowKey)) window.close()
 }
 
 function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {

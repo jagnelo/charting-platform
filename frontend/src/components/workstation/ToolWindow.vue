@@ -14,6 +14,7 @@
         </select>
         <button type="button" title="Maximize" @click="emit('maximize')">□</button>
         <button type="button" title="Float" @click="emit('float')">↗</button>
+        <button type="button" title="Close" aria-label="Close tool" @click="emit('close')">×</button>
       </div>
     </header>
     <div class="tool-window__body">
@@ -40,6 +41,7 @@ const emit = defineEmits<{
   'update:linkGroup': [value: LinkGroup]
   maximize: []
   float: []
+  close: []
 }>()
 
 const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan', 'pink', 'brown', 'yellow', 'grey']

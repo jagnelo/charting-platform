@@ -717,6 +717,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return window
   }
 
+  /** Remove a tool through the same serializable state used by Golden Layout. */
+  function closeTool(windowKey: string) {
+    const tab = activeTab.value
+    if (!tab || !tab.windows.some(window => window.instance_key === windowKey)) return false
+    if (tab.windows.length === 1) {
+      error.value = 'A workspace tab must retain at least one tool.'
+      return false
+    }
+    tab.windows = tab.windows.filter(window => window.instance_key !== windowKey)
+    if (tab.active_window_key === windowKey) tab.active_window_key = tab.windows[0]?.instance_key ?? null
+    scheduleSnapshot()
+    return true
+  }
+
   function cloneActiveTab() {
     if (!workspace.value || !activeTab.value) return
     const source = activeTab.value
@@ -809,6 +823,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot,
     applyActiveLayout,
     openTool,
+    closeTool,
     cloneActiveTab,
     resetFactoryWorkspace,
   }

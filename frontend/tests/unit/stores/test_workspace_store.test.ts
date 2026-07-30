@@ -63,6 +63,26 @@ describe('workspace store layout tabs', () => {
     expect(apiPut).toHaveBeenCalled()
   })
 
+  it('closes a tool through serializable state but protects the final tool in a tab', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+
+    expect(store.closeTool('chart')).toBe(true)
+    expect(store.activeTab?.windows.map(window => window.instance_key)).toEqual(['notes'])
+    expect(store.activeTab?.active_window_key).toBe('notes')
+    expect(store.closeTool('notes')).toBe(false)
+    expect(store.error).toContain('at least one tool')
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

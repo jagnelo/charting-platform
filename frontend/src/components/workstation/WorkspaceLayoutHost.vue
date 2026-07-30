@@ -14,6 +14,7 @@ interface DockToolState {
 
 export interface DockToolActions {
   toggleMaximize: () => void
+  close: () => void
 }
 
 const props = defineProps<{ layout: LayoutConfig; renderTool: (tool: DockToolState, actions: DockToolActions) => VNode }>()
@@ -43,6 +44,7 @@ function install(layout: LayoutConfig) {
         const stack = container.parent.parentItem as unknown as { toggleMaximise?: () => void }
         stack.toggleMaximise?.()
       },
+      close: () => container.close(),
     }), rootHtmlElement)
     return { rootHtmlElement }
   }, true)
