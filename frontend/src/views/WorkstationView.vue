@@ -249,7 +249,11 @@ function updateStackedColumnKeys(windowKey: string, keys: string[]) {
 function updateToolConfiguration(windowKey: string, configuration: Record<string, unknown>) {
   const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
   if (!windowState) return
-  windowState.configuration = configuration
+  // Golden Layout mounts virtual Vue tool components once. Preserve this reactive
+  // configuration object so a template applies to the live tool immediately instead
+  // of waiting for a dock remount or workspace reload.
+  for (const key of Object.keys(windowState.configuration)) delete windowState.configuration[key]
+  Object.assign(windowState.configuration, configuration)
   workspaceStore.scheduleSnapshot()
 }
 

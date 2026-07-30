@@ -71,11 +71,12 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
       <div class="chart-tool__surface">
-        <ChartTemplateControl class="chart-tool__templates" :configuration="tool.configuration" @apply="applyChartTemplate" />
+        <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" @apply="applyChartTemplate" />
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
           v-else-if="chartStore.symbol"
+          :chart-type="chartBarType"
           :workspace-link-group="tool.link_group"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
         />
@@ -177,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
@@ -200,6 +201,7 @@ import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
+import { CHART_BAR_TYPES, type ChartBarType, type Timeframe } from '@/types'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -215,6 +217,11 @@ const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
+// A Golden Layout virtual component is mounted independently from its host render
+// cycle. Keep the latest serializable chart configuration locally so template changes
+// update its uPlot instance immediately, while the same object is persisted by the
+// parent workspace snapshot.
+const liveChartConfiguration = ref<Record<string, unknown>>(props.tool.configuration)
 const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
@@ -237,6 +244,12 @@ const syntheticExpression = computed(() => {
     : ''
   return expression.startsWith('=') && !ratioExpression.value ? expression : null
 })
+const chartBarType = computed<ChartBarType>(() => {
+  const requested = liveChartConfiguration.value.bar_type
+  return typeof requested === 'string' && CHART_BAR_TYPES.some(type => type.value === requested)
+    ? requested as ChartBarType
+    : 'candles'
+})
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
@@ -253,7 +266,9 @@ function setTimeframeLinkGroup(group: LinkGroup) {
 function applyChartTemplate(configuration: Record<string, unknown>) {
   const identity = Object.fromEntries(Object.entries(props.tool.configuration)
     .filter(([key]) => ['symbol', 'instrument_id', 'expression'].includes(key)))
-  emit('configuration', props.tool.instance_key, { ...configuration, ...identity })
+  const applied = { ...configuration, ...identity }
+  liveChartConfiguration.value = applied
+  emit('configuration', props.tool.instance_key, applied)
 }
 
 function selectProxy(symbol: string) {
@@ -261,7 +276,7 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-watch([activeSymbol, activeTimeframe, syntheticExpression], async ([symbol, timeframe, expression]) => {
+watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async ([symbol, timeframe, expression, barType]) => {
   if (props.tool.tool_type !== 'chart' || (!symbol && !expression)) return
   let targetSymbol = symbol
   if (expression) {
@@ -272,14 +287,18 @@ watch([activeSymbol, activeTimeframe, syntheticExpression], async ([symbol, time
       return
     }
   }
-  if (chartStore.symbol === targetSymbol && chartStore.timeframe === timeframe) return
+  if (chartStore.symbol === targetSymbol && chartStore.timeframe === timeframe && chartStore.barType === barType) return
   void chartStore.loadBars(
     targetSymbol,
-    timeframe as typeof chartStore.timeframe,
-    chartStore.barType,
+    timeframe as Timeframe,
+    barType,
     true,
   )
 }, { immediate: true })
+
+watch(() => props.tool.configuration, configuration => {
+  liveChartConfiguration.value = configuration
+}, { deep: true })
 
 // The shared drawing and alert overlay stores are deliberately hydrated whenever a
 // workstation chart resolves a canonical instrument. This gives docked/popped-out
