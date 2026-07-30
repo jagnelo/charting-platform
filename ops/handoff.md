@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:00:00Z
+
+- Replaced the default coverage-window placeholder with a real canonical local-data
+  panel: selected-instrument adjusted daily range/count plus persisted dataset state.
+  It communicates loading, unavailable, stale, pending, and failed conditions without
+  exposing provider credentials, symbols, or fallback order. Pushed `4da8b96`.
+- TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Add the response-level provenance/freshness contract needed by all workstation batch
+  responses, then continue the remaining end-to-end acceptance work.
+
 ## Continuation update — 2026-07-30T11:55:00Z
 
 - Provider resolution now excludes expired review evidence, using a UTC-safe

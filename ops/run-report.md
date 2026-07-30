@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:00:00Z Canonical workstation coverage state
+
+- The default Coverage tool now reads local canonical coverage/provenance state for the
+  selected instrument, including adjusted daily range/count and persisted dataset status.
+  Pushed `4da8b96`.
+- Validation: TypeScript, production build, and diff check. Response-level provenance
+  contracts and full acceptance remain incomplete.
+
 ## 2026-07-30T11:55:00Z Entitlement review-date enforcement
 
 - Expired provider-entitlement reviews are excluded before resolution; entitlement

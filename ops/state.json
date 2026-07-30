@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T11:55:00Z",
-    "last_commit": "cac3ea0 feat(providers): enforce entitlement review dates",
+    "last_handoff_at": "2026-07-30T12:00:00Z",
+    "last_commit": "4da8b96 feat(workstation): show canonical coverage state",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
         "backend_tests": "provider governance router 6 passed and runtime 8 passed (14 combined) with --no-cov; isolated Study Lab runner/deployment guard 8 passed; research API integration 7 passed; screener/analysis integration 19 passed; workspace/analysis integration 13 passed (Python 3.12), 2026-07-30",
         "frontend_tests": "passed (focused persisted-results tool: 1 passed; Study Lab/results slice: 2 passed; VirtualWatchlistTool suite: 14 passed; workspace-store suite: 10 passed; TypeScript check, 2026-07-30)",
-        "frontend_build": "passed (type-check and production build after honest workstation data-state indicator, 2026-07-30)",
+        "frontend_build": "passed (type-check and production build after canonical workstation coverage state, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T11:55:00Z entitlement review-date enforcement)",
+        "diff_check": "passed (2026-07-30T12:00:00Z canonical workstation coverage state)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T12:00:00Z: Added/pushed 4da8b96: the default Coverage tool is now a real canonical local-data panel. It loads selected-instrument adjusted daily range/count and persisted dataset state from existing local coverage/provenance APIs, with loading/unavailable/stale/pending/failed feedback and no provider credentials, symbols, or routing information. TypeScript, production build, and diff checks passed. Full response-level provenance/freshness contracts and full acceptance remain incomplete.",
         "2026-07-30T11:55:00Z: Added/pushed cac3ea0: provider resolution now excludes entitlements whose review_due_at is reached, with SQLite-safe UTC comparison. The governance API now persists effective_at and review_due_at. Combined provider runtime/router regression coverage is 14 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. Provider-neutral coverage consumption and full acceptance remain incomplete.",
         "2026-07-30T11:50:00Z: Added/pushed 9276190: provider resolution now excludes a capability when its explicit entitlement environment list does not include the running APP_ENV; an empty list remains universally eligible. Direct runtime regression proves Alpaca is excluded when price history is production-only and APP_ENV is development. Provider runtime 7 passed with --no-cov, Ruff, and diff checks passed. Entitlement review enforcement, provider-neutral coverage consumption, and full acceptance remain incomplete.",
         "2026-07-30T11:46:00Z: Added/pushed cc7439a: provider resolution now inner-joins entitlements and excludes every non-free capability before any provider execution. Direct runtime regression proves Alpaca is excluded when its price-history entitlement is marked non-free. Provider runtime 6 passed with --no-cov, Ruff, and diff checks passed. Entitlement review/environment enforcement and full acceptance remain incomplete.",
