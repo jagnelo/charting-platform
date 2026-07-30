@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T18:15:00Z Python watchlist columns
+
+- Added persisted Python column selection to virtual workstation watchlists. Columns
+  run only through the isolated prepared-universe batch contract and render typed
+  values or exact cell errors; restored configurations rerun on the current universe.
+- Validation: `VirtualWatchlistTool` `16 passed`; TypeScript; production build; diff.
+
 ## 2026-07-30T18:00:00Z Prepared-universe Python batch checkpoint
 
 - Added canonical local-data batch materialization for declared symbol universes,

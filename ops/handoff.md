@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T18:15:00Z
+
+- Bound saved unified-Python `column` assets into every virtual workstation watchlist.
+  Users add an immutable code version from the dense Columns editor; the selection is
+  serialized in workspace tool state, queues the prepared-universe run, polls only the
+  typed batch-results contract, and renders completed values or explicit per-cell
+  errors. Restored columns rerun against the current canonical row universe.
+- Validation: `VirtualWatchlistTool` (`16 passed`), TypeScript, production build, and
+  `git diff --check`.
+- Exact next step: add saved Python condition execution to the filter/scan/alert
+  surfaces, then replace the current 1,000-symbol batch guard with a safe durable
+  high-cardinality materialization/execution model.
+
 ## Continuation update — 2026-07-30T18:00:00Z
 
 - Added prepared-universe execution for unified-Python `column` and `condition`
