@@ -184,6 +184,30 @@ class ETFIndustryOut(BaseModel):
     resolved_count: int
 
 
+class ETFIndustryProxyOut(BaseModel):
+    """A holdings-evidence-verified ETF proxy for one classified industry."""
+
+    symbol: str
+    name: str
+    composition_date: str
+    known_at: datetime | None = None
+    provenance: str
+    source_provider: str
+    matching_constituent_count: int
+    classified_constituent_count: int
+    classification_coverage: float = Field(ge=0, le=1)
+    source: str = "curated_industry_proxy_registry_v1"
+    verification_state: str = "holdings_classification_verified"
+
+
+class ETFIndustryProxyListOut(BaseModel):
+    etf_symbol: str
+    industry: str
+    candidate_symbols: list[str] = Field(default_factory=list)
+    proxies: list[ETFIndustryProxyOut] = Field(default_factory=list)
+    exclusions: list[str] = Field(default_factory=list)
+
+
 class ETFIndustryCompositionOut(BaseModel):
     etf_symbol: str
     composition_date: str

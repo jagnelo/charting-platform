@@ -169,6 +169,26 @@ export interface ETFIndustryConstituentsState {
   exclusions: string[]
 }
 
+export interface ETFIndustryProxyState {
+  etf_symbol: string
+  industry: string
+  candidate_symbols: string[]
+  proxies: Array<{
+    symbol: string
+    name: string
+    composition_date: string
+    known_at: string | null
+    provenance: string
+    source_provider: string
+    matching_constituent_count: number
+    classified_constituent_count: number
+    classification_coverage: number
+    source: string
+    verification_state: string
+  }>
+  exclusions: string[]
+}
+
 export interface TechnicalSnapshotState {
   symbol: string
   as_of: string | null
@@ -203,9 +223,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
+  const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
   const constituentETF = ref<string | null>(null)
   const selectedIndustry = ref<string | null>(null)
+  const selectedIndustryProxy = ref<string | null>(null)
   let persistedWorkspace: WorkspaceState | null = null
   let channel: BroadcastChannel | null = null
   let leaderTimer: ReturnType<typeof setInterval> | null = null
@@ -463,6 +485,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
       constituentETF.value = normalized
       selectedIndustry.value = null
+      selectedIndustryProxy.value = null
       void loadETFConstituentSnapshot(normalized)
       return page
     } catch (cause: any) {
@@ -518,16 +541,38 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectedIndustry.value = industry
     if (!normalized || !industry) return null
     const key = `${normalized}:${industry}`
+    selectedIndustryProxy.value = null
     try {
       const constituents = await api.get<ETFIndustryConstituentsState>(
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}`,
       )
       industryConstituents.value = { ...industryConstituents.value, [key]: constituents }
+      void loadIndustryProxies(normalized, industry)
       return constituents
     } catch (cause: any) {
       error.value = cause?.message ?? `Unable to load ${industry} constituents`
       return null
     }
+  }
+
+  async function loadIndustryProxies(symbol: string, industry: string) {
+    const normalized = symbol.trim().toUpperCase()
+    const key = `${normalized}:${industry}`
+    if (!normalized || !industry) return null
+    try {
+      const proxies = await api.get<ETFIndustryProxyState>(
+        `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies`,
+      )
+      industryProxies.value = { ...industryProxies.value, [key]: proxies }
+      return proxies
+    } catch (cause: any) {
+      error.value = cause?.message ?? `Unable to load ${industry} proxies`
+      return null
+    }
+  }
+
+  function selectIndustryProxy(symbol: string | null) {
+    selectedIndustryProxy.value = symbol?.trim().toUpperCase() || null
   }
 
   async function loadTechnical(symbol: string) {
@@ -707,9 +752,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     etfConstituentSnapshots,
     etfIndustries,
     industryConstituents,
+    industryProxies,
     technicals,
     constituentETF,
     selectedIndustry,
+    selectedIndustryProxy,
     isEditorTarget,
     connect,
     disconnect,
@@ -723,6 +770,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadETFConstituentSnapshot,
     loadETFIndustries,
     selectIndustry,
+    loadIndustryProxies,
+    selectIndustryProxy,
     loadTechnical,
     saveSnapshot,
     scheduleSnapshot,

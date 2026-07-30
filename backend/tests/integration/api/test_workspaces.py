@@ -376,6 +376,107 @@ class TestWorkspaces:
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
 
+    def test_industry_proxy_requires_curated_candidate_and_holdings_evidence(
+        self, client, auth_headers, db, instrument, instrument_type
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail, Instrument
+
+        db.add(EquityDetail(instrument_id=instrument.id, industry="Semiconductors"))
+        source = Instrument(
+            symbol="XLK",
+            name="Technology Select Sector SPDR Fund",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        proxy = Instrument(
+            symbol="SMH",
+            name="VanEck Semiconductor ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([source, proxy])
+        db.flush()
+        source_profile, proxy_profile = (
+            ETFProfile(instrument_id=source.id),
+            ETFProfile(instrument_id=proxy.id),
+        )
+        db.add_all([source_profile, proxy_profile])
+        db.flush()
+        source_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=source_profile.id,
+            composition_date=datetime(2024, 5, 30, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 31, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="source_issuer",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-source-semis",
+        )
+        proxy_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=proxy_profile.id,
+            composition_date=datetime(2024, 5, 29, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 30, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="proxy_issuer",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-proxy-semis",
+        )
+        db.add_all([source_snapshot, proxy_snapshot])
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=source_snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    source_row_hash="source-aapl",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=proxy_snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    source_row_hash="proxy-aapl",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/market-groups/etf/XLK/industries/Semiconductors/proxies",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["candidate_symbols"] == ["SOXX", "SMH"]
+        assert payload["proxies"] == [
+            {
+                "symbol": "SMH",
+                "name": "VanEck Semiconductor ETF",
+                "composition_date": "2024-05-29",
+                "known_at": "2024-05-30T00:00:00Z",
+                "provenance": "issuer_native",
+                "source_provider": "proxy_issuer",
+                "matching_constituent_count": 1,
+                "classified_constituent_count": 1,
+                "classification_coverage": 1,
+                "source": "curated_industry_proxy_registry_v1",
+                "verification_state": "holdings_classification_verified",
+            }
+        ]
+        assert "candidate_not_canonical:SOXX" in payload["exclusions"]
+
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument
     ):

@@ -96,6 +96,7 @@ const workspaceStore = useWorkspaceStore()
 const symbolInput = ref<HTMLInputElement | null>(null)
 const symbolDraft = ref('')
 const toolLibraryOpen = ref(false)
+const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -138,6 +139,13 @@ async function selectSymbol(raw: string, timestamp?: string) {
 
 function selectOccurrence(symbol: string, timestamp: string) {
   void selectSymbol(symbol, timestamp)
+}
+
+async function selectIndustryProxy(symbol: string) {
+  workspaceStore.selectIndustryProxy(symbol)
+  symbolDraft.value = symbol
+  preserveDrilldownSymbol.value = symbol
+  workspaceStore.publishSymbol({ symbol, group: 'blue', sourceWindowKey: 'industry-proxy' })
 }
 
 function openTool(tool: OpenableToolDefinition) {
@@ -185,6 +193,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
+    onSelectProxy: (symbol: string) => void selectIndustryProxy(symbol),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
     onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),
     onConditionFilter: (windowKey: string, screenerId: number | null) => updateConditionFilter(windowKey, screenerId),
@@ -220,11 +229,13 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 watch(activeSymbol, symbol => {
-  if (!symbol || chartStore.symbol === symbol) return
+  if (!symbol) return
+  const preserveDrilldown = preserveDrilldownSymbol.value === symbol
+  if (preserveDrilldown) preserveDrilldownSymbol.value = null
+  if (chartStore.symbol === symbol) return
   void Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    workspaceStore.loadETFHoldings(symbol),
-    workspaceStore.loadETFIndustries(symbol),
+    ...(preserveDrilldown ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
     workspaceStore.loadTechnical(symbol),
   ])
 })

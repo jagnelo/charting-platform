@@ -25,12 +25,39 @@ _BENCHMARKS = (
 )
 
 _SECTORS = (
-    ("XLK", "Technology"), ("XLY", "Consumer Discretionary"),
-    ("XLC", "Communication Services"), ("XLF", "Financials"),
-    ("XLV", "Health Care"), ("XLI", "Industrials"),
-    ("XLP", "Consumer Staples"), ("XLE", "Energy"),
-    ("XLU", "Utilities"), ("XLRE", "Real Estate"), ("XLB", "Materials"),
+    ("XLK", "Technology"),
+    ("XLY", "Consumer Discretionary"),
+    ("XLC", "Communication Services"),
+    ("XLF", "Financials"),
+    ("XLV", "Health Care"),
+    ("XLI", "Industrials"),
+    ("XLP", "Consumer Staples"),
+    ("XLE", "Energy"),
+    ("XLU", "Utilities"),
+    ("XLRE", "Real Estate"),
+    ("XLB", "Materials"),
 )
+
+# A versioned candidate registry, not a name-based inference rule. Candidates become
+# visible only when their own disclosed holdings independently contain classified
+# constituents for the selected industry (see the market-groups proxy endpoint).
+_INDUSTRY_PROXY_CANDIDATES: dict[str, tuple[str, ...]] = {
+    "Semiconductors": ("SOXX", "SMH"),
+    "Biotechnology": ("XBI", "IBB"),
+    "Regional Banks": ("KRE",),
+    "Aerospace & Defense": ("ITA", "XAR"),
+    "Homebuilding": ("XHB", "ITB"),
+    "Retail": ("XRT",),
+    "Oil & Gas Equipment & Services": ("OIH",),
+    "Oil & Gas Exploration & Production": ("XOP",),
+    "Metals & Mining": ("XME",),
+    "Steel": ("SLX",),
+}
+
+
+def industry_proxy_candidates(industry: str) -> tuple[str, ...]:
+    """Return only explicitly curated candidate symbols for an exact industry label."""
+    return _INDUSTRY_PROXY_CANDIDATES.get(industry, ())
 
 
 async def seed_top_down_taxonomy(db: AsyncSession) -> None:
@@ -82,15 +109,17 @@ async def seed_top_down_taxonomy(db: AsyncSession) -> None:
         group = existing[group_key]
         if any(member.instrument_id == instrument.id for member in group.members):
             return
-        group.members.append(MarketGroupMember(
-            instrument_id=instrument.id,
-            relationship_type=relationship_type,
-            position=position,
-            source="curated_top_down_taxonomy",
-            verification_state="proxy_verified",
-            known_at=observed_at,
-            provenance={"symbol": symbol, "classification": "ETF/index proxy"},
-        ))
+        group.members.append(
+            MarketGroupMember(
+                instrument_id=instrument.id,
+                relationship_type=relationship_type,
+                position=position,
+                source="curated_top_down_taxonomy",
+                verification_state="proxy_verified",
+                known_at=observed_at,
+                provenance={"symbol": symbol, "classification": "ETF/index proxy"},
+            )
+        )
 
     for position, (symbol, _, relationship_type) in enumerate(_BENCHMARKS):
         await attach("us-benchmarks", symbol, relationship_type, position)

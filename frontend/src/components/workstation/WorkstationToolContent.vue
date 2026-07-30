@@ -44,6 +44,23 @@
       >
         <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
       </button>
+      <div v-if="selectedIndustry" class="industry-list__proxies">
+        <small v-if="!industryProxyState">Checking curated ETF proxies…</small>
+        <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
+        <template v-else>
+          <small>Verified ETF proxies · point-in-time holdings</small>
+          <button
+            v-for="proxy in industryProxyState.proxies"
+            :key="proxy.symbol"
+            type="button"
+            class="industry-list__proxy"
+            :class="{ 'industry-list__proxy--active': proxy.symbol === selectedIndustryProxy }"
+            @click="emit('selectProxy', proxy.symbol)"
+          >
+            <strong>{{ proxy.symbol }}</strong><span>{{ proxy.classification_coverage * 100 }}% classified</span>
+          </button>
+        </template>
+      </div>
       <small>{{ selectedETF }} holdings · point-in-time classification</small>
     </div>
     <div v-else-if="tool.instance_key === 'industry-list'" class="tool-state">
@@ -111,7 +128,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -132,6 +149,10 @@ const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[s
 const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
 const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
+const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
+const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
+  ? workspaceStore.industryProxies[`${selectedETF.value}:${selectedIndustry.value}`]
+  : null)
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
     return workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents.map(row => row.symbol) ?? []
@@ -252,6 +273,9 @@ function formatRatio(value: number | null | undefined) { return value == null ? 
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
+.industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
+.industry-list__proxy { display: flex; justify-content: space-between; gap: 8px; border: 1px solid #34434e; background: #162029; color: #c7d0d8; padding: 4px 5px; font: 10px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
+.industry-list__proxy:hover, .industry-list__proxy--active { border-color: #5faed7; background: #1d4057; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }

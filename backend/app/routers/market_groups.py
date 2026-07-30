@@ -17,10 +17,12 @@ from app.schemas.workstation import (
     ETFIndustryCompositionOut,
     ETFIndustryConstituentsOut,
     ETFIndustryOut,
+    ETFIndustryProxyListOut,
+    ETFIndustryProxyOut,
     InstrumentReferenceOut,
     MarketGroupOut,
 )
-from app.services.top_down_taxonomy import seed_top_down_taxonomy
+from app.services.top_down_taxonomy import industry_proxy_candidates, seed_top_down_taxonomy
 
 router = APIRouter(prefix="/market-groups", tags=["market-groups"])
 
@@ -112,6 +114,113 @@ async def etf_industry_composition(
             for industry, items in sorted(grouped.items())
         ],
         exclusions=sorted(set(exclusions)),
+    )
+
+
+@router.get("/etf/{symbol}/industries/{industry}/proxies", response_model=ETFIndustryProxyListOut)
+async def etf_industry_proxies(
+    symbol: str,
+    industry: str,
+    as_of: datetime | None = Query(default=None),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return explicitly curated proxies only after holdings/classification proof.
+
+    A curated symbol never becomes a visible proxy merely because its name sounds
+    related. The proxy ETF must have a local, point-in-time holdings disclosure with
+    resolved constituents classified into the exact requested industry.
+    """
+    composition = await etf_industry_composition(symbol=symbol, as_of=as_of, _=_, db=db)
+    candidates = industry_proxy_candidates(industry)
+    if not candidates:
+        return ETFIndustryProxyListOut(
+            etf_symbol=composition.etf_symbol,
+            industry=industry,
+            exclusions=["no_curated_proxy_candidate"],
+        )
+    instruments = (
+        (await db.execute(select(Instrument).where(Instrument.symbol.in_(candidates))))
+        .scalars()
+        .all()
+    )
+    by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
+    proxies: list[ETFIndustryProxyOut] = []
+    exclusions: list[str] = []
+    for candidate in candidates:
+        instrument = by_symbol.get(candidate)
+        if instrument is None:
+            exclusions.append(f"candidate_not_canonical:{candidate}")
+            continue
+        profile = (
+            await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == instrument.id))
+        ).scalar_one_or_none()
+        if profile is None:
+            exclusions.append(f"candidate_not_etf_profile:{candidate}")
+            continue
+        statement = select(ETFHoldingsSnapshot).where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id
+        )
+        if as_of is not None:
+            statement = statement.where(
+                ETFHoldingsSnapshot.composition_date <= as_of.date(),
+                (ETFHoldingsSnapshot.known_at.is_(None)) | (ETFHoldingsSnapshot.known_at <= as_of),
+            )
+        snapshot = (
+            await db.execute(
+                statement.order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is None:
+            exclusions.append(f"candidate_no_point_in_time_holdings:{candidate}")
+            continue
+        classifications = (
+            (
+                await db.execute(
+                    select(EquityDetail.industry)
+                    .join(
+                        ETFHolding,
+                        ETFHolding.constituent_instrument_id == EquityDetail.instrument_id,
+                    )
+                    .where(
+                        ETFHolding.snapshot_id == snapshot.id,
+                        ETFHolding.is_resolved.is_(True),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        classified_count = sum(1 for value in classifications if value)
+        matching_count = sum(1 for value in classifications if value == industry)
+        if not matching_count:
+            exclusions.append(f"candidate_not_holdings_verified:{candidate}")
+            continue
+        proxies.append(
+            ETFIndustryProxyOut(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                composition_date=snapshot.composition_date.isoformat(),
+                known_at=snapshot.known_at,
+                provenance=snapshot.provenance,
+                source_provider=snapshot.source_provider,
+                matching_constituent_count=matching_count,
+                classified_constituent_count=classified_count,
+                classification_coverage=matching_count / classified_count
+                if classified_count
+                else 0,
+            )
+        )
+    return ETFIndustryProxyListOut(
+        etf_symbol=composition.etf_symbol,
+        industry=industry,
+        candidate_symbols=list(candidates),
+        proxies=proxies,
+        exclusions=exclusions,
     )
 
 
