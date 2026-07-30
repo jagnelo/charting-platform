@@ -51,6 +51,7 @@ from app.models.provider_observation import (
 )
 from app.models.provider_runtime import (
     ProviderCapability,
+    ProviderEntitlement,
     ProviderHealthState,
     ProviderPolicy,
     ProviderRequestLog,
@@ -114,6 +115,7 @@ __all__ = [
     "InstrumentProviderSymbol",
     "InstrumentProviderCapabilityStatus",
     "ProviderCapability",
+    "ProviderEntitlement",
     "ProviderPolicy",
     "ProviderHealthState",
     "ProviderRequestLog",
