@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T20:20:00Z Study Lab runner progress
+
+- Generic research runs now expose runner-owned running/progress state and Study Lab
+  displays it next to its cancellation control. API `11 passed` with two existing
+  warnings; StudyLabTool test, TypeScript, and diff check passed.
+
 ## 2026-07-30T20:10:00Z Watchlist Python batch progress
 
 - Exposed durable Python batch progress and cancellation in shared workstation

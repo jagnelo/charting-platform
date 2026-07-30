@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T20:20:00Z
+
+- The runner writes an initial durable `running` record for every job, not only batch
+  jobs. Generic research run responses now expose it; Study Lab renders `runner active`
+  or completed/total batch progress beside its existing cancellation control.
+- Validation: code API integration `11 passed` (two existing Nautilus deprecation
+  warnings), StudyLabTool component test passed, TypeScript and diff check passed.
+  Next: immutable Python condition reuse in EasyScan and alerts.
+
 ## Continuation update — 2026-07-30T20:10:00Z
 
 - Shared virtual watchlists now surface real runner progress for immutable Python
