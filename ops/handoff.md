@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T09:51:00Z
+
+- Added a uPlot relative-rotation plane: transparent trend/momentum coordinates,
+  coloured historical tails, and emphasized current observations, alongside the
+  existing clickable companion table.
+- Pushed `69e1141 feat(top-down): plot sector rotation tails with uplot`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Extend batch ranking/drill-down to curated industry proxies and ETF constituents,
+  retaining source-labelled membership, relative-to-sector and relative-to-benchmark
+  comparisons, coverage, and point-in-time warnings.
+
 ## Continuation update — 2026-07-30T09:48:00Z
 
 - Added transparent local sector relative rotation. Trend is the 20-bar aligned ratio

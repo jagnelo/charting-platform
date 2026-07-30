@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T09:51:00Z uPlot sector rotation tails
+
+- Added a uPlot trend/momentum plane with coloured sector historical tails and current
+  observations, retaining the linked sortable companion table.
+- Pushed `69e1141 feat(top-down): plot sector rotation tails with uplot`.
+- Validation passed: frontend type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T09:48:00Z Transparent sector relative rotation
 
 - Added aligned-local ratio trend/momentum rotation with explicit non-JdK semantics,
