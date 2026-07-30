@@ -45,13 +45,13 @@ watch(() => props.symbol, async symbol => {
   loading.value = true
   error.value = null
   try {
-    const [coverageResponse, provenance] = await Promise.all([
-      api.get<{ coverage: Record<string, CoverageRange> }>(`/instruments/${encodeURIComponent(symbol)}/data-coverage`),
-      api.get<{ dataset_states?: DatasetState[] }>(`/instruments/${encodeURIComponent(symbol)}/provenance`),
-    ])
+    const response = await api.get<{
+      local_coverage: Record<string, CoverageRange>
+      dataset_states?: DatasetState[]
+    }>(`/coverage/instruments/${encodeURIComponent(symbol)}`)
     if (id !== requestId) return
-    coverage.value = coverageResponse.coverage ?? {}
-    datasetStates.value = (provenance.dataset_states ?? []).slice(0, 6)
+    coverage.value = response.local_coverage ?? {}
+    datasetStates.value = (response.dataset_states ?? []).slice(0, 6)
   } catch (caught: any) {
     if (id !== requestId) return
     coverage.value = {}
