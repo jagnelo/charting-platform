@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--grouped': hasColumnGroups }" :aria-label="label">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups }" :aria-label="label">
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
@@ -13,11 +13,22 @@
         <option value="off">Off</option>
       </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
+      <button class="watchlist__columns-button" type="button" aria-label="Column sets" @click="columnSetMenuOpen = !columnSetMenuOpen">Sets</button>
       <b>{{ filteredRows.length }}</b>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
       <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+    </div>
+    <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
+      <input v-model.trim="columnSetName" aria-label="Column set name" placeholder="Column set name" @keydown.enter.prevent="saveColumnSet" />
+      <button type="button" :disabled="!columnSetName || columnSetBusy" @click="saveColumnSet">Save set</button>
+      <small v-if="columnSetError" class="watchlist__column-set-error">{{ columnSetError }}</small>
+      <small v-else-if="columnSetLoading">Loading saved sets…</small>
+      <template v-else-if="columnSets.length">
+        <span v-for="set in columnSets" :key="set.stable_key"><button type="button" @click="applyColumnSet(set)">{{ set.name }} <small>v{{ set.version }}</small></button><button type="button" :aria-label="`Delete column set ${set.name}`" :disabled="columnSetBusy" @click="deleteColumnSet(set)">×</button></span>
+      </template>
+      <small v-else>No saved column sets.</small>
     </div>
     <div class="watchlist__header" :style="gridStyle">
       <template v-for="column in renderedColumns" :key="column.key">
@@ -79,6 +90,12 @@ interface ScreenerResult {
   matched_ids: number[]
   run_at: string
 }
+interface ColumnSetItem {
+  stable_key: string
+  name: string
+  version: number
+  payload: { configuration?: Record<string, unknown> }
+}
 
 const props = withDefaults(defineProps<{
   label: string
@@ -117,6 +134,12 @@ const conditionFilterState = ref('')
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 const columnMenuOpen = ref(false)
+const columnSetMenuOpen = ref(false)
+const columnSetName = ref('')
+const columnSetLoading = ref(false)
+const columnSetBusy = ref(false)
+const columnSetError = ref('')
+const columnSets = ref<ColumnSetItem[]>([])
 const renderEpoch = ref(0)
 const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : props.columns.map(column => column.key))
 const visibleColumns = computed(() => activeColumnKeys.value
@@ -197,6 +220,77 @@ async function loadScreeners() {
   }
 }
 
+function columnSetKey(name: string) {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'column-set'
+  return `${normalized}-${crypto.randomUUID().slice(0, 8)}`
+}
+
+function columnSetConfiguration() {
+  return {
+    column_keys: [...activeColumnKeys.value],
+    pinned_boolean_keys: [...props.pinnedBooleanKeys],
+    column_groups: { ...props.columnGroups },
+    stacked_column_keys: [...props.stackedColumnKeys],
+  }
+}
+
+async function loadColumnSets() {
+  columnSetLoading.value = true
+  columnSetError.value = ''
+  try { columnSets.value = await api.get<ColumnSetItem[]>('/workspaces/library/items', { kind: 'column_set' }) }
+  catch (cause: any) { columnSetError.value = cause?.message ?? 'Unable to load saved column sets' }
+  finally { columnSetLoading.value = false }
+}
+
+async function saveColumnSet() {
+  if (!columnSetName.value) return
+  columnSetBusy.value = true
+  columnSetError.value = ''
+  try {
+    const stableKey = columnSetKey(columnSetName.value)
+    await api.put(`/workspaces/library/items/column_set/${encodeURIComponent(stableKey)}`, {
+      kind: 'column_set', stable_key: stableKey, name: columnSetName.value,
+      payload: { configuration: columnSetConfiguration(), schema_version: 1 },
+      dependency_metadata: { contract: 'workstation_column_set_v1' },
+    })
+    columnSetName.value = ''
+    await loadColumnSets()
+  } catch (cause: any) { columnSetError.value = cause?.message ?? 'Unable to save column set' }
+  finally { columnSetBusy.value = false }
+}
+
+function applyColumnSet(item: ColumnSetItem) {
+  const configuration = item.payload.configuration
+  if (!configuration || typeof configuration !== 'object') return
+  const allowed = new Set(props.columns.map(column => column.key))
+  const keys = Array.isArray(configuration.column_keys)
+    ? configuration.column_keys.filter((key): key is string => typeof key === 'string' && allowed.has(key))
+    : []
+  if (keys.length) emit('update:visibleColumnKeys', keys)
+  const pinned = Array.isArray(configuration.pinned_boolean_keys)
+    ? configuration.pinned_boolean_keys.filter((key): key is string => typeof key === 'string' && allowed.has(key))
+    : []
+  const stacked = Array.isArray(configuration.stacked_column_keys)
+    ? configuration.stacked_column_keys.filter((key): key is string => typeof key === 'string' && allowed.has(key))
+    : []
+  const groupsRaw = configuration.column_groups
+  const groups = groupsRaw && typeof groupsRaw === 'object' && !Array.isArray(groupsRaw)
+    ? Object.fromEntries(Object.entries(groupsRaw).filter(([key, value]) => allowed.has(key) && typeof value === 'string'))
+    : {}
+  emit('update:pinnedBooleanKeys', pinned)
+  emit('update:columnGroups', groups)
+  emit('update:stackedColumnKeys', stacked)
+  columnSetMenuOpen.value = false
+}
+
+async function deleteColumnSet(item: ColumnSetItem) {
+  columnSetBusy.value = true
+  columnSetError.value = ''
+  try { await api.delete(`/workspaces/library/items/column_set/${encodeURIComponent(item.stable_key)}`); await loadColumnSets() }
+  catch (cause: any) { columnSetError.value = cause?.message ?? 'Unable to delete column set' }
+  finally { columnSetBusy.value = false }
+}
+
 async function applyConditionFilter(value: string) {
   const screenerId = Number(value)
   conditionMatchedIds.value = null
@@ -230,6 +324,7 @@ async function applyConditionFilter(value: string) {
 
 onMounted(() => {
   void loadScreeners()
+  void loadColumnSets()
   if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
 })
 
@@ -315,14 +410,16 @@ function onCtrlWheel(event: WheelEvent) {
 <style scoped>
 .watchlist { display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
+.watchlist--sets-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }
-.watchlist--columns-open.watchlist--grouped { grid-template-rows: 23px auto auto 32px minmax(0, 1fr); }
+.watchlist--columns-open.watchlist--grouped,.watchlist--sets-open.watchlist--grouped { grid-template-rows: 23px auto auto 32px minmax(0, 1fr); }
 .watchlist__controls { display: flex; align-items: center; gap: 6px; padding: 0 7px; color: #84939e; background: #181f25; border-bottom: 1px solid #2b343c; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .watchlist__controls input { min-width: 0; width: 80px; margin-left: auto; padding: 1px 4px; border: 1px solid #3d4a54; background: #11161b; color: #dce9f2; font: inherit; text-transform: none; }
 .watchlist__controls select { min-width: 0; max-width: 120px; padding: 1px 2px; border: 1px solid #3d4a54; background: #11161b; color: #a9c0d0; font: inherit; text-transform: none; }
 .watchlist__columns-button { border: 1px solid #3d4a54; background: #1b252d; color: #a9c0d0; font: inherit; cursor: pointer; }
 .watchlist__controls b { color: #78aac8; font-weight: 600; }
 .watchlist__column-menu { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 4px 7px; background: #253039; border-bottom: 1px solid #384550; color: #b7c6d0; font-size: 10px; text-transform: none; letter-spacing: normal; }
+.watchlist__column-set-menu { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:4px 7px; background:#202b33; border-bottom:1px solid #384550; color:#b7c6d0; font-size:10px; }.watchlist__column-set-menu input,.watchlist__column-set-menu button{min-width:0;border:1px solid #42515c;background:#182128;color:#d7e3eb;font:inherit;padding:1px 4px}.watchlist__column-set-menu input{width:108px}.watchlist__column-set-menu span{display:flex;gap:2px}.watchlist__column-set-menu small{color:#8498a6}.watchlist__column-set-error{color:#e49a9a!important}
 .watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__column-menu label { white-space: nowrap; }
 .watchlist__group-input { width: 52px; margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }

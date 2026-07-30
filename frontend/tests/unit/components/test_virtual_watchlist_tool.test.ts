@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
+const { apiDelete, apiGet, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, put: apiPut } }))
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
 
@@ -12,8 +12,8 @@ const rows = [
   { instrumentId: 3, symbol: 'XLV', name: 'Health Care', values: { relative_1m: 0.02 } },
 ]
 
-beforeEach(() => apiGet.mockResolvedValue([]))
-afterEach(() => apiGet.mockReset())
+beforeEach(() => { apiGet.mockResolvedValue([]); apiPut.mockReset(); apiDelete.mockReset() })
+afterEach(() => { apiGet.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
 
 describe('VirtualWatchlistTool', () => {
   it('filters canonical rows and publishes the selected canonical row', async () => {
@@ -206,6 +206,33 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.setProps({ visibleColumnKeys: ['name', 'symbol', 'relative_1m'] })
     expect(wrapper.find('.watchlist__header button').text()).toContain('Name')
     expect(wrapper.find('.watchlist__row--active').exists()).toBe(true)
+  })
+
+  it('saves and applies a user-isolated column set using only compatible columns', async () => {
+    const saved = { stable_key: 'technical-1', name: 'Technical', version: 1, payload: { configuration: {
+      column_keys: ['rsi14', 'symbol', 'unknown'], pinned_boolean_keys: ['above_ma50', 'unknown'],
+      column_groups: { rsi14: 'Momentum', unknown: 'Ignore' }, stacked_column_keys: ['rsi14', 'unknown'],
+    } } }
+    apiGet.mockImplementation((path: string, params?: { kind?: string }) => params?.kind === 'column_set' ? Promise.resolve([saved]) : Promise.resolve([]))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Sectors', rows, columns: [
+        { key: 'symbol', label: 'Symbol' }, { key: 'rsi14', label: 'RSI' }, { key: 'above_ma50', label: '>50', kind: 'boolean' },
+      ] },
+    })
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Column sets"]').exists()).toBe(true))
+    await wrapper.get('button[aria-label="Column sets"]').trigger('click')
+    await wrapper.get('input[aria-label="Column set name"]').setValue('Momentum')
+    await wrapper.findAll('button').find(button => button.text() === 'Save set')!.trigger('click')
+    expect(apiPut).toHaveBeenCalledWith(expect.stringMatching(/^\/workspaces\/library\/items\/column_set\//), expect.objectContaining({
+      kind: 'column_set', name: 'Momentum', payload: expect.objectContaining({ configuration: expect.objectContaining({ column_keys: ['symbol', 'rsi14', 'above_ma50'] }) }),
+    }))
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Technical'))
+    await wrapper.findAll('button').find(button => button.text().includes('Technical'))!.trigger('click')
+    expect(wrapper.emitted('update:visibleColumnKeys')?.at(-1)).toEqual([['rsi14', 'symbol']])
+    expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['above_ma50']])
+    expect(wrapper.emitted('update:columnGroups')?.at(-1)).toEqual([{ rsi14: 'Momentum' }])
+    expect(wrapper.emitted('update:stackedColumnKeys')?.at(-1)).toEqual([['rsi14']])
   })
 
   it('traverses canonical rows with Ctrl+wheel in the focused list', async () => {
