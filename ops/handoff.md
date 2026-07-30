@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T18:55:00Z
+
+- Added a separate persisted `python_condition` watchlist configuration rather than
+  overloading the existing retained EasyScan/screener-result filter. A selected
+  immutable `condition` code version executes only as a canonical prepared-universe
+  Boolean batch through `/research/runs`; its `true` cells intersect text and saved
+  screener filters.
+- Python conditions have explicit active, inactive, and off modes. Inactive retains
+  configuration without filtering; failures and timeouts deliberately show no rows
+  with a visible state instead of silently passing unverified rows. Generic workstation
+  wiring applies this to all shared virtual lists.
+- Validation: `VirtualWatchlistTool` (`17 passed`) includes Boolean filtering and no
+  saved-screener regression; frontend TypeScript, production build, and diff check
+  passed. Next: reuse condition assets in EasyScan/alerts and replace the 1,000-symbol
+  batch guard with durable high-cardinality materialization/execution.
+
 ## Continuation update — 2026-07-30T18:15:00Z
 
 - Bound saved unified-Python `column` assets into every virtual workstation watchlist.

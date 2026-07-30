@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T18:55:00Z Unified Python watchlist condition
+
+- Implemented persisted unified-Python Boolean condition filtering in the shared
+  virtual watchlist. It selects immutable `condition` assets, queues only prepared
+  canonical symbols, polls typed Boolean batch cells, intersects matching symbols with
+  other filters, and retains active/inactive/off/unavailable states.
+- Direct component coverage proves true/false batch results filter the virtualized row
+  set without publishing or changing a saved screener selection. `17 passed`;
+  `npm run type-check`, production build, and diff check passed.
+
 ## 2026-07-30T18:15:00Z Python watchlist columns
 
 - Added persisted Python column selection to virtual workstation watchlists. Columns
