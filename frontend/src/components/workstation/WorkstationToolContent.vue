@@ -163,7 +163,7 @@
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
-    <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" />
+    <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>

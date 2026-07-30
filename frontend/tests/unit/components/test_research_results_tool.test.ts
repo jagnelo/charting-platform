@@ -10,7 +10,7 @@ describe('ResearchResultsTool', () => {
   beforeEach(() => apiGet.mockReset())
 
   it('loads persisted runs and exposes selected structured artifacts', async () => {
-    apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar' }] }])
+    apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }] }])
     const wrapper = mount(ResearchResultsTool)
     await flushPromises()
 
