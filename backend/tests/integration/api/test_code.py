@@ -301,3 +301,45 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     assert cells.status_code == 200
     assert cells.json()["output_contract"] == "scalar"
     assert cells.json()["cells"] == [{"instrument_id": instrument.id, "symbol": instrument.symbol, "status": "completed", "value": 12.5, "error": None}]
+
+
+def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_above_ten_thousand(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "large-batch-column",
+            "name": "Large batch column",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.scalar('constant', 1)",
+                "output_contract": "scalar",
+            },
+        },
+    ).json()
+    accepted = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": [f"TEST{i:04d}" for i in range(1001)]},
+        },
+    )
+    assert accepted.status_code == 202
+    assert accepted.json()["dataset_manifest"]["batch_history_limit"] == 500
+    assert len(accepted.json()["dataset_manifest"]["exclusions"]) == 1001
+
+    rejected = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbols": [f"OVER{i:05d}" for i in range(10001)]},
+        },
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"] == {"code": "batch_universe_too_large", "maximum": 10000}

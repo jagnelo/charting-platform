@@ -52,7 +52,13 @@ def execute_job(job: dict) -> dict:
     return _execute_single(source, job.get("dataset", {}), job)
 
 
-def _execute_single(source: str, dataset: dict, hash_input: dict) -> dict:
+def _execute_single(
+    source: str,
+    dataset: dict,
+    hash_input: dict,
+    *,
+    manage_timeout: bool = True,
+) -> dict:
     # The SDK is injected as immutable data/callables by the future materialiser.
     # No Python builtins, imports, filesystem APIs, sockets, or process APIs are exposed.
     outputs: dict[str, object] = {}
@@ -64,16 +70,24 @@ def _execute_single(source: str, dataset: dict, hash_input: dict) -> dict:
         "ta": _Ta(),
         "stats": _Stats(),
     }
-    _limit_resources()
-    signal.signal(signal.SIGALRM, _timeout)
-    signal.alarm(MAX_SECONDS)
+    if manage_timeout:
+        _limit_resources()
+        signal.signal(signal.SIGALRM, _timeout)
+        signal.alarm(MAX_SECONDS)
     started = time.monotonic()
     try:
         exec(compile(source, "<research>", "exec"), safe_globals, {})  # noqa: S102 - locked runner only
+    except TimeoutError:
+        # A batch owns one wall-clock budget. Do not turn its alarm into a
+        # per-cell failure and then continue running the remaining universe.
+        if not manage_timeout:
+            raise
+        return {"status": "failed", "diagnostics": [{"code": "wall_time_limit", "message": "research execution wall-time limit exceeded"}]}
     except Exception as exc:
         return {"status": "failed", "diagnostics": [{"code": "runtime_error", "message": str(exc)}]}
     finally:
-        signal.alarm(0)
+        if manage_timeout:
+            signal.alarm(0)
     return {
         "status": "completed",
         "artifacts": outputs,
@@ -86,32 +100,51 @@ def _execute_batch(source: str, datasets: list[object], output_contract: str, ha
     if output_contract not in {"scalar", "boolean"}:
         return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar or boolean output."}]}
     cells: list[dict] = []
-    for candidate in datasets:
-        if not isinstance(candidate, dict):
-            continue
-        instrument_id = candidate.get("instrument_id")
-        symbol = str(candidate.get("symbol") or "").upper()
-        if not isinstance(instrument_id, int) or not symbol:
-            continue
-        result = _execute_single(source, candidate, {"source": source, "dataset": candidate, "output_contract": output_contract})
-        if result.get("status") != "completed":
-            diagnostics = result.get("diagnostics", [])
-            message = diagnostics[0].get("message") if diagnostics and isinstance(diagnostics[0], dict) else "Batch cell failed"
-            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": message})
-            continue
-        matches = [artifact for artifact in result.get("artifacts", {}).values() if isinstance(artifact, dict) and artifact.get("type") == output_contract]
-        if len(matches) != 1:
-            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": f"Expected exactly one {output_contract} output."})
-            continue
-        value = matches[0].get("value")
-        if output_contract == "scalar" and (not isinstance(value, int | float) or isinstance(value, bool)):
-            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": "Scalar output must be numeric."})
-            continue
-        cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "completed", "value": value})
+    started = time.monotonic()
+    _limit_resources()
+    signal.signal(signal.SIGALRM, _timeout)
+    signal.alarm(MAX_SECONDS)
+    try:
+        for candidate in datasets:
+            if not isinstance(candidate, dict):
+                continue
+            instrument_id = candidate.get("instrument_id")
+            symbol = str(candidate.get("symbol") or "").upper()
+            if not isinstance(instrument_id, int) or not symbol:
+                continue
+            result = _execute_single(
+                source,
+                candidate,
+                {"source": source, "dataset": candidate, "output_contract": output_contract},
+                manage_timeout=False,
+            )
+            if result.get("status") != "completed":
+                diagnostics = result.get("diagnostics", [])
+                message = diagnostics[0].get("message") if diagnostics and isinstance(diagnostics[0], dict) else "Batch cell failed"
+                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": message})
+                continue
+            matches = [artifact for artifact in result.get("artifacts", {}).values() if isinstance(artifact, dict) and artifact.get("type") == output_contract]
+            if len(matches) != 1:
+                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": f"Expected exactly one {output_contract} output."})
+                continue
+            value = matches[0].get("value")
+            if output_contract == "scalar" and (not isinstance(value, int | float) or isinstance(value, bool)):
+                cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": "Scalar output must be numeric."})
+                continue
+            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "completed", "value": value})
+    except TimeoutError:
+        return {
+            "status": "failed",
+            "diagnostics": [{"code": "batch_wall_time_limit", "message": "prepared-universe batch wall-time limit exceeded"}],
+            "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
+            "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
+        }
+    finally:
+        signal.alarm(0)
     return {
         "status": "completed",
         "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
-        "resource_usage": {"cell_count": len(cells)},
+        "resource_usage": {"cell_count": len(cells), "wall_ms": round((time.monotonic() - started) * 1000, 3)},
         "reproducibility_hash": sha256(json.dumps(hash_input, sort_keys=True).encode()).hexdigest(),
     }
 

@@ -1,7 +1,7 @@
 """Study Lab run lifecycle; only the isolated runner executes source."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,6 +19,14 @@ from app.services.research_jobs import (
 )
 
 router = APIRouter(prefix="/research", tags=["research"])
+
+# Interactive workstation lists may contain 10,000 symbols. Batch execution is
+# bounded independently from a single-instrument study: enough daily history for
+# normal column/condition lookbacks, but never an unbounded 10,000 × full-history
+# JSON payload handed to the isolated worker.
+MAX_BATCH_SYMBOLS = 10_000
+BATCH_HISTORY_LIMIT = 500
+BATCH_QUERY_SIZE = 500
 
 
 async def _materialize_instrument_dataset(db: AsyncSession, instrument: Instrument, manifest: dict) -> dict:
@@ -58,19 +66,83 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
         requested = list(dict.fromkeys(str(item).strip().upper() for item in symbols if str(item).strip()))
         if not requested:
             return {**manifest, "source": "canonical_database", "datasets": [], "exclusions": []}
-        if len(requested) > 1_000:
-            raise HTTPException(status_code=422, detail={"code": "batch_universe_too_large", "maximum": 1000})
-        instruments = (
-            await db.execute(select(Instrument).where(Instrument.symbol.in_(requested)))
-        ).scalars().all()
+        if len(requested) > MAX_BATCH_SYMBOLS:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "batch_universe_too_large", "maximum": MAX_BATCH_SYMBOLS},
+            )
+        instruments: list[Instrument] = []
+        for offset in range(0, len(requested), BATCH_QUERY_SIZE):
+            instruments.extend(
+                (
+                    await db.execute(
+                        select(Instrument).where(
+                            Instrument.symbol.in_(requested[offset : offset + BATCH_QUERY_SIZE])
+                        )
+                    )
+                ).scalars().all()
+            )
         by_symbol = {instrument.symbol.upper(): instrument for instrument in instruments}
-        datasets = [await _materialize_instrument_dataset(db, by_symbol[symbol], {}) for symbol in requested if symbol in by_symbol]
+        bars_by_instrument: dict[int, list[OHLCVBar]] = {}
+        instrument_ids = [instrument.id for instrument in instruments]
+        for offset in range(0, len(instrument_ids), BATCH_QUERY_SIZE):
+            ids = instrument_ids[offset : offset + BATCH_QUERY_SIZE]
+            ranked_bars = (
+                select(
+                    OHLCVBar.id.label("bar_id"),
+                    func.row_number()
+                    .over(
+                        partition_by=OHLCVBar.instrument_id,
+                        order_by=OHLCVBar.ts.desc(),
+                    )
+                    .label("bar_rank"),
+                )
+                .where(
+                    OHLCVBar.instrument_id.in_(ids),
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+                .subquery()
+            )
+            bars = (
+                await db.execute(
+                    select(OHLCVBar)
+                    .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
+                    .where(ranked_bars.c.bar_rank <= BATCH_HISTORY_LIMIT)
+                    .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+                )
+            ).scalars().all()
+            for bar in bars:
+                bars_by_instrument.setdefault(bar.instrument_id, []).append(bar)
+        datasets = []
+        exclusions = []
+        for symbol in requested:
+            instrument = by_symbol.get(symbol)
+            if instrument is None:
+                exclusions.append({"symbol": symbol, "code": "declared_instrument_not_found"})
+                continue
+            bars = bars_by_instrument.get(instrument.id, [])
+            if not bars:
+                exclusions.append({"symbol": symbol, "instrument_id": instrument.id, "code": "declared_history_unavailable"})
+                continue
+            datasets.append(
+                {
+                    "source": "canonical_database",
+                    "symbol": instrument.symbol,
+                    "instrument_id": instrument.id,
+                    "timeframe": Timeframe.D1.value,
+                    "adjustment": "split_adjusted",
+                    "timestamps": [bar.ts.isoformat() for bar in bars],
+                    "closes": [float(bar.close) for bar in bars],
+                }
+            )
         return {
             **manifest,
             "source": "canonical_database",
             "datasets": datasets,
             "requested_symbols": requested,
-            "exclusions": [{"symbol": symbol, "code": "declared_instrument_not_found"} for symbol in requested if symbol not in by_symbol],
+            "batch_history_limit": BATCH_HISTORY_LIMIT,
+            "exclusions": exclusions,
         }
     symbol = str(run_config.get("symbol") or manifest.get("symbol") or "").upper()
     if not symbol:

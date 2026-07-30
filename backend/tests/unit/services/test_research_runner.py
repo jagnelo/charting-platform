@@ -1,3 +1,4 @@
+from research_runner import runner
 from research_runner.runner import execute_job
 
 
@@ -32,6 +33,29 @@ def test_runner_executes_prepared_universe_cells_without_network_access():
             {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": 22.0},
         ]},
     }
+
+
+def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
+    calls = []
+
+    def fake_execute_single(source, dataset, hash_input, *, manage_timeout=True):
+        calls.append(manage_timeout)
+        return {"status": "completed", "artifacts": {"value": {"type": "scalar", "value": 1}}}
+
+    monkeypatch.setattr(runner, "_execute_single", fake_execute_single)
+    result = execute_job(
+        {
+            "source": "output.scalar('value', 1)",
+            "output_contract": "scalar",
+            "dataset": {"datasets": [
+                {"instrument_id": 1, "symbol": "SPY", "closes": [1]},
+                {"instrument_id": 2, "symbol": "XLK", "closes": [1]},
+            ]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert calls == [False, False]
+    assert result["resource_usage"]["cell_count"] == 2
 
 
 def test_runner_rejects_forbidden_source_before_execution():
