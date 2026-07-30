@@ -12,6 +12,7 @@
           active: openPopup === group.id || group.tools.some(t => t.type === activeToolType)
         }]"
         :title="group.label"
+        :aria-label="group.label"
         @click.stop="togglePopup(group.id)"
       >
         <span class="tool-icon" v-html="group.icon" />
@@ -26,6 +27,7 @@
             :key="tool.type"
             :class="['tool-btn', 'popup-tool', { active: activeToolType === tool.type }]"
             :title="tool.label"
+            :aria-label="tool.label"
             @click="selectTool(tool.type)"
           >
             <span class="tool-icon" v-html="tool.icon" />

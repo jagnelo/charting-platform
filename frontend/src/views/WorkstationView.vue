@@ -5,6 +5,7 @@
       <nav aria-label="Application menu">
         <button type="button" title="Clone active workspace layout" @click="workspaceStore.cloneActiveTab()">Workspace</button>
         <button type="button" title="Open Study Lab layout" @click="workspaceStore.activeTabKey = 'study-lab'">Study</button>
+        <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <button v-if="workspaceStore.workspace?.is_default" type="button" title="Reset factory workspace" @click="resetFactoryWorkspace">Reset</button>
       </nav>
       <div class="workstation__search">
@@ -192,6 +193,11 @@ async function selectIndustryProxy(symbol: string) {
 function openTool(tool: OpenableToolDefinition) {
   workspaceStore.openTool(tool)
   toolLibraryOpen.value = false
+}
+
+function openAlertsTool() {
+  const alerts = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'alerts')
+  if (alerts) openTool(alerts)
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup) {

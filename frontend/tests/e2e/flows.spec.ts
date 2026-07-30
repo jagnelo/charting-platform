@@ -176,10 +176,10 @@ test.describe('Alerts', () => {
     browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F11 — navigate to alerts page from sidebar', async ({ page, browserDiagnostics }) => {
+  test('F11 — open active-symbol alerts from the workstation menu', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    await page.click('a[href="/alerts"], .nav-link[title*="Alert"]')
-    await expect(page).toHaveURL(/\/alerts/)
+    await page.getByRole('button', { name: 'Alerts' }).click()
+    await expect(page.locator('.tool-window').filter({ hasText: 'Alerts' }).last()).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -233,14 +233,11 @@ test.describe('Drawing tools', () => {
     const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
     await expect(toolbar.first()).toBeVisible()
 
-    // Trendline and horizontal line should be present
-    const trendBtn = page.locator('button[title*="Trend"], button[data-tool="trendline"]')
-    const horizBtn = page.locator('button[title*="Horizontal"], button[data-tool="horizontal_line"]')
-    const freeBtn  = page.locator('button[title*="Freehand"], button[data-tool="freehand"]')
-
-    if (await trendBtn.count() > 0) await expect(trendBtn.first()).toBeVisible()
-    if (await horizBtn.count() > 0) await expect(horizBtn.first()).toBeVisible()
-    if (await freeBtn.count()  > 0) await expect(freeBtn.first()).toBeVisible()
+    await toolbar.getByRole('button', { name: 'Lines' }).click()
+    await expect(page.getByRole('button', { name: 'Trend Line' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Horizontal Line' })).toBeVisible()
+    await toolbar.getByRole('button', { name: 'Annotations' }).click()
+    await expect(page.getByRole('button', { name: 'Freehand' })).toBeVisible()
     browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -248,20 +245,14 @@ test.describe('Drawing tools', () => {
     await page.goto('/chart')
     await page.waitForLoadState('networkidle')
 
-    // Click the horizontal line tool
-    const horizBtn = page.locator(
-      'button[data-tool="horizontal_line"], button[title*="Horizontal"]'
-    )
-    if (await horizBtn.count() > 0) {
-      await horizBtn.first().click()
-      // The button or its parent should have an active/selected class
-      const isActive = await horizBtn.first().evaluate(
-        el => el.classList.contains('active') || el.classList.contains('selected') ||
-              el.getAttribute('aria-pressed') === 'true' ||
-              el.closest('[class*="active"]') !== null
-      )
-      expect(isActive).toBe(true)
-    }
+    const toolbar = page.locator('.drawing-toolbar').first()
+    const linesButton = toolbar.getByRole('button', { name: 'Lines' })
+    await linesButton.click()
+    const horizBtn = toolbar.getByRole('button', { name: 'Horizontal Line' })
+    await horizBtn.click()
+    // The flyout closes after selection; its owning group remains active and puts the
+    // chart canvas into drawing mode.
+    await expect(linesButton).toHaveClass(/active/)
     browserDiagnostics.expectNoCriticalIssues()
   })
 

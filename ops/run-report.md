@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:35:00Z Workstation alerts and drawing controls
+
+- Added primary-menu access to the active-symbol Alerts tool and placed the existing
+  persisted drawing toolbar in workstation chart windows, with drawing/alert overlays
+  hydrated for each resolved canonical instrument.
+- Added accessible group/tool names and browser acceptance for opening Alerts,
+  inspecting drawing choices, and selecting a horizontal line.
+- Validation: workspace-store `17 passed`; TypeScript; production build; Chromium
+  F11/F13/F14 `3 passed`; full Chromium flows `21 passed`.
+
 ## 2026-07-30T15:28:00Z Indicator-config migration repair
 
 - Restored the missing table DDL in historical revision `a3a03047acc3`; this is a

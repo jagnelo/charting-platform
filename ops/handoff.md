@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:35:00Z
+
+- The default workstation now exposes an `Alerts` application-menu command that opens
+  the existing active-symbol Alerts tool rather than forcing users into legacy
+  navigation. Its chart windows now include the persisted drawing toolbar and hydrate
+  their drawing/alert overlays after resolving a canonical instrument.
+- Drawing group and individual-tool controls now have explicit accessible names;
+  selecting a drawing keeps its group visibly active while the flyout closes.
+- Validation: workspace-store `17 passed`; TypeScript; production build; focused
+  Chromium F11/F13/F14 (`3 passed`); complete Chromium flow suite (`21 passed`).
+- Exact next step: commit/push this chart/alerts workstation correction, then continue
+  with the next uncovered completion requirement.
+
 ## Continuation update — 2026-07-30T15:28:00Z
 
 - Repaired the historical `a3a03047acc3` Alembic revision. It had been an empty

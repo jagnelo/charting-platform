@@ -69,14 +69,17 @@
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
-      <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
-      <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
-      <UPlotChart
-        v-else-if="chartStore.symbol"
-        :workspace-link-group="tool.link_group"
-        :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
-      />
-      <div v-else class="tool-state">Select a canonical instrument.</div>
+      <DrawingToolbar class="chart-tool__drawing-toolbar" />
+      <div class="chart-tool__surface">
+        <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
+        <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
+        <UPlotChart
+          v-else-if="chartStore.symbol"
+          :workspace-link-group="tool.link_group"
+          :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)"
+        />
+        <div v-else class="tool-state">Select a canonical instrument.</div>
+      </div>
     </div>
     <div v-else-if="tool.instance_key === 'industry-list' && industries.length" class="industry-list">
       <button
@@ -175,7 +178,10 @@
 <script setup lang="ts">
 import { computed, provide, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
+import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import { usePanelStore } from '@/stores/chart'
+import { useDrawingsStore } from '@/stores/drawings'
+import { useAlertsStore } from '@/stores/alerts'
 import { useWorkspaceStore, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn } from './VirtualWatchlistTool.vue'
@@ -204,6 +210,8 @@ const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string
 const chartPanelId = `workstation-${props.tool.instance_key}`
 provide('panelId', chartPanelId)
 const chartStore = usePanelStore(chartPanelId)
+const drawingsStore = useDrawingsStore()
+const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
@@ -263,6 +271,16 @@ watch([activeSymbol, activeTimeframe, syntheticExpression], async ([symbol, time
     chartStore.barType,
     true,
   )
+}, { immediate: true })
+
+// The shared drawing and alert overlay stores are deliberately hydrated whenever a
+// workstation chart resolves a canonical instrument. This gives docked/popped-out
+// uPlot charts the same persisted drawing and alert-line mechanics as the legacy
+// chart panel, rather than rendering a cosmetic toolbar with no backing state.
+watch(() => [chartStore.instrument?.id, activeTimeframe.value] as const, ([instrumentId, timeframe]) => {
+  if (props.tool.tool_type !== 'chart' || !instrumentId) return
+  void drawingsStore.loadDrawings(instrumentId, timeframe as any)
+  void alertsStore.loadAlerts(instrumentId)
 }, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
@@ -458,7 +476,9 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 </script>
 
 <style scoped>
-.chart-tool { height: 100%; min-height: 0; background: #101419; }
+.chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; }
+.chart-tool__drawing-toolbar { flex: 0 0 auto; }
+.chart-tool__surface { min-width: 0; min-height: 0; flex: 1 1 auto; }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
 .analysis { height: 100%; min-height: 0; }
