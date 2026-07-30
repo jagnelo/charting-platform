@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T17:40:00Z
+
+- Hardened the unified-Python asset boundary: `plot`, `column`, `condition`, and
+  `signal` assets now accept only their valid typed output contracts, and source AST
+  inspection rejects a declared contract that does not equal its `output.*` calls.
+  Study assets retain intentional structured-output flexibility. The isolated runner
+  now emits validated typed Boolean artifacts, and Study Lab exposes validated output
+  types before a run is saved.
+- Validation: backend code/API/isolated-runner suites (`20 passed`, two pre-existing
+  Nautilus warnings), frontend Study Lab component test, TypeScript, production build,
+  Ruff, rebuilt isolated stack, full Chromium `flows.spec.ts` (`22 passed`), and diff
+  check.
+- Exact next step: implement a durable prepared-universe batch evaluation interface
+  that consumes these column/condition assets without executing user code in FastAPI.
+
 ## Continuation update — 2026-07-30T17:30:00Z
 
 - Added versioned, user-isolated saved column sets to all workstation virtual watchlists.

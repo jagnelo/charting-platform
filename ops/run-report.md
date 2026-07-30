@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T17:40:00Z Unified Python output-contract checkpoint
+
+- Enforced asset-kind/output-contract compatibility and source-level declared-output
+  validation. Added typed Boolean outputs in the isolated runner and surfaced output
+  contracts in Study Lab validation feedback.
+- Validation: backend code/API/runner `20 passed` (two existing Nautilus warnings);
+  Study Lab component test; TypeScript; production build; Ruff; rebuilt isolated stack;
+  full Chromium `flows.spec.ts` `22 passed`; diff check.
+
 ## 2026-07-30T17:30:00Z Saved watchlist column-set checkpoint
 
 - Added persistent user-isolated column sets for virtual workstation watchlists. Sets
