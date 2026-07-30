@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:33:00Z Enriched Industry proxy ranking checkpoint
+
+- Verified industry-proxy cards now show 1M, RSI, proxy/sector, proxy/SPY, and local
+  coverage rather than classification-only metadata. Pushed `b4c4453`.
+- Validation: frontend type-check/build, diff check. Sortable proxy table and broad
+  acceptance remain incomplete.
+
 ## 2026-07-30T10:31:00Z Industry proxy ranking workstation integration
 
 - The Industry tool now requests verified proxy ranking batches and shows proxy/sector

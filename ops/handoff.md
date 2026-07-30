@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:33:00Z
+
+- Enriched verified Industry proxy cards with 1M performance, RSI, sector-relative and
+  SPY-relative values, plus explicit local-bar coverage.
+- Pushed `b4c4453`; frontend type-check/build and `git diff --check` passed.
+
+### Exact next step
+
+- Replace proxy cards with a sortable virtualized ranking table, retaining technical,
+  coverage, provenance, unavailable, and alignment states.
+
 ## Continuation update — 2026-07-30T10:31:00Z
 
 - Bound verified industry-proxy batches to the Industry tool. Each verified proxy now
