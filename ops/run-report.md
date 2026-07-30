@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:40:00Z Technical and ratio freshness
+
+- Added persisted local OHLCV freshness metadata to technical and direct ratio responses.
+  Pushed `b7802e4`; focused top-down integration `13 passed` with known third-party
+  warnings, Ruff, and diff check.
+
 ## 2026-07-30T12:35:00Z Rotation and historical-breadth freshness
 
 - Added persisted local OHLCV freshness to rotation and historical breadth responses.

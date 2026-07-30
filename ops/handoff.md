@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:40:00Z
+
+- Technical snapshots and direct relative-strength ratios now derive freshness from
+  persisted canonical OHLCV state. Pushed `b7802e4`; focused top-down integration
+  remains green.
+
+### Exact next step
+
+- Apply the same semantics to ETF-proxy batches and render the common freshness state
+  in workstation tools.
+
 ## Continuation update — 2026-07-30T12:35:00Z
 
 - Extended persisted local OHLCV freshness semantics to relative rotation and historical
