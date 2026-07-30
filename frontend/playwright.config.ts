@@ -27,7 +27,25 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /tc2000_visual\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
+    ...[
+      ['visual-1080p-100', 1920, 1080, 1],
+      ['visual-1080p-125', 1920, 1080, 1.25],
+      ['visual-1440p-100', 2560, 1440, 1],
+      ['visual-1440p-125', 2560, 1440, 1.25],
+    ].map(([name, width, height, deviceScaleFactor]) => ({
+      name: name as string,
+      testMatch: /tc2000_visual\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: width as number, height: height as number },
+        deviceScaleFactor: deviceScaleFactor as number,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        colorScheme: 'dark' as const,
+      },
+    })),
   ],
 })
