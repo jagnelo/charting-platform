@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:31:00Z Industry proxy ranking workstation integration
+
+- The Industry tool now requests verified proxy ranking batches and shows proxy/sector
+  plus proxy/SPY relative context before selection. Pushed `23dcbd3`.
+- Validation: TypeScript, diff check. Rich proxy ranking list and broad acceptance
+  remain incomplete.
+
 ## 2026-07-30T10:28:00Z Verified industry-proxy ranking checkpoint
 
 - Added `/analysis/etf/{symbol}/industries/{industry}/proxies/snapshot`, restricted to

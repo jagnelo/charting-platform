@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:31:00Z
+
+- Bound verified industry-proxy batches to the Industry tool. Each verified proxy now
+  shows its aligned relative level versus the selected sector ETF and SPY before it is
+  selected, rather than a classification-only percentage.
+- Pushed `23dcbd3`; TypeScript and diff checks passed.
+
+### Exact next step
+
+- Turn the proxy cards into a sortable virtualized ranking list with technical columns,
+  coverage, and explicit unavailable/alignment states.
+
 ## Continuation update — 2026-07-30T10:28:00Z
 
 - Added a source-labelled local industry-proxy ranking batch endpoint. It admits only
