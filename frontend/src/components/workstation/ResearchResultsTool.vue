@@ -2,6 +2,7 @@
   <section class="research-results-tool">
     <header>
       <strong>Persisted runs</strong>
+      <button v-if="comparisonRuns.length === 2" type="button" @click="comparisonOpen = !comparisonOpen">{{ comparisonOpen ? 'Hide compare' : 'Compare' }}</button>
       <button type="button" :disabled="loading" @click="refresh">Refresh</button>
     </header>
     <p v-if="error" class="research-results-tool__error">{{ error }}</p>
@@ -17,11 +18,19 @@
         class="research-results-tool__run"
         @click="selectedRun = run"
       >
+        <input type="checkbox" :checked="comparisonIds.includes(run.id)" :aria-label="`Compare run ${run.id}`" @click.stop @change="toggleComparison(run.id)" />
         <strong>Run #{{ run.id }}</strong>
         <span :class="`research-results-tool__status--${run.status}`">{{ run.status }}</span>
         <small>{{ run.artifacts.length }} artifact{{ run.artifacts.length === 1 ? '' : 's' }}</small>
       </button>
     </div>
+    <section v-if="comparisonOpen && comparisonRuns.length === 2" class="research-results-tool__comparison">
+      <strong>Run {{ comparisonRuns[0].id }} vs {{ comparisonRuns[1].id }}</strong>
+      <div><span>Code version</span><b :class="comparisonClass('code_version_id')">{{ comparisonRuns[0].code_version_id }} / {{ comparisonRuns[1].code_version_id }}</b></div>
+      <div><span>Parameters</span><b :class="comparisonClass('run_config')">{{ compact(comparisonRuns[0].run_config) }} / {{ compact(comparisonRuns[1].run_config) }}</b></div>
+      <div><span>Dataset</span><b :class="comparisonClass('dataset_manifest')">{{ compact(comparisonRuns[0].dataset_manifest) }} / {{ compact(comparisonRuns[1].dataset_manifest) }}</b></div>
+      <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
+    </section>
     <article v-if="selectedRun" class="research-results-tool__detail">
       <strong>Run #{{ selectedRun.id }}</strong>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
@@ -49,6 +58,9 @@ import StudySeriesUPlot from './StudySeriesUPlot.vue'
 interface ResearchRunSummary {
   id: number
   status: string
+  code_version_id: number
+  run_config: Record<string, unknown>
+  dataset_manifest: Record<string, unknown>
   reproducibility_hash?: string | null
   diagnostics?: string[]
   artifacts: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
@@ -56,10 +68,13 @@ interface ResearchRunSummary {
 
 const runs = ref<ResearchRunSummary[]>([])
 const selectedRun = ref<ResearchRunSummary | null>(null)
+const comparisonIds = ref<number[]>([])
+const comparisonOpen = ref(false)
 const loading = ref(false)
 const error = ref('')
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string }] }>()
 const shouldPoll = computed(() => runs.value.some(run => !['completed', 'failed', 'canceled'].includes(run.status)))
+const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
 let poller: ReturnType<typeof setInterval> | null = null
 
 function artifactText(payload: Record<string, unknown>) { return JSON.stringify(payload.value ?? payload, null, 2) }
@@ -88,6 +103,12 @@ function exportArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['a
   anchor.click()
   URL.revokeObjectURL(url)
 }
+function toggleComparison(id: number) {
+  comparisonIds.value = comparisonIds.value.includes(id) ? comparisonIds.value.filter(value => value !== id) : [...comparisonIds.value.slice(-1), id]
+  if (comparisonIds.value.length < 2) comparisonOpen.value = false
+}
+function compact(value: unknown) { return JSON.stringify(value) }
+function comparisonClass(key: keyof ResearchRunSummary) { return JSON.stringify(comparisonRuns.value[0][key]) === JSON.stringify(comparisonRuns.value[1][key]) ? 'research-results-tool__same' : 'research-results-tool__changed' }
 
 async function refresh() {
   loading.value = true
@@ -96,6 +117,7 @@ async function refresh() {
     runs.value = await api.get<ResearchRunSummary[]>('/research/runs', { limit: 25 })
     const retained = selectedRun.value ? runs.value.find(run => run.id === selectedRun.value?.id) : null
     selectedRun.value = retained ?? runs.value[0] ?? null
+    comparisonIds.value = comparisonIds.value.filter(id => runs.value.some(run => run.id === id))
     if (!shouldPoll.value && poller) { clearInterval(poller); poller = null }
   } catch (cause: any) {
     error.value = cause?.message ?? 'Unable to load persisted research runs'
@@ -112,5 +134,5 @@ onBeforeUnmount(() => { if (poller) clearInterval(poller) })
 </script>
 
 <style scoped>
-.research-results-tool { display:grid; grid-template-rows:auto minmax(55px,.35fr) minmax(0,1fr); gap:6px; height:100%; min-height:0; padding:6px; color:#cbd5dc; background:#11161b; font:10px "Segoe UI",Arial,sans-serif; }.research-results-tool header { display:flex; align-items:center; gap:6px; }.research-results-tool header button { margin-left:auto; }.research-results-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; cursor:pointer; }.research-results-tool button:disabled { opacity:.55; cursor:default; }.research-results-tool__runs { overflow:auto; display:grid; align-content:start; gap:3px; }.research-results-tool__run { display:grid; grid-template-columns:minmax(55px,1fr) auto auto; gap:5px; padding:5px; text-align:left; }.research-results-tool__run:hover,.research-results-tool__run--selected { background:#1d3543; border-color:#52748a; }.research-results-tool__run small,.research-results-tool__detail small,.research-results-tool__notice { color:#8195a3; }.research-results-tool__detail { border-top:1px solid #34424c; padding-top:5px; overflow:auto; }.research-results-tool__detail p { margin:4px 0; }.research-results-tool__artifacts { display:grid; gap:5px; }.research-results-tool__artifacts article { display:grid; gap:3px; border-top:1px solid #29343c; padding-top:4px; }.research-results-tool__artifact-header { display:flex; align-items:center; gap:4px; }.research-results-tool__artifact-header small { color:#8195a3; }.research-results-tool__artifact-header button { margin-left:auto; padding:1px 4px; }.research-results-tool__artifacts table { border-collapse:collapse; width:100%; }.research-results-tool__artifacts th,.research-results-tool__artifacts td { padding:2px 4px; border:1px solid #2c3943; text-align:left; }.research-results-tool__events { display:grid; gap:2px; }.research-results-tool__events button { display:grid; grid-template-columns:50px 1fr; padding:3px 4px; text-align:left; }.research-results-tool__events span { color:#91a8b4; }.research-results-tool__artifacts pre { margin:0; max-height:100px; overflow:auto; white-space:pre-wrap; }.research-results-tool__error { color:#f0a2a2; }.research-results-tool__status--completed { color:#82c49b; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }.research-results-tool__status--queued,.research-results-tool__status--running { color:#80bce8; }
+.research-results-tool { display:grid; grid-template-rows:auto minmax(55px,.35fr) minmax(0,1fr); gap:6px; height:100%; min-height:0; padding:6px; color:#cbd5dc; background:#11161b; font:10px "Segoe UI",Arial,sans-serif; }.research-results-tool header { display:flex; align-items:center; gap:6px; }.research-results-tool header button { margin-left:auto; }.research-results-tool header button + button { margin-left:0; }.research-results-tool button { border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; cursor:pointer; }.research-results-tool button:disabled { opacity:.55; cursor:default; }.research-results-tool__runs { overflow:auto; display:grid; align-content:start; gap:3px; }.research-results-tool__run { display:grid; grid-template-columns:14px minmax(55px,1fr) auto auto; gap:5px; padding:5px; text-align:left; }.research-results-tool__run:hover,.research-results-tool__run--selected { background:#1d3543; border-color:#52748a; }.research-results-tool__run small,.research-results-tool__detail small,.research-results-tool__notice { color:#8195a3; }.research-results-tool__comparison { overflow:auto; border:1px solid #34424c; padding:5px; }.research-results-tool__comparison div { display:grid; grid-template-columns:70px 1fr; gap:5px; margin-top:3px; }.research-results-tool__comparison b { overflow-wrap:anywhere; font-weight:500; }.research-results-tool__same { color:#82c49b; }.research-results-tool__changed { color:#e7c274; }.research-results-tool__detail { border-top:1px solid #34424c; padding-top:5px; overflow:auto; }.research-results-tool__detail p { margin:4px 0; }.research-results-tool__artifacts { display:grid; gap:5px; }.research-results-tool__artifacts article { display:grid; gap:3px; border-top:1px solid #29343c; padding-top:4px; }.research-results-tool__artifact-header { display:flex; align-items:center; gap:4px; }.research-results-tool__artifact-header small { color:#8195a3; }.research-results-tool__artifact-header button { margin-left:auto; padding:1px 4px; }.research-results-tool__artifacts table { border-collapse:collapse; width:100%; }.research-results-tool__artifacts th,.research-results-tool__artifacts td { padding:2px 4px; border:1px solid #2c3943; text-align:left; }.research-results-tool__events { display:grid; gap:2px; }.research-results-tool__events button { display:grid; grid-template-columns:50px 1fr; padding:3px 4px; text-align:left; }.research-results-tool__events span { color:#91a8b4; }.research-results-tool__artifacts pre { margin:0; max-height:100px; overflow:auto; white-space:pre-wrap; }.research-results-tool__error { color:#f0a2a2; }.research-results-tool__status--completed { color:#82c49b; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }.research-results-tool__status--queued,.research-results-tool__status--running { color:#80bce8; }
 </style>
