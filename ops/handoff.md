@@ -1,5 +1,11 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:00:00Z
+
+- Persisted two-symbol ratio expressions (for example `=XLK/SPY`) now select the
+  aligned `RatioUPlot` path in workstation chart tools instead of silently loading an
+  ordinary symbol chart. TypeScript, production build, and diff check passed.
+
 ## Continuation update — 2026-07-30T14:55:00Z
 
 - Factory layout correction: `4 Timeframe` now uses a real two-by-two Golden Layout

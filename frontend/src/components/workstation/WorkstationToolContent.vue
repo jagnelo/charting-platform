@@ -65,6 +65,9 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
     />
+    <div v-else-if="ratioExpression" class="analysis">
+      <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" />
+    </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
       <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
@@ -210,6 +213,13 @@ const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
   typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
 ))
 const timeframeLinkGroup = computed(() => workspaceStore.timeframeLinkGroupForTool(props.tool))
+const ratioExpression = computed(() => {
+  const expression = typeof props.tool.configuration.expression === 'string'
+    ? props.tool.configuration.expression.trim().toUpperCase()
+    : ''
+  const match = expression.match(/^=([A-Z0-9.:-]+)\/([A-Z0-9.:-]+)$/)
+  return match ? { numerator: match[1], denominator: match[2] } : null
+})
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
