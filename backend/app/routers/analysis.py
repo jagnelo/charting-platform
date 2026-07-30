@@ -675,6 +675,9 @@ async def industry_proxy_snapshot(
                 relative_to_market=ratio(market_bars),
             )
         )
+    freshness, freshness_detail = await _batch_freshness(
+        db, [*(item.id for item in ordered), sector.id, market.id], timeframe
+    )
     return IndustryProxySnapshotOut(
         group_key=f"industry-proxy:{sector.symbol}:{industry}",
         etf_symbol=sector.symbol,
@@ -694,6 +697,8 @@ async def industry_proxy_snapshot(
             "sector_etf": sector.symbol,
             "industry": industry,
         },
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         coverage=covered / max(len(ordered), 1),
         exclusions=exclusions,
         rows=rows,
@@ -898,6 +903,9 @@ async def etf_constituent_snapshot(
                 technical=technical,
             )
         )
+    freshness, freshness_detail = await _batch_freshness(
+        db, [*instrument_ids, benchmark_instrument.id], timeframe
+    )
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
         timeframe=timeframe.value,
@@ -912,6 +920,8 @@ async def etf_constituent_snapshot(
             "composition_date": snapshot.composition_date.isoformat(),
             "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
         },
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         coverage=covered / max(len(holdings), 1),
         exclusions=exclusions,
         rows=rows,
