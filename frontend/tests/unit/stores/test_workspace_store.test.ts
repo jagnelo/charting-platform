@@ -109,6 +109,21 @@ describe('workspace store layout tabs', () => {
     expect(store.linkedTimestamp).toBeNull()
   })
 
+  it('publishes a persisted linked timeframe while preserving grey isolation', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [],
+    }
+
+    store.publishTimeframe('W1', 'blue')
+    expect(store.linkedTimeframe).toBe('W1')
+    expect(store.workspace.settings.linked_timeframe).toBe('W1')
+
+    store.publishTimeframe('M1', 'grey')
+    expect(store.linkedTimeframe).toBe('W1')
+  })
+
   it('opens an implemented tool with serializable state and adds it to the saved layout', () => {
     const store = useWorkspaceStore()
     store.workspace = {
