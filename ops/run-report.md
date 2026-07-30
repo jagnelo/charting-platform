@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T19:25:00Z High-cardinality prepared-universe batch
+
+- Replaced the 1,000-symbol API guard with a 10,000-symbol bounded batch contract.
+  Canonical instruments and their capped 500-bar adjusted D1 datasets are resolved in
+  SQL chunks, with unresolved/no-history symbols retained as structured exclusions.
+- Corrected batch sandbox accounting so all cells share one wall-clock budget instead
+  of resetting one timeout per cell. Focused runner/API coverage: `20 passed` (two
+  existing Nautilus warnings); Ruff and diff check passed.
+
 ## 2026-07-30T18:55:00Z Unified Python watchlist condition
 
 - Implemented persisted unified-Python Boolean condition filtering in the shared

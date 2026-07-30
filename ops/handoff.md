@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T19:25:00Z
+
+- Raised the prepared-universe API ceiling from 1,000 to 10,000 declared canonical
+  symbols. Materialization resolves instruments and limited local adjusted D1 history
+  in SQL chunks, retaining only the most recent 500 bars per batch symbol and emitting
+  exact unresolved/no-history exclusions. This avoids both provider calls and the old
+  unbounded per-instrument query pattern.
+- Batch execution now owns one outer sandbox wall-clock budget for the whole universe;
+  individual cells no longer reset a fresh 15-second alarm. A budget exhaustion returns
+  bounded completed-cell artifacts plus a structured `batch_wall_time_limit` failure.
+- Validation: research runner/API suites `20 passed` (two existing Nautilus
+  deprecation warnings), Ruff, and diff check passed. Next: durable in-flight progress
+  and cancellation visibility, then use the immutable condition asset in EasyScan and
+  alerts.
+
 ## Continuation update — 2026-07-30T18:55:00Z
 
 - Added a separate persisted `python_condition` watchlist configuration rather than
