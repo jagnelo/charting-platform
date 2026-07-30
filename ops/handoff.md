@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T09:48:00Z
+
+- Added transparent local sector relative rotation. Trend is the 20-bar aligned ratio
+  return; momentum is the change from the preceding such trend. It is explicitly not a
+  JdK claim, carries overlap/coverage/insufficient-history warnings, and ships in
+  factory-layout version 6 with a clickable companion state table.
+- Pushed `4a166ab feat(top-down): add transparent sector relative rotation`.
+- Validation passed: workspace/analysis integration `11 passed`, Ruff, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Add uPlot rotation scatter/tails and then extend top-down batch ranking/drill-down
+  to curated industry proxies and ETF constituents.
+
 ## Continuation update — 2026-07-30T09:42:00Z
 
 - Added canonical local historical breadth: date-aligned percentage above 20/50/200-day

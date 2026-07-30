@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T09:48:00Z Transparent sector relative rotation
+
+- Added aligned-local ratio trend/momentum rotation with explicit non-JdK semantics,
+  coverage/overlap/history warnings, factory-layout v6 integration, and a clickable
+  state/trend/momentum/coverage/tail companion table.
+- Pushed `4a166ab feat(top-down): add transparent sector relative rotation`.
+- Validation passed: workspace/analysis integration `11 passed`, Ruff, frontend
+  type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T09:42:00Z Historical breadth workstation chart
 
 - Added point-in-time local historical breadth API and uPlot rendering for 20/50/200
