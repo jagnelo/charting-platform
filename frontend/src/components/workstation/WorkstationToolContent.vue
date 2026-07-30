@@ -65,16 +65,14 @@
         <small v-else-if="!industryProxyState.proxies.length">No mapped ETF proxy · holdings/classification evidence required</small>
         <template v-else>
           <small>Verified ETF proxies · point-in-time holdings · {{ proxyCoverage }}</small>
-          <button
-            v-for="proxy in industryProxyState.proxies"
-            :key="proxy.symbol"
-            type="button"
-            class="industry-list__proxy"
-            :class="{ 'industry-list__proxy--active': proxy.symbol === selectedIndustryProxy }"
-            @click="emit('selectProxy', proxy.symbol)"
-          >
-            <strong>{{ proxy.symbol }}</strong><span>{{ proxyMetrics(proxy.symbol) }}</span>
-          </button>
+          <VirtualWatchlistTool
+            class="industry-list__proxy-table"
+            label="Verified proxy rankings"
+            :rows="proxyRows"
+            :selected="selectedIndustryProxy ?? ''"
+            :columns="proxyColumns"
+            @select="emit('selectProxy', $event.symbol)"
+          />
         </template>
       </div>
       <small>{{ selectedETF }} holdings · point-in-time classification</small>
@@ -180,6 +178,17 @@ const industryProxyState = computed(() => selectedETF.value && selectedIndustry.
 const industryProxySnapshot = computed(() => selectedETF.value && selectedIndustry.value
   ? workspaceStore.industryProxySnapshots[`${selectedETF.value}:${selectedIndustry.value}`]
   : null)
+const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(row => ({
+  instrumentId: null,
+  symbol: row.symbol,
+  name: row.name,
+  values: {
+    performance_1m: row.performance['1M']?.value ?? null,
+    relative_sector: row.relative_to_benchmark?.value ?? null,
+    relative_spy: row.relative_to_market?.value ?? null,
+    rsi14: row.technical.rsi14?.value ?? null,
+  },
+})))
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
     return workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents.map(row => row.symbol) ?? []
@@ -267,6 +276,14 @@ const constituentColumns: WatchlistColumn[] = [
   { key: 'above_ma50', label: '>50', width: '54px' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
 ]
+const proxyColumns: WatchlistColumn[] = [
+  { key: 'symbol', label: 'Proxy', width: '56px' },
+  { key: 'name', label: 'Name', width: 'minmax(92px, 1fr)' },
+  { key: 'performance_1m', label: '1M', width: '54px' },
+  { key: 'relative_sector', label: `/ ${selectedETF.value || 'Sector'}`, width: '62px', format: 'number' },
+  { key: 'relative_spy', label: '/ SPY', width: '58px', format: 'number' },
+  { key: 'rsi14', label: 'RSI', width: '48px', format: 'number' },
+]
 const configuredColumnKeys = computed(() => {
   const keys = props.tool.configuration.column_keys
   return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
@@ -318,8 +335,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
-.industry-list__proxy { display: flex; justify-content: space-between; gap: 8px; border: 1px solid #34434e; background: #162029; color: #c7d0d8; padding: 4px 5px; font: 10px "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
-.industry-list__proxy:hover, .industry-list__proxy--active { border-color: #5faed7; background: #1d4057; }
+.industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
