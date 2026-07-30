@@ -158,8 +158,8 @@ function selectOccurrence(symbol: string, timestamp: string) {
   void selectSymbol(symbol, timestamp)
 }
 
-function setLinkedTimeframe(timeframe: string) {
-  workspaceStore.publishTimeframe(timeframe, 'blue', 'workstation')
+function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
+  workspaceStore.publishTimeframe(timeframe, group, 'workstation')
 }
 
 async function selectIndustryProxy(symbol: string) {
@@ -246,7 +246,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onPinnedBooleanKeys: (windowKey: string, keys: string[]) => updatePinnedBooleanKeys(windowKey, keys),
     onColumnGroups: (windowKey: string, groups: Record<string, string>) => updateColumnGroups(windowKey, groups),
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
-    onTimeframe: (timeframe: string) => setLinkedTimeframe(timeframe),
+    onTimeframe: (timeframe: string, group: LinkGroup) => setLinkedTimeframe(timeframe, group),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
     onClose: () => {
