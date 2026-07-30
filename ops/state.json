@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T11:30:00Z",
-    "last_commit": "23c52b0 feat(workstation): show actual data state",
+    "last_handoff_at": "2026-07-30T11:36:00Z",
+    "last_commit": "bf9163c feat(providers): add entitlement registry",
     "git_ready_to_commit": false,
     "validation": {
-        "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
+        "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
         "backend_tests": "isolated Study Lab runner/deployment guard 8 passed with --no-cov; focused research API integration 7 passed with --no-cov; screener/analysis integration 19 passed with --no-cov; workspace/analysis integration 13 passed with --no-cov (Python 3.12), 2026-07-30",
         "frontend_tests": "passed (focused persisted-results tool: 1 passed; Study Lab/results slice: 2 passed; VirtualWatchlistTool suite: 14 passed; workspace-store suite: 10 passed; TypeScript check, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after honest workstation data-state indicator, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T11:30:00Z honest workstation data-state indicator)",
+        "diff_check": "passed (2026-07-30T11:36:00Z provider entitlement registry)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T11:36:00Z: Added/pushed bf9163c: persisted provider entitlement registry foundation records plan/free/auth state, terms/redistribution, quota, history/venue/freshness semantics, environments, effective/review dates, and live-probe status per provider/capability. Model import, Ruff, and diff checks passed. API governance/enforcement and full acceptance remain incomplete.",
         "2026-07-30T11:30:00Z: Added/pushed 23c52b0: removed the hard-coded shell Polling status. The status area now reports actual chart fetching, history backfill, unavailable/no-local-observations, or the timestamp of cached local data. TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T11:25:00Z: Added/pushed 9df0638: immutable Study Lab reruns now support exact stored-manifest snapshot or freshly materialized canonical local data. Study Results queues either mode and selects the new run. Research integration 7 passed with --no-cov (two existing Nautilus warnings), focused frontend test, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T11:20:00Z: Added/pushed bed2a3f: Study Results can select and compare any two persisted runs, explicitly showing same/different code version, run parameters, canonical dataset manifest, and reproducibility hash. Focused results test, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",

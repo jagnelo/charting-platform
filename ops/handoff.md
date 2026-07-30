@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:36:00Z
+
+- Added the versioned provider-entitlement persistence foundation, distinct from runtime
+  policy/health, covering terms, plan/free/auth, quotas, coverage/freshness, review,
+  environments, and live-probe evidence. Pushed `bf9163c`.
+- Model import, Ruff, and diff checks passed. API exposure/enforcement is next.
+
+### Exact next step
+
+- Build entitlement registry API, policy gating, and workstation coverage/freshness
+  consumption, then continue broader acceptance work.
+
 ## Continuation update — 2026-07-30T11:30:00Z
 
 - Replaced the shell's hard-coded Polling label with actual local chart state:

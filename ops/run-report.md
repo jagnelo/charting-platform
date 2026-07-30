@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:36:00Z Provider entitlement registry foundation
+
+- Added migration-backed provider/capability entitlement records for plan/terms,
+  free/auth/redistribution, quota, coverage/freshness, environments, review, and probes.
+  Pushed `bf9163c`.
+- Validation: model import, Ruff, and diff check. API enforcement remains incomplete.
+
 ## 2026-07-30T11:30:00Z Honest workstation data-state checkpoint
 
 - Replaced static Polling text with actual fetch, backfill, unavailable/no-data, or
