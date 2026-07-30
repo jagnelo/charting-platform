@@ -17,7 +17,7 @@
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
     </div>
     <div class="watchlist__header" :style="gridStyle">
       <template v-for="column in renderedColumns" :key="column.key">
@@ -119,7 +119,9 @@ const sortDirection = ref<'asc' | 'desc'>('asc')
 const columnMenuOpen = ref(false)
 const renderEpoch = ref(0)
 const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : props.columns.map(column => column.key))
-const visibleColumns = computed(() => props.columns.filter(column => activeColumnKeys.value.includes(column.key)))
+const visibleColumns = computed(() => activeColumnKeys.value
+  .map(key => props.columns.find(column => column.key === key))
+  .filter((column): column is WatchlistColumn => column != null))
 const hasColumnGroups = computed(() => visibleColumns.value.some(column => Boolean(props.columnGroups[column.key])))
 const stackedColumnKey = '__stacked_columns__'
 const stackedColumns = computed(() => visibleColumns.value.filter(column => props.stackedColumnKeys.includes(column.key)))
@@ -253,8 +255,22 @@ function toggleColumn(key: string) {
     if (current.length === 1) return
     emit('update:visibleColumnKeys', current.filter(item => item !== key))
   } else {
-    emit('update:visibleColumnKeys', props.columns.filter(column => current.includes(column.key) || column.key === key).map(column => column.key))
+    emit('update:visibleColumnKeys', [...current, key])
   }
+}
+
+function canMoveColumn(key: string, direction: -1 | 1) {
+  const position = activeColumnKeys.value.indexOf(key)
+  return position >= 0 && position + direction >= 0 && position + direction < activeColumnKeys.value.length
+}
+
+function moveColumn(key: string, direction: -1 | 1) {
+  const current = [...activeColumnKeys.value]
+  const position = current.indexOf(key)
+  const nextPosition = position + direction
+  if (position < 0 || nextPosition < 0 || nextPosition >= current.length) return
+  ;[current[position], current[nextPosition]] = [current[nextPosition], current[position]]
+  emit('update:visibleColumnKeys', current)
 }
 
 function togglePinnedBoolean(key: string) {
@@ -302,6 +318,8 @@ function onKeydown(event: KeyboardEvent) {
 .watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__column-menu label { white-space: nowrap; }
 .watchlist__group-input { width: 52px; margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #c7d0d8; font: inherit; }
+.watchlist__order-button { margin-left: 2px; min-width: 15px; border: 1px solid #42515c; background: #182128; color: #a9c0d0; font: inherit; cursor: pointer; }
+.watchlist__order-button:disabled { cursor: default; opacity: .45; }
 .watchlist__stack-button { margin-left: 3px; border: 1px solid #42515c; background: #182128; color: #a9c0d0; font: inherit; cursor: pointer; }
 .watchlist__stack-button[aria-pressed="true"] { border-color: #5faed7; background: #1d4057; color: #e3f2fb; }
 .watchlist__header, .watchlist__row { display: grid; min-width: 0; }

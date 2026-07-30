@@ -153,7 +153,7 @@ describe('VirtualWatchlistTool', () => {
       },
     })
     await wrapper.find('.watchlist__columns-button').trigger('click')
-    await wrapper.find('.watchlist__column-menu button:not(.watchlist__stack-button)').trigger('click')
+    await wrapper.find('.watchlist__pin-button').trigger('click')
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
   })
 
@@ -190,5 +190,21 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.findAll('.watchlist__row')).toHaveLength(1)
     expect(wrapper.find('.watchlist__stack-cell').text()).toContain('Symbol')
     expect(wrapper.find('.watchlist__stack-cell').text()).toContain('1M relative')
+  })
+
+  it('reorders persisted visible columns without changing the selected row identity', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows, selected: 'XLE',
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'name', label: 'Name' }, { key: 'relative_1m', label: '1M relative' }],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.find('button[aria-label="Move Name left"]').trigger('click')
+
+    expect(wrapper.emitted('update:visibleColumnKeys')?.at(-1)).toEqual([['name', 'symbol', 'relative_1m']])
+    await wrapper.setProps({ visibleColumnKeys: ['name', 'symbol', 'relative_1m'] })
+    expect(wrapper.find('.watchlist__header button').text()).toContain('Name')
+    expect(wrapper.find('.watchlist__row--active').exists()).toBe(true)
   })
 })
