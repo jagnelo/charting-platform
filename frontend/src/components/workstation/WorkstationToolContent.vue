@@ -43,6 +43,28 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
     />
+    <VirtualWatchlistTool
+      v-else-if="tool.tool_type === 'watchlist'"
+      :label="tool.title || 'WatchList'"
+      :rows="factoryWatchlistRows"
+      :selected="activeSymbol"
+      :columns="factoryWatchlistColumns"
+      :visible-column-keys="configuredColumnKeys"
+      :filter-text="configuredFilterText"
+      :condition-screener-id="configuredConditionScreenerId"
+      :condition-filter-mode="configuredConditionFilterMode"
+      :pinned-boolean-keys="configuredPinnedBooleanKeys"
+      :column-groups="configuredColumnGroups"
+      :stacked-column-keys="configuredStackedColumnKeys"
+      @select="emit('select', $event.symbol)"
+      @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
+      @update:filter-text="emit('filter', tool.instance_key, $event)"
+      @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+      @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+      @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
+      @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+      @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+    />
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
       <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
@@ -137,9 +159,11 @@
     </div>
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
+    <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="emit('select', $event)" />
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
+    <StudyLabTool v-else-if="tool.tool_type === 'research_results'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>
@@ -160,6 +184,7 @@ import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
+import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -246,6 +271,25 @@ const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?
     }
   })(),
 })))
+const factoryWatchlistRows = computed(() => {
+  const title = (props.tool.title ?? '').toLowerCase()
+  if (title.includes('sector')) return sectorRows.value
+  if (title.includes('component') || title.includes('constituent')) return constituentRows.value
+  return benchmarkRows.value
+})
+const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
+  const title = (props.tool.title ?? '').toLowerCase()
+  if (title.includes('sector')) return sectorColumns
+  if (title.includes('component') || title.includes('constituent')) return constituentColumns
+  return [
+    { key: 'symbol', label: 'Symbol', width: '72px' },
+    { key: 'name', label: 'Name', width: 'minmax(120px, 1fr)' },
+  ]
+})
+const latestChartBar = computed(() => chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null)
+const currentPrice = computed(() => latestChartBar.value?.close ?? null)
+const currentSessionHigh = computed(() => latestChartBar.value?.high ?? null)
+const currentSessionLow = computed(() => latestChartBar.value?.low ?? null)
 const constituentRows = computed(() => {
   const source = selectedETF.value && selectedIndustry.value
     ? workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents ?? []
@@ -337,11 +381,6 @@ function breadthMetric(key: string) {
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
 function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
-function proxyMetrics(symbol: string) {
-  const row = industryProxySnapshot.value?.rows.find(item => item.symbol === symbol)
-  if (!row) return 'Ranking local bars…'
-  return `${formatPercent(row.performance['1M']?.value)} 1M · RSI ${formatNumber(row.technical.rsi14?.value)} · ${formatRatio(row.relative_to_benchmark?.value)} / ${selectedETF.value} · ${formatRatio(row.relative_to_market?.value)} / SPY`
-}
 const proxyCoverage = computed(() => industryProxySnapshot.value
   ? `${(industryProxySnapshot.value.coverage * 100).toFixed(0)}% local-bar coverage`
   : 'local-bar coverage pending')
@@ -359,6 +398,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__row:hover, .industry-list__row--active { background: #1d4057; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
+.instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }
 .industry-list small { display: block; padding: 7px; line-height: 1.3; }
