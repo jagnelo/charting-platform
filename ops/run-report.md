@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:30:00Z Persisted top-down batch freshness
+
+- Group and breadth responses now derive explicit local-data freshness state and counts
+  from persisted OHLCV dataset state. Pushed `bbd38d2`.
+- Validation: workstation-analysis integration `13 passed` with `--no-cov` (two existing
+  third-party warnings), Ruff, and diff check. Other batch freshness paths remain
+  incomplete.
+
 ## 2026-07-30T12:20:00Z Standardized analysis metadata
 
 - Added common calculation-version, canonical-local provenance, and refresh metadata

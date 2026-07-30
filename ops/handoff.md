@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:30:00Z
+
+- Group snapshot and breadth batches now derive `current`, `stale`, `partial`, or
+  `unavailable` from persisted local OHLCV dataset state, with requested/current/stale/
+  other counts and no provider-routing exposure. Pushed `bbd38d2`.
+- Workstation-analysis integration `13 passed` with `--no-cov` (two existing third-party
+  warnings), Ruff, and diff checks passed.
+
+### Exact next step
+
+- Apply the same persisted freshness derivation across ratio, rotation, historical
+  breadth, ETF-proxy, and technical batches before proceeding with broader acceptance.
+
 ## Continuation update — 2026-07-30T12:20:00Z
 
 - Standardized calculation version, canonical-local provenance, and refresh time across
