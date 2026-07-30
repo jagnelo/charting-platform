@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:28:00Z Indicator-config migration repair
+
+- Restored the missing table DDL in historical revision `a3a03047acc3`; this is a
+  real clean-bootstrap defect previously masked by runtime `create_all`.
+- Fresh rebuilt branch Compose stack now has the expected table at Alembic head with
+  constraints/defaults. Backend logs had no `UndefinedTable`, `500`, `ERROR`, or
+  traceback after the focused workstation run.
+- Validation: migration-specific Ruff; frontend TypeScript; `git diff --check`; and
+  Chromium F6/F7/F8b (`3 passed`) against the rebuilt stack.
+
 ## 2026-07-30T16:30:00Z Alembic downgrade/upgrade acceptance
 
 - Isolated stack passed `head → -1 → head` and remained healthy across all services.

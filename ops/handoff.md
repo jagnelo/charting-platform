@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:28:00Z
+
+- Repaired the historical `a3a03047acc3` Alembic revision. It had been an empty
+  migration even though `instrument_indicator_config` is an active authenticated
+  API model; the old runtime `create_all` behavior had hidden that schema defect.
+- The migration now creates the table, user/instrument cascade foreign keys, unique
+  `(user_id, instrument_id)` constraint, user index, JSON indicator default, and
+  timestamp defaults matching the mapped model. A newly rebuilt branch stack contains
+  the table at head and reports no `UndefinedTable`/500 backend errors.
+- Chromium workstation F6 default load, F7 AAPL symbol entry, and F8b pop-out close
+  all pass against that fresh stack (`3 passed`). Frontend type checking, migration
+  Ruff, and `git diff --check` also pass.
+- Exact next step: commit/push this migration correction, then continue the next
+  uncovered workstation acceptance gap rather than treating missing visual captures
+  as a general implementation blocker.
+
 ## Continuation update — 2026-07-30T16:30:00Z
 
 - Migration acceptance now passes: the healthy isolated branch stack downgraded
