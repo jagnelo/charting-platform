@@ -87,6 +87,7 @@
             @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
             @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
           />
+          <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
       </div>
       <small>{{ selectedETF }} holdings · point-in-time classification</small>
