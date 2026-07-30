@@ -7,7 +7,7 @@ class TestWorkspaces:
         assert workspace["revision"] == 1
         assert workspace["tabs"][0]["stable_key"] == "us-top-down"
         assert workspace["tabs"][0]["layout_config"]["root"]["type"] == "row"
-        assert workspace["tabs"][0]["layout_config"]["version"] == 5
+        assert workspace["tabs"][0]["layout_config"]["version"] == 6
         assert {window["tool_type"] for window in workspace["tabs"][0]["windows"]} >= {
             "watchlist",
             "chart",
@@ -19,7 +19,12 @@ class TestWorkspaces:
         }
         assert "alerts" in {window["instance_key"] for window in workspace["tabs"][0]["windows"]}
         assert "easy-scan" in {window["instance_key"] for window in workspace["tabs"][0]["windows"]}
-        assert "market-gauge" in {window["instance_key"] for window in workspace["tabs"][0]["windows"]}
+        assert "market-gauge" in {
+            window["instance_key"] for window in workspace["tabs"][0]["windows"]
+        }
+        assert "relative-rotation" in {
+            window["instance_key"] for window in workspace["tabs"][0]["windows"]
+        }
         assert {tab["stable_key"] for tab in workspace["tabs"]} >= {
             "tc-classic",
             "drill-down",
@@ -276,7 +281,9 @@ class TestWorkspaces:
     ):
         from app.models.workstation import MarketGroup, MarketGroupMember
 
-        group = MarketGroup(stable_key="breadth-history-test", group_type="test", name="Breadth test")
+        group = MarketGroup(
+            stable_key="breadth-history-test", group_type="test", name="Breadth test"
+        )
         db.add(group)
         db.flush()
         db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
@@ -305,6 +312,69 @@ class TestWorkspaces:
         assert row["state"] == "leading"
         assert len(row["tail"]) == 3
         assert row["coverage"] == 1
+
+    def test_etf_constituent_snapshot_is_point_in_time_and_source_labelled(
+        self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf = Instrument(
+            symbol="XLK",
+            name="Technology Select Sector SPDR Fund",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 5, 30, tzinfo=UTC).date(),
+            known_at=datetime(2024, 5, 31, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="test-xlk-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                source_row_hash="test-xlk-aapl",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/etf/XLK/constituents/snapshot",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["group_key"] == "etf-proxy:XLK"
+        assert payload["membership_version"] == snapshot.id
+        assert payload["composition_date"] == "2024-05-30"
+        assert payload["provenance"] == "issuer_native"
+        assert payload["source_provider"] == "issuer"
+        assert payload["coverage"] == 1
+        assert payload["rows"][0]["symbol"] == instrument.symbol
+        assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
 
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument

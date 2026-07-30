@@ -141,6 +141,15 @@ export interface ETFHoldingsPageState {
   total: number
 }
 
+export interface ETFConstituentSnapshotState extends GroupSnapshotState {
+  etf_symbol: string
+  composition_date: string
+  known_at: string | null
+  provenance: string
+  source_provider: string
+  completeness_status: string
+}
+
 export interface ETFIndustryCompositionState {
   etf_symbol: string
   composition_date: string
@@ -191,6 +200,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const breadth = ref<Record<string, BreadthState>>({})
   const breadthHistory = ref<Record<string, BreadthHistoryState>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
+  const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
@@ -453,6 +463,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
       constituentETF.value = normalized
       selectedIndustry.value = null
+      void loadETFConstituentSnapshot(normalized)
       return page
     } catch (cause: any) {
       if (cause?.status === 404) {
@@ -460,6 +471,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         return null
       }
       error.value = cause?.message ?? `Unable to load ETF holdings for ${normalized}`
+      return null
+    }
+  }
+
+  async function loadETFConstituentSnapshot(symbol: string, benchmark?: string) {
+    const normalized = symbol.trim().toUpperCase()
+    if (!normalized) return null
+    const comparison = (benchmark ?? normalized).trim().toUpperCase()
+    try {
+      const snapshot = await api.get<ETFConstituentSnapshotState>(
+        `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
+        { benchmark: comparison },
+      )
+      etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: snapshot }
+      return snapshot
+    } catch (cause: any) {
+      if (cause?.status === 404) {
+        etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
+        return null
+      }
+      error.value = cause?.message ?? `Unable to calculate ${normalized} constituent strength`
       return null
     }
   }
@@ -672,6 +704,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     breadth,
     breadthHistory,
     etfHoldings,
+    etfConstituentSnapshots,
     etfIndustries,
     industryConstituents,
     technicals,
@@ -687,6 +720,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadBreadth,
     loadBreadthHistory,
     loadETFHoldings,
+    loadETFConstituentSnapshot,
     loadETFIndustries,
     selectIndustry,
     loadTechnical,

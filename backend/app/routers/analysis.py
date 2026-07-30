@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.screener import ScreenerDefinition, ScreenerResult
@@ -23,6 +24,7 @@ from app.schemas.analysis import (
     BreadthHistoryOut,
     BreadthHistoryPoint,
     BreadthOut,
+    ETFConstituentSnapshotOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
     MarketGaugeOut,
@@ -340,9 +342,21 @@ async def group_relative_rotation(
         maximum = max(len(bars), len(benchmark_bars), 1)
         warnings: list[AnalysisWarning] = []
         if not aligned:
-            warnings.append(AnalysisWarning(code="no_aligned_bars", message="No aligned ratio bars are available.", instrument_id=instrument.id))
+            warnings.append(
+                AnalysisWarning(
+                    code="no_aligned_bars",
+                    message="No aligned ratio bars are available.",
+                    instrument_id=instrument.id,
+                )
+            )
         elif len(aligned) < maximum:
-            warnings.append(AnalysisWarning(code="partial_overlap", message="Only intersecting timestamps were used; gaps were not forward-filled.", instrument_id=instrument.id))
+            warnings.append(
+                AnalysisWarning(
+                    code="partial_overlap",
+                    message="Only intersecting timestamps were used; gaps were not forward-filled.",
+                    instrument_id=instrument.id,
+                )
+            )
         coordinates: list[RelativeRotationTailPoint] = []
         for index in range(lookback * 2, len(aligned)):
             ratio = aligned[index][1]
@@ -352,27 +366,278 @@ async def group_relative_rotation(
                 continue
             trend = ratio / prior_ratio - 1
             previous_trend = prior_ratio / prior_prior_ratio - 1
-            coordinates.append(RelativeRotationTailPoint(timestamp=aligned[index][0], trend=trend, momentum=trend - previous_trend))
+            coordinates.append(
+                RelativeRotationTailPoint(
+                    timestamp=aligned[index][0], trend=trend, momentum=trend - previous_trend
+                )
+            )
         if not coordinates:
-            warnings.append(AnalysisWarning(code="insufficient_history", message=f"Relative rotation requires {lookback * 2 + 1} aligned bars.", instrument_id=instrument.id))
-            rows.append(RelativeRotationRow(instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name, coverage=len(aligned) / maximum, warnings=warnings))
+            warnings.append(
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"Relative rotation requires {lookback * 2 + 1} aligned bars.",
+                    instrument_id=instrument.id,
+                )
+            )
+            rows.append(
+                RelativeRotationRow(
+                    instrument_id=instrument.id,
+                    symbol=instrument.symbol,
+                    name=instrument.name,
+                    coverage=len(aligned) / maximum,
+                    warnings=warnings,
+                )
+            )
             continue
         latest = coordinates[-1]
         state = (
-            "leading" if latest.trend >= 0 and latest.momentum >= 0
-            else "weakening" if latest.trend >= 0
-            else "improving" if latest.momentum >= 0
+            "leading"
+            if latest.trend >= 0 and latest.momentum >= 0
+            else "weakening"
+            if latest.trend >= 0
+            else "improving"
+            if latest.momentum >= 0
             else "lagging"
         )
-        rows.append(RelativeRotationRow(
-            instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name,
-            trend=latest.trend, momentum=latest.momentum, state=state,
-            coverage=len(aligned) / maximum, tail=coordinates[-tail_length:], warnings=warnings,
-        ))
+        rows.append(
+            RelativeRotationRow(
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+                name=instrument.name,
+                trend=latest.trend,
+                momentum=latest.momentum,
+                state=state,
+                coverage=len(aligned) / maximum,
+                tail=coordinates[-tail_length:],
+                warnings=warnings,
+            )
+        )
     return RelativeRotationOut(
-        group_key=group.stable_key, benchmark=benchmark_instrument.symbol,
-        timeframe=timeframe.value, adjustment="split_adjusted" if adjusted else "raw",
-        lookback=lookback, tail_length=tail_length, membership_version=group.id, rows=rows,
+        group_key=group.stable_key,
+        benchmark=benchmark_instrument.symbol,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        lookback=lookback,
+        tail_length=tail_length,
+        membership_version=group.id,
+        rows=rows,
+    )
+
+
+@router.get("/etf/{symbol}/constituents/snapshot", response_model=ETFConstituentSnapshotOut)
+async def etf_constituent_snapshot(
+    symbol: str,
+    benchmark: str | None = Query(default=None),
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Batch technical/rank values for one source-labelled ETF holdings snapshot.
+
+    The selected snapshot is the newest local disclosure known to the platform. Its
+    resolved rows are an ETF-proxy universe, not a claim about official index membership.
+    """
+    etf = await _instrument(db, symbol)
+    profile = (
+        await db.execute(select(ETFProfile).where(ETFProfile.instrument_id == etf.id))
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(404, detail={"code": "etf_profile_not_found", "symbol": etf.symbol})
+    snapshot = (
+        await db.execute(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                ETFHoldingsSnapshot.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if snapshot is None:
+        raise HTTPException(
+            404, detail={"code": "etf_holdings_snapshot_not_found", "symbol": etf.symbol}
+        )
+    holdings = [
+        row
+        for row in snapshot.rows
+        if row.is_resolved and row.constituent_instrument_id is not None
+    ]
+    instrument_ids = [
+        row.constituent_instrument_id for row in holdings if row.constituent_instrument_id
+    ]
+    instruments = {
+        item.id: item
+        for item in (
+            await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+        ).scalars()
+    }
+    benchmark_instrument = await _instrument(db, benchmark) if benchmark else etf
+    bars_by_id = await _bars_by_instrument(
+        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
+    )
+    benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
+    rows: list[GroupSnapshotRow] = []
+    exclusions: list[AnalysisWarning] = []
+    covered = 0
+    for holding in sorted(holdings, key=lambda item: item.position):
+        instrument = instruments.get(holding.constituent_instrument_id)
+        if instrument is None:
+            exclusions.append(
+                AnalysisWarning(
+                    code="missing_instrument",
+                    message="Holding refers to an unavailable canonical instrument.",
+                    instrument_id=holding.constituent_instrument_id,
+                )
+            )
+            continue
+        bars = bars_by_id.get(instrument.id, [])
+        latest = bars[-1] if bars else None
+        if latest is None:
+            warning = AnalysisWarning(
+                code="no_bars", message="No local bars are available.", instrument_id=instrument.id
+            )
+            exclusions.append(warning)
+            rows.append(
+                GroupSnapshotRow(
+                    instrument_id=instrument.id,
+                    symbol=instrument.symbol,
+                    name=instrument.name,
+                    last=_cell(None, None, warning),
+                    performance={period: _cell(None, None, warning) for period in _PERIODS},
+                )
+            )
+            continue
+        covered += 1
+        performance = {
+            period: _cell(
+                float(latest.close / bars[-offset - 1].close - 1) if len(bars) > offset else None,
+                latest,
+                None
+                if len(bars) > offset
+                else AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"{period} requires more history.",
+                    instrument_id=instrument.id,
+                ),
+            )
+            for period, offset in _PERIODS.items()
+        }
+        closes, volumes = [float(bar.close) for bar in bars], [float(bar.volume) for bar in bars]
+        technical: dict[str, AnalysisCell] = {}
+        for period in (20, 50, 200):
+            technical[f"above_ma{period}"] = _cell(
+                1.0
+                if closes[-1] > _mean(closes[-period:])
+                else 0.0
+                if len(closes) >= period
+                else None,
+                latest,
+                None
+                if len(closes) >= period
+                else AnalysisWarning(
+                    code="insufficient_history",
+                    message=f"Price versus SMA({period}) requires {period} bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(closes) >= 15:
+            changes = [
+                closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))
+            ]
+            gain, loss = (
+                _mean([max(change, 0.0) for change in changes]),
+                _mean([max(-change, 0.0) for change in changes]),
+            )
+            technical["rsi14"] = _cell(
+                100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)), latest
+            )
+        else:
+            technical["rsi14"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="RSI(14) requires 15 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(closes) >= 252:
+            window = closes[-252:]
+            spread = max(window) - min(window)
+            technical["position_52w"] = _cell(
+                (closes[-1] - min(window)) / spread if spread else 1.0, latest
+            )
+        else:
+            technical["position_52w"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="52-week position requires 252 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        if len(volumes) >= 51:
+            average_volume = _mean(volumes[-51:-1])
+            technical["volume_ratio_50"] = _cell(
+                volumes[-1] / average_volume if average_volume else None, latest
+            )
+        else:
+            technical["volume_ratio_50"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="50-day volume ratio requires 51 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        benchmark_bar = benchmark_bars.get(latest.ts)
+        relative = (
+            _cell(float(latest.close / benchmark_bar.close), latest)
+            if benchmark_bar is not None and benchmark_bar.close != 0
+            else _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="unaligned_benchmark",
+                    message="No aligned benchmark bar is available.",
+                    instrument_id=instrument.id,
+                ),
+            )
+        )
+        rows.append(
+            GroupSnapshotRow(
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+                name=instrument.name,
+                last=_cell(float(latest.close), latest),
+                performance=performance,
+                relative_to_benchmark=relative,
+                technical=technical,
+            )
+        )
+    return ETFConstituentSnapshotOut(
+        group_key=f"etf-proxy:{etf.symbol}",
+        timeframe=timeframe.value,
+        as_of=max(
+            (row.last.observation_time for row in rows if row.last.observation_time), default=None
+        ),
+        adjustment="split_adjusted" if adjusted else "raw",
+        membership_version=snapshot.id,
+        coverage=covered / max(len(holdings), 1),
+        exclusions=exclusions,
+        rows=rows,
+        etf_symbol=etf.symbol,
+        composition_date=snapshot.composition_date,
+        known_at=snapshot.known_at,
+        provenance=snapshot.provenance,
+        source_provider=snapshot.source_provider,
+        completeness_status=snapshot.completeness_status,
     )
 
 
@@ -476,23 +741,55 @@ async def group_snapshot(
                 average = _mean(closes[-period:])
                 technical[key] = _cell(1.0 if closes[-1] > average else 0.0, latest)
         if len(closes) >= 15:
-            changes = [closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))]
+            changes = [
+                closes[index] - closes[index - 1] for index in range(len(closes) - 13, len(closes))
+            ]
             gain = _mean([max(change, 0.0) for change in changes])
             loss = _mean([max(-change, 0.0) for change in changes])
-            technical["rsi14"] = _cell(100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)), latest)
+            technical["rsi14"] = _cell(
+                100.0 if loss == 0 else 100 - (100 / (1 + gain / loss)), latest
+            )
         else:
-            technical["rsi14"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="RSI(14) requires 15 bars.", instrument_id=instrument.id))
+            technical["rsi14"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="RSI(14) requires 15 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
         if len(closes) >= 252:
             window = closes[-252:]
             spread = max(window) - min(window)
-            technical["position_52w"] = _cell((closes[-1] - min(window)) / spread if spread else 1.0, latest)
+            technical["position_52w"] = _cell(
+                (closes[-1] - min(window)) / spread if spread else 1.0, latest
+            )
         else:
-            technical["position_52w"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="52-week position requires 252 bars.", instrument_id=instrument.id))
+            technical["position_52w"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="52-week position requires 252 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
         if len(volumes) >= 51:
             average_volume = _mean(volumes[-51:-1])
-            technical["volume_ratio_50"] = _cell(volumes[-1] / average_volume if average_volume else None, latest)
+            technical["volume_ratio_50"] = _cell(
+                volumes[-1] / average_volume if average_volume else None, latest
+            )
         else:
-            technical["volume_ratio_50"] = _cell(None, latest, AnalysisWarning(code="insufficient_history", message="50-day volume ratio requires 51 bars.", instrument_id=instrument.id))
+            technical["volume_ratio_50"] = _cell(
+                None,
+                latest,
+                AnalysisWarning(
+                    code="insufficient_history",
+                    message="50-day volume ratio requires 51 bars.",
+                    instrument_id=instrument.id,
+                ),
+            )
         relative: AnalysisCell | None = None
         if benchmark_instrument:
             benchmark_bar = benchmark_bars.get(latest.ts)
@@ -617,7 +914,13 @@ async def group_breadth_history(
     for member in group.members:
         bars = bars_by_id.get(member.instrument_id, [])
         if not bars:
-            exclusions.append(AnalysisWarning(code="no_bars", message="No local bars are available.", instrument_id=member.instrument_id))
+            exclusions.append(
+                AnalysisWarning(
+                    code="no_bars",
+                    message="No local bars are available.",
+                    instrument_id=member.instrument_id,
+                )
+            )
             continue
         closes = [float(bar.close) for bar in bars]
         for period in periods:
@@ -632,8 +935,13 @@ async def group_breadth_history(
     points = [
         BreadthHistoryPoint(
             timestamp=timestamp,
-            above_ma={f"ma{period}": values[period][0] / values[period][1] if values[period][1] else None for period in periods},
-            coverage={f"ma{period}": values[period][1] / max(len(group.members), 1) for period in periods},
+            above_ma={
+                f"ma{period}": values[period][0] / values[period][1] if values[period][1] else None
+                for period in periods
+            },
+            coverage={
+                f"ma{period}": values[period][1] / max(len(group.members), 1) for period in periods
+            },
         )
         for timestamp, values in sorted(buckets.items())
     ][-limit:]

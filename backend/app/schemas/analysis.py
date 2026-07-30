@@ -1,6 +1,6 @@
 """Provider-neutral batch analysis response contracts."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -82,6 +82,17 @@ class GroupSnapshotOut(BaseModel):
     coverage: float = Field(ge=0, le=1)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
     rows: list[GroupSnapshotRow]
+
+
+class ETFConstituentSnapshotOut(GroupSnapshotOut):
+    """A point-in-time ETF-proxy constituent batch, never an official index universe."""
+
+    etf_symbol: str
+    composition_date: date
+    known_at: datetime | None = None
+    provenance: str
+    source_provider: str
+    completeness_status: str
 
 
 class BreadthOut(BaseModel):

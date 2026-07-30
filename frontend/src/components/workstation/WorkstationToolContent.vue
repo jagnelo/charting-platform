@@ -126,6 +126,7 @@ const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const ratioBenchmark = computed(() => selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY')
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
+const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
 const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const constituents = computed(() => {
@@ -172,7 +173,20 @@ const constituentRows = computed(() => {
         id: row.constituent_instrument_id as number, symbol: row.constituent_symbol as string, name: row.constituent_name ?? row.reported_name ?? row.constituent_symbol as string,
         weight: row.weight,
       })) ?? []
-  return source.map(row => ({ instrumentId: row.id, symbol: row.symbol, name: row.name, values: { weight: 'weight' in row ? row.weight ?? null : null } }))
+  return source.map(row => {
+    const analysis = constituentSnapshot.value?.rows.find(item => item.instrument_id === row.id)
+    return {
+      instrumentId: row.id, symbol: row.symbol, name: row.name,
+      values: {
+        weight: 'weight' in row ? row.weight ?? null : null,
+        performance_1m: analysis?.performance['1M']?.value ?? null,
+        relative_ratio: analysis?.relative_to_benchmark?.value == null ? null : analysis.relative_to_benchmark.value.toFixed(4),
+        rsi14: analysis?.technical?.rsi14?.value ?? null,
+        above_ma50: analysis?.technical?.above_ma50?.value ?? null,
+        position_52w: analysis?.technical?.position_52w?.value ?? null,
+      },
+    }
+  })
 })
 const sectorColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '54px' },
@@ -193,7 +207,14 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
 ]
 const constituentColumns: WatchlistColumn[] = [
-  { key: 'symbol', label: 'Symbol', width: '60px' }, { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' }, { key: 'weight', label: 'Weight', width: '62px' },
+  { key: 'symbol', label: 'Symbol', width: '60px' },
+  { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' },
+  { key: 'weight', label: 'Weight', width: '62px' },
+  { key: 'performance_1m', label: '1M', width: '58px' },
+  { key: 'relative_ratio', label: `/ ${selectedETF.value || 'ETF'}`, width: '64px', format: 'number' },
+  { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' },
+  { key: 'above_ma50', label: '>50', width: '54px' },
+  { key: 'position_52w', label: '52W Pos', width: '64px' },
 ]
 const configuredColumnKeys = computed(() => {
   const keys = props.tool.configuration.column_keys
