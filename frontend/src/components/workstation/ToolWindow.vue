@@ -4,6 +4,9 @@
       <strong class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
+        <select v-if="timeframe" :value="timeframe" class="tool-window__timeframe" :aria-label="title + ' timeframe link'" @change="emit('update:timeframe', ($event.target as HTMLSelectElement).value)">
+          <option value="D1">D</option><option value="W1">W</option><option value="M1">M</option>
+        </select>
         <select
           :value="linkGroup"
           class="tool-window__link"
@@ -30,15 +33,18 @@ withDefaults(defineProps<{
   title: string
   symbol?: string
   linkGroup?: LinkGroup
+  timeframe?: string
   active?: boolean
 }>(), {
   symbol: '',
   linkGroup: 'blue',
+  timeframe: '',
   active: false,
 })
 
 const emit = defineEmits<{
   'update:linkGroup': [value: LinkGroup]
+  'update:timeframe': [value: string]
   maximize: []
   float: []
   close: []
@@ -57,5 +63,6 @@ const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan',
 .tool-window__symbol { color: #9fc2e0; font-weight: 700; }
 .tool-window__actions { margin-left: auto; display: flex; align-items: center; }
 .tool-window__link { width: 54px; height: 18px; color: #d7dce0; border: 1px solid #4b5660; background: #161b20; font: 10px "Segoe UI", Arial, sans-serif; }
+.tool-window__timeframe { width: 27px; height: 18px; color: #d7dce0; border: 1px solid #4b5660; background: #161b20; font: 10px "Segoe UI", Arial, sans-serif; }
 .tool-window__body { min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
 </style>

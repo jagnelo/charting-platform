@@ -67,6 +67,7 @@
         @filter="updateFilter"
         @condition-filter="updateConditionFilter"
         @update-link-group="updateLinkGroup"
+        @timeframe="setLinkedTimeframe"
         @close="closePopoutTool"
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
@@ -245,6 +246,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onPinnedBooleanKeys: (windowKey: string, keys: string[]) => updatePinnedBooleanKeys(windowKey, keys),
     onColumnGroups: (windowKey: string, groups: Record<string, string>) => updateColumnGroups(windowKey, groups),
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
+    onTimeframe: (timeframe: string) => setLinkedTimeframe(timeframe),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
     onClose: () => {
