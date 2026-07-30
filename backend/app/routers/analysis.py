@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from app.database import get_db
 from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
 from app.models.workstation import MarketGroup
@@ -147,6 +148,58 @@ def _cell(
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values)
+
+
+async def _batch_freshness(
+    db: AsyncSession, instrument_ids: list[int], timeframe: Timeframe
+) -> tuple[str, dict[str, int]]:
+    """Summarise persisted OHLCV state without exposing providers or fallback order."""
+    if not instrument_ids:
+        return "unavailable", {"requested": 0, "current": 0, "stale": 0, "other": 0}
+    states = (
+        (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id.in_(instrument_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == timeframe.value,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    now = datetime.now(UTC)
+    by_instrument: dict[int, list[InstrumentDatasetState]] = defaultdict(list)
+    for state in states:
+        by_instrument[state.instrument_id].append(state)
+    current = stale = other = 0
+    for instrument_id in instrument_ids:
+        entries = by_instrument.get(instrument_id, [])
+        if any(
+            entry.status == DatasetStatus.FRESH
+            and entry.stale_after is not None
+            and (
+                entry.stale_after
+                if entry.stale_after.tzinfo
+                else entry.stale_after.replace(tzinfo=UTC)
+            )
+            > now
+            for entry in entries
+        ):
+            current += 1
+        elif any(entry.status == DatasetStatus.FRESH for entry in entries):
+            stale += 1
+        else:
+            other += 1
+    detail = {"requested": len(instrument_ids), "current": current, "stale": stale, "other": other}
+    if current == len(instrument_ids):
+        return "current", detail
+    if current == 0 and stale == 0:
+        return "unavailable", detail
+    if stale and current == 0:
+        return "stale", detail
+    return "partial", detail
 
 
 @router.get("/instruments/{symbol}/technical", response_model=TechnicalSnapshotOut)
@@ -1032,6 +1085,7 @@ async def group_snapshot(
                 technical=technical,
             )
         )
+    freshness, freshness_detail = await _batch_freshness(db, instrument_ids, timeframe)
     return GroupSnapshotOut(
         group_key=group.stable_key,
         timeframe=timeframe.value,
@@ -1041,6 +1095,8 @@ async def group_snapshot(
         adjustment="split_adjusted" if adjusted else "raw",
         membership_version=group.id,
         universe_provenance=group.provenance or {},
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         coverage=covered / max(len(group.members), 1),
         exclusions=exclusions,
         rows=rows,
@@ -1089,6 +1145,9 @@ async def group_breadth(
                     instrument_id=member.instrument_id,
                 )
             )
+    freshness, freshness_detail = await _batch_freshness(
+        db, [member.instrument_id for member in group.members], timeframe
+    )
     return BreadthOut(
         group_key=group_key,
         timeframe=timeframe.value,
@@ -1096,6 +1155,8 @@ async def group_breadth(
         as_of=as_of,
         membership_version=group.id,
         universe_provenance=group.provenance or {},
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         evaluated_count=len(group.members),
         coverage=sum(1 for bars in bars_by_id.values() if bars) / max(len(group.members), 1),
         above_ma={

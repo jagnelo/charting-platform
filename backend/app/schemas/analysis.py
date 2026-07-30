@@ -17,6 +17,8 @@ class AnalysisResponseMetadata(BaseModel):
     calculation_version: str = "analysis-v1"
     data_provenance: str = "canonical_local_database"
     refreshed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    freshness: str = "coverage_limited"
+    freshness_detail: dict[str, int] = Field(default_factory=dict)
 
 
 class AnalysisPoint(BaseModel):
