@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:42:00Z Industry proxy provenance checkpoint
+
+- Added visible sortable source-provider and holdings-date fields to verified Industry
+  proxy rankings. Pushed `7504ba1`.
+- Validation: TypeScript, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:40:00Z Persisted Industry proxy-list configuration
 
 - Connected the verified proxy list to all existing serialized workstation list

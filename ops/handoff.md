@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:42:00Z
+
+- Added source-provider and holdings composition-date columns to verified proxy
+  rankings, keeping the source evidence visible in the direct drill-down surface.
+- Pushed `7504ba1`; TypeScript and diff checks passed.
+
+### Exact next step
+
+- Add explicit freshness/unavailable states to proxy rankings and continue top-down
+  workflow acceptance coverage.
+
 ## Continuation update — 2026-07-30T10:40:00Z
 
 - Made the virtualized verified-proxy ranking a fully persisted workstation list. It
