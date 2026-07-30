@@ -1,5 +1,25 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:12:00Z
+
+- Added an opt-in four-environment Playwright project for the application-shell
+  baseline at 1920×1080 and 2560×1440, each at 100% and 125% scale. The normal E2E
+  project excludes visual specs so the existing functional suite is not multiplied.
+- `npm run test:visual:approved` first invokes the strict protected-reference manifest
+  gate and only then enables the screenshot comparison. It uses a 0.5% max differing
+  pixel ratio and disables animation/caret noise. Current unapproved references fail
+  at the gate as required, before a baseline can be created or accepted.
+- Pushed `30fd352 test(visual): gate four-environment screenshot parity`.
+- Validation passed: frontend type-check/build, Playwright discovery (four visual plus
+  ordinary Chromium projects), strict manifest rejection with the expected
+  `required_missing` cause, and `git diff --check`.
+
+### Exact next step
+
+- Create deterministic authenticated workstation fixture data and state-idle markers;
+  then add all required visual surface interaction/capture specs. Authorised live V25
+  captures and measurements remain an explicit external evidence dependency.
+
 ## Continuation update — 2026-07-30T10:08:00Z
 
 - Added a deterministic protected-reference manifest validator. It validates the pinned

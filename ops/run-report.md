@@ -2,6 +2,18 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:12:00Z Four-environment visual screenshot harness checkpoint
+
+- Added dedicated 1920×1080/2560×1440 × 100/125-scale Playwright visual projects and
+  a separate approved-only command. The command strictly validates protected V25
+  evidence before screenshot comparison; current `required_missing` references stop
+  it before snapshot generation. Standard functional E2E excludes these visual specs.
+- The first deterministic shell screenshot uses the documented 0.5% differing-pixel
+  threshold and disables animation/caret noise. Baseline directory is deliberately
+  empty until human-reviewed reference evidence exists.
+- Validation: frontend type-check/build, Playwright test discovery (23 total, four
+  visual), expected strict manifest rejection, diff check. Pushed `30fd352`.
+
 ## 2026-07-30T09:51:00Z uPlot sector rotation tails
 
 - Added a uPlot trend/momentum plane with coloured sector historical tails and current
