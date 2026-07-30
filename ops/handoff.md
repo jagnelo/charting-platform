@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T00:06:00Z
+
+- Added explicit dense-column number/percent formatting. This corrects technical
+  ranking semantics: RSI displays as 0–100 while returns, moving-average state, and
+  52-week position remain percentages.
+- Pushed `7ca517e fix(top-down): format numeric technical ranking fields`.
+- Validation passed: focused virtual-watchlist suite `7 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement transparent historical relative rotation and breadth series with coverage
+  warnings, then extend batch top-down analysis to industry proxies and constituents.
+
 ## Continuation update — 2026-07-30T00:04:00Z
 
 - Added canonical local batch technical state to group snapshots: RSI14, price above

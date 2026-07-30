@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T00:06:00Z Technical ranking-field formatting
+
+- Added explicit number/percent dense-column formatting so RSI renders as 0–100 while
+  returns and technical-state percentages retain correct percent presentation.
+- Pushed `7ca517e fix(top-down): format numeric technical ranking fields`.
+- Validation passed: focused virtual-watchlist suite `7 passed`, frontend type-check,
+  production build, and `git diff --check`.
+
 ## 2026-07-30T00:04:00Z Batch sector technical states
 
 - Added local group-snapshot RSI14, above-20/50/200-SMA, 52-week position, and
