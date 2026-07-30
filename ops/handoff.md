@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:25:00Z
+
+- Added immutable Study Lab reruns: exact snapshot retains the stored dataset manifest,
+  while latest rematerializes canonical local data under the original configuration.
+  Study Results exposes both modes and selects the queued run. Pushed `9df0638`.
+- Research API integration `7 passed` with `--no-cov` (two existing third-party
+  warnings); focused frontend test, TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Continue authentic reusable-output promotion and the broader workstation/backend
+  acceptance work.
+
 ## Continuation update — 2026-07-30T11:20:00Z
 
 - Added run-to-run reproducibility comparison in Study Results. Two selected runs expose

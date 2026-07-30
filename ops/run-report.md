@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:25:00Z Immutable Study Lab reruns checkpoint
+
+- Added exact-snapshot and canonical-latest rerun modes, each producing a new queued
+  immutable research run; Study Results exposes both controls. Pushed `9df0638`.
+- Validation: research API `7 passed` with `--no-cov` (two existing third-party
+  warnings), focused frontend test, TypeScript, production build, and diff check.
+  Full acceptance remains incomplete.
+
 ## 2026-07-30T11:20:00Z Study Lab reproducible-run comparison checkpoint
 
 - Added two-run comparison across immutable code version, run parameters, canonical
