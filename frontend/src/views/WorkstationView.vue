@@ -20,7 +20,7 @@
       <div class="workstation__status">
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
-        <span>Polling</span>
+        <span :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
       </div>
     </header>
 
@@ -103,6 +103,14 @@ const preserveDrilldownSymbol = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
 
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
+const dataState = computed(() => {
+  if (chartStore.isLoading) return { kind: 'fetching', label: 'Fetching' }
+  if (chartStore.isFetchingHistory) return { kind: 'fetching', label: 'Backfilling history' }
+  if (chartStore.error) return { kind: 'unavailable', label: 'Unavailable' }
+  const latest = chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null
+  if (!latest) return { kind: 'unavailable', label: 'No local observations' }
+  return { kind: 'cached', label: `Cached ${new Date(latest.ts).toLocaleString()}` }
+})
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutTool = computed(() => {
   const key = String(route.params.windowKey ?? '')
@@ -316,6 +324,7 @@ onBeforeUnmount(() => workspaceStore.disconnect())
 .workstation__search button { border: 1px solid #4d5a63; border-left: 0; background: #26333d; color: #dce9f2; padding: 0 7px; font-size: 10px; cursor: pointer; }
 .workstation__status { margin-left: auto; display: flex; gap: 8px; color: #81909a; font-size: 10px; }
 .workstation__leader { color: #63bd85; }
+.workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--cached { color:#aebbc4; }
 .workstation__tabs { display: flex; align-items: stretch; background: #151a1f; border-bottom: 1px solid #303940; }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: absolute; z-index: 60; top: 28px; left: 0; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; }
