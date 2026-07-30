@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:40:00Z Primary Alerts tool controls
+
+- Added repeat, pause/resume, rearm/delete and per-instrument firing-history controls
+  to the workstation's active-symbol Alerts tool using existing authenticated APIs.
+- Validation: TypeScript; production build; diff check; rebuilt-stack Chromium F11
+  (`1 passed`).
+
 ## 2026-07-30T15:35:00Z Workstation alerts and drawing controls
 
 - Added primary-menu access to the active-symbol Alerts tool and placed the existing

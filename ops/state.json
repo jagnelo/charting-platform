@@ -4,14 +4,14 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T15:35:00Z",
-    "last_commit": "de8961e fix(migrations): create indicator config table",
+    "last_handoff_at": "2026-07-30T15:40:00Z",
+    "last_commit": "3abe31e feat(workstation): expose alerts and drawing controls",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
         "backend_tests": "workspace API 16 passed (two existing Nautilus deprecation warnings); workstation-analysis integration 13 passed; workstation-analysis/code API integration 20 passed; coverage router 2 passed; provider governance router 6 passed and runtime 8 passed (14 combined) with --no-cov; isolated Study Lab runner/deployment guard 8 passed; research API integration 7 passed; screener/analysis integration 19 passed; workspace/analysis integration 13 passed (Python 3.12), 2026-07-30",
-        "frontend_tests": "passed (RatioUPlot 3 passed with linked-timeframe and linked-crosshair coverage; workspace-store 17 passed; focused Chromium F11/F13/F14 3 passed; full Chromium flows 21 passed; prior F9b/F8b/F8c/auth-store/persisted-results/Study Lab/VirtualWatchlistTool slices also passed, 2026-07-30)",
-        "frontend_build": "passed (production build after workstation Alerts/drawing-toolbar correction, 2026-07-30)",
+        "frontend_tests": "passed (RatioUPlot 3 passed with linked-timeframe and linked-crosshair coverage; workspace-store 17 passed; focused Chromium F11/F13/F14 3 passed; full Chromium flows 21 passed; rebuilt-stack F11 primary Alerts control flow passed; prior F9b/F8b/F8c/auth-store/persisted-results/Study Lab/VirtualWatchlistTool slices also passed, 2026-07-30)",
+        "frontend_build": "passed (production build after primary Alerts repeat/status/history correction, 2026-07-30)",
         "alembic_upgrade": "passed: fresh branch stack upgrades to d2a3b4c5d6e7 head, seeds top-down taxonomy, starts healthy without runtime create_all, completes controlled head-to-minus-one-to-head cycle, and includes instrument_indicator_config from repaired a3a03047acc3",
         "diff_check": "passed (2026-07-30T15:28:00Z indicator-config migration correction)",
         "playwright": "full Chromium flows.spec.ts passed 21 tests against rebuilt branch Compose stack, including F6/F7/F8b/F8c/F9b/F11/F13/F14; visual/multi-environment acceptance remains required, 2026-07-30",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T15:40:00Z: The primary Alerts tool now supports repeat creation/toggle, pause/resume, rearm/delete and per-instrument firing history/view acknowledgement through existing authenticated APIs. TypeScript/build/diff and rebuilt F11 passed. Commit/push then continue chart template/library or broader alert-source work.",
         "2026-07-30T15:35:00Z: Added an Alerts application-menu command that opens the active-symbol workstation tool, and added the persisted drawing toolbar plus overlay hydration to workstation chart tools. Accessible drawing controls and full Chromium flows now pass 21 tests. Commit/push then continue uncovered goal requirements.",
         "2026-07-30T15:28:00Z: Repaired previously empty a3a03047acc3 migration for active instrument_indicator_config API model. Fresh rebuilt Compose stack verifies table/constraints/defaults at d2a3b4c5d6e7 head; focused Chromium F6/F7/F8b passed 3 tests with no unexpected browser/backend failures. Commit/push this correction, then continue uncovered workstation requirements.",
         "2026-07-30T16:30:00Z: Fresh Alembic bootstrap and controlled d2a3b4c5d6e7 -> d1a2b3c4d5e6 -> d2a3b4c5d6e7 cycle passed; all isolated branch stack services remained healthy.",

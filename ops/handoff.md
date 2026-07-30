@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:40:00Z
+
+- Expanded the primary active-symbol Alerts tool with repeat-at-creation, per-alert
+  repeat toggles, pause/resume, rearm/delete, and bounded per-instrument firing
+  history with viewed-state updates. This reuses the authenticated alert/history API;
+  it does not create a shadow alert model or send the user to legacy routes.
+- Validation: TypeScript, production build, diff check, rebuilt-stack Chromium F11
+  workstation Alerts flow (`1 passed`).
+- Exact next step: commit/push this primary-alert-tool correction, then continue with
+  the next uncovered requirement (chart-template/library or broader alert sources).
+
 ## Continuation update — 2026-07-30T15:35:00Z
 
 - The default workstation now exposes an `Alerts` application-menu command that opens
