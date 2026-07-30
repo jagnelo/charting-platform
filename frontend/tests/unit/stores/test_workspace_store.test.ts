@@ -168,7 +168,7 @@ describe('workspace store layout tabs', () => {
     expect(store.timestampForLinkGroup('grey')).toBeNull()
   })
 
-  it('publishes a persisted linked timeframe while preserving grey isolation', () => {
+  it('publishes timeframes per link group while preserving grey isolation', () => {
     const store = useWorkspaceStore()
     store.workspace = {
       id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
@@ -178,9 +178,29 @@ describe('workspace store layout tabs', () => {
     store.publishTimeframe('W1', 'blue')
     expect(store.linkedTimeframe).toBe('W1')
     expect(store.workspace.settings.linked_timeframe).toBe('W1')
+    expect(store.timeframeForLinkGroup('blue')).toBe('W1')
 
-    store.publishTimeframe('M1', 'grey')
+    store.publishTimeframe('M1', 'red')
     expect(store.linkedTimeframe).toBe('W1')
+    expect(store.timeframeForLinkGroup('red')).toBe('M1')
+    expect(store.timeframeForLinkGroup('yellow')).toBe('M1')
+    expect(store.workspace.settings.linked_timeframes).toEqual({ blue: 'W1', red: 'M1' })
+    expect(store.timeframeForLinkGroup('grey', 'M1')).toBe('M1')
+  })
+
+  it('keeps a grey chart timeframe local to the persisted tool', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'grey-chart', layout_config: {}, windows: [{
+        id: 21, instance_key: 'grey-chart', tool_type: 'chart', title: 'Grey chart', link_group: 'grey', configuration: { timeframe: 'D1' }, style: {}, state_schema_version: 1, position: 0,
+      }] }],
+    }
+
+    expect(store.updateToolTimeframe('grey-chart', 'M1')).toBe(true)
+    expect(store.activeTab?.windows[0]?.configuration.timeframe).toBe('M1')
+    expect(store.linkedTimeframe).toBe('D1')
+    expect(store.timeframeForLinkGroup('grey', 'M1')).toBe('M1')
   })
 
   it('opens an implemented tool with serializable state and adds it to the saved layout', () => {

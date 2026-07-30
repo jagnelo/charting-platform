@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T14:45:00Z Group-aware chart timeframes
+
+- Chart timeframes are now resolved per persisted tool link group. Coloured groups
+  synchronize through the workstation cross-window bus, yellow follows the last
+  non-grey event, and grey stores an isolated per-chart value.
+- The panel-scoped uPlot loader now watches both its group-resolved symbol and
+  timeframe, preventing a red/grey/yellow chart from being reloaded at blue's timeframe.
+- Validation: workspace-store `16 passed`, TypeScript, production build, and diff check.
+
 ## 2026-07-30T16:50:00Z Group-aware linked uPlot crosshairs
 
 - uPlot now publishes timestamp changes through the workstation cross-window bus and

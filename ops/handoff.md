@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T14:45:00Z
+
+- Linked chart timeframes now follow the same persisted ten-group contract as symbols
+  and crosshairs: the eight coloured groups synchronize independently, yellow receives
+  the latest non-grey timeframe, and grey remains local to its chart configuration.
+  The chart data watcher reloads its panel-scoped uPlot store for that tool's resolved
+  symbol/timeframe pair rather than the blue shell timeframe.
+- Validation: workspace-store `16 passed`, TypeScript, production build, and diff
+  check passed. Browser interaction coverage for per-window timeframe selectors remains
+  part of the broader workstation acceptance suite.
+
 ## Continuation update — 2026-07-30T16:50:00Z
 
 - uPlot now publishes crosshair timestamps through the workstation cross-window bus.

@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe="tool.tool_type === 'chart' ? workspaceStore.linkedTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event)" @update:timeframe="emit('timeframe', $event, tool.link_group)">
+  <ToolWindow :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="tool.link_group" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="emit('updateLinkGroup', tool.instance_key, $event)" @update:timeframe="setTimeframe">
     <VirtualWatchlistTool
       v-if="tool.instance_key === 'benchmark-list'"
       label="Major US benchmarks"
@@ -205,9 +205,17 @@ const activeSymbol = computed(() => workspaceStore.symbolForLinkGroup(
   props.tool.link_group,
   typeof props.tool.configuration.symbol === 'string' ? props.tool.configuration.symbol : null,
 ))
+const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
+  props.tool.link_group,
+  typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
+))
 
 function selectSymbol(symbol: string, instrumentId?: number | null) {
   workspaceStore.selectToolSymbol(props.tool.instance_key, symbol, instrumentId)
+}
+
+function setTimeframe(timeframe: string) {
+  workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
 }
 
 function selectProxy(symbol: string) {
@@ -215,12 +223,12 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-watch(activeSymbol, symbol => {
+watch([activeSymbol, activeTimeframe], ([symbol, timeframe]) => {
   if (props.tool.tool_type !== 'chart' || !symbol) return
-  if (chartStore.symbol === symbol && chartStore.timeframe === workspaceStore.linkedTimeframe) return
+  if (chartStore.symbol === symbol && chartStore.timeframe === timeframe) return
   void chartStore.loadBars(
     symbol,
-    workspaceStore.linkedTimeframe as typeof chartStore.timeframe,
+    timeframe as typeof chartStore.timeframe,
     chartStore.barType,
     true,
   )

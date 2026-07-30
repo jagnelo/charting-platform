@@ -265,6 +265,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const linkedTimestamps = ref<Partial<Record<LinkGroup, string | null>>>({})
   const wildcardTimestamp = ref<string | null>(null)
   const linkedTimeframe = ref('D1')
+  const linkedTimeframes = ref<Partial<Record<LinkGroup, string>>>({ blue: 'D1' })
+  const wildcardTimeframe = ref('D1')
   const loading = ref(false)
   const error = ref<string | null>(null)
   const isPersistenceLeader = ref(false)
@@ -328,6 +330,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (event.group === 'blue') linkedTimestamp.value = event.timestamp
   }
 
+  function applySharedTimeframe(timeframe: string, group: LinkGroup) {
+    if (group === 'grey') return
+    linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe }
+    wildcardTimeframe.value = timeframe
+    if (group === 'blue') linkedTimeframe.value = timeframe
+  }
+
   async function reloadSharedWorkspace(event: WorkspaceSnapshotEvent) {
     const current = workspace.value
     if (!current || current.id !== event.workspaceId || current.revision >= event.revision || event.sourceWindowId === windowId) return
@@ -365,7 +374,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (event.data.group === 'grey') return
     if (event.data.type === 'symbol') applySharedSymbol(event.data)
     if (event.data.type === 'cursor') applySharedTimestamp(event.data)
-    if (event.data.type === 'timeframe' && event.data.timeframe) linkedTimeframe.value = event.data.timeframe
+    if (event.data.type === 'timeframe' && event.data.timeframe) applySharedTimeframe(event.data.timeframe, event.data.group)
   }
 
   function refreshLeadership() {
@@ -420,7 +429,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         applySharedSymbol(linkMessage)
       }
       if (event.key === CHANNEL_NAME + ':cursor') applySharedTimestamp(linkMessage)
-      if (event.key === CHANNEL_NAME + ':timeframe' && linkMessage.timeframe) linkedTimeframe.value = linkMessage.timeframe
+      if (event.key === CHANNEL_NAME + ':timeframe' && linkMessage.timeframe) applySharedTimeframe(linkMessage.timeframe, linkMessage.group)
     }
   }
 
@@ -460,6 +469,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return linkedTimestamps.value[group] ?? null
   }
 
+  function timeframeForLinkGroup(group: LinkGroup, isolatedTimeframe?: string | null) {
+    if (group === 'grey') return isolatedTimeframe ?? 'D1'
+    if (group === 'yellow') return wildcardTimeframe.value
+    return linkedTimeframes.value[group] ?? isolatedTimeframe ?? 'D1'
+  }
+
   function publishTimestamp(timestamp: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
     if (group === 'grey' || !timestamp) return
     const event: LinkEvent & { type: 'cursor' } = {
@@ -476,9 +491,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
     if (group === 'grey') return
-    linkedTimeframe.value = timeframe
+    applySharedTimeframe(timeframe, group)
     if (workspace.value) {
-      workspace.value.settings = { ...workspace.value.settings, linked_timeframe: timeframe }
+      const existing = workspace.value.settings.linked_timeframes
+      const linked_timeframes = {
+        ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing as Record<string, string> : {}),
+        [group]: timeframe,
+      }
+      workspace.value.settings = {
+        ...workspace.value.settings,
+        ...(group === 'blue' ? { linked_timeframe: timeframe } : {}),
+        linked_timeframes,
+      }
       scheduleSnapshot()
     }
     const event: LinkEvent & { type: 'timeframe' } = { symbol: linkedSymbol.value, timeframe, group, sourceWindowKey, type: 'timeframe' }
@@ -495,6 +519,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
       const savedTimeframe = workspace.value.settings.linked_timeframe
       linkedTimeframe.value = typeof savedTimeframe === 'string' ? savedTimeframe : 'D1'
+      const savedTimeframes = workspace.value.settings.linked_timeframes
+      linkedTimeframes.value = {
+        blue: linkedTimeframe.value,
+        ...(savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)
+          ? savedTimeframes as Partial<Record<LinkGroup, string>>
+          : {}),
+      }
+      wildcardTimeframe.value = linkedTimeframes.value.blue ?? 'D1'
     } catch (cause: any) {
       error.value = cause?.message ?? 'Unable to load workstation'
     } finally {
@@ -877,6 +909,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   /**
+   * A chart timeframe belongs to its link group.  Grey is deliberately local to the
+   * persisted tool; every other group publishes through the same cross-window link
+   * bus used for symbols and cursors.  Keeping the local value also makes a tool's
+   * first render deterministic before that group has received an event.
+   */
+  function updateToolTimeframe(windowKey: string, timeframe: string) {
+    const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
+    if (!tool || tool.tool_type !== 'chart' || !timeframe) return false
+    tool.configuration = { ...tool.configuration, timeframe }
+    if (tool.link_group === 'grey') {
+      scheduleSnapshot()
+      return true
+    }
+    publishTimeframe(timeframe, tool.link_group, windowKey)
+    return true
+  }
+
+  /**
    * A list row is selected by canonical identity and published only to its owning
    * link group. Persisting the symbol gives grey/isolated windows a durable local
    * selection and provides a safe fallback before a group receives its first event.
@@ -973,6 +1023,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     linkedTimestamp,
     linkedTimestamps,
     linkedTimeframe,
+    linkedTimeframes,
     loading,
     error,
     isPersistenceLeader,
@@ -997,6 +1048,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     publishTimestamp,
     symbolForLinkGroup,
     timestampForLinkGroup,
+    timeframeForLinkGroup,
     publishTimeframe,
     loadDefault,
     loadMarketGroup,
@@ -1016,6 +1068,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     applyActiveLayout,
     openTool,
     updateToolLinkGroup,
+    updateToolTimeframe,
     selectToolSymbol,
     closeTool,
     cloneActiveTab,
