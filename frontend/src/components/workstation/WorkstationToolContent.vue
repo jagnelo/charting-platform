@@ -9,11 +9,13 @@
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
       :condition-filter-mode="configuredConditionFilterMode"
+      :pinned-boolean-keys="configuredPinnedBooleanKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+      @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -25,11 +27,13 @@
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
       :condition-filter-mode="configuredConditionFilterMode"
+      :pinned-boolean-keys="configuredPinnedBooleanKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+      @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
     />
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
@@ -80,11 +84,13 @@
       :filter-text="configuredFilterText"
       :condition-screener-id="configuredConditionScreenerId"
       :condition-filter-mode="configuredConditionFilterMode"
+      :pinned-boolean-keys="configuredPinnedBooleanKeys"
       @select="emit('select', $event.symbol)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
       @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+      @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" />
@@ -134,7 +140,7 @@ const props = defineProps<{
   tool: WorkspaceWindowState
   activeWindowKey?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
+const emit = defineEmits<{ select: [symbol: string]; occurrence: [symbol: string, timestamp: string]; selectIndustry: [industry: string]; selectProxy: [symbol: string]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; float: [windowKey: string]; maximize: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup] }>()
 const chartStore = useChartStore()
 const workspaceStore = useWorkspaceStore()
 const activeSymbol = computed(() => workspaceStore.linkedSymbol || 'SPY')
@@ -230,9 +236,9 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'performance_1y', label: '1Y', width: '58px' },
   { key: 'relative_ratio', label: '/ SPY', width: '64px' },
   { key: 'rsi14', label: 'RSI', width: '54px', format: 'number' },
-  { key: 'above_ma20', label: '>20', width: '54px' },
-  { key: 'above_ma50', label: '>50', width: '54px' },
-  { key: 'above_ma200', label: '>200', width: '58px' },
+  { key: 'above_ma20', label: '>20', width: '54px', kind: 'boolean' },
+  { key: 'above_ma50', label: '>50', width: '54px', kind: 'boolean' },
+  { key: 'above_ma200', label: '>200', width: '58px', kind: 'boolean' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
 ]
@@ -253,6 +259,7 @@ const configuredColumnKeys = computed(() => {
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
 const configuredConditionScreenerId = computed(() => Number.isInteger(props.tool.configuration.condition_screener_id) ? props.tool.configuration.condition_screener_id as number : null)
 const configuredConditionFilterMode = computed(() => ['active', 'inactive', 'off'].includes(String(props.tool.configuration.condition_filter_mode)) ? props.tool.configuration.condition_filter_mode as 'active' | 'inactive' | 'off' : 'off')
+const configuredPinnedBooleanKeys = computed(() => Array.isArray(props.tool.configuration.pinned_boolean_keys) ? props.tool.configuration.pinned_boolean_keys.filter((key): key is string => typeof key === 'string') : [])
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',

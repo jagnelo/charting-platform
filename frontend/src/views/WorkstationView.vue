@@ -182,6 +182,12 @@ function updateConditionFilterMode(windowKey: string, mode: 'active' | 'inactive
   windowState.configuration = { ...windowState.configuration, condition_filter_mode: mode }
   workspaceStore.scheduleSnapshot()
 }
+function updatePinnedBooleanKeys(windowKey: string, keys: string[]) {
+  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!windowState) return
+  windowState.configuration = { ...windowState.configuration, pinned_boolean_keys: keys }
+  workspaceStore.scheduleSnapshot()
+}
 
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
@@ -204,6 +210,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onFilter: (windowKey: string, value: string) => updateFilter(windowKey, value),
     onConditionFilter: (windowKey: string, screenerId: number | null) => updateConditionFilter(windowKey, screenerId),
     onConditionFilterMode: (windowKey: string, mode: 'active' | 'inactive' | 'off') => updateConditionFilterMode(windowKey, mode),
+    onPinnedBooleanKeys: (windowKey: string, keys: string[]) => updatePinnedBooleanKeys(windowKey, keys),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup) => updateLinkGroup(windowKey, group),

@@ -17,7 +17,7 @@
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}</label>
+      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button v-if="column.kind === 'boolean'" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
     </div>
     <div class="watchlist__header" :style="gridStyle">
       <button v-for="column in visibleColumns" :key="column.key" type="button" @click="toggleSort(column.key)">
@@ -61,6 +61,7 @@ export interface WatchlistColumn {
   label: string
   width?: string
   format?: 'percent' | 'number'
+  kind?: 'boolean'
 }
 
 interface SavedScreener {
@@ -82,6 +83,7 @@ const props = withDefaults(defineProps<{
   filterText?: string
   conditionScreenerId?: number | null
   conditionFilterMode?: 'active' | 'inactive' | 'off'
+  pinnedBooleanKeys?: string[]
 }>(), {
   selected: '',
   columns: () => [
@@ -92,8 +94,9 @@ const props = withDefaults(defineProps<{
   filterText: '',
   conditionScreenerId: null,
   conditionFilterMode: 'off',
+  pinnedBooleanKeys: () => [],
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off'] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -117,6 +120,11 @@ const filteredRows = computed(() => {
     ? textRows
     : textRows.filter(row => row.instrumentId != null && conditionMatchedIds.value?.has(row.instrumentId))
   return rows.sort((left, right) => {
+    for (const key of props.pinnedBooleanKeys) {
+      const leftPinned = Boolean(left.values?.[key])
+      const rightPinned = Boolean(right.values?.[key])
+      if (leftPinned !== rightPinned) return leftPinned ? -1 : 1
+    }
     const leftValue = display(left, sortKey.value)
     const rightValue = display(right, sortKey.value)
     const comparison = leftValue.localeCompare(rightValue, undefined, { numeric: true })
@@ -230,6 +238,11 @@ function toggleColumn(key: string) {
   } else {
     emit('update:visibleColumnKeys', props.columns.filter(column => current.includes(column.key) || column.key === key).map(column => column.key))
   }
+}
+
+function togglePinnedBoolean(key: string) {
+  const current = props.pinnedBooleanKeys
+  emit('update:pinnedBooleanKeys', current.includes(key) ? current.filter(item => item !== key) : [...current, key])
 }
 
 function onKeydown(event: KeyboardEvent) {
