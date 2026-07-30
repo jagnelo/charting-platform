@@ -73,7 +73,7 @@
             :class="{ 'industry-list__proxy--active': proxy.symbol === selectedIndustryProxy }"
             @click="emit('selectProxy', proxy.symbol)"
           >
-            <strong>{{ proxy.symbol }}</strong><span>{{ proxy.classification_coverage * 100 }}% classified</span>
+            <strong>{{ proxy.symbol }}</strong><span>{{ proxyMetrics(proxy.symbol) }}</span>
           </button>
         </template>
       </div>
@@ -176,6 +176,9 @@ const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
 const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
   ? workspaceStore.industryProxies[`${selectedETF.value}:${selectedIndustry.value}`]
+  : null)
+const industryProxySnapshot = computed(() => selectedETF.value && selectedIndustry.value
+  ? workspaceStore.industryProxySnapshots[`${selectedETF.value}:${selectedIndustry.value}`]
   : null)
 const constituents = computed(() => {
   if (selectedETF.value && selectedIndustry.value) {
@@ -294,6 +297,11 @@ function breadthMetric(key: string) {
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
 function formatPercent(value: number | null | undefined) { return value == null ? 'Unavailable' : `${(value * 100).toFixed(1)}%` }
 function formatRatio(value: number | null | undefined) { return value == null ? 'Unavailable' : `${value.toFixed(2)}×` }
+function proxyMetrics(symbol: string) {
+  const row = industryProxySnapshot.value?.rows.find(item => item.symbol === symbol)
+  if (!row) return 'Ranking local bars…'
+  return `${formatRatio(row.relative_to_benchmark?.value)} / ${selectedETF.value} · ${formatRatio(row.relative_to_market?.value)} / SPY`
+}
 </script>
 
 <style scoped>

@@ -189,6 +189,12 @@ export interface ETFIndustryProxyState {
   exclusions: string[]
 }
 
+export interface IndustryProxySnapshotState {
+  rows: Array<{ symbol: string; name: string; relative_to_benchmark: { value: number | null } | null; relative_to_market: { value: number | null } | null }>
+  coverage: number
+  exclusions: Array<{ code: string; message: string }>
+}
+
 export interface TechnicalSnapshotState {
   symbol: string
   as_of: string | null
@@ -224,6 +230,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
+  const industryProxySnapshots = ref<Record<string, IndustryProxySnapshotState | null>>({})
   const technicals = ref<Record<string, TechnicalSnapshotState | null>>({})
   const constituentETF = ref<string | null>(null)
   const selectedIndustry = ref<string | null>(null)
@@ -564,9 +571,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         `/market-groups/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies`,
       )
       industryProxies.value = { ...industryProxies.value, [key]: proxies }
+      void loadIndustryProxySnapshot(normalized, industry)
       return proxies
     } catch (cause: any) {
       error.value = cause?.message ?? `Unable to load ${industry} proxies`
+      return null
+    }
+  }
+
+  async function loadIndustryProxySnapshot(symbol: string, industry: string) {
+    const normalized = symbol.trim().toUpperCase()
+    const key = `${normalized}:${industry}`
+    if (!normalized || !industry) return null
+    try {
+      const snapshot = await api.get<IndustryProxySnapshotState>(`/analysis/etf/${encodeURIComponent(normalized)}/industries/${encodeURIComponent(industry)}/proxies/snapshot`)
+      industryProxySnapshots.value = { ...industryProxySnapshots.value, [key]: snapshot }
+      return snapshot
+    } catch (cause: any) {
+      industryProxySnapshots.value = { ...industryProxySnapshots.value, [key]: null }
+      error.value = cause?.message ?? `Unable to rank ${industry} proxies`
       return null
     }
   }
@@ -753,6 +776,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     etfIndustries,
     industryConstituents,
     industryProxies,
+    industryProxySnapshots,
     technicals,
     constituentETF,
     selectedIndustry,
@@ -771,6 +795,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadETFIndustries,
     selectIndustry,
     loadIndustryProxies,
+    loadIndustryProxySnapshot,
     selectIndustryProxy,
     loadTechnical,
     saveSnapshot,
