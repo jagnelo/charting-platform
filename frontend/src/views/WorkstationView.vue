@@ -17,6 +17,11 @@
         />
         <button type="button" @click="selectSymbol(symbolDraft)">Go</button>
       </div>
+      <label class="workstation__timeframe">TF
+        <select :value="workspaceStore.linkedTimeframe" aria-label="Linked timeframe" @change="setLinkedTimeframe(($event.target as HTMLSelectElement).value)">
+          <option value="D1">Daily</option><option value="W1">Weekly</option><option value="M1">Monthly</option>
+        </select>
+      </label>
       <div class="workstation__status">
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
@@ -150,6 +155,10 @@ async function selectSymbol(raw: string, timestamp?: string) {
 
 function selectOccurrence(symbol: string, timestamp: string) {
   void selectSymbol(symbol, timestamp)
+}
+
+function setLinkedTimeframe(timeframe: string) {
+  workspaceStore.publishTimeframe(timeframe, 'blue', 'workstation')
 }
 
 async function selectIndustryProxy(symbol: string) {
@@ -286,6 +295,10 @@ watch(activeSymbol, symbol => {
     ...(preserveDrilldown ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
     workspaceStore.loadTechnical(symbol),
   ])
+})
+watch(() => workspaceStore.linkedTimeframe, timeframe => {
+  if (timeframe === chartStore.timeframe) return
+  void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
 })
 
 onMounted(async () => {
