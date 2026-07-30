@@ -64,7 +64,7 @@
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
-      <RatioUPlot :symbol="activeSymbol" :benchmark="ratioBenchmark" />
+      <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" />
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary'" class="breadth-tool">
       <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>
@@ -124,7 +124,10 @@ const breadth = computed(() => workspaceStore.breadth['sp500-sectors'])
 const breadthHistory = computed(() => workspaceStore.breadthHistory['sp500-sectors'])
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
-const ratioBenchmark = computed(() => selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY')
+const ratioBenchmarks = computed(() => [...new Set([
+  selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY',
+  'SPY',
+])])
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
 const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
 const industries = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value]?.industries ?? [] : [])

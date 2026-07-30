@@ -1,61 +1,73 @@
 <template>
   <div ref="root" class="ratio-chart">
-    <div class="ratio-chart__legend"><strong>{{ symbol }}/{{ benchmark }}</strong><span>{{ status }}</span></div>
+    <div class="ratio-chart__legend"><strong>{{ ratioLabels }}</strong><span>{{ status }}</span></div>
     <div v-if="error" class="ratio-chart__state ratio-chart__state--error">{{ error }}</div>
-    <div v-else-if="!points.length" class="ratio-chart__state">No aligned local bars.</div>
+    <div v-else-if="!hasPoints" class="ratio-chart__state">No aligned local bars.</div>
     <div v-else ref="host" class="ratio-chart__host" />
     <small v-if="warning" class="ratio-chart__warning">{{ warning }}</small>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
 
-const props = defineProps<{ symbol: string; benchmark: string }>()
+const props = defineProps<{ symbol: string; benchmarks: string[] }>()
 const root = ref<HTMLElement | null>(null)
 const host = ref<HTMLElement | null>(null)
-const points = ref<Array<{ timestamp: string; value: number }>>([])
+const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string; value: number }>; coverage: number }>>([])
 const error = ref<string | null>(null)
 const warning = ref<string | null>(null)
 const status = ref('Local adjusted')
 let chart: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
+const ratioLabels = computed(() => props.benchmarks.map(benchmark => `${props.symbol}/${benchmark}`).join(' · '))
+const hasPoints = computed(() => series.value.some(item => item.points.length > 0))
+const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
 
 async function load() {
-  if (!props.symbol || !props.benchmark) return
+  const benchmarks = [...new Set(props.benchmarks.map(value => value.trim().toUpperCase()).filter(Boolean))]
+  if (!props.symbol || !benchmarks.length) return
   error.value = null
   try {
-    const payload = await api.get<{
-      points: Array<{ timestamp: string; value: number }>
-      coverage: number
-      warnings: Array<{ message: string }>
-    }>('/analysis/relative-strength', { symbol: props.symbol, benchmark: props.benchmark, adjusted: true })
-    points.value = payload.points
-    warning.value = payload.warnings.map(item => item.message).join(' ')
-    status.value = `${(payload.coverage * 100).toFixed(0)}% overlap · local adjusted`
+    const payloads = await Promise.all(benchmarks.map(async benchmark => ({
+      benchmark,
+      payload: await api.get<{
+        points: Array<{ timestamp: string; value: number }>
+        coverage: number
+        warnings: Array<{ message: string }>
+      }>('/analysis/relative-strength', { symbol: props.symbol, benchmark, adjusted: true }),
+    })))
+    series.value = payloads.map(item => ({ benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage }))
+    warning.value = payloads.flatMap(item => item.payload.warnings.map(warning => `${item.benchmark}: ${warning.message}`)).join(' ')
+    status.value = `${payloads.map(item => `${item.benchmark} ${(item.payload.coverage * 100).toFixed(0)}%`).join(' · ')} overlap · local adjusted`
     await nextTick()
     draw()
   } catch (cause: any) {
-    points.value = []
+    series.value = []
     error.value = cause?.message ?? 'Unable to calculate ratio'
   }
 }
 
 function seriesData(): uPlot.AlignedData {
-  return [
-    points.value.map(point => Math.floor(new Date(point.timestamp).getTime() / 1000)),
-    points.value.map(point => point.value),
-  ]
+  const timestamps = [...new Set(series.value.flatMap(item => item.points.map(point => point.timestamp)))].sort()
+  return [timestamps.map(timestamp => Math.floor(new Date(timestamp).getTime() / 1000)), ...series.value.map(item => {
+    const values = new Map(item.points.map(point => [point.timestamp, point.value]))
+    return timestamps.map(timestamp => values.get(timestamp) ?? null)
+  })]
 }
 
 function draw() {
-  if (!host.value || !points.value.length) return
+  if (!host.value || !hasPoints.value) return
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(90, host.value.clientHeight)
   const data = seriesData()
+  if (chart && chart.series.length !== series.value.length + 1) {
+    chart.destroy()
+    chart = null
+  }
   if (chart) {
     chart.setData(data)
     chart.setSize({ width, height })
@@ -69,11 +81,11 @@ function draw() {
       { stroke: '#70808b', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
       { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
     ],
-    series: [{}, { label: `${props.symbol}/${props.benchmark}`, stroke: '#6bc0ef', width: 1.5 }],
+    series: [{}, ...series.value.map((item, index) => ({ label: `${props.symbol}/${item.benchmark}`, stroke: colors[index % colors.length], width: 1.5 }))],
   }, data, host.value)
 }
 
-watch(() => `${props.symbol}/${props.benchmark}`, () => { void load() })
+watch(() => `${props.symbol}/${props.benchmarks.join('/')}`, () => { void load() })
 onMounted(() => {
   resizeObserver = new ResizeObserver(() => draw())
   if (root.value) resizeObserver.observe(root.value)
