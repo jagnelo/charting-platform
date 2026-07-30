@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:10:00Z Canonical coverage contract
+
+- Added the authenticated provider-neutral local coverage API and bound the workstation
+  Coverage tool to it. It reports local adjusted range/count, persisted dataset state,
+  canonical provenance, and refresh time without provider-routing data. Pushed `5efa0fa`.
+- Validation: coverage router `2 passed` (two existing third-party warnings), Ruff,
+  TypeScript, production build, and diff check. Full batch-contract standardization and
+  acceptance remain incomplete.
+
 ## 2026-07-30T12:00:00Z Canonical workstation coverage state
 
 - The default Coverage tool now reads local canonical coverage/provenance state for the

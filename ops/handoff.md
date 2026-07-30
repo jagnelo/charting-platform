@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:10:00Z
+
+- Added the authenticated, provider-neutral `/coverage/instruments/{symbol}` contract.
+  It combines canonical local adjusted OHLCV range/count, persisted dataset state, and
+  refresh/provenance metadata without provider routing fields; the Coverage tool now
+  consumes it directly. Pushed `5efa0fa`.
+- Focused coverage router `2 passed` (two existing third-party warnings), Ruff,
+  TypeScript, production build, and diff checks passed.
+
+### Exact next step
+
+- Standardize equivalent response-level provenance/freshness metadata across the
+  remaining workstation batch-analysis APIs, then continue end-to-end acceptance work.
+
 ## Continuation update — 2026-07-30T12:00:00Z
 
 - Replaced the default coverage-window placeholder with a real canonical local-data
