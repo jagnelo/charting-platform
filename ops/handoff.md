@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:22:00Z
+
+- Added persisted visible-column ordering. Dense list headers and cells now honour the
+  saved order, while selection remains based on canonical instrument identity.
+- Added direct component coverage; pushed `4c5b872`.
+- Validation passed: focused VirtualWatchlistTool suite `12 passed`, frontend
+  type-check/build, and `git diff --check`.
+
+### Exact next step
+
+- Implement user-configured column formatting and saved column sets, then continue the
+  broader Version 25 watchlist/scan acceptance work.
+
 ## Continuation update — 2026-07-30T10:21:00Z
 
 - Added persisted vertical column stacking. Selected visible columns are compacted into

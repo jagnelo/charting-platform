@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:22:00Z Persisted watchlist column-order checkpoint
+
+- Added left/right column-order controls backed by existing serialized visible-column
+  state; list headers/cells respect saved order without changing canonical selection.
+  Pushed `4c5b872`.
+- Validation: VirtualWatchlistTool `12 passed`, type-check, production build, diff
+  check. Formatting, saved column sets, and broad acceptance remain incomplete.
+
 ## 2026-07-30T10:21:00Z Persisted watchlist column stacking checkpoint
 
 - Added explicit Stack controls. Selected columns render in a dense vertical cell and
