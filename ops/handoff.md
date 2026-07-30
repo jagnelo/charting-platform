@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:57:00Z
+
+- Corrected the browser pop-out recovery path: closing a pop-out now closes only that
+  browser view and leaves the serialized source tool docked, instead of deleting the
+  tool from the workspace. Tool link-group changes now use serialized workspace state
+  and snapshot persistence, so the selection survives reload/recovery.
+- Focused ToolWindow/workspace-store tests `13 passed`; frontend TypeScript check,
+  production build, and diff check passed.
+
+### Exact next step
+
+- Continue the remaining tool-window and cross-window interaction acceptance audit;
+  specifically verify real browser pop-out lifecycle/recovery and linked crosshair
+  propagation before treating those mechanics as accepted.
+
 ## Continuation update — 2026-07-30T13:05:00Z
 
 - Completed a linked-timeframe system: cross-window `BroadcastChannel`/storage sync,

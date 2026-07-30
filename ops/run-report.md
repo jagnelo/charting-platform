@@ -16011,3 +16011,12 @@ Append a short entry after each worker session.
   authorised captures an explicit visual-completion blocker rather than a fallback.
 - Validation: Ruff format/check, validator tests `2 passed`, structural manifest CLI,
   and diff check. Pushed code commit `e0cf3a4`.
+## 2026-07-30T11:57:00Z Pop-out recovery and link-group persistence checkpoint
+
+- Browser pop-outs are now safely disposable views: their close control closes only the
+  pop-out browser window and preserves the serialized docked source tool. This prevents
+  a closed or disconnected pop-out from deleting a workspace tool.
+- Tool link-group selection now mutates versioned workspace state through the store and
+  schedules an atomic snapshot, rather than remaining an unsaved component mutation.
+- Validation: focused ToolWindow/workspace-store `13 passed`, frontend TypeScript,
+  production build, and `git diff --check` passed.

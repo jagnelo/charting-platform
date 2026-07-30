@@ -175,8 +175,7 @@ function openTool(tool: OpenableToolDefinition) {
 }
 
 function updateLinkGroup(windowKey: string, group: LinkGroup) {
-  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
-  if (windowState) windowState.link_group = group
+  workspaceStore.updateToolLinkGroup(windowKey, group)
 }
 
 function updateColumns(windowKey: string, columnKeys: string[]) {
@@ -259,7 +258,9 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
 function closePopoutTool(windowKey: string) {
   const tab = workspaceStore.activeTab
   if (!tab?.windows.some(window => window.instance_key === windowKey)) return
-  if (workspaceStore.closeTool(windowKey)) window.close()
+  // A browser pop-out is a second view of the persisted docked tool. Closing it must
+  // restore the source layout, never delete the tool and its serializable state.
+  window.close()
 }
 
 function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {

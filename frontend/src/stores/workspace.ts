@@ -749,6 +749,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return window
   }
 
+  /**
+   * Link membership is workspace state, not transient component state. This keeps a
+   * docked tool and any browser pop-out on the same persisted link contract after a
+   * reload or recovery.
+   */
+  function updateToolLinkGroup(windowKey: string, group: LinkGroup) {
+    const tab = activeTab.value
+    const tool = tab?.windows.find(window => window.instance_key === windowKey)
+    if (!tool || tool.link_group === group) return false
+    tool.link_group = group
+    scheduleSnapshot()
+    return true
+  }
+
   /** Remove a tool through the same serializable state used by Golden Layout. */
   function closeTool(windowKey: string) {
     const tab = activeTab.value
@@ -857,6 +871,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scheduleSnapshot,
     applyActiveLayout,
     openTool,
+    updateToolLinkGroup,
     closeTool,
     cloneActiveTab,
     resetFactoryWorkspace,

@@ -83,6 +83,27 @@ describe('workspace store layout tabs', () => {
     expect(store.error).toContain('at least one tool')
   })
 
+  it('persists a tool link-group change as serialized workspace state', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [{ id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockResolvedValue(store.workspace)
+
+    expect(store.updateToolLinkGroup('chart', 'yellow')).toBe(true)
+    expect(store.activeTab?.windows[0].link_group).toBe('yellow')
+    expect(store.updateToolLinkGroup('missing', 'red')).toBe(false)
+
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
+      tabs: [expect.objectContaining({ windows: [expect.objectContaining({ instance_key: 'chart', link_group: 'yellow' })] })],
+    }))
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
