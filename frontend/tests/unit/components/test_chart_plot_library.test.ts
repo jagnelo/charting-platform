@@ -10,7 +10,7 @@ describe('ChartPlotLibrary', () => {
   it('manages indicator plots without losing their serializable configuration', async () => {
     const chart = usePanelStore('plot-library-test')
     chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
-    const wrapper = mount(ChartPlotLibrary, { global: { provide: { panelId: 'plot-library-test' } } })
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-test' } } })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.get('[aria-label="Add indicator plot"]').setValue('ema')
     expect(chart.indicators).toHaveLength(2)

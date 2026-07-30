@@ -72,7 +72,7 @@
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
       <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
-        <ChartPlotLibrary class="chart-tool__plots" />
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="tool.link_group" />
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
@@ -331,6 +331,11 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async 
 
 watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration
+}, { deep: true })
+
+watch(() => props.tool.configuration.indicators, configured => {
+  const indicators = templateIndicators(configured)
+  if (indicators) chartStore.setIndicators(indicators)
 }, { deep: true })
 
 // The shared drawing and alert overlay stores are deliberately hydrated whenever a
