@@ -113,6 +113,11 @@ export interface BreadthState {
   above_ma: Record<string, number | null>
 }
 
+export interface BreadthHistoryState {
+  group_key: string
+  points: Array<{ timestamp: string; above_ma: Record<string, number | null>; coverage: Record<string, number> }>
+}
+
 export interface ETFHoldingState {
   constituent_instrument_id: number | null
   constituent_symbol: string | null
@@ -184,6 +189,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const marketGroups = ref<Record<string, MarketGroupState>>({})
   const groupSnapshots = ref<Record<string, GroupSnapshotState>>({})
   const breadth = ref<Record<string, BreadthState>>({})
+  const breadthHistory = ref<Record<string, BreadthHistoryState>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
@@ -423,6 +429,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function loadBreadthHistory(stableKey: string) {
+    try {
+      const history = await api.get<BreadthHistoryState>(`/analysis/groups/${encodeURIComponent(stableKey)}/breadth/history`, { limit: 500 })
+      breadthHistory.value = { ...breadthHistory.value, [stableKey]: history }
+      return history
+    } catch (cause: any) {
+      error.value = cause?.message ?? `Unable to calculate historical breadth for ${stableKey}`
+      return null
+    }
+  }
+
   async function loadETFHoldings(symbol: string) {
     const normalized = symbol.trim().toUpperCase()
     if (!normalized) return null
@@ -653,6 +670,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     marketGroups,
     groupSnapshots,
     breadth,
+    breadthHistory,
     etfHoldings,
     etfIndustries,
     industryConstituents,
@@ -667,6 +685,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadMarketGroup,
     loadGroupSnapshot,
     loadBreadth,
+    loadBreadthHistory,
     loadETFHoldings,
     loadETFIndustries,
     selectIndustry,

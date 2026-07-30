@@ -66,11 +66,9 @@
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmark="ratioBenchmark" />
     </div>
-    <div v-else-if="tool.instance_key === 'breadth-summary'" class="metrics">
-      <span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b>
-      <span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b>
-      <span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b>
-      <span>Coverage</span><b>{{ breadthCoverage }}</b>
+    <div v-else-if="tool.instance_key === 'breadth-summary'" class="breadth-tool">
+      <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>
+      <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
     <div v-else-if="tool.instance_key === 'technical-summary'" class="metrics">
       <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
@@ -105,6 +103,7 @@ import EasyScanTool from './EasyScanTool.vue'
 import MarketGaugeTool from './MarketGaugeTool.vue'
 import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
+import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -120,6 +119,7 @@ const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
 const breadth = computed(() => workspaceStore.breadth['sp500-sectors'])
+const breadthHistory = computed(() => workspaceStore.breadthHistory['sp500-sectors'])
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
 const ratioBenchmark = computed(() => selectedETF.value && selectedETF.value !== activeSymbol.value ? selectedETF.value : 'SPY')
@@ -221,7 +221,7 @@ function formatRatio(value: number | null | undefined) { return value == null ? 
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
 .analysis { height: 100%; min-height: 0; }
-.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
+.breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .industry-list { height: 100%; overflow: auto; background: #11161b; font: 11px "Segoe UI", Arial, sans-serif; }
 .industry-list__row { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 7px; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: #c7d0d8; text-align: left; cursor: pointer; }

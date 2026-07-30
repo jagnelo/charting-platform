@@ -20,6 +20,8 @@ from app.schemas.analysis import (
     AnalysisCell,
     AnalysisPoint,
     AnalysisWarning,
+    BreadthHistoryOut,
+    BreadthHistoryPoint,
     BreadthOut,
     GroupSnapshotOut,
     GroupSnapshotRow,
@@ -493,5 +495,63 @@ async def group_breadth(
             f"ma{period}": counts[period] / eligible[period] if eligible[period] else None
             for period in counts
         },
+        exclusions=exclusions,
+    )
+
+
+@router.get("/groups/{group_key}/breadth/history", response_model=BreadthHistoryOut)
+async def group_breadth_history(
+    group_key: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    limit: int = Query(default=500, ge=1, le=5_000),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return date-aligned local breadth without filling missing constituent bars."""
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == group_key)
+        )
+    ).scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    periods = (20, 50, 200)
+    buckets: dict = {}
+    exclusions: list[AnalysisWarning] = []
+    bars_by_id = await _bars_by_instrument(
+        db, [member.instrument_id for member in group.members], timeframe, adjusted
+    )
+    for member in group.members:
+        bars = bars_by_id.get(member.instrument_id, [])
+        if not bars:
+            exclusions.append(AnalysisWarning(code="no_bars", message="No local bars are available.", instrument_id=member.instrument_id))
+            continue
+        closes = [float(bar.close) for bar in bars]
+        for period in periods:
+            rolling_total = sum(closes[:period])
+            for index in range(period - 1, len(bars)):
+                if index >= period:
+                    rolling_total += closes[index] - closes[index - period]
+                point = buckets.setdefault(bars[index].ts, {item: [0, 0] for item in periods})
+                point[period][1] += 1
+                if closes[index] > rolling_total / period:
+                    point[period][0] += 1
+    points = [
+        BreadthHistoryPoint(
+            timestamp=timestamp,
+            above_ma={f"ma{period}": values[period][0] / values[period][1] if values[period][1] else None for period in periods},
+            coverage={f"ma{period}": values[period][1] / max(len(group.members), 1) for period in periods},
+        )
+        for timestamp, values in sorted(buckets.items())
+    ][-limit:]
+    return BreadthHistoryOut(
+        group_key=group.stable_key,
+        timeframe=timeframe.value,
+        adjustment="split_adjusted" if adjusted else "raw",
+        membership_version=group.id,
+        points=points,
         exclusions=exclusions,
     )

@@ -241,6 +241,7 @@ onMounted(async () => {
     workspaceStore.loadMarketGroup('sp500-sectors'),
     workspaceStore.loadGroupSnapshot('sp500-sectors', 'SPY'),
     workspaceStore.loadBreadth('sp500-sectors'),
+    workspaceStore.loadBreadthHistory('sp500-sectors'),
   ])
   const requested = String(route.params.symbol ?? route.query.symbol ?? 'SPY')
   await selectSymbol(requested)

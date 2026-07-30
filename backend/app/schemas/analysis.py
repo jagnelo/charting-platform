@@ -65,6 +65,21 @@ class BreadthOut(BaseModel):
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class BreadthHistoryPoint(BaseModel):
+    timestamp: datetime
+    above_ma: dict[str, float | None]
+    coverage: dict[str, float]
+
+
+class BreadthHistoryOut(BaseModel):
+    group_key: str
+    timeframe: str
+    adjustment: str
+    membership_version: int
+    points: list[BreadthHistoryPoint]
+    exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
 class TechnicalSnapshotOut(BaseModel):
     symbol: str
     timeframe: str

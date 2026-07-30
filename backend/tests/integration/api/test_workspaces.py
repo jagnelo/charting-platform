@@ -271,6 +271,30 @@ class TestWorkspaces:
         assert payload["position_52w"] == 1
         assert payload["volume_ratio_50"] > 1
 
+    def test_historical_breadth_uses_only_each_constituents_available_bar_dates(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        from app.models.workstation import MarketGroup, MarketGroupMember
+
+        group = MarketGroup(stable_key="breadth-history-test", group_type="test", name="Breadth test")
+        db.add(group)
+        db.flush()
+        db.add(MarketGroupMember(market_group_id=group.id, instrument_id=instrument.id, position=0))
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/groups/breadth-history-test/breadth/history",
+            headers=auth_headers,
+            params={"limit": 10},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert len(payload["points"]) == 10
+        assert payload["points"][0]["above_ma"]["ma20"] is not None
+        assert payload["points"][-1]["above_ma"]["ma200"] is None
+        assert payload["points"][-1]["coverage"]["ma20"] == 1
+        assert payload["points"][-1]["coverage"]["ma200"] == 0
+
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument
     ):
