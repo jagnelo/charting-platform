@@ -113,6 +113,42 @@ def test_research_runs_list_is_user_scoped_and_newest_first(
     assert second["id"] > first["id"]
 
 
+def test_research_rerun_snapshot_retains_manifest(client, auth_headers, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "rerun-study",
+            "name": "Rerun",
+            "kind": "study",
+            "initial_version": {"source": "output.scalar('n', 1)", "output_contract": "study"},
+        },
+    ).json()
+    original = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "dataset_manifest": {"snapshot": "frozen", "closes": [1]},
+        },
+    ).json()
+
+    rerun = client.post(
+        f"/api/v1/research/runs/{original['id']}/rerun?snapshot=true", headers=auth_headers
+    )
+
+    assert rerun.status_code == 202
+    assert rerun.json()["id"] != original["id"]
+    assert rerun.json()["code_version_id"] == original["code_version_id"]
+    assert rerun.json()["dataset_manifest"] == original["dataset_manifest"]
+
+
 def test_research_result_is_collected_as_structured_artifact(
     client, auth_headers, tmp_path, monkeypatch
 ):

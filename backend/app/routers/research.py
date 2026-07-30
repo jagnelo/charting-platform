@@ -138,6 +138,42 @@ async def get_run(
     return run
 
 
+@router.post(
+    "/runs/{run_id}/rerun", response_model=ResearchRunOut, status_code=status.HTTP_202_ACCEPTED
+)
+async def rerun(
+    run_id: int,
+    snapshot: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Queue a new immutable run using an exact snapshot or newly materialized local data."""
+    source = (
+        await db.execute(
+            select(ResearchRun).where(
+                ResearchRun.id == run_id, ResearchRun.user_id == current_user.id
+            )
+        )
+    ).scalar_one_or_none()
+    if source is None:
+        raise HTTPException(status_code=404, detail="Research run not found")
+    manifest = (
+        dict(source.dataset_manifest)
+        if snapshot
+        else await _materialize_declared_dataset(db, {}, dict(source.run_config))
+    )
+    run = ResearchRun(
+        user_id=current_user.id,
+        code_version_id=source.code_version_id,
+        run_config=dict(source.run_config),
+        dataset_manifest=manifest,
+    )
+    db.add(run)
+    await db.flush()
+    enqueue_research_run(run)
+    return run
+
+
 @router.post("/runs/{run_id}/cancel", response_model=ResearchRunOut)
 async def cancel_run(
     run_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
