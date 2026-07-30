@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:07:00Z Persisted Study Lab run listing checkpoint
+
+- Added authenticated, bounded, newest-first `/research/runs` listing with structured
+  artifact loading and result collection, plus an ordering/limit integration regression.
+  Pushed `a7ba032`.
+- Validation: focused research API `6 passed` with `--no-cov` (two existing Nautilus
+  deprecation warnings), Ruff/format, and diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T11:03:00Z Supported factory-tool rendering checkpoint
 
 - Routed recognised factory watchlists, supported reports, and Study Results to

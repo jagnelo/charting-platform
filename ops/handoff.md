@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:07:00Z
+
+- Added the persisted Study Lab run-list API required by a dedicated results pane.
+  It is authenticated-user scoped, bounded, newest first, loads structured artifacts,
+  and collects available isolated-run output before returning.
+- Pushed `a7ba032`; focused research API integration `6 passed` with `--no-cov`
+  (two existing third-party deprecation warnings), Ruff/format, and diff checks passed.
+
+### Exact next step
+
+- Bind the Study Results pane to this persisted run list, then continue the remaining
+  workstation, backend, and acceptance implementation.
+
 ## Continuation update — 2026-07-30T11:03:00Z
 
 - Removed recognised factory-layout tool fall-throughs into recovery UI. Generic
