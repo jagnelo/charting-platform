@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:10:00Z
+
+- Ratio uPlot charts now participate in the same group-scoped linked-crosshair contract
+  as price charts. They publish cursor timestamps to their owning symbol-link group,
+  consume timestamp events from linked tools/pop-outs, snap to the nearest aligned
+  bar, and suppress self-echoes.
+- Validation: RatioUPlot `3 passed`, TypeScript, production build, and diff check.
+  Seeded multi-window browser acceptance remains required as part of full parity.
+
 ## Continuation update — 2026-07-30T16:05:00Z
 
 - Ratio chart tools now carry their own persisted/link-group timeframe into the

@@ -14,9 +14,16 @@ import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
 
-const props = withDefaults(defineProps<{ symbol: string; benchmarks: string[]; timeframe?: string }>(), {
+const props = withDefaults(defineProps<{
+  symbol: string
+  benchmarks: string[]
+  timeframe?: string
+  linkedTimestamp?: string | null
+}>(), {
   timeframe: 'D1',
+  linkedTimestamp: null,
 })
+const emit = defineEmits<{ cursorTimestamp: [timestamp: string] }>()
 const root = ref<HTMLElement | null>(null)
 const host = ref<HTMLElement | null>(null)
 const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string; value: number }>; coverage: number }>>([])
@@ -25,6 +32,8 @@ const warning = ref<string | null>(null)
 const status = ref('Local adjusted')
 let chart: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
+let applyingLinkedCursor = false
+let lastPublishedCursor: string | null = null
 const ratioLabels = computed(() => props.benchmarks.map(benchmark => `${props.symbol}/${benchmark}`).join(' · '))
 const hasPoints = computed(() => series.value.some(item => item.points.length > 0))
 const colors = ['#6bc0ef', '#e7b35b', '#aa86e8', '#5fc8a2']
@@ -89,10 +98,41 @@ function draw() {
       { stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, ticks: { stroke: '#40505a', width: 1 }, font: '10px Segoe UI' },
     ],
     series: [{}, ...series.value.map((item, index) => ({ label: `${props.symbol}/${item.benchmark}`, stroke: colors[index % colors.length], width: 1.5 }))],
+    hooks: {
+      setCursor: [(u) => {
+        if (applyingLinkedCursor || u.cursor.idx == null) return
+        const xValues = u.data[0] as number[] | undefined
+        const seconds = xValues?.[u.cursor.idx]
+        if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return
+        const timestamp = new Date(seconds * 1000).toISOString()
+        if (timestamp === lastPublishedCursor) return
+        lastPublishedCursor = timestamp
+        emit('cursorTimestamp', timestamp)
+      }],
+    },
   }, data, host.value)
+  applyLinkedTimestamp(props.linkedTimestamp)
+}
+
+function applyLinkedTimestamp(timestamp: string | null) {
+  if (!chart || !timestamp) return
+  const targetSeconds = new Date(timestamp).getTime() / 1000
+  if (!Number.isFinite(targetSeconds)) return
+  const xValues = chart.data[0] as number[] | undefined
+  if (!xValues?.length) return
+  let index = xValues.findIndex(value => value > targetSeconds)
+  if (index === -1) index = xValues.length - 1
+  else if (index > 0) index -= 1
+  applyingLinkedCursor = true
+  chart.setCursor({
+    left: chart.valToPos(xValues[index], 'x'),
+    top: chart.cursor.top ?? 0,
+  })
+  applyingLinkedCursor = false
 }
 
 watch(() => `${props.symbol}/${props.benchmarks.join('/')}/${props.timeframe}`, () => { void load() })
+watch(() => props.linkedTimestamp, applyLinkedTimestamp)
 onMounted(() => {
   resizeObserver = new ResizeObserver(() => draw())
   if (root.value) resizeObserver.observe(root.value)

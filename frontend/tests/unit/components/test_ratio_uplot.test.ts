@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }))
 import { api } from '@/lib/api'
 import RatioUPlot from '@/components/workstation/RatioUPlot.vue'
+import uPlot from 'uplot'
 
 class ResizeObserverMock {
   observe() {}
@@ -13,7 +14,10 @@ class ResizeObserverMock {
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 
 describe('RatioUPlot', () => {
-  beforeEach(() => vi.mocked(api.get).mockReset())
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+    vi.mocked(uPlot).mockClear()
+  })
 
   it('requests selected-sector and market ratios without filling their gaps', async () => {
     vi.mocked(api.get).mockImplementation(async (_path, options) => ({
@@ -55,5 +59,27 @@ describe('RatioUPlot', () => {
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
       symbol: 'XLK', benchmark: 'SPY', timeframe: 'W1', adjusted: true,
     }))
+  })
+
+  it('publishes ratio crosshair timestamps and consumes linked timestamps without echoing them', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      coverage: 1,
+      points: [{ timestamp: '2026-01-01T00:00:00Z', value: 1 }],
+      warnings: [],
+    })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalled())
+    const options = vi.mocked(uPlot).mock.calls.at(-1)?.[0]
+    const setCursor = options?.hooks?.setCursor?.[0]
+    expect(setCursor).toBeDefined()
+
+    setCursor?.({ cursor: { idx: 0 }, data: [[1767225600]] } as unknown as uPlot)
+    expect(wrapper.emitted('cursorTimestamp')).toEqual([['2026-01-01T00:00:00.000Z']])
+
+    const chart = vi.mocked(uPlot).mock.results.at(-1)?.value
+    await wrapper.setProps({ linkedTimestamp: '2026-01-01T00:00:00Z' })
+    expect(chart.setCursor).toHaveBeenCalled()
+    setCursor?.({ cursor: { idx: 0 }, data: [[1767225600]] } as unknown as uPlot)
+    expect(wrapper.emitted('cursorTimestamp')).toHaveLength(1)
   })
 })

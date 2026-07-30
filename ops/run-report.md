@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:10:00Z Ratio crosshair linking
+
+- Ratio charts now consume and publish link-group cursor timestamps, preserving
+  crosshair mechanics across aligned comparison panes, docked tools, and pop-outs.
+- Validation: RatioUPlot `3 passed`, TypeScript, production build, diff check.
+
 ## 2026-07-30T16:05:00Z Linked ratio timeframe contract
 
 - Workstation ratio charts now forward their resolved timeframe to canonical

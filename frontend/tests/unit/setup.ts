@@ -2,15 +2,16 @@ import { vi } from 'vitest'
 
 // Mock uPlot — it requires a real canvas which jsdom doesn't support
 vi.mock('uplot', () => ({
-  default: vi.fn().mockImplementation(() => ({
+  default: vi.fn().mockImplementation((_options, data) => ({
     destroy: vi.fn(),
     setData: vi.fn(),
     setSize: vi.fn(),
+    setCursor: vi.fn(),
     valToPos: vi.fn().mockReturnValue(100),
     posToVal: vi.fn().mockReturnValue(150.0),
     scales: { x: {}, y: {} },
     cursor: { idx: null, left: 0, top: 0 },
-    data: [[], [], [], [], [], []],
+    data: data ?? [[], [], [], [], [], []],
     width: 900,
     height: 500,
     ctx: {
