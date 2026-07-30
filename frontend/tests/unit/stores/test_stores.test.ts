@@ -27,6 +27,7 @@ describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    localStorage.clear()
   })
 
   it('initial state — not logged in', () => {
@@ -61,6 +62,22 @@ describe('useAuthStore', () => {
     const store = useAuthStore()
     store.user = { id: 1, username: 'alice', email: 'a@t.com', is_admin: false }
     store.logout()
+    expect(store.user).toBeNull()
+    expect(store.isLoggedIn).toBe(false)
+    expect(clearTokens).toHaveBeenCalled()
+  })
+
+  it('clears this window when another same-origin window announces logout', () => {
+    localStorage.setItem('access_token', 'at')
+    localStorage.setItem('refresh_token', 'rt')
+    const store = useAuthStore()
+    store.user = { id: 1, username: 'alice', email: 'a@t.com', is_admin: false }
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'charting-platform-session:logout',
+      newValue: 'remote-window',
+    }))
+
     expect(store.user).toBeNull()
     expect(store.isLoggedIn).toBe(false)
     expect(clearTokens).toHaveBeenCalled()

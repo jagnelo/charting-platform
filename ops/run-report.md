@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:20:00Z Cross-window session logout
+
+- Auth now propagates logout between the workstation and same-origin pop-outs through
+  `BroadcastChannel`, with a storage-event fallback. A remote logout clears local
+  credentials and returns that window to Login.
+- Validation: auth-store suite `30 passed`, TypeScript, production build, and Chromium
+  F8c source-to-pop-out logout flow passed.
+
 ## 2026-07-30T16:05:00Z Current-shell Chromium flow suite
 
 - Added a dense workstation Sign out control; it uses the existing authenticated logout

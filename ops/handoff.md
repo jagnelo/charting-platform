@@ -1,6 +1,14 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T16:05:00Z
+## Continuation update — 2026-07-30T16:20:00Z
+
+- Auth logout now synchronizes between same-origin workstation windows and pop-outs by
+  BroadcastChannel with storage fallback. Receiving a remote logout clears credentials
+  and routes that window to Login.
+- Validation: auth-store `30 passed`, TypeScript, production build, and Chromium F8c
+  source-to-pop-out logout passed.
+
+## Prior continuation update — 2026-07-30T16:05:00Z
 
 - Added a compact primary-workstation Sign out control backed by the existing auth
   logout path. This restores a required session action after the legacy sidebar was

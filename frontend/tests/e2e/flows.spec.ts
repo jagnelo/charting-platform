@@ -158,6 +158,19 @@ test.describe('TC2000 workstation', () => {
     browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8c — signing out propagates from the source workstation to its pop-out', async ({ page, context }) => {
+    await page.goto('/chart')
+    const popupPromise = context.waitForEvent('page')
+    await page.locator('button[title="Float"]').first().click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'Sign out' }).click()
+    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 })
+    await expect(popup).toHaveURL(/\/login/, { timeout: 5_000 })
+  })
+
 })
 
 

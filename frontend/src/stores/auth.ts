@@ -6,6 +6,11 @@ import type { TokenPair } from '@/lib/api'
 
 interface User { id: number; username: string; email: string; display_name?: string; is_admin: boolean }
 
+const SESSION_CHANNEL_NAME = 'charting-platform-session'
+const SESSION_LOGOUT_KEY = `${SESSION_CHANNEL_NAME}:logout`
+let installedStorageLogoutHandler: ((event: StorageEvent) => void) | null = null
+let sessionChannel: BroadcastChannel | null = null
+
 export const useAuthStore = defineStore('auth', () => {
   const accessToken  = ref<string | null>(localStorage.getItem('access_token'))
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
@@ -15,6 +20,40 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
   const isLoggedIn       = computed(() => !!accessToken.value)
   const loading          = isLoading
+
+  function applyRemoteLogout() {
+    clearTokens()
+    if (router.currentRoute.value.path !== '/login') void router.push('/login')
+  }
+
+  // Browser pop-outs are separate Vue/Pinia instances. BroadcastChannel is the
+  // primary same-origin transport and storage is the portable fallback.
+  function installSessionSync() {
+    if (typeof window === 'undefined') return
+    if (installedStorageLogoutHandler) window.removeEventListener('storage', installedStorageLogoutHandler)
+    installedStorageLogoutHandler = event => {
+      if (event.key === SESSION_LOGOUT_KEY && event.newValue) applyRemoteLogout()
+    }
+    window.addEventListener('storage', installedStorageLogoutHandler)
+    if (typeof BroadcastChannel !== 'undefined') {
+      sessionChannel?.close()
+      sessionChannel = new BroadcastChannel(SESSION_CHANNEL_NAME)
+      sessionChannel.addEventListener('message', event => {
+        if (event.data?.type === 'logout') applyRemoteLogout()
+      })
+    }
+  }
+
+  function publishLogout() {
+    sessionChannel?.postMessage({ type: 'logout' })
+    try {
+      localStorage.setItem(SESSION_LOGOUT_KEY, `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    } catch {
+      // BroadcastChannel remains sufficient where storage is unavailable.
+    }
+  }
+
+  installSessionSync()
 
   function setTokens(tokens: TokenPair) {
     accessToken.value  = tokens.access_token
@@ -47,6 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    publishLogout()
     clearTokens()
     router.push('/login')
   }
