@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T11:17:00Z",
-    "last_commit": "9c6ad9e feat(study-lab): export persisted artifacts",
+    "last_handoff_at": "2026-07-30T11:20:00Z",
+    "last_commit": "bed2a3f feat(study-lab): compare reproducible runs",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused persisted-results tool: 1 passed; Study Lab/results slice: 2 passed; VirtualWatchlistTool suite: 14 passed; workspace-store suite: 10 passed; TypeScript check, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after persisted artifact renderers, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T11:17:00Z persisted artifact export)",
+        "diff_check": "passed (2026-07-30T11:20:00Z reproducible run comparison)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T11:20:00Z: Added/pushed bed2a3f: Study Results can select and compare any two persisted runs, explicitly showing same/different code version, run parameters, canonical dataset manifest, and reproducibility hash. Focused results test, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T11:17:00Z: Added/pushed 9c6ad9e: every persisted structured research artifact can now be exported as a JSON snapshot including run ID, reproducibility hash, artifact type/name, and payload. Focused results test, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T11:14:00Z: Added/pushed 9dac376: persisted Study Results now renders scalar cards, tables, uPlot numeric series, event lists, and bounded diagnostic JSON. Event selection publishes the same symbol/timestamp occurrence contract to linked charts. Focused results test, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",
         "2026-07-30T11:10:00Z: Added/pushed a5d0b62: Study Results is now a dedicated persisted-run browser rather than a duplicate editor. It refreshes /research/runs, polls only nonterminal runs, preserves selected run, and exposes reproducibility IDs plus artifact names/types. Focused StudyLab/results suite 2 passed, TypeScript, production build, and diff checks passed. Full acceptance remains incomplete.",

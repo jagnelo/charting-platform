@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:20:00Z Study Lab reproducible-run comparison checkpoint
+
+- Added two-run comparison across immutable code version, run parameters, canonical
+  dataset manifest, and reproducibility hash. Pushed `bed2a3f`.
+- Validation: focused results test, TypeScript, production build, and diff check. Full
+  acceptance remains incomplete.
+
 ## 2026-07-30T11:17:00Z Persisted research artifact export checkpoint
 
 - Added JSON export for every persisted structured artifact, preserving run/reproducibility

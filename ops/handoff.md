@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:20:00Z
+
+- Added run-to-run reproducibility comparison in Study Results. Two selected runs expose
+  exact equality/difference for code version, parameters, dataset manifest, and hash.
+  Pushed `bed2a3f`; focused results test, TypeScript, production build, and diff
+  checks passed.
+
+### Exact next step
+
+- Continue genuine promotion targets and broader workstation/backend acceptance work.
+
 ## Continuation update — 2026-07-30T11:17:00Z
 
 - Added JSON artifact export from persisted Study Results. Exports retain run identity,
