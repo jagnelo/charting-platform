@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:17:00Z
+
+- Added persisted Boolean-column pin controls. Pinned truthy rows sort before the
+  secondary chosen column without changing their canonical instrument identity.
+- Added direct control coverage; pushed `c48279c` and `7ae5581`.
+- Validation passed: focused VirtualWatchlistTool suite `9 passed`, frontend type-check,
+  and `git diff --check`.
+
+### Exact next step
+
+- Implement saved column grouping and vertical stacking, preserving virtualization and
+  stable selection.
+
 ## Continuation update — 2026-07-30T10:16:00Z
 
 - Added direct component coverage proving a saved condition can become inactive while

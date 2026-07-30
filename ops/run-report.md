@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:17:00Z Boolean watchlist pinning checkpoint
+
+- Added persisted Boolean pin controls and ordering before secondary sort, plus direct
+  control coverage. Pushed `c48279c` and `7ae5581`.
+- Validation: VirtualWatchlistTool `9 passed`, type-check, diff check.
+
 ## 2026-07-30T10:16:00Z Watchlist filter-state test checkpoint
 
 - Added direct VirtualWatchlistTool coverage for retaining an inactive saved condition
