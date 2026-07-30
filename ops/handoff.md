@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:16:00Z
+
+- Added direct component coverage proving a saved condition can become inactive while
+  retaining its selection and can become off only by clearing that selection.
+- Pushed `4f8239c test(watchlist): cover filter activation states`.
+- Validation passed: focused VirtualWatchlistTool suite `8 passed`, frontend type-check,
+  and `git diff --check`.
+
+### Exact next step
+
+- Implement saved column grouping/stacking and Boolean pinning mechanics for the
+  integrated Version 25 watchlist model.
+
 ## Continuation update — 2026-07-30T10:15:00Z
 
 - Added persisted Version 25-style saved-condition filter states to workstation lists:

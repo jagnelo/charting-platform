@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:16:00Z Watchlist filter-state test checkpoint
+
+- Added direct VirtualWatchlistTool coverage for retaining an inactive saved condition
+  and clearing it only through off state.
+- Validation: focused suite `8 passed`, type-check, diff check. Pushed `4f8239c`.
+
 ## 2026-07-30T10:15:00Z Watchlist condition activation-state checkpoint
 
 - Workstation watchlists now persist explicit saved-condition `active`, `inactive`,
