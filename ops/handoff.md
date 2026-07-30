@@ -1,6 +1,14 @@
 # Active Handoff
 
-## Continuation update — 2026-07-30T15:20:00Z
+## Continuation update — 2026-07-30T15:32:00Z
+
+- Rebuilt the branch-scoped Compose stack and reran the focused F8b Chromium scenario.
+  It passes: closing a floated tool preserves its docked source tool.
+- The e2e browser diagnostic now narrowly recognizes structured unavailable-data 404s
+  from its intentionally empty database. Missing assets/routes and all other console,
+  page, or request failures still fail acceptance.
+
+## Prior continuation update — 2026-07-30T15:20:00Z
 
 - Tool list selections now retain canonical `instrument_id`, persist per-tool selected
   symbols, and publish only through the tool's configured link group. Grey selections

@@ -30,6 +30,14 @@ class BrowserDiagnostics {
   consoleWarnings: string[] = []
   pageErrors: string[] = []
   requestFailures: string[] = []
+  /**
+   * The branch Compose stack intentionally starts without imported canonical market
+   * data. These documented read contracts return a structured 404 that the UI renders
+   * as unavailable; Chrome logs such a handled HTTP response as a generic console
+   * error. Keep that fixture condition separate from missing routes/assets, which
+   * remain fatal in browser acceptance.
+   */
+  expectedUnavailableApi404s = 0
 
   attach(page: Page) {
     page.on('console', (msg) => {
@@ -46,6 +54,13 @@ class BrowserDiagnostics {
         return
       }
       this.requestFailures.push(`${req.method()} ${req.url()} :: ${errorText}`)
+    })
+    page.on('response', (response) => {
+      if (response.status() !== 404) return
+      const path = new URL(response.url()).pathname
+      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/holdings|market-groups\/etf\/[^/]+\/industries)$/.test(path)) {
+        this.expectedUnavailableApi404s += 1
+      }
     })
   }
 
@@ -70,9 +85,18 @@ class BrowserDiagnostics {
   }
 
   expectNoCriticalIssues() {
+    let expectedUnavailableApi404s = this.expectedUnavailableApi404s
+    const unexpectedConsoleErrors = this.consoleErrors.filter(error => {
+      if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
+        && expectedUnavailableApi404s > 0) {
+        expectedUnavailableApi404s -= 1
+        return false
+      }
+      return true
+    })
     expect(
       {
-        consoleErrors: this.consoleErrors,
+        consoleErrors: unexpectedConsoleErrors,
         pageErrors: this.pageErrors,
         requestFailures: this.requestFailures,
       },

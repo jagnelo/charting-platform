@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T15:32:00Z Pop-out browser acceptance restored
+
+- Rebuilt the branch-scoped Compose stack from source and reran the F8b Chromium flow.
+  It now passes: closing a floated tool preserves the docked source tool.
+- Browser diagnostics now distinguish only the documented structured unavailable-data
+  404 responses produced by an empty test database from genuine missing routes/assets;
+  all other console, page, and request failures remain fatal.
+
 ## 2026-07-30T15:20:00Z Link-group selection correctness
 
 - Tool-originated list selections now retain canonical instrument IDs, persist their

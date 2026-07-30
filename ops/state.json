@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T15:20:00Z",
-    "last_commit": "9dfbb36 fix(workstation): stabilize persisted dock layouts",
+    "last_handoff_at": "2026-07-30T15:32:00Z",
+    "last_commit": "7ae23b3 fix(workstation): honor tool symbol link groups",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -14,13 +14,14 @@
         "frontend_build": "passed (production build after link-group selection correctness update, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
         "diff_check": "passed (2026-07-30T15:20:00Z link-group selection correctness)",
-        "playwright": "focused browser pop-out flow reached the rendered workstation and exposed/fixed layout lifecycle faults; rerun blocked by host ENOSPC/Docker BuildKit I/O error, 2026-07-30",
+        "playwright": "focused Chromium F8b pop-out close/recovery passed against rebuilt branch Compose stack; broader browser acceptance remains required, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
         "provider_live_tests": "not_run (no provider adapter change in this foundation)",
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T15:32:00Z: Rebuilt the branch Compose stack from source and passed the F8b Chromium pop-out close/recovery flow. Browser diagnostics now narrow the expected empty-database unavailable-data 404 condition while preserving fatal treatment for all other browser console/page/request failures. Broad browser and visual acceptance remains incomplete.",
         "2026-07-30T15:20:00Z: Tool list selections now retain canonical instrument IDs, persist per-tool selections, publish only to the owning link group, keep grey isolated, and let yellow receive the latest non-grey publication. A proxy drill-down no longer re-publishes through blue. Workspace store 13 passed, TypeScript/production build/diff check passed; full browser cross-window and per-chart link rendering acceptance remains incomplete.",
         "2026-07-30T12:12:00Z: Browser audit exposed/fixed legacy numeric Golden Layout config normalization, self-emitted layout recreation loops, snapshot replacement ordering, and duplicate default workspace recovery. Workspace integration 15 passed; focused frontend suites 14 passed and TypeScript passed. Full browser rerun and build are blocked by host disk exhaustion (116 MiB free, ENOSPC and Docker BuildKit metadata I/O error); no user caches/images/volumes were removed.",
         "2026-07-30T11:57:00Z: Corrected the pop-out close defect so browser-window close restores the already-persisted source tool instead of deleting it. Link-group changes now use an explicit serialized workspace-store mutation and snapshot persistence. Focused ToolWindow/workspace-store 13 passed, frontend TypeScript/production build and diff check passed. Real browser lifecycle/crosshair acceptance and full goal remain incomplete.",
