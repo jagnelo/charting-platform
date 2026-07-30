@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T15:56:52Z
+
+- Chart templates now carry a real persisted window mechanic: the selected bar type.
+  Applying a template updates the chart-local uPlot renderer and reloads the matching
+  canonical transformed bars without replacing its active symbol.
+- Browser acceptance exposed a genuine Golden Layout virtual-component lifecycle issue:
+  replacing a tool configuration object left the mounted tool on stale props. The
+  workspace now retains that reactive object for live updates, while chart tools retain
+  their newest applied serialized configuration between host renders.
+- Validation: TypeScript, production build, scoped frontend rebuild, focused F9c, full
+  Chromium flows (`22 passed`), and `git diff --check` passed. Exact next step:
+  commit/push this chart-template mechanics correction, then continue remaining plot
+  library/chart mechanics rather than treating the chart-template control as complete.
+
 ## Continuation update — 2026-07-30T16:10:00Z
 
 - Strengthened F9c from a menu-presence check into an authenticated end-to-end template

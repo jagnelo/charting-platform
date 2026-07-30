@@ -16207,3 +16207,16 @@ Append a short entry after each worker session.
   filesystem is full (116 MiB free): Vite returns `ENOSPC` and Docker BuildKit returns
   an I/O error writing its metadata DB. No user-owned cache/image/volume cleanup was
   attempted.
+# 2026-07-30T15:56:52Z Chart-template live mechanics checkpoint
+
+- Added a chart-template bar-type selector backed by the shared `ChartBarType` registry.
+  Template saves persist the selected mechanic; template application updates only the
+  chart-window configuration and preserves symbol/instrument/expression identity.
+- Corrected the Golden Layout virtual-tool lifecycle: workspace configuration updates
+  retain the mounted reactive object, and each chart tracks the newly applied serialized
+  configuration locally so uPlot updates immediately and requests the corresponding
+  transformed canonical bars.
+- Validation: TypeScript; production build; rebuilt isolated branch stack; focused F9c;
+  full Chromium `flows.spec.ts` (`22 passed`); `git diff --check`.
+- This is not full chart-template/plot-library completion. Continue with remaining
+  chart mechanics and the broader active-goal acceptance matrix.
