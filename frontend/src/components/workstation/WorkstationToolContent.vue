@@ -71,7 +71,21 @@
             :rows="proxyRows"
             :selected="selectedIndustryProxy ?? ''"
             :columns="proxyColumns"
+            :visible-column-keys="configuredColumnKeys"
+            :filter-text="configuredFilterText"
+            :condition-screener-id="configuredConditionScreenerId"
+            :condition-filter-mode="configuredConditionFilterMode"
+            :pinned-boolean-keys="configuredPinnedBooleanKeys"
+            :column-groups="configuredColumnGroups"
+            :stacked-column-keys="configuredStackedColumnKeys"
             @select="emit('selectProxy', $event.symbol)"
+            @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
+            @update:filter-text="emit('filter', tool.instance_key, $event)"
+            @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
+            @update:condition-filter-mode="emit('conditionFilterMode', tool.instance_key, $event)"
+            @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
+            @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
+            @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
           />
         </template>
       </div>
