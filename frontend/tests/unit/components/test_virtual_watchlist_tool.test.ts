@@ -143,4 +143,17 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.text()).toContain('67.20')
     expect(wrapper.text()).toContain('12.00%')
   })
+
+  it('pins true Boolean rows ahead of the secondary sort and persists the pin choice', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'above_ma50', label: '>50', kind: 'boolean' }],
+        pinnedBooleanKeys: ['above_ma50'],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.find('.watchlist__column-menu button').trigger('click')
+    expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([[]])
+  })
 })
