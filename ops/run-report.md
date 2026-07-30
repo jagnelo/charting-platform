@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T19:55:00Z Prepared-universe progress and cancellation
+
+- Added atomic job claiming, a running-job cancellation sentinel, runner-side
+  between-cell cancellation, and durable atomic batch progress records. The batch
+  result endpoint now returns progress without executing user code in the API process.
+- Runner/API coverage `22 passed` (two existing Nautilus warnings); Ruff and diff
+  check passed.
+
 ## 2026-07-30T19:25:00Z High-cardinality prepared-universe batch
 
 - Replaced the 1,000-symbol API guard with a 10,000-symbol bounded batch contract.

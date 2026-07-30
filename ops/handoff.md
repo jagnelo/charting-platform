@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T19:55:00Z
+
+- Prepared-universe jobs now atomically transition from `.json` to `.running`, so a
+  cancellation request cannot race the runner's claim. A running job receives a
+  constrained-volume cancellation sentinel checked between cells; the runner returns
+  bounded completed-cell artifacts and a structured canceled diagnostic.
+- The runner writes atomic durable progress records (`completed_cells`, `total_cells`,
+  status) and `/research/runs/{id}/batch-results` exposes them while the final result
+  is pending. No user source runs in FastAPI to obtain that state.
+- Validation: runner/API suites `22 passed` (two existing Nautilus deprecation
+  warnings), Ruff, and diff check passed. Next: present progress/cancel controls in
+  workstation list/Study Lab consumers, then integrate immutable condition assets into
+  EasyScan and alerts.
+
 ## Continuation update — 2026-07-30T19:25:00Z
 
 - Raised the prepared-universe API ceiling from 1,000 to 10,000 declared canonical
