@@ -18,7 +18,8 @@
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
-      <label v-for="column in columns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <label v-for="column in effectiveColumns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
+      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button></div>
     </div>
     <div v-if="columnSetMenuOpen" class="watchlist__column-set-menu" aria-label="Saved column sets">
       <input v-model.trim="columnSetName" aria-label="Column set name" placeholder="Column set name" @keydown.enter.prevent="saveColumnSet" />
@@ -109,6 +110,7 @@ const props = withDefaults(defineProps<{
   pinnedBooleanKeys?: string[]
   columnGroups?: Record<string, string>
   stackedColumnKeys?: string[]
+  pythonColumns?: Array<{ code_version_id: number; name: string }>
 }>(), {
   selected: '',
   columns: () => [
@@ -122,8 +124,9 @@ const props = withDefaults(defineProps<{
   pinnedBooleanKeys: () => [],
   columnGroups: () => ({}),
   stackedColumnKeys: () => [],
+  pythonColumns: () => [],
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -140,10 +143,16 @@ const columnSetLoading = ref(false)
 const columnSetBusy = ref(false)
 const columnSetError = ref('')
 const columnSets = ref<ColumnSetItem[]>([])
+const selectedPythonVersion = ref('')
+const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
+const pythonCells = ref<Record<string, Record<string, { value?: number | boolean; error?: string }>>>({})
+const runningPythonColumns = new Set<number>()
 const renderEpoch = ref(0)
-const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : props.columns.map(column => column.key))
+const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
+const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))])
+const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : effectiveColumns.value.map(column => column.key))
 const visibleColumns = computed(() => activeColumnKeys.value
-  .map(key => props.columns.find(column => column.key === key))
+  .map(key => effectiveColumns.value.find(column => column.key === key))
   .filter((column): column is WatchlistColumn => column != null))
 const hasColumnGroups = computed(() => visibleColumns.value.some(column => Boolean(props.columnGroups[column.key])))
 const stackedColumnKey = '__stacked_columns__'
@@ -220,6 +229,44 @@ async function loadScreeners() {
   }
 }
 
+function pythonKey(versionId: number) { return `python:${versionId}` }
+async function loadPythonAssets() {
+  try {
+    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number }> }>>('/code/assets')
+    pythonAssets.value = assets.filter(asset => asset.kind === 'column').flatMap(asset => asset.versions.slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
+  } catch { pythonAssets.value = [] }
+}
+function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
+async function runPythonColumn(column: { code_version_id: number; name: string }) {
+  if (runningPythonColumns.has(column.code_version_id)) return
+  const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
+  if (!symbols.length) return
+  runningPythonColumns.add(column.code_version_id)
+  const key = pythonKey(column.code_version_id)
+  pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: 'Queued' }])) }
+  try {
+    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: column.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const result = await api.get<{ status: string; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
+        pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(result.cells.map(cell => [cell.symbol, cell.status === 'completed' ? { value: cell.value } : { error: cell.error ?? cell.status }])) }
+        return
+      }
+      await sleep(250)
+    }
+  } catch (cause: any) { pythonCells.value = { ...pythonCells.value, [key]: Object.fromEntries(symbols.map(symbol => [symbol, { error: cause?.message ?? 'Unavailable' }])) } }
+  finally { runningPythonColumns.delete(column.code_version_id) }
+}
+function addPythonColumn() {
+  const versionId = Number(selectedPythonVersion.value)
+  const asset = pythonAssets.value.find(item => item.versionId === versionId)
+  if (!asset || pythonColumns.value.some(column => column.code_version_id === versionId)) return
+  const column = { code_version_id: versionId, name: asset.name }
+  emit('update:pythonColumns', [...pythonColumns.value, column])
+  selectedPythonVersion.value = ''
+  void runPythonColumn(column)
+}
+
 function columnSetKey(name: string) {
   const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'column-set'
   return `${normalized}-${crypto.randomUUID().slice(0, 8)}`
@@ -262,7 +309,7 @@ async function saveColumnSet() {
 function applyColumnSet(item: ColumnSetItem) {
   const configuration = item.payload.configuration
   if (!configuration || typeof configuration !== 'object') return
-  const allowed = new Set(props.columns.map(column => column.key))
+  const allowed = new Set(effectiveColumns.value.map(column => column.key))
   const keys = Array.isArray(configuration.column_keys)
     ? configuration.column_keys.filter((key): key is string => typeof key === 'string' && allowed.has(key))
     : []
@@ -325,14 +372,25 @@ async function applyConditionFilter(value: string) {
 onMounted(() => {
   void loadScreeners()
   void loadColumnSets()
+  void loadPythonAssets()
+  for (const column of pythonColumns.value) void runPythonColumn(column)
   if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
 })
+watch(pythonColumns, columns => {
+  for (const column of columns) {
+    if (!pythonCells.value[pythonKey(column.code_version_id)]) void runPythonColumn(column)
+  }
+}, { deep: true })
 
 function display(row: WatchlistRow, key: string) {
+  if (key.startsWith('python:')) {
+    const cell = pythonCells.value[key]?.[row.symbol]
+    return cell?.error ? cell.error : cell?.value == null ? '—' : typeof cell.value === 'boolean' ? cell.value ? 'True' : 'False' : cell.value.toFixed(4)
+  }
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
   if (value == null || value === '') return '—'
   if (typeof value !== 'number') return String(value)
-  const format = props.columns.find(column => column.key === key)?.format ?? 'percent'
+  const format = effectiveColumns.value.find(column => column.key === key)?.format ?? 'percent'
   return format === 'number' ? value.toFixed(2) : `${(value * 100).toFixed(2)}%`
 }
 
@@ -382,7 +440,7 @@ function setColumnGroup(key: string, value: string) {
 }
 
 function toggleStackedColumn(key: string) {
-  const current = props.stackedColumnKeys.filter(columnKey => props.columns.some(column => column.key === columnKey))
+  const current = props.stackedColumnKeys.filter(columnKey => effectiveColumns.value.some(column => column.key === columnKey))
   emit('update:stackedColumnKeys', current.includes(key) ? current.filter(columnKey => columnKey !== key) : [...current, key])
 }
 

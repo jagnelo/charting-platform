@@ -12,6 +12,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :python-columns="configuredPythonColumns"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -20,6 +21,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -34,6 +36,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :python-columns="configuredPythonColumns"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -42,6 +45,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
     />
     <VirtualWatchlistTool
       v-else-if="tool.tool_type === 'watchlist'"
@@ -56,6 +60,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :python-columns="configuredPythonColumns"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -64,6 +69,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
     />
     <div v-else-if="ratioExpression" class="analysis">
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
@@ -115,6 +121,7 @@
             :pinned-boolean-keys="configuredPinnedBooleanKeys"
             :column-groups="configuredColumnGroups"
             :stacked-column-keys="configuredStackedColumnKeys"
+            :python-columns="configuredPythonColumns"
             @select="selectProxy($event.symbol)"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -123,6 +130,7 @@
             @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
             @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
             @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+            @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
           />
           <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
@@ -145,6 +153,7 @@
       :pinned-boolean-keys="configuredPinnedBooleanKeys"
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
+      :python-columns="configuredPythonColumns"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -153,6 +162,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
@@ -519,6 +529,9 @@ const configuredColumnGroups = computed(() => {
 })
 const configuredStackedColumnKeys = computed(() => Array.isArray(props.tool.configuration.stacked_column_keys)
   ? props.tool.configuration.stacked_column_keys.filter((key): key is string => typeof key === 'string') : [])
+const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
+  ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string')
+  : [])
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',

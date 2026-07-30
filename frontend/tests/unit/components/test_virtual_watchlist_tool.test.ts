@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiDelete, apiGet, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, put: apiPut } }))
+const { apiDelete, apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, post: apiPost, put: apiPut } }))
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
 
@@ -12,8 +12,8 @@ const rows = [
   { instrumentId: 3, symbol: 'XLV', name: 'Health Care', values: { relative_1m: 0.02 } },
 ]
 
-beforeEach(() => { apiGet.mockResolvedValue([]); apiPut.mockReset(); apiDelete.mockReset() })
-afterEach(() => { apiGet.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
+beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
+afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
 
 describe('VirtualWatchlistTool', () => {
   it('filters canonical rows and publishes the selected canonical row', async () => {
@@ -233,6 +233,24 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('update:pinnedBooleanKeys')?.at(-1)).toEqual([['above_ma50']])
     expect(wrapper.emitted('update:columnGroups')?.at(-1)).toEqual([{ rsi14: 'Momentum' }])
     expect(wrapper.emitted('update:stackedColumnKeys')?.at(-1)).toEqual([['rsi14']])
+  })
+
+  it('adds a saved Python column and renders isolated batch cells', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'column', name: 'Last close', versions: [{ id: 77, version_number: 1 }] }])
+      if (path === '/research/runs/8/batch-results') return Promise.resolve({ status: 'completed', cells: [{ symbol: 'XLK', status: 'completed', value: 12.5 }, { symbol: 'XLE', status: 'completed', value: 9.5 }, { symbol: 'XLV', status: 'completed', value: 10.5 }] })
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 8 })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('select[aria-label="Python column asset"]').exists()).toBe(true))
+    await wrapper.find('select[aria-label="Python column asset"]').setValue('77')
+    await wrapper.findAll('.watchlist__python button')[0].trigger('click')
+    await vi.waitFor(() => expect(wrapper.emitted('update:pythonColumns')?.at(-1)).toEqual([[{ code_version_id: 77, name: 'Last close v1' }]]))
+    await wrapper.setProps({ pythonColumns: [{ code_version_id: 77, name: 'Last close v1' }] })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('9.5000'))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 77, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
   })
 
   it('traverses canonical rows with Ctrl+wheel in the focused list', async () => {
