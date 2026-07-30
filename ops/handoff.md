@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T18:00:00Z
+
+- Added prepared-universe execution for unified-Python `column` and `condition`
+  assets. A run declares canonical symbols, materializes local adjusted daily datasets
+  only, records unavailable-symbol exclusions, queues one isolated batch job, and
+  exposes typed scalar/Boolean per-instrument cells through
+  `/research/runs/{id}/batch-results`. The runner supports an implicit current-symbol
+  `market.close()` for portable per-cell code. The current isolated payload guard is
+  explicitly bounded to 1,000 declared symbols; it is a transparent safety limit, not
+  a claim that 10,000-row final acceptance has been met.
+- Validation: code validation/runner/API suites (`22 passed`, two pre-existing
+  Nautilus warnings), Ruff, diff check, and rebuilt healthy isolated backend stack.
+- Exact next step: introduce durable batch progress/cancellation plus client-side
+  column definitions and polling; then expand data materialization safely toward the
+  required 10,000-row workstation acceptance path.
+
 ## Continuation update — 2026-07-30T17:45:00Z
 
 - Completed the renderer side of typed Boolean research outputs. Study Lab now shows

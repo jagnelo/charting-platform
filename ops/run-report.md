@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T18:00:00Z Prepared-universe Python batch checkpoint
+
+- Added canonical local-data batch materialization for declared symbol universes,
+  isolated per-cell scalar/Boolean execution, source-visible exclusions, and a typed
+  batch-results API. The temporary worker payload limit is explicitly 1,000 symbols.
+- Validation: code validation/runner/API `22 passed` (two existing Nautilus warnings);
+  Ruff; diff check; rebuilt healthy isolated backend.
+
 ## 2026-07-30T17:45:00Z Boolean research artifact rendering
 
 - Added first-class True/False metric rendering to Study Lab and persisted research
