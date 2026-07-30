@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T17:30:00Z
+
+- Added versioned, user-isolated saved column sets to all workstation virtual watchlists.
+  A set stores visible/order, Boolean pins, group labels, and vertical stacking through
+  the existing library API. Application rejects unknown keys so a set is safe across
+  different watchlist types; deletion uses the same authenticated library boundary.
+- Validation: `VirtualWatchlistTool` (`15 passed`), TypeScript, production build,
+  rebuilt isolated branch stack, full Chromium `flows.spec.ts` (`22 passed`), and
+  `git diff --check`.
+- Exact next step: extend real column definitions to support user-authored Python and
+  indicator values via batch contracts; do not misrepresent static ranking fields as
+  programmable columns.
+
 ## Continuation update — 2026-07-30T17:20:00Z
 
 - Added direct component proof for the linked-chart plot target path: copying an SMA

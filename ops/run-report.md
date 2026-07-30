@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T17:30:00Z Saved watchlist column-set checkpoint
+
+- Added persistent user-isolated column sets for virtual workstation watchlists. Sets
+  capture order/visibility, Boolean pinning, grouping, and stacking; incompatible
+  keys are discarded on application rather than corrupting a different list type.
+- Validation: `VirtualWatchlistTool` `15 passed`; TypeScript; production build;
+  rebuilt isolated stack; full Chromium `flows.spec.ts` `22 passed`; diff check.
+
 ## 2026-07-30T17:20:00Z Linked-plot target acceptance checkpoint
 
 - Added direct unit coverage proving that the target-copy control clones a plot only
