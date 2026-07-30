@@ -236,11 +236,14 @@ async def instrument_technical_snapshot(
                 code="no_bars", message="No local bars are available.", instrument_id=instrument.id
             )
         )
+        freshness, freshness_detail = await _batch_freshness(db, [instrument.id], timeframe)
         return TechnicalSnapshotOut(
             symbol=instrument.symbol,
             timeframe=timeframe.value,
             as_of=None,
             adjustment="split_adjusted" if adjusted else "raw",
+            freshness=freshness,
+            freshness_detail=freshness_detail,
             last=None,
             rsi14=None,
             sma20=None,
@@ -282,11 +285,14 @@ async def instrument_technical_snapshot(
                     instrument_id=instrument.id,
                 )
             )
+    freshness, freshness_detail = await _batch_freshness(db, [instrument.id], timeframe)
     return TechnicalSnapshotOut(
         symbol=instrument.symbol,
         timeframe=timeframe.value,
         as_of=latest.ts,
         adjustment="split_adjusted" if adjusted else "raw",
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         last=closes[-1],
         rsi14=rsi14,
         sma20=averages[20],
@@ -335,11 +341,14 @@ async def relative_strength(
                 message="Only intersecting timestamps were used; gaps were not forward-filled.",
             )
         )
+    freshness, freshness_detail = await _batch_freshness(db, [primary.id, comparator.id], timeframe)
     return RelativeStrengthOut(
         symbol=primary.symbol,
         benchmark=comparator.symbol,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
+        freshness=freshness,
+        freshness_detail=freshness_detail,
         points=points,
         overlap_start=points[0].timestamp if points else None,
         overlap_end=points[-1].timestamp if points else None,
