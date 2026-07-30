@@ -163,7 +163,7 @@
     <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
-    <StudyLabTool v-else-if="tool.tool_type === 'research_results'" :active-symbol="activeSymbol" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
+    <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" />
     <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>
@@ -185,6 +185,7 @@ import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
+import ResearchResultsTool from './ResearchResultsTool.vue'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
