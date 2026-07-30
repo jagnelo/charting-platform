@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:15:00Z Watchlist condition activation-state checkpoint
+
+- Workstation watchlists now persist explicit saved-condition `active`, `inactive`,
+  and `off` state. Inactive conditions remain configured but do not alter rows; off
+  clears the selected condition. Existing configured IDs remain backward-compatible.
+- Validation: frontend type-check, focused VirtualWatchlistTool tests `7 passed`,
+  diff check. Pushed `9f6abfe`.
+
 ## 2026-07-30T10:12:00Z Four-environment visual screenshot harness checkpoint
 
 - Added dedicated 1920×1080/2560×1440 × 100/125-scale Playwright visual projects and

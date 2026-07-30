@@ -1,5 +1,20 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:15:00Z
+
+- Added persisted Version 25-style saved-condition filter states to workstation lists:
+  `active` applies the retained latest local result, `inactive` retains the chosen
+  condition without filtering rows, and `off` clears it. Legacy persisted condition
+  IDs activate on first load to preserve prior behavior.
+- Pushed `9f6abfe feat(watchlist): persist filter activation states`.
+- Validation passed: frontend type-check, focused VirtualWatchlistTool suite `7 passed`,
+  and `git diff --check`.
+
+### Exact next step
+
+- Add condition-state interaction coverage, then implement grouping/stacking/Boolean
+  pinning rather than treating basic filter activation as complete watchlist parity.
+
 ## Continuation update — 2026-07-30T10:12:00Z
 
 - Added an opt-in four-environment Playwright project for the application-shell
