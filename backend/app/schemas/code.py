@@ -93,3 +93,20 @@ class ResearchRunOut(BaseModel):
     resource_usage: dict
     logs: str
     artifacts: list[ResearchArtifactOut] = Field(default_factory=list)
+
+
+class ResearchBatchCellOut(BaseModel):
+    instrument_id: int
+    symbol: str
+    status: str
+    value: float | bool | None = None
+    error: str | None = None
+
+
+class ResearchBatchResultOut(BaseModel):
+    run_id: int
+    code_version_id: int
+    output_contract: str
+    status: str
+    cells: list[ResearchBatchCellOut] = Field(default_factory=list)
+    dataset_manifest: dict

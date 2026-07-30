@@ -13,6 +13,27 @@ def test_runner_emits_typed_boolean_artifacts():
     assert result["artifacts"]["qualifies"] == {"type": "boolean", "value": True}
 
 
+def test_runner_executes_prepared_universe_cells_without_network_access():
+    result = execute_job(
+        {
+            "source": "output.scalar('last_close', market.close()[-1])",
+            "output_contract": "scalar",
+            "dataset": {"datasets": [
+                {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]},
+                {"instrument_id": 2, "symbol": "XLK", "closes": [20, 22]},
+            ]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"] == {
+        "type": "batch",
+        "value": {"cells": [
+            {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": 11.0},
+            {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": 22.0},
+        ]},
+    }
+
+
 def test_runner_rejects_forbidden_source_before_execution():
     result = execute_job({"source": "import os", "dataset": {}})
     assert result["status"] == "failed"

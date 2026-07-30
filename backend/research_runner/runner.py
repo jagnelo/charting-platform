@@ -46,10 +46,16 @@ def execute_job(job: dict) -> dict:
             "status": "failed",
             "diagnostics": [item.__dict__ for item in validation.diagnostics],
         }
+    datasets = job.get("dataset", {}).get("datasets")
+    if isinstance(datasets, list):
+        return _execute_batch(source, datasets, str(job.get("output_contract") or ""), job)
+    return _execute_single(source, job.get("dataset", {}), job)
+
+
+def _execute_single(source: str, dataset: dict, hash_input: dict) -> dict:
     # The SDK is injected as immutable data/callables by the future materialiser.
     # No Python builtins, imports, filesystem APIs, sockets, or process APIs are exposed.
     outputs: dict[str, object] = {}
-    dataset = job.get("dataset", {})
     safe_globals = {
         "__builtins__": {},
         "output": _Output(outputs, dataset),
@@ -72,7 +78,41 @@ def execute_job(job: dict) -> dict:
         "status": "completed",
         "artifacts": outputs,
         "resource_usage": {"wall_ms": round((time.monotonic() - started) * 1000, 3)},
-        "reproducibility_hash": sha256(json.dumps(job, sort_keys=True).encode()).hexdigest(),
+        "reproducibility_hash": sha256(json.dumps(hash_input, sort_keys=True).encode()).hexdigest(),
+    }
+
+
+def _execute_batch(source: str, datasets: list[object], output_contract: str, hash_input: dict) -> dict:
+    if output_contract not in {"scalar", "boolean"}:
+        return {"status": "failed", "diagnostics": [{"code": "batch_output_contract_unsupported", "message": "Batch execution requires scalar or boolean output."}]}
+    cells: list[dict] = []
+    for candidate in datasets:
+        if not isinstance(candidate, dict):
+            continue
+        instrument_id = candidate.get("instrument_id")
+        symbol = str(candidate.get("symbol") or "").upper()
+        if not isinstance(instrument_id, int) or not symbol:
+            continue
+        result = _execute_single(source, candidate, {"source": source, "dataset": candidate, "output_contract": output_contract})
+        if result.get("status") != "completed":
+            diagnostics = result.get("diagnostics", [])
+            message = diagnostics[0].get("message") if diagnostics and isinstance(diagnostics[0], dict) else "Batch cell failed"
+            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": message})
+            continue
+        matches = [artifact for artifact in result.get("artifacts", {}).values() if isinstance(artifact, dict) and artifact.get("type") == output_contract]
+        if len(matches) != 1:
+            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": f"Expected exactly one {output_contract} output."})
+            continue
+        value = matches[0].get("value")
+        if output_contract == "scalar" and (not isinstance(value, int | float) or isinstance(value, bool)):
+            cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "failed", "error": "Scalar output must be numeric."})
+            continue
+        cells.append({"instrument_id": instrument_id, "symbol": symbol, "status": "completed", "value": value})
+    return {
+        "status": "completed",
+        "artifacts": {"batch_cells": {"type": "batch", "value": {"cells": cells}}},
+        "resource_usage": {"cell_count": len(cells)},
+        "reproducibility_hash": sha256(json.dumps(hash_input, sort_keys=True).encode()).hexdigest(),
     }
 
 
@@ -165,9 +205,9 @@ class _Market:
     def __init__(self, dataset: dict) -> None:
         self._dataset = dataset
 
-    def close(self, symbol: str) -> list[float]:
-        requested = str(symbol).upper()
+    def close(self, symbol: str | None = None) -> list[float]:
         declared = str(self._dataset.get("symbol") or "").upper()
+        requested = str(symbol or declared).upper()
         if not declared or requested != declared:
             raise ValueError(f"{requested} is not declared in this run dataset")
         closes = self._dataset.get("closes", [])

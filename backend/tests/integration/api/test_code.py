@@ -261,3 +261,43 @@ def test_research_run_materializes_only_declared_local_symbol_data(
     assert payload["dataset_manifest"]["symbol"] == instrument.symbol
     assert len(payload["dataset_manifest"]["closes"]) == len(ohlcv_bars)
     assert payload["dataset_manifest"]["adjustment"] == "split_adjusted"
+
+
+def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs"))
+    monkeypatch.setattr("app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results"))
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "batch-last-close",
+            "name": "Batch last close",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.scalar('last_close', market.close()[-1])",
+                "output_contract": "scalar",
+            },
+        },
+    ).json()
+    run = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"], "run_config": {"symbols": [instrument.symbol, "MISSING"]}},
+    )
+    assert run.status_code == 202
+    payload = run.json()
+    assert [item["symbol"] for item in payload["dataset_manifest"]["datasets"]] == [instrument.symbol]
+    assert payload["dataset_manifest"]["exclusions"] == [{"symbol": "MISSING", "code": "declared_instrument_not_found"}]
+
+    result_dir = tmp_path / "results"
+    result_dir.mkdir()
+    (result_dir / f"{payload['id']}.json").write_text(
+        '{"status":"completed","artifacts":{"batch_cells":{"type":"batch","value":{"cells":[{"instrument_id":%d,"symbol":"%s","status":"completed","value":12.5}]}}}}'
+        % (instrument.id, instrument.symbol)
+    )
+    cells = client.get(f"/api/v1/research/runs/{payload['id']}/batch-results", headers=auth_headers)
+    assert cells.status_code == 200
+    assert cells.json()["output_contract"] == "scalar"
+    assert cells.json()["cells"] == [{"instrument_id": instrument.id, "symbol": instrument.symbol, "status": "completed", "value": 12.5, "error": None}]

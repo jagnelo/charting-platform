@@ -14,6 +14,7 @@ def enqueue_research_run(run: ResearchRun) -> None:
         "source": run.code_version.source,
         "dataset": run.dataset_manifest,
         "parameters": run.run_config.get("parameters", {}),
+        "output_contract": run.code_version.output_contract,
     }
     destination = Path(settings.RESEARCH_JOB_DIR) / f"{run.id}.json"
     temporary = destination.with_suffix(".tmp")
