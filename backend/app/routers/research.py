@@ -1,7 +1,7 @@
 """Study Lab run lifecycle; only the isolated runner executes source."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -91,6 +91,33 @@ async def create_run(
     await db.flush()
     enqueue_research_run(run)
     return run
+
+
+@router.get("/runs", response_model=list[ResearchRunOut])
+async def list_runs(
+    limit: int = 25,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the current user's newest persisted research runs for result panes."""
+    bounded_limit = max(1, min(limit, 100))
+    runs = (
+        (
+            await db.execute(
+                select(ResearchRun)
+                .options(selectinload(ResearchRun.artifacts))
+                .where(ResearchRun.user_id == current_user.id)
+                .order_by(desc(ResearchRun.created_at), desc(ResearchRun.id))
+                .limit(bounded_limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for run in runs:
+        collect_research_result(run)
+    await db.flush()
+    return runs
 
 
 @router.get("/runs/{run_id}", response_model=ResearchRunOut)

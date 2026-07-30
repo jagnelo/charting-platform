@@ -76,6 +76,43 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     assert canceled.json()["status"] == "canceled"
 
 
+def test_research_runs_list_is_user_scoped_and_newest_first(
+    client, auth_headers, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "list-study",
+            "name": "List",
+            "kind": "study",
+            "initial_version": {"source": "output.scalar('n', 1)", "output_contract": "study"},
+        },
+    ).json()
+    first = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"]},
+    ).json()
+    second = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={"code_version_id": asset["versions"][0]["id"]},
+    ).json()
+
+    listed = client.get("/api/v1/research/runs?limit=1", headers=auth_headers)
+
+    assert listed.status_code == 200
+    assert [run["id"] for run in listed.json()] == [second["id"]]
+    assert second["id"] > first["id"]
+
+
 def test_research_result_is_collected_as_structured_artifact(
     client, auth_headers, tmp_path, monkeypatch
 ):
