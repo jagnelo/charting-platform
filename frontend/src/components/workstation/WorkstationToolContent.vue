@@ -72,6 +72,7 @@
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
       <div class="chart-tool__surface">
         <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
+        <ChartPlotLibrary class="chart-tool__plots" />
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
@@ -184,6 +185,7 @@ import { computed, provide, ref, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
+import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'

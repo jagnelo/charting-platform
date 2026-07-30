@@ -698,6 +698,8 @@ export interface IndicatorConfig {
   params: Record<string, unknown>
   style: { color: string; lineWidth: number }
   pane?: 'main' | 'separate'
+  /** Hidden plots remain configured and template-serializable but are not rendered. */
+  hidden?: boolean
   /** Timeframes this indicator is active on. null/undefined = all timeframes. */
   lockedTimeframes?: Timeframe[] | null
   /** Show a dashed horizontal projection line to the Y axis. */

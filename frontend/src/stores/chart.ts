@@ -40,7 +40,7 @@ function createChartStore(storeId: string) {
 
     const activeIndicators = computed(() =>
       indicators.value.filter(i =>
-        !i.lockedTimeframes?.length || i.lockedTimeframes.includes(timeframe.value)
+        !i.hidden && (!i.lockedTimeframes?.length || i.lockedTimeframes.includes(timeframe.value))
       )
     )
 
