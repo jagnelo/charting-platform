@@ -71,7 +71,7 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
       <div class="chart-tool__surface">
-        <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" @apply="applyChartTemplate" />
+        <ChartTemplateControl class="chart-tool__templates" :configuration="liveChartConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <div v-if="chartStore.isLoading" class="tool-state">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error">{{ chartStore.error }}</div>
         <UPlotChart
@@ -203,7 +203,8 @@ import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
 import ResearchResultsTool from './ResearchResultsTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
-import { CHART_BAR_TYPES, type ChartBarType, type Timeframe } from '@/types'
+import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
+import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig, type Timeframe } from '@/types'
 
 const props = defineProps<{
   tool: WorkspaceWindowState
@@ -266,11 +267,35 @@ function setTimeframeLinkGroup(group: LinkGroup) {
 }
 
 function applyChartTemplate(configuration: Record<string, unknown>) {
+  const indicators = templateIndicators(configuration.indicators)
   const identity = Object.fromEntries(Object.entries(props.tool.configuration)
     .filter(([key]) => ['symbol', 'instrument_id', 'expression'].includes(key)))
   const applied = { ...configuration, ...identity }
+  if (indicators) {
+    chartStore.setIndicators(indicators)
+    // Chart store persistence is per canonical instrument, which keeps a template's
+    // plot stack available when the window is restored or floated later.
+    void chartStore.saveIndicatorsForInstrument()
+  }
   liveChartConfiguration.value = applied
   emit('configuration', props.tool.instance_key, applied)
+}
+
+function templateIndicators(value: unknown): IndicatorConfig[] | null {
+  if (!Array.isArray(value)) return null
+  const valid = value.filter((candidate): candidate is IndicatorConfig => {
+    if (!candidate || typeof candidate !== 'object') return false
+    const record = candidate as Record<string, unknown>
+    return typeof record.type === 'string' && Boolean(INDICATOR_BY_TYPE[record.type as keyof typeof INDICATOR_BY_TYPE])
+      && Boolean(record.params && typeof record.params === 'object' && !Array.isArray(record.params))
+      && Boolean(record.style && typeof record.style === 'object' && !Array.isArray(record.style))
+  })
+  return valid.map(indicator => ({
+    ...indicator,
+    params: { ...indicator.params },
+    style: { ...indicator.style },
+    lockedTimeframes: indicator.lockedTimeframes ? [...indicator.lockedTimeframes] : indicator.lockedTimeframes,
+  }))
 }
 
 function applyChartConfiguration(changes: Record<string, unknown>) {

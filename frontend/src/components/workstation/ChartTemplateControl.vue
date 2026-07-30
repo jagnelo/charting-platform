@@ -34,10 +34,10 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
-import { CHART_BAR_TYPES, type ChartBarType } from '@/types'
+import { CHART_BAR_TYPES, type ChartBarType, type IndicatorConfig } from '@/types'
 
 type TemplateItem = { stable_key: string; name: string; version: number; payload: { configuration?: Record<string, unknown> } }
-const props = defineProps<{ configuration: Record<string, unknown> }>()
+const props = defineProps<{ configuration: Record<string, unknown>; indicatorConfigs?: IndicatorConfig[] }>()
 const emit = defineEmits<{ apply: [configuration: Record<string, unknown>] }>()
 const open = ref(false)
 const loading = ref(false)
@@ -65,6 +65,20 @@ function stableKey(seed: string) {
 
 function templateConfiguration(value: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(value).filter(([key]) => !identityKeys.has(key)))
+}
+
+function currentTemplateConfiguration() {
+  return {
+    ...props.configuration,
+    // Copy the plot stack deeply enough that later in-chart edits cannot mutate an
+    // already saved immutable library version through a retained array reference.
+    indicators: (props.indicatorConfigs ?? []).map(indicator => ({
+      ...indicator,
+      params: { ...indicator.params },
+      style: { ...indicator.style },
+      lockedTimeframes: indicator.lockedTimeframes ? [...indicator.lockedTimeframes] : indicator.lockedTimeframes,
+    })),
+  }
 }
 
 function apply(item: TemplateItem) {
@@ -103,7 +117,7 @@ async function persist(templateName: string, configuration: Record<string, unkno
   finally { busy.value = false }
 }
 
-async function save() { if (name.value) { await persist(name.value, { ...props.configuration, bar_type: currentBarType.value }); name.value = '' } }
+async function save() { if (name.value) { await persist(name.value, { ...currentTemplateConfiguration(), bar_type: currentBarType.value }); name.value = '' } }
 async function clone(item: TemplateItem) { await persist(`${item.name} copy`, item.payload.configuration ?? {}) }
 async function remove(item: TemplateItem) {
   busy.value = true; error.value = ''
@@ -112,7 +126,7 @@ async function remove(item: TemplateItem) {
   finally { busy.value = false }
 }
 
-function reset() { currentBarType.value = 'candles'; emit('apply', { timeframe: 'D1', bar_type: 'candles' }) }
+function reset() { currentBarType.value = 'candles'; emit('apply', { timeframe: 'D1', bar_type: 'candles', indicators: [] }) }
 function exportItem(item: TemplateItem) {
   const blob = new Blob([JSON.stringify({ kind: 'chart_template', name: item.name, payload: item.payload }, null, 2)], { type: 'application/json' })
   const href = URL.createObjectURL(blob); const link = document.createElement('a')
