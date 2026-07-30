@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:50:00Z
+
+- Completed persisted-freshness derivation for ETF-proxy batches and exposed it in the
+  Breadth, Industry Proxy, and Rotation workstation tools. Replaced the static footer
+  provider claim with actual chart data state. Pushed `cfaa614`, `316805b`, and
+  `085f97b`.
+- Backend workstation integration `13 passed`; frontend TypeScript/production build,
+  Ruff, and diff checks passed.
+
+### Exact next step
+
+- Continue the desktop-mechanics and visual-parity audit, beginning with missing
+  timeframe-link behavior and other tool-window controls.
+
 ## Continuation update — 2026-07-30T12:40:00Z
 
 - Technical snapshots and direct relative-strength ratios now derive freshness from

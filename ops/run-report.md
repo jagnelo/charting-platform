@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:50:00Z Full top-down freshness visibility
+
+- Finished persisted freshness derivation for ETF-proxy batches, surfaced freshness in
+  primary top-down tools, and removed the shell's static provider-status claim. Pushed
+  `cfaa614`, `316805b`, and `085f97b`.
+- Validation: backend workstation integration `13 passed`; frontend TypeScript and
+  production build, Ruff, and diff checks passed. Full desktop and visual acceptance
+  remain incomplete.
+
 ## 2026-07-30T12:40:00Z Technical and ratio freshness
 
 - Added persisted local OHLCV freshness metadata to technical and direct ratio responses.
