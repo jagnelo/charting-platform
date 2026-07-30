@@ -513,6 +513,31 @@ class TestWorkspaces:
         assert ranked_payload["rows"][0]["relative_to_benchmark"]["value"] == 2
         assert ranked_payload["rows"][0]["relative_to_market"]["value"] == 4
 
+        future_timestamp = datetime(2024, 6, 4, tzinfo=UTC)
+        for item, close in ((source, "100"), (proxy, "300"), (instrument, "50")):
+            price = Decimal(close)
+            db.add(
+                OHLCVBar(
+                    instrument_id=item.id,
+                    timeframe=Timeframe.D1,
+                    ts=future_timestamp,
+                    open=price,
+                    high=price,
+                    low=price,
+                    close=price,
+                    volume=Decimal("100"),
+                    is_adjusted=True,
+                )
+            )
+        db.flush()
+        point_in_time = client.get(
+            "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
+            headers=auth_headers,
+            params={"market_benchmark": instrument.symbol, "as_of": timestamp.isoformat()},
+        )
+        assert point_in_time.status_code == 200
+        assert point_in_time.json()["rows"][0]["last"]["value"] == 200
+
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument
     ):
