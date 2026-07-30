@@ -373,11 +373,20 @@ async def resolve_provider_chain(
             select(ProviderPolicy, ProviderHealthState, DataSource)
             .join(DataSource, DataSource.id == ProviderPolicy.data_source_id)
             .join(
+                ProviderEntitlement,
+                (ProviderEntitlement.data_source_id == ProviderPolicy.data_source_id)
+                & (ProviderEntitlement.capability == ProviderPolicy.capability),
+            )
+            .join(
                 ProviderHealthState,
                 (ProviderHealthState.data_source_id == ProviderPolicy.data_source_id)
                 & (ProviderHealthState.capability == ProviderPolicy.capability),
             )
-            .where(ProviderPolicy.capability == capability, ProviderPolicy.is_enabled.is_(True))
+            .where(
+                ProviderPolicy.capability == capability,
+                ProviderPolicy.is_enabled.is_(True),
+                ProviderEntitlement.is_free.is_(True),
+            )
         )
     ).all()
     now = datetime.now(UTC)

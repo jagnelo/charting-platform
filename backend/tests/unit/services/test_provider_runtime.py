@@ -6,8 +6,18 @@ import pytest
 from sqlalchemy import select
 
 from app.models.data_source import DataSource
-from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
-from app.services.provider_runtime import _get_bucket, _get_semaphore, seed_provider_runtime
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderEntitlement,
+    ProviderHealthState,
+    ProviderPolicy,
+)
+from app.services.provider_runtime import (
+    _get_bucket,
+    _get_semaphore,
+    resolve_provider_chain,
+    seed_provider_runtime,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -27,6 +37,25 @@ async def test_seed_provider_runtime_creates_policies_for_supported_non_seeded_p
 
     assert policy is not None
     assert policy.base_priority >= 10
+
+
+@pytest.mark.asyncio
+async def test_provider_chain_excludes_non_free_entitlements(db):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement.is_free = False
+    db.commit()
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert all(item.provider_name != "alpaca" for item in chain)
 
 
 @pytest.mark.asyncio
