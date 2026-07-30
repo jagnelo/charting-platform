@@ -253,6 +253,30 @@ describe('VirtualWatchlistTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 77, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
   })
 
+  it('runs a persisted Boolean Python condition as a watchlist filter without changing saved screener state', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Positive close', versions: [{ id: 88, version_number: 2 }] }])
+      if (path === '/research/runs/9/batch-results') return Promise.resolve({ status: 'completed', cells: [
+        { symbol: 'XLK', status: 'completed', value: true },
+        { symbol: 'XLE', status: 'completed', value: false },
+        { symbol: 'XLV', status: 'completed', value: true },
+      ] })
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 9 })
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await vi.waitFor(() => expect(wrapper.find('select[aria-label="Sectors Python condition filter"]').exists()).toBe(true))
+    const condition = wrapper.get('select[aria-label="Sectors Python condition filter"]')
+    await condition.setValue('88')
+    await vi.waitFor(() => expect(wrapper.emitted('update:pythonCondition')?.at(-1)).toEqual([{ code_version_id: 88, name: 'Positive close v2', mode: 'active' }]))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Python condition active · 2/3 match.'))
+    expect(wrapper.find('.watchlist__controls b').text()).toBe('2')
+    expect(wrapper.text()).toContain('XLK')
+    expect(wrapper.text()).not.toContain('XLE')
+    expect(wrapper.emitted('update:conditionScreenerId')).toBeUndefined()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ code_version_id: 88, run_config: { symbols: ['XLK', 'XLE', 'XLV'] } }))
+  })
+
   it('traverses canonical rows with Ctrl+wheel in the focused list', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'XLE' } })
     wrapper.find('.watchlist__scroll').element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))

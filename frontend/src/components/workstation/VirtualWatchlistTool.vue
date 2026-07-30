@@ -12,11 +12,21 @@
         <option value="inactive">Inactive</option>
         <option value="off">Off</option>
       </select>
+      <select v-if="pythonConditionAssets.length" v-model="selectedPythonConditionVersion" :aria-label="`${label} Python condition filter`" :title="pythonConditionState">
+        <option value="">Python filter: Off</option>
+        <option v-for="asset in pythonConditionAssets" :key="asset.versionId" :value="String(asset.versionId)">Python filter: {{ asset.name }}</option>
+      </select>
+      <select v-if="pythonCondition" v-model="pythonConditionMode" :aria-label="`${label} Python condition filter mode`">
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="off">Off</option>
+      </select>
       <button class="watchlist__columns-button" type="button" @click="columnMenuOpen = !columnMenuOpen">Columns</button>
       <button class="watchlist__columns-button" type="button" aria-label="Column sets" @click="columnSetMenuOpen = !columnSetMenuOpen">Sets</button>
       <b>{{ filteredRows.length }}</b>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
+    <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}</p>
     <div v-if="columnMenuOpen" class="watchlist__column-menu">
       <label v-for="column in effectiveColumns" :key="column.key"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" />{{ column.label }}<button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)">←</button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)">→</button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @change="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button></label>
       <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button></div>
@@ -111,6 +121,7 @@ const props = withDefaults(defineProps<{
   columnGroups?: Record<string, string>
   stackedColumnKeys?: string[]
   pythonColumns?: Array<{ code_version_id: number; name: string }>
+  pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
 }>(), {
   selected: '',
   columns: () => [
@@ -125,8 +136,9 @@ const props = withDefaults(defineProps<{
   columnGroups: () => ({}),
   stackedColumnKeys: () => [],
   pythonColumns: () => [],
+  pythonCondition: null,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -134,6 +146,10 @@ const conditionFilterMode = ref(props.conditionFilterMode)
 const screeners = ref<SavedScreener[]>([])
 const conditionMatchedIds = ref<Set<number> | null>(null)
 const conditionFilterState = ref('')
+const selectedPythonConditionVersion = ref(props.pythonCondition?.code_version_id ? String(props.pythonCondition.code_version_id) : '')
+const pythonConditionMode = ref<'active' | 'inactive' | 'off'>(props.pythonCondition?.mode ?? 'off')
+const pythonConditionMatchedSymbols = ref<Set<string> | null>(null)
+const pythonConditionState = ref('')
 const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 const columnMenuOpen = ref(false)
@@ -145,10 +161,13 @@ const columnSetError = ref('')
 const columnSets = ref<ColumnSetItem[]>([])
 const selectedPythonVersion = ref('')
 const pythonAssets = ref<Array<{ versionId: number; name: string }>>([])
+const pythonConditionAssets = ref<Array<{ versionId: number; name: string }>>([])
 const pythonCells = ref<Record<string, Record<string, { value?: number | boolean; error?: string }>>>({})
 const runningPythonColumns = new Set<number>()
+const runningPythonConditions = new Set<number>()
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
+const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
 const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))])
 const activeColumnKeys = computed(() => props.visibleColumnKeys.length ? props.visibleColumnKeys : effectiveColumns.value.map(column => column.key))
 const visibleColumns = computed(() => activeColumnKeys.value
@@ -167,9 +186,12 @@ const filteredRows = computed(() => {
   const textRows = needle
     ? props.rows.filter(row => `${row.symbol} ${row.name}`.toLowerCase().includes(needle))
     : [...props.rows]
-  const rows = conditionMatchedIds.value === null
+  const screenerRows = conditionMatchedIds.value === null
     ? textRows
     : textRows.filter(row => row.instrumentId != null && conditionMatchedIds.value?.has(row.instrumentId))
+  const rows = pythonConditionMatchedSymbols.value === null
+    ? screenerRows
+    : screenerRows.filter(row => pythonConditionMatchedSymbols.value?.has(row.symbol))
   return rows.sort((left, right) => {
     for (const key of props.pinnedBooleanKeys) {
       const leftPinned = Boolean(left.values?.[key])
@@ -207,6 +229,12 @@ watch(() => props.conditionScreenerId, value => {
   if (normalized !== conditionFilter.value) conditionFilter.value = normalized
 })
 watch(() => props.conditionFilterMode, value => { if (value !== conditionFilterMode.value) conditionFilterMode.value = value })
+watch(() => props.pythonCondition, value => {
+  const nextId = value?.code_version_id ? String(value.code_version_id) : ''
+  if (nextId !== selectedPythonConditionVersion.value) selectedPythonConditionVersion.value = nextId
+  const nextMode = value?.mode ?? 'off'
+  if (nextMode !== pythonConditionMode.value) pythonConditionMode.value = nextMode
+})
 watch(conditionFilter, value => { void applyConditionFilter(value) })
 watch(conditionFilterMode, mode => {
   emit('update:conditionFilterMode', mode)
@@ -219,6 +247,23 @@ watch(conditionFilterMode, mode => {
     conditionMatchedIds.value = null
     conditionFilterState.value = 'Saved condition inactive; its last result is retained but does not filter rows.'
   }
+})
+watch(selectedPythonConditionVersion, value => { configurePythonCondition(value) })
+watch(pythonConditionMode, mode => {
+  const configured = pythonCondition.value
+  if (!configured) return
+  if (mode === 'off') {
+    pythonConditionMatchedSymbols.value = null
+    pythonConditionState.value = ''
+    selectedPythonConditionVersion.value = ''
+    emit('update:pythonCondition', null)
+    return
+  }
+  emit('update:pythonCondition', { ...configured, mode })
+  if (mode === 'inactive') {
+    pythonConditionMatchedSymbols.value = null
+    pythonConditionState.value = 'Python condition inactive; it does not filter rows.'
+  } else void runPythonCondition(configured)
 })
 
 async function loadScreeners() {
@@ -234,7 +279,8 @@ async function loadPythonAssets() {
   try {
     const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number }> }>>('/code/assets')
     pythonAssets.value = assets.filter(asset => asset.kind === 'column').flatMap(asset => asset.versions.slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
-  } catch { pythonAssets.value = [] }
+    pythonConditionAssets.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
+  } catch { pythonAssets.value = []; pythonConditionAssets.value = [] }
 }
 function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
 async function runPythonColumn(column: { code_version_id: number; name: string }) {
@@ -265,6 +311,51 @@ function addPythonColumn() {
   emit('update:pythonColumns', [...pythonColumns.value, column])
   selectedPythonVersion.value = ''
   void runPythonColumn(column)
+}
+
+function configurePythonCondition(value: string) {
+  const versionId = Number(value)
+  const asset = pythonConditionAssets.value.find(item => item.versionId === versionId)
+  if (!asset) {
+    if (!value) {
+      pythonConditionMatchedSymbols.value = null
+      pythonConditionState.value = ''
+      emit('update:pythonCondition', null)
+    }
+    return
+  }
+  const condition = { code_version_id: versionId, name: asset.name, mode: 'active' as const }
+  if (pythonConditionMode.value === 'off') pythonConditionMode.value = 'active'
+  emit('update:pythonCondition', condition)
+  void runPythonCondition(condition)
+}
+
+async function runPythonCondition(condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' }) {
+  if (condition.mode !== 'active' || runningPythonConditions.has(condition.code_version_id)) return
+  const symbols = [...new Set(props.rows.map(row => row.symbol).filter(Boolean))]
+  if (!symbols.length) return
+  runningPythonConditions.add(condition.code_version_id)
+  pythonConditionMatchedSymbols.value = null
+  pythonConditionState.value = 'Running Python condition…'
+  try {
+    const run = await api.post<{ id: number }>('/research/runs', { code_version_id: condition.code_version_id, run_config: { symbols }, dataset_manifest: { source: 'canonical_database' } })
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const result = await api.get<{ status: string; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }>(`/research/runs/${run.id}/batch-results`)
+      if (result.status === 'completed' || result.status === 'failed' || result.status === 'canceled') {
+        const completed = result.cells.filter(cell => cell.status === 'completed')
+        const errors = result.cells.length - completed.length
+        pythonConditionMatchedSymbols.value = new Set(completed.filter(cell => cell.value === true).map(cell => cell.symbol))
+        pythonConditionState.value = errors ? `Python condition active · ${completed.length}/${result.cells.length} evaluated; ${errors} unavailable.` : `Python condition active · ${pythonConditionMatchedSymbols.value.size}/${completed.length} match.`
+        return
+      }
+      await sleep(250)
+    }
+    pythonConditionMatchedSymbols.value = new Set()
+    pythonConditionState.value = 'Python condition timed out; no rows are shown.'
+  } catch (cause: any) {
+    pythonConditionMatchedSymbols.value = new Set()
+    pythonConditionState.value = `Python condition unavailable: ${cause?.message ?? 'Unknown error'}`
+  } finally { runningPythonConditions.delete(condition.code_version_id) }
 }
 
 function columnSetKey(name: string) {
@@ -375,12 +466,14 @@ onMounted(() => {
   void loadPythonAssets()
   for (const column of pythonColumns.value) void runPythonColumn(column)
   if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
+  if (pythonCondition.value) void runPythonCondition(pythonCondition.value)
 })
 watch(pythonColumns, columns => {
   for (const column of columns) {
     if (!pythonCells.value[pythonKey(column.code_version_id)]) void runPythonColumn(column)
   }
 }, { deep: true })
+watch(pythonCondition, condition => { if (condition) void runPythonCondition(condition) }, { deep: true })
 
 function display(row: WatchlistRow, key: string) {
   if (key.startsWith('python:')) {

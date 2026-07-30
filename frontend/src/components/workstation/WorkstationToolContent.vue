@@ -13,6 +13,7 @@
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
+      :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -22,6 +23,7 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <VirtualWatchlistTool
       v-else-if="tool.instance_key === 'sector-list'"
@@ -37,6 +39,7 @@
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
+      :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -46,6 +49,7 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <VirtualWatchlistTool
       v-else-if="tool.tool_type === 'watchlist'"
@@ -61,6 +65,7 @@
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
+      :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -70,6 +75,7 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <div v-else-if="ratioExpression" class="analysis">
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
@@ -122,6 +128,7 @@
             :column-groups="configuredColumnGroups"
             :stacked-column-keys="configuredStackedColumnKeys"
             :python-columns="configuredPythonColumns"
+            :python-condition="configuredPythonCondition"
             @select="selectProxy($event.symbol)"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -131,6 +138,7 @@
             @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
             @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
             @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+            @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
           />
           <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
@@ -154,6 +162,7 @@
       :column-groups="configuredColumnGroups"
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
+      :python-condition="configuredPythonCondition"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
@@ -163,6 +172,7 @@
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
+      @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" />
@@ -532,6 +542,14 @@ const configuredStackedColumnKeys = computed(() => Array.isArray(props.tool.conf
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
   ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string')
   : [])
+const configuredPythonCondition = computed(() => {
+  const condition = props.tool.configuration.python_condition
+  if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return null
+  const value = condition as Record<string, unknown>
+  return Number.isInteger(value.code_version_id) && typeof value.name === 'string' && ['active', 'inactive', 'off'].includes(String(value.mode))
+    ? { code_version_id: value.code_version_id as number, name: value.name, mode: value.mode as 'active' | 'inactive' | 'off' }
+    : null
+})
 const descriptions: Record<string, string> = {
   SPY: 'S&P 500 proxy', RSP: 'S&P 500 equal weight', QQQ: 'Nasdaq-100 proxy', DIA: 'Dow Jones proxy', IWM: 'Russell 2000 proxy',
   XLK: 'Technology', XLY: 'Consumer Discretionary', XLC: 'Communication Services', XLF: 'Financials', XLV: 'Health Care', XLI: 'Industrials', XLP: 'Consumer Staples', XLE: 'Energy', XLU: 'Utilities', XLRE: 'Real Estate', XLB: 'Materials',
