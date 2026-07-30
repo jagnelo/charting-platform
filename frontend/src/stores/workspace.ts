@@ -63,6 +63,7 @@ export interface LinkEvent {
   symbol: string
   /** Optional historical point selected by a linked research occurrence. */
   timestamp?: string
+  timeframe?: string
   sourceWindowKey?: string
   group: LinkGroup
 }
@@ -235,6 +236,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeTabKey = ref<string>('us-top-down')
   const linkedSymbol = ref('SPY')
   const linkedTimestamp = ref<string | null>(null)
+  const linkedTimeframe = ref('D1')
   const loading = ref(false)
   const error = ref<string | null>(null)
   const isPersistenceLeader = ref(false)
@@ -280,9 +282,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function handleMessage(event: MessageEvent<LinkEvent & { type?: string }>) {
-    if (event.data.type !== 'symbol' || event.data.group === 'grey') return
-    linkedSymbol.value = event.data.symbol
-    linkedTimestamp.value = event.data.timestamp ?? null
+    if (event.data.group === 'grey') return
+    if (event.data.type === 'symbol') {
+      linkedSymbol.value = event.data.symbol
+      linkedTimestamp.value = event.data.timestamp ?? null
+    }
+    if (event.data.type === 'timeframe' && event.data.timeframe) linkedTimeframe.value = event.data.timeframe
   }
 
   function refreshLeadership() {
@@ -324,11 +329,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       refreshLeadership()
       return
     }
-    if (event.key !== CHANNEL_NAME + ':symbol' || !event.newValue) return
+    if (!event.key || ![CHANNEL_NAME + ':symbol', CHANNEL_NAME + ':timeframe'].includes(event.key) || !event.newValue) return
     const message = JSON.parse(event.newValue) as LinkEvent
     if (message.group !== 'grey') {
-      linkedSymbol.value = message.symbol
-      linkedTimestamp.value = message.timestamp ?? null
+      if (event.key === CHANNEL_NAME + ':symbol') {
+        linkedSymbol.value = message.symbol
+        linkedTimestamp.value = message.timestamp ?? null
+      }
+      if (event.key === CHANNEL_NAME + ':timeframe' && message.timeframe) linkedTimeframe.value = message.timeframe
     }
   }
 
@@ -355,6 +363,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     linkedTimestamp.value = event.timestamp ?? null
     channel?.postMessage({ ...event, type: 'symbol' })
     localStorage.setItem(CHANNEL_NAME + ':symbol', JSON.stringify(event))
+  }
+
+  function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
+    if (group === 'grey') return
+    linkedTimeframe.value = timeframe
+    const event: LinkEvent & { type: 'timeframe' } = { symbol: linkedSymbol.value, timeframe, group, sourceWindowKey, type: 'timeframe' }
+    channel?.postMessage(event)
+    localStorage.setItem(CHANNEL_NAME + ':timeframe', JSON.stringify(event))
   }
 
   async function loadDefault() {
@@ -795,6 +811,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTabKey,
     linkedSymbol,
     linkedTimestamp,
+    linkedTimeframe,
     loading,
     error,
     isPersistenceLeader,
@@ -816,6 +833,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     connect,
     disconnect,
     publishSymbol,
+    publishTimeframe,
     loadDefault,
     loadMarketGroup,
     loadGroupSnapshot,
