@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:49:00Z Proxy-ranking as-of regression checkpoint
+
+- Added direct proof that a later proxy bar cannot appear in an as-of constrained
+  industry-proxy ranking. Pushed `867c0e3`.
+- Validation: workspace/analysis integration `13 passed` with `--no-cov`, Ruff/format,
+  diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:47:00Z Proxy ranking point-in-time boundary checkpoint
 
 - Bound verified industry-proxy ranking disclosure selection and local price history by

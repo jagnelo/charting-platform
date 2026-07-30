@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:49:00Z
+
+- Added direct regression coverage proving the proxy-ranking endpoint excludes a later
+  local bar when an `as_of` value is supplied.
+- Pushed `867c0e3`; workspace/analysis integration `13 passed` with `--no-cov`,
+  Ruff/format, and diff checks passed.
+
+### Exact next step
+
+- Continue the complete top-down and workstation acceptance paths.
+
 ## Continuation update — 2026-07-30T10:47:00Z
 
 - Corrected industry-proxy ranking point-in-time behavior: requested `as_of` now
