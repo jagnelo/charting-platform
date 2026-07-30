@@ -368,6 +368,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function publishTimeframe(timeframe: string, group: LinkGroup = 'blue', sourceWindowKey = 'workstation') {
     if (group === 'grey') return
     linkedTimeframe.value = timeframe
+    if (workspace.value) {
+      workspace.value.settings = { ...workspace.value.settings, linked_timeframe: timeframe }
+      scheduleSnapshot()
+    }
     const event: LinkEvent & { type: 'timeframe' } = { symbol: linkedSymbol.value, timeframe, group, sourceWindowKey, type: 'timeframe' }
     channel?.postMessage(event)
     localStorage.setItem(CHANNEL_NAME + ':timeframe', JSON.stringify(event))
@@ -380,6 +384,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       workspace.value = await api.get<WorkspaceState>('/workspaces/default')
       persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
+      const savedTimeframe = workspace.value.settings.linked_timeframe
+      linkedTimeframe.value = typeof savedTimeframe === 'string' ? savedTimeframe : 'D1'
     } catch (cause: any) {
       error.value = cause?.message ?? 'Unable to load workstation'
     } finally {
