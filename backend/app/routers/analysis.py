@@ -26,6 +26,9 @@ from app.schemas.analysis import (
     GroupSnapshotOut,
     GroupSnapshotRow,
     MarketGaugeOut,
+    RelativeRotationOut,
+    RelativeRotationRow,
+    RelativeRotationTailPoint,
     RelativeStrengthOut,
     TechnicalSnapshotOut,
 )
@@ -283,6 +286,93 @@ async def relative_strength(
         overlap_end=points[-1].timestamp if points else None,
         coverage=len(points) / maximum,
         warnings=warnings,
+    )
+
+
+@router.get("/groups/{group_key}/relative-rotation", response_model=RelativeRotationOut)
+async def group_relative_rotation(
+    group_key: str,
+    benchmark: str,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
+    lookback: int = Query(default=20, ge=2, le=252),
+    tail_length: int = Query(default=10, ge=1, le=100),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Transparent relative trend/momentum states from locally aligned ratios.
+
+    Trend is the ratio return over ``lookback`` bars. Momentum is its change from
+    the preceding lookback observation. This is deliberately not a JdK calculation.
+    """
+    group = (
+        await db.execute(
+            select(MarketGroup)
+            .options(selectinload(MarketGroup.members))
+            .where(MarketGroup.stable_key == group_key)
+        )
+    ).scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
+    benchmark_instrument = await _instrument(db, benchmark)
+    instrument_ids = [member.instrument_id for member in group.members]
+    instruments = {
+        instrument.id: instrument
+        for instrument in (
+            await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+        ).scalars()
+    }
+    bars_by_id = await _bars_by_instrument(
+        db, [*instrument_ids, benchmark_instrument.id], timeframe, adjusted
+    )
+    benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
+    rows: list[RelativeRotationRow] = []
+    for member in sorted(group.members, key=lambda item: item.position):
+        instrument = instruments.get(member.instrument_id)
+        if instrument is None:
+            continue
+        bars = bars_by_id.get(instrument.id, [])
+        aligned = [
+            (bar.ts, float(bar.close / benchmark_bars[bar.ts].close))
+            for bar in bars
+            if bar.ts in benchmark_bars and benchmark_bars[bar.ts].close != 0
+        ]
+        maximum = max(len(bars), len(benchmark_bars), 1)
+        warnings: list[AnalysisWarning] = []
+        if not aligned:
+            warnings.append(AnalysisWarning(code="no_aligned_bars", message="No aligned ratio bars are available.", instrument_id=instrument.id))
+        elif len(aligned) < maximum:
+            warnings.append(AnalysisWarning(code="partial_overlap", message="Only intersecting timestamps were used; gaps were not forward-filled.", instrument_id=instrument.id))
+        coordinates: list[RelativeRotationTailPoint] = []
+        for index in range(lookback * 2, len(aligned)):
+            ratio = aligned[index][1]
+            prior_ratio = aligned[index - lookback][1]
+            prior_prior_ratio = aligned[index - lookback * 2][1]
+            if prior_ratio == 0 or prior_prior_ratio == 0:
+                continue
+            trend = ratio / prior_ratio - 1
+            previous_trend = prior_ratio / prior_prior_ratio - 1
+            coordinates.append(RelativeRotationTailPoint(timestamp=aligned[index][0], trend=trend, momentum=trend - previous_trend))
+        if not coordinates:
+            warnings.append(AnalysisWarning(code="insufficient_history", message=f"Relative rotation requires {lookback * 2 + 1} aligned bars.", instrument_id=instrument.id))
+            rows.append(RelativeRotationRow(instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name, coverage=len(aligned) / maximum, warnings=warnings))
+            continue
+        latest = coordinates[-1]
+        state = (
+            "leading" if latest.trend >= 0 and latest.momentum >= 0
+            else "weakening" if latest.trend >= 0
+            else "improving" if latest.momentum >= 0
+            else "lagging"
+        )
+        rows.append(RelativeRotationRow(
+            instrument_id=instrument.id, symbol=instrument.symbol, name=instrument.name,
+            trend=latest.trend, momentum=latest.momentum, state=state,
+            coverage=len(aligned) / maximum, tail=coordinates[-tail_length:], warnings=warnings,
+        ))
+    return RelativeRotationOut(
+        group_key=group.stable_key, benchmark=benchmark_instrument.symbol,
+        timeframe=timeframe.value, adjustment="split_adjusted" if adjusted else "raw",
+        lookback=lookback, tail_length=tail_length, membership_version=group.id, rows=rows,
     )
 
 

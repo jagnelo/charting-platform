@@ -28,6 +28,35 @@ class RelativeStrengthOut(BaseModel):
     warnings: list[AnalysisWarning] = Field(default_factory=list)
 
 
+class RelativeRotationTailPoint(BaseModel):
+    timestamp: datetime
+    trend: float
+    momentum: float
+
+
+class RelativeRotationRow(BaseModel):
+    instrument_id: int
+    symbol: str
+    name: str
+    trend: float | None = None
+    momentum: float | None = None
+    state: str | None = None
+    coverage: float = Field(ge=0, le=1)
+    tail: list[RelativeRotationTailPoint] = Field(default_factory=list)
+    warnings: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class RelativeRotationOut(BaseModel):
+    group_key: str
+    benchmark: str
+    timeframe: str
+    adjustment: str
+    lookback: int
+    tail_length: int
+    membership_version: int
+    rows: list[RelativeRotationRow]
+
+
 class AnalysisCell(BaseModel):
     value: float | None = None
     observation_time: datetime | None = None

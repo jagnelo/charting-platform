@@ -295,6 +295,17 @@ class TestWorkspaces:
         assert payload["points"][-1]["coverage"]["ma20"] == 1
         assert payload["points"][-1]["coverage"]["ma200"] == 0
 
+        rotation = client.get(
+            "/api/v1/analysis/groups/breadth-history-test/relative-rotation",
+            headers=auth_headers,
+            params={"benchmark": instrument.symbol, "lookback": 20, "tail_length": 3},
+        )
+        assert rotation.status_code == 200
+        row = rotation.json()["rows"][0]
+        assert row["state"] == "leading"
+        assert len(row["tail"]) == 3
+        assert row["coverage"] == 1
+
     def test_instrument_notes_are_user_scoped_and_autosave_ready(
         self, client, auth_headers, instrument
     ):

@@ -59,7 +59,7 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
     if factory_id == "us-top-down":
         return {
             "factory_id": factory_id,
-            "version": 5,
+            "version": 6,
             "root": {
                 "type": "row",
                 "content": [
@@ -86,6 +86,7 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                             component(windows[10]),
                             component(windows[11]),
                             component(windows[12]),
+                            component(windows[13]),
                         ],
                     },
                 ],
@@ -136,6 +137,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
         ("alerts", "alerts", "Alerts", {"scope": "active-instrument"}),
         ("easy-scan", "scan", "EasyScan", {"scope": "saved-conditions"}),
         ("market-gauge", "gauge", "Market Gauge", {"scope": "saved-scans"}),
+        ("relative-rotation", "rotation", "Relative Rotation", {"group": "sp500-sectors", "benchmark": "SPY"}),
     ]
     tab.layout_config = _factory_layout(default_windows, "us-top-down")
     for position, (instance_key, tool_type, title, configuration) in enumerate(default_windows):
