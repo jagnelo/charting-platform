@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T11:46:00Z
+
+- Enforced the free-source boundary in canonical provider resolution. A non-free
+  entitlement is excluded before any provider execution; direct runtime coverage
+  proves the exclusion. Pushed `cc7439a`.
+- Provider-runtime `6 passed` with `--no-cov`, Ruff, and diff checks passed.
+
+### Exact next step
+
+- Add entitlement review/environment eligibility and surface provider governance in
+  workstation coverage/freshness without exposing provider internals in tool APIs.
+
 ## Continuation update — 2026-07-30T11:42:00Z
 
 - Entitlements now seed explicitly as unreviewed for each supported provider/capability,

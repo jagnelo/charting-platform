@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T11:46:00Z Free entitlement provider-resolution enforcement
+
+- Provider resolution now excludes any non-free entitlement before execution; direct
+  runtime coverage proves capability exclusion. Pushed `cc7439a`.
+- Validation: provider runtime `6 passed` with `--no-cov`, Ruff, and diff check.
+  Review/environment eligibility remains incomplete.
+
 ## 2026-07-30T11:42:00Z Provider entitlement governance API
 
 - Seeded explicit unreviewed provider/capability entitlements and added authenticated
