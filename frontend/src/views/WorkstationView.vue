@@ -3,7 +3,9 @@
     <header v-if="!isPopout" class="workstation__menu">
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
-        <button type="button" @click="workspaceStore.activeTabKey = 'study-lab'">Tools</button>
+        <button type="button" title="Clone active workspace layout" @click="workspaceStore.cloneActiveTab()">Workspace</button>
+        <button type="button" title="Open Study Lab layout" @click="workspaceStore.activeTabKey = 'study-lab'">Study</button>
+        <button v-if="workspaceStore.workspace?.is_default" type="button" title="Reset factory workspace" @click="resetFactoryWorkspace">Reset</button>
       </nav>
       <div class="workstation__search">
         <input
