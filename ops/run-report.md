@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T09:42:00Z Historical breadth workstation chart
+
+- Added point-in-time local historical breadth API and uPlot rendering for 20/50/200
+  moving-average participation with per-period coverage and no forward filling.
+- Pushed `eaac513 feat(top-down): add historical breadth workstation chart`.
+- Validation passed: workspace/analysis integration `11 passed`, Ruff, frontend
+  type-check, production build, and `git diff --check`.
+
 ## 2026-07-30T00:06:00Z Technical ranking-field formatting
 
 - Added explicit number/percent dense-column formatting so RSI renders as 0–100 while

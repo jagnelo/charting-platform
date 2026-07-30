@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T09:42:00Z
+
+- Added canonical local historical breadth: date-aligned percentage above 20/50/200-day
+  averages plus per-period coverage, with no constituent gap fill. The workstation
+  Breadth tool now renders the series through uPlot alongside its current summary.
+- Pushed `eaac513 feat(top-down): add historical breadth workstation chart`.
+- Validation passed: workspace/analysis integration `11 passed`, Ruff, frontend
+  type-check, production build, and `git diff --check`.
+
+### Exact next step
+
+- Implement transparent historical relative rotation with the same overlap/coverage
+  rules, then extend batch top-down analysis to industry proxies and ETF constituents.
+
 ## Continuation update — 2026-07-30T00:06:00Z
 
 - Added explicit dense-column number/percent formatting. This corrects technical
