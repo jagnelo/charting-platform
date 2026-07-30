@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T14:50:00Z",
-    "last_commit": "5044961 feat(workstation): link chart timeframes by group",
+    "last_handoff_at": "2026-07-30T14:55:00Z",
+    "last_commit": "acacaf6 fix(workstation): separate factory chart timeframes",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T14:55:00Z: Four Timeframe factory now has a two-by-two Golden Layout grid and TC Classic includes Notes. Workspace API 16 passed with two existing Nautilus deprecation warnings, Ruff/diff check passed; broader acceptance remains incomplete.",
         "2026-07-30T14:50:00Z: Four Timeframe now uses four blue/symbol-linked charts with distinct timeframe link groups and canonical M15/D1/W1/MN defaults. Chart chrome separates timeframe links from symbol links. The old M1-as-monthly error is normalized to MN on load. Factory reset now awaits transactional replacement and advances factory version 7. Frontend focused 19 passed, workspace API 16 passed with two existing Nautilus deprecation warnings, Ruff/type-check/build/diff check passed; browser interaction and visual acceptance remain incomplete.",
         "2026-07-30T14:45:00Z: Chart timeframes now resolve per persisted link group: coloured groups synchronize independently, yellow follows all non-grey events, and grey persists only on its chart. Panel-scoped chart loading watches group-resolved symbol plus timeframe. Workspace store 16 passed plus TypeScript/build/diff check; browser per-window timeframe interaction and full visual acceptance remain incomplete.",
         "2026-07-30T16:50:00Z: uPlot crosshairs now publish timestamp changes across workstation windows and consume timestamps only for their link group; yellow follows all and grey is isolated. Duplicate events are suppressed within a bar. Workspace store 15 passed plus TypeScript/build/diff check; full visual acceptance remains incomplete.",

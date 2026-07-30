@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T14:55:00Z
+
+- Factory layout correction: `4 Timeframe` now uses a real two-by-two Golden Layout
+  grid, and `TC Classic` includes the supported Notes tool. No unsupported comparison
+  surface was labelled as implemented.
+- Validation: focused workspace API `16 passed` (two existing Nautilus deprecation
+  warnings), Ruff, and diff check passed.
+
 ## Continuation update — 2026-07-30T14:50:00Z
 
 - `4 Timeframe` now creates four blue/symbol-linked charts with separate timeframe

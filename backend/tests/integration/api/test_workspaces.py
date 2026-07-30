@@ -43,6 +43,12 @@ class TestWorkspaces:
             "red", "green", "purple", "orange",
         }
         assert {window["link_group"] for window in four_timeframe["windows"]} == {"blue"}
+        assert four_timeframe["layout_config"]["root"]["type"] == "row"
+        assert [column["type"] for column in four_timeframe["layout_config"]["root"]["content"]] == [
+            "column", "column"
+        ]
+        tc_classic = next(tab for tab in workspace["tabs"] if tab["stable_key"] == "tc-classic")
+        assert {window["tool_type"] for window in tc_classic["windows"]} >= {"chart", "watchlist", "notes"}
 
     def test_factory_reset_recreates_latest_factory_layout(self, client, auth_headers):
         workspace = client.get("/api/v1/workspaces/default", headers=auth_headers).json()

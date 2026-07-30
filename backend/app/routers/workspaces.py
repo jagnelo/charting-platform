@@ -93,6 +93,18 @@ def _factory_layout(windows: list[tuple[str, str, str, dict]], factory_id: str) 
                 ],
             },
         }
+    if factory_id == "four-timeframe":
+        return {
+            "factory_id": factory_id,
+            "version": FACTORY_WORKSPACE_VERSION,
+            "root": {
+                "type": "row",
+                "content": [
+                    {"type": "column", "width": 50, "content": [component(windows[0]), component(windows[1])]},
+                    {"type": "column", "width": 50, "content": [component(windows[2]), component(windows[3])]},
+                ],
+            },
+        }
     return {
         "factory_id": factory_id,
         "version": 2,
@@ -159,7 +171,11 @@ def _factory_tabs() -> list[WorkspaceTab]:
             (
                 "tc-classic",
                 "TC Classic",
-                [("chart", "chart", "Chart"), ("watchlist", "watchlist", "WatchList")],
+                [
+                    ("chart", "chart", "Chart"),
+                    ("watchlist", "watchlist", "WatchList"),
+                    ("notes", "notes", "Notes"),
+                ],
             ),
             (
                 "drill-down",

@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T14:55:00Z Factory layout structure correction
+
+- `4 Timeframe` now renders as a two-by-two dock grid; `TC Classic` has its supported
+  Notes tool. Focused workspace API `16 passed`, Ruff, diff check passed.
+
 ## 2026-07-30T14:50:00Z Independent Four Timeframe factory layout
 
 - The factory now gives M15/D1/W1/MN charts one shared symbol-link group and four
