@@ -59,6 +59,26 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
 
 
 @pytest.mark.asyncio
+async def test_provider_chain_excludes_environment_ineligible_entitlements(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement.enabled_environments = ["production"]
+    db.commit()
+    monkeypatch.setattr("app.services.provider_runtime.settings.APP_ENV", "development")
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_seed_provider_runtime_backfills_missing_policy_defaults(db):
     async_db = AsyncSessionAdapter(db)
     data_source = DataSource(name="yfinance")

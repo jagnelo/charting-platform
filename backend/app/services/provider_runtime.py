@@ -370,7 +370,7 @@ async def resolve_provider_chain(
     await seed_provider_runtime(db)
     rows = (
         await db.execute(
-            select(ProviderPolicy, ProviderHealthState, DataSource)
+            select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
             .join(DataSource, DataSource.id == ProviderPolicy.data_source_id)
             .join(
                 ProviderEntitlement,
@@ -399,7 +399,13 @@ async def resolve_provider_chain(
         await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
     resolved: list[ResolvedProvider] = []
-    for policy, health, data_source in rows:
+    current_environment = settings.APP_ENV.strip().lower()
+    for policy, health, data_source, entitlement in rows:
+        allowed_environments = {
+            str(value).strip().lower() for value in entitlement.enabled_environments
+        }
+        if allowed_environments and current_environment not in allowed_environments:
+            continue
         if health.circuit_open_until and health.circuit_open_until > now:
             continue
         support_state = support_map.get(data_source.id)
