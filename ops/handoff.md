@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:05:00Z
+
+- Ratio chart tools now carry their own persisted/link-group timeframe into the
+  canonical `/analysis/relative-strength` request. This preserves aligned-bar,
+  freshness, adjustment, and coverage semantics for intraday, daily, weekly, and
+  monthly ratio views rather than silently forcing daily data.
+- General arithmetic expression charts no longer require a fallback symbol in their
+  serialized tool configuration: expression-only chart tools resolve through the
+  canonical synthetic-instrument endpoint before their panel-scoped uPlot load.
+- Validation: RatioUPlot `2 passed`, TypeScript, production build, and diff check.
+  A seeded browser acceptance path for configured expression-only tools is still
+  required with the broader workstation acceptance suite.
+
 ## Continuation update — 2026-07-30T15:10:00Z
 
 - General arithmetic workstation expressions now resolve through the canonical backend

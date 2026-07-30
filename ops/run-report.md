@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:05:00Z Linked ratio timeframe contract
+
+- Workstation ratio charts now forward their resolved timeframe to canonical
+  relative-strength analysis and reload when it changes. Expression-only chart
+  configurations also resolve via the canonical synthetic-instrument path.
+- Validation: RatioUPlot `2 passed`, TypeScript, production build, diff check.
+
 ## 2026-07-30T15:10:00Z General workstation expression loading
 
 - Non-ratio arithmetic expressions resolve canonically before uPlot chart loading.

@@ -24,7 +24,7 @@ describe('RatioUPlot', () => {
       ],
       warnings: options?.benchmark === 'XLK' ? [{ message: 'Only intersecting timestamps were used.' }] : [],
     }))
-    const wrapper = mount(RatioUPlot, { props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'] } })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'NVDA', benchmarks: ['XLK', 'SPY'], timeframe: 'W1' } })
     await vi.waitFor(async () => {
       await nextTick()
       expect(wrapper.text()).toContain('XLK 80%')
@@ -32,13 +32,28 @@ describe('RatioUPlot', () => {
     })
 
     expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
-      symbol: 'NVDA', benchmark: 'XLK', adjusted: true,
+      symbol: 'NVDA', benchmark: 'XLK', timeframe: 'W1', adjusted: true,
     })
     expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
-      symbol: 'NVDA', benchmark: 'SPY', adjusted: true,
+      symbol: 'NVDA', benchmark: 'SPY', timeframe: 'W1', adjusted: true,
     })
     expect(wrapper.text()).toContain('NVDA/XLK')
     expect(wrapper.text()).toContain('NVDA/SPY')
     expect(wrapper.text()).toContain('Only intersecting timestamps were used.')
+  })
+
+  it('reloads ratios using the active linked timeframe', async () => {
+    vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
+    const wrapper = mount(RatioUPlot, { props: { symbol: 'XLK', benchmarks: ['SPY'], timeframe: 'D1' } })
+
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLK', benchmark: 'SPY', timeframe: 'D1', adjusted: true,
+    }))
+    vi.mocked(api.get).mockClear()
+
+    await wrapper.setProps({ timeframe: 'W1' })
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/relative-strength', {
+      symbol: 'XLK', benchmark: 'SPY', timeframe: 'W1', adjusted: true,
+    }))
   })
 })

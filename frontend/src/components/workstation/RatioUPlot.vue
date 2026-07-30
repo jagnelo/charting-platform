@@ -14,7 +14,9 @@ import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
 
-const props = defineProps<{ symbol: string; benchmarks: string[] }>()
+const props = withDefaults(defineProps<{ symbol: string; benchmarks: string[]; timeframe?: string }>(), {
+  timeframe: 'D1',
+})
 const root = ref<HTMLElement | null>(null)
 const host = ref<HTMLElement | null>(null)
 const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string; value: number }>; coverage: number }>>([])
@@ -38,7 +40,12 @@ async function load() {
         points: Array<{ timestamp: string; value: number }>
         coverage: number
         warnings: Array<{ message: string }>
-      }>('/analysis/relative-strength', { symbol: props.symbol, benchmark, adjusted: true }),
+      }>('/analysis/relative-strength', {
+        symbol: props.symbol,
+        benchmark,
+        timeframe: props.timeframe,
+        adjusted: true,
+      }),
     })))
     series.value = payloads.map(item => ({ benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage }))
     warning.value = payloads.flatMap(item => item.payload.warnings.map(warning => `${item.benchmark}: ${warning.message}`)).join(' ')
@@ -85,7 +92,7 @@ function draw() {
   }, data, host.value)
 }
 
-watch(() => `${props.symbol}/${props.benchmarks.join('/')}`, () => { void load() })
+watch(() => `${props.symbol}/${props.benchmarks.join('/')}/${props.timeframe}`, () => { void load() })
 onMounted(() => {
   resizeObserver = new ResizeObserver(() => draw())
   if (root.value) resizeObserver.observe(root.value)
