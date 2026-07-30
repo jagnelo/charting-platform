@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T12:30:00Z",
-    "last_commit": "bbd38d2 feat(analysis): derive batch freshness",
+    "last_handoff_at": "2026-07-30T12:35:00Z",
+    "last_commit": "71c9610 feat(analysis): report rotation freshness",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused persisted-results tool: 1 passed; Study Lab/results slice: 2 passed; VirtualWatchlistTool suite: 14 passed; workspace-store suite: 10 passed; TypeScript check, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after canonical workstation coverage state, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T12:30:00Z batch freshness derivation)",
+        "diff_check": "passed (2026-07-30T12:35:00Z rotation freshness derivation)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T12:35:00Z: Added/pushed 71c9610: relative rotation and historical breadth now derive current/stale/partial/unavailable freshness plus counts from persisted local OHLCV state. Workstation-analysis integration 13 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. ETF proxy, ratio, technical batches and workstation status rendering remain incomplete.",
         "2026-07-30T12:30:00Z: Added/pushed bbd38d2: group snapshot and breadth batches now derive current/stale/partial/unavailable freshness plus requested/current/stale/other counts from persisted canonical OHLCV dataset states, without provider routing exposure. Workstation-analysis integration 13 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. Freshness derivation remains to be completed across ratio, rotation, historical breadth, ETF proxy and technical batches; full acceptance remains incomplete.",
         "2026-07-30T12:20:00Z: Added/pushed 8e52564: standardized response-level calculation version, canonical local-data provenance, and refresh time across analysis outputs; group, breadth, rotation, ETF-proxy constituent, and industry-proxy batches also now carry explicit universe/membership provenance. Workstation-analysis/code API integration 20 passed with --no-cov (two existing third-party warnings), Ruff, and diff checks passed. Full batch freshness derivation, broad acceptance, and visual parity remain incomplete.",
         "2026-07-30T12:10:00Z: Added/pushed 5efa0fa: added authenticated /coverage/instruments/{symbol}, a provider-neutral canonical local-database contract combining adjusted local OHLCV coverage, persisted dataset freshness state, and refresh/provenance metadata. The workstation Coverage tool now calls only this contract. Focused router 2 passed (two existing third-party warnings), Ruff, TypeScript, production build, and diff checks passed. Broader batch response provenance/freshness standardization and full acceptance remain incomplete.",

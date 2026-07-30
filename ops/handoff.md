@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T12:35:00Z
+
+- Extended persisted local OHLCV freshness semantics to relative rotation and historical
+  breadth, so those top-down tools report current/stale/partial/unavailable state and
+  coverage counts rather than calculation time alone. Pushed `71c9610`.
+- Workstation-analysis integration `13 passed` with `--no-cov` (two existing third-party
+  warnings), Ruff, and diff checks passed.
+
+### Exact next step
+
+- Apply the same derivation to ETF-proxy, ratio, and technical batches, then expose the
+  status consistently in workstation tool chrome.
+
 ## Continuation update — 2026-07-30T12:30:00Z
 
 - Group snapshot and breadth batches now derive `current`, `stale`, `partial`, or

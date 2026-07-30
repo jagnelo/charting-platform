@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T12:35:00Z Rotation and historical-breadth freshness
+
+- Added persisted local OHLCV freshness to rotation and historical breadth responses.
+  Pushed `71c9610`.
+- Validation: workstation-analysis integration `13 passed` with `--no-cov` (two existing
+  third-party warnings), Ruff, and diff check. Remaining batch and UI freshness paths
+  are incomplete.
+
 ## 2026-07-30T12:30:00Z Persisted top-down batch freshness
 
 - Group and breadth responses now derive explicit local-data freshness state and counts
