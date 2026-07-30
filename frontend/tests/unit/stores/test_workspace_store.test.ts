@@ -169,4 +169,21 @@ describe('workspace store layout tabs', () => {
     expect(store.isPersistenceLeader).toBe(false)
     expect(localStorage.getItem('charting-platform-workstation-leader')).toBeNull()
   })
+
+  it('loads and caches verified industry-proxy rankings with the proxy evidence', async () => {
+    const store = useWorkspaceStore()
+    apiGet.mockImplementation((path: string) => {
+      if (path.includes('/market-groups/etf/XLK/industries/Semiconductors/proxies')) {
+        return Promise.resolve({ etf_symbol: 'XLK', industry: 'Semiconductors', candidate_symbols: ['SMH'], proxies: [{ symbol: 'SMH' }], exclusions: [] })
+      }
+      if (path.includes('/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot')) {
+        return Promise.resolve({ coverage: 1, rows: [{ symbol: 'SMH', name: 'Semiconductors', performance: { '1M': { value: 0.1 } }, technical: { rsi14: { value: 60 } }, relative_to_benchmark: { value: 1.2 }, relative_to_market: { value: 1.3 } }], exclusions: [] })
+      }
+      return Promise.resolve([])
+    })
+
+    await store.loadIndustryProxies('XLK', 'Semiconductors')
+    await vi.waitFor(() => expect(store.industryProxySnapshots['XLK:Semiconductors']?.rows[0].symbol).toBe('SMH'))
+    expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot')
+  })
 })
