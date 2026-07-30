@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:38:00Z
+
+- Replaced Industry proxy cards with the shared virtualized sortable workstation list.
+  It shows proxy, 1M, sector-relative, SPY-relative, and RSI fields, and selection
+  remains linked to the proxy drill-down.
+- Pushed `4bf339e`; frontend type-check/build and `git diff --check` passed.
+
+### Exact next step
+
+- Add persisted proxy-list column configuration and explicit provenance/unavailable
+  rows, then continue top-down end-to-end acceptance coverage.
+
 ## Continuation update — 2026-07-30T10:35:00Z
 
 - Added focused store coverage that proves verified industry-proxy evidence triggers

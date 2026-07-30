@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T10:38:00Z Virtualized Industry proxy ranking checkpoint
+
+- Replaced proxy cards with a sortable shared virtualized list showing proxy, 1M,
+  sector ratio, SPY ratio, and RSI; row selection continues the linked proxy flow.
+  Pushed `4bf339e`.
+- Validation: frontend type-check/build, diff check. Full acceptance remains incomplete.
+
 ## 2026-07-30T10:35:00Z Industry proxy ranking store-coverage checkpoint
 
 - Added a focused store test proving verified proxy evidence initiates and caches the

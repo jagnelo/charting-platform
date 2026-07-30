@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-07-30T10:35:00Z",
-    "last_commit": "41a9b97 test(top-down): cover industry proxy rankings",
+    "last_handoff_at": "2026-07-30T10:38:00Z",
+    "last_commit": "4bf339e feat(top-down): virtualize industry proxy rankings",
     "git_ready_to_commit": false,
     "validation": {
         "backend_lint": "passed (visual manifest validator, industry-proxy evidence API, ETF-proxy batch endpoint, and focused code/research foundation modules, 2026-07-30)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed (focused VirtualWatchlistTool suite: 12 passed; workspace-store suite: 9 passed; StudyLabTool test: 1 passed; ToolWindow test: 1 passed; TypeScript check after proxy-ranking integration, 2026-07-30)",
         "frontend_build": "passed (type-check and production build after enriched industry-proxy ranking, four-environment visual screenshot harness, 2026-07-30)",
         "alembic_upgrade": "head chain verified at d1a2b3c4d5e6; upgrade/downgrade still required",
-        "diff_check": "passed (2026-07-30T10:35:00Z proxy-ranking store coverage)",
+        "diff_check": "passed (2026-07-30T10:38:00Z virtualized proxy-ranking table)",
         "playwright": "Playwright discovery passed (four dedicated visual projects); visual execution is correctly blocked by required_missing reference evidence, 2026-07-30",
         "console_check": "not_run (browser runtime inspection still required)",
         "backend_log_check": "not_run (runtime log inspection still required)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
     },
     "notes": [
+        "2026-07-30T10:38:00Z: Added/pushed 4bf339e: verified Industry proxy rankings now use the shared sortable virtualized list with 1M, sector ratio, SPY ratio, and RSI columns while preserving linked selection. Frontend type-check/build and diff check passed. Persisted proxy columns/provenance display and broad acceptance remain incomplete.",
         "2026-07-30T10:35:00Z: Added/pushed 41a9b97: focused store coverage now proves verified proxy evidence triggers and caches the canonical ranking batch state. Workspace-store 9 passed, TypeScript and diff checks passed. Full top-down and workstation acceptance remain incomplete.",
         "2026-07-30T10:33:00Z: Added/pushed b4c4453: verified Industry proxy cards now show 1M performance, RSI, sector ratio, SPY ratio, and explicit local-bar coverage instead of classification-only metadata. Frontend type-check/build and diff check passed. Sortable proxy table and broad acceptance remain incomplete.",
         "2026-07-30T10:31:00Z: Added/pushed 23dcbd3: the Industry tool now loads the verified proxy batch and shows each proxy's sector and SPY ratio context before selection, replacing classification-only display. TypeScript and diff checks passed. Rich proxy watchlist/drill-down and broad acceptance remain incomplete.",
