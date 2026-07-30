@@ -1,5 +1,25 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T10:08:00Z
+
+- Added a deterministic protected-reference manifest validator. It validates the pinned
+  V25 build, all four required desktop environments, unique surfaces, required state/
+  reproduction data, matching review state, and the complete evidence required before
+  a surface can be `approved`.
+- Normal validation records current `required_missing` references honestly; the
+  `--require-approved` gate rejects them, preventing future screenshot tests from
+  silently falling back to absent or older-generation assets.
+- Pushed `e0cf3a4 test(visual): enforce reference manifest evidence`.
+- Validation passed: Ruff format/check; manifest validator unit tests `2 passed`; the
+  current manifest validates structurally and deliberately remains blocked for visual
+  acceptance until authorised captures are measured and approved.
+
+### Exact next step
+
+- Add deterministic workstation screenshot capture/compare plumbing that invokes the
+  strict manifest gate before any baseline comparison, while continuing functional
+  workstation/backend implementation in parallel.
+
 ## Continuation update — 2026-07-30T10:05:00Z
 
 - Added a versioned curated industry-proxy candidate registry. A candidate is exposed

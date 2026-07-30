@@ -15684,3 +15684,13 @@ Append a short entry after each worker session.
   Pushed code commit `8387ebf`.
 - Industry-filtered batch calculations, provenance/freshness display, and the broader
   full-goal acceptance matrix remain incomplete.
+## 2026-07-30T10:08:00Z Visual-reference evidence gate checkpoint
+
+- Added `app.services.visual_manifest`, a deterministic V25 manifest validator plus
+  unit coverage. It requires the four documented environments and rejects an approved
+  surface without capture locator/hash, measurements, and full environment data.
+- The normal validator accepts the intentionally incomplete protected manifest, but
+  strict acceptance rejects every `required_missing` entry. This makes missing
+  authorised captures an explicit visual-completion blocker rather than a fallback.
+- Validation: Ruff format/check, validator tests `2 passed`, structural manifest CLI,
+  and diff check. Pushed code commit `e0cf3a4`.
