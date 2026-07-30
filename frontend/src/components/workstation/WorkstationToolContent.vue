@@ -205,6 +205,7 @@ const proxyRows = computed(() => (industryProxySnapshot.value?.rows ?? []).map(r
     rsi14: row.technical.rsi14?.value ?? null,
     source: evidence?.source_provider ?? 'Unavailable',
     as_of: evidence?.composition_date ?? 'Unavailable',
+    known_at: evidence?.known_at ? new Date(evidence.known_at).toLocaleDateString() : 'Unknown',
   },
 }}))
 const constituents = computed(() => {
@@ -302,6 +303,7 @@ const proxyColumns: WatchlistColumn[] = [
   { key: 'relative_spy', label: '/ SPY', width: '58px', format: 'number' },
   { key: 'rsi14', label: 'RSI', width: '48px', format: 'number' },
   { key: 'as_of', label: 'Holdings', width: '78px', format: 'number' },
+  { key: 'known_at', label: 'Known', width: '72px', format: 'number' },
   { key: 'source', label: 'Source', width: '72px', format: 'number' },
 ]
 const configuredColumnKeys = computed(() => {
