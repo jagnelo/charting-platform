@@ -2,6 +2,12 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:10:00Z Chart-template lifecycle browser proof
+
+- F9c now saves, applies, confirms symbol preservation, and deletes a unique chart
+  template through the real authenticated workstation/library API. Rebuilt Chromium
+  F9c passed.
+
 ## 2026-07-30T16:00:00Z Versioned workstation chart templates
 
 - Chart templates now use persistent `WorkspaceLibraryItem` records and offer save,

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:10:00Z
+
+- Strengthened F9c from a menu-presence check into an authenticated end-to-end template
+  lifecycle: save a unique template, apply it, prove `AAPL` remains active, delete it,
+  and verify removal. This gives direct browser evidence for the symbol-preservation
+  invariant and avoids leaving test-created library records behind.
+- Validation: rebuilt-stack Chromium F9c passed. Exact next step: commit/push this
+  test-evidence refinement, then continue remaining chart plot/configuration work.
+
 ## Continuation update — 2026-07-30T16:00:00Z
 
 - Added versioned, user-isolated chart-template lifecycle support to the primary

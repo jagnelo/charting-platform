@@ -122,8 +122,16 @@ test.describe('Chart', () => {
     const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
     await expect(symbolEntry).toHaveValue('AAPL')
     await page.getByRole('button', { name: 'Chart templates' }).first().click()
-    await expect(page.getByRole('textbox', { name: 'Chart template name' })).toBeVisible()
+    const templateName = `AAPL template ${Date.now()}`
+    await page.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
+    const templateMenu = page.locator('.chart-template__menu:visible').last()
+    await templateMenu.getByRole('button', { name: 'Save', exact: true }).click()
+    const savedTemplate = templateMenu.locator('.chart-template__apply').filter({ hasText: templateName })
+    await expect(savedTemplate).toBeVisible()
+    await savedTemplate.click()
     await expect(symbolEntry).toHaveValue('AAPL')
+    await templateMenu.getByRole('button', { name: `Delete ${templateName}` }).click()
+    await expect(savedTemplate).toHaveCount(0)
     browserDiagnostics.expectNoCriticalIssues()
   })
 
