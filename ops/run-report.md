@@ -2,6 +2,11 @@
 
 Append a short entry after each worker session.
 
+## 2026-07-30T16:25:00Z Fresh migration bootstrap succeeds
+
+- Repaired all workstation migration timestamp defaults. A recreated branch stack
+  now upgrades to `d2a3b4c5d6e7`, completes taxonomy seeding, and becomes healthy.
+
 ## 2026-07-30T16:20:00Z Alembic-owned startup repair in progress
 
 - Replaced runtime `create_all` with an Alembic entrypoint and worker/API ordering.

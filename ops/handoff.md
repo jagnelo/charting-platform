@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-07-30T16:25:00Z
+
+- Completed the fresh-bootstrap repair for the TC2000 workstation migration: all eight
+  workstation timestamp pairs now have the same database defaults as `TimestampMixin`.
+  A newly recreated branch stack upgrades through `d2a3b4c5d6e7`, seeds the top-down
+  taxonomy, starts the API/worker, and reports healthy without runtime `create_all`.
+- Remaining migration acceptance: execute a controlled downgrade-one then upgrade-head
+  cycle against this healthy isolated stack.
+
 ## Continuation update — 2026-07-30T16:20:00Z
 
 - Started the migration acceptance repair. FastAPI no longer calls `create_all`; the
