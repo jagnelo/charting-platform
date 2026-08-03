@@ -875,6 +875,7 @@ async def etf_constituent_snapshot(
     symbol: str,
     benchmark: str | None = Query(default=None),
     market_benchmark: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None),
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     _: User = Depends(get_current_user),
@@ -882,8 +883,10 @@ async def etf_constituent_snapshot(
 ):
     """Batch technical/rank values for one source-labelled ETF holdings snapshot.
 
-    The selected snapshot is the newest local disclosure known to the platform. Its
-    resolved rows are an ETF-proxy universe, not a claim about official index membership.
+    The selected snapshot is the newest local disclosure known to the platform, or the
+    newest disclosure whose composition and ``known_at`` timestamps are both no later
+    than ``as_of``. Its resolved rows are an ETF-proxy universe, not a claim about
+    official index membership.
     """
     etf = await _instrument(db, symbol)
     profile = (
@@ -891,17 +894,24 @@ async def etf_constituent_snapshot(
     ).scalar_one_or_none()
     if profile is None:
         raise HTTPException(404, detail={"code": "etf_profile_not_found", "symbol": etf.symbol})
+    snapshot_query = (
+        select(ETFHoldingsSnapshot)
+        .options(selectinload(ETFHoldingsSnapshot.rows))
+        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+    )
+    if as_of is not None:
+        snapshot_query = snapshot_query.where(
+            ETFHoldingsSnapshot.composition_date <= as_of.date(),
+            ETFHoldingsSnapshot.known_at.is_not(None),
+            ETFHoldingsSnapshot.known_at <= as_of,
+        )
     snapshot = (
         await db.execute(
-            select(ETFHoldingsSnapshot)
-            .options(selectinload(ETFHoldingsSnapshot.rows))
-            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-            .order_by(
+            snapshot_query.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
                 ETFHoldingsSnapshot.known_at.desc().nullslast(),
                 ETFHoldingsSnapshot.id.desc(),
-            )
-            .limit(1)
+            ).limit(1)
         )
     ).scalar_one_or_none()
     if snapshot is None:
@@ -1083,7 +1093,7 @@ async def etf_constituent_snapshot(
     return ETFConstituentSnapshotOut(
         group_key=f"etf-proxy:{etf.symbol}",
         timeframe=timeframe.value,
-        as_of=max(
+        as_of=as_of or max(
             (row.last.observation_time for row in rows if row.last.observation_time), default=None
         ),
         adjustment="split_adjusted" if adjusted else "raw",
@@ -1093,6 +1103,7 @@ async def etf_constituent_snapshot(
             "etf_symbol": etf.symbol,
             "composition_date": snapshot.composition_date.isoformat(),
             "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+            "requested_as_of": as_of.isoformat() if as_of else None,
         },
         freshness=freshness,
         freshness_detail=freshness_detail,

@@ -166,6 +166,11 @@ batch endpoint accepts `market_benchmark`, aligns both ratios to the same local 
 timestamp, returns structured missing-alignment warnings, and echoes both benchmark
 identities. Constituent watchlists render both `/ XLK`-style and `/ SPY` columns rather
 than forcing the user to leave the drill-down or manually reconfigure the ratio chart.
+The same endpoint accepts an optional point-in-time cutoff. At a cutoff it admits only a
+holdings disclosure whose composition date and `known_at` timestamp are both historical-
+safe, truncates all comparison bars at that cutoff, and records the requested cutoff in
+provenance; it never silently falls back to a current snapshot. The integration contract
+has a dedicated regression for this selection rule.
 
 Factory `Drill Down` and `Sector by Year` industry windows now use the selected ETF's
 point-in-time industry composition rather than falling through to benchmark rows.

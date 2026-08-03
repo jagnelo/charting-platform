@@ -723,7 +723,7 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/etf/XLK/constituents/snapshot",
             headers=auth_headers,
-            params={"benchmark": instrument.symbol},
+            params={"benchmark": instrument.symbol, "as_of": "2024-06-01T00:00:00Z"},
         )
         assert response.status_code == 200
         payload = response.json()
@@ -732,6 +732,8 @@ class TestWorkspaces:
         assert payload["composition_date"] == "2024-05-30"
         assert payload["provenance"] == "issuer_native"
         assert payload["source_provider"] == "issuer"
+        assert payload["as_of"] == "2024-06-01T00:00:00Z"
+        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol
         assert payload["rows"][0]["relative_to_benchmark"]["value"] == 1
