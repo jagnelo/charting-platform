@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:27:00Z
+
+- Exported the application route table as a stable contract and added focused tests
+  proving `/` and `/chart/:symbol` use the authenticated workstation, retained views
+  remain beneath `/legacy/*`, and pre-workstation top-level paths redirect into legacy
+  routes.
+- Route-contract tests `3 passed`; TypeScript, production build, and `git diff --check`
+  passed. This is route-registration evidence only; full authenticated legacy usability,
+  strict V25 visual approval, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T22:32:10Z
 
 - Expanded the V25 visual-reference manifest with three official online drag/drop

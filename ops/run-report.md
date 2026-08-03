@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:27:00Z Workstation/legacy route contract
+
+- Exported the route table as a testable contract and added focused coverage proving the
+  authenticated default and `/chart/:symbol` resolve to the workstation, retained views
+  are isolated under `/legacy/*`, and former top-level feature paths redirect to legacy.
+- Route-contract tests `3 passed`; TypeScript, production build, and diff checks passed.
+  Strict V25 visual approval, full legacy browser usability, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T22:32:10Z Official drag/drop visual references
 
 - Added three official online drag/drop images to the V25 manifest with direct locators,
