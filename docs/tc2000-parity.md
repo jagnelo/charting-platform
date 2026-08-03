@@ -25,8 +25,10 @@ positive-close study exposes current/longest/average/shortest streak metrics,
 point-in-time forward-return rows, symbol-linked streak occurrences, and completed-
 streak lengths for that distribution, and both
 primary Study Lab result surfaces render the artifact through a uPlot bar overlay. The
-focused runner, validation, Study Lab, and persisted-results tests pass; visual parity
-remains blocked until the required approved Version 25 references exist.
+runner now also emits typed numeric `scatter` artifacts, rendered by a dedicated uPlot
+point-cloud surface with aligned x/y validation. Focused runner, validation, Study Lab,
+and persisted-results tests pass; visual parity remains blocked until the required
+approved Version 25 references exist.
 
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected

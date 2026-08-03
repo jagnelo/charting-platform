@@ -33,6 +33,7 @@
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
+        <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
         <div v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length" class="study-lab-tool__events"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div>
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
@@ -46,6 +47,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
+import StudyScatterUPlot from './StudyScatterUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 
 interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: string[]; lookback_hint: number | null; output_contracts: string[] }
@@ -140,6 +142,15 @@ function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: 
   const normalized = bins.filter((bin): bin is { start: number; end: number; count: number } => Boolean(bin) && typeof bin === 'object' && Number.isFinite((bin as Record<string, unknown>).start) && Number.isFinite((bin as Record<string, unknown>).end) && Number.isFinite((bin as Record<string, unknown>).count))
   const current = (value as { current?: unknown }).current
   return normalized.length ? { bins: normalized, current: typeof current === 'number' && Number.isFinite(current) ? current : null } : null
+}
+function scatterData(artifact: Artifact): { x: number[]; y: number[] } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { x?: unknown; y?: unknown }
+  if (!Array.isArray(candidate.x) || !Array.isArray(candidate.y) || candidate.x.length !== candidate.y.length) return null
+  const x = candidate.x.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+  const y = candidate.y.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+  return x.length === candidate.x.length && y.length === candidate.y.length ? { x, y } : null
 }
 function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value

@@ -357,6 +357,26 @@ class _Output:
             "value": {"bins": bucket_rows, "sample_size": len(numeric), "min": minimum, "max": maximum, "current": current},
         })
 
+    def scatter(self, name: str, x: object, y: object) -> None:
+        """Emit a bounded numeric x/y point cloud for uPlot rendering."""
+        x_values = _materialize(x)
+        y_values = _materialize(y)
+        if not isinstance(x_values, list | tuple) or not isinstance(y_values, list | tuple):
+            raise ValueError("scatter x and y values must be lists")
+        if len(x_values) != len(y_values):
+            raise ValueError("scatter x and y values must have the same length")
+        points = [
+            (float(left), float(right))
+            for left, right in zip(x_values, y_values, strict=True)
+            if isinstance(left, int | float) and not isinstance(left, bool)
+            and isinstance(right, int | float) and not isinstance(right, bool)
+            and math.isfinite(float(left)) and math.isfinite(float(right))
+        ]
+        self._store(name, {
+            "type": "scatter",
+            "value": {"x": [point[0] for point in points], "y": [point[1] for point in points]},
+        })
+
     def events(self, name: str, value: object) -> None:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
             raise ValueError("events output must be a list of event objects")

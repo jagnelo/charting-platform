@@ -154,6 +154,17 @@ def test_runner_emits_typed_histogram_for_study_distributions():
     }
 
 
+def test_runner_emits_typed_scatter_points_for_study_relationships():
+    result = execute_job(
+        {"source": "output.scatter('relationship', [1, 2, 3], [2, 4, 9])", "dataset": {}}
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["relationship"] == {
+        "type": "scatter",
+        "value": {"x": [1.0, 2.0, 3.0], "y": [2.0, 4.0, 9.0]},
+    }
+
+
 def test_runner_computes_point_in_time_forward_returns_for_study_events():
     result = execute_job(
         {
