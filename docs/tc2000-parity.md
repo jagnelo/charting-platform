@@ -87,6 +87,10 @@ The same namespace exposes declared timestamps, session labels, and canonical in
 metadata (identity, currency, active/synthetic state, and primary identifier) so studies
 can make explicit metadata/session decisions without importing application models or
 calling providers.
+When a benchmark is materialized, the same namespace exposes explicit
+`benchmark_*` accessors for aligned OHLCV, timestamps, sessions, and metadata; an absent
+or unavailable benchmark returns a structured runner diagnostic rather than silently
+falling back to the primary instrument.
 
 Unified Python assets now have lifecycle contracts for complete export/import, immutable
 version-preserving clone, and reversible archive/unarchive operations. Each imported or

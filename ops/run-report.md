@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T01:24:00Z Benchmark SDK access
+
+- Added explicit isolated-SDK benchmark accessors for OHLCV, timestamps, sessions, and
+  metadata, with a structured failure when the benchmark is absent or unavailable.
+- Runner suite passed `33` tests and Ruff passed. Exact-build visual approval and the
+  complete acceptance matrix remain open.
+
 ## 2026-08-04T01:12:00Z Python Library workstation tool
 
 - Added the dockable Python Library surface with user-asset filtering, JSON import/export,

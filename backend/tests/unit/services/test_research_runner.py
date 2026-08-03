@@ -131,6 +131,40 @@ def test_runner_exposes_declared_benchmark_dataset():
     assert result["artifacts"]["benchmark_last"]["value"] == 101
 
 
+def test_runner_exposes_benchmark_through_market_namespace():
+    result = execute_job(
+        {
+            "source": "output.scalar('benchmark_last', market.benchmark_close()[-1])\noutput.scalar('benchmark_name', market.benchmark_metadata()['name'])",
+            "dataset": {
+                "symbol": "AAPL",
+                "closes": [10, 11],
+                "benchmark_dataset": {
+                    "status": "ready",
+                    "symbol": "SPY",
+                    "timestamps": ["2026-01-01", "2026-01-02"],
+                    "opens": [100, 101], "highs": [102, 103], "lows": [99, 100],
+                    "closes": [100, 101], "volumes": [1000, 1200], "vwaps": [100.5, 101.5],
+                    "metadata": {"name": "SPY"},
+                },
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["benchmark_last"]["value"] == 101.0
+    assert result["artifacts"]["benchmark_name"]["value"] == "SPY"
+
+
+def test_runner_reports_unavailable_benchmark_explicitly():
+    result = execute_job(
+        {
+            "source": "output.scalar('benchmark_last', market.benchmark_close()[-1])",
+            "dataset": {"symbol": "AAPL", "closes": [10], "benchmark_dataset": {"status": "unavailable"}},
+        }
+    )
+    assert result["status"] == "failed"
+    assert "benchmark dataset is unavailable" in result["diagnostics"][0]["message"]
+
+
 def test_runner_exposes_declared_ohlcv_fields_through_market_namespace():
     result = execute_job(
         {

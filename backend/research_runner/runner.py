@@ -665,6 +665,8 @@ class _Market:
 
     def __init__(self, dataset: dict) -> None:
         self._dataset = dataset
+        benchmark = dataset.get("benchmark_dataset")
+        self._benchmark = benchmark if isinstance(benchmark, dict) and benchmark.get("status", "ready") == "ready" else None
 
     def close(self, symbol: str | None = None) -> list[float]:
         return self._series("closes", symbol)
@@ -715,6 +717,41 @@ class _Market:
         if not isinstance(value, dict):
             raise ValueError("Declared dataset has no instrument metadata")
         return dict(value)
+
+    def benchmark_close(self) -> list[float]:
+        return self._benchmark_market().close()
+
+    def benchmark_open(self) -> list[float]:
+        return self._benchmark_market().open()
+
+    def benchmark_high(self) -> list[float]:
+        return self._benchmark_market().high()
+
+    def benchmark_low(self) -> list[float]:
+        return self._benchmark_market().low()
+
+    def benchmark_volume(self) -> list[float | None]:
+        return self._benchmark_market().volume()
+
+    def benchmark_vwap(self) -> list[float | None]:
+        return self._benchmark_market().vwap()
+
+    def benchmark_ohlcv(self) -> list[dict[str, object]]:
+        return self._benchmark_market().ohlcv()
+
+    def benchmark_timestamps(self) -> list[str]:
+        return self._benchmark_market().timestamps()
+
+    def benchmark_sessions(self) -> list[str]:
+        return self._benchmark_market().sessions()
+
+    def benchmark_metadata(self) -> dict[str, object]:
+        return self._benchmark_market().metadata()
+
+    def _benchmark_market(self) -> _Market:
+        if self._benchmark is None:
+            raise ValueError("Declared benchmark dataset is unavailable")
+        return _Market(self._benchmark)
 
     def _sessions(self) -> list[str]:
         timestamps = self._dataset.get("timestamps")

@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T01:24:00Z
+
+- Extended the isolated `market` namespace with explicit benchmark accessors for
+  aligned OHLCV, timestamps, sessions, and metadata. Missing or unavailable benchmark
+  materialization now produces a bounded diagnostic instead of implicit primary-series
+  fallback.
+- Runner coverage is `33` passing tests with Ruff clean; exact-build V25 visual approval
+  and the wider security, performance, migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T01:12:00Z
 
 - Added the dockable Python Library tool to the workstation registry. It lists and filters
