@@ -14870,6 +14870,15 @@
   the tests: its 17 tests passed, while the full unit run satisfies the 55% gate. Strict
   V25 visual validation remains `required_missing`; full goal remains active.
 
+## 2026-08-03T17:32:35Z Watchlist parity documentation checkpoint
+
+- Updated `docs/tc2000-parity.md` to record the personal-watchlist ordering contract,
+  its managed/locked-list boundary, optimistic rollback behavior, and the distinction
+  between manually reorderable personal lists and source-ranked market groups. Commit
+  `7667511` pushed; YAML/JSON and diff checks remain clean.
+- This documents functional evidence only. Strict V25 visual validation remains
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column

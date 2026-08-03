@@ -16989,3 +16989,12 @@ uncovered slice rather than repeat a generic completion claim.
   threshold is intentionally not used as a test result; all 17 tests passed. Strict V25
   visual approval remains `required_missing` and the broad acceptance matrix remains
   incomplete.
+
+## 2026-08-03T17:32:35Z Watchlist parity documentation checkpoint
+
+- Updated `docs/tc2000-parity.md` with the personal item-ordering endpoint/store
+  contract, managed/locked boundary, rollback behavior, and the distinction between
+  manually reorderable personal lists and source-ranked market groups. Commit `7667511`
+  pushed; diff check passed.
+- Functional evidence is documented but not completion: strict V25 visual approval is
+  still `required_missing` and the broad acceptance matrix remains incomplete.

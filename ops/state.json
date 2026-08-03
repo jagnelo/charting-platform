@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T17:31:15Z",
-    "last_commit": "b08ccdc feat(watchlists): persist personal item ordering",
+    "last_handoff_at": "2026-08-03T17:32:35Z",
+    "last_commit": "7667511 docs(parity): record personal watchlist ordering",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T17:32:35Z: Updated docs/tc2000-parity.md with the personal watchlist item-ordering contract, managed/locked boundary, optimistic rollback behavior, and market-group ordering distinction. Documentation checkpoint 7667511 pushed; diff check passed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T17:31:15Z: Added personal watchlist item ordering endpoint with duplicate/incomplete-ID validation, managed/locked rejection, and optimistic Pinia reorder rollback. Docker-backed watchlist integration 17 passed; full frontend 455 passed; backend unit 869 passed at 70.19%; TypeScript/build/Ruff/diff passed. Code checkpoint b08ccdc pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T17:26:18Z: Added regression coverage proving canonical instrument search prefers an active primary listing MIC over inactive secondary listings. Instrument router tests 5 passed, Ruff/diff passed. Test checkpoint 1ddcd26 pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
         "2026-08-03T17:23:50Z: Canonical /instruments/search now hydrates and returns the primary active listing MIC for local instruments, with an equity-detail fallback; provider-derived search results retain normalized exchange metadata. Full backend unit 868 passed at 70.19% coverage, Ruff/diff passed. Code checkpoint c5a2b5f pushed. Strict visual approval remains required_missing and the broad workstation/backend acceptance matrix remains incomplete.",
