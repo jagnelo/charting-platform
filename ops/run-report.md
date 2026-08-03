@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:24:00Z Point-in-time batch analysis
+
+- Group snapshots, current breadth, and breadth history now accept `as_of` and apply the
+  same versioned-membership/bar cutoff and provenance contract as Relative Rotation.
+- Validation: backend unit suite `873 passed` at `70.19%`; focused analysis helpers `7
+  passed`; Ruff/compile/diff passed. Docker-backed integration was unavailable because the
+  environment denies Docker socket access. Pushed `7767db3`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:15:00Z Relative Rotation as-of control
 
 - Added the optional persisted `As of` date to Relative Rotation; the frontend sends a

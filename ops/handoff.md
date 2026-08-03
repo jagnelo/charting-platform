@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:24:00Z
+
+- Extended the point-in-time `as_of` contract from Relative Rotation to group snapshots,
+  current breadth, and breadth history. Each endpoint now selects versioned members,
+  truncates bars at the cutoff, reports shared provenance, and preserves honest coverage.
+- Validation: full backend unit suite `873 passed` at `70.19%` coverage; focused analysis
+  helper suite `7 passed`; Ruff, compile, and `git diff --check` passed. The new Docker-backed
+  batch regression was attempted but Docker socket access is denied in this environment.
+  Checkpoint `7767db3` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T20:15:00Z
 
 - Exposed the Relative Rotation point-in-time cutoff in the workstation tool as an optional
