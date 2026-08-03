@@ -80,6 +80,16 @@ def _truncate_bars_at(
     }
 
 
+def _sample_aligned_points(
+    aligned: list[tuple[datetime, float]], sampling: int
+) -> list[tuple[datetime, float]]:
+    """Sample aligned ratio observations while retaining the latest point."""
+    sampled = aligned[::sampling]
+    if sampled and sampled[-1][0] != aligned[-1][0]:
+        sampled.append(aligned[-1])
+    return sampled
+
+
 def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, object]:
     return {
         **(group.provenance or {}),
@@ -566,9 +576,7 @@ async def group_relative_rotation(
                     instrument_id=instrument.id,
                 )
             )
-        sampled = aligned[::sampling]
-        if sampled and sampled[-1][0] != aligned[-1][0]:
-            sampled.append(aligned[-1])
+        sampled = _sample_aligned_points(aligned, sampling)
         coordinates: list[RelativeRotationTailPoint] = []
         for index in range(lookback * 2, len(sampled)):
             ratio = sampled[index][1]

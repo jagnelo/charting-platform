@@ -11,6 +11,7 @@ from app.routers.analysis import (
     _group_provenance,
     _is_known_at,
     _performance_cells,
+    _sample_aligned_points,
     _truncate_bars_at,
 )
 
@@ -116,3 +117,10 @@ def test_group_members_reject_a_group_unknown_at_the_requested_time():
     )
     with pytest.raises(Exception, match="market_group_not_known_at"):
         _group_members_at(group, datetime(2024, 3, 10, tzinfo=UTC))
+
+
+def test_relative_rotation_sampling_retains_latest_aligned_observation():
+    aligned = [(datetime(2024, 1, day, tzinfo=UTC), float(day)) for day in range(1, 8)]
+    assert _sample_aligned_points(aligned, 1) == aligned
+    sampled = _sample_aligned_points(aligned, 3)
+    assert [timestamp.day for timestamp, _ in sampled] == [1, 4, 7]
