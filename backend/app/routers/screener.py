@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
@@ -309,7 +309,7 @@ async def update_screener(
 @router.get("/{screener_id}/results", response_model=list[ScreenerResultOut])
 async def get_screener_results(
     screener_id: int,
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
