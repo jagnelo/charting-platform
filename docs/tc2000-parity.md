@@ -352,6 +352,13 @@ components rather than falling back to raw JSON. Saved studies therefore retain 
 structured visual form after reload, comparison, or rerun; focused component coverage
 proves both render paths.
 
+The unified Python SDK now supports a typed `output.dashboard` composition contract. A
+dashboard contains only bounded references to named scalar, table, series, histogram,
+scatter, heatmap, or event artifacts plus title/span metadata; user code cannot provide
+HTML, CSS, JavaScript, or components. Active Study Lab and persisted Research Results
+render those panels through the shared native dashboard surface, with focused runner,
+validator, and frontend coverage.
+
 The new-workstation provider defaults are free-source-first and provider-neutral:
 Alpaca (free IEX entitlement) supplies default US price/latest-price, SEC EDGAR supplies
 US identity metadata and ticker-directory search, Alpaca supplies corporate actions and

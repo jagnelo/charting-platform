@@ -176,6 +176,20 @@ def test_runner_emits_typed_heatmap_matrix_for_study_relationships():
     }
 
 
+def test_runner_emits_typed_dashboard_composed_from_named_artifacts():
+    result = execute_job(
+        {"source": "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.dashboard('overview', [{'artifact': 'sample_size', 'title': 'Sample size', 'span': 4}, {'artifact': 'trend', 'title': 'Trend', 'span': 8}])", "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]}}
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["overview"] == {
+        "type": "dashboard",
+        "value": {"panels": [
+            {"artifact": "sample_size", "title": "Sample size", "span": 4},
+            {"artifact": "trend", "title": "Trend", "span": 8},
+        ]},
+    }
+
+
 def test_runner_computes_point_in_time_forward_returns_for_study_events():
     result = execute_job(
         {

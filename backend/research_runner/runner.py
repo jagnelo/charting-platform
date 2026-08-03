@@ -396,6 +396,29 @@ class _Output:
             raise ValueError("heatmap labels must match matrix dimensions")
         self._store(name, {"type": "heatmap", "value": {"rows": row_labels, "columns": column_labels, "values": normalized}})
 
+    def dashboard(self, name: str, panels: object) -> None:
+        """Compose named artifacts into a typed, non-HTML dashboard."""
+        panels = _materialize(panels)
+        if not isinstance(panels, list) or not panels:
+            raise ValueError("dashboard panels must be a non-empty list")
+        if len(panels) > 64:
+            raise ValueError("dashboard panel limit exceeded")
+        normalized: list[dict[str, object]] = []
+        for panel in panels:
+            if not isinstance(panel, dict):
+                raise ValueError("dashboard panels must be objects")
+            artifact = panel.get("artifact")
+            title = panel.get("title") or artifact
+            span = panel.get("span", 1)
+            if not isinstance(artifact, str) or not artifact or len(artifact) > 128:
+                raise ValueError("dashboard panels require an artifact name")
+            if not isinstance(title, str) or not title or len(title) > 128:
+                raise ValueError("dashboard panel titles must be non-empty strings")
+            if not isinstance(span, int) or isinstance(span, bool) or not 1 <= span <= 12:
+                raise ValueError("dashboard panel span must be an integer between 1 and 12")
+            normalized.append({"artifact": artifact, "title": title, "span": span})
+        self._store(name, {"type": "dashboard", "value": {"panels": normalized}})
+
     def events(self, name: str, value: object) -> None:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
             raise ValueError("events output must be a list of event objects")

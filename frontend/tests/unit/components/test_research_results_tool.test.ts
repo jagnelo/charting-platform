@@ -6,6 +6,7 @@ vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
 vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { template: '<div class="heatmap-chart" />', props: ['name', 'rows', 'columns', 'values'] } }))
+vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
@@ -47,5 +48,16 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
+  })
+
+  it('renders persisted dashboard artifacts as structured panels', async () => {
+    apiGet.mockResolvedValue([{ id: 14, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 7, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+      { id: 8, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample_size', title: 'Sample size', span: 12 }] } } },
+    ] }])
+    const wrapper = mount(ResearchResultsTool)
+    await flushPromises()
+
+    expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
   })
 })

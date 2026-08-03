@@ -44,6 +44,7 @@
           <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
           <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
           <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
+          <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="selectedRun.artifacts" @occurrence="emit('occurrence', $event)" />
           <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
@@ -60,6 +61,7 @@ import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
 import StudyScatterUPlot from './StudyScatterUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
+import StudyDashboard from './StudyDashboard.vue'
 
 interface ResearchRunSummary {
   id: number
@@ -126,6 +128,13 @@ function heatmapData(artifact: ResearchRunSummary['artifacts'][number]): { rows:
   const columns = candidate.columns as string[]
   const values = candidate.values as number[][]
   return values.length && values.length === rows.length && values.every(row => row.length === columns.length) ? { rows, columns, values } : null
+}
+function dashboardData(artifact: ResearchRunSummary['artifacts'][number]): Array<{ artifact: string; title: string; span: number }> | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray((value as { panels?: unknown }).panels)) return null
+  const panels = (value as { panels: unknown[] }).panels
+  const normalized = panels.filter((panel): panel is { artifact: string; title: string; span: number } => Boolean(panel) && typeof panel === 'object' && typeof (panel as Record<string, unknown>).artifact === 'string' && typeof (panel as Record<string, unknown>).title === 'string' && typeof (panel as Record<string, unknown>).span === 'number')
+  return normalized.length === panels.length ? normalized : null
 }
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value
