@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T15:47:00Z Watchlist context actions
+
+- Added and wired row context actions for chart, comparison, notes, alerts, and copying
+  the canonical symbol across docked and floated workstation tools.
+- Validation: focused watchlist/pop-out suites `25 passed`, full frontend Vitest `451
+  passed` across `76` files, TypeScript, production build, and `git diff --check`.
+- Strict V25 visual approval and the full acceptance matrix remain open.
+
 ## 2026-08-03T15:41:00Z Keyboard selection-state alignment
 
 - Unified keyboard traversal and Ctrl+wheel with the watchlist multi-selection model;

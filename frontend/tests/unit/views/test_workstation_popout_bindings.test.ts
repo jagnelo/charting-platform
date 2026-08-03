@@ -86,7 +86,7 @@ vi.mock('vue-router', () => ({
 import WorkstationView from '@/views/WorkstationView.vue'
 
 const ToolStub = defineComponent({
-  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'compare'],
+  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'compare', 'row-action'],
   template: `<div class="tool-stub">
     <button class="mode" @click="$emit('conditionFilterMode', 'benchmark-list', 'active')">mode</button>
     <button class="pin" @click="$emit('pinnedBooleanKeys', 'benchmark-list', ['above_ma50'])">pin</button>
@@ -95,6 +95,7 @@ const ToolStub = defineComponent({
     <button class="configuration" @click="$emit('configuration', 'benchmark-list', { column_keys: ['symbol'] })">configuration</button>
     <button class="proxy" @click="$emit('selectProxy', 'XLK')">proxy</button>
     <button class="compare" @click="$emit('compare', ['SPY', 'XLK', 'XLE'])">compare</button>
+    <button class="copy" @click="$emit('row-action', 'copy', { symbol: 'XLK', instrumentId: 1 })">copy</button>
   </div>`,
 })
 
@@ -122,6 +123,7 @@ describe('WorkstationView pop-out bindings', () => {
     await wrapper.find('.stack').trigger('click')
     await wrapper.find('.proxy').trigger('click')
     await wrapper.find('.compare').trigger('click')
+    await wrapper.find('.copy').trigger('click')
 
     expect(harness.popoutWindow.configuration).toMatchObject({
       condition_filter_mode: 'active',
@@ -131,6 +133,7 @@ describe('WorkstationView pop-out bindings', () => {
       column_keys: ['symbol'],
     })
     expect(harness.chartWindow.configuration).toMatchObject({ comparison_symbols: ['XLK', 'XLE'] })
+    expect(harness.workspace.error).toBe('Copied XLK')
     expect(harness.workspace.selectIndustryProxy).toHaveBeenCalledWith('XLK')
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
     expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()

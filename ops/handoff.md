@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T15:47:00Z
+
+- Added a wired virtual-watchlist row context menu for chart, compare-with-active, note,
+  alert, and copy-symbol actions. The shell routes these actions for both docked and
+  floated tools; chart/note/alert actions select the canonical symbol before opening the
+  corresponding workstation tool.
+- Validation: focused watchlist/pop-out suites `25 passed`; full frontend Vitest `451
+  passed` across `76` files; TypeScript, production build, and `git diff --check` passed.
+- The full goal remains active. Strict V25 visual approval is still `required_missing`,
+  and the broader backend/security/performance/end-to-end acceptance matrix remains open.
+
 ## Continuation update — 2026-08-03T15:41:00Z
 
 - Keyboard Arrow/Space traversal and Ctrl+wheel now update the same watchlist selection

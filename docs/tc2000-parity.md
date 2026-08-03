@@ -111,3 +111,10 @@ and the full frontend suite remains green. Arrow/Space traversal and Ctrl+wheel 
 update the selection model, while filtering prunes symbols that are no longer visible;
 the pop-out binding test proves the comparison event reaches the persisted chart config.
 This is functional evidence only; the Version 25 visual reference remains unapproved.
+
+Virtualized watchlist rows now expose a wired desktop context menu for opening the row's
+chart, comparing it with the active symbol, opening symbol notes or alerts, and copying
+the canonical ticker. Actions are routed through `WorkstationView` for docked and floated
+tools; no context-menu item is a dead visual control. Focused component and pop-out
+binding tests cover the menu and shell routing. This is functional evidence only; the
+Version 25 visual reference remains unapproved.

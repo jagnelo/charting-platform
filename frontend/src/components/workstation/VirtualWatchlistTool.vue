@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups }" :aria-label="label">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null">
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
@@ -62,6 +62,7 @@
           :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected, 'watchlist__row--selected': selectedSymbols.includes(filteredRows[virtualRow.index].symbol) }"
           :style="{ ...gridStyle, height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }"
           @click="selectRow(filteredRows[virtualRow.index], $event)"
+          @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="column in renderedColumns" :key="column.key">
             <span v-if="column.key !== stackedColumnKey" :title="display(filteredRows[virtualRow.index], column.key)">{{ display(filteredRows[virtualRow.index], column.key) }}</span>
@@ -69,6 +70,14 @@
           </template>
         </button>
       </div>
+    </div>
+    <div v-if="contextMenu" class="watchlist__context-menu" role="menu" :style="{ left: `${contextMenu.left}px`, top: `${contextMenu.top}px` }" @click.stop>
+      <strong>{{ contextMenu.row.symbol }}</strong>
+      <button type="button" role="menuitem" @click="runContextAction('chart')">Open chart</button>
+      <button type="button" role="menuitem" @click="runContextAction('compare')">Compare with active</button>
+      <button type="button" role="menuitem" @click="runContextAction('note')">Open note</button>
+      <button type="button" role="menuitem" @click="runContextAction('alert')">Open alerts</button>
+      <button type="button" role="menuitem" @click="runContextAction('copy')">Copy symbol</button>
     </div>
   </section>
 </template>
@@ -139,7 +148,7 @@ const props = withDefaults(defineProps<{
   pythonColumns: () => [],
   pythonCondition: null,
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -155,6 +164,7 @@ const sortKey = ref('symbol')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 const selectedSymbols = ref<string[]>([])
 const selectionAnchor = ref<string | null>(null)
+const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
 const columnMenuOpen = ref(false)
 const columnSetMenuOpen = ref(false)
 const columnSetName = ref('')
@@ -525,6 +535,7 @@ function toggleSort(key: string) {
 }
 
 function selectRow(row: WatchlistRow, event: MouseEvent) {
+  contextMenu.value = null
   const symbols = filteredRows.value.map(item => item.symbol)
   if (event.shiftKey && selectionAnchor.value) {
     const start = symbols.indexOf(selectionAnchor.value)
@@ -540,6 +551,18 @@ function selectRow(row: WatchlistRow, event: MouseEvent) {
     selectionAnchor.value = row.symbol
   }
   emit('select', row)
+}
+
+function openContextMenu(event: MouseEvent, row: WatchlistRow) {
+  const bounds = (event.currentTarget as HTMLElement).closest('.watchlist')?.getBoundingClientRect()
+  contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
+}
+
+function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy') {
+  if (!contextMenu.value) return
+  const row = contextMenu.value.row
+  contextMenu.value = null
+  emit('row-action', action, row)
 }
 
 function toggleColumn(key: string) {
@@ -606,7 +629,7 @@ function onCtrlWheel(event: WheelEvent) {
 </script>
 
 <style scoped>
-.watchlist { display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--sets-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }
@@ -638,6 +661,10 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__row:hover { background: #202a33; }
 .watchlist__row--active { background: #1d4057; box-shadow: inset 2px 0 #66b4e8; }
 .watchlist__row--selected { outline: 1px solid #71bfe8; outline-offset: -1px; }
+.watchlist__context-menu { position: absolute; z-index: 140; display: grid; min-width: 146px; gap: 2px; padding: 4px; border: 1px solid #526673; background: #182128; box-shadow: 0 5px 14px #000b; }
+.watchlist__context-menu strong { padding: 2px 5px 3px; border-bottom: 1px solid #32424d; color: #dceaf2; font-size: 10px; }
+.watchlist__context-menu button { border: 0; background: transparent; color: #c3d2dc; padding: 3px 5px; text-align: left; font: inherit; cursor: pointer; }
+.watchlist__context-menu button:hover,.watchlist__context-menu button:focus-visible { background: #28506a; color: #fff; outline: 0; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }
 .watchlist__stack-cell { display: grid; min-width: 0; align-self: stretch; padding: 1px 6px; }

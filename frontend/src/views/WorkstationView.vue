@@ -66,6 +66,7 @@
         :factory-layout="workspaceStore.activeTabKey"
         @select="selectSymbol"
         @compare="compareSymbols"
+        @row-action="handleRowAction"
         @occurrence="selectOccurrence"
         @select-industry="workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', $event)"
         @select-proxy="selectIndustryProxy"
@@ -308,6 +309,31 @@ function compareSymbols(symbols: string[]) {
   })
 }
 
+async function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
+  if (action === 'copy') {
+    try {
+      await navigator.clipboard?.writeText(row.symbol)
+      workspaceStore.error = `Copied ${row.symbol}`
+    } catch {
+      workspaceStore.error = `Unable to copy ${row.symbol}`
+    }
+    return
+  }
+  if (action === 'compare') {
+    compareSymbols([activeSymbol.value, row.symbol])
+    return
+  }
+  await selectSymbol(row.symbol)
+  if (action === 'chart') {
+    const chart = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'chart')
+    if (chart) openTool(chart)
+    return
+  }
+  const toolType = action === 'note' ? 'notes' : action === 'alert' ? 'alerts' : action
+  const tool = OPENABLE_WORKSTATION_TOOLS.find(candidate => candidate.tool_type === toolType)
+  if (tool) openTool(tool)
+}
+
 function floatTool(windowKey: string) {
   const tab = workspaceStore.activeTabKey
   const href = router.resolve({ path: `/popout/${encodeURIComponent(windowKey)}`, query: { tab } }).href
@@ -324,6 +350,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onSelect: (symbol: string) => void selectSymbol(symbol),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
+    onRowAction: (action: 'chart' | 'compare' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
     onOccurrence: (symbol: string, timestamp: string) => void selectSymbol(symbol, timestamp),
     onSelectIndustry: (industry: string) => void workspaceStore.selectIndustry(workspaceStore.constituentETF ?? '', industry),
     onSelectProxy: (symbol: string) => void selectIndustryProxy(symbol),

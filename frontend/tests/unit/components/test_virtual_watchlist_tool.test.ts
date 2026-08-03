@@ -82,6 +82,15 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('compare')?.[0]?.[0]).toEqual(['XLE', 'XLK'])
   })
 
+  it('opens wired row actions from the desktop context menu', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    expect(wrapper.get('.watchlist__context-menu').text()).toContain('XLE')
+
+    await wrapper.get('button[role="menuitem"]').trigger('click')
+    expect(wrapper.emitted('row-action')?.[0]).toEqual(['chart', rows[1]])
+  })
+
   it('restores a persisted filter and follows a workspace-state update', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows, filterText: 'technology' },
