@@ -15809,3 +15809,13 @@
   workspace integration remains `22 passed`.
 - Unit-test checkpoint is pending commit/push. Strict V25 visual approval and broad
   acceptance gates remain open.
+## 2026-08-03T23:08:00Z Visual-manifest gate checkpoint
+
+- Hardened `visual_manifest` approval validation. A reference cannot become `approved`
+  unless it identifies the pinned Version 25 build, source type/locator/hash/permission,
+  capture date/operator, full target environment, token measurements, and a named reviewer.
+  This explicitly supports permission-cleared online references without allowing a URL alone
+  to satisfy acceptance.
+- Focused visual-manifest suite: `3 passed`; Ruff and diff checks passed. The real manifest
+  remains valid for discovery but strict `--require-approved` correctly rejects its
+  `required_missing` states. Checkpoint is pending commit/push.

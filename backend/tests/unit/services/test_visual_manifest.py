@@ -37,7 +37,18 @@ def test_approved_reference_requires_full_capture_evidence():
                 "state": "approved",
                 "required_states": ["default"],
                 "reproduction": "Open shell.",
-                "source": {"locator": "controlled://shell", "sha256": "a" * 64},
+                "tc2000": {
+                    "generation": "25",
+                    "build": "25.0.9571",
+                    "capture_date": "2026-08-03",
+                    "operator": "qa",
+                },
+                "source": {
+                    "type": "authorised_live_capture",
+                    "locator": "controlled://shell",
+                    "sha256": "a" * 64,
+                    "permission": "controlled_reference_only",
+                },
                 "environment": {
                     "resolution": "1920x1080",
                     "display_scale": 100,
@@ -47,11 +58,15 @@ def test_approved_reference_requires_full_capture_evidence():
                     "device_pixel_ratio": 1,
                 },
                 "measurements": {"tokens": {"menu_height": 20}},
-                "review": {"status": "approved"},
+                "review": {"status": "approved", "reviewer": "qa"},
             }
         ],
     }
     validate_visual_manifest(manifest, require_approved=True)
+
+    incomplete = {**manifest, "surfaces": [{**manifest["surfaces"][0], "review": {"status": "approved"}}]}
+    with pytest.raises(VisualManifestError, match="reviewer"):
+        validate_visual_manifest(incomplete, require_approved=True)
 
 
 def test_state_entries_must_cover_each_required_surface_state():

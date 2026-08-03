@@ -17585,3 +17585,10 @@ uncovered slice rather than repeat a generic completion claim.
   prior full-coverage run remains 887 tests at 70.21%.
 - Commit/push is pending for this test-contract checkpoint. Visual approval and the broad
   acceptance matrix remain open.
+## 2026-08-03T23:08:00Z Visual-manifest gate checkpoint
+
+- Approval validation now requires pinned-build identity, source permission/hash metadata,
+  capture date/operator, complete environment, measurements, and human review. Online
+  references remain supported when those fields are present.
+- Focused manifest tests `3 passed`; Ruff and diff checks passed. Strict acceptance remains
+  intentionally blocked by the real manifest's required missing states.

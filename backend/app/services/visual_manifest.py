@@ -106,14 +106,28 @@ def validate_visual_manifest(manifest: dict[str, Any], *, require_approved: bool
         if state == "approved":
             source = surface.get("source", {})
             environment = surface.get("environment", {})
+            tc2000 = surface.get("tc2000", {})
+            review = surface.get("review", {})
             if (
-                not source.get("locator")
+                not source.get("type")
+                or not source.get("locator")
                 or not source.get("sha256")
+                or not source.get("permission")
                 or not surface.get("measurements", {}).get("tokens")
             ):
                 raise VisualManifestError(
-                    f"{surface_id}: approved references require source, hash, and measurements"
+                    f"{surface_id}: approved references require source type, locator, hash, permission, and measurements"
                 )
+            if tc2000.get("generation") != "25" or tc2000.get("build") != product.get("build"):
+                raise VisualManifestError(
+                    f"{surface_id}: approved references must identify the pinned TC2000 build"
+                )
+            if not tc2000.get("capture_date") or not tc2000.get("operator"):
+                raise VisualManifestError(
+                    f"{surface_id}: approved references require capture date and operator"
+                )
+            if not review.get("reviewer"):
+                raise VisualManifestError(f"{surface_id}: approved references require a reviewer")
             if not all(
                 environment.get(key) is not None
                 for key in (
