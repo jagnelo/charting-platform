@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:49:39Z Watchlist column display settings
+
+- Added persisted per-column label and bounded track-width overrides to the integrated
+  virtual watchlist column editor, including personal lists.
+- Validation: focused watchlist/pop-out `29 passed`; full frontend Vitest `458 passed`
+  across 76 files; TypeScript, production build, and `git diff --check` passed.
+- Pushed checkpoint `20cb22610eabbbcccd20ffa160eafe5a336a7d5c`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:43:50Z Personal watchlist membership
 
 - Added canonical symbol insertion and editable-list context-menu removal to the primary

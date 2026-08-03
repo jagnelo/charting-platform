@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:49:39Z
+
+- Extended the integrated workstation column editor with serializable per-column label
+  and track-width overrides. Widths are constrained to numeric `px`, `fr`, or `%` tracks;
+  canonical field keys, ordering, and row identity remain unchanged across all virtual
+  watchlists.
+- Validation: focused watchlist/pop-out suites `29 passed`; full frontend Vitest `458
+  passed` across 76 files; TypeScript, production build, and `git diff --check` passed.
+  Checkpoint `20cb22610eabbbcccd20ffa160eafe5a336a7d5c` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:43:50Z
 
 - Extended the primary personal `WatchList` tool with canonical symbol insertion and
