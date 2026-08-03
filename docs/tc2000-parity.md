@@ -158,6 +158,11 @@ Deletion selects the next remaining user-owned list and persists that selection;
 and managed lists cannot be deleted, and the existing store/API error path remains
 visible rather than fabricating success.
 
+Watchlist mutations now publish a `BroadcastChannel` invalidation event. A floated tool
+that adds, removes, reorders, creates, renames, copies, locks, unlocks, seeds, deletes, or
+reorders lists causes other workstation windows to reload the canonical watchlist cache,
+so docked and pop-out surfaces converge without sharing non-serializable Vue state.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while

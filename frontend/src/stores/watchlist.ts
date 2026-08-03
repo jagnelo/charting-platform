@@ -23,6 +23,19 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   const flashMap = ref<Record<string, 'up' | 'down' | null>>({})
   /** When set, WatchlistPanel should open, collapse all others, and expand this watchlist. */
   const focusRequest = ref<number | null>(null)
+  const watchlistChannel = typeof BroadcastChannel !== 'undefined'
+    ? new BroadcastChannel('charting-platform-watchlists')
+    : null
+
+  function announceChanged(watchlistId?: number) {
+    watchlistChannel?.postMessage({ type: 'watchlists-changed', watchlistId: watchlistId ?? null })
+  }
+
+  if (watchlistChannel) {
+    watchlistChannel.onmessage = (event: MessageEvent<{ type?: string }>) => {
+      if (event.data?.type === 'watchlists-changed') void loadWatchlists()
+    }
+  }
 
   function isTransientLoadError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error ?? '')
@@ -50,6 +63,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       if (screener_id != null) body.screener_id = screener_id
       const wl = await api.post<Watchlist>('/watchlists', body)
       watchlists.value.push(wl)
+      announceChanged(wl.id)
       return wl
     } catch (e) {
       console.error('Failed to create watchlist', e)
@@ -61,6 +75,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     try {
       await api.delete(`/watchlists/${id}`)
       watchlists.value = watchlists.value.filter(w => w.id !== id)
+      announceChanged(id)
     } catch (e) {
       console.error('Failed to delete watchlist', e)
     }
@@ -73,6 +88,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       })
       const wl = watchlists.value.find(w => w.id === watchlistId)
       if (wl) wl.items.push(item)
+      announceChanged(watchlistId)
       return item
     } catch (e: any) {
       if (e?.status === 409) return null // already in watchlist — silently ignore
@@ -86,6 +102,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       await api.delete(`/watchlists/${watchlistId}/items/${itemId}`)
       const wl = watchlists.value.find(w => w.id === watchlistId)
       if (wl) wl.items = wl.items.filter(i => i.id !== itemId)
+      announceChanged(watchlistId)
     } catch (e) {
       console.error('Failed to remove watchlist item', e)
     }
@@ -101,6 +118,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       .map((item, position) => ({ ...item, position }))
     try {
       await api.post(`/watchlists/${watchlistId}/items/reorder`, { ids })
+      announceChanged(watchlistId)
     } catch (error) {
       wl.items = original
       console.error('Failed to reorder watchlist items', error)
@@ -127,6 +145,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       await api.post(`/watchlists/${watchlistId}/lock`, {})
       const wl = watchlists.value.find(w => w.id === watchlistId)
       if (wl) wl.is_locked = true
+      announceChanged(watchlistId)
     } catch (e) {
       console.error('Failed to lock watchlist', e)
     }
@@ -137,6 +156,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       await api.post(`/watchlists/${watchlistId}/unlock`, {})
       const wl = watchlists.value.find(w => w.id === watchlistId)
       if (wl) wl.is_locked = false
+      announceChanged(watchlistId)
     } catch (e) {
       console.error('Failed to unlock watchlist', e)
     }
@@ -147,6 +167,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       const wl = await api.patch<Watchlist>(`/watchlists/${watchlistId}`, { name })
       const idx = watchlists.value.findIndex(w => w.id === watchlistId)
       if (idx !== -1) watchlists.value[idx] = wl
+      announceChanged(watchlistId)
       return wl
     } catch (e: any) {
       if (e?.status === 409) throw e  // propagate conflict for UI to show
@@ -160,6 +181,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
       const wl = await api.post<Watchlist>(`/watchlists/${watchlistId}/seed`, { instrument_ids: instrumentIds })
       const idx = watchlists.value.findIndex(w => w.id === watchlistId)
       if (idx !== -1) watchlists.value[idx] = wl
+      announceChanged(watchlistId)
       return wl
     } catch (e) {
       console.error('Failed to seed watchlist', e)
@@ -171,6 +193,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     try {
       const copy = await api.post<Watchlist>(`/watchlists/${watchlistId}/copy`, {})
       watchlists.value.push(copy)
+      announceChanged(copy.id)
       return copy
     } catch (e) {
       console.error('Failed to copy watchlist', e)
@@ -187,6 +210,7 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     watchlists.value = [...reordered, ...rest]
     try {
       await api.post('/watchlists/reorder', { ids })
+      announceChanged()
     } catch (e) {
       console.error('Failed to reorder watchlists', e)
     }
