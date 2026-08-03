@@ -14565,6 +14565,17 @@
 - The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
   choose another concrete uncovered acceptance slice.
 
+## 2026-08-03T16:13:18Z Focused-list keyboard checkpoint
+
+- Watchlist Space/Shift+Space traversal now uses `@keydown.stop` at the focused-list
+  boundary, preventing the workstation shell's global handler from advancing a second
+  universe selection for the same keypress.
+- Parent-boundary regression passed; full frontend Vitest passed `443` tests across `74`
+  files; TypeScript, production build, and `git diff --check` passed. Commit
+  `eece8e2bbcc5b07fced24a9a2510dc857a3351b0` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical

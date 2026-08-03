@@ -16673,3 +16673,13 @@ uncovered slice rather than repeat a generic completion claim.
   pushed.
 - Full goal remains active. Strict visual evidence is still `required_missing` and the
   broad functional/security/performance/migration/end-to-end matrix remains outstanding.
+
+## 2026-08-03T16:13:18Z Focused-list keyboard checkpoint
+
+- Stopped focused watchlist traversal events at the list boundary so the parent shell
+  does not process the same Space/Shift+Space event a second time.
+- Validation: parent-boundary regression passed; full frontend suite `443 passed` across
+  `74` files; TypeScript, production build, and `git diff --check` passed. Commit
+  `eece8e2` pushed.
+- Full goal remains active. Strict visual evidence is still `required_missing` and the
+  broad functional/security/performance/migration/end-to-end matrix remains outstanding.
