@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:42:00Z
+
+- Routed `/study-lab` into the persisted workstation `study-lab` factory tab instead
+  of mounting the older standalone Study Lab shell. This keeps symbol, link-group,
+  dataset, layout, and pop-out state under the same workstation owner.
+- Route-contract tests `4 passed`; full frontend Vitest `502 passed` across 82 files;
+  TypeScript, production build, and diff checks passed. Full legacy browser usability,
+  strict V25 visual approval, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:40:00Z
 
 - Added Docker-backed instrument-note integration coverage for authentication,

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:42:00Z Study Lab shell boundary
+
+- `/study-lab` now redirects to the persisted workstation `study-lab` factory tab,
+  eliminating a second standalone application shell while preserving the deep link.
+- Route-contract tests `4 passed`; full frontend Vitest `502 passed` across 82 files;
+  TypeScript, production build, and diff checks passed. Strict V25 visual approval,
+  full legacy browser usability, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:40:00Z Instrument-note isolation
 
 - Added integration coverage for authenticated note round trips, unknown instruments,
