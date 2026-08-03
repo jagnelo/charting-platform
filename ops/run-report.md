@@ -16403,3 +16403,18 @@ Append a short entry after each worker session.
   the saved template stack and are excluded from uPlot rendering.
 - Validation: plot/template unit coverage `3 passed`; TypeScript; production build;
   diff check. Browser regression remains the immediate next action.
+
+## 2026-08-03T13:38:00Z Study Lab histogram checkpoint
+
+- The isolated runner now emits a deterministic typed `histogram` artifact from
+  numeric observations, including bucket bounds, counts, sample size, minimum, and
+  maximum. The Python validator reports `histogram` as a supported output contract.
+- The factory consecutive-positive-close study exposes completed streak lengths;
+  the live Study Lab and persisted result browser render those artifacts as uPlot
+  bar overlays. Invalid/empty distributions remain explicit rather than falling
+  back to untyped JSON.
+- Validation: backend runner/validation units `16 passed`; frontend full Vitest
+  `430 passed`; TypeScript, production build, Ruff, and diff check passed.
+- Commit `808473a87dfc389cdf2ca696158dcbafcb12f5ae` pushed to
+  `feat/tc2000-frontend-rework`. Overall V25 visual and full-goal acceptance remain
+  incomplete because required references and many broader paths are not yet proven.

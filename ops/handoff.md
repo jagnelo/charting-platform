@@ -14357,3 +14357,20 @@
 - A full live-matrix attempt with `ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS=8` could
   not be retained by the command host: the child process was terminated before
   its redirected log flushed. Do not claim that attempt as a completed suite.
+
+## 2026-08-03T13:38:00Z Study Lab histogram checkpoint
+
+- Added one typed `histogram` output to the unified Python language and isolated
+  research runner. Buckets are deterministic, finite numeric values are counted,
+  empty distributions remain structured, and bin counts are bounded to 1–64.
+- The positive-close factory study now exposes completed streak lengths. Study Lab
+  and persisted Study Results render histogram artifacts with a uPlot canvas bar
+  overlay; no alternate numerical chart renderer was introduced.
+- Validation: isolated runner/code-validation units `16 passed`; focused Study Lab
+  and persisted-results tests `2 passed`; full frontend Vitest `430 passed`;
+  TypeScript, production build, Ruff, and `git diff --check` passed.
+- Commit `808473a87dfc389cdf2ca696158dcbafcb12f5ae` is pushed. The user-owned
+  `test-results/` directory remains untracked. Required V25 visual evidence is
+  still `required_missing`; this is a checkpoint, not completion.
+- Next concrete action: continue the uncovered workstation/backend acceptance
+  matrix, preserving the full goal and the visual evidence gate.
