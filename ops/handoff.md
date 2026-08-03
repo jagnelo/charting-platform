@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:57:42Z
+
+- Added durable watchlist item flags end-to-end: migration `e9f0a1b2c3d4`, authenticated
+  item PATCH, Pinia synchronization, visible Flag/Unflag state, and preservation when
+  copying lists. Flags remain editable on locked/managed lists because they do not alter
+  source membership.
+- Validation: full backend unit suite `887 passed`; focused watchlist router `4 passed`;
+  full frontend Vitest `485 passed` across 78 files; focused VirtualWatchlistTool `31`
+  and watchlist-store `10` passed; TypeScript, production build, Ruff, and diff passed.
+  Alembic reports the new migration as head. Checkpoint `1c37211` is pushed. Migration
+  upgrade/downgrade execution, strict V25 visual approval, Docker-backed route
+  verification, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T20:50:24Z
 
 - Added real watchlist membership actions to the workstation context menu. Every

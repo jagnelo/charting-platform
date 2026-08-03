@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:57:42Z Persistent watchlist item flags
+
+- Added migration `e9f0a1b2c3d4`, authenticated item flag PATCH, store synchronization,
+  visible Flag/Unflag context-menu behavior, and flag preservation when copying lists.
+- Full backend unit suite `887 passed`; focused watchlist router `4 passed`; full frontend
+  Vitest `485 passed` across 78 files; focused VirtualWatchlistTool `31` and watchlist-store
+  `10` passed; TypeScript/build/Ruff/diff checks passed. Alembic reports the new migration
+  as head. Pushed `1c37211`.
+- Migration upgrade/downgrade execution, strict V25 visual approval, Docker-backed route
+  verification, and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:50:24Z Watchlist membership actions
 
 - Added explicit context-menu copy/move actions for canonical watchlist rows. Copy targets
