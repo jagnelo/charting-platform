@@ -42,6 +42,8 @@
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><thead><tr><th v-for="column in tableColumns(artifact)" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
           <StudyHistogramUPlot v-else-if="artifact.artifact_type === 'histogram' && histogramData(artifact)" :name="artifact.name" :bins="histogramData(artifact)!.bins" :current="histogramData(artifact)!.current" />
+          <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
+          <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
           <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
@@ -56,6 +58,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from '@/lib/api'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
+import StudyScatterUPlot from './StudyScatterUPlot.vue'
+import StudyHeatmap from './StudyHeatmap.vue'
 
 interface ResearchRunSummary {
   id: number
@@ -103,6 +107,25 @@ function histogramData(artifact: ResearchRunSummary['artifacts'][number]): { bin
   const normalized = bins.filter((bin): bin is { start: number; end: number; count: number } => Boolean(bin) && typeof bin === 'object' && Number.isFinite((bin as Record<string, unknown>).start) && Number.isFinite((bin as Record<string, unknown>).end) && Number.isFinite((bin as Record<string, unknown>).count))
   const current = (value as { current?: unknown }).current
   return normalized.length ? { bins: normalized, current: typeof current === 'number' && Number.isFinite(current) ? current : null } : null
+}
+function scatterData(artifact: ResearchRunSummary['artifacts'][number]): { x: number[]; y: number[] } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { x?: unknown; y?: unknown }
+  if (!Array.isArray(candidate.x) || !Array.isArray(candidate.y) || candidate.x.length !== candidate.y.length) return null
+  const x = candidate.x.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+  const y = candidate.y.filter((item): item is number => typeof item === 'number' && Number.isFinite(item))
+  return x.length === candidate.x.length && y.length === candidate.y.length ? { x, y } : null
+}
+function heatmapData(artifact: ResearchRunSummary['artifacts'][number]): { rows: string[]; columns: string[]; values: number[][] } | null {
+  const value = artifact.payload.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as { rows?: unknown; columns?: unknown; values?: unknown }
+  if (!Array.isArray(candidate.rows) || !candidate.rows.every(item => typeof item === 'string') || !Array.isArray(candidate.columns) || !candidate.columns.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || !candidate.values.every(row => Array.isArray(row) && row.every(item => typeof item === 'number' && Number.isFinite(item)))) return null
+  const rows = candidate.rows as string[]
+  const columns = candidate.columns as string[]
+  const values = candidate.values as number[][]
+  return values.length && values.length === rows.length && values.every(row => row.length === columns.length) ? { rows, columns, values } : null
 }
 function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value

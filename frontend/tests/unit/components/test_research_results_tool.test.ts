@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
+vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
+vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { template: '<div class="heatmap-chart" />', props: ['name', 'rows', 'columns', 'values'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
@@ -33,5 +35,17 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/research/runs/12/cancel', {})
     expect(wrapper.text()).toContain('canceled')
+  })
+
+  it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
+    apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },
+      { id: 6, name: 'matrix', artifact_type: 'heatmap', payload: { value: { rows: ['A'], columns: ['B'], values: [[1]] } } },
+    ] }])
+    const wrapper = mount(ResearchResultsTool)
+    await flushPromises()
+
+    expect(wrapper.find('.scatter-chart').exists()).toBe(true)
+    expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
   })
 })

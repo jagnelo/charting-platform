@@ -346,6 +346,12 @@ configuration event path; legacy invalid monthly `MN1` state is normalized to `M
 Focused component coverage proves hydration and normalization. This is functional
 evidence only; the Version 25 visual reference remains unapproved.
 
+Persisted Research Results now renders the same typed scatter and heatmap artifacts as
+the active Study Lab surface, using the dedicated uPlot point-cloud and native matrix
+components rather than falling back to raw JSON. Saved studies therefore retain their
+structured visual form after reload, comparison, or rerun; focused component coverage
+proves both render paths.
+
 The new-workstation provider defaults are free-source-first and provider-neutral:
 Alpaca (free IEX entitlement) supplies default US price/latest-price, SEC EDGAR supplies
 US identity metadata and ticker-directory search, Alpaca supplies corporate actions and
