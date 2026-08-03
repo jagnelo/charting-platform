@@ -71,6 +71,9 @@
             <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
           </select>
         </label>
+        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
+        <button type="button" :disabled="!personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
+        <button type="button" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
         <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
         <button type="button" :disabled="!personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
@@ -346,13 +349,51 @@ const personalWatchlistColumns: WatchlistColumn[] = [
   { key: 'change', label: 'Chg %', width: '68px', format: 'percent' },
 ]
 const personalSymbolDraft = ref('')
+const personalListNameDraft = ref('')
+const personalListBusy = ref(false)
 const personalWatchlistBusy = ref(false)
 const personalWatchlistError = ref('')
 
 function selectPersonalWatchlist(raw: string) {
   const id = Number(raw)
   selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
+  personalListNameDraft.value = selectedPersonalWatchlist.value?.name ?? ''
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+}
+
+async function createPersonalWatchlist() {
+  const name = personalListNameDraft.value.trim()
+  if (!name || personalListBusy.value) return
+  personalListBusy.value = true
+  personalWatchlistError.value = ''
+  try {
+    const created = await watchlistStore.createWatchlist(name)
+    if (!created) throw new Error('Unable to create personal watchlist')
+    selectedPersonalWatchlistId.value = created.id
+    personalListNameDraft.value = created.name
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: created.id })
+  } catch (cause: any) {
+    personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
+  } finally {
+    personalListBusy.value = false
+  }
+}
+
+async function renamePersonalWatchlist() {
+  const watchlist = selectedPersonalWatchlist.value
+  const name = personalListNameDraft.value.trim()
+  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !name || personalListBusy.value) return
+  personalListBusy.value = true
+  personalWatchlistError.value = ''
+  try {
+    const renamed = await watchlistStore.renameWatchlist(watchlist.id, name)
+    if (!renamed) throw new Error('Unable to rename personal watchlist')
+    personalListNameDraft.value = renamed.name
+  } catch (cause: any) {
+    personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
+  } finally {
+    personalListBusy.value = false
+  }
 }
 
 async function addPersonalSymbol() {
@@ -385,6 +426,7 @@ onMounted(async () => {
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
   if (selectedPersonalWatchlistId.value == null) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
+    personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
     if (selectedPersonalWatchlistId.value != null) {
       emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
     }

@@ -146,6 +146,13 @@ not expose either mutation. The focused virtual-list suite covers source-item-ID
 preservation during drag/drop and the explicit removal boundary; visual approval remains
 blocked by the V25 reference manifest.
 
+The same tool now supports creating and renaming user-owned lists in place. The selected
+list name and ID remain serializable workspace state, while managed/locked rename paths
+are disabled and backend `409` conflicts are surfaced as explicit recovery text rather
+than silently overwriting another window's change. Store and full-workstation regression
+coverage remain functional evidence only; visual approval is still blocked by the V25
+reference manifest.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
