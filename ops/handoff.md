@@ -15890,3 +15890,12 @@
 - Full frontend Vitest `496` across `80` files, TypeScript, production build, and diff
   checks passed. Checkpoint `77db22e` is committed and pushed; strict V25 visual approval
   and broad acceptance remain open.
+## 2026-08-03T23:23:00Z Capability-boundary checkpoint
+
+- Added primary-workstation registry tests proving supported chart/watchlist/scan/gauge/
+  Study Lab/breadth/rotation tools remain discoverable while excluded brokerage/trading,
+  options, news, ratings, earnings, statements, and consolidated-real-time domains stay
+  absent rather than rendering disabled shells.
+- Full frontend Vitest `498` across `81` files, TypeScript, production build, and diff
+  checks passed. Commit/push pending; strict V25 visual approval, legacy-route
+  verification, and broad acceptance remain open.

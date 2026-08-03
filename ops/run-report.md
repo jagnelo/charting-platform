@@ -17654,3 +17654,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full frontend Vitest `496` across `80` files, TypeScript, production build, and diff
   checks passed. Checkpoint `77db22e` is committed and pushed; strict V25 visual approval
   and broad acceptance remain open.
+## 2026-08-03T23:23:00Z Capability-boundary checkpoint
+
+- Added registry-level acceptance tests for the primary capability boundary: supported
+  analysis tools are discoverable, excluded domains are absent, and no disabled shells
+  are registered.
+- Full frontend Vitest `498` across `81` files, TypeScript, production build, and diff
+  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
+  remain open.

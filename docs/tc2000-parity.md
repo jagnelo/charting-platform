@@ -472,3 +472,10 @@ for corroboration; it is also never a required workstation path. The
 default chains no longer include yfinance. yfinance remains registered only for explicit
 legacy/options configuration and is not a required path for the new workstation; absent
 Alpaca credentials are reported as unavailable rather than silently switching providers.
+
+The primary workstation registry now has explicit unit evidence for the capability
+boundary: supported chart, watchlist, scan, gauge, Study Lab, breadth, and rotation
+tools remain discoverable, while brokerage/trading, options, news, ratings, earnings,
+financial statements, and consolidated real-time domains are absent rather than shown
+as disabled shells. This verifies menu registration only; legacy-route and full browser
+acceptance remain separate gates.
