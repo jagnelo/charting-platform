@@ -446,15 +446,16 @@ watch(() => props.tool.configuration, configuration => {
   liveChartConfiguration.value = configuration
 }, { deep: true })
 
-watch([configuredComparisonSymbols, activeTimeframe, () => chartStore.symbol], async ([symbols]) => {
+watch([configuredComparisonSymbols, activeTimeframe, () => chartStore.symbol], async ([symbols, timeframe, symbol], previous) => {
   if (props.tool.tool_type !== 'chart') return
   const current = new Set(comparisonTargets.value.map(target => target.symbol))
-  const requested = symbols.filter(symbol => symbol !== chartStore.symbol)
+  const requested = symbols.filter(candidate => candidate !== symbol)
   comparisonTargets.value = requested.map((symbol, index) => {
     const existing = comparisonTargets.value.find(target => target.symbol === symbol)
     return existing ?? { symbol, label: symbol, color: comparisonColors[index % comparisonColors.length], bars: [] }
   })
-  if (requested.length && (!current.size || requested.some(symbol => !current.has(symbol)))) await loadComparisonBars()
+  const timeframeChanged = previous?.[1] !== timeframe || previous?.[2] !== symbol
+  if (requested.length && (timeframeChanged || !current.size || requested.some(candidate => !current.has(candidate)))) await loadComparisonBars()
 }, { immediate: true })
 
 watch(() => props.tool.configuration.indicators, configured => {
