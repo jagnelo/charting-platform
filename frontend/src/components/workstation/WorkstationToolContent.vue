@@ -68,29 +68,53 @@
     <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
       <div class="personal-watchlist-tool__controls">
         <label>WatchList
-          <select :value="flaggedItemsSelected ? 'flagged' : selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
+          <select :value="flaggedItemsSelected ? 'flagged' : selectedComboKey ? `combo:${selectedComboKey}` : selectedPersonalWatchlistId == null ? '' : String(selectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
             <option value="flagged">Flagged Items</option>
             <option value="">Select a personal watchlist</option>
             <option v-for="watchlist in personalWatchlists" :key="watchlist.id" :value="String(watchlist.id)">{{ watchlist.name }}{{ watchlist.is_locked ? ' · Locked' : '' }}</option>
+            <option v-for="combo in comboLists" :key="`combo:${combo.stable_key}`" :value="`combo:${combo.stable_key}`">Combo · {{ combo.name }}</option>
           </select>
         </label>
-        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
-        <button type="button" :disabled="flaggedItemsSelected || !personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
-        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
-        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
-        <button type="button" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
-        <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="flaggedItemsSelected || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
-        <button type="button" :disabled="flaggedItemsSelected || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
+        <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
+        <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
+        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="flaggedItemsSelected">{{ flaggedWatchlistRows.length }} flagged symbols · select a row to inspect its source list</span>
+        <span v-else-if="selectedCombo">{{ comboWatchlistRows.length }} symbols · {{ selectedCombo.name }} · union/intersection/exclusion</span>
         <span v-else-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
+        <section class="combo-editor" aria-label="Combo list editor">
+          <header>Combo list</header>
+          <input v-model="comboNameDraft" aria-label="Combo list name" placeholder="Name" :disabled="flaggedItemsSelected" />
+          <label>Union
+            <select v-model="comboUnionIds" multiple aria-label="Combo union lists" :disabled="flaggedItemsSelected">
+              <option v-for="watchlist in personalWatchlists" :key="`union-${watchlist.id}`" :value="watchlist.id">{{ watchlist.name }}</option>
+            </select>
+          </label>
+          <label>Intersection
+            <select v-model="comboIntersectionIds" multiple aria-label="Combo intersection lists" :disabled="flaggedItemsSelected">
+              <option v-for="watchlist in personalWatchlists" :key="`intersection-${watchlist.id}`" :value="watchlist.id">{{ watchlist.name }}</option>
+            </select>
+          </label>
+          <label>Exclude
+            <select v-model="comboExcludeIds" multiple aria-label="Combo exclusion lists" :disabled="flaggedItemsSelected">
+              <option v-for="watchlist in personalWatchlists" :key="`exclude-${watchlist.id}`" :value="watchlist.id">{{ watchlist.name }}</option>
+            </select>
+          </label>
+          <button type="button" :disabled="flaggedItemsSelected || !comboNameDraft.trim() || (!comboUnionIds.length && !comboIntersectionIds.length) || comboBusy" @click="saveComboList">{{ selectedCombo ? 'Save combo' : 'New combo' }}</button>
+          <button v-if="selectedCombo" type="button" :disabled="comboBusy" @click="deleteComboList">Delete combo</button>
+          <span v-if="comboError" class="personal-watchlist-tool__error">{{ comboError }}</span>
+        </section>
       </div>
       <VirtualWatchlistTool
-        v-if="selectedPersonalWatchlist || flaggedItemsSelected"
-        :label="flaggedItemsSelected ? 'Flagged Items' : selectedPersonalWatchlist?.name ?? 'WatchList'"
-        :rows="flaggedItemsSelected ? flaggedWatchlistRows : personalWatchlistRows"
+        v-if="selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
+        :label="flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
+        :rows="flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
         :columns="personalWatchlistColumns"
         :visible-column-keys="configuredColumnKeys"
@@ -323,6 +347,7 @@ import { buildNormalizedComparisonSeries, type ComparisonTarget } from '@/lib/wo
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
+import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -343,8 +368,18 @@ const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const configuredWatchlistId = props.tool.configuration.watchlist_id
 const flaggedItemsSelected = ref(configuredWatchlistId === 'flagged')
+const configuredComboKey = typeof configuredWatchlistId === 'string' && configuredWatchlistId.startsWith('combo:') ? configuredWatchlistId.slice(6) : null
+const selectedComboKey = ref<string | null>(configuredComboKey)
 const selectedPersonalWatchlistId = ref<number | null>(typeof configuredWatchlistId === 'number' ? configuredWatchlistId : null)
 const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
+const comboLists = ref<ComboListDefinition[]>([])
+const comboNameDraft = ref('')
+const comboUnionIds = ref<number[]>([])
+const comboIntersectionIds = ref<number[]>([])
+const comboExcludeIds = ref<number[]>([])
+const comboBusy = ref(false)
+const comboError = ref('')
+const selectedCombo = computed(() => comboLists.value.find(combo => combo.stable_key === selectedComboKey.value) ?? null)
 const personalWatchlistTargets = computed(() => personalWatchlists.value.map(watchlist => ({
   id: watchlist.id,
   name: watchlist.name,
@@ -365,6 +400,9 @@ const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.i
   },
 })))
 const flaggedWatchlistRows = computed(() => buildFlaggedWatchlistRows(personalWatchlists.value, watchlistStore.priceMap))
+const comboWatchlistRows = computed(() => selectedCombo.value
+  ? buildComboWatchlistRows(watchlistStore.watchlists, selectedCombo.value, watchlistStore.priceMap)
+  : [])
 const personalWatchlistColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '72px' },
   { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
@@ -379,10 +417,81 @@ const personalWatchlistError = ref('')
 
 function selectPersonalWatchlist(raw: string) {
   flaggedItemsSelected.value = raw === 'flagged'
+  selectedComboKey.value = raw.startsWith('combo:') ? raw.slice(6) : null
   const id = Number(raw)
   selectedPersonalWatchlistId.value = Number.isInteger(id) && id > 0 ? id : null
   personalListNameDraft.value = selectedPersonalWatchlist.value?.name ?? ''
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: flaggedItemsSelected.value ? 'flagged' : selectedPersonalWatchlistId.value })
+  comboError.value = ''
+  hydrateSelectedCombo()
+  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: flaggedItemsSelected.value ? 'flagged' : selectedComboKey.value ? `combo:${selectedComboKey.value}` : selectedPersonalWatchlistId.value })
+}
+
+function hydrateSelectedCombo() {
+  const payload = selectedCombo.value?.payload ?? {}
+  comboNameDraft.value = selectedCombo.value?.name ?? ''
+  comboUnionIds.value = [...(payload.union_watchlist_ids ?? [])]
+  comboIntersectionIds.value = [...(payload.intersection_watchlist_ids ?? [])]
+  comboExcludeIds.value = [...(payload.exclude_watchlist_ids ?? [])]
+}
+
+async function loadComboLists() {
+  try {
+    comboLists.value = await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })
+    hydrateSelectedCombo()
+  } catch (cause: any) {
+    comboError.value = cause?.message ?? 'Unable to load combo lists'
+  }
+}
+
+async function saveComboList() {
+  const name = comboNameDraft.value.trim()
+  const union = comboUnionIds.value.filter(id => Number.isInteger(id) && id > 0)
+  const intersection = comboIntersectionIds.value.filter(id => Number.isInteger(id) && id > 0)
+  const exclude = comboExcludeIds.value.filter(id => Number.isInteger(id) && id > 0)
+  if (!name || (!union.length && !intersection.length) || comboBusy.value) return
+  comboBusy.value = true
+  comboError.value = ''
+  try {
+    const stableKey = selectedComboKey.value ?? `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'combo'}-${Date.now()}`
+    const saved = await api.put<ComboListDefinition>(`/workspaces/library/items/combo_list/${encodeURIComponent(stableKey)}`, {
+      kind: 'combo_list', stable_key: stableKey, name,
+      payload: { union_watchlist_ids: union, intersection_watchlist_ids: intersection, exclude_watchlist_ids: exclude },
+      dependency_metadata: { watchlist_ids: [...new Set([...union, ...intersection, ...exclude])] },
+    })
+    const index = comboLists.value.findIndex(item => item.stable_key === stableKey)
+    if (index >= 0) comboLists.value[index] = saved
+    else comboLists.value.push(saved)
+    selectedComboKey.value = stableKey
+    flaggedItemsSelected.value = false
+    selectedPersonalWatchlistId.value = null
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: `combo:${stableKey}` })
+  } catch (cause: any) {
+    comboError.value = cause?.message ?? 'Unable to save combo list'
+  } finally {
+    comboBusy.value = false
+  }
+}
+
+async function deleteComboList() {
+  const combo = selectedCombo.value
+  if (!combo || comboBusy.value) return
+  comboBusy.value = true
+  comboError.value = ''
+  try {
+    await api.delete(`/workspaces/library/items/combo_list/${encodeURIComponent(combo.stable_key)}`)
+    comboLists.value = comboLists.value.filter(item => item.stable_key !== combo.stable_key)
+    selectedComboKey.value = null
+    comboNameDraft.value = ''
+    comboUnionIds.value = []
+    comboIntersectionIds.value = []
+    comboExcludeIds.value = []
+    selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+  } catch (cause: any) {
+    comboError.value = cause?.message ?? 'Unable to delete combo list'
+  } finally {
+    comboBusy.value = false
+  }
 }
 
 async function createPersonalWatchlist() {
@@ -516,6 +625,7 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' 
 onMounted(async () => {
   if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
+  await loadComboLists()
   if (selectedPersonalWatchlistId.value == null && !flaggedItemsSelected.value) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
@@ -529,7 +639,9 @@ onMounted(async () => {
 
 watch(() => props.tool.configuration.watchlist_id, value => {
   flaggedItemsSelected.value = value === 'flagged'
+  selectedComboKey.value = typeof value === 'string' && value.startsWith('combo:') ? value.slice(6) : null
   selectedPersonalWatchlistId.value = typeof value === 'number' ? value : null
+  hydrateSelectedCombo()
 })
 
 watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join(','), value => {
@@ -537,6 +649,10 @@ watch(() => selectedPersonalWatchlist.value?.items.map(item => item.symbol).join
   if (symbols.length) void watchlistStore.fetchPrices(symbols)
 })
 watch(() => flaggedWatchlistRows.value.map(row => row.symbol).join(','), value => {
+  const symbols = (value ?? '').split(',').filter(Boolean)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols)
+})
+watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => {
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols)
 })
@@ -1075,6 +1191,12 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .personal-watchlist-tool__controls button:disabled { cursor: default; opacity: .5; }
 .personal-watchlist-tool__controls span { color: #8498a6; }
 .personal-watchlist-tool__controls .personal-watchlist-tool__error { color: #e49a9a; }
+.combo-editor { display: flex; align-items: center; gap: 4px; padding-left: 4px; border-left: 1px solid #34434d; }
+.combo-editor header { color: #d7e4eb; }
+.combo-editor label { display: flex; align-items: center; gap: 2px; color: #8498a6; }
+.combo-editor select { width: 82px; min-height: 22px; }
+.combo-editor select[multiple] { height: 34px; }
+.combo-editor input { width: 78px; }
 .analysis { height: 100%; min-height: 0; }
 .breadth-tool { display:grid; grid-template-rows:auto minmax(0,1fr); height:100%; min-height:0; }.metrics { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px; color: #99a8b1; font: 10px "Segoe UI", Arial, sans-serif; }
 .metrics b { color: #d2dce3; font-weight: 500; text-align: right; }

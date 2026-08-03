@@ -15771,3 +15771,21 @@
 - Full goal remains active; V25 visual references remain `required_missing` and the
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
+## 2026-08-03T22:41:00Z Combo-list workstation checkpoint
+
+- Added `combo_list` definitions to the primary personal WatchList source selector.
+  Definitions are user-owned library items containing explicit canonical source watchlist
+  IDs for union, intersection, and exclusion; derived rows deduplicate by instrument ID
+  and retain the first participating source item for linked actions.
+- Added frontend helper coverage for union/intersection/exclusion, intersection-only
+  seeds, deterministic source metadata, and quote projection. Full frontend Vitest passed
+  490 tests across 80 files; TypeScript, production build, focused tests, and diff check
+  passed.
+- Added a backend integration regression for generic `combo_list` persistence and
+  user-isolated listing. It was not executable in this environment because `uv` resolved
+  Python 3.9 and the backend requires Python >=3.12 (`datetime.UTC` import failure).
+  No backend source change was needed: the existing generic authenticated library API
+  already stores the payload and dependency metadata.
+- This is a functional checkpoint, not completion. Strict V25 visual approval, the
+  broader backend/frontend/security/performance matrix, and remaining promotion targets
+  remain open. The combo implementation is pending commit and push.

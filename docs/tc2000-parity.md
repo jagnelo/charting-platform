@@ -289,6 +289,17 @@ watchlist store, so it remains consistent across reloads and pop-outs. Focused c
 coverage for this aggregate source remains to be added; visual approval is still blocked
 by the V25 reference manifest.
 
+The same WatchList source selector now supports user-owned combo lists. A combo is stored
+as a versioned `combo_list` library item with canonical source watchlist IDs and explicit
+union, intersection, and exclusion sets; it never evaluates ticker text or silently
+materializes a new membership list. The editor loads, creates, updates, and deletes these
+definitions through the authenticated library API, while derived rows retain the first
+participating source item for linked selection, copying, and flag actions. Empty or
+unavailable source lists produce an empty, explicit result rather than a provider fan-out.
+The focused helper suite covers union/intersection/exclusion, intersection-only seeds,
+canonical deduplication, deterministic source metadata, and quote projection. Visual
+approval remains blocked by the V25 reference manifest.
+
 Virtualized watchlist condition and Python batch requests now carry both a request
 generation and a linked-universe generation. Changing the active universe invalidates
 late results, starts evaluation for the new rows, and prevents old matches, progress,

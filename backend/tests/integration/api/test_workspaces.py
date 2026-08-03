@@ -207,6 +207,35 @@ class TestWorkspaces:
         assert second.status_code == 200
         assert second.json()["version"] == 2
 
+    def test_combo_library_item_preserves_canonical_membership_sets(self, client, auth_headers):
+        payload = {
+            "kind": "combo_list",
+            "stable_key": "tech-leaders",
+            "name": "Tech leaders",
+            "payload": {
+                "union_watchlist_ids": [11, 12],
+                "intersection_watchlist_ids": [12],
+                "exclude_watchlist_ids": [13],
+            },
+            "dependency_metadata": {
+                "watchlist_ids": [11, 12, 13],
+                "membership_contract": "canonical_instrument_ids_v1",
+            },
+        }
+        created = client.put(
+            "/api/v1/workspaces/library/items/combo_list/tech-leaders",
+            headers=auth_headers,
+            json=payload,
+        )
+        assert created.status_code == 200
+        assert created.json()["payload"] == payload["payload"]
+        listed = client.get(
+            "/api/v1/workspaces/library/items?kind=combo_list",
+            headers=auth_headers,
+        )
+        assert listed.status_code == 200
+        assert listed.json()[0]["dependency_metadata"] == payload["dependency_metadata"]
+
     def test_library_item_delete_is_user_isolated(self, client, auth_headers, admin_headers):
         payload = {
             "kind": "chart_template",

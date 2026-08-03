@@ -17554,3 +17554,18 @@ uncovered slice rather than repeat a generic completion claim.
   pushed; diff check passed.
 - Functional evidence is documented but not completion: strict V25 visual approval is
   still `required_missing` and the broad acceptance matrix remains incomplete.
+## 2026-08-03T22:41:00Z Combo-list workstation checkpoint
+
+- Implemented combo-list sources in the primary personal WatchList tool. The persisted
+  library payload uses canonical source watchlist IDs and explicit union/intersection/
+  exclusion sets; derived rows deduplicate canonical instruments and preserve source item
+  metadata for linked row actions.
+- Validation passed: focused combo helper/flagged/chart target tests `8 passed`; full
+  frontend Vitest `490 passed` across 80 files; TypeScript, production build, and diff
+  checks passed.
+- Backend combo-library integration coverage was added but could not run in this shell:
+  the available `uv` environment resolves Python 3.9, while the backend requires >=3.12
+  and imports `datetime.UTC`. Existing generic user-isolated library code needs no source
+  change for the combo payload.
+- Open gates remain: pinned V25 visual references/approval, complete backend/frontend/
+  security/performance acceptance, provider probes, and remaining promotion targets.
