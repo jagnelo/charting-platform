@@ -14849,6 +14849,14 @@
   blocked at `application-shell-default/default: required_missing`; full goal remains
   active.
 
+## 2026-08-03T17:26:18Z Search exchange regression checkpoint
+
+- Added focused coverage proving canonical instrument search prefers an active primary
+  listing MIC over inactive secondary listings. Router tests `5 passed`; Ruff and
+  `git diff --check` passed. Test commit `1ddcd26` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column

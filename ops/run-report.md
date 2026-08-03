@@ -16969,3 +16969,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Full backend unit `868 passed`, total coverage `70.19%`; Ruff and `git diff --check`
   passed. Commit `c5a2b5f` pushed. Strict V25 visual approval remains `required_missing`
   and the broad acceptance matrix remains incomplete.
+
+## 2026-08-03T17:26:18Z Search exchange regression checkpoint
+
+- Added focused regression coverage proving canonical instrument search prefers an active
+  primary listing MIC over inactive secondary listings. Router tests `5 passed`; Ruff and
+  `git diff --check` passed. Test commit `1ddcd26` pushed.
+- Strict V25 visual approval remains `required_missing` and the broad acceptance matrix
+  remains incomplete.
