@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:28:21Z
+
+- The V25 visual manifest now records every required surface state as an explicit
+  `state_entries` record and the validator checks exact state coverage, lifecycle state,
+  and review-status consistency. Added the official release-notes/factory-layout source
+  guidance to the parity specification without treating web pages as pixel baselines.
+- Validation: visual-manifest unit tests `3 passed`, structural manifest validation
+  passed, strict `--require-approved` correctly stops at the first `required_missing`
+  state, Ruff and diff check passed. No reference was falsely promoted to approved.
+- Commit: `f6e32f9c00bb27cc5822d489260d4a234d6105e3`. Next: obtain permission-cleared
+  V25 image evidence for these state entries, then continue the broader acceptance
+  matrix.
+
 ## Continuation update — 2026-08-03T12:24:46Z
 
 - Moved queued Python scan result reconciliation into a shared screener service and

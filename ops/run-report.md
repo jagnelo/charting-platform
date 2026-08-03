@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:28:21Z V25 state-level visual evidence
+
+- Added explicit manifest records for all required surface states and validator checks
+  that no required state is omitted or silently covered by a surface-level status.
+  Documented authoritative release-note and factory-layout online sources as guidance;
+  no web page was promoted to an image baseline.
+- Validation: visual-manifest unit `3 passed`, structural validation passed, strict
+  approval rejection is expected at `required_missing`, Ruff and diff check passed.
+- Commit: `f6e32f9c00bb27cc5822d489260d4a234d6105e3`.
+
 ## 2026-08-03T12:24:46Z Durable scheduled Python-result collection
 
 - Added shared queued-result reconciliation and scheduler-tick collection for Python

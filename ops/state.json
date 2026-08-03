@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T12:24:46Z",
-    "last_commit": "90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be feat(screener): collect queued Python results in scheduler",
+    "last_handoff_at": "2026-08-03T12:28:21Z",
+    "last_commit": "f6e32f9c00bb27cc5822d489260d4a234d6105e3 test(visual): track V25 state-level reference evidence",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (provider entitlement model/migration plus prior visual, analysis, and research modules, 2026-07-30)",
@@ -18,9 +18,10 @@
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
         "provider_live_tests": "not_run (no provider adapter change in this foundation)",
-        "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-07-30)"
+        "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T12:28:21Z: V25 visual manifest now contains explicit state_entries for all 26 required surface states; validator enforces exact coverage and strict approval still rejects required_missing evidence. Official release-note/factory-layout online sources were documented as authority guidance, not image baselines. Visual tests 3 passed, structural validation/Ruff/diff passed. Commit f6e32f9c00bb27cc5822d489260d4a234d6105e3. Next: permission-cleared V25 image evidence and broader acceptance.",
         "2026-08-03T12:24:46Z: Queued Python scan result collection is shared and runs on scheduler ticks for pending results; terminal artifacts invoke alert/managed-watchlist post-run processing once. Related units 31 and full screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be. Next: continue remaining workstation/backend acceptance, visual references, and long-running research behavior.",
         "2026-08-03T12:21:56Z: Terminal Python scan reconciliation now invokes screener alert and managed-watchlist post-run processing; incomplete/failed/canceled runs do not trigger it. Related units 31 and screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 5de611928a44c6078da63599190126a47c496919. Next: durable scheduled-result collection and broader workstation/backend acceptance.",
         "2026-08-03T12:18:45Z: Centralized Python-condition screener queue creation and routed HTTP, ARQ, and APScheduler through the isolated queue. Scheduler now uses actual schedule/result fields; stale task summary attributes and missing-screener handling are fixed. Scheduler units 2, related engine units 30, and screener integration 20 passed; Ruff/diff passed. Commit 95f58f01f59e021a2d3f43dd8e6c9652dca395e0. Next: terminal Python scan results must invoke screener alert/managed-watchlist post-run processing.",
