@@ -1,5 +1,18 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T12:24:46Z
+
+- Moved queued Python scan result reconciliation into a shared screener service and
+  taught the scheduler to collect pending terminal artifacts on every scheduler tick,
+  even when the scan is not due for a new run. Completed artifacts now fire alerts and
+  managed-watchlist synchronization once; queued/incomplete artifacts remain pending.
+- Validation: scheduler/engine units `31 passed`; full screener integration `20 passed`
+  with Docker-backed Postgres/Redis, including Python alert post-run processing; Ruff and
+  diff check passed.
+- Commit: `90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be`. Next: continue the remaining
+  workstation/backend acceptance matrix, especially visual references and broader
+  scheduled/long-running research behavior.
+
 ## Continuation update — 2026-08-03T12:21:56Z
 
 - Terminal isolated Python scan results now invoke the existing screener post-run

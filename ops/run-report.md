@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T12:24:46Z Durable scheduled Python-result collection
+
+- Added shared queued-result reconciliation and scheduler-tick collection for Python
+  screeners. Terminal results invoke alert/managed-watchlist post-run processing without
+  rerunning user code in the API or scheduler process.
+- Validation: related units `31 passed`, full screener integration `20 passed` with
+  Docker-backed fixtures, Ruff, and diff check.
+- Commit: `90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be`.
+
 ## 2026-08-03T12:21:56Z Python scan alert reconciliation
 
 - Completed Python scan artifacts now invoke the established screener post-run alert and
