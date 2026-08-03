@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:00:00Z Curated Python research namespaces
+
+- Added bounded `scipy.stats` and `statsmodels.api.OLS` facades to the isolated Python
+  SDK, permitted safe local-variable composition, pinned the packages in the runner image,
+  and constrained BLAS/OpenMP thread fan-out.
+- Validation: full backend unit suite `851 passed` at `70.14%`; focused runner/deployment
+  tests `23 passed`; authenticated code integration `13 passed`; rebuilt non-root,
+  read-only, no-network image smoke test completed z-score plus OLS; Ruff and diff checks
+  passed.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T16:40:00Z Study Lab compatibility and integration audit
 
 - Fixed legacy `MN1` Study Lab state normalization to canonical `MN`.

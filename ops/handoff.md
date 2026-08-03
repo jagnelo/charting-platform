@@ -1,5 +1,21 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:00:00Z
+
+- Closed a unified-Python sandbox gap: the isolated SDK now exposes bounded
+  `scipy.stats` and `statsmodels.api.OLS` facades in addition to NumPy/Pandas and the
+  platform namespaces. User code still cannot import modules or reach package internals;
+  local-variable composition is allowed only after static validation and remains subject
+  to the existing dunder, I/O, namespace, and resource restrictions.
+- The runner image now pins NumPy `2.1.3`, Pandas `2.2.3`, SciPy `1.14.1`, and statsmodels
+  `0.14.4`, with BLAS/OpenMP thread fan-out capped at one thread per isolated process.
+  A rebuilt non-root, read-only, no-network container smoke test completed SciPy z-score
+  and statsmodels OLS work in `1.236ms` runner wall time.
+- Validation: full backend unit suite `851 passed`, `70.14%` coverage; focused runner and
+  deployment contract `23 passed`; authenticated code integration `13 passed`; Ruff and
+  diff checks passed. Strict V25 visual approval is still `required_missing`, and the
+  broader security/performance/end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T16:40:00Z
 
 - Corrected the Study Lab legacy-timeframe compatibility path: persisted `MN1` now
