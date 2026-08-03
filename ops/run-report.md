@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:32:00Z Bounded historical OHLCV gap repair
+
+- Explicit range reads now detect bounded edge and obvious internal gaps and fetch only
+  those slices; daily weekend-sized gaps remain untouched without exchange-calendar data.
+- Full backend unit suite `880 passed`; focused market-data tests `4 passed`; Ruff and
+  diff checks passed. Pushed `ec07e1b`.
+- Docker-backed route verification, strict V25 visual approval, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T22:20:00Z Bounded historical OHLCV repair
 
 - Historical page-before requests now calculate a bounded missing-tail window instead of

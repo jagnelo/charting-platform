@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:32:00Z
+
+- Added bounded edge and obvious-internal historical OHLCV gap detection. Explicit
+  range reads now repair only missing slices, preserve legitimate daily weekend gaps,
+  and retain current-window freshness behavior.
+- Validation: full backend unit suite `880 passed`; focused market-data tests `4 passed`;
+  Ruff and `git diff --check` passed. Checkpoint `ec07e1b` is ready to push. Docker-backed
+  route verification, strict V25 visual approval, and the complete acceptance matrix
+  remain open.
+
 ## Continuation update — 2026-08-03T22:20:00Z
 
 - Replaced historical chart pagination’s epoch-wide provider fallback with a bounded,
