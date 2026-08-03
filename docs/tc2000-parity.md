@@ -197,7 +197,9 @@ remains available. Scan definitions now also carry an explicit timeframe and all
 watchlist-ID, basket-ID, or custom instrument-ID universe selector instead of silently
 hard-coding all instruments/D1. The focused scan suite proves both the advanced tree and
 universe/timeframe fields are persisted through the canonical condition contract, and
-supports manual, daily-close, and weekly-close cron scheduling for retained results.
+supports manual, daily-close, and weekly-close cron scheduling. Completed runs retain a
+bounded recent-result history in the tool, with a selector for inspecting prior match
+sets without rerunning the scan.
 
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.

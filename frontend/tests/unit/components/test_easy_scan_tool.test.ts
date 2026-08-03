@@ -118,4 +118,30 @@ describe('EasyScanTool', () => {
       name: 'Basket scan', universe_type: 'basket', universe_basket_id: 44, timeframe: 'W1', schedule: '0 16 * * 1-5',
     })
   })
+
+  it('retains and exposes recent scan results for review', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{ stable_key: 'history-test', name: 'History test', version: 1 }])
+      if (path === '/screeners/10/results') return Promise.resolve([
+        { id: 101, run_at: '2026-08-03T16:00:00Z', matched_ids: [1, 2], result_data: { _status: 'completed' }, error: null },
+        { id: 100, run_at: '2026-08-02T16:00:00Z', matched_ids: [1], result_data: { _status: 'completed' }, error: null },
+      ])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/screeners/from-condition/history-test'
+      ? Promise.resolve({ id: 10 })
+      : Promise.resolve({ matched_ids: [1], result_data: { _status: 'completed' }, error: null }))
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('history-test')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('History scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await flushPromises()
+
+    const history = wrapper.get('select[aria-label="Scan result history"]')
+    expect(history.findAll('option')).toHaveLength(3)
+    expect(wrapper.text()).toContain('2 matches')
+    await history.setValue('100')
+    expect(wrapper.text()).toContain('1 matches')
+  })
 })

@@ -38,7 +38,11 @@
     </div>
     <p v-if="error" class="easy-scan__error">{{ error }}</p>
     <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
-    <div v-else-if="result" class="easy-scan__result"><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}<span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span></div>
+    <div v-else-if="result" class="easy-scan__result">
+      <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
+      <span><b>{{ result.matched_ids.length }}</b> matches · {{ coverageText }}</span>
+      <span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span>
+    </div>
     <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
 </template>
@@ -50,7 +54,7 @@ import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
-type ScanResult = { matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
+type ScanResult = { id?: number; run_at?: string; matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
 
 const conditions = ref<ConditionAsset[]>([])
 const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
@@ -72,6 +76,8 @@ const busy = ref(false)
 const status = ref('')
 const error = ref('')
 const result = ref<ScanResult | null>(null)
+const resultHistory = ref<ScanResult[]>([])
+const selectedResultId = ref('')
 const scanId = ref<number | null>(null)
 const alertTrigger = ref('entered')
 const alertCreated = ref(false)
@@ -130,7 +136,7 @@ async function saveCondition() {
 }
 async function run() {
   if ((!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
-  busy.value = true; error.value = ''; result.value = null; scanId.value = null; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
+  busy.value = true; error.value = ''; result.value = null; resultHistory.value = []; selectedResultId.value = ''; scanId.value = null; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
   try {
     let scan: { id: number }
     const universe: Record<string, unknown> = { universe_type: universeType.value, timeframe: scanTimeframe.value }
@@ -167,8 +173,22 @@ async function run() {
         if (retained[0]) result.value = retained[0]
       }
     }
+    await loadResultHistory(scan.id)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
   finally { busy.value = false }
+}
+async function loadResultHistory(id: number) {
+  try {
+    resultHistory.value = await api.get<ScanResult[]>(`/screeners/${id}/results`, { limit: 20 })
+    const latest = resultHistory.value[0]
+    if (latest) {
+      result.value = latest
+      selectedResultId.value = latest.id == null ? '' : String(latest.id)
+    }
+  } catch (cause: any) {
+    // A completed scan remains usable when retention is unavailable.
+    status.value = cause?.message ?? 'Scan history unavailable'
+  }
 }
 async function cancelPythonRun() {
   if (!pythonResearchRunId.value || cancelRequested.value) return
@@ -186,6 +206,11 @@ async function createAlert() {
 }
 watch(selectedKey, key => { if (key && !scanName.value) scanName.value = `${conditions.value.find(item => item.stable_key === key)?.name ?? 'EasyScan'} Scan` })
 watch(selectedPythonVersion, version => { if (version && !scanName.value) scanName.value = `${pythonConditions.value.find(item => item.versionId === Number(version))?.name ?? 'Python'} Scan` })
+watch(selectedResultId, id => {
+  if (!id) return
+  const selected = resultHistory.value.find(item => String(item.id) === id)
+  if (selected) result.value = selected
+})
 onMounted(() => { void load() })
 </script>
 
@@ -200,5 +225,5 @@ onMounted(() => { void load() })
 .easy-scan__advanced > button { justify-self: start; padding: 2px 6px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
-.easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
+.easy-scan__state, .easy-scan__result, .easy-scan__error { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
 </style>
