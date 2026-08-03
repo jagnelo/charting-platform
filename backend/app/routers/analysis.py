@@ -228,7 +228,19 @@ def _performance_cells(bars: list[OHLCVBar], instrument_id: int) -> dict[str, An
                 ),
             )
         else:
-            cells[period] = _cell(float(latest.close / bars[-offset - 1].close - 1), latest)
+            base = bars[-offset - 1]
+            if base.close == 0:
+                cells[period] = _cell(
+                    None,
+                    latest,
+                    AnalysisWarning(
+                        code="zero_base_price",
+                        message=f"{period} cannot be calculated from a zero base close.",
+                        instrument_id=instrument_id,
+                    ),
+                )
+            else:
+                cells[period] = _cell(float(latest.close / base.close - 1), latest)
     return cells
 
 
