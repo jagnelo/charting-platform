@@ -14383,3 +14383,15 @@
 - Focused StudyLabTool coverage, TypeScript, and `git diff --check` passed.
 - Commit `b76807aa29b158d62d38b659d9d708fb6ece9364` is pushed. The full goal and
   V25 visual gate remain open.
+
+## 2026-08-03T13:43:00Z Study Lab forward-outcome checkpoint
+
+- Injected a bounded `research.forward_returns` namespace into the isolated runner.
+  It accepts declared event indices and positive horizons, records event/outcome
+  timestamps, and excludes incomplete future horizons rather than fabricating data.
+- The factory positive-close study now exposes those forward-return rows in addition
+  to current/longest/average/shortest metrics, completed streaks, and histogram data.
+- Validation: runner/code-validation units `17 passed` with `--no-cov`; focused
+  StudyLabTool test and TypeScript passed; Ruff and diff check passed.
+- Commit `bfb1d93cb7bf55197dc1cf872b346feb00ca1338` is pushed. V25 visual evidence
+  remains `required_missing`; overall acceptance remains open.

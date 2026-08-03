@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T13:40:00Z",
-    "last_commit": "b76807aa29b158d62d38b659d9d708fb6ece9364 fix(study-lab): include shortest streak metric",
+    "last_handoff_at": "2026-08-03T13:43:00Z",
+    "last_commit": "bfb1d93cb7bf55197dc1cf872b346feb00ca1338 feat(study-lab): add point-in-time forward outcomes",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, isolated research runner, screener, visual, analysis, and research modules, 2026-08-03)",
@@ -21,7 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-08-03)"
     },
     "notes": [
-        "2026-08-03T13:40:00Z: Refined the factory positive-close Study Lab source to expose current, longest, average, and shortest streak metrics alongside the completed-streak histogram. Focused StudyLabTool test, TypeScript, and diff check passed. Commit b76807aa29b158d62d38b659d9d708fb6ece9364 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue uncovered workstation/backend requirements.",
+        "2026-08-03T13:43:00Z: Added the isolated research.forward_returns SDK primitive with explicit event indices, horizons, incomplete-horizon exclusion, and event/outcome timestamps; the factory streak study now renders point-in-time forward-return rows alongside all streak metrics and histogram output. Runner/validation units 17 passed with --no-cov, frontend StudyLab test/type-check passed, Ruff/diff passed. Commit bfb1d93cb7bf55197dc1cf872b346feb00ca1338 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue uncovered workstation/backend requirements.",
         "2026-08-03T12:28:21Z: V25 visual manifest now contains explicit state_entries for all 26 required surface states; validator enforces exact coverage and strict approval still rejects required_missing evidence. Official release-note/factory-layout online sources were documented as authority guidance, not image baselines. Visual tests 3 passed, structural validation/Ruff/diff passed. Commit f6e32f9c00bb27cc5822d489260d4a234d6105e3. Next: permission-cleared V25 image evidence and broader acceptance.",
         "2026-08-03T12:24:46Z: Queued Python scan result collection is shared and runs on scheduler ticks for pending results; terminal artifacts invoke alert/managed-watchlist post-run processing once. Related units 31 and full screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be. Next: continue remaining workstation/backend acceptance, visual references, and long-running research behavior.",
         "2026-08-03T12:21:56Z: Terminal Python scan reconciliation now invokes screener alert and managed-watchlist post-run processing; incomplete/failed/canceled runs do not trigger it. Related units 31 and screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 5de611928a44c6078da63599190126a47c496919. Next: durable scheduled-result collection and broader workstation/backend acceptance.",

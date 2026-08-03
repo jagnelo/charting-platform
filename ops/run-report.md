@@ -16426,3 +16426,13 @@ Append a short entry after each worker session.
 - Focused StudyLabTool test, TypeScript, and diff check passed.
 - Commit `b76807aa29b158d62d38b659d9d708fb6ece9364` pushed; full acceptance remains
   incomplete.
+
+## 2026-08-03T13:43:00Z Study Lab forward-outcome checkpoint
+
+- Added `research.forward_returns` to the no-network runner with explicit horizon
+  completeness and point-in-time event/outcome timestamps. The factory positive-close
+  study now surfaces forward-return rows for each completed streak event.
+- Runner/validation units `17 passed` with `--no-cov`; focused frontend StudyLab test,
+  TypeScript, Ruff, and diff check passed.
+- Commit `bfb1d93cb7bf55197dc1cf872b346feb00ca1338` pushed. The complete workstation,
+  visual, performance, and broader backend acceptance matrix remains unfinished.
