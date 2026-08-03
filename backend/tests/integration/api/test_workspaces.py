@@ -14,6 +14,8 @@ class TestWorkspaces:
             "chart",
             "breadth",
             "coverage",
+            "technical_summary",
+            "relative_rotation",
             "alerts",
             "scan",
             "gauge",
@@ -25,6 +27,15 @@ class TestWorkspaces:
         }
         assert "relative-rotation" in {
             window["instance_key"] for window in workspace["tabs"][0]["windows"]
+        }
+        rotation = next(window for window in workspace["tabs"][0]["windows"] if window["instance_key"] == "relative-rotation")
+        assert rotation["configuration"] == {
+            "group_key": "sp500-sectors",
+            "benchmark": "SPY",
+            "timeframe": "D1",
+            "lookback": 20,
+            "tail_length": 10,
+            "adjusted": True,
         }
         assert {tab["stable_key"] for tab in workspace["tabs"]} >= {
             "tc-classic",

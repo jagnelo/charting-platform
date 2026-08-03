@@ -143,14 +143,26 @@ def _factory_tabs() -> list[WorkspaceTab]:
             "Relative Strength",
             {"expression": "=SPY/RSP", "timeframe": "D1", "auto_ratio": True},
         ),
-        ("technical-summary", "analysis", "Technicals", {"scope": "selected"}),
+        ("technical-summary", "technical_summary", "Technicals", {"scope": "selected"}),
         ("breadth-summary", "breadth", "Breadth", {"scope": "selected-sector"}),
         ("coverage-summary", "coverage", "Coverage", {"scope": "selected"}),
         ("notes", "notes", "Notes", {"scope": "active-instrument"}),
         ("alerts", "alerts", "Alerts", {"scope": "active-instrument"}),
         ("easy-scan", "scan", "EasyScan", {"scope": "saved-conditions"}),
         ("market-gauge", "gauge", "Market Gauge", {"scope": "saved-scans"}),
-        ("relative-rotation", "rotation", "Relative Rotation", {"group": "sp500-sectors", "benchmark": "SPY"}),
+        (
+            "relative-rotation",
+            "relative_rotation",
+            "Relative Rotation",
+            {
+                "group_key": "sp500-sectors",
+                "benchmark": "SPY",
+                "timeframe": "D1",
+                "lookback": 20,
+                "tail_length": 10,
+                "adjusted": True,
+            },
+        ),
     ]
     tab.layout_config = _factory_layout(default_windows, "us-top-down")
     for position, (instance_key, tool_type, title, configuration) in enumerate(default_windows):
