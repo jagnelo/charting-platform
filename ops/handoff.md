@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:53:58Z
+
+- Completed personal list-level mechanics in the workstation `WatchList`: copy and
+  confirmed deletion now use the canonical store/API, select the next remaining list
+  after deletion, and keep locked/managed lists protected.
+- Validation: focused store/pop-out suites `8 passed`; full frontend Vitest `458 passed`
+  across 76 files; TypeScript, production build, and `git diff --check` passed.
+  Checkpoint `78807614ef2d5087a6e60a6eb7040177b7c17f95` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:51:49Z
 
 - Added in-place creation and renaming for user-owned personal watchlists in the

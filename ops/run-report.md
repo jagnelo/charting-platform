@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:53:58Z Complete personal watchlist management
+
+- Added copy and confirmed delete actions to the primary workstation personal `WatchList`;
+  deletion selects the next user-owned list and locked/managed lists remain protected.
+- Validation: focused store/pop-out `8 passed`; full frontend Vitest `458 passed` across
+  76 files; TypeScript, production build, and `git diff --check` passed.
+- Pushed checkpoint `78807614ef2d5087a6e60a6eb7040177b7c17f95`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:51:49Z In-place personal watchlist management
 
 - Added create and rename controls for user-owned personal watchlists in the primary
