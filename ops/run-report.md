@@ -17616,5 +17616,5 @@ uncovered slice rather than repeat a generic completion claim.
   filter on a selected watchlist window, persisting `condition_screener_id` and filter
   mode in the workspace snapshot.
 - Validation: focused ChartPlotLibrary `6`, full frontend Vitest `495` across `80` files,
-  TypeScript, production build, and diff checks passed. Strict V25 visual approval and
-  broad acceptance remain open. Commit/push pending.
+  TypeScript, production build, and diff checks passed. Checkpoint `031eb11` is committed
+  and pushed. Strict V25 visual approval and broad acceptance remain open.

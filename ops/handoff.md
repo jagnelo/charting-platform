@@ -15847,6 +15847,6 @@
   canonical EasyScan from the saved indicator condition, binds its ID and active mode
   to the selected watchlist window, and persists the workspace snapshot.
 - Validation passed: focused ChartPlotLibrary `6`, full frontend Vitest `495` across
-  `80` files, TypeScript, production build, and diff checks. Checkpoint commit/push is
-  pending; strict V25 visual approval, provider probes, Docker-backed broad acceptance,
-  and remaining research/backend gaps remain open.
+  `80` files, TypeScript, production build, and diff checks. Checkpoint `031eb11` is
+  committed and pushed; strict V25 visual approval, provider probes, Docker-backed broad
+  acceptance, and remaining research/backend gaps remain open.
