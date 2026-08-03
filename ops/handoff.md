@@ -14726,6 +14726,23 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T20:10:00Z ETF integration reconciliation checkpoint
+
+- Reconciled the seven remaining ETF integration failures instead of suppressing
+  them. SPDR now accepts its known compact workbook schema and discovered product-page
+  ZIP/XLSX artifacts while preserving fund identity and provenance; ARK dated refreshes
+  accept explicitly configured historical archive templates while current refreshes
+  remain restricted to verified ARK routes; Vanguard probe metadata reports the explicit
+  product/SEC route that made the profile eligible; Schwab discovery tolerates transports
+  without a response URL while retaining its provider-specific route label.
+- Validation: repaired ETF acceptance slice `7 passed`; full backend integration
+  `260 passed` with Docker-backed containers; affected ETF adapter unit/API checks passed;
+  `git diff --check` passed.
+- Full goal remains active. Strict V25 visual evidence is still `required_missing`, and
+  the broad workstation/backend visual, security, performance, migration, and end-to-end
+  acceptance matrix remains incomplete. Next: continue with the next concrete uncovered
+  acceptance slice rather than declaring completion.
+
 ## Goal status clarification
 
 - The completion goal is still `active`, not `blocked` or `complete`.

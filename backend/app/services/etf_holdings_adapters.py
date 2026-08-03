@@ -3396,6 +3396,51 @@ class ArkHoldingsAdapter(IssuerCsvHoldingsAdapter):
             route_resolution="ark_fund_scoped_holdings_csv",
         )
 
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Fetch an explicitly configured historical artifact.
+
+        Current ARK refreshes are restricted to the verified ark-funds.com
+        route. Historical backfills may intentionally use an archived issuer
+        route (or a controlled test fixture), so the configured dated template
+        is accepted here and still passes the normal artifact identity checks
+        in the refresh service.
+        """
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in ARK_HOLDINGS_FILE_STEMS:
+            raise ValueError(f"ARK does not have a verified native holdings route for {normalized_symbol}.")
+        resolved_source_url = self.resolve_dated_source_url(
+            symbol=normalized_symbol,
+            requested_date=requested_date,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            raise ValueError(
+                f"ark needs a dated holdings URL template for {normalized_symbol}; "
+                "configure that provider's dated holdings URL template alias."
+            )
+        result = await self._fetch_explicit_issuer_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id or normalized_symbol,
+            source_url=resolved_source_url,
+            identifiers=identifiers,
+            route_resolution="issuer_dated_profile_template",
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "requested_holdings_date": requested_date.isoformat(),
+        }
+        return result
+
     def _normalized_identifiers(
         self,
         *,
@@ -3428,6 +3473,11 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
     _REQUIRED_HEADERS = frozenset(
         {"Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"}
     )
+    # Some SPDR distribution endpoints (and older issuer workbooks) expose a
+    # smaller, still fund-scoped table.  It is a known SPDR schema, not a
+    # generic CSV fallback: identity is taken from the workbook preamble and
+    # the fields are normalized into the same canonical rows.
+    _COMPACT_HEADERS = frozenset({"Ticker", "Name", "Weight (%)", "Shares", "Currency"})
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         normalized_symbol = symbol.strip().upper()
@@ -3454,7 +3504,34 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
             raise ValueError("SPDR holdings require an ETF symbol.")
-        workbook_url = source_url or self._workbook_url(normalized_symbol)
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if not resolved_source_url:
+            product_page_url = self.resolve_product_page_url(
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
+            if product_page_url:
+                discovered_url = await self._discover_source_url_from_product_page(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+                if discovered_url:
+                    return await self._fetch_explicit_issuer_csv(
+                        symbol=normalized_symbol,
+                        issuer_product_id=issuer_product_id,
+                        source_url=discovered_url,
+                        identifiers=identifiers,
+                        route_resolution="issuer_product_page_discovery",
+                    )
+
+        workbook_url = resolved_source_url or self._workbook_url(normalized_symbol)
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 workbook_url,
@@ -3479,7 +3556,10 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
             raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
-            source_url=str(response.url),
+            # httpx supplies ``response.url`` in production; keeping the
+            # requested URL when a lightweight transport/fake omits it makes
+            # the adapter deterministic without losing provenance.
+            source_url=str(getattr(response, "url", workbook_url)),
             source_identifier=issuer_product_id,
             legal_metadata={
                 "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
@@ -3504,21 +3584,24 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
         symbol: str,
     ) -> tuple[list[CanonicalHoldingRow], date | None, str | None]:
         workbook_rows = parse_xlsx_table(raw_workbook)
-        header_index = next(
-            (
-                index
-                for index, row in enumerate(workbook_rows[:20])
-                if cls._REQUIRED_HEADERS.issubset({_clean(value) or "" for value in row})
-            ),
-            None,
-        )
+        header_index = None
+        compact_layout = False
+        for index, row in enumerate(workbook_rows[:20]):
+            headers = {_clean(value) or "" for value in row}
+            if cls._REQUIRED_HEADERS.issubset(headers):
+                header_index = index
+                break
+            if cls._COMPACT_HEADERS.issubset(headers):
+                header_index = index
+                compact_layout = True
+                break
         if header_index is None:
             raise ValueError("SPDR workbook did not expose the expected holdings schema.")
         fund_symbol = next(
             (
                 (_clean(row[1]) or "").upper()
                 for row in workbook_rows[:header_index]
-                if (_clean(row[0]) or "").rstrip(":").lower() == "ticker symbol"
+                if (_clean(row[0]) or "").rstrip(":").lower() in {"ticker symbol", "fund ticker", "ticker"}
                 and len(row) > 1
             ),
             None,
@@ -3548,9 +3631,13 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     name=name,
                     cusip=identifier if _looks_like_cusip(identifier) and row_type == "security" else None,
                     sedol=_clean(raw.get("SEDOL")) if row_type == "security" else None,
-                    weight=_decimal_percent_points(raw.get("Weight")),
-                    shares=_decimal(raw.get("Shares Held")),
-                    currency=_clean(raw.get("Local Currency")),
+                    weight=(
+                        _decimal_percent_points(raw.get("Weight"))
+                        if not compact_layout
+                        else _decimal(raw.get("Weight (%)"))
+                    ),
+                    shares=_decimal(raw.get("Shares Held") if not compact_layout else raw.get("Shares")),
+                    currency=_clean(raw.get("Local Currency") if not compact_layout else raw.get("Currency")),
                     holding_type=holding_type,
                     row_type=row_type,
                     source_row_id=f"spdr-{symbol}-{position}",
@@ -3612,6 +3699,16 @@ class VanguardHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if explicit:
             return explicit
         identifiers = identifiers or {}
+        # Keep probe output honest when the profile already supplies a
+        # product page or SEC identity.  The fetch implementation may still
+        # use Vanguard's public JSON route, but callers should see the route
+        # metadata that made the profile eligible.
+        product_page = _identifier(identifiers, *self.product_page_aliases)
+        if product_page:
+            return product_page
+        sec_cik = _identifier(identifiers, "sec_cik")
+        if sec_cik:
+            return f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json"
         fund_id = _identifier(identifiers, "vanguard_fund_id", "fund_id", "issuer_product_id")
         lookup_id = (fund_id or issuer_product_id or symbol).strip().upper()
         if not lookup_id:
@@ -4165,7 +4262,7 @@ class SchwabHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             page_response.raise_for_status()
             holdings_url = _discover_holdings_download_url(
-                str(page_response.url), page_response.text
+                str(getattr(page_response, "url", page_url)), page_response.text
             )
         if not self._is_native_holdings_url(holdings_url):
             raise ValueError(

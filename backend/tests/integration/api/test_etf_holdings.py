@@ -2229,7 +2229,7 @@ def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
     )
     assert body["row_count"] == 2
     assert body["extra_data"]["legal_metadata"]["route_resolution"] == (
-        "issuer_product_page_discovery"
+        "schwab_product_page_declared_holdings_csv"
     )
 
 

@@ -16869,3 +16869,14 @@ uncovered slice rather than repeat a generic completion claim.
   stale interval data.
 - Validation: comparison tests, TypeScript, production build, and diff check passed;
   full frontend suite remains `447 passed` across `76` files. Commit `9a75782` pushed.
+
+## 2026-08-03T20:10:00Z ETF integration reconciliation checkpoint
+
+- ETF acceptance slice -> `7 passed`.
+- Full backend integration -> `260 passed, 54 warnings` in Docker-backed containers.
+- ETF adapter unit suite -> `448 passed` before the canonical route-label assertion was
+  aligned; the affected unit plus API tests then passed (`2 passed`).
+- `rtk git diff --check` -> passed.
+- Backend changes are not yet committed or pushed. Strict V25 visual validation remains
+  intentionally blocked at `application-shell-default/default: required_missing`; full
+  goal remains active.
