@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:00:00Z
+
+- Registered Study Lab `scatter` and `heatmap` output methods in the shared Python AST
+  validator and Study asset contract. Valid studies now pass the same unified-language
+  validation before reaching the isolated runner.
+- Validation: code-validation plus full research-runner focused suite `35 passed`; Ruff
+  and `git diff --check` passed. Checkpoint `d158839` pushed. Strict visual approval and
+  the broad workstation/backend/security/performance/end-to-end acceptance matrix remain
+  incomplete.
+
 ## Continuation update — 2026-08-03T21:50:00Z
 
 - Added typed Study Lab `heatmap` artifacts with rectangular finite-matrix and label

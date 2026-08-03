@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:00:00Z Study output-contract registration
+
+- Unified Python validation and Study asset contracts now recognize scatter and heatmap
+  outputs, closing the pre-sandbox rejection gap.
+- Code-validation and research-runner focused suite `35 passed`; Ruff/diff checks passed.
+  Pushed `d158839`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:50:00Z Study Lab heatmap artifacts
 
 - Study Lab now supports typed rectangular heatmap matrices with bounded finite values
