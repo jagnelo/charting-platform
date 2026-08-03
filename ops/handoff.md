@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:43:50Z
+
+- Extended the primary personal `WatchList` tool with canonical symbol insertion and
+  context-menu removal. The existing resolver/store APIs are used; add controls are
+  disabled for locked or managed lists, and removal is not registered in those menus.
+- Validation: full frontend Vitest `457 passed` across 76 files; focused virtual-list
+  suite `26 passed`; TypeScript, production build, and `git diff --check` passed.
+  Checkpoint `04e13c61c7f511b47ec76d61404304eaaa3ed705` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:39:30Z
 
 - Added a first-class personal `WatchList` tool to the primary workstation tool

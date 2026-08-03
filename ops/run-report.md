@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:43:50Z Personal watchlist membership
+
+- Added canonical symbol insertion and editable-list context-menu removal to the primary
+  workstation personal `WatchList`; locked/managed lists keep both mutations disabled.
+- Validation: full frontend Vitest `457 passed` across 76 files; focused virtual-list
+  suite `26 passed`; TypeScript, production build, and `git diff --check` passed.
+- Pushed checkpoint `04e13c61c7f511b47ec76d61404304eaaa3ed705`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:39:30Z Personal workstation WatchList
 
 - Added the personal `WatchList` tool to the primary workstation registry and tool
