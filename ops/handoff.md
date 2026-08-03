@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:42:00Z
+
+- Added request and linked-universe generation guards to virtualized watchlist saved
+  conditions and Python columns/conditions. A changed universe invalidates late results
+  and re-evaluates the replacement rows.
+- Validation: full frontend Vitest `470 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `2e084ea` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:38:01Z
 
 - EasyScan now retains a bounded recent result history after each run and lets the
