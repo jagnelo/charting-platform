@@ -252,6 +252,13 @@ not expose either mutation. The focused virtual-list suite covers source-item-ID
 preservation during drag/drop and the explicit removal boundary; visual approval remains
 blocked by the V25 reference manifest.
 
+The same context menu now exposes explicit personal-list membership actions. Any
+workstation list can copy a canonical row into a selected unlocked personal list; an
+editable personal list can move its row by adding it to the destination first and removing
+the source item only after the destination accepts it. Current/source and locked targets
+are disabled, and the action carries canonical instrument and destination IDs rather than
+ticker-only state. Focused virtual-list coverage proves both copy and move events.
+
 Virtualized watchlist condition and Python batch requests now carry both a request
 generation and a linked-universe generation. Changing the active universe invalidates
 late results, starts evaluation for the new rows, and prevents old matches, progress,

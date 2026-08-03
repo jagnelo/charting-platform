@@ -82,6 +82,14 @@
       <button type="button" role="menuitem" @click="runContextAction('note')">Open note</button>
       <button type="button" role="menuitem" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" @click="runContextAction('copy')">Copy symbol</button>
+      <template v-if="membershipTargets.length">
+        <select v-model="membershipTargetId" class="watchlist__membership-target" aria-label="Target watchlist">
+          <option value="">List actions…</option>
+          <option v-for="target in membershipTargets" :key="target.id" :value="String(target.id)" :disabled="target.locked || target.id === sourceWatchlistId">{{ target.name }}{{ target.locked ? ' · Locked' : '' }}</option>
+        </select>
+        <button type="button" role="menuitem" :disabled="!canCopyToTarget" @click="runContextAction('copy-to-watchlist')">Copy to list</button>
+        <button type="button" role="menuitem" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">Move to list</button>
+      </template>
       <button v-if="allowRemove" type="button" role="menuitem" @click="runContextAction('remove')">Remove from list</button>
     </div>
   </section>
@@ -106,6 +114,12 @@ export interface WatchlistColumn {
   width?: string
   format?: 'percent' | 'number'
   kind?: 'boolean'
+}
+
+export interface WatchlistMembershipTarget {
+  id: number
+  name: string
+  locked?: boolean
 }
 
 interface SavedScreener {
@@ -140,6 +154,8 @@ const props = withDefaults(defineProps<{
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
   reorderable?: boolean
   allowRemove?: boolean
+  sourceWatchlistId?: number | null
+  membershipTargets?: WatchlistMembershipTarget[]
   columnOverrides?: Record<string, { label?: string; width?: string }>
 }>(), {
   selected: '',
@@ -158,9 +174,11 @@ const props = withDefaults(defineProps<{
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
+  sourceWatchlistId: null,
+  membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: WatchlistRow]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -177,6 +195,7 @@ const sortDirection = ref<'asc' | 'desc'>('asc')
 const selectedSymbols = ref<string[]>([])
 const selectionAnchor = ref<string | null>(null)
 const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
+const membershipTargetId = ref('')
 const draggedItemId = ref<number | null>(null)
 const draggedColumnKey = ref<string | null>(null)
 const columnMenuOpen = ref(false)
@@ -200,6 +219,10 @@ const pythonConditionRequestGeneration = ref(0)
 const pythonColumnRequestGenerations = new Map<number, number>()
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
+const membershipTargets = computed(() => props.membershipTargets.filter(target => Number.isInteger(target.id) && target.id > 0 && typeof target.name === 'string'))
+const selectedMembershipTarget = computed(() => membershipTargets.value.find(target => target.id === Number(membershipTargetId.value)) ?? null)
+const canCopyToTarget = computed(() => Boolean(contextMenu.value?.row.instrumentId && selectedMembershipTarget.value && !selectedMembershipTarget.value.locked && selectedMembershipTarget.value.id !== props.sourceWatchlistId))
+const canMoveToTarget = computed(() => Boolean(canCopyToTarget.value && props.sourceWatchlistId != null && props.allowRemove))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
 const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
   ...column,
@@ -657,14 +680,20 @@ function selectRow(row: WatchlistRow, event: MouseEvent) {
 
 function openContextMenu(event: MouseEvent, row: WatchlistRow) {
   const bounds = (event.currentTarget as HTMLElement).closest('.watchlist')?.getBoundingClientRect()
+  membershipTargetId.value = ''
   contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
 }
 
-function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove') {
+function runContextAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove') {
   if (!contextMenu.value) return
   const row = contextMenu.value.row
+  const targetId = Number(membershipTargetId.value)
   contextMenu.value = null
-  emit('row-action', action, row)
+  if ((action === 'copy-to-watchlist' || action === 'move-to-watchlist') && Number.isInteger(targetId) && targetId > 0) {
+    emit('row-action', action, row, targetId)
+  } else {
+    emit('row-action', action, row)
+  }
 }
 
 function toggleColumn(key: string) {
@@ -801,6 +830,8 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__context-menu { position: absolute; z-index: 140; display: grid; min-width: 146px; gap: 2px; padding: 4px; border: 1px solid #526673; background: #182128; box-shadow: 0 5px 14px #000b; }
 .watchlist__context-menu strong { padding: 2px 5px 3px; border-bottom: 1px solid #32424d; color: #dceaf2; font-size: 10px; }
 .watchlist__context-menu button { border: 0; background: transparent; color: #c3d2dc; padding: 3px 5px; text-align: left; font: inherit; cursor: pointer; }
+.watchlist__context-menu button:disabled { color: #657782; cursor: not-allowed; }
+.watchlist__membership-target { min-width: 136px; border: 1px solid #526673; background: #10171d; color: #c3d2dc; padding: 3px 4px; font: inherit; }
 .watchlist__context-menu button:hover,.watchlist__context-menu button:focus-visible { background: #28506a; color: #fff; outline: 0; }
 .watchlist__row span { min-width: 0; overflow: hidden; padding: 0 6px; color: #8999a5; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__row span:first-child { color: #dce9f2; font-weight: 600; }

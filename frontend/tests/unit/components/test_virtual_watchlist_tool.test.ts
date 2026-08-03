@@ -134,6 +134,33 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.[0]).toEqual(['chart', rows[1]])
   })
 
+  it('offers copy and move membership actions with an explicit personal-list target', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors',
+        rows: [{ ...rows[1], itemId: 22 }],
+        membershipTargets: [{ id: 7, name: 'Morning review' }, { id: 8, name: 'Locked', locked: true }],
+        sourceWatchlistId: 3,
+        allowRemove: true,
+      },
+    })
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const target = wrapper.get('select[aria-label="Target watchlist"]')
+    await target.setValue('7')
+    expect(wrapper.get('button[role="menuitem"]:not(:disabled)').text()).toContain('Open chart')
+    const copy = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Copy to list')
+    const move = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Move to list')
+    expect(copy?.exists()).toBe(true)
+    expect(move?.exists()).toBe(true)
+    await copy?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['copy-to-watchlist', expect.objectContaining({ symbol: 'XLE' }), 7])
+
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    await wrapper.get('select[aria-label="Target watchlist"]').setValue('7')
+    await wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Move to list')?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ itemId: 22 }), 7])
+  })
+
   it('restores a persisted filter and follows a workspace-state update', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'Sectors', rows, filterText: 'technology' },

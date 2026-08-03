@@ -19,6 +19,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
+      :membership-targets="personalWatchlistTargets"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @row-action="handleRowAction"
@@ -49,6 +50,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
+      :membership-targets="personalWatchlistTargets"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @row-action="handleRowAction"
@@ -98,6 +100,8 @@
         :stacked-column-keys="configuredStackedColumnKeys"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
+        :membership-targets="personalWatchlistTargets"
+        :source-watchlist-id="selectedPersonalWatchlist.id"
         :reorderable="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
         :allow-remove="!selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
@@ -131,6 +135,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
+      :membership-targets="personalWatchlistTargets"
       @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol) : selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @row-action="handleRowAction"
@@ -205,6 +210,7 @@
             :stacked-column-keys="configuredStackedColumnKeys"
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
+            :membership-targets="personalWatchlistTargets"
             @select="selectProxy($event.symbol)"
             @compare="emit('compare', $event)"
             @row-action="handleRowAction"
@@ -242,6 +248,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
+      :membership-targets="personalWatchlistTargets"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @row-action="handleRowAction"
@@ -333,6 +340,7 @@ const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const selectedPersonalWatchlistId = ref<number | null>(typeof props.tool.configuration.watchlist_id === 'number' ? props.tool.configuration.watchlist_id : null)
 const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
+const personalWatchlistTargets = computed(() => personalWatchlists.value.map(watchlist => ({ id: watchlist.id, name: watchlist.name, locked: watchlist.is_locked })))
 const selectedPersonalWatchlist = computed<Watchlist | null>(() => personalWatchlists.value.find(watchlist => watchlist.id === selectedPersonalWatchlistId.value) ?? null)
 const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
   itemId: item.id,
@@ -453,7 +461,30 @@ async function addPersonalSymbol() {
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number }) {
+async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-watchlist', row: { symbol: string; instrumentId: number | null; itemId?: number }, targetWatchlistId?: number) {
+  if (row.instrumentId == null || targetWatchlistId == null) return
+  const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
+  if (!target || target.is_locked || target.is_managed) {
+    personalWatchlistError.value = 'Choose an unlocked personal watchlist as the destination.'
+    return
+  }
+  if (action === 'move-to-watchlist' && (!selectedPersonalWatchlist.value || selectedPersonalWatchlist.value.is_locked || selectedPersonalWatchlist.value.is_managed || selectedPersonalWatchlist.value.id === target.id)) return
+  personalWatchlistError.value = ''
+  const added = await watchlistStore.addItem(target.id, row.instrumentId)
+  if (!added) {
+    personalWatchlistError.value = `${row.symbol} is already in ${target.name}, or the destination rejected the change.`
+    return
+  }
+  if (action === 'move-to-watchlist' && selectedPersonalWatchlist.value && row.itemId != null) {
+    await watchlistStore.removeItem(selectedPersonalWatchlist.value.id, row.itemId)
+  }
+}
+
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number }, targetWatchlistId?: number) {
+  if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
+    void handleMembershipAction(action, row, targetWatchlistId)
+    return
+  }
   if (action === 'remove' && selectedPersonalWatchlist.value && row.itemId != null) {
     void watchlistStore.removeItem(selectedPersonalWatchlist.value.id, row.itemId)
     return
@@ -462,8 +493,8 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'note' | 'alert' 
 }
 
 onMounted(async () => {
+  if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
   if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
-  if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
   if (selectedPersonalWatchlistId.value == null) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
@@ -646,7 +677,11 @@ function selectProxy(symbol: string) {
   emit('selectProxy', symbol)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'remove', row: { symbol: string; instrumentId: number | null }) {
+function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'remove', row: { symbol: string; instrumentId: number | null }, targetWatchlistId?: number) {
+  if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
+    void handleMembershipAction(action, row, targetWatchlistId)
+    return
+  }
   if (action === 'remove') return
   emit('rowAction', action, row)
 }
