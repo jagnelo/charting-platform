@@ -16467,3 +16467,11 @@ Append a short entry after each worker session.
   NumPy `2.1.3` and Pandas `2.2.3`.
 - Commit `097b52dd3292b4fca1feb649c13f73669a32f0b6` pushed. Full acceptance remains
   incomplete, including required V25 visual evidence.
+
+## 2026-08-03T14:05:00Z Numerical-facade isolation hardening
+
+- Hardened restricted Pandas wrappers so single-underscore internals cannot expose
+  the real DataFrame/Series objects. Added a runner regression for `_value` access.
+- Runner units `17 passed` with `--no-cov`; Ruff and diff check passed.
+- Commit `8f6d27ffe9935a8b2f20692b7578663a72e19b5a` pushed. Overall acceptance remains
+  incomplete.

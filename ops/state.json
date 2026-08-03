@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T14:00:00Z",
-    "last_commit": "097b52dd3292b4fca1feb649c13f73669a32f0b6 feat(sandbox): expose restricted numerical facades",
+    "last_handoff_at": "2026-08-03T14:05:00Z",
+    "last_commit": "8f6d27ffe9935a8b2f20692b7578663a72e19b5a fix(sandbox): hide numerical facade internals",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner, screener, visual, analysis, and research modules, 2026-08-03)",
@@ -21,7 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally, 2026-08-03)"
     },
     "notes": [
-        "2026-08-03T14:00:00Z: The isolated research image now installs pinned NumPy 2.1.3/Pandas 2.2.3 at build time and injects restricted np/pd facades; file/external-data methods are source-rejected and values are normalized before artifact persistence. Runner/validation units 21 passed with --no-cov, StudyLab frontend test/type-check passed, Ruff/diff passed, Docker build and in-image import check passed. Commit 097b52dd3292b4fca1feb649c13f73669a32f0b6 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue uncovered workstation/backend requirements.",
+        "2026-08-03T14:05:00Z: Hardened NumPy/Pandas facade wrappers against single-underscore internal access; a regression now proves pd.Series._value cannot expose the underlying Pandas object. Runner units 17 passed with --no-cov and Ruff/diff passed. Commit 8f6d27ffe9935a8b2f20692b7578663a72e19b5a pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue uncovered workstation/backend requirements.",
         "2026-08-03T12:28:21Z: V25 visual manifest now contains explicit state_entries for all 26 required surface states; validator enforces exact coverage and strict approval still rejects required_missing evidence. Official release-note/factory-layout online sources were documented as authority guidance, not image baselines. Visual tests 3 passed, structural validation/Ruff/diff passed. Commit f6e32f9c00bb27cc5822d489260d4a234d6105e3. Next: permission-cleared V25 image evidence and broader acceptance.",
         "2026-08-03T12:24:46Z: Queued Python scan result collection is shared and runs on scheduler ticks for pending results; terminal artifacts invoke alert/managed-watchlist post-run processing once. Related units 31 and full screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 90f4b5f4e8e15bfcec6dd9bbea6850e6c73521be. Next: continue remaining workstation/backend acceptance, visual references, and long-running research behavior.",
         "2026-08-03T12:21:56Z: Terminal Python scan reconciliation now invokes screener alert and managed-watchlist post-run processing; incomplete/failed/canceled runs do not trigger it. Related units 31 and screener integration 20 passed with Docker fixtures, Ruff/diff passed. Commit 5de611928a44c6078da63599190126a47c496919. Next: durable scheduled-result collection and broader workstation/backend acceptance.",

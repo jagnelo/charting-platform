@@ -14434,3 +14434,13 @@
   in-image NumPy/Pandas import check passed.
 - Commit `097b52dd3292b4fca1feb649c13f73669a32f0b6` is pushed. Full V25 visual and
   broader workstation/backend acceptance remain open.
+
+## 2026-08-03T14:05:00Z Numerical-facade isolation hardening
+
+- Restricted Pandas Series/DataFrame/Rolling wrappers now reject all single-
+  underscore attribute access, preventing user code from reaching the underlying
+  Pandas objects and their file-writing APIs.
+- Regression coverage proves `pd.Series._value` fails inside the isolated runner.
+- Validation: runner units `17 passed` with `--no-cov`; Ruff and diff check passed.
+- Commit `8f6d27ffe9935a8b2f20692b7578663a72e19b5a` is pushed. The complete goal and
+  required V25 visual references remain unfinished.
