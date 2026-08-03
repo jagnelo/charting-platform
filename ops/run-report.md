@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:39:42Z Watchlist column drag ordering
+
+- The integrated virtual watchlist column editor now supports direct drag-and-drop
+  ordering through the shared serializable column configuration path.
+- Focused VirtualWatchlistTool tests `29 passed`; full frontend Vitest `482 passed`
+  across 78 files; TypeScript/build/diff checks passed. Pushed `af70eb9`.
+- Strict V25 visual approval, Docker-backed route verification, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T20:36:11Z Point-in-time ETF constituent snapshots
 
 - ETF constituent analysis now supports historical-safe `as_of` snapshot selection,
