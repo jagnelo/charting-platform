@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:58:20Z
+
+- Added direct regression coverage for pop-out watchlist invalidation: a simulated
+  `watchlists-changed` broadcast causes a second canonical `/watchlists` load and updates
+  the receiving store.
+- Validation: full frontend Vitest `459 passed` across 76 files; watchlist store suite
+  `7 passed`; TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `test(workstation): cover popout watchlist invalidation` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:56:19Z
 
 - Added `BroadcastChannel` invalidation to the canonical watchlist store. Mutations from
