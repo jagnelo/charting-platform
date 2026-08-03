@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:59:00Z
+
+- Temporarily fetched the four newly catalogued official help images to record their
+  SHA-256 hashes and pixel dimensions in the discovery manifest. They remain outside
+  repository product assets and are still non-approved because exact pinned-build
+  continuity is unproven.
+- Manifest validation and diff checks passed. Strict V25 visual acceptance remains
+  explicitly blocked by missing exact-build approved states.
+
 ## Continuation update — 2026-08-03T23:58:00Z
 
 - Re-ran the full backend unit suite after the XNYS calendar change: `889 passed` with

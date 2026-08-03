@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T21:58:00Z",
-    "last_commit": "4a402bd test(coverage): align XNYS gap slices",
+    "last_commit": "568e853 docs(visual): hash discovery images",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation including deterministic XNYS coverage calendar, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -25,6 +25,7 @@
     "notes": [
         "2026-08-03T23:58:00Z: Re-ran the full backend unit suite after the XNYS coverage contract update: 889 passed with --no-cov and 34 existing dependency warnings. The coverage-router regression now expects session-only missing slices. Strict V25 visual approval and broad acceptance remain open.",
         "2026-08-03T23:55:00Z: Added deterministic local XNYS daily session handling to coverage and market-data repair for USD instruments. Expected weekends, Good Friday, observed market holidays, and Juneteenth are no longer fetched as missing bars, while missing weekdays remain explicit repair slices; unknown-calendar instruments retain conservative behavior. Focused market-data suite 7 passed, Ruff and diff checks passed. Strict V25 visual approval and broad acceptance remain open.",
+        "2026-08-03T23:59:00Z: Downloaded the four newly catalogued official help images temporarily, recorded their SHA-256 hashes and pixel dimensions in the discovery manifest, and removed no protected material from the repository. Manifest validator and diff checks passed; exact-build visual approval remains required_missing.",
         "2026-08-03T23:50:00Z: Added official help discovery candidates for integrated column-editor, grouped-column, and stacked-column states with direct image locators and explicit non-approval notes; updated the controlling visual catalogue. Manifest validator and diff checks passed. Strict V25 visual approval remains required_missing because no exact-build approved baselines exist.",
         "2026-08-03T23:45:00Z: Added VirtualWatchlistTool component coverage for the derived Flagged Items source, proving the visible flagged marker, preserved source item identity, and explicit Unflag action. Focused suite 33 passed; diff check passed. Strict V25 visual approval, full legacy browser usability, and broad acceptance remain open.",
         "2026-08-03T23:42:00Z: Routed the /study-lab deep link through the persisted workstation study-lab factory tab instead of mounting a second standalone shell. Route-contract tests 4 passed; full frontend Vitest 502 across 82 files, TypeScript/build, and diff checks passed. Strict V25 visual approval, full legacy browser usability, and broad acceptance remain open.",

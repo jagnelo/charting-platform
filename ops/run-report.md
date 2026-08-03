@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:59:00Z Discovery-image provenance
+
+- Fetched the four official column/group/stack discovery images temporarily and recorded
+  their SHA-256 hashes and dimensions in the manifest; no protected image was added to
+  the product bundle.
+- Manifest validation and diff checks passed. Exact-build approved visual baselines remain
+  absent, so strict visual acceptance remains blocked honestly.
+
 ## 2026-08-03T23:58:00Z Full backend unit validation
 
 - Full backend unit suite passed `889` tests with `--no-cov` after the XNYS coverage
