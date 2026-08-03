@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T14:50:00Z",
-    "last_commit": "9851986 feat(workstation): add sector calendar-year analysis",
+    "last_commit": "9851986d6aa90a93fbb61c67725341ac9aefddd1 feat(workstation): add sector calendar-year analysis",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner, screener, visual, analysis, and research modules, 2026-08-03)",
