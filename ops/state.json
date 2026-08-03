@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T19:30:00Z",
-    "last_commit": "0039645489f8351968f90d9e1a32073f1aabcebb fix(workspace): preserve minute timeframe links",
+    "last_commit": "eff3be153654a0e3bc06b057363d60d0636931e3 feat(workstation): expose complete timeframe controls",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
