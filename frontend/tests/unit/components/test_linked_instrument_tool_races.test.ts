@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet, put: apiPut } }))
+const { apiDelete, apiGet, apiPatch, apiPost, apiPut } = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPatch: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, patch: apiPatch, post: apiPost, put: apiPut } }))
 
 import InstrumentNoteTool from '@/components/workstation/InstrumentNoteTool.vue'
 import InstrumentAlertsTool from '@/components/workstation/InstrumentAlertsTool.vue'
@@ -15,6 +15,9 @@ function deferred<T>() {
 
 beforeEach(() => {
   apiGet.mockReset()
+  apiDelete.mockReset()
+  apiPatch.mockReset()
+  apiPost.mockReset()
   apiPut.mockReset()
 })
 
@@ -46,5 +49,23 @@ describe('linked instrument tool stale-response guards', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('touches')
     expect(wrapper.text()).not.toContain('No alerts for XLK.')
+  })
+
+  it('does not leave the alerts tool busy when an older mutation completes after relinking', async () => {
+    const mutation = deferred<{ id: number; condition: string; threshold_price: number; status: string; repeat: boolean }>()
+    apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {
+      if (_path === '/alerts/price') return Promise.resolve([{ id: params?.instrument_id ?? 1, condition: 'touches', threshold_price: 9, status: 'active', repeat: false }])
+      return Promise.resolve([])
+    })
+    apiPatch.mockReturnValue(mutation.promise)
+    const wrapper = mount(InstrumentAlertsTool, { props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Enable repeat for price alert"]')).toBeTruthy())
+    await wrapper.get('button[aria-label="Enable repeat for price alert"]').trigger('click')
+    await wrapper.setProps({ instrumentId: 2, symbol: 'XLK' })
+    expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
+
+    mutation.resolve({ id: 1, condition: 'touches', threshold_price: 9, status: 'active', repeat: true })
+    await wrapper.vm.$nextTick()
+    expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
   })
 })

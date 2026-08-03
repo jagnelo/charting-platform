@@ -69,6 +69,7 @@ const validThreshold = computed(() => Number.isFinite(Number(threshold.value)) &
 
 async function load() {
   const generation = ++viewGeneration
+  busy.value = false
   alerts.value = []
   indicatorAlerts.value = []
   history.value = []
