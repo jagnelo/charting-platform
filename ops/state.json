@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T16:40:00Z",
-    "last_commit": "86f626e5a70de5cdbd4a53dbeb495740bf163d69 fix(study-lab): normalize legacy monthly timeframe",
+    "last_commit": "286659a34d9100b37f020fdb94053180e97685b9 chore(ops): record integration audit and study lab fix",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
