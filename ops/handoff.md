@@ -14541,6 +14541,18 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## Goal status clarification
+
+- The completion goal is still `active`, not `blocked` or `complete`.
+- The apparent repetition is expected from the one-bar completion contract: incremental
+  checkpoints are passing, but the complete visual, functional, security, performance,
+  migration, and end-to-end matrix has not passed.
+- The immediate hard gate remains the strict visual manifest, which reports
+  `application-shell-default/default: required_missing`; available online V25 help
+  evidence is build `25.0.9172.22877`, not the pinned `25.0.9571`.
+- The next continuation must execute a concrete uncovered acceptance slice and must not
+  claim completion from the current frontend baseline alone.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical

@@ -16655,3 +16655,11 @@ Append a short entry after each worker session.
 - Official TC2000 help search currently exposes Version 25 build `25.0.9172.22877`,
   not the pinned target `25.0.9571`; the existing image remains a discovery candidate
   and is not treated as an approved baseline.
+
+## Goal status clarification
+
+The goal remains active. The apparent loop is not a repeated test failure or a blocked
+goal transition: the user-defined completion bar is all-or-nothing, while the branch
+has only passed incremental slices. The strict visual gate and broad acceptance matrix
+are still outstanding. The next continuation should name and execute one concrete
+uncovered slice rather than repeat a generic completion claim.
