@@ -68,6 +68,7 @@ class TestRegistryCapabilities:
 
     def test_edgar_capabilities(self):
         caps = set(list_provider_capabilities("edgar"))
+        assert "instrument_search" in caps
         assert "instrument_metadata" in caps
         assert "instrument_events" in caps
         assert "price_history" not in caps
@@ -459,6 +460,19 @@ class TestCoinGeckoCredentialWarning:
 
 
 class TestEdgarTickerMap:
+    def test_search_instruments_uses_cached_sec_directory(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {
+            "AAPL": {"cik": 320193, "title": "Apple Inc."},
+            "MSFT": {"cik": 789019, "title": "Microsoft Corporation"},
+        }
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+
+        results = EdgarProvider().search_instruments("apple", limit=5)
+
+        assert [(item.symbol, item.name) for item in results] == [("AAPL", "Apple Inc.")]
+
     def test_ensure_ticker_map_parses_sec_json(self):
         import app.providers.edgar as edgar_module
 

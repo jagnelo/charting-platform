@@ -29,7 +29,12 @@ import httpx
 
 from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
-from app.providers.base import InstrumentEventRecord, InstrumentProfile, ListingRecord
+from app.providers.base import (
+    InstrumentEventRecord,
+    InstrumentProfile,
+    ListingRecord,
+    ProviderSearchResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +57,30 @@ class EdgarProvider:
 
     def _headers(self) -> dict[str, str]:
         return {"User-Agent": settings.EDGAR_USER_AGENT}
+
+    def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
+        """Search the SEC's cached issuer ticker directory without provider fan-out.
+
+        The directory is the authoritative SEC identity/search source for US
+        issuers.  It deliberately returns only identity fields; prices and
+        tradability are resolved separately through the configured market-data
+        chain.
+        """
+        needle = query.strip().upper()
+        if not needle or limit <= 0:
+            return []
+        self._ensure_ticker_map(self._headers())
+        matches = [
+            ProviderSearchResult(
+                symbol=ticker,
+                name=str(entry.get("title") or ticker),
+                instrument_type="EQUITY",
+            )
+            for ticker, entry in _ticker_map.items()
+            if needle in ticker or needle in str(entry.get("title") or "").upper()
+        ]
+        matches.sort(key=lambda item: (0 if item.symbol == needle else 1, item.symbol))
+        return matches[:limit]
 
     # ── Metadata ──────────────────────────────────────────────────────────────
 
@@ -130,6 +159,10 @@ class EdgarProvider:
                 "sector": sic_desc,
             },
         )
+
+    @staticmethod
+    def _ensure_ticker_map(headers: dict) -> None:
+        _ensure_ticker_map(headers)
 
     # ── Events (earnings history) ─────────────────────────────────────────────
 

@@ -53,12 +53,15 @@ class Settings(BaseSettings):
     )
     ETF_HOLDINGS_SEC_BACKFILL_MAX_PROFILES: int = 50
     ETF_HOLDINGS_SEC_BACKFILL_MAX_FILINGS_PER_ETF: int = 20
-    DEFAULT_MARKET_DATA_PROVIDER: str = "yfinance"
-    DEFAULT_METADATA_PROVIDER: str = "yfinance"
-    DEFAULT_EVENT_PROVIDER: str = "yfinance"
-    DEFAULT_DISCOVERY_PROVIDER: str = "yfinance"
+    # Free-source-first defaults for the new workstation.  yfinance is not a
+    # normal read path; it remains available only when explicitly selected as
+    # a legacy/options fallback in deployment configuration.
+    DEFAULT_MARKET_DATA_PROVIDER: str = "alpaca"
+    DEFAULT_METADATA_PROVIDER: str = "edgar"
+    DEFAULT_EVENT_PROVIDER: str = "alpaca"
+    DEFAULT_DISCOVERY_PROVIDER: str = "alpaca"
     DEFAULT_OPTIONS_PROVIDER: str = "yfinance"
-    IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["yfinance", "openfigi"]
+    IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {}
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}

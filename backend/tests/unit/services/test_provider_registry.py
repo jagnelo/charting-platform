@@ -1,4 +1,8 @@
 from app.providers.registry import (
+    get_default_discovery_provider,
+    get_default_event_provider,
+    get_default_market_data_provider,
+    get_default_metadata_provider,
     get_default_options_provider,
     get_identifier_provider,
     get_option_chain_provider,
@@ -9,6 +13,12 @@ from app.providers.registry import (
 
 
 class TestProviderRegistry:
+    def test_new_workstation_defaults_are_free_source_first(self):
+        assert get_default_market_data_provider().name == "alpaca"
+        assert get_default_metadata_provider().name == "edgar"
+        assert get_default_event_provider().name == "alpaca"
+        assert get_default_discovery_provider().name == "alpaca"
+
     def test_yfinance_exposes_price_and_options_capabilities(self):
         capabilities = set(list_provider_capabilities("yfinance"))
         assert "price_history" in capabilities
