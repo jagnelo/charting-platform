@@ -17,7 +17,7 @@ describe('StudyLabTool', () => {
       },
     })
 
-    expect(wrapper.find('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'D1')
+    expect(wrapper.find('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'MN')
     expect(wrapper.find('[aria-label="Study benchmark"]').element).toHaveProperty('value', 'XLK')
     expect(wrapper.find('[aria-label="Study adjustment"]').element).toHaveProperty('value', 'raw')
     expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')

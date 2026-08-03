@@ -64,7 +64,7 @@ const timeframeOptions = [
   { value: 'M15', label: '15 minute' },
 ]
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
-const normaliseTimeframe = (value: string) => timeframeOptions.some(option => option.value === value) ? value : 'D1'
+const normaliseTimeframe = (value: string) => value === 'MN1' ? 'MN' : timeframeOptions.some(option => option.value === value) ? value : 'D1'
 const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
 const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'split_adjusted') === 'raw' ? 'raw' : 'split_adjusted')
