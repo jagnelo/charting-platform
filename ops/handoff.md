@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:31:00Z
+
+- Added EasyScan universe and timeframe controls. Scans now explicitly target all
+  instruments, a watchlist ID, a basket ID, or custom instrument IDs at a selected
+  supported timeframe.
+- Validation: full frontend Vitest `468 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `4dfe0f4` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:29:00Z
 
 - Added recursive EasyScan condition groups. The primary tool now supports nested

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:31:00Z EasyScan universe/timeframe controls
+
+- EasyScan now persists explicit all/watchlist/basket/custom universes and supported
+  scan timeframes instead of hard-coding all instruments/D1.
+- Validation: full frontend Vitest `468 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `4dfe0f4`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:29:00Z Recursive EasyScan groups
 
 - Primary EasyScan now supports nested AND/OR/NOT condition groups using the shared
