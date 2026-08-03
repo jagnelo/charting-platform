@@ -153,6 +153,11 @@ than silently overwriting another window's change. Store and full-workstation re
 coverage remain functional evidence only; visual approval is still blocked by the V25
 reference manifest.
 
+Personal list management also exposes copy and confirmed deletion for editable lists.
+Deletion selects the next remaining user-owned list and persists that selection; locked
+and managed lists cannot be deleted, and the existing store/API error path remains
+visible rather than fabricating success.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while

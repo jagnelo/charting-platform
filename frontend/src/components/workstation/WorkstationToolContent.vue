@@ -74,6 +74,8 @@
         <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist()" />
         <button type="button" :disabled="!personalListNameDraft.trim() || personalListBusy" @click="createPersonalWatchlist">New</button>
         <button type="button" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
+        <button type="button" :disabled="!selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
+        <button type="button" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
         <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="!selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
         <button type="button" :disabled="!personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
@@ -391,6 +393,43 @@ async function renamePersonalWatchlist() {
     personalListNameDraft.value = renamed.name
   } catch (cause: any) {
     personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
+  } finally {
+    personalListBusy.value = false
+  }
+}
+
+async function copyPersonalWatchlist() {
+  const watchlist = selectedPersonalWatchlist.value
+  if (!watchlist || personalListBusy.value) return
+  personalListBusy.value = true
+  personalWatchlistError.value = ''
+  try {
+    const copy = await watchlistStore.copyWatchlist(watchlist.id)
+    if (!copy) throw new Error('Unable to copy personal watchlist')
+    selectedPersonalWatchlistId.value = copy.id
+    personalListNameDraft.value = copy.name
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: copy.id })
+  } catch (cause: any) {
+    personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
+  } finally {
+    personalListBusy.value = false
+  }
+}
+
+async function deletePersonalWatchlist() {
+  const watchlist = selectedPersonalWatchlist.value
+  if (!watchlist || watchlist.is_locked || watchlist.is_managed || personalListBusy.value) return
+  if (!window.confirm(`Delete personal watchlist “${watchlist.name}”?`)) return
+  personalListBusy.value = true
+  personalWatchlistError.value = ''
+  try {
+    await watchlistStore.deleteWatchlist(watchlist.id)
+    const next = personalWatchlists.value[0] ?? null
+    selectedPersonalWatchlistId.value = next?.id ?? null
+    personalListNameDraft.value = next?.name ?? ''
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: selectedPersonalWatchlistId.value })
+  } catch (cause: any) {
+    personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
   } finally {
     personalListBusy.value = false
   }
