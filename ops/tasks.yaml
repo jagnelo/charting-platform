@@ -25,7 +25,7 @@ tasks:
       - Canonical implementation is docs/project-todos.md section 14; the continuous stint has one completion bar and checkpoints do not redefine delivery.
       - Pushed checkpoints include chart target mode, durable flags/Flagged Items, point-in-time taxonomy corrections, current-head migration validation, and official online drag/drop reference evidence.
       - Combo-list source support is currently validated in the frontend and documented; the backend persistence regression awaits a Python >=3.12 test environment.
-      - Indicator plot promotion now reaches watchlist columns and EasyScan-backed active filters through canonical local batch APIs; the bounded versioned drag-to-column and drag-to-condition/editor path is implemented and covered, while full browser parity remains open.
+      - Indicator/condition transfer now works in both directions through one bounded versioned drag contract: plots create numeric columns, plots create editable conditions, and EasyScan condition trees create canonical screener-backed Boolean columns; full browser parity remains open.
       - Indicator batch cells preserve insufficient-history, unsupported, and unavailable warning states in the virtualized watchlist rather than rendering silent blanks.
       - Indicator-batch requests return a cell-level outcome for every requested symbol, including unknown canonical symbols.
       - Indicator-batch responses include explicit-symbol universe provenance and requested/evaluated counts.

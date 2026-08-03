@@ -20,6 +20,17 @@ export interface ChartPlotDragPayload {
   }
 }
 
+export interface TechnicalConditionDragPayload {
+  version: 1
+  kind: 'technical-condition'
+  condition: Record<string, unknown>
+  timeframe: Timeframe
+  label: string
+  sourceWindowKey: string
+}
+
+export type ChartAnalysisDragPayload = ChartPlotDragPayload | TechnicalConditionDragPayload
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -48,22 +59,59 @@ export function createChartPlotDragPayload(indicator: IndicatorConfig, timeframe
 }
 
 export function writeChartPlotDrag(dataTransfer: DataTransfer, payload: ChartPlotDragPayload) {
+  return writeAnalysisDrag(dataTransfer, payload)
+}
+
+export function createTechnicalConditionDragPayload(condition: Record<string, unknown>, timeframe: Timeframe, sourceWindowKey: string, label: string): TechnicalConditionDragPayload {
+  return {
+    version: 1,
+    kind: 'technical-condition',
+    condition: JSON.parse(JSON.stringify(condition)) as Record<string, unknown>,
+    timeframe,
+    label: label.slice(0, 160) || 'Technical condition',
+    sourceWindowKey: sourceWindowKey.slice(0, 128),
+  }
+}
+
+export function writeTechnicalConditionDrag(dataTransfer: DataTransfer, payload: TechnicalConditionDragPayload) {
+  return writeAnalysisDrag(dataTransfer, payload)
+}
+
+function writeAnalysisDrag(dataTransfer: DataTransfer, payload: ChartAnalysisDragPayload) {
   const serialized = JSON.stringify(payload)
   if (serialized.length > MAX_PLOT_DRAG_BYTES) return false
   dataTransfer.setData(CHART_PLOT_DRAG_MIME, serialized)
-  dataTransfer.setData('text/plain', payload.indicator.label)
+  dataTransfer.setData('text/plain', payload.kind === 'chart-plot' ? payload.indicator.label : payload.label)
   dataTransfer.effectAllowed = 'copy'
   return true
 }
 
 export function readChartPlotDrag(dataTransfer: DataTransfer | null | undefined): ChartPlotDragPayload | null {
+  const payload = readAnalysisDrag(dataTransfer)
+  return payload?.kind === 'chart-plot' ? payload : null
+}
+
+export function readAnalysisDrag(dataTransfer: DataTransfer | null | undefined): ChartAnalysisDragPayload | null {
   if (!dataTransfer) return null
   let serialized = ''
   try { serialized = dataTransfer.getData(CHART_PLOT_DRAG_MIME) } catch { return null }
   if (!serialized || serialized.length > MAX_PLOT_DRAG_BYTES) return null
   try {
     const candidate = JSON.parse(serialized) as unknown
-    if (!isRecord(candidate) || candidate.version !== PLOT_DRAG_VERSION || candidate.kind !== 'chart-plot' || !isRecord(candidate.indicator)) return null
+    if (!isRecord(candidate) || candidate.version !== PLOT_DRAG_VERSION) return null
+    if (candidate.kind === 'technical-condition') {
+      if (!isRecord(candidate.condition) || !isTimeframe(candidate.timeframe) || typeof candidate.label !== 'string' || typeof candidate.sourceWindowKey !== 'string') return null
+      if (candidate.label.length > 160 || candidate.sourceWindowKey.length > 128) return null
+      return {
+        version: 1,
+        kind: 'technical-condition',
+        condition: JSON.parse(JSON.stringify(candidate.condition)) as Record<string, unknown>,
+        timeframe: candidate.timeframe,
+        label: candidate.label,
+        sourceWindowKey: candidate.sourceWindowKey,
+      }
+    }
+    if (candidate.kind !== 'chart-plot' || !isRecord(candidate.indicator)) return null
     const indicator = candidate.indicator
     if (!isIndicatorType(indicator.type) || !isRecord(indicator.params) || !isTimeframe(indicator.timeframe) || typeof indicator.label !== 'string' || typeof indicator.sourceWindowKey !== 'string') return null
     if (indicator.label.length > 160 || indicator.sourceWindowKey.length > 128) return null

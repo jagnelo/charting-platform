@@ -5,7 +5,7 @@ const { apiDelete, apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiDelete: vi
 vi.mock('@/lib/api', () => ({ api: { delete: apiDelete, get: apiGet, post: apiPost, put: apiPut } }))
 
 import VirtualWatchlistTool from '@/components/workstation/VirtualWatchlistTool.vue'
-import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
+import { createChartPlotDragPayload, createTechnicalConditionDragPayload, writeChartPlotDrag, writeTechnicalConditionDrag } from '@/lib/workstation/plotDrag'
 
 const rows = [
   { instrumentId: 1, symbol: 'XLK', name: 'Technology', values: { relative_1m: 0.12 } },
@@ -82,6 +82,37 @@ describe('VirtualWatchlistTool', () => {
 
     expect(wrapper.emitted('plot-drop')).toHaveLength(1)
     expect(wrapper.emitted('plot-drop')?.[0]?.[0]).toMatchObject({ kind: 'chart-plot', indicator: { type: 'rsi', timeframe: 'D1', sourceWindowKey: 'chart-source' } })
+  })
+
+  it('accepts a serialized technical condition drop for a Boolean column', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    writeTechnicalConditionDrag(dataTransfer, createTechnicalConditionDragPayload({ operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: 'rsi', params: { period: 14 }, op: 'gt', value: 50 }] }, 'D1', 'scan-source', 'RSI above 50'))
+
+    await wrapper.get('.watchlist').trigger('drop', { dataTransfer })
+
+    expect(wrapper.emitted('condition-drop')).toHaveLength(1)
+    expect(wrapper.emitted('condition-drop')?.[0]?.[0]).toMatchObject({ kind: 'technical-condition', label: 'RSI above 50' })
+  })
+
+  it('renders persisted condition columns as sortable Boolean values', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        conditionColumns: [{ key: 'condition:rsi-above-50', name: 'RSI above 50', screener_id: 12, timeframe: 'D1' }],
+        conditionValues: { 'condition:rsi-above-50': { XLK: true, XLE: false, XLV: null } },
+      },
+    })
+    expect(wrapper.find('.watchlist__header').text()).toContain('RSI above 50')
+    expect(wrapper.text()).toContain('True')
+    expect(wrapper.text()).toContain('False')
+    await wrapper.findAll('.watchlist__header button').find(button => button.text().includes('RSI above 50'))?.trigger('click')
+    expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('False')
   })
 
   it('persists column label and width overrides through the editor', async () => {

@@ -236,8 +236,12 @@ the resulting numeric indicator column through the owning workstation window; Ea
 the same payload as an editable technical-condition node in its shared condition tree. Focused
 ChartPlotLibrary, VirtualWatchlistTool, EasyScanTool, and payload-validation tests cover the
 source, both targets, malformed versions, unknown indicators, invalid timeframes, and bounded
-payloads. This is functional drag/drop evidence; exact-build visual approval and full browser
-acceptance remain separate gates.
+payloads. EasyScan condition trees are also drag sources: dropping one into a watchlist saves
+the canonical condition, materializes/runs an EasyScan through the existing local screener API,
+and persists a Boolean column keyed by the screener result; the watchlist refreshes that result
+through Vue Query and renders True/False/unknown cells with Boolean sorting. This is functional
+drag/drop evidence; exact-build visual approval and full browser acceptance remain separate
+gates.
 
 Floated workstation tools now forward watchlist condition modes, Boolean pinning,
 column grouping/stacking, arbitrary serializable configuration, and industry-proxy

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHART_PLOT_DRAG_MIME, createChartPlotDragPayload, readChartPlotDrag, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
+import { CHART_PLOT_DRAG_MIME, createChartPlotDragPayload, createTechnicalConditionDragPayload, readAnalysisDrag, readChartPlotDrag, writeChartPlotDrag, writeTechnicalConditionDrag } from '@/lib/workstation/plotDrag'
 
 function transfer() {
   const values = new Map<string, string>()
@@ -28,5 +28,12 @@ describe('plot drag payloads', () => {
     expect(readChartPlotDrag(malformed)).toBeNull()
     malformed.setData(CHART_PLOT_DRAG_MIME, 'x'.repeat(16_385))
     expect(readChartPlotDrag(malformed)).toBeNull()
+  })
+
+  it('round-trips a technical condition for Boolean-column drops', () => {
+    const dataTransfer = transfer()
+    const payload = createTechnicalConditionDragPayload({ operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: 'rsi', params: { period: 14 }, op: 'gt', value: 50 }] }, 'D1', 'scan-source', 'RSI above 50')
+    expect(writeTechnicalConditionDrag(dataTransfer, payload)).toBe(true)
+    expect(readAnalysisDrag(dataTransfer)).toMatchObject({ kind: 'technical-condition', timeframe: 'D1', label: 'RSI above 50', sourceWindowKey: 'scan-source', condition: { operator: 'AND' } })
   })
 })

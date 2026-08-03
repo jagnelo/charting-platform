@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:06:00Z
+
+- Completed the reciprocal condition drag path: EasyScan's editable technical-condition
+  tree is now a bounded serializable drag source, and watchlists persist a Boolean column
+  by saving/running the canonical condition-backed screener and refreshing its matched IDs
+  through Vue Query. True/False/unknown rendering and Boolean sorting are covered.
+- Full frontend Vitest now passes `512` tests across `83` files; TypeScript, production
+  build, and diff checks pass. Drop failures surface as an in-tool alert rather than a
+  console warning. Exact-build V25 visual approval and the broad acceptance matrix remain
+  open.
+
 ## Continuation update — 2026-08-04T00:00:00Z
 
 - Implemented the missing cross-tool chart-plot drag contract. Chart Plot Library rows

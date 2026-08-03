@@ -20,6 +20,9 @@
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
       :indicator-warnings="indicatorWarnings"
+      :condition-columns="configuredConditionColumns"
+      :condition-values="conditionValues"
+      :drop-error="conditionDropError"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -37,6 +40,7 @@
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
       @plot-drop="addPlotColumn"
+      @condition-drop="addConditionColumn"
       />
     </div>
     <VirtualWatchlistTool
@@ -55,6 +59,9 @@
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
       :indicator-warnings="indicatorWarnings"
+      :condition-columns="configuredConditionColumns"
+      :condition-values="conditionValues"
+      :drop-error="conditionDropError"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -72,6 +79,7 @@
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
       @plot-drop="addPlotColumn"
+      @condition-drop="addConditionColumn"
     />
     <div v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool">
       <div class="personal-watchlist-tool__controls">
@@ -135,6 +143,9 @@
         :indicator-columns="configuredIndicatorColumns"
         :indicator-values="indicatorValues"
         :indicator-warnings="indicatorWarnings"
+        :condition-columns="configuredConditionColumns"
+        :condition-values="conditionValues"
+        :drop-error="conditionDropError"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
@@ -156,6 +167,7 @@
         @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
         @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
         @plot-drop="addPlotColumn"
+        @condition-drop="addConditionColumn"
       />
     </div>
     <VirtualWatchlistTool
@@ -173,7 +185,10 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
-      :indicator-warnings="indicatorWarnings"
+        :indicator-warnings="indicatorWarnings"
+        :condition-columns="configuredConditionColumns"
+        :condition-values="conditionValues"
+        :drop-error="conditionDropError"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -191,6 +206,7 @@
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
         @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
         @plot-drop="addPlotColumn"
+        @condition-drop="addConditionColumn"
     />
     <div v-else-if="ratioExpression" class="analysis">
       <RatioUPlot :symbol="ratioExpression.numerator" :benchmarks="[ratioExpression.denominator]" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
@@ -253,6 +269,9 @@
             :indicator-columns="configuredIndicatorColumns"
             :indicator-values="indicatorValues"
             :indicator-warnings="indicatorWarnings"
+            :condition-columns="configuredConditionColumns"
+            :condition-values="conditionValues"
+            :drop-error="conditionDropError"
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
@@ -270,6 +289,7 @@
             @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
             @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
             @plot-drop="addPlotColumn"
+            @condition-drop="addConditionColumn"
           />
           <small v-if="industryProxySnapshot?.exclusions.length" class="industry-list__proxy-warning">{{ industryProxySnapshot.exclusions.map(item => item.code).join(' · ') }}</small>
         </template>
@@ -295,6 +315,9 @@
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
       :indicator-warnings="indicatorWarnings"
+      :condition-columns="configuredConditionColumns"
+      :condition-values="conditionValues"
+      :drop-error="conditionDropError"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -312,6 +335,7 @@
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
       @plot-drop="addPlotColumn"
+      @condition-drop="addConditionColumn"
     />
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="activeSymbol" :benchmarks="ratioBenchmarks" :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(tool.link_group)" @cursor-timestamp="workspaceStore.publishTimestamp($event, tool.link_group, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event })" />
@@ -331,7 +355,7 @@
     <InstrumentNoteTool v-else-if="tool.tool_type === 'notes'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <InstrumentAlertsTool v-else-if="tool.tool_type === 'alerts'" :instrument-id="chartStore.instrument?.id" :symbol="activeSymbol" />
     <InstrumentInfoPanel v-else-if="tool.tool_type === 'report'" class="instrument-report" :instrument="chartStore.instrument" :current-price="currentPrice" :session-high="currentSessionHigh" :session-low="currentSessionLow" @select="selectSymbol($event)" />
-    <EasyScanTool v-else-if="tool.tool_type === 'scan'" />
+    <EasyScanTool v-else-if="tool.tool_type === 'scan'" :source-window-key="tool.instance_key" />
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
@@ -373,7 +397,7 @@ import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
 import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
-import { indicatorColumnFromPlot, type ChartPlotDragPayload } from '@/lib/workstation/plotDrag'
+import { indicatorColumnFromPlot, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -672,6 +696,16 @@ onMounted(async () => {
     ...proxyRows.value,
     ...constituentRows.value,
   ])
+  void loadConditionColumns([
+    ...personalWatchlistRows.value,
+    ...flaggedWatchlistRows.value,
+    ...comboWatchlistRows.value,
+    ...benchmarkRows.value,
+    ...sectorRows.value,
+    ...factoryWatchlistRows.value,
+    ...proxyRows.value,
+    ...constituentRows.value,
+  ])
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
@@ -703,9 +737,19 @@ watch(
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
     ...constituentRows.value,
-  ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value),
+  ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value) + JSON.stringify(configuredConditionColumns.value),
   () => {
     void loadIndicatorColumns([
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...benchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...constituentRows.value,
+    ])
+    void loadConditionColumns([
       ...personalWatchlistRows.value,
       ...flaggedWatchlistRows.value,
       ...comboWatchlistRows.value,
@@ -1200,11 +1244,68 @@ const configuredPythonColumns = computed(() => Array.isArray(props.tool.configur
 const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.configuration.indicator_columns)
   ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
   : [])
+const configuredConditionColumns = computed(() => Array.isArray(props.tool.configuration.condition_columns)
+  ? props.tool.configuration.condition_columns.filter((column): column is { key: string; name: string; screener_id: number; timeframe: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
+  : [])
 function addPlotColumn(payload: ChartPlotDragPayload) {
   const column = indicatorColumnFromPlot(payload)
   const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
   if (columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)) return
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, indicator_columns: [...columns, column] })
+}
+const conditionValues = ref<Record<string, Record<string, boolean | null>>>({})
+const conditionDropError = ref('')
+let conditionRequestGeneration = 0
+async function loadConditionColumns(rows: Array<{ symbol: string; instrumentId?: number | null }>) {
+  const columns = configuredConditionColumns.value
+  if (!columns.length) { conditionValues.value = {}; return }
+  const generation = ++conditionRequestGeneration
+  const next: Record<string, Record<string, boolean | null>> = {}
+  await Promise.all(columns.map(async column => {
+    try {
+      const results = await queryClient.fetchQuery({
+        queryKey: ['workstation', 'condition-column', column.screener_id],
+        queryFn: () => api.get<Array<{ matched_ids?: number[] }>>(`/screeners/${column.screener_id}/results`, { limit: 1 }),
+        staleTime: 30_000,
+      })
+      const matched = new Set(results[0]?.matched_ids ?? [])
+      next[column.key] = Object.fromEntries(rows.map(row => [row.symbol, row.instrumentId == null ? null : matched.has(row.instrumentId)]))
+    } catch {
+      next[column.key] = Object.fromEntries(rows.map(row => [row.symbol, null]))
+    }
+  }))
+  if (generation === conditionRequestGeneration) conditionValues.value = next
+}
+async function addConditionColumn(payload: TechnicalConditionDragPayload) {
+  conditionDropError.value = ''
+  const name = payload.label.trim() || 'Technical condition'
+  const stableKey = `drag-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 54) || 'technical-condition'}-${payload.timeframe.toLowerCase()}`
+  const key = `condition:${stableKey}`
+  if (configuredConditionColumns.value.some(column => column.key === key)) return
+  try {
+    await api.put(`/workspaces/library/conditions/${encodeURIComponent(stableKey)}`, {
+      name, condition: payload.condition,
+      dependency_metadata: { source: 'technical-condition-drag', timeframe: payload.timeframe },
+    })
+    let scan: { id: number }
+    try {
+      scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(stableKey)}`, {
+        name: `${name} Boolean`, universe_type: 'all', timeframe: payload.timeframe,
+      })
+    } catch (cause: any) {
+      if (!String(cause?.message ?? '').includes('→ 409:')) throw cause
+      const existing = await api.get<Array<{ id: number; name: string }>>('/screeners')
+      const found = existing.find(item => item.name.toLowerCase() === `${name} boolean`.toLowerCase())
+      if (!found) throw cause
+      scan = found
+    }
+    await api.post(`/screeners/${scan.id}/run`, {})
+    const columns = Array.isArray(props.tool.configuration.condition_columns) ? props.tool.configuration.condition_columns : []
+    emit('configuration', props.tool.instance_key, { ...props.tool.configuration, condition_columns: [...columns, { key, name, screener_id: scan.id, timeframe: payload.timeframe }] })
+    void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...benchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...constituentRows.value])
+  } catch (cause: any) {
+    conditionDropError.value = `Unable to create ${name} Boolean column: ${cause?.message ?? 'unknown error'}`
+  }
 }
 const indicatorValues = ref<Record<string, Record<string, number | null>>>({})
 const indicatorWarnings = ref<Record<string, Record<string, string | null>>>({})

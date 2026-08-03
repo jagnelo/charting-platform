@@ -9,7 +9,9 @@
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
     <button type="button" class="easy-scan__advanced-toggle" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
-    <ConditionGroupEditor v-if="advancedMode" v-model="advancedGroup" class="easy-scan__advanced" aria-label="Advanced technical condition builder" />
+    <div v-if="advancedMode" class="easy-scan__advanced-drag-source" draggable="true" @dragstart="startConditionDrag">
+      <ConditionGroupEditor v-model="advancedGroup" class="easy-scan__advanced" aria-label="Advanced technical condition builder" />
+    </div>
     <div class="easy-scan__controls">
       <select v-model="selectedKey" :disabled="busy" aria-label="Saved condition">
         <option value="">Select saved condition</option>
@@ -54,10 +56,13 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
-import { CHART_PLOT_DRAG_MIME, readChartPlotDrag, technicalConditionFromPlot } from '@/lib/workstation/plotDrag'
+import { CHART_PLOT_DRAG_MIME, createTechnicalConditionDragPayload, readChartPlotDrag, writeTechnicalConditionDrag, technicalConditionFromPlot } from '@/lib/workstation/plotDrag'
+import type { Timeframe } from '@/types'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown> } }
 type ScanResult = { id?: number; run_at?: string; matched_ids: number[]; result_data: Record<string, unknown>; error: string | null }
+
+const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
 
 const conditions = ref<ConditionAsset[]>([])
 const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
@@ -117,6 +122,10 @@ function stableKey(name: string) {
 }
 function toggleAdvancedConditions() {
   advancedMode.value = !advancedMode.value
+}
+function startConditionDrag(event: DragEvent) {
+  if (!event.dataTransfer) return
+  writeTechnicalConditionDrag(event.dataTransfer, createTechnicalConditionDragPayload(advancedGroup.value, scanTimeframe.value as Timeframe, props.sourceWindowKey, conditionName.value || 'Technical conditions'))
 }
 function dragOverPlot(event: DragEvent) {
   const types = event.dataTransfer ? Array.from(event.dataTransfer.types) : []
@@ -245,6 +254,8 @@ onMounted(() => { void load() })
 .easy-scan__builder { display: grid; grid-template-columns: minmax(70px, 1fr) 56px 34px 58px 38px; gap: 3px; }
 .easy-scan__controls { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)) minmax(70px, 1fr) minmax(90px, 1fr) 38px; gap: 3px; }
 .easy-scan__advanced-toggle { justify-self: start; padding: 2px 6px; }
+.easy-scan__advanced-drag-source { cursor: grab; }
+.easy-scan__advanced-drag-source:active { cursor: grabbing; }
 .easy-scan__advanced { display: grid; gap: 5px; padding: 5px; border: 1px solid #34434e; background: #151b20; }
 .easy-scan__advanced header { display: flex; align-items: center; justify-content: space-between; color: #a9bbc5; }
 .easy-scan__advanced header select { width: 130px; }

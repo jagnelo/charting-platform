@@ -5,7 +5,7 @@ const { apiGet, apiPost, apiPut } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost, put: apiPut } }))
 
 import EasyScanTool from '@/components/workstation/EasyScanTool.vue'
-import { createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
+import { CHART_PLOT_DRAG_MIME, createChartPlotDragPayload, writeChartPlotDrag } from '@/lib/workstation/plotDrag'
 
 describe('EasyScanTool', () => {
   it('creates and runs a saved Python condition through the queued scan API', async () => {
@@ -114,6 +114,21 @@ describe('EasyScanTool', () => {
     expect(wrapper.text()).toContain('Added RSI(14) to technical conditions')
     expect(wrapper.find('.easy-scan__advanced').exists()).toBe(true)
     expect(wrapper.findAll('.tech-cond-card')).toHaveLength(2)
+  })
+
+  it('exposes the editable condition tree as a bounded drag source', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool, { props: { sourceWindowKey: 'scan-source' } })
+    await flushPromises()
+    await wrapper.get('button.easy-scan__advanced-toggle').trigger('click')
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    await wrapper.get('.easy-scan__advanced-drag-source').trigger('dragstart', { dataTransfer })
+    expect(JSON.parse(values.get(CHART_PLOT_DRAG_MIME) ?? '')).toMatchObject({ kind: 'technical-condition', sourceWindowKey: 'scan-source', timeframe: 'D1' })
   })
 
   it('passes the selected universe and timeframe to the canonical scan definition', async () => {

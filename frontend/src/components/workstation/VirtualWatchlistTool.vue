@@ -1,6 +1,7 @@
 <template>
   <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" @click="contextMenu = null" @keydown.esc="contextMenu = null" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status">Drop to add the chart plot as a numeric column</p>
+    <p v-if="dropError" class="watchlist__drop-error" role="alert">{{ dropError }}</p>
     <header class="watchlist__controls">
       <span>{{ label }}</span>
       <input v-model="filter" :aria-label="`${label} filter`" placeholder="Filter" />
@@ -105,7 +106,7 @@
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
-import { CHART_PLOT_DRAG_MIME, readChartPlotDrag, type ChartPlotDragPayload } from '@/lib/workstation/plotDrag'
+import { CHART_PLOT_DRAG_MIME, readAnalysisDrag, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 
 export interface WatchlistRow {
   itemId?: number
@@ -164,6 +165,9 @@ const props = withDefaults(defineProps<{
   indicatorColumns?: Array<{ key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }>
   indicatorValues?: Record<string, Record<string, number | null>>
   indicatorWarnings?: Record<string, Record<string, string | null>>
+  conditionColumns?: Array<{ key: string; name: string; screener_id: number; timeframe: string }>
+  conditionValues?: Record<string, Record<string, boolean | null>>
+  dropError?: string
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
   reorderable?: boolean
   allowRemove?: boolean
@@ -187,6 +191,9 @@ const props = withDefaults(defineProps<{
   indicatorColumns: () => [],
   indicatorValues: () => ({}),
   indicatorWarnings: () => ({}),
+  conditionColumns: () => [],
+  conditionValues: () => ({}),
+  dropError: '',
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
@@ -194,7 +201,7 @@ const props = withDefaults(defineProps<{
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartPlotDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -238,6 +245,7 @@ const pythonColumnRequestGenerations = new Map<number, number>()
 const renderEpoch = ref(0)
 const pythonColumns = computed(() => props.pythonColumns.filter(column => Number.isInteger(column.code_version_id) && column.code_version_id > 0 && typeof column.name === 'string'))
 const indicatorColumns = computed(() => props.indicatorColumns.filter(column => typeof column.key === 'string' && column.key.startsWith('indicator:') && typeof column.name === 'string' && typeof column.indicator === 'string'))
+const conditionColumns = computed(() => props.conditionColumns.filter(column => typeof column.key === 'string' && column.key.startsWith('condition:') && typeof column.name === 'string' && Number.isInteger(column.screener_id)))
 const membershipTargets = computed(() => props.membershipTargets.filter(target => Number.isInteger(target.id) && target.id > 0 && typeof target.name === 'string'))
 const selectedMembershipTarget = computed(() => membershipTargets.value.find(target => target.id === Number(membershipTargetId.value)) ?? null)
 const relatedLists = computed(() => {
@@ -248,7 +256,7 @@ const relatedLists = computed(() => {
 const canCopyToTarget = computed(() => Boolean(contextMenu.value?.row.instrumentId && selectedMembershipTarget.value && !selectedMembershipTarget.value.locked && selectedMembershipTarget.value.id !== props.sourceWatchlistId))
 const canMoveToTarget = computed(() => Boolean(canCopyToTarget.value && props.sourceWatchlistId != null && props.allowRemove))
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
-const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
+const effectiveColumns = computed<WatchlistColumn[]>(() => [...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...conditionColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', kind: 'boolean' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))].map(column => ({
   ...column,
   label: props.columnOverrides[column.key]?.label?.trim() || column.label,
   width: props.columnOverrides[column.key]?.width?.trim() || column.width,
@@ -314,8 +322,9 @@ function dragLeavePlot(event: DragEvent) {
 
 function dropPlot(event: DragEvent) {
   plotDropActive.value = false
-  const payload = readChartPlotDrag(event.dataTransfer)
-  if (payload) emit('plot-drop', payload)
+  const payload = readAnalysisDrag(event.dataTransfer)
+  if (payload?.kind === 'chart-plot') emit('plot-drop', payload)
+  if (payload?.kind === 'technical-condition') emit('condition-drop', payload)
 }
 
 function dropRow(row: WatchlistRow) {
@@ -696,6 +705,10 @@ function display(row: WatchlistRow, key: string) {
     const cell = pythonCells.value[key]?.[row.symbol]
     return cell?.error ? cell.error : cell?.value == null ? '—' : typeof cell.value === 'boolean' ? cell.value ? 'True' : 'False' : cell.value.toFixed(4)
   }
+  if (key.startsWith('condition:')) {
+    const value = props.conditionValues[key]?.[row.symbol]
+    return value == null ? '—' : value ? 'True' : 'False'
+  }
   const value = key === 'symbol' ? row.symbol : key === 'name' ? row.name : row.values?.[key]
   if (value == null || value === '') return '—'
   if (typeof value !== 'number') return String(value)
@@ -705,6 +718,10 @@ function display(row: WatchlistRow, key: string) {
 
 function sortValue(row: WatchlistRow, key: string): number | string | null {
   if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] ?? null
+  if (key.startsWith('condition:')) {
+    const value = props.conditionValues[key]?.[row.symbol]
+    return value == null ? null : value ? 'True' : 'False'
+  }
   if (key.startsWith('python:')) {
     const value = pythonCells.value[key]?.[row.symbol]?.value
     return value == null || typeof value === 'boolean' ? value == null ? null : String(value) : value
@@ -856,6 +873,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto 22px minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
+.watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
 .watchlist--columns-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--sets-open { grid-template-rows: 23px auto auto 22px minmax(0, 1fr); }
 .watchlist--grouped { grid-template-rows: 23px auto 32px minmax(0, 1fr); }

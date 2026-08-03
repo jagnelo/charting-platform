@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:06:00Z Condition-to-Boolean-column drag path
+
+- Added reciprocal condition drag support: EasyScan condition trees write the same bounded
+  versioned payload, watchlists save/run the condition-backed canonical screener, persist a
+  Boolean column, and render/sort True/False/unknown values. Drop failures are visible in
+  the watchlist surface.
+- Full frontend Vitest passed `512` tests across `83` files; TypeScript, production build,
+  and diff checks passed. Exact-build visual approval and the complete acceptance matrix
+  remain open.
+
 ## 2026-08-04T00:00:00Z Cross-tool plot drag contract
 
 - Added a bounded, versioned serializable chart-plot drag payload and wired it from the
