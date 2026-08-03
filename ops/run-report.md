@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:38:01Z EasyScan result history
+
+- EasyScan now loads up to 20 retained results after a run and exposes a selector for
+  reviewing earlier match sets without rerunning the scan.
+- Validation: full frontend Vitest `469 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `11a1ca4`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:34:00Z EasyScan scheduling
 
 - EasyScan now persists manual, daily-close, or weekly-close schedules through the

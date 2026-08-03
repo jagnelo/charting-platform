@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:38:01Z
+
+- EasyScan now retains a bounded recent result history after each run and lets the
+  operator inspect prior match sets without rerunning the scan.
+- Validation: full frontend Vitest `469 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `11a1ca4` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:34:00Z
 
 - Added EasyScan schedule selection with manual, daily-close, and weekly-close cron
