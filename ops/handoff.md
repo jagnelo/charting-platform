@@ -14838,6 +14838,17 @@
   pushed. Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:23:50Z Canonical search exchange checkpoint
+
+- Canonical `/instruments/search` now hydrates the primary active listing and returns
+  its exchange MIC for locally mastered instruments, falling back to equity metadata
+  when no listing exchange is available. Provider-derived results retain their own
+  normalized exchange field.
+- Full backend unit `868 passed`, total coverage `70.19%`; Ruff and `git diff --check`
+  passed. Commit `c5a2b5f` pushed. Strict V25 visual validation remains intentionally
+  blocked at `application-shell-default/default: required_missing`; full goal remains
+  active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column

@@ -16960,3 +16960,12 @@ uncovered slice rather than repeat a generic completion claim.
   `76` files; TypeScript, production build, and `git diff --check` passed. Commit `88f1041`
   pushed. Strict V25 visual approval remains `required_missing` and the broad acceptance
   matrix remains incomplete.
+
+## 2026-08-03T17:23:50Z Canonical search exchange checkpoint
+
+- Canonical `/instruments/search` now returns the primary active listing MIC for local
+  instruments, with an equity-detail exchange fallback; provider search results retain
+  their normalized exchange metadata.
+- Full backend unit `868 passed`, total coverage `70.19%`; Ruff and `git diff --check`
+  passed. Commit `c5a2b5f` pushed. Strict V25 visual approval remains `required_missing`
+  and the broad acceptance matrix remains incomplete.
