@@ -14530,3 +14530,17 @@
 - Full goal remains active; V25 visual references remain `required_missing` and the
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
+
+## 2026-08-03T13:35:00Z SPX/SPY identity checkpoint
+
+- The canonical top-down taxonomy now carries a versioned logical `sp500` identity
+  with official series symbol `SPX`, default tradable proxy `SPY`, explicit proxy
+  label, and a `use_only_when_entitled` official-series policy. Existing benchmark
+  group provenance upgrades in place; no synthetic SPX instrument or misleading SPY
+  relabeling is created.
+- Focused workspace taxonomy integration `1 passed` with Docker fixtures (two existing
+  Nautilus deprecation warnings); Ruff and `git diff --check` passed. Commit
+  `05efc10e5a7f60bcedb686dd50b3b7929beb4328` pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue the
+  broad workstation/backend audit.

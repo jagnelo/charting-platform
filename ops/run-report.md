@@ -16521,6 +16521,16 @@ Append a short entry after each worker session.
   passed. Commit `ccd7b4eb2a676e63350ed02f6a29d16c2a8b0538` pushed. Overall acceptance
   and approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T13:35:00Z SPX/SPY identity checkpoint
+
+- Added versioned logical `sp500` provenance to the canonical benchmark taxonomy:
+  official series `SPX`, default tradable proxy `SPY`, explicit proxy label, and
+  entitlement-gated official-series policy. Existing group rows upgrade in place and
+  no synthetic SPX instrument is fabricated.
+- Focused workspace taxonomy integration `1 passed` with Docker fixtures; Ruff and
+  `git diff --check` passed. Commit `05efc10e5a7f60bcedb686dd50b3b7929beb4328`
+  pushed. Overall acceptance and approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running
