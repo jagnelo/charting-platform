@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:15:00Z
+
+- Exposed the Relative Rotation point-in-time cutoff in the workstation tool as an optional
+  persisted `As of` date. Requests send the end-of-day UTC cutoff, clear dates remove the
+  filter, and the control is covered alongside the existing universe/benchmark/timeframe/
+  lookback/tail persistence.
+- Validation: full frontend Vitest `472 passed` across 77 files; TypeScript, production
+  build, focused rotation tests, and `git diff --check` passed. Checkpoint `46322de` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T20:18:00Z
 
 - Relative Rotation now accepts an optional point-in-time cutoff, filters market-group

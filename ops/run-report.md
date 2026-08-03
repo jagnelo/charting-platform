@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:15:00Z Relative Rotation as-of control
+
+- Added the optional persisted `As of` date to Relative Rotation; the frontend sends a
+  UTC end-of-day cutoff and keeps clearing the control equivalent to an unbounded current
+  view.
+- Validation: full frontend Vitest `472 passed` across 77 files; TypeScript, production
+  build, focused rotation tests, and diff checks passed. Pushed `46322de`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:18:00Z Point-in-time Relative Rotation
 
 - Relative Rotation now applies optional `as_of` cutoffs to versioned group membership and
