@@ -369,6 +369,7 @@ watch(() => [chartStore.instrument?.id, activeTimeframe.value] as const, ([instr
 }, { immediate: true })
 const benchmarks = computed(() => workspaceStore.marketGroups['us-benchmarks']?.members.map(member => member.instrument.symbol) ?? [])
 const sectors = computed(() => workspaceStore.marketGroups['sp500-sectors']?.members.map(member => member.instrument.symbol) ?? [])
+const benchmarkSnapshot = computed(() => workspaceStore.groupSnapshots['us-benchmarks'])
 const sectorPerformance = computed(() => Object.fromEntries(
   (workspaceStore.groupSnapshots['sp500-sectors']?.rows ?? []).map(row => [row.symbol, row.performance['1M']?.value ?? null]),
 ))
@@ -418,7 +419,24 @@ const constituentLabel = computed(() => {
   return `${holdings.value.snapshot.etf_symbol} holdings · ${holdings.value.snapshot.composition_date}`
 })
 const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks']?.members ?? []).map(member => ({
-  instrumentId: member.instrument.id, symbol: member.instrument.symbol, name: member.instrument.name,
+  instrumentId: member.instrument.id,
+  symbol: member.instrument.symbol,
+  name: member.instrument.name,
+  values: (() => {
+    const row = benchmarkSnapshot.value?.rows.find(item => item.instrument_id === member.instrument.id)
+    return {
+      performance_1d: row?.performance['1D']?.value ?? null,
+      performance_1w: row?.performance['1W']?.value ?? null,
+      performance_1m: row?.performance['1M']?.value ?? null,
+      performance_3m: row?.performance['3M']?.value ?? null,
+      performance_ytd: row?.performance.YTD?.value ?? null,
+      performance_1y: row?.performance['1Y']?.value ?? null,
+      relative_ratio: row?.relative_to_benchmark?.value == null ? null : row.relative_to_benchmark.value.toFixed(4),
+      rsi14: row?.technical?.rsi14?.value ?? null,
+      position_52w: row?.technical?.position_52w?.value ?? null,
+      volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
+    }
+  })(),
 })))
 const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => ({
   instrumentId: member.instrument.id,
@@ -454,10 +472,7 @@ const factoryWatchlistColumns = computed<WatchlistColumn[]>(() => {
   const title = (props.tool.title ?? '').toLowerCase()
   if (title.includes('sector')) return sectorColumns
   if (title.includes('component') || title.includes('constituent')) return constituentColumns
-  return [
-    { key: 'symbol', label: 'Symbol', width: '72px' },
-    { key: 'name', label: 'Name', width: 'minmax(120px, 1fr)' },
-  ]
+  return benchmarkColumns
 })
 const latestChartBar = computed(() => chartStore.bars.length ? chartStore.bars[chartStore.bars.length - 1] : null)
 const currentPrice = computed(() => latestChartBar.value?.close ?? null)
@@ -500,6 +515,20 @@ const sectorColumns: WatchlistColumn[] = [
   { key: 'above_ma20', label: '>20', width: '54px', kind: 'boolean' },
   { key: 'above_ma50', label: '>50', width: '54px', kind: 'boolean' },
   { key: 'above_ma200', label: '>200', width: '58px', kind: 'boolean' },
+  { key: 'position_52w', label: '52W Pos', width: '64px' },
+  { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
+]
+const benchmarkColumns: WatchlistColumn[] = [
+  { key: 'symbol', label: 'Symbol', width: '58px' },
+  { key: 'name', label: 'Benchmark', width: 'minmax(100px, 1fr)' },
+  { key: 'performance_1d', label: '1D', width: '52px' },
+  { key: 'performance_1w', label: '1W', width: '52px' },
+  { key: 'performance_1m', label: '1M', width: '52px' },
+  { key: 'performance_3m', label: '3M', width: '52px' },
+  { key: 'performance_ytd', label: 'YTD', width: '52px' },
+  { key: 'performance_1y', label: '1Y', width: '52px' },
+  { key: 'relative_ratio', label: '/ SPY', width: '64px' },
+  { key: 'rsi14', label: 'RSI', width: '52px', format: 'number' },
   { key: 'position_52w', label: '52W Pos', width: '64px' },
   { key: 'volume_ratio_50', label: 'Vol x50', width: '62px' },
 ]

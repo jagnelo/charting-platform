@@ -692,6 +692,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     marketRefreshPromise = Promise.all([
       loadMarketGroup('us-benchmarks'),
       loadMarketGroup('sp500-sectors'),
+      loadGroupSnapshot('us-benchmarks', 'SPY'),
       loadGroupSnapshot('sp500-sectors', 'SPY'),
       loadBreadth('sp500-sectors'),
       loadBreadthHistory('sp500-sectors'),

@@ -24,9 +24,10 @@ describe('workspace store layout tabs', () => {
     const second = store.refreshMarketAnalysis()
     await Promise.all([first, second])
 
-    expect(apiGet).toHaveBeenCalledTimes(5)
+    expect(apiGet).toHaveBeenCalledTimes(6)
     expect(apiGet).toHaveBeenCalledWith('/market-groups/us-benchmarks')
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/us-benchmarks/snapshot', { benchmark: 'SPY' })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth')
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/breadth/history', { limit: 500 })
