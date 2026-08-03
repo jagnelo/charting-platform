@@ -16602,3 +16602,15 @@ Append a short entry after each worker session.
   frontend type-check/build, backend Ruff, and `git diff --check` passed.
 - Commit `9851986` pushed. The completion goal remains active; approved pinned-build
   V25 visual baselines and the broader acceptance matrix remain incomplete.
+
+## 2026-08-03T15:00:00Z Calendar YTD correctness checkpoint
+
+- Replaced fixed-252-bar `YTD` ranking semantics with current-calendar-year first/last
+  local-bar returns across group, ETF-constituent, and industry-proxy snapshots.
+- Added structured `insufficient_ytd_history` diagnostics and pure helper coverage;
+  the focused Docker-backed group snapshot route remains green.
+- Validation: backend analysis unit `2 passed`; focused integration `1 passed` with
+  two existing Nautilus warnings; frontend calendar helper `1 passed`; frontend
+  type-check/build, Ruff, and `git diff --check` passed.
+- Commit `479fbe8` pushed. Full completion and approved V25 visual evidence remain
+  outstanding.

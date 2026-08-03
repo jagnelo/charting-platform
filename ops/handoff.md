@@ -14548,6 +14548,20 @@
   and broad acceptance remains incomplete. Next: continue the workstation/backend
   requirement audit.
 
+## 2026-08-03T15:00:00Z Calendar YTD correctness checkpoint
+
+- Centralized shared period-return calculation for benchmark, ETF constituent,
+  industry-proxy, and sector snapshots. `YTD` now uses the first available bar in
+  the current calendar year; it no longer treats 252 bars as a calendar boundary.
+  Missing or one-bar years return an explicit `insufficient_ytd_history` warning.
+- Pure backend analysis tests `2 passed`; Docker-backed group snapshot integration
+  `1 passed` with two existing Nautilus deprecation warnings; frontend calendar helper
+  test `1 passed`; TypeScript, production build, Ruff, and `git diff --check` passed.
+  Commit `479fbe8` pushed.
+- Full goal remains active. Approved V25 visual references are still `required_missing`
+  and the broad workstation/backend acceptance matrix remains incomplete. Next:
+  continue the requirement audit.
+
 ## 2026-08-03T14:15:00Z Factory industry drill-down checkpoint
 
 - Factory `Drill Down` and `Sector by Year` industry windows now render the selected
