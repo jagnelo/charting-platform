@@ -940,6 +940,10 @@ async def etf_constituent_snapshot(
     bars_by_id = await _bars_by_instrument(
         db, [*instrument_ids, *comparison_ids], timeframe, adjusted
     )
+    # A point-in-time membership snapshot must also use only observations that
+    # were available by the requested cutoff.  Without this truncation a
+    # historical holdings set could still be ranked using future bars.
+    bars_by_id = _truncate_bars_at(bars_by_id, as_of)
     benchmark_bars = {bar.ts: bar for bar in bars_by_id.get(benchmark_instrument.id, [])}
     market_bars = {bar.ts: bar for bar in bars_by_id.get(market_instrument.id, [])} if market_instrument else {}
     rows: list[GroupSnapshotRow] = []
