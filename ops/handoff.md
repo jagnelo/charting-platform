@@ -15850,3 +15850,13 @@
   `80` files, TypeScript, production build, and diff checks. Checkpoint `031eb11` is
   committed and pushed; strict V25 visual approval, provider probes, Docker-backed broad
   acceptance, and remaining research/backend gaps remain open.
+## 2026-08-03T23:07:00Z Indicator-cell warning checkpoint
+
+- Propagated indicator-batch warning codes into virtualized watchlist cells.
+  Insufficient history now returns an explicit canonical warning and zero valid-value
+  coverage for that cell; frontend renders warning text instead of a silent dash, and
+  provider/request failures are labelled unavailable.
+- Validation passed: backend unit `888`, workspace integration `23`, frontend Vitest
+  `495` across `80` files, TypeScript, production build, Ruff, and diff checks. Commit
+  and push are pending; strict V25 visual approval, provider probes, Docker-backed broad
+  acceptance, and remaining backend/research gaps remain open.

@@ -105,11 +105,13 @@ describe('VirtualWatchlistTool', () => {
           key: 'indicator:rsi:{}', name: 'RSI', indicator: 'rsi', params: {}, timeframe: 'D1',
         }],
         indicatorValues: { 'indicator:rsi:{}': { XLK: 72.25, XLE: 31.5, XLV: null } },
+        indicatorWarnings: { 'indicator:rsi:{}': { XLV: 'insufficient_history' } },
       },
     })
 
     expect(wrapper.find('.watchlist__header').text()).toContain('RSI')
     expect(wrapper.text()).toContain('72.25')
+    expect(wrapper.text()).toContain('⚠ insufficient_history')
     await wrapper.findAll('.watchlist__header button').find(button => button.text().includes('RSI'))?.trigger('click')
     expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('31.50')
   })

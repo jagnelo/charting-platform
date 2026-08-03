@@ -19,6 +19,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
+      :indicator-warnings="indicatorWarnings"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -52,6 +53,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
+      :indicator-warnings="indicatorWarnings"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -130,6 +132,7 @@
         :stacked-column-keys="configuredStackedColumnKeys"
         :indicator-columns="configuredIndicatorColumns"
         :indicator-values="indicatorValues"
+        :indicator-warnings="indicatorWarnings"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
@@ -167,6 +170,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
+      :indicator-warnings="indicatorWarnings"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -244,6 +248,7 @@
             :stacked-column-keys="configuredStackedColumnKeys"
             :indicator-columns="configuredIndicatorColumns"
             :indicator-values="indicatorValues"
+            :indicator-warnings="indicatorWarnings"
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
@@ -284,6 +289,7 @@
       :stacked-column-keys="configuredStackedColumnKeys"
       :indicator-columns="configuredIndicatorColumns"
       :indicator-values="indicatorValues"
+      :indicator-warnings="indicatorWarnings"
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
@@ -1186,25 +1192,32 @@ const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.confi
   ? props.tool.configuration.indicator_columns.filter((column): column is { key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && typeof (column as Record<string, unknown>).indicator === 'string' && typeof (column as Record<string, unknown>).params === 'object' && typeof (column as Record<string, unknown>).timeframe === 'string')
   : [])
 const indicatorValues = ref<Record<string, Record<string, number | null>>>({})
+const indicatorWarnings = ref<Record<string, Record<string, string | null>>>({})
 let indicatorRequestGeneration = 0
 async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
   const columns = configuredIndicatorColumns.value
-  if (!columns.length) { indicatorValues.value = {}; return }
+  if (!columns.length) { indicatorValues.value = {}; indicatorWarnings.value = {}; return }
   const generation = ++indicatorRequestGeneration
   const symbols = [...new Set(rows.map(row => row.symbol).filter(symbol => symbol && !symbol.startsWith('#')))]
-  if (!symbols.length) { indicatorValues.value = {}; return }
+  if (!symbols.length) { indicatorValues.value = {}; indicatorWarnings.value = {}; return }
   const next: Record<string, Record<string, number | null>> = {}
+  const nextWarnings: Record<string, Record<string, string | null>> = {}
   await Promise.all(columns.map(async column => {
     try {
-      const response = await api.post<{ values: Record<string, { value?: number | null }> }>('/analysis/indicator-batch', {
+      const response = await api.post<{ values: Record<string, { value?: number | null; warning?: { code?: string } | null }> }>('/analysis/indicator-batch', {
         symbols, indicator: column.indicator, params: { ...column.params, ...(column.output ? { output: column.output } : {}) }, timeframe: column.timeframe, adjusted: true,
       })
       next[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.value ?? null]))
+      nextWarnings[column.key] = Object.fromEntries(Object.entries(response.values ?? {}).map(([symbol, cell]) => [symbol, cell?.warning?.code ?? null]))
     } catch {
       next[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, null]))
+      nextWarnings[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, 'unavailable']))
     }
   }))
-  if (generation === indicatorRequestGeneration) indicatorValues.value = next
+  if (generation === indicatorRequestGeneration) {
+    indicatorValues.value = next
+    indicatorWarnings.value = nextWarnings
+  }
 }
 const configuredPythonCondition = computed(() => {
   const condition = props.tool.configuration.python_condition

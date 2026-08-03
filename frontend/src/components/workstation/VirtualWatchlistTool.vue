@@ -161,6 +161,7 @@ const props = withDefaults(defineProps<{
   pythonColumns?: Array<{ code_version_id: number; name: string }>
   indicatorColumns?: Array<{ key: string; name: string; indicator: string; params: Record<string, unknown>; timeframe: string; output?: string }>
   indicatorValues?: Record<string, Record<string, number | null>>
+  indicatorWarnings?: Record<string, Record<string, string | null>>
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off' } | null
   reorderable?: boolean
   allowRemove?: boolean
@@ -183,6 +184,7 @@ const props = withDefaults(defineProps<{
   pythonColumns: () => [],
   indicatorColumns: () => [],
   indicatorValues: () => ({}),
+  indicatorWarnings: () => ({}),
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
@@ -667,7 +669,8 @@ watch(pythonCondition, condition => { if (condition) void runPythonCondition(con
 function display(row: WatchlistRow, key: string) {
   if (key.startsWith('indicator:')) {
     const value = props.indicatorValues[key]?.[row.symbol]
-    return value == null ? '—' : value.toFixed(2)
+    const warning = props.indicatorWarnings[key]?.[row.symbol]
+    return value == null ? warning ? `⚠ ${warning}` : '—' : value.toFixed(2)
   }
   if (key.startsWith('python:')) {
     const cell = pythonCells.value[key]?.[row.symbol]

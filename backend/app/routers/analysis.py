@@ -93,7 +93,19 @@ async def indicator_batch(
             values[symbol] = {"value": None, "observation_time": bars[-1].ts, "warning": warning.model_dump()}
             exclusions.append(warning)
             continue
-        values[symbol] = {"value": value, "observation_time": bars[-1].ts, "warning": None}
+        warning = None
+        if value is None:
+            warning = AnalysisWarning(
+                code="insufficient_history",
+                message="The available bars do not satisfy this indicator's lookback.",
+                instrument_id=instrument.id,
+            )
+            exclusions.append(warning)
+        values[symbol] = {
+            "value": value,
+            "observation_time": bars[-1].ts,
+            "warning": warning.model_dump() if warning else None,
+        }
     return IndicatorBatchOut(
         indicator=body.indicator,
         timeframe=timeframe.value,

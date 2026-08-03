@@ -17618,3 +17618,11 @@ uncovered slice rather than repeat a generic completion claim.
 - Validation: focused ChartPlotLibrary `6`, full frontend Vitest `495` across `80` files,
   TypeScript, production build, and diff checks passed. Checkpoint `031eb11` is committed
   and pushed. Strict V25 visual approval and broad acceptance remain open.
+## 2026-08-03T23:07:00Z Indicator-cell warning checkpoint
+
+- Indicator-batch warning codes now flow into virtualized watchlist cells. Insufficient
+  history is explicit and excluded from valid-value coverage; unavailable request paths
+  render a labelled warning rather than a silent blank.
+- Validation: backend unit `888`, workspace integration `23`, frontend Vitest `495` across
+  `80` files, TypeScript, production build, Ruff, and diff checks passed. Commit/push
+  pending; strict V25 visual approval and broad acceptance remain open.
