@@ -19,19 +19,25 @@ import { api } from '@/lib/api'
 
 interface Tail { timestamp: string; trend: number; momentum: number }
 interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; coverage: number; tail: Tail[] }
+interface PlotPoint extends Tail { color: string; last: boolean }
 const emit = defineEmits<{ select: [symbol: string] }>()
 const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref('')
 const plotHost = ref<HTMLElement | null>(null)
 let plot: uPlot | null = null
 let observer: ResizeObserver | null = null
+let points: PlotPoint[] = []
 function percent(value: number | null) { return value == null ? '—' : `${(value * 100).toFixed(2)}%` }
 const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68', improving: '#6dbbe6', lagging: '#df8181' }
 function drawPlot() {
   if (!plotHost.value) return
-  const points = rows.value.flatMap(row => row.tail.map((tail, index) => ({ ...tail, color: colors[row.state ?? ''] ?? '#8796a1', last: index === row.tail.length - 1 })))
-  if (!points.length) return
+  points = rows.value.flatMap(row => row.tail.map((tail, index) => ({ ...tail, color: colors[row.state ?? ''] ?? '#8796a1', last: index === row.tail.length - 1 })))
   const width = Math.max(200, plotHost.value.clientWidth), height = Math.max(130, plotHost.value.clientHeight)
   const data: uPlot.AlignedData = [points.map(point => point.trend), points.map(point => point.momentum)]
+  if (plot) {
+    plot.setData(data)
+    plot.setSize({ width, height })
+    return
+  }
   const markerPlugin: uPlot.Plugin = { hooks: { draw: [(chart) => {
     const ctx = chart.ctx
     for (let index = 0; index < points.length; index += 1) {
@@ -40,7 +46,6 @@ function drawPlot() {
       ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, point.last ? 3.5 : 2, 0, Math.PI * 2); ctx.fill()
     }
   }] } }
-  plot?.destroy()
   plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: { x: { auto: true }, y: { auto: true } }, axes: [
     { label: 'Relative trend', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },
     { label: 'Relative momentum', stroke: '#9aabb6', grid: { stroke: '#26313a', width: 1 }, values: (_u, values) => values.map(value => `${(value * 100).toFixed(1)}%`), font: '10px Segoe UI' },

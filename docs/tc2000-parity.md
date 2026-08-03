@@ -32,3 +32,8 @@ The isolated image also installs pinned NumPy/Pandas wheels at build time and ex
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
 The rebuilt image import check reports NumPy `2.1.3` and Pandas `2.2.3`.
+
+The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
+resize and data refresh; it destroys the chart only during component teardown. A
+dedicated regression test proves repeated resize callbacks do not create additional
+uPlot instances.
