@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:30:00Z Timeframe-link correctness
+
+- Fixed shared workspace normalization so `M1` remains one-minute and only legacy `MN1`
+  is normalized to monthly `MN`.
+- Validation: workspace store `20 passed`; full frontend Vitest `453 passed` across 76
+  files; TypeScript, production build, and diff check passed.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:00:00Z Runner operational limits and recovery
 
 - Added bounded research job/input bytes, structured-output bytes/rows/artifacts, and

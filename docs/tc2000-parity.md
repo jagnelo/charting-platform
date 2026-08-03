@@ -119,6 +119,11 @@ tools; no context-menu item is a dead visual control. Focused component and pop-
 binding tests cover the menu and shell routing. This is functional evidence only; the
 Version 25 visual reference remains unapproved.
 
+The shared timeframe-link compatibility path now preserves valid `M1` one-minute
+timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
+This prevents intraday selections from being silently converted to monthly bars while
+retaining persisted legacy-state recovery.
+
 Study Lab now exposes explicit timeframe, benchmark, adjustment, session, and date-range
 controls in the primary workstation tool. The research-run API validates those controls,
 materializes only the requested canonical bars, records the normalized dataset manifest,

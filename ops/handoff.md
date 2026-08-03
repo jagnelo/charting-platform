@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:30:00Z
+
+- Corrected a workstation timeframe corruption: shared-link normalization now preserves
+  valid `M1` one-minute bars and converts only legacy `MN1` to canonical `MN`.
+- Validation: focused workspace-store `20 passed`; full frontend Vitest `453 passed`
+  across `76` files; TypeScript, production build, and diff checks passed. Strict V25
+  visual approval remains `required_missing`, and the broader workstation acceptance
+  matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:00:00Z
 
 - Hardened the isolated runner file protocol. Structured outputs now enforce deployment

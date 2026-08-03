@@ -218,6 +218,21 @@ describe('workspace store layout tabs', () => {
     expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
   })
 
+  it('preserves one-minute links while normalizing only the legacy monthly token', () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [],
+    }
+
+    store.publishTimeframe('M1', 'blue')
+    expect(store.linkedTimeframe).toBe('M1')
+    expect(store.workspace.settings.linked_timeframe).toBe('M1')
+
+    store.publishTimeframe('MN1', 'red')
+    expect(store.timeframeForLinkGroup('red')).toBe('MN')
+  })
+
   it('keeps a grey chart timeframe local to the persisted tool', () => {
     const store = useWorkspaceStore()
     store.workspace = {

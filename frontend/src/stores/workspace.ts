@@ -257,9 +257,9 @@ function configuredLinkGroup(value: unknown, fallback: LinkGroup): LinkGroup {
     : fallback
 }
 
-/** The prior workstation selector incorrectly used M1 for a monthly bar. M1 is one minute; MN is monthly. */
+/** Normalize the legacy monthly token without corrupting the valid one-minute token. */
 function normalizeWorkstationTimeframe(value: string) {
-  return value === 'M1' ? 'MN' : value
+  return value === 'MN1' ? 'MN' : value
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
