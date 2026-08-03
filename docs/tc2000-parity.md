@@ -177,6 +177,12 @@ same historical rule: an explicit `as_of` requires both composition date and non
 `known_at` at or before the cutoff. Undated disclosures remain available to latest/current
 views but cannot contaminate point-in-time research.
 
+Group breadth now preserves the requested point-in-time cutoff separately from the latest
+bar available in the returned data. Its `as_of` describes the latest usable observation,
+while `universe_provenance.membership_as_of` remains the caller's cutoff in canonical UTC
+wire format; this prevents a data-availability timestamp from replacing the historical
+membership boundary used by the calculation.
+
 Factory `Drill Down` and `Sector by Year` industry windows now use the selected ETF's
 point-in-time industry composition rather than falling through to benchmark rows.
 Industry selections publish the industry key into the linked drill-down, preserve

@@ -56,6 +56,14 @@ def _is_known_at(value: datetime | None, as_of: datetime | None) -> bool:
     return value <= as_of
 
 
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Use one canonical UTC spelling in provenance fields and cache identities."""
+    if value is None:
+        return None
+    encoded = value.isoformat()
+    return encoded.replace("+00:00", "Z")
+
+
 def _group_members_at(group: MarketGroup, as_of: datetime | None) -> list[MarketGroupMember]:
     """Select a group's versioned members without admitting future membership."""
     if not _is_known_at(group.effective_at, as_of) or not _is_known_at(group.known_at, as_of):
@@ -104,7 +112,7 @@ def _rotation_state(trend: float, momentum: float) -> str:
 def _group_provenance(group: MarketGroup, as_of: datetime | None) -> dict[str, object]:
     return {
         **(group.provenance or {}),
-        "membership_as_of": as_of.isoformat() if as_of else None,
+        "membership_as_of": _wire_datetime(as_of),
         "membership_selection": "effective_at_and_known_at",
     }
 
@@ -1144,7 +1152,8 @@ async def group_snapshot(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
-    members = _group_members_at(group, as_of)
+    requested_as_of = as_of
+    members = _group_members_at(group, requested_as_of)
     instrument_ids = [member.instrument_id for member in members]
     instruments = {
         item.id: item
@@ -1337,19 +1346,20 @@ async def group_breadth(
     ).scalar_one_or_none()
     if group is None:
         raise HTTPException(404, detail={"code": "market_group_not_found", "group_key": group_key})
-    members = _group_members_at(group, as_of)
+    requested_as_of = as_of
+    members = _group_members_at(group, requested_as_of)
     bars_by_id = _truncate_bars_at(
         await _bars_by_instrument(db, [member.instrument_id for member in members], timeframe, adjusted),
-        as_of,
+        requested_as_of,
     )
     counts = {20: 0, 50: 0, 200: 0}
     eligible = {20: 0, 50: 0, 200: 0}
     exclusions: list[AnalysisWarning] = []
-    as_of = None
+    latest_as_of = None
     for member in members:
         bars = bars_by_id.get(member.instrument_id, [])
         if bars:
-            as_of = max(as_of, bars[-1].ts) if as_of else bars[-1].ts
+            latest_as_of = max(latest_as_of, bars[-1].ts) if latest_as_of else bars[-1].ts
         for period in counts:
             if len(bars) < period:
                 continue
@@ -1371,9 +1381,9 @@ async def group_breadth(
         group_key=group_key,
         timeframe=timeframe.value,
         adjustment="split_adjusted" if adjusted else "raw",
-        as_of=as_of,
+        as_of=latest_as_of,
         membership_version=group.id,
-        universe_provenance=_group_provenance(group, as_of),
+        universe_provenance=_group_provenance(group, requested_as_of),
         freshness=freshness,
         freshness_detail=freshness_detail,
         evaluated_count=len(members),

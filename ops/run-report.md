@@ -17567,5 +17567,14 @@ uncovered slice rather than repeat a generic completion claim.
   the available `uv` environment resolves Python 3.9, while the backend requires >=3.12
   and imports `datetime.UTC`. Existing generic user-isolated library code needs no source
   change for the combo payload.
-- Open gates remain: pinned V25 visual references/approval, complete backend/frontend/
-  security/performance acceptance, provider probes, and remaining promotion targets.
+- Checkpoint `14cd2cd` is committed and pushed. Open gates remain: pinned V25 visual
+  references/approval, complete backend/frontend/security/performance acceptance, provider
+  probes, and remaining promotion targets.
+## 2026-08-03T22:48:00Z Point-in-time provenance checkpoint
+
+- Fixed canonical UTC wire formatting for group membership provenance and corrected
+  breadth to keep the requested historical cutoff separate from its latest usable bar.
+- Validation: workspace integration `22 passed` on backend Python 3.12 with `--no-cov`,
+  including combo-library persistence; Ruff and `git diff --check` passed.
+- Commit/push is pending for this backend/docs checkpoint. Full V25 visual approval and
+  the broad functional, security, performance, and provider acceptance gates remain open.

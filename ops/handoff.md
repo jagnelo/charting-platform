@@ -15788,4 +15788,15 @@
   already stores the payload and dependency metadata.
 - This is a functional checkpoint, not completion. Strict V25 visual approval, the
   broader backend/frontend/security/performance matrix, and remaining promotion targets
-  remain open. The combo implementation is pending commit and push.
+  remain open. Checkpoint `14cd2cd` is committed and pushed.
+## 2026-08-03T22:48:00Z Point-in-time provenance checkpoint
+
+- Repaired the analysis API's UTC provenance spelling and group breadth cutoff handling.
+  Breadth now retains the caller's requested `as_of` for membership provenance while
+  reporting the latest available bar separately; it no longer replaces the historical
+  boundary with data availability.
+- The full workspace integration file passed `22` tests under the repository's Python
+  3.12 environment with `--no-cov`; Ruff and diff checks passed. The combo-library
+  persistence regression is included in that run. Checkpoint is pending commit/push.
+- Strict V25 visual approval, provider probes, Docker-backed broad acceptance, and the
+  remaining workstation/backend completion gates remain open.
