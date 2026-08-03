@@ -165,6 +165,25 @@ describe('useWatchlistStore', () => {
     }
   })
 
+  it('falls back to storage events when BroadcastChannel is unavailable', async () => {
+    const originalChannel = (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
+    delete (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
+    try {
+      const store = useWatchlistStore()
+      ;(api.get as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce([makeWatchlist()])
+        .mockResolvedValueOnce([{ ...makeWatchlist(), name: 'Storage reload' }])
+      await store.loadWatchlists()
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'charting-platform-watchlists-event',
+        newValue: JSON.stringify({ type: 'watchlists-changed', watchlistId: 1 }),
+      }))
+      await vi.waitFor(() => expect(store.watchlists[0]?.name).toBe('Storage reload'))
+    } finally {
+      if (originalChannel !== undefined) Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: originalChannel })
+    }
+  })
+
   it('computes quotes, price flashes, and single-bar fallbacks', async () => {
     const store = useWatchlistStore()
     store.priceMap.NVDA = {

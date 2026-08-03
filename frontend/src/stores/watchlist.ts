@@ -26,15 +26,27 @@ export const useWatchlistStore = defineStore('watchlist', () => {
   const watchlistChannel = typeof BroadcastChannel !== 'undefined'
     ? new BroadcastChannel('charting-platform-watchlists')
     : null
+  const WATCHLIST_STORAGE_KEY = 'charting-platform-watchlists-event'
 
   function announceChanged(watchlistId?: number) {
-    watchlistChannel?.postMessage({ type: 'watchlists-changed', watchlistId: watchlistId ?? null })
+    const message = { type: 'watchlists-changed', watchlistId: watchlistId ?? null }
+    if (watchlistChannel) watchlistChannel.postMessage(message)
+    else if (typeof window !== 'undefined') {
+      try { window.localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify({ ...message, nonce: Date.now() })) } catch { /* storage may be unavailable */ }
+    }
+  }
+
+  function handleInvalidation(event: { data?: { type?: string } }) {
+    if (event.data?.type === 'watchlists-changed') void loadWatchlists()
   }
 
   if (watchlistChannel) {
-    watchlistChannel.onmessage = (event: MessageEvent<{ type?: string }>) => {
-      if (event.data?.type === 'watchlists-changed') void loadWatchlists()
-    }
+    watchlistChannel.onmessage = handleInvalidation
+  } else if (typeof window !== 'undefined') {
+    window.addEventListener('storage', event => {
+      if (event.key !== WATCHLIST_STORAGE_KEY || !event.newValue) return
+      try { handleInvalidation({ data: JSON.parse(event.newValue) }) } catch { /* ignore malformed fallback events */ }
+    })
   }
 
   function isTransientLoadError(error: unknown): boolean {
