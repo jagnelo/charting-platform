@@ -3,7 +3,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const LoginView = () => import('@/views/LoginView.vue')
 const WorkstationView = () => import('@/views/WorkstationView.vue')
-const StudyLabView = () => import('@/views/StudyLabView.vue')
 const DashboardView = () => import('@/views/DashboardView.vue')
 const ChartView = () => import('@/views/ChartView.vue')
 const AlertsView = () => import('@/views/AlertsView.vue')
@@ -26,7 +25,10 @@ export const applicationRoutes = [
   { path: '/chart', component: WorkstationView },
   { path: '/chart/:symbol(.*)', component: WorkstationView },
   { path: '/popout/:windowKey', component: WorkstationView },
-  { path: '/study-lab', component: StudyLabView },
+  // Study Lab is a workstation tool, not a second application shell. Keep the
+  // deep link, but land it in the persisted factory tab so symbol/link/layout
+  // state has one owner.
+  { path: '/study-lab', redirect: { path: '/', query: { tab: 'study-lab' } } },
   { path: '/legacy/dashboard', component: DashboardView },
   { path: '/legacy/chart', component: ChartView },
   { path: '/legacy/chart/:symbol(.*)', component: ChartView },

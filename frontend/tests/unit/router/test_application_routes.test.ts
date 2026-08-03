@@ -51,6 +51,12 @@ describe('application route contract', () => {
       '/screener': '/legacy/screener',
       '/watchlist': '/legacy/watchlist',
       '/settings': '/legacy/settings',
+      '/study-lab': { path: '/', query: { tab: 'study-lab' } },
     })
+  })
+
+  it('keeps the Study Lab deep link inside the workstation shell', () => {
+    expect(route('/study-lab')?.redirect).toEqual({ path: '/', query: { tab: 'study-lab' } })
+    expect(route('/study-lab')?.component).toBeUndefined()
   })
 })

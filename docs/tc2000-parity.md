@@ -488,6 +488,12 @@ Pre-workstation top-level paths redirect into their corresponding legacy route. 
 proves route registration and redirect intent without claiming full browser-authenticated
 legacy usability or visual parity; those remain separate acceptance gates.
 
+The `/study-lab` deep link now redirects into the workstation's persisted `study-lab`
+factory tab instead of mounting a second standalone shell. The primary Study Lab tool
+therefore owns symbol, link-group, dataset, layout, and pop-out state consistently with
+all other workstation tools; its existing focused rendering and run tests remain the
+functional evidence, while visual approval is still pending.
+
 Instrument notes now have Docker-backed integration coverage for authenticated
 round-tripping, canonical-instrument validation, unauthenticated rejection, and strict
 per-user isolation. The API already scopes both read and upsert queries by user ID; the
