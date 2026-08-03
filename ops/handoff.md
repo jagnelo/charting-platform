@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:17:00Z
+
+- Scoped infinite-history backfill and coverage polling to the active chart load
+  generation, preventing same-symbol timeframe/bar-type changes from accepting stale
+  pages or freshness updates.
+- Validation: full frontend Vitest `465 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `b67c790` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:15:00Z
 
 - Removed the obsolete private indicator-loader wrapper left by the chart generation

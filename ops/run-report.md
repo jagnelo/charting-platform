@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:17:00Z Chart history/coverage generation scope
+
+- Infinite-history backfill and coverage polling now reject stale generations during
+  same-symbol timeframe/bar-type changes.
+- Validation: full frontend Vitest `465 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `b67c790`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:15:00Z Chart loader cleanup
 
 - Removed an obsolete private wrapper after chart symbol-load generation protection was
