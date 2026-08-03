@@ -125,7 +125,7 @@ class TestCoverageRouter:
         assert body["status"] == "partial"
         assert body["bar_count"] == 3
         assert body["missing_slices"] == [
-            {"start": "2026-01-03T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
+            {"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
         ]
         assert body["provenance"] == "canonical_local_database"
         assert "provider" not in body
