@@ -71,7 +71,11 @@ Each rotation row now also returns transparent `heading` (degrees), `distance`, 
 `velocity`, a state `transition` when the latest sampled state changed, and consecutive
 `time_in_state`. The companion table exposes those values alongside trend, momentum,
 coverage, and tail length instead of implying proprietary rotation metrics. Every companion
-column is sortable with null-safe ordering and a visible direction marker.
+column is sortable with null-safe ordering and a visible direction marker. The uPlot
+rotation plane now draws zero-axis quadrant guides, identifies the nearest tail point on
+hover with symbol/date/coordinates, and emits the normal linked-symbol selection when a
+hovered point is clicked; focused component coverage proves the interaction without
+recreating the chart.
 
 The Relative Rotation backend now accepts an optional point-in-time `as_of` and applies it
 to both versioned market-group membership (`effective_at`/`known_at`) and local bars. The

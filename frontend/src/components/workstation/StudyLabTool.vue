@@ -159,8 +159,10 @@ function heatmapData(artifact: Artifact): { rows: string[]; columns: string[]; v
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const candidate = value as { rows?: unknown; columns?: unknown; values?: unknown }
   if (!Array.isArray(candidate.rows) || !candidate.rows.every(item => typeof item === 'string') || !Array.isArray(candidate.columns) || !candidate.columns.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || !candidate.values.every(row => Array.isArray(row) && row.every(item => typeof item === 'number' && Number.isFinite(item)))) return null
+  const rows = candidate.rows as string[]
+  const columns = candidate.columns as string[]
   const values = candidate.values as number[][]
-  return values.length && values.every(row => row.length === candidate.columns!.length) && values.length === candidate.rows.length ? { rows: candidate.rows, columns: candidate.columns, values } : null
+  return values.length && values.every(row => row.length === columns.length) && values.length === rows.length ? { rows, columns, values } : null
 }
 function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: string; kind?: string }> {
   const value = artifact.payload.value

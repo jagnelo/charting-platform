@@ -63,4 +63,19 @@ describe('RelativeRotationTool', () => {
     const rowSymbols = wrapper.findAll('.rotation-tool__row').map(row => row.find('strong').text())
     expect(rowSymbols).toEqual(['XLE', 'XLK'])
   })
+
+  it('shows a plot-level tail tooltip and selects the hovered symbol', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [{ timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 }] },
+    ] })
+    const wrapper = mount(RelativeRotationTool)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    await nextTick()
+    resize?.()
+    const plot = wrapper.get('.rotation-tool__plot-shell')
+    await plot.trigger('mousemove', { clientX: 100, clientY: 100 })
+    expect(wrapper.text()).toContain('2026-01-02')
+    await plot.trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['XLK']])
+  })
 })

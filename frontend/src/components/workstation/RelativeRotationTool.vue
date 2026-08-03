@@ -5,7 +5,12 @@
     <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error">{{ error }}</p>
     <p v-else-if="!rows.length" class="rotation-tool__state">No sector rotation rows are available.</p>
     <template v-else>
-      <div ref="plotHost" class="rotation-tool__plot" aria-label="Relative rotation trend and momentum plane" />
+      <div class="rotation-tool__plot-shell" @mousemove="onPlotMove" @mouseleave="hovered = null" @click="selectHovered">
+        <div ref="plotHost" class="rotation-tool__plot" aria-label="Relative rotation trend and momentum plane" />
+        <div v-if="hovered" class="rotation-tool__tooltip" :style="tooltipStyle" role="status" aria-live="polite">
+          <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
+        </div>
+      </div>
       <div class="rotation-tool__table"><div class="rotation-tool__head"><button type="button" @click="setSort('symbol')">Sector{{ sortMark('symbol') }}</button><button type="button" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.instrument_id" type="button" class="rotation-tool__row" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
@@ -19,7 +24,7 @@ import { api } from '@/lib/api'
 
 interface Tail { timestamp: string; trend: number; momentum: number }
 interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[] }
-interface PlotPoint extends Tail { color: string; last: boolean }
+interface PlotPoint extends Tail { symbol: string; color: string; last: boolean }
 type SortKey = 'symbol' | 'state' | 'trend' | 'momentum' | 'heading' | 'distance' | 'velocity' | 'transition' | 'time_in_state' | 'coverage' | 'tail'
 const props = defineProps<{ configuration?: Record<string, unknown> }>()
 const emit = defineEmits<{ select: [symbol: string]; configuration: [configuration: Record<string, unknown>] }>()
@@ -34,6 +39,7 @@ const sampling = ref(Math.min(30, Math.max(1, Number(props.configuration?.sampli
 const asOf = ref(configString('as_of', ''))
 const adjusted = ref(props.configuration?.adjusted !== false)
 const plotHost = ref<HTMLElement | null>(null)
+const hovered = ref<{ symbol: string; point: PlotPoint; left: number; top: number } | null>(null)
 const sortKey = ref<SortKey>('distance')
 const sortDirection = ref<-1 | 1>(-1)
 const sortedRows = computed(() => [...rows.value].sort((left, right) => {
@@ -44,6 +50,7 @@ const sortedRows = computed(() => [...rows.value].sort((left, right) => {
   if (typeof a === 'string' && typeof b === 'string') return sortDirection.value * a.localeCompare(b)
   return sortDirection.value * (Number(a) - Number(b)) || left.symbol.localeCompare(right.symbol)
 }))
+const tooltipStyle = computed(() => hovered.value ? { left: `${hovered.value.left}px`, top: `${hovered.value.top}px` } : {})
 let plot: uPlot | null = null
 let observer: ResizeObserver | null = null
 let points: PlotPoint[] = []
@@ -59,10 +66,37 @@ function setSort(key: SortKey) {
   else { sortKey.value = key; sortDirection.value = key === 'symbol' || key === 'state' || key === 'transition' ? 1 : -1 }
 }
 function sortMark(key: SortKey) { return sortKey.value === key ? (sortDirection.value === 1 ? ' ▲' : ' ▼') : '' }
+function onPlotMove(event: MouseEvent) {
+  if (!plot || !plotHost.value || !points.length) return
+  const bounds = plotHost.value.getBoundingClientRect()
+  const x = event.clientX - bounds.left
+  const y = event.clientY - bounds.top
+  let nearest: { point: PlotPoint; distance: number } | null = null
+  for (const point of points) {
+    const pointX = plot.valToPos(point.trend, 'x')
+    const pointY = plot.valToPos(point.momentum, 'y')
+    const distance = Math.hypot(pointX - x, pointY - y)
+    if (!nearest || distance < nearest.distance) nearest = { point, distance }
+  }
+  if (!nearest || nearest.distance > 28) {
+    hovered.value = null
+    return
+  }
+  hovered.value = {
+    symbol: nearest.point.symbol,
+    point: nearest.point,
+    left: Math.min(Math.max(8, x + 10), Math.max(8, bounds.width - 210)),
+    top: Math.min(Math.max(8, y + 10), Math.max(8, bounds.height - 58)),
+  }
+}
+function selectHovered() {
+  if (hovered.value) emit('select', hovered.value.symbol)
+}
 const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68', improving: '#6dbbe6', lagging: '#df8181' }
 function drawPlot() {
   if (!plotHost.value) return
-  points = rows.value.flatMap(row => row.tail.map((tail, index) => ({ ...tail, color: colors[row.state ?? ''] ?? '#8796a1', last: index === row.tail.length - 1 })))
+  points = rows.value.flatMap(row => row.tail.map((tail, index) => ({ ...tail, symbol: row.symbol, color: colors[row.state ?? ''] ?? '#8796a1', last: index === row.tail.length - 1 })))
+  hovered.value = null
   const width = Math.max(200, plotHost.value.clientWidth), height = Math.max(130, plotHost.value.clientHeight)
   const data: uPlot.AlignedData = [points.map(point => point.trend), points.map(point => point.momentum)]
   if (plot) {
@@ -72,6 +106,15 @@ function drawPlot() {
   }
   const markerPlugin: uPlot.Plugin = { hooks: { draw: [(chart) => {
     const ctx = chart.ctx
+    const zeroX = chart.valToPos(0, 'x')
+    const zeroY = chart.valToPos(0, 'y')
+    ctx.save()
+    ctx.strokeStyle = '#53636e'
+    ctx.lineWidth = 1
+    ctx.setLineDash([3, 3])
+    if (Number.isFinite(zeroX)) { ctx.beginPath(); ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, chart.height); ctx.stroke() }
+    if (Number.isFinite(zeroY)) { ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(chart.width, zeroY); ctx.stroke() }
+    ctx.restore()
     for (let index = 0; index < points.length; index += 1) {
       const point = points[index]
       const x = chart.valToPos(point.trend, 'x'), y = chart.valToPos(point.momentum, 'y')
@@ -119,4 +162,4 @@ watch(() => props.configuration, configuration => {
 onBeforeUnmount(() => { observer?.disconnect(); plot?.destroy(); plot = null })
 </script>
 
-<style scoped>.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot{min-height:0;background:#101419}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
+<style scoped>.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
