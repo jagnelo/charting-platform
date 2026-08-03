@@ -263,7 +263,7 @@
       <div class="metrics"><span>Above 20 MA</span><b>{{ breadthMetric('ma20') }}</b><span>Above 50 MA</span><b>{{ breadthMetric('ma50') }}</b><span>Above 200 MA</span><b>{{ breadthMetric('ma200') }}</b><span>Coverage</span><b>{{ breadthCoverage }}</b></div>
       <BreadthHistoryUPlot :history="breadthHistory" />
     </div>
-    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation'" @select="selectSymbol($event)" />
+    <RelativeRotationTool v-else-if="tool.instance_key === 'relative-rotation'" :configuration="tool.configuration" @select="selectSymbol($event)" @configuration="emit('configuration', tool.instance_key, $event)" />
     <div v-else-if="tool.instance_key === 'technical-summary'" class="metrics">
       <span>RSI(14)</span><b>{{ formatNumber(technical?.rsi14) }}</b>
       <span>20 / 50 / 200 MA</span><b>{{ technicalMAs }}</b>
