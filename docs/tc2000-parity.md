@@ -88,6 +88,11 @@ metadata (identity, currency, active/synthetic state, and primary identifier) so
 can make explicit metadata/session decisions without importing application models or
 calling providers.
 
+Unified Python assets now have lifecycle contracts for complete export/import, immutable
+version-preserving clone, and reversible archive/unarchive operations. Each imported or
+cloned version is revalidated against its asset kind and output contract before it is
+persisted; user ownership and stable-key uniqueness remain enforced by the canonical API.
+
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A
 dedicated regression test proves repeated resize callbacks do not create additional

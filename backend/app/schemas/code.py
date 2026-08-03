@@ -37,6 +37,22 @@ class CodeAssetCreate(BaseModel):
     initial_version: CodeVersionCreate
 
 
+class CodeAssetCloneRequest(BaseModel):
+    stable_key: str = Field(min_length=1, max_length=80, pattern="^[a-z0-9][a-z0-9_-]*$")
+    name: str = Field(min_length=1, max_length=160)
+
+
+class CodeAssetImport(BaseModel):
+    stable_key: str = Field(min_length=1, max_length=80, pattern="^[a-z0-9][a-z0-9_-]*$")
+    name: str = Field(min_length=1, max_length=160)
+    kind: str = Field(pattern="^(plot|column|condition|signal|study)$")
+    versions: list[CodeVersionCreate] = Field(min_length=1, max_length=256)
+
+
+class CodeAssetArchiveRequest(BaseModel):
+    is_archived: bool
+
+
 class CodeVersionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

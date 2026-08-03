@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:58:00Z
+
+- Added unified-Python asset lifecycle APIs for complete validated import, immutable
+  version-preserving clone, and reversible archive/unarchive. Every imported/cloned
+  version is checked against the same kind/output contract rules and remains user-scoped.
+- Code integration coverage now passes `14` tests with Ruff; exact-build V25 visual
+  approval and the broader security, performance, migration, and acceptance gates remain
+  open.
+
 ## Continuation update — 2026-08-04T00:45:00Z
 
 - Extended Study Lab manifests with canonical instrument metadata and declared session

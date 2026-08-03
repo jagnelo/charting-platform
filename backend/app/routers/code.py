@@ -10,7 +10,10 @@ from app.database import get_db
 from app.models.research import CodeAsset, CodeVersion
 from app.models.user import User
 from app.schemas.code import (
+    CodeAssetArchiveRequest,
+    CodeAssetCloneRequest,
     CodeAssetCreate,
+    CodeAssetImport,
     CodeAssetOut,
     CodeValidationOut,
     CodeValidationRequest,
@@ -73,6 +76,26 @@ async def list_assets(db: AsyncSession = Depends(get_db), current_user: User = D
     return result.scalars().unique().all()
 
 
+@router.post("/assets/import", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
+async def import_asset(
+    body: CodeAssetImport, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """Import a complete immutable asset export after validating every version."""
+    asset = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=body.kind)
+    for number, version_body in enumerate(body.versions, start=1):
+        validation = validate_workstation_python(version_body.source)
+        if not validation.valid:
+            raise HTTPException(status_code=422, detail={"code": "code_validation_failed", "version_number": number, "diagnostics": [item.__dict__ for item in validation.diagnostics]})
+        _validate_asset_contract(body.kind, version_body, validation)
+        asset.versions.append(_version_from_input(version_body, number, validation))
+    db.add(asset)
+    try:
+        await db.flush()
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
+    return (await db.execute(_asset_query().where(CodeAsset.id == asset.id))).scalar_one()
+
+
 @router.post("/assets", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
 async def create_asset(
     body: CodeAssetCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
@@ -89,6 +112,55 @@ async def create_asset(
     except Exception as exc:
         raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
     return (await db.execute(_asset_query().where(CodeAsset.id == asset.id))).scalar_one()
+
+
+@router.post("/assets/{asset_id}/clone", response_model=CodeAssetOut, status_code=status.HTTP_201_CREATED)
+async def clone_asset(
+    asset_id: int,
+    body: CodeAssetCloneRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    asset = (await db.execute(_asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id))).scalar_one_or_none()
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Code asset not found")
+    clone = CodeAsset(user_id=current_user.id, stable_key=body.stable_key, name=body.name.strip(), kind=asset.kind)
+    clone.versions.extend(
+        CodeVersion(
+            version_number=version.version_number,
+            source=version.source,
+            output_contract=version.output_contract,
+            parameter_schema=dict(version.parameter_schema or {}),
+            default_parameters=dict(version.default_parameters or {}),
+            sdk_version=version.sdk_version,
+            runtime_version=version.runtime_version,
+            dependencies=list(version.dependencies or []),
+            lookback=version.lookback,
+            diagnostics=list(version.diagnostics or []),
+        )
+        for version in sorted(asset.versions, key=lambda item: item.version_number)
+    )
+    db.add(clone)
+    try:
+        await db.flush()
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail={"code": "code_asset_key_conflict"}) from exc
+    return (await db.execute(_asset_query().where(CodeAsset.id == clone.id))).scalar_one()
+
+
+@router.post("/assets/{asset_id}/archive", response_model=CodeAssetOut)
+async def archive_asset(
+    asset_id: int,
+    body: CodeAssetArchiveRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    asset = (await db.execute(_asset_query().where(CodeAsset.id == asset_id, CodeAsset.user_id == current_user.id))).scalar_one_or_none()
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Code asset not found")
+    asset.is_archived = body.is_archived
+    await db.flush()
+    return asset
 
 
 @router.post("/assets/{asset_id}/versions", response_model=CodeVersionOut, status_code=status.HTTP_201_CREATED)

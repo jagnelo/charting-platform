@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:58:00Z Unified-Python asset lifecycle
+
+- Added validated complete asset import, immutable version-preserving clone, and
+  reversible archive/unarchive APIs. Imported and cloned versions use the canonical
+  validation and output-contract gate and remain user-isolated.
+- Code integration suite passed `14` tests; Ruff and diff checks passed. Exact-build
+  visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-04T00:45:00Z Study metadata and sessions
 
 - Study Lab manifests now include canonical instrument metadata and declared session

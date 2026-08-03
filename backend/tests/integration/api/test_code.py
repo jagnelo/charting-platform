@@ -41,6 +41,51 @@ def test_code_assets_are_immutable_versions(client, auth_headers):
     assert next_version.json()["version_number"] == 2
 
 
+def test_code_assets_support_archive_clone_and_round_trip_import(client, auth_headers):
+    created = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "exportable-study",
+            "name": "Exportable study",
+            "kind": "study",
+            "initial_version": {"source": "output.scalar('n', 1)", "output_contract": "study"},
+        },
+    )
+    assert created.status_code == 201
+    asset = created.json()
+    archived = client.post(
+        f"/api/v1/code/assets/{asset['id']}/archive",
+        headers=auth_headers,
+        json={"is_archived": True},
+    )
+    assert archived.status_code == 200
+    assert archived.json()["is_archived"] is True
+    cloned = client.post(
+        f"/api/v1/code/assets/{asset['id']}/clone",
+        headers=auth_headers,
+        json={"stable_key": "cloned-study", "name": "Cloned study"},
+    )
+    assert cloned.status_code == 201
+    assert cloned.json()["id"] != asset["id"]
+    assert cloned.json()["versions"][0]["source"] == asset["versions"][0]["source"]
+    imported = client.post(
+        "/api/v1/code/assets/import",
+        headers=auth_headers,
+        json={
+            "stable_key": "imported-study",
+            "name": "Imported study",
+            "kind": "study",
+            "versions": [
+                {"source": "output.scalar('n', 2)", "output_contract": "study"},
+                {"source": "output.scalar('n', 3)", "output_contract": "study"},
+            ],
+        },
+    )
+    assert imported.status_code == 201
+    assert [version["version_number"] for version in imported.json()["versions"]] == [1, 2]
+
+
 def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_headers):
     wrong_kind = client.post(
         "/api/v1/code/assets",
