@@ -52,7 +52,8 @@ momentum, and tail calculations; the default cadence remains one observation.
 Each rotation row now also returns transparent `heading` (degrees), `distance`, vector
 `velocity`, a state `transition` when the latest sampled state changed, and consecutive
 `time_in_state`. The companion table exposes those values alongside trend, momentum,
-coverage, and tail length instead of implying proprietary rotation metrics.
+coverage, and tail length instead of implying proprietary rotation metrics. Every companion
+column is sortable with null-safe ordering and a visible direction marker.
 
 The Relative Rotation backend now accepts an optional point-in-time `as_of` and applies it
 to both versioned market-group membership (`effective_at`/`known_at`) and local bars. The

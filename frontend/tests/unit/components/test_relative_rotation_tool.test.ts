@@ -50,4 +50,17 @@ describe('RelativeRotationTool', () => {
     await wrapper.get('input[aria-label="Rotation benchmark"]').setValue('IWM')
     await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
   })
+
+  it('sorts the companion table from its headers', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.1, distance: 0.14, coverage: 1, tail: [] },
+      { instrument_id: 2, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.1, distance: 0.14, coverage: 1, tail: [] },
+    ] })
+    const wrapper = mount(RelativeRotationTool)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    const sectorHeader = wrapper.findAll('.rotation-tool__head button').find(button => button.text().startsWith('Sector'))
+    await sectorHeader?.trigger('click')
+    const rowSymbols = wrapper.findAll('.rotation-tool__row').map(row => row.find('strong').text())
+    expect(rowSymbols).toEqual(['XLE', 'XLK'])
+  })
 })

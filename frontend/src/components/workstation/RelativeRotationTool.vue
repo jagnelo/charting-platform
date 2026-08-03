@@ -6,13 +6,13 @@
     <p v-else-if="!rows.length" class="rotation-tool__state">No sector rotation rows are available.</p>
     <template v-else>
       <div ref="plotHost" class="rotation-tool__plot" aria-label="Relative rotation trend and momentum plane" />
-      <div class="rotation-tool__table"><div class="rotation-tool__head"><span>Sector</span><span>State</span><span>Trend</span><span>Momentum</span><span>Heading</span><span>Distance</span><span>Velocity</span><span>Transition</span><span>Time</span><span>Coverage</span><span>Tail</span></div><button v-for="row in rows" :key="row.instrument_id" type="button" class="rotation-tool__row" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
+      <div class="rotation-tool__table"><div class="rotation-tool__head"><button type="button" @click="setSort('symbol')">Sector{{ sortMark('symbol') }}</button><button type="button" @click="setSort('state')">State{{ sortMark('state') }}</button><button type="button" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.instrument_id" type="button" class="rotation-tool__row" @click="emit('select', row.symbol)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
@@ -20,6 +20,7 @@ import { api } from '@/lib/api'
 interface Tail { timestamp: string; trend: number; momentum: number }
 interface Row { instrument_id: number; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[] }
 interface PlotPoint extends Tail { color: string; last: boolean }
+type SortKey = 'symbol' | 'state' | 'trend' | 'momentum' | 'heading' | 'distance' | 'velocity' | 'transition' | 'time_in_state' | 'coverage' | 'tail'
 const props = defineProps<{ configuration?: Record<string, unknown> }>()
 const emit = defineEmits<{ select: [symbol: string]; configuration: [configuration: Record<string, unknown>] }>()
 const rows = ref<Row[]>([]), loading = ref(true), error = ref(''), freshness = ref('')
@@ -33,11 +34,31 @@ const sampling = ref(Math.min(30, Math.max(1, Number(props.configuration?.sampli
 const asOf = ref(configString('as_of', ''))
 const adjusted = ref(props.configuration?.adjusted !== false)
 const plotHost = ref<HTMLElement | null>(null)
+const sortKey = ref<SortKey>('distance')
+const sortDirection = ref<-1 | 1>(-1)
+const sortedRows = computed(() => [...rows.value].sort((left, right) => {
+  const a = sortValue(left, sortKey.value), b = sortValue(right, sortKey.value)
+  if (a == null && b == null) return left.symbol.localeCompare(right.symbol)
+  if (a == null) return 1
+  if (b == null) return -1
+  if (typeof a === 'string' && typeof b === 'string') return sortDirection.value * a.localeCompare(b)
+  return sortDirection.value * (Number(a) - Number(b)) || left.symbol.localeCompare(right.symbol)
+}))
 let plot: uPlot | null = null
 let observer: ResizeObserver | null = null
 let points: PlotPoint[] = []
 let loadGeneration = 0
 function percent(value: number | null | undefined) { return value == null ? '—' : `${(value * 100).toFixed(2)}%` }
+function sortValue(row: Row, key: SortKey): string | number | null {
+  if (key === 'symbol' || key === 'state' || key === 'transition') return row[key] ?? null
+  if (key === 'tail') return row.tail.length
+  return row[key] ?? null
+}
+function setSort(key: SortKey) {
+  if (sortKey.value === key) sortDirection.value = sortDirection.value === 1 ? -1 : 1
+  else { sortKey.value = key; sortDirection.value = key === 'symbol' || key === 'state' || key === 'transition' ? 1 : -1 }
+}
+function sortMark(key: SortKey) { return sortKey.value === key ? (sortDirection.value === 1 ? ' ▲' : ' ▼') : '' }
 const colors: Record<string, string> = { leading: '#61c58c', weakening: '#e7bc68', improving: '#6dbbe6', lagging: '#df8181' }
 function drawPlot() {
   if (!plotHost.value) return
@@ -98,4 +119,4 @@ watch(() => props.configuration, configuration => {
 onBeforeUnmount(() => { observer?.disconnect(); plot?.destroy(); plot = null })
 </script>
 
-<style scoped>.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot{min-height:0;background:#101419}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
+<style scoped>.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot{min-height:0;background:#101419}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
