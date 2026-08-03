@@ -14562,6 +14562,18 @@
   and the broad workstation/backend acceptance matrix remains incomplete. Next:
   continue the requirement audit.
 
+## 2026-08-03T15:10:00Z Invalid return-base checkpoint
+
+- Shared period cells now detect zero base closes and return a structured
+  `zero_base_price` warning instead of dividing by zero or producing invalid values.
+  This applies to benchmark, ETF constituent, industry-proxy, and sector snapshots.
+- Pure backend analysis tests `3 passed`; the focused Docker-backed group snapshot
+  integration remains `1 passed` with two existing Nautilus warnings; Ruff and
+  `git diff --check` passed. Commit `5b95092` pushed.
+- Full goal remains active. Approved V25 visual references remain `required_missing`
+  and the broad workstation/backend acceptance matrix remains incomplete. Next:
+  continue the requirement audit.
+
 ## 2026-08-03T14:15:00Z Factory industry drill-down checkpoint
 
 - Factory `Drill Down` and `Sector by Year` industry windows now render the selected

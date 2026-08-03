@@ -16614,3 +16614,12 @@ Append a short entry after each worker session.
   type-check/build, Ruff, and `git diff --check` passed.
 - Commit `479fbe8` pushed. Full completion and approved V25 visual evidence remain
   outstanding.
+
+## 2026-08-03T15:10:00Z Invalid return-base checkpoint
+
+- Added zero-base detection to shared period-return cells. Invalid returns now retain
+  their observation context and emit `zero_base_price` rather than dividing by zero.
+- Validation: backend analysis unit `3 passed`; focused Docker-backed integration
+  `1 passed` with two existing Nautilus warnings; Ruff and `git diff --check` passed.
+- Commit `5b95092` pushed. Full completion and approved V25 visual evidence remain
+  outstanding.
