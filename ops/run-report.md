@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:58:00Z Factory tool-contract alignment
+
+- Backend factory workspaces now emit stable analysis tool types and the persisted
+  Relative Rotation configuration consumed by the frontend registry.
+- Validation: Ruff and direct factory-contract assertion passed. Targeted Docker-backed
+  workspace integration was attempted but Docker socket access is denied here; full
+  frontend remains `472 passed`. Pushed `0bab401`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:54:00Z Workstation analysis-tool registry
 
 - Add Tool now exposes Relative Rotation, Market Breadth, Technical Summary, Coverage,

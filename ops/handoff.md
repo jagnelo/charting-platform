@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:58:00Z
+
+- Aligned backend factory workspace payloads with the stable frontend analysis-tool
+  types and persisted Relative Rotation configuration (`group_key`, timeframe, lookback,
+  tail length, and adjustment).
+- Validation: Ruff passed; direct factory-contract assertion passed; the targeted Docker-
+  backed workspace integration test was attempted but could not start because this
+  environment denies access to the Docker socket. Full frontend remains `472 passed`.
+  Checkpoint `0bab401` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:54:00Z
 
 - Expanded the serializable Add Tool registry with Relative Rotation, Market Breadth,
