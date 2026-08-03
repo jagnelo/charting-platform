@@ -32,6 +32,46 @@ reference_policy:
       status: discovery_candidate
       eligible_for: [watchlist-column-filter]
       notes: "Official Version 25 help image from 25.0.9172.22877; the pinned-build release notes confirm 25.0.9571 separately. Requires pinned-build unchanged review, measured tokens, target-environment mapping, and reviewer approval before any state can leave required_missing."
+    - id: v25-pinning-columns-menu
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/009/100/096/original/227f21a4-0554-4512-9496-34f23c3ebaa0.png
+      source_build: "25.0.9172.22877"
+      image_sha256: a92149e87bd486c6d430f7d3eede94976b4c00762c20fc7f070f179340b1c4ee
+      image_resolution: { width: 498, height: 628 }
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 pinning-menu state; candidate only until the pinned 25.0.9571 unchanged-surface review, measurement, permission review, and human approval are recorded."
+    - id: v25-pinning-columns-result
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/009/100/098/original/dc8dc4c2-e11e-4733-8aa7-8d65eb740c5a.png
+      source_build: "25.0.9172.22877"
+      image_sha256: 00478e686478a3e3e4721f8fe2adf2814b03d13954432bff0cf1b242177ced7b
+      image_resolution: { width: 496, height: 626 }
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 pinned-result state; not an approved baseline until exact-build continuity, measurements, permissions, and reviewer approval are recorded."
+    - id: v25-pinning-columns-indicator
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/009/100/099/original/2b0dcea5-01c6-4a12-9e67-2c3c968931f8.png
+      source_build: "25.0.9172.22877"
+      image_sha256: 8494b5ffa1c44536a5d7b2087b22248b8e3b55ed27a998205aeead2bd553a331
+      image_resolution: { width: 497, height: 629 }
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 pinned-column indicator state; candidate only pending exact-build continuity and review."
+    - id: v25-pinning-columns-secondary-sort
+      source_type: official_v25_help
+      source_page: https://help.tc2000.com/m/125751/l/1916114-pinning-columns
+      image_locator: https://media.screensteps.com/image_assets/assets/009/100/101/original/f138cae9-bf5b-4dd7-a1df-f5b13ebf2da6.png
+      source_build: "25.0.9172.22877"
+      image_sha256: 9f4141efbf339d92243ee144a82264e8be14578037d227ebf2f7332e5bf049d0
+      image_resolution: { width: 499, height: 629 }
+      status: discovery_candidate
+      eligible_for: [watchlist-column-filter]
+      notes: "Official Version 25 pinned-column secondary-sort state; candidate only pending exact-build continuity and review."
     - id: v23-factory-layout-history
       source_type: official_help_behavioral_history
       source_page: https://help.tc2000.com/m/69401/l/743982-factory-default-layout-workspace
