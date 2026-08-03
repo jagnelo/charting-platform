@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:50:00Z Shared OHLCV coverage planner
+
+- Added provider-neutral `ohlcv_coverage` readiness planning for ready/partial/missing/
+  latest-stale states and bounded repair slices; market-data range decisions use it.
+- Full backend unit suite `882 passed`; focused coverage/market-data tests `6 passed`;
+  Ruff/diff checks passed. Pushed `a098813`.
+- Docker-backed route verification, strict V25 visual approval, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T22:38:00Z Interactive Relative Rotation plot parity
 
 - Added zero-axis quadrant guides, nearest-tail hover tooltip, and click-through selection

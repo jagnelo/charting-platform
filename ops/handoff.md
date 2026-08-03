@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:50:00Z
+
+- Extracted provider-neutral OHLCV coverage planning into `ohlcv_coverage`, distinguishing
+  `ready`, `partial`, `missing`, and latest-window `stale` states with deterministic bounded
+  repair slices. The existing market-data path now consumes this shared readiness contract.
+- Validation: full backend unit suite `882 passed`; focused coverage/market-data tests `6
+  passed`; Ruff and `git diff --check` passed. Checkpoint `a098813` is pushed. Docker-backed
+  route verification, strict V25 visual approval, and the complete acceptance matrix remain
+  open.
+
 ## Continuation update — 2026-08-03T22:38:00Z
 
 - Added interactive Relative Rotation plot parity: zero-axis quadrant guides, nearest-tail
