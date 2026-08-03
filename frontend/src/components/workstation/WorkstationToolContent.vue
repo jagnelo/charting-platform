@@ -29,6 +29,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
       />
@@ -58,6 +59,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
@@ -104,6 +106,7 @@
         @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
         @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
         @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+        @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
         @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
         @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
       />
@@ -133,6 +136,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
@@ -206,6 +210,7 @@
             @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
             @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
             @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+            @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
             @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
             @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
           />
@@ -242,6 +247,7 @@
       @update:pinned-boolean-keys="emit('pinnedBooleanKeys', tool.instance_key, $event)"
       @update:column-groups="emit('columnGroups', tool.instance_key, $event)"
       @update:stacked-column-keys="emit('stackedColumnKeys', tool.instance_key, $event)"
+      @update:column-overrides="emit('configuration', tool.instance_key, { ...tool.configuration, column_overrides: $event })"
       @update:python-columns="emit('configuration', tool.instance_key, { ...tool.configuration, python_columns: $event })"
       @update:python-condition="emit('configuration', tool.instance_key, { ...tool.configuration, python_condition: $event })"
     />
@@ -851,6 +857,17 @@ const configuredColumnGroups = computed(() => {
 })
 const configuredStackedColumnKeys = computed(() => Array.isArray(props.tool.configuration.stacked_column_keys)
   ? props.tool.configuration.stacked_column_keys.filter((key): key is string => typeof key === 'string') : [])
+const configuredColumnOverrides = computed(() => {
+  const overrides = props.tool.configuration.column_overrides
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) return {}
+  return Object.fromEntries(Object.entries(overrides).flatMap(([key, value]) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+    const candidate = value as Record<string, unknown>
+    const label = typeof candidate.label === 'string' ? candidate.label.trim() : ''
+    const width = typeof candidate.width === 'string' ? candidate.width.trim() : ''
+    return label || width ? [[key, { ...(label ? { label } : {}), ...(width ? { width } : {}) }]] : []
+  })) as Record<string, { label?: string; width?: string }>
+})
 const configuredPythonColumns = computed(() => Array.isArray(props.tool.configuration.python_columns)
   ? props.tool.configuration.python_columns.filter((column): column is { code_version_id: number; name: string } => Boolean(column) && typeof column === 'object' && Number.isInteger((column as Record<string, unknown>).code_version_id) && typeof (column as Record<string, unknown>).name === 'string')
   : [])

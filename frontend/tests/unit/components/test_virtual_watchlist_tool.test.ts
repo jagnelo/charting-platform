@@ -66,6 +66,17 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('reorder')).toEqual([[ [11, 10, 12] ]])
   })
 
+  it('persists column label and width overrides through the editor', async () => {
+    const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    await wrapper.get('input[aria-label="Symbol label"]').setValue('Ticker')
+    expect(wrapper.emitted('update:columnOverrides')).toContainEqual([{ symbol: { label: 'Ticker' } }])
+    await wrapper.get('input[aria-label="Symbol width"]').setValue('96px')
+    expect(wrapper.emitted('update:columnOverrides')).toContainEqual([{ symbol: { width: '96px' } }])
+    await wrapper.setProps({ columnOverrides: { symbol: { label: 'Ticker', width: '96px' } } })
+    expect(wrapper.find('.watchlist__header').text()).toContain('Ticker')
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow

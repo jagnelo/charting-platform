@@ -119,6 +119,14 @@ tools; no context-menu item is a dead visual control. Focused component and pop-
 binding tests cover the menu and shell routing. This is functional evidence only; the
 Version 25 visual reference remains unapproved.
 
+The integrated column editor now persists per-column display overrides alongside the
+existing visibility, order, grouping, stacking, and Boolean-pinning settings. Users can
+rename a column and set a bounded pixel/fraction/percentage track width without changing
+the canonical field key or row identity; every workstation watchlist, including personal
+lists, uses the same serializable configuration path. Focused virtual-list coverage proves
+the override events and restored header rendering; visual approval remains blocked by the
+V25 reference manifest.
+
 Personal watchlist item order is now persisted through
 `POST /watchlists/{watchlist_id}/items/reorder`. The endpoint requires the complete item
 set, assigns contiguous positions, rejects duplicate or incomplete IDs, and refuses
