@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:27:00Z Advanced EasyScan technical conditions
+
+- Primary EasyScan now persists the shared technical-condition tree with AND/OR/NOT
+  composition alongside quick thresholds and Python conditions.
+- Validation: full frontend Vitest `467 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `e45b28b`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:22:00Z Chart expression-selection guard
 
 - Synthetic chart-expression resolution now rejects stale selection generations before

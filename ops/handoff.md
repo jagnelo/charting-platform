@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:27:00Z
+
+- Extended primary EasyScan with the shared technical-condition editor and AND/OR/NOT
+  composition while retaining the quick price/volume and unified-Python paths.
+- Validation: full frontend Vitest `467 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `e45b28b` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:22:00Z
 
 - Guarded chart-tool synthetic-expression resolution so late `=XLK/SPY` resolution or
