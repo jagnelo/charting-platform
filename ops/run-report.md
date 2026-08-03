@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:05:00Z Watchlist delete failure contract
+
+- Personal watchlist deletion now returns an explicit boolean result. Failed or
+  conflicting deletes retain the local list and selection and expose recovery text.
+- Validation: full frontend Vitest `461 passed` across 76 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `5e4eed7e16cc0e3d50ef7120f39a2bcfaa16b245`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T18:00:45Z Watchlist storage fallback
 
 - Added the browser storage-event fallback for cross-window watchlist invalidation and a

@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:05:00Z
+
+- Corrected personal watchlist deletion to return an explicit success/failure result.
+  Failed or conflicting deletes now leave the canonical local list and selection intact;
+  the workstation surfaces recovery text instead of advancing as if deletion succeeded.
+- Validation: full frontend Vitest `461 passed` across 76 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `5e4eed7e16cc0e3d50ef7120f39a2bcfaa16b245`
+  pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T18:00:45Z
 
 - Completed the watchlist cross-window bus with a storage-event fallback when
