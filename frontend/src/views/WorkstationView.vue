@@ -182,13 +182,18 @@ async function selectSymbol(raw: string, timestamp?: string) {
   // its relevant ratio denominator is still the list's active ETF.
   const comparisonETF = workspaceStore.constituentETF
   workspaceStore.publishSymbol({ symbol, timestamp, group: 'blue', sourceWindowKey: 'workstation' })
+  await loadSymbolData(symbol, comparisonETF, true)
+}
+
+async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true) {
+  symbolDraft.value = symbol
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
     workspaceStore.loadETFHoldings(symbol),
     workspaceStore.loadETFIndustries(symbol),
     workspaceStore.loadTechnical(symbol),
   ])
-  updateAutoRatioExpression(symbol, comparisonETF)
+  if (updateRatio) updateAutoRatioExpression(symbol, comparisonETF)
 }
 
 function updateAutoRatioExpression(symbol: string, comparisonETF = workspaceStore.constituentETF) {
@@ -381,8 +386,15 @@ onMounted(async () => {
     workspaceStore.activeTabKey = requestedTab
   }
   await refreshMarketData()
-  const requested = String(route.params.symbol ?? route.query.symbol ?? 'SPY')
-  await selectSymbol(requested)
+  if (isPopout.value && popoutTool.value) {
+    const tool = popoutTool.value
+    const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
+    const linked = workspaceStore.symbolForLinkGroup(tool.link_group, configuredSymbol)
+    await loadSymbolData(linked, workspaceStore.constituentETF, false)
+  } else {
+    const requested = String(route.params.symbol ?? route.query.symbol ?? 'SPY')
+    await selectSymbol(requested)
+  }
   await nextTick()
   if (!isPopout.value) {
     marketRefreshTimer = setInterval(() => {

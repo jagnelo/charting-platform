@@ -41,6 +41,7 @@ const harness = vi.hoisted(() => {
     refreshMarketAnalysis: vi.fn().mockResolvedValue(undefined),
     publishSymbol: vi.fn(),
     publishTimeframe: vi.fn(),
+    symbolForLinkGroup: vi.fn(() => 'XLK'),
     selectToolSymbol: vi.fn(),
     loadETFHoldings: vi.fn().mockResolvedValue(undefined),
     loadETFIndustries: vi.fn().mockResolvedValue(undefined),
@@ -121,5 +122,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     expect(harness.workspace.selectIndustryProxy).toHaveBeenCalledWith('XLK')
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+    expect(harness.workspace.symbolForLinkGroup).toHaveBeenCalledWith('blue', null)
   })
 })
