@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:51:49Z
+
+- Added in-place creation and renaming for user-owned personal watchlists in the
+  workstation `WatchList` tool. The selected list ID/name remain serializable; managed
+  and locked rename paths are disabled, and rename conflicts are surfaced explicitly.
+- Validation: focused store/watchlist suites `33 passed`; full frontend Vitest `458
+  passed` across 76 files; TypeScript, production build, and `git diff --check` passed.
+  Checkpoint `7707c0e9604e2bb3baad6f2087a585e830fe11e8` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:49:39Z
 
 - Extended the integrated workstation column editor with serializable per-column label

@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:51:49Z In-place personal watchlist management
+
+- Added create and rename controls for user-owned personal watchlists in the primary
+  workstation tool, with explicit locked/managed boundaries and conflict text.
+- Validation: focused store/watchlist `33 passed`; full frontend Vitest `458 passed`
+  across 76 files; TypeScript, production build, and `git diff --check` passed.
+- Pushed checkpoint `7707c0e9604e2bb3baad6f2087a585e830fe11e8`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:49:39Z Watchlist column display settings
 
 - Added persisted per-column label and bounded track-width overrides to the integrated
