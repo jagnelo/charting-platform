@@ -78,7 +78,9 @@ async def indicator_batch(
     for symbol in symbols:
         instrument = instruments.get(symbol)
         if instrument is None:
-            exclusions.append(AnalysisWarning(code="instrument_not_found", message="No canonical instrument exists.", instrument_id=None))
+            warning = AnalysisWarning(code="instrument_not_found", message="No canonical instrument exists.", instrument_id=None)
+            values[symbol] = {"value": None, "observation_time": None, "warning": warning.model_dump()}
+            exclusions.append(warning)
             continue
         bars = bars_by_id.get(instrument.id, [])[-500:]
         if not bars:

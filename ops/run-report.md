@@ -17627,3 +17627,9 @@ uncovered slice rather than repeat a generic completion claim.
   `80` files, TypeScript, production build, Ruff, and diff checks passed. Checkpoint
   `b0a29ef` is committed and pushed; strict V25 visual approval and broad acceptance
   remain open.
+## 2026-08-03T23:10:00Z Indicator unknown-symbol contract checkpoint
+
+- Every requested indicator-batch symbol now receives a cell-level
+  `instrument_not_found` warning as well as the response-level exclusion.
+- Workspace integration `23` and Ruff passed. Commit/push pending; strict V25 visual
+  approval and broad acceptance remain open.

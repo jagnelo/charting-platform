@@ -514,6 +514,7 @@ class TestWorkspaces:
         assert payload["coverage"] == 0.5
         assert payload["values"][instrument.symbol]["value"] is not None
         assert payload["values"][instrument.symbol]["warning"] is None
+        assert payload["values"]["UNKNOWN"]["warning"]["code"] == "instrument_not_found"
         assert any(item["code"] == "instrument_not_found" for item in payload["exclusions"])
 
     def test_group_snapshot_exposes_bounded_calendar_year_returns(
