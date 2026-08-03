@@ -580,8 +580,21 @@ watch(rowUniverseKey, () => {
   rowsGeneration.value += 1
   conditionMatchedIds.value = null
   pythonConditionMatchedSymbols.value = null
-  for (const column of pythonColumns.value) runningPythonColumns.delete(column.code_version_id)
-  if (pythonCondition.value) runningPythonConditions.delete(pythonCondition.value.code_version_id)
+  for (const column of pythonColumns.value) {
+    runningPythonColumns.delete(column.code_version_id)
+    const key = pythonKey(column.code_version_id)
+    const { [key]: _run, ...remainingRuns } = pythonRunIds.value
+    pythonRunIds.value = remainingRuns
+    const { [key]: _progress, ...remainingProgress } = pythonProgress.value
+    pythonProgress.value = remainingProgress
+  }
+  if (pythonCondition.value) {
+    runningPythonConditions.delete(pythonCondition.value.code_version_id)
+    const { python_condition: _run, ...remainingRuns } = pythonRunIds.value
+    pythonRunIds.value = remainingRuns
+    const { python_condition: _progress, ...remainingProgress } = pythonProgress.value
+    pythonProgress.value = remainingProgress
+  }
   if (conditionFilter.value) void applyConditionFilter(conditionFilter.value)
   if (pythonCondition.value) void runPythonCondition(pythonCondition.value)
   for (const column of pythonColumns.value) void runPythonColumn(column)
