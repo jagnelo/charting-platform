@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:50:00Z Persisted ratio point-in-time control
+
+- RatioUPlot now has a persisted `As of` date control wired through both workstation ratio
+  surfaces, with blank-date compatibility for current views and a UTC end-of-day request
+  cutoff for historical views.
+- Focused ratio/pop-out tests `7 passed`; full frontend Vitest `474 passed` across 77 files;
+  TypeScript/build/diff checks passed. Pushed `3833821`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T20:40:00Z Relative-strength point-in-time cutoff
 
 - Relative-strength ratios now apply an optional `as_of` cutoff to both local series

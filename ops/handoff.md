@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:50:00Z
+
+- Made the ratio point-in-time capability a real workstation feature: RatioUPlot now
+  exposes a compact `As of` control, emits serializable configuration, and both automatic
+  and expression-based ratio windows persist the cutoff through the normal workspace
+  configuration path. Blank controls preserve the current-view request contract.
+- Validation: focused ratio/pop-out tests `7 passed`; full frontend Vitest `474 passed`
+  across 77 files; TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `3833821` pushed. Strict visual approval and the broad workstation/backend acceptance
+  matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T20:40:00Z
 
 - Extended point-in-time correctness to canonical relative-strength ratios. The backend
