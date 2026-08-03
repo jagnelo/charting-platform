@@ -14531,6 +14531,18 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T14:05:00Z Honest refresh timestamp checkpoint
+
+- Coordinated top-down refresh now advances its last-successful timestamp only when
+  every benchmark, sector, and breadth input succeeds. Partial failures retain the
+  previous timestamp and expose the existing error/freshness state rather than
+  claiming a successful refresh.
+- Focused workspace-store suite `19 passed`; TypeScript and `git diff --check` passed.
+  Commit `eb5cd5c3662588850807cbd544b68b96413b17b6` pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue the
+  broad workstation/backend audit.
+
 ## 2026-08-03T13:45:00Z External visual-candidate checkpoint
 
 - Retrieved and SHA-256 hashed an official Version 25 help image for pinning columns

@@ -16550,6 +16550,14 @@ Append a short entry after each worker session.
   `d394b821c93ba58ffc83ba1cd7d8782e6edf69df` pushed. Overall acceptance and approved
   V25 visual evidence remain incomplete.
 
+## 2026-08-03T14:05:00Z Honest refresh timestamp checkpoint
+
+- Top-down refresh now records a successful refresh time only when every shared input
+  succeeds; partial failures retain the prior timestamp and surface error/freshness
+  state. Focused workspace-store suite `19 passed`; TypeScript and diff check passed.
+- Commit `eb5cd5c3662588850807cbd544b68b96413b17b6` pushed. Overall acceptance and
+  approved V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running

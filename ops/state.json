@@ -4,16 +4,16 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T13:55:00Z",
-    "last_commit": "d394b821c93ba58ffc83ba1cd7d8782e6edf69df feat(workstation): label benchmark identity",
+    "last_handoff_at": "2026-08-03T14:05:00Z",
+    "last_commit": "eb5cd5c3662588850807cbd544b68b96413b17b6 fix(workstation): keep refresh timestamps honest",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner, screener, visual, analysis, and research modules, 2026-08-03)",
         "backend_tests": "focused taxonomy workspace integration 1 passed with Docker-backed fixtures (2 existing Nautilus deprecation warnings); prior unified code validation/isolated-runner/API suites 22 passed, scheduler-task/screener-engine units 31 passed, workspace API 17 passed, workstation-analysis integration 13 passed, coverage/provider governance suites, and screener integration 20 passed; 2026-08-03",
-        "frontend_tests": "passed: focused workspace-store suite 18 (deduplicated top-down refresh plus benchmark snapshot), Market Gauge suite 2 (refresh/lineage and hidden-document suspension), and prior full frontend Vitest suite 436; EasyScan and persisted Research Results cancellation suites remain passed; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03",
+        "frontend_tests": "passed: focused workspace-store suite 19 (deduplicated refresh, benchmark snapshot, and failed-refresh timestamp guard), Market Gauge suite 2, and prior full frontend Vitest suite 436; EasyScan and persisted Research Results cancellation suites remain passed; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03",
         "frontend_build": "passed (TypeScript and production build after explicit SPX-versus-SPY identity strip)",
         "alembic_upgrade": "passed: fresh branch stack upgrades to d2a3b4c5d6e7 head, seeds top-down taxonomy, starts healthy without runtime create_all, completes controlled head-to-minus-one-to-head cycle, and includes instrument_indicator_config from repaired a3a03047acc3",
-        "diff_check": "passed (2026-08-03T13:55:00Z explicit benchmark identity strip)",
+        "diff_check": "passed (2026-08-03T14:05:00Z honest refresh timestamp guard)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally; visual candidate metadata retained, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T14:05:00Z: Coordinated top-down refresh now advances its last-successful timestamp only when all benchmark/sector/breadth inputs succeed; partial failures retain the previous timestamp and expose the existing error/freshness state. Focused workspace-store suite 19 passed; TypeScript and diff check passed. Commit eb5cd5c3662588850807cbd544b68b96413b17b6 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",
         "2026-08-03T13:55:00Z: The benchmark workstation surface now displays an identity strip that separately labels logical S&P 500, official SPX series, and the currently used tradable SPY proxy. Proxy rows remain SPY-labelled and are never presented as SPX. Focused workspace-store suite 18, full frontend Vitest 436, TypeScript, production build, and diff check passed. Commit d394b821c93ba58ffc83ba1cd7d8782e6edf69df pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",
         "2026-08-03T13:45:00Z: Retrieved and hashed an official Version 25 help image for pinning columns (source build 25.0.9172.22877) and recorded it as a discovery_candidate with direct locator, resolution, SHA-256, eligibility, and review requirements. Also recorded a Version 23 factory-layout image as discovery-only history. The manifest remains structurally valid and strict approval remains intentionally blocked because candidates are not approved pinned-build baselines. Commit 731f3bfa462ae5a985d4119b3870e22347b5de42 pushed. Next: continue implementation and seek authoritative pinned-build evidence.",
         "2026-08-03T13:35:00Z: The canonical top-down taxonomy now carries a versioned logical SP500 identity with official series symbol SPX, default tradable proxy SPY, explicit proxy label, and use-only-when-entitled policy. Existing benchmark group provenance is upgraded in place without fabricating an SPX instrument. Focused workspace taxonomy integration 1 passed with Docker fixtures; Ruff and diff check passed. Commit 05efc10e5a7f60bcedb686dd50b3b7929beb4328 pushed. Visual parity remains required_missing and the full acceptance matrix remains incomplete. Next: continue the broad workstation/backend audit.",
