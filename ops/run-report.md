@@ -16484,3 +16484,11 @@ Append a short entry after each worker session.
 - Full frontend Vitest `431 passed`; TypeScript, production build, and diff check
   passed. Commit `7bde260fe65050258a9d4013a4e435b669dd80aa` pushed.
 - Full workstation/backend acceptance and approved V25 visual evidence remain open.
+
+## 2026-08-03T14:25:00Z EasyScan cancellation checkpoint
+
+- Added a primary EasyScan cancellation control for queued Python scans, using the
+  persisted isolated research-run ID and retaining terminal status reconciliation.
+- Focused EasyScan tests `2 passed`; TypeScript and diff check passed. Commit
+  `03d5e55d8d8340605163c6c8b8cec1dcc19ac6cf` pushed.
+- Full workstation/backend and visual acceptance remain incomplete.

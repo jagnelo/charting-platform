@@ -14456,3 +14456,14 @@
   diff check passed.
 - Commit `7bde260fe65050258a9d4013a4e435b669dd80aa` is pushed. The full goal and V25
   visual evidence gate remain open.
+
+## 2026-08-03T14:25:00Z EasyScan cancellation checkpoint
+
+- Queued Python EasyScan results now expose their `_python_research_run_id` as a
+  primary-workstation Cancel control. The control calls the isolated research-run
+  cancellation endpoint; existing result polling then reconciles `canceled` without
+  executing user code in FastAPI.
+- Added component coverage for queued scan cancellation. Focused EasyScan suite `2
+  passed`; TypeScript and diff check passed.
+- Commit `03d5e55d8d8340605163c6c8b8cec1dcc19ac6cf` is pushed. Full V25 visual and
+  broader workstation/backend acceptance remain open.
