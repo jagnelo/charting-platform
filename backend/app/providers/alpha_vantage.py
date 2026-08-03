@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -37,6 +39,22 @@ class AlphaVantageProvider:
             response.raise_for_status()
             payload = response.json()
             return payload if isinstance(payload, dict) else None
+        except Exception as exc:
+            logger.warning("alpha_vantage %s failed: %s", function, exc)
+            return None
+
+    def _get_text(self, function: str, **params: Any) -> str | None:
+        if not self._key():
+            logger.warning("alpha_vantage: ALPHA_VANTAGE_API_KEY is not configured")
+            return None
+        try:
+            response = httpx.get(
+                _BASE,
+                params={"function": function, "apikey": self._key(), **params},
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response.text
         except Exception as exc:
             logger.warning("alpha_vantage %s failed: %s", function, exc)
             return None
@@ -107,3 +125,33 @@ class AlphaVantageProvider:
     def get_current_price(self, symbol: str) -> float | None:
         bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
         return float(bars[-1].close) if bars else None
+
+    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
+        if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
+            return {"total": 0, "quotes": []}
+        text = self._get_text("LISTING_STATUS", state="active")
+        if not text:
+            return {"total": 0, "quotes": []}
+        try:
+            rows = list(csv.DictReader(io.StringIO(text)))
+        except csv.Error:
+            return {"total": 0, "quotes": []}
+        page_size = 1000
+        page = rows[max(offset, 0) : max(offset, 0) + page_size]
+        quotes = [
+            {
+                "symbol": str(row.get("symbol") or "").upper(),
+                "name": str(row.get("name") or ""),
+                "exchange": str(row.get("exchange") or ""),
+                "instrument_type": str(row.get("assetType") or "EQUITY").upper(),
+                "status": str(row.get("status") or "active").lower(),
+                "ipo_date": row.get("ipoDate") or None,
+                "delisting_date": row.get("delistingDate") or None,
+            }
+            for row in page
+            if row.get("symbol")
+        ]
+        return {"total": len(rows), "quotes": quotes}
+
+    def supported_discovery_types(self) -> list[str]:
+        return ["EQUITY"]

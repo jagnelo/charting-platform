@@ -120,7 +120,7 @@ class TestRegistryCapabilities:
 
     def test_alpha_vantage_capabilities(self):
         caps = set(list_provider_capabilities("alpha_vantage"))
-        assert {"instrument_search", "price_history", "latest_price"} <= caps
+        assert {"instrument_search", "price_history", "latest_price", "universe_discovery"} <= caps
 
 
 # ── Alpaca symbol helpers ─────────────────────────────────────────────────────
@@ -468,6 +468,24 @@ class TestAlphaVantageProvider:
                 "AAPL", Timeframe.D1, datetime(2024, 1, 2, tzinfo=UTC), datetime(2024, 1, 4, tzinfo=UTC)
             )
         assert [bar.close for bar in bars] == [99.0, 102.0]
+
+    def test_listing_status_becomes_paginated_universe_evidence(self):
+        response = MagicMock()
+        response.text = (
+            "symbol,name,exchange,assetType,ipoDate,delistingDate,status\n"
+            "AAPL,Apple Inc.,NASDAQ,Common Stock,1980-12-12,,Active\n"
+            "MSFT,Microsoft Corp.,NASDAQ,Common Stock,1986-03-13,,Active\n"
+        )
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            page = AlphaVantageProvider().discover_universe_page("EQUITY", 1)
+        assert page["total"] == 2
+        assert page["quotes"][0]["symbol"] == "MSFT"
+        assert page["quotes"][0]["status"] == "active"
 
 
 class TestFREDOHLCVParsing:
