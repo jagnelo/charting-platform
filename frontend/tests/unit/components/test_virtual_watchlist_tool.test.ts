@@ -16,6 +16,21 @@ beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.moc
 afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset() })
 
 describe('VirtualWatchlistTool', () => {
+  it('keeps a 10,000-row universe virtualized instead of creating one DOM row per instrument', () => {
+    const largeRows = Array.from({ length: 10_000 }, (_, index) => ({
+      instrumentId: index + 1,
+      symbol: `SYM${index + 1}`,
+      name: `Instrument ${index + 1}`,
+    }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Large universe', rows: largeRows },
+    })
+
+    expect(wrapper.find('.watchlist__controls b').text()).toBe('10000')
+    expect(wrapper.findAll('.watchlist__row').length).toBeLessThan(100)
+    expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('height:')
+  })
+
   it('filters canonical rows and publishes the selected canonical row', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {
