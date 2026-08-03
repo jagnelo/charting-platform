@@ -17660,5 +17660,5 @@ uncovered slice rather than repeat a generic completion claim.
   analysis tools are discoverable, excluded domains are absent, and no disabled shells
   are registered.
 - Full frontend Vitest `498` across `81` files, TypeScript, production build, and diff
-  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
-  remain open.
+  checks passed. Checkpoint `a1b23ea` is committed and pushed; strict V25 visual approval
+  and broad acceptance remain open.

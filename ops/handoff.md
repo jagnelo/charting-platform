@@ -15897,5 +15897,5 @@
   options, news, ratings, earnings, statements, and consolidated-real-time domains stay
   absent rather than rendering disabled shells.
 - Full frontend Vitest `498` across `81` files, TypeScript, production build, and diff
-  checks passed. Commit/push pending; strict V25 visual approval, legacy-route
-  verification, and broad acceptance remain open.
+  checks passed. Checkpoint `a1b23ea` is committed and pushed; strict V25 visual approval,
+  legacy-route verification, and broad acceptance remain open.
