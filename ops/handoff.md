@@ -1,5 +1,13 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:58:00Z
+
+- Re-ran the full backend unit suite after the XNYS calendar change: `889 passed` with
+  `--no-cov` and 34 existing dependency warnings. The coverage-router regression now
+  asserts session-only missing slices (`Jan 5–9`, not weekend dates).
+- The all-or-nothing goal remains active; strict V25 visual approval and broad integration,
+  performance, security, and browser acceptance are still open.
+
 ## Continuation update — 2026-08-03T23:55:00Z
 
 - Added a deterministic local XNYS daily session calendar to OHLCV coverage and repair.

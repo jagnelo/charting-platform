@@ -2,6 +2,13 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:58:00Z Full backend unit validation
+
+- Full backend unit suite passed `889` tests with `--no-cov` after the XNYS coverage
+  contract update; 34 existing dependency warnings remain.
+- Updated the coverage-router regression to expect session-only missing slices. Strict
+  V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T23:55:00Z XNYS daily coverage calendar
 
 - Coverage and historical repair now accept an explicit local XNYS calendar for USD
