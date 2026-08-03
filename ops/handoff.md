@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:09:00Z
+
+- Hardened linked Notes and Alerts tools against stale symbol-scoped responses. A
+  slower request from the previous instrument can no longer overwrite the current
+  instrument, strand loading state, or apply a mutation to the wrong symbol.
+- Validation: full frontend Vitest `463 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `b54aea5` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:05:00Z
 
 - Corrected personal watchlist deletion to return an explicit success/failure result.

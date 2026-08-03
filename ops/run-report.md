@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:09:00Z Linked Notes/Alerts stale-response guards
+
+- Added generation guards to symbol-scoped Note and Alerts loads/mutations, including
+  correct reset when no canonical instrument is selected.
+- Validation: full frontend Vitest `463 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `b54aea5`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:05:00Z Watchlist delete failure contract
 
 - Personal watchlist deletion now returns an explicit boolean result. Failed or
