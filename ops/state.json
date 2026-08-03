@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T20:10:00Z",
-    "last_commit": "d6e4d77 fix(etf): reconcile issuer route compatibility",
+    "last_handoff_at": "2026-08-03T20:30:00Z",
+    "last_commit": "d61b33c chore(ops): record ETF integration checkpoint",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json and V25 visual manifest validated structurally; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03)"
     },
     "notes": [
+        "2026-08-03T20:30:00Z: Re-ran the full backend unit suite after ETF route reconciliation: 859 passed, 70.13% coverage, 34 existing dependency warnings. Full backend integration remains 260 passed; strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T20:10:00Z: Reconciled seven ETF integration failures: SPDR compact workbook and product-page artifact routes, ARK dated archive templates, Vanguard probe route metadata, and Schwab transport/provenance handling. Repaired ETF slice 7 passed, full backend integration 260 passed, ETF adapter unit suite 449 passed, Ruff/diff passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T19:30:00Z: Corrected shared workspace timeframe normalization to preserve M1 one-minute links and normalize only legacy MN1 to MN; exposed the complete supported timeframe set in the workstation shell and tool-window selectors. Workspace store 20 and ToolWindow 2 passed, full frontend Vitest 453 passed across 76 files, TypeScript/build/diff passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",
         "2026-08-03T19:00:00Z: Hardened the isolated runner with deployment-configured job/output byte, row, and artifact limits; malformed/crashing jobs now become terminal failures, and orphaned .running jobs are recovered on worker restart. Focused runner/deployment 27 passed, full backend unit 859 passed at 70.15%, code API integration 13 passed, rebuilt no-network read-only non-root container smoke passed, Ruff/diff passed. Strict visual approval remains required_missing and the broad acceptance matrix remains incomplete.",

@@ -16880,3 +16880,10 @@ uncovered slice rather than repeat a generic completion claim.
 - Backend changes are not yet committed or pushed. Strict V25 visual validation remains
   intentionally blocked at `application-shell-default/default: required_missing`; full
   goal remains active.
+
+## 2026-08-03T20:30:00Z Full backend unit verification
+
+- `cd backend && UV_CACHE_DIR=../.uv-cache uv run pytest tests/unit --cov=app --cov-report=term-missing --no-header -q` -> `859 passed, 34 warnings`, total coverage `70.13%` (required `55%`).
+- This re-run follows the ETF route reconciliation; no unit regressions were introduced.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
