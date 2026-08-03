@@ -228,6 +228,11 @@ lists, uses the same serializable configuration path. Focused virtual-list cover
 the override events and restored header rendering; visual approval remains blocked by the
 V25 reference manifest.
 
+The same editor now supports direct drag-and-drop ordering in addition to its explicit
+left/right controls. Dragging emits the shared visible-column configuration, so saved
+column sets and floated/docked watchlists retain one ordering contract; focused virtual-
+list coverage proves the reorder event.
+
 Personal watchlist item order is now persisted through
 `POST /watchlists/{watchlist_id}/items/reorder`. The endpoint requires the complete item
 set, assigns contiguous positions, rejects duplicate or incomplete IDs, and refuses

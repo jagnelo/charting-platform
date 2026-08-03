@@ -77,6 +77,25 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.find('.watchlist__header').text()).toContain('Ticker')
   })
 
+  it('supports drag-and-drop column ordering in the integrated editor', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Sectors', rows,
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key: 'name', label: 'Name' },
+          { key: 'relative_1m', label: '1M' },
+        ],
+      },
+    })
+    await wrapper.find('.watchlist__columns-button').trigger('click')
+    const editorRows = wrapper.findAll('.watchlist__column-editor-row')
+    await editorRows[0].trigger('dragstart')
+    await editorRows[2].trigger('drop')
+
+    expect(wrapper.emitted('update:visibleColumnKeys')).toContainEqual([['name', 'relative_1m', 'symbol']])
+  })
+
   it('supports plain, ctrl/meta, and shift range selection without losing row activation', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows } })
     const selectRow = (wrapper.vm as unknown as { selectRow: (row: typeof rows[number], event: MouseEvent) => void }).selectRow
