@@ -37,6 +37,7 @@ function createChartStore(storeId: string) {
 
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
+    let _loadGeneration = 0
 
     const activeIndicators = computed(() =>
       indicators.value.filter(i =>
@@ -55,23 +56,29 @@ function createChartStore(storeId: string) {
       return [barIndex, opens, highs, lows, closes, volumes]
     })
 
-    async function loadInstrument(sym: string): Promise<Instrument | null> {
+    async function fetchInstrument(sym: string): Promise<Instrument | null> {
       try {
-        const loaded = await api.get<Instrument>(`/instruments/${encodeURIComponent(sym)}`)
-        instrument.value = loaded
-        return loaded
+        return await api.get<Instrument>(`/instruments/${encodeURIComponent(sym)}`)
       } catch {
-        // Auto-bootstrap is now exact-match only; unknown symbols stay unresolved.
-        instrument.value = null
         return null
       }
     }
 
-    async function loadIndicatorsForInstrument(instrumentId: number) {
+    async function loadInstrument(sym: string): Promise<Instrument | null> {
+      const loaded = await fetchInstrument(sym)
+      instrument.value = loaded
+      return loaded
+    }
+
+    async function fetchIndicatorsForInstrument(instrumentId: number): Promise<IndicatorConfig[]> {
       try {
         const res = await api.get<{ indicators: IndicatorConfig[] }>(`/instrument-indicators/${instrumentId}`)
-        indicators.value = res.indicators
-      } catch { /* silent */ }
+        return res.indicators
+      } catch { return [] }
+    }
+
+    async function loadIndicatorsForInstrument(instrumentId: number) {
+      indicators.value = await fetchIndicatorsForInstrument(instrumentId)
     }
 
     async function saveIndicatorsForInstrument() {
@@ -116,6 +123,8 @@ function createChartStore(storeId: string) {
 
     async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false) {
       if (!sym || !tf) return
+      const generation = ++_loadGeneration
+      const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType
       isLoading.value = true
       error.value = null
       symbol.value = sym
@@ -132,17 +141,21 @@ function createChartStore(storeId: string) {
       const basketId = basketIdFromSymbol(sym)
       if (basketId != null) {
         try {
-          bars.value = await fetchBarsPage(sym, tf, { type: nextBarType })
+          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType })
+          if (!isCurrent()) return
+          bars.value = mapped
           hasReachedStart.value = true
         } catch (e: any) {
-          error.value = e.message ?? 'Failed to load basket chart data'
+          if (isCurrent()) error.value = e.message ?? 'Failed to load basket chart data'
         } finally {
-          isLoading.value = false
+          if (isCurrent()) isLoading.value = false
         }
         return
       }
 
-      const loadedInstrument = await loadInstrument(sym)
+      const loadedInstrument = await fetchInstrument(sym)
+      if (!isCurrent()) return
+      instrument.value = loadedInstrument
 
       if (!loadedInstrument) {
         error.value = `Instrument "${sym.toUpperCase()}" was not found.`
@@ -150,10 +163,13 @@ function createChartStore(storeId: string) {
         return
       }
 
-      await loadIndicatorsForInstrument(loadedInstrument.id)
+      const loadedIndicators = await fetchIndicatorsForInstrument(loadedInstrument.id)
+      if (!isCurrent()) return
+      indicators.value = loadedIndicators
 
       try {
         const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly })
+        if (!isCurrent()) return
         bars.value = mapped
         // A short initial page can mean either "brand-new listing" or "cache is
         // currently incomplete". Let the older-page path make that decision so
@@ -163,14 +179,15 @@ function createChartStore(storeId: string) {
         // bars are persisted. Reload instrument here so those stats are available.
         const currentInstrument = instrument.value as Instrument | null
         if (currentInstrument && !currentInstrument.stats?.week52_high) {
-          await loadInstrument(sym)
+          const refreshedInstrument = await fetchInstrument(sym)
+          if (isCurrent()) instrument.value = refreshedInstrument
         }
       } catch (e: any) {
-        error.value = e.message ?? 'Failed to load chart data'
+        if (isCurrent()) error.value = e.message ?? 'Failed to load chart data'
       } finally {
-        isLoading.value = false
+        if (isCurrent()) isLoading.value = false
       }
-      if (!loadedInstrument.is_synthetic) _pollCoverage(sym)
+      if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym)
     }
 
     async function loadMoreBars() {

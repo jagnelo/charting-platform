@@ -172,6 +172,12 @@ overwrite the newly linked instrument, leave its loading state stuck, or apply a
 alert mutation to the new symbol. Focused race regressions cover both tools; visual
 approval remains blocked by the V25 reference manifest.
 
+The shared chart store applies the same generation boundary to instrument metadata,
+indicator configuration, OHLCV pages, transformed/synthetic bars, loading/error state,
+and coverage polling. Rapid symbol changes therefore cannot paint an older response into
+the active uPlot model; a focused two-symbol store regression proves the current symbol,
+instrument, bars, and loading state remain aligned.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while

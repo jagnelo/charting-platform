@@ -178,6 +178,30 @@ describe('useChartStore', () => {
     expect(store.hasReachedStart).toBe(true)
   })
 
+  it('does not let a slower symbol load overwrite the current chart', async () => {
+    let resolveFirst!: (value: unknown) => void
+    const firstInstrument = new Promise(resolve => { resolveFirst = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/AAPL') return firstInstrument
+      if (path === '/instruments/MSFT') return Promise.resolve({ id: 2, symbol: 'MSFT', stats: { week52_high: 500 } })
+      if (path.startsWith('/instrument-indicators/')) return Promise.resolve({ indicators: [] })
+      if (path.includes('/ohlcv/MSFT/')) return Promise.resolve([{ ts: '2026-08-01T00:00:00Z', open: 100, high: 105, low: 99, close: 104, volume: 1000 }])
+      return Promise.resolve([])
+    })
+    const store = useChartStore()
+    const firstLoad = store.loadBars('AAPL', 'D1')
+    const currentLoad = store.loadBars('MSFT', 'D1')
+    await currentLoad
+    resolveFirst({ id: 1, symbol: 'AAPL', stats: { week52_high: 200 } })
+    await firstLoad
+
+    expect(store.symbol).toBe('MSFT')
+    expect(store.instrument?.symbol).toBe('MSFT')
+    expect(store.bars).toHaveLength(1)
+    expect(store.bars[0].close).toBe(104)
+    expect(store.loading).toBe(false)
+  })
+
   it('addIndicator appends to indicators list', () => {
     const store = useChartStore()
     store.addIndicator({ type: 'sma', params: { period: 20 }, style: { color: '#fff' }, pane: 'main' })
