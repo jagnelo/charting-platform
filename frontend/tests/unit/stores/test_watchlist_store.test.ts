@@ -141,6 +141,30 @@ describe('useWatchlistStore', () => {
     expect(store.watchlists[0].items.map(item => item.id)).toEqual([2, 1])
   })
 
+  it('reloads canonical lists when another workstation window broadcasts a mutation', async () => {
+    const originalChannel = (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
+    const channels: Array<{ onmessage: ((event: MessageEvent<{ type: string }>) => void) | null }> = []
+    class FakeBroadcastChannel {
+      onmessage: ((event: MessageEvent<{ type: string }>) => void) | null = null
+      constructor() { channels.push(this) }
+      postMessage = vi.fn()
+    }
+    Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: FakeBroadcastChannel })
+    try {
+      const store = useWatchlistStore()
+      ;(api.get as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce([makeWatchlist()])
+        .mockResolvedValueOnce([{ ...makeWatchlist(), name: 'Reloaded' }])
+      await store.loadWatchlists()
+      channels[0]?.onmessage?.({ data: { type: 'watchlists-changed' } } as MessageEvent<{ type: string }>)
+      await vi.waitFor(() => expect(store.watchlists[0]?.name).toBe('Reloaded'))
+      expect(api.get).toHaveBeenLastCalledWith('/watchlists')
+    } finally {
+      if (originalChannel === undefined) delete (globalThis as typeof globalThis & { BroadcastChannel?: unknown }).BroadcastChannel
+      else Object.defineProperty(globalThis, 'BroadcastChannel', { configurable: true, value: originalChannel })
+    }
+  })
+
   it('computes quotes, price flashes, and single-bar fallbacks', async () => {
     const store = useWatchlistStore()
     store.priceMap.NVDA = {
