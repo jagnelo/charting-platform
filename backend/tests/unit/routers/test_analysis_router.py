@@ -108,7 +108,7 @@ def test_group_members_and_bars_are_cut_at_the_requested_time():
     assert [member.instrument_id for member in _group_members_at(group, as_of)] == [7]
     bars = {7: [_bar(7, 2024, 1, "100"), _bar(7, 2024, 12, "120")]}
     assert [bar.close for bar in _truncate_bars_at(bars, as_of)[7]] == [Decimal("100")]
-    assert _group_provenance(group, as_of)["membership_as_of"] == as_of.isoformat()
+    assert _group_provenance(group, as_of)["membership_as_of"] == "2024-03-10T00:00:00Z"
 
 
 def test_group_members_reject_a_group_unknown_at_the_requested_time():

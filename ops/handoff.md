@@ -15800,3 +15800,12 @@
   persistence regression is included in that run. Checkpoint is pending commit/push.
 - Strict V25 visual approval, provider probes, Docker-backed broad acceptance, and the
   remaining workstation/backend completion gates remain open.
+## 2026-08-03T22:55:00Z Backend unit regression checkpoint
+
+- Updated the direct analysis-router provenance assertion to match the canonical UTC
+  `Z` representation now returned by the API.
+- Backend unit suite rerun under `backend/.venv` Python 3.12: `888 passed` with
+  `--no-cov`; the prior full-coverage run remains 887 tests at 70.21%. The focused
+  workspace integration remains `22 passed`.
+- Unit-test checkpoint is pending commit/push. Strict V25 visual approval and broad
+  acceptance gates remain open.

@@ -17578,3 +17578,10 @@ uncovered slice rather than repeat a generic completion claim.
   including combo-library persistence; Ruff and `git diff --check` passed.
 - Commit/push is pending for this backend/docs checkpoint. Full V25 visual approval and
   the broad functional, security, performance, and provider acceptance gates remain open.
+## 2026-08-03T22:55:00Z Backend unit regression checkpoint
+
+- Canonical UTC provenance assertion is now covered by the updated analysis-router unit
+  test. Backend unit rerun under Python 3.12 passed `888` tests with `--no-cov`; the
+  prior full-coverage run remains 887 tests at 70.21%.
+- Commit/push is pending for this test-contract checkpoint. Visual approval and the broad
+  acceptance matrix remain open.
