@@ -16939,3 +16939,14 @@ uncovered slice rather than repeat a generic completion claim.
 - Full backend unit `868 passed`, total coverage `70.19%`; provider suite `78 passed`;
   Ruff and diff checks passed. Code commit `b8cd33f` pushed. Strict V25 visual approval
   and the broad acceptance matrix remain incomplete.
+
+## 2026-08-03T17:24:00Z Multi-source provider-chain checkpoint
+
+- Default capability chains now reconcile EDGAR/Alpaca/Massive/Alpha Vantage for search,
+  Alpaca/Alpha Vantage for history and latest prices, Alpaca/EDGAR for events, and
+  Alpaca/Massive/Alpha Vantage for US discovery. yfinance remains explicit options/legacy
+  fallback only.
+- Full backend unit `868 passed`, total coverage `70.20%`; focused provider/runtime suite
+  `93 passed`; Docker-backed full integration `260 passed, 54 warnings`; Compose config,
+  chain JSON, Ruff, and diff checks passed. Code commit `8de9be6` pushed. Strict V25
+  visual approval and the broad acceptance matrix remain incomplete.

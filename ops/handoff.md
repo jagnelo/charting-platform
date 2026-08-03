@@ -14814,6 +14814,19 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:24:00Z Multi-source provider-chain checkpoint
+
+- Default capability chains now reconcile free-source providers: EDGAR/Alpaca/Massive/
+  Alpha Vantage for search, Alpaca/Alpha Vantage for history and latest prices, Alpaca/
+  EDGAR for events, and Alpaca/Massive/Alpha Vantage for US universe discovery. yfinance
+  remains isolated to explicit options/legacy configuration.
+- Validation: full backend unit `868 passed, 34 warnings`, total coverage `70.20%`; focused
+  provider/runtime suite `93 passed`; Docker-backed full integration `260 passed, 54
+  warnings`; Docker Compose config, environment-chain JSON, Ruff, and diff checks passed.
+  Commit `8de9be6` pushed.
+- Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column
