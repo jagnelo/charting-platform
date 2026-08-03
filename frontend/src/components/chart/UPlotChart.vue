@@ -179,6 +179,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -1974,8 +1975,7 @@ function setupInteraction(u: uPlot) {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
-    const tag = (e.target as HTMLElement)?.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    if (isEditorTarget(e.target)) return
     const [ts] = u.data as number[][]
     if (!ts?.length) return
     const xMin   = u.scales.x.min!

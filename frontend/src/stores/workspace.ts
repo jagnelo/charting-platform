@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
+import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 
 export type LinkGroup = 'blue' | 'red' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'brown' | 'yellow' | 'grey'
@@ -321,10 +322,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function isEditorTarget(target: EventTarget | null) {
-    return target instanceof HTMLInputElement
-      || target instanceof HTMLTextAreaElement
-      || target instanceof HTMLSelectElement
-      || (target instanceof HTMLElement && target.isContentEditable)
+    return isWorkstationEditorTarget(target)
   }
 
   function applySharedSymbol(event: LinkEvent) {
