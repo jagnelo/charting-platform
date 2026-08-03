@@ -519,6 +519,7 @@ const chartBarType = computed<ChartBarType>(() => {
 const comparisonDraft = ref('')
 const comparisonTargets = ref<ComparisonTarget[]>([])
 let comparisonRequestSequence = 0
+let chartSelectionSequence = 0
 const comparisonColors = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
 const configuredComparisonSymbols = computed(() => {
   const symbols = props.tool.configuration.comparison_symbols
@@ -652,15 +653,17 @@ function handleRowAction(action: 'chart' | 'compare' | 'note' | 'alert' | 'copy'
 
 watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType], async ([symbol, timeframe, expression, barType]) => {
   if (props.tool.tool_type !== 'chart' || (!symbol && !expression)) return
+  const sequence = ++chartSelectionSequence
   let targetSymbol = symbol
   if (expression) {
     try {
       targetSymbol = await ensureKnownInstrumentSymbol(expression, 'Workstation expression')
     } catch (cause: any) {
-      chartStore.error = cause?.message ?? 'Unable to resolve expression'
+      if (sequence === chartSelectionSequence) chartStore.error = cause?.message ?? 'Unable to resolve expression'
       return
     }
   }
+  if (sequence !== chartSelectionSequence) return
   if (chartStore.symbol === targetSymbol && chartStore.timeframe === timeframe && chartStore.barType === barType) return
   void chartStore.loadBars(
     targetSymbol,

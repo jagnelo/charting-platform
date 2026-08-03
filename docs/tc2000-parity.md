@@ -185,6 +185,10 @@ well. Rapidly traversing SPY → XLK → XLE or switching industries cannot repl
 current drill-down with a late response from the previous selection; the workspace
 store regression covers the active ETF boundary.
 
+Chart-tool synthetic-expression resolution is generation-guarded before it hands a
+target to the chart store, so a late `=XLK/SPY` or symbol-resolution failure cannot
+overwrite a newer linked chart selection.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
