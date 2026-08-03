@@ -15,26 +15,31 @@ const loading = ref(false)
 const status = ref('No note')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let loadedId: number | null = null
+let loadGeneration = 0
 
 async function load() {
+  const generation = ++loadGeneration
   if (saveTimer) clearTimeout(saveTimer)
   loadedId = null
   content.value = ''
   if (!props.instrumentId) {
+    loading.value = false
     status.value = 'No canonical instrument'
     return
   }
   loading.value = true
   status.value = 'Loading…'
   try {
-    const note = await api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${props.instrumentId}`)
+    const instrumentId = props.instrumentId
+    const note = await api.get<{ content: string; updated_at: string } | null>(`/notes/instruments/${instrumentId}`)
+    if (generation !== loadGeneration || props.instrumentId !== instrumentId) return
     content.value = note?.content ?? ''
-    loadedId = props.instrumentId
+    loadedId = instrumentId
     status.value = note ? `Saved ${new Date(note.updated_at).toLocaleString()}` : 'No note'
   } catch (cause: any) {
-    status.value = cause?.message ?? 'Unable to load note'
+    if (generation === loadGeneration) status.value = cause?.message ?? 'Unable to load note'
   } finally {
-    loading.value = false
+    if (generation === loadGeneration) loading.value = false
   }
 }
 
@@ -43,12 +48,14 @@ watch(content, () => {
   if (!props.instrumentId || loadedId !== props.instrumentId || loading.value) return
   if (saveTimer) clearTimeout(saveTimer)
   status.value = 'Saving…'
+  const instrumentId = props.instrumentId
+  const draft = content.value
   saveTimer = setTimeout(async () => {
     try {
-      const note = await api.put<{ updated_at: string }>(`/notes/instruments/${props.instrumentId}`, { content: content.value })
-      status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
+      const note = await api.put<{ updated_at: string }>(`/notes/instruments/${instrumentId}`, { content: draft })
+      if (props.instrumentId === instrumentId && loadedId === instrumentId) status.value = `Saved ${new Date(note.updated_at).toLocaleString()}`
     } catch (cause: any) {
-      status.value = cause?.message ?? 'Unable to save note'
+      if (props.instrumentId === instrumentId) status.value = cause?.message ?? 'Unable to save note'
     }
   }, 550)
 })

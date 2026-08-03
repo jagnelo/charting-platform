@@ -64,26 +64,36 @@ const history = ref<AlertHistory[]>([])
 const loading = ref(false)
 const busy = ref(false)
 const error = ref('')
+let viewGeneration = 0
 const validThreshold = computed(() => Number.isFinite(Number(threshold.value)) && Number(threshold.value) > 0)
 
 async function load() {
+  const generation = ++viewGeneration
   alerts.value = []
   indicatorAlerts.value = []
   history.value = []
   error.value = ''
-  if (!props.instrumentId) return
+  if (!props.instrumentId) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
-    const params = { instrument_id: props.instrumentId }
-    ;[alerts.value, indicatorAlerts.value, history.value] = await Promise.all([
+    const instrumentId = props.instrumentId
+    const params = { instrument_id: instrumentId }
+    const [prices, indicators, firingHistory] = await Promise.all([
       api.get<PriceAlert[]>('/alerts/price', params),
       api.get<IndicatorAlert[]>('/alerts/indicator', params),
-      api.get<AlertHistory[]>(`/alerts/history/instrument/${props.instrumentId}`),
+      api.get<AlertHistory[]>(`/alerts/history/instrument/${instrumentId}`),
     ])
+    if (generation !== viewGeneration || props.instrumentId !== instrumentId) return
+    alerts.value = prices
+    indicatorAlerts.value = indicators
+    history.value = firingHistory
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to load alerts'
+    if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to load alerts'
   } finally {
-    loading.value = false
+    if (generation === viewGeneration) loading.value = false
   }
 }
 
@@ -116,9 +126,17 @@ async function patchPrice(id: number, patch: Partial<Pick<PriceAlert, 'repeat' |
 async function patchIndicator(id: number, patch: Partial<Pick<IndicatorAlert, 'repeat' | 'status'>>) { await mutate(() => api.patch<IndicatorAlert>(`/alerts/indicator/${id}`, patch), updated => { indicatorAlerts.value = indicatorAlerts.value.map(alert => alert.id === id ? updated : alert) }) }
 async function markViewed(id: number) { await mutate(() => api.patch<AlertHistory>(`/alerts/history/${id}/view`, {}), updated => { history.value = history.value.map(event => event.id === id ? updated : event) }) }
 async function mutate<T>(request: () => Promise<T>, apply: (value: T) => void) {
+  const generation = viewGeneration
   busy.value = true
   error.value = ''
-  try { apply(await request()) } catch (cause: any) { error.value = cause?.message ?? 'Unable to update alert' } finally { busy.value = false }
+  try {
+    const result = await request()
+    if (generation === viewGeneration) apply(result)
+  } catch (cause: any) {
+    if (generation === viewGeneration) error.value = cause?.message ?? 'Unable to update alert'
+  } finally {
+    if (generation === viewGeneration) busy.value = false
+  }
 }
 function conditionLabel(value: string) { return value.replace(/_/g, ' ') }
 function formatPrice(value: number | string) { return Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 }) }

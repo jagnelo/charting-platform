@@ -166,6 +166,12 @@ so docked and pop-out surfaces converge without sharing non-serializable Vue sta
 `BroadcastChannel` is unavailable, the same event uses the browser storage-event fallback;
 both paths have direct store regression coverage.
 
+Linked Notes and Alerts tools now guard every symbol-scoped load and mutation with a
+view-generation token. A slower response for a previously selected instrument cannot
+overwrite the newly linked instrument, leave its loading state stuck, or apply a stale
+alert mutation to the new symbol. Focused race regressions cover both tools; visual
+approval remains blocked by the V25 reference manifest.
+
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
