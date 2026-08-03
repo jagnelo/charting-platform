@@ -14827,6 +14827,17 @@
 - Strict V25 visual validation remains intentionally blocked at
   `application-shell-default/default: required_missing`; full goal remains active.
 
+## 2026-08-03T17:19:39Z Workstation symbol-search checkpoint
+
+- Added provider-neutral active-symbol autocomplete to the authenticated workstation.
+  Results come from canonical `/instruments/search`, expose symbol/name/exchange metadata,
+  support mouse and Arrow/Enter/Escape keyboard selection, and guard against stale
+  debounced responses while preserving canonical instrument resolution.
+- Focused workstation binding suite `2 passed`; full frontend Vitest `454 passed` across
+  `76` files; TypeScript, production build, and `git diff --check` passed. Commit `88f1041`
+  pushed. Strict V25 visual validation remains intentionally blocked at
+  `application-shell-default/default: required_missing`; full goal remains active.
+
 ## 2026-08-03T16:10:29Z Floated-tool persistence checkpoint
 
 - Floated workstation tools now forward condition-filter mode, Boolean pinning, column

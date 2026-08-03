@@ -16950,3 +16950,13 @@ uncovered slice rather than repeat a generic completion claim.
   `93 passed`; Docker-backed full integration `260 passed, 54 warnings`; Compose config,
   chain JSON, Ruff, and diff checks passed. Code commit `8de9be6` pushed. Strict V25
   visual approval and the broad acceptance matrix remain incomplete.
+
+## 2026-08-03T17:19:39Z Workstation symbol-search checkpoint
+
+- Added provider-neutral authenticated-workstation symbol autocomplete backed by canonical
+  `/instruments/search`, with debounced stale-response protection, exchange/name metadata,
+  mouse selection, and Arrow/Enter/Escape keyboard behavior.
+- Focused workstation binding suite `2 passed`; full frontend Vitest `454 passed` across
+  `76` files; TypeScript, production build, and `git diff --check` passed. Commit `88f1041`
+  pushed. Strict V25 visual approval remains `required_missing` and the broad acceptance
+  matrix remains incomplete.
