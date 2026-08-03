@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T19:48:00Z
+
+- Parameterized Relative Rotation with persisted universe, benchmark, timeframe,
+  adjustment, lookback, and tail controls; requests now carry those values and late
+  rotation responses are generation-guarded.
+- Validation: full frontend Vitest `471 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `11e1982` pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T19:42:00Z
 
 - Added request and linked-universe generation guards to virtualized watchlist saved

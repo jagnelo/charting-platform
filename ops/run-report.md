@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:48:00Z Relative Rotation controls
+
+- Relative Rotation now persists and sends universe, benchmark, timeframe, adjustment,
+  lookback, and tail length instead of hiding fixed SPY/D1/20/10 values.
+- Validation: full frontend Vitest `471 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `11e1982`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:42:00Z Virtual watchlist stale-response guards
 
 - Virtualized watchlist condition and Python batch requests now reject late responses
