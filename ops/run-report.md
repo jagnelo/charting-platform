@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:27:35Z Coverage OHLCV readiness integration
+
+- The primary Coverage workstation tool now consumes the canonical OHLCV readiness
+  endpoint, persists its range controls, validates UTC boundaries, and displays status,
+  bounds, explanations, and missing slices.
+- Focused component tests `2 passed`; full frontend Vitest `480 passed` across 78 files;
+  TypeScript/build/diff checks passed. Pushed `d05c45c`.
+- Strict V25 visual approval, Docker-backed route verification, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T23:36:00Z Study dashboard reference validation
 
 - Dashboard execution now rejects missing and self-referential panel targets with a

@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:27:35Z
+
+- Wired the primary Coverage workstation tool to authenticated
+  `/coverage/instruments/{symbol}/ohlcv`. Its serializable controls persist timeframe,
+  UTC-normalized date range, historical/latest mode, and adjustment; it rejects invalid
+  ranges, cancels stale symbol responses, and renders readiness status, bounds, bar count,
+  explanation, and bounded missing slices.
+- Validation: focused CoverageSummaryTool tests `2 passed`; full frontend Vitest `480
+  passed` across 78 files; TypeScript, production build, and `git diff --check` passed.
+  Checkpoint `d05c45c` is pushed. Strict V25 visual approval, Docker-backed route
+  verification, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T23:36:00Z
 
 - Hardened typed Study dashboards: the isolated runner now rejects missing or
