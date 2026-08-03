@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:25:00Z Sortable rotation companion table
+
+- Relative Rotation table headers now sort every displayed metric, with visible direction
+  markers and null-safe ordering.
+- Focused Relative Rotation tests `3 passed`; TypeScript/diff checks passed. Pushed
+  `d28d978`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:18:00Z Relative Rotation state metrics
 
 - Added heading, distance, velocity, transition, and time-in-state to the transparent

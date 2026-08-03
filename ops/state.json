@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T21:18:00Z",
-    "last_commit": "2320049ec780c4fd8bab7b6c8e1f6b45b255864c feat(analysis): expose rotation state metrics",
+    "last_handoff_at": "2026-08-03T21:25:00Z",
+    "last_commit": "d28d978ee319077d693c482a8bb3ab2237b2d34a feat(workstation): sort rotation companion table",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -13,7 +13,7 @@
         "frontend_tests": "passed: full frontend Vitest suite 474 across 77 files, including persisted RatioUPlot As-of controls and workstation configuration wiring; focused ratio/pop-out tests 7 passed; TypeScript and production build passed; the existing workstation, watchlist, Study Lab, linking, polling, and 10,000-row coverage remains green; full Chromium flows 22 and focused acceptance slices remain recorded, 2026-08-03T20:50:00Z",
         "frontend_build": "passed (TypeScript and production build after Add Tool analysis registry expansion, 2026-08-03T19:54:00Z)",
         "alembic_upgrade": "disposable PostgreSQL 16 validation passed: full chain upgrades to d3e4f5a6b7c8, downgrades to d2a3b4c5d6e7, re-upgrades, and direct SQL verifies ohlcv_bar.session default plus ix_ohlcv_instrument_tf_session_ts; container removed 2026-08-03T16:30:00Z",
-        "diff_check": "passed (2026-08-03T21:18:00Z rotation state metrics)",
+        "diff_check": "passed (2026-08-03T21:25:00Z sortable rotation companion table)",
         "playwright": "rebuilt isolated branch stack: full Chromium flows.spec.ts passed 22 tests after unified Python Boolean watchlist-condition filtering, including chart-template rendering/projection save/apply/symbol preservation/delete; visual/multi-environment acceptance remains required, 2026-07-30",
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
@@ -21,6 +21,7 @@
         "yaml_json_parse": "passed (state.json, visual-reference manifest YAML, .env.example provider-chain JSON, and Docker Compose YAML validated; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03T20:40:00Z)"
     },
     "notes": [
+        "2026-08-03T21:25:00Z: Added sortable Relative Rotation companion-table headers for all displayed metrics with visible direction markers and null-safe ordering. Focused rotation tests 3 passed, TypeScript/diff passed, checkpoint d28d978 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T21:18:00Z: Added transparent Relative Rotation heading, distance, vector velocity, state transition, and time-in-state metrics derived from sampled aligned coordinates, with frontend table coverage. Backend analysis helpers 8 passed, frontend full suite 474 passed, focused rotation tests 2 passed, TypeScript/build/Ruff/diff passed, checkpoint 2320049 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T21:08:00Z: Extracted Relative Rotation sampling into a pure helper and added unit evidence for lossless cadence 1 and latest-point retention at cadence 3. Focused backend analysis 8 passed, Ruff/diff passed, checkpoint 1c32fb9 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",
         "2026-08-03T21:00:00Z: Added Relative Rotation sampling cadence 1..30 with latest-point retention and consistent sampled trend/momentum/tail calculations; persisted frontend and factory configuration. Backend focused analysis 7 passed, frontend focused Rotation/workspace 24 passed, TypeScript/Ruff/diff passed, checkpoint 9682ac8 pushed. Strict visual approval and the broad acceptance matrix remain incomplete.",

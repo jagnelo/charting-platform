@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:25:00Z
+
+- Added sortable headers to the Relative Rotation companion table. Symbol, state,
+  trend/momentum, geometry metrics, transition, time-in-state, coverage, and tail columns
+  now sort with visible direction markers and null-safe ordering.
+- Validation: focused Relative Rotation suite `3 passed`; TypeScript and `git diff --check`
+  passed. Checkpoint `d28d978` pushed. Strict visual approval and the broad workstation,
+  backend, security, performance, and end-to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:18:00Z
 
 - Extended Relative Rotation rows with transparent `heading`, `distance`, vector
