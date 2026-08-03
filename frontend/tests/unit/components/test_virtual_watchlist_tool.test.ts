@@ -322,4 +322,16 @@ describe('VirtualWatchlistTool', () => {
     await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ', shiftKey: true })
     expect(wrapper.emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLE', instrumentId: 2 })
   })
+
+  it('stops focused-list traversal at the watchlist boundary so the shell does not advance twice', async () => {
+    let parentKeydownCount = 0
+    const wrapper = mount({
+      components: { VirtualWatchlistTool },
+      template: '<div @keydown="parentKeydownCount++"><VirtualWatchlistTool label="Sectors" :rows="rows" selected="XLK" /></div>',
+      data: () => ({ rows, parentKeydownCount }),
+    })
+    await wrapper.find('.watchlist__scroll').trigger('keydown', { key: ' ' })
+    expect(wrapper.findComponent(VirtualWatchlistTool).emitted('select')?.at(-1)?.[0]).toMatchObject({ symbol: 'XLV' })
+    expect(wrapper.vm.parentKeydownCount).toBe(0)
+  })
 })

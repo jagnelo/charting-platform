@@ -51,7 +51,7 @@
       </button>
       </template>
     </div>
-    <div ref="scrollElement" class="watchlist__scroll" tabindex="0" @keydown="onKeydown" @wheel.ctrl.prevent="onCtrlWheel">
+    <div ref="scrollElement" class="watchlist__scroll" tabindex="0" @keydown.stop="onKeydown" @wheel.ctrl.prevent="onCtrlWheel">
       <div :data-render-epoch="renderEpoch" :style="{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }">
         <button
           v-for="virtualRow in virtualItems"
