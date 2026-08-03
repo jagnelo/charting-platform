@@ -16492,3 +16492,11 @@ Append a short entry after each worker session.
 - Focused EasyScan tests `2 passed`; TypeScript and diff check passed. Commit
   `03d5e55d8d8340605163c6c8b8cec1dcc19ac6cf` pushed.
 - Full workstation/backend and visual acceptance remain incomplete.
+
+## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
+
+- Added cancellation to the persisted Research Results browser for queued/running
+  runs, preserving selection and terminal status reconciliation.
+- Focused Research Results tests `2 passed`; TypeScript and diff check passed. Commit
+  `f1cb8a65b402587ac40902523c40ee22cd83352b` pushed.
+- Full workstation/backend and visual acceptance remain incomplete.

@@ -14467,3 +14467,13 @@
   passed`; TypeScript and diff check passed.
 - Commit `03d5e55d8d8340605163c6c8b8cec1dcc19ac6cf` is pushed. Full V25 visual and
   broader workstation/backend acceptance remain open.
+
+## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
+
+- Research Results now exposes Cancel for queued/running persisted studies, calls
+  the existing isolated-run cancellation endpoint, and updates the selected run to
+  the returned terminal status without dropping it from the list.
+- Added component coverage for cancellation. Focused Research Results suite `2
+  passed`; TypeScript and diff check passed.
+- Commit `f1cb8a65b402587ac40902523c40ee22cd83352b` is pushed. Full V25 visual and
+  broader workstation/backend acceptance remain open.
