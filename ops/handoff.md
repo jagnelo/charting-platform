@@ -14531,6 +14531,18 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T14:15:00Z Factory industry drill-down checkpoint
+
+- Factory `Drill Down` and `Sector by Year` industry windows now render the selected
+  ETF's point-in-time industry composition with resolved/total coverage and verified
+  proxy counts. Selecting an industry publishes its industry key into linked drill-
+  down instead of falling through to benchmark rows.
+- TypeScript, production build, and `git diff --check` passed. Commit
+  `a0d5c8634992535d0a9a9860010028f968637b94` pushed.
+- Full goal remains active; V25 visual references remain `required_missing` and the
+  broad workstation/backend acceptance matrix remains incomplete. Next: continue the
+  broad workstation/backend audit.
+
 ## 2026-08-03T14:05:00Z Honest refresh timestamp checkpoint
 
 - Coordinated top-down refresh now advances its last-successful timestamp only when

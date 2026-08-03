@@ -16558,6 +16558,15 @@ Append a short entry after each worker session.
 - Commit `eb5cd5c3662588850807cbd544b68b96413b17b6` pushed. Overall acceptance and
   approved V25 visual evidence remain incomplete.
 
+## 2026-08-03T14:15:00Z Factory industry drill-down checkpoint
+
+- Factory Drill Down and Sector by Year industry windows now render selected ETF
+  point-in-time industry composition, resolved/total coverage, and verified proxy
+  counts; industry selection publishes the linked drill-down key.
+- TypeScript, production build, and `git diff --check` passed. Commit
+  `a0d5c8634992535d0a9a9860010028f968637b94` pushed. Overall acceptance and approved
+  V25 visual evidence remain incomplete.
+
 ## 2026-08-03T14:32:00Z Persisted research cancellation checkpoint
 
 - Added cancellation to the persisted Research Results browser for queued/running
