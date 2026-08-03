@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T19:34:00Z EasyScan scheduling
+
+- EasyScan now persists manual, daily-close, or weekly-close schedules through the
+  existing screener cron contract.
+- Validation: full frontend Vitest `468 passed` across 77 files; TypeScript, production
+  build, and `git diff --check` passed. Pushed `0870f74`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T19:31:00Z EasyScan universe/timeframe controls
 
 - EasyScan now persists explicit all/watchlist/basket/custom universes and supported
