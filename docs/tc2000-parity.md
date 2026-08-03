@@ -60,6 +60,15 @@ versus latest mode and receive status, local bounds, bar count, bounded missing 
 and an explanation with canonical-database provenance; reversed ranges and unknown
 instruments are structured errors, and provider names/fallback order are never returned.
 
+The primary workstation Coverage tool now consumes this range contract directly. Its
+serializable controls retain timeframe, UTC-normalized start/end dates, historical/latest
+mode, and split-adjustment choice in the workspace window configuration. A range check is
+explicitly user-triggered, rejects reversed or incomplete ranges before dispatch, ignores
+late responses after a symbol change, and renders ready/partial/missing/stale status,
+covered bounds, bar count, explanation, and every bounded missing slice. The tool still
+loads aggregate canonical coverage separately, so a readiness check never causes provider
+fan-out or silently changes the active symbol.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.
