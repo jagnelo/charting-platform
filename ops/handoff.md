@@ -14374,3 +14374,12 @@
   still `required_missing`; this is a checkpoint, not completion.
 - Next concrete action: continue the uncovered workstation/backend acceptance
   matrix, preserving the full goal and the visual evidence gate.
+
+## 2026-08-03T13:40:00Z Positive-close metric refinement
+
+- The factory Study Lab source now emits all requested streak statistics: current,
+  longest, average, and shortest, plus the completed-streak table and typed
+  histogram distribution.
+- Focused StudyLabTool coverage, TypeScript, and `git diff --check` passed.
+- Commit `b76807aa29b158d62d38b659d9d708fb6ece9364` is pushed. The full goal and
+  V25 visual gate remain open.

@@ -16418,3 +16418,11 @@ Append a short entry after each worker session.
 - Commit `808473a87dfc389cdf2ca696158dcbafcb12f5ae` pushed to
   `feat/tc2000-frontend-rework`. Overall V25 visual and full-goal acceptance remain
   incomplete because required references and many broader paths are not yet proven.
+
+## 2026-08-03T13:40:00Z Positive-close metric refinement
+
+- Added the missing shortest-streak metric to the factory Study Lab source and
+  retained current/longest/average, table, and histogram outputs.
+- Focused StudyLabTool test, TypeScript, and diff check passed.
+- Commit `b76807aa29b158d62d38b659d9d708fb6ece9364` pushed; full acceptance remains
+  incomplete.
