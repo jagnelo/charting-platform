@@ -322,6 +322,15 @@ class TestScreenerRun:
         assert results_res.status_code == 200
         assert len(results_res.json()) >= 1
 
+    def test_result_history_limit_is_bounded(self, client, auth_headers, screener):
+        for value in (0, 101):
+            response = client.get(
+                f"/api/v1/screeners/{screener.id}/results",
+                headers=auth_headers,
+                params={"limit": value},
+            )
+            assert response.status_code == 422
+
     def test_market_gauge_uses_the_latest_saved_scan_with_coverage(
         self, client, auth_headers, screener
     ):
