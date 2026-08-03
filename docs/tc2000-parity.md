@@ -46,6 +46,14 @@ requested range; daily weekend-sized gaps are deliberately left alone because th
 bar store does not yet carry an exchange-calendar guarantee. Focused service tests cover
 internal repair and the no-fetch historical-weekend case.
 
+The reusable `ohlcv_coverage` service now owns the provider-neutral readiness decision
+for a requested instrument/timeframe/range. It distinguishes `ready`, `partial`,
+`missing`, and latest-window `stale` states, returns bounded repair slices, and accepts an
+injected clock for deterministic evaluation. The existing market-data read path uses the
+planner while retaining provider access and persistence at its boundary; future chart,
+scan, alert, and research preflight callers can consume the same contract without
+reimplementing freshness logic.
+
 The isolated image also installs pinned NumPy/Pandas wheels at build time and exposes
 only restricted `np`/`pd` facades to user code. File/external-data methods are rejected
 by source validation; NumPy/Pandas values are normalized before artifact persistence.

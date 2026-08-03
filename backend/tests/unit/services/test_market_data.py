@@ -4,8 +4,12 @@ from types import SimpleNamespace
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 from app.services.market_data import (
     _historical_repair_start,
-    _missing_range_slices,
     _needs_fetch_for_range,
+)
+from app.services.ohlcv_coverage import (
+    CoverageStatus,
+    assess_ohlcv_coverage,
+    missing_range_slices,
 )
 
 
@@ -40,7 +44,7 @@ def test_historical_range_repairs_only_an_obvious_internal_gap():
         _bar(datetime(2026, 1, 12, tzinfo=UTC)),
     ]
 
-    assert _missing_range_slices(cached, Timeframe.D1, start, end) == [
+    assert missing_range_slices(cached, Timeframe.D1, start, end) == [
         (datetime(2026, 1, 3, tzinfo=UTC), datetime(2026, 1, 9, tzinfo=UTC))
     ]
     assert _needs_fetch_for_range(cached, Timeframe.D1, start, end) is True
@@ -54,5 +58,41 @@ def test_daily_weekend_gap_is_not_treated_as_missing_history():
         _bar(datetime(2026, 1, 5, tzinfo=UTC)),
     ]
 
-    assert _missing_range_slices(cached, Timeframe.D1, start, end) == []
+    assert missing_range_slices(cached, Timeframe.D1, start, end) == []
     assert _needs_fetch_for_range(cached, Timeframe.D1, start, end) is False
+
+
+def test_coverage_planner_distinguishes_historical_ready_from_latest_stale():
+    start = datetime(2026, 1, 2, tzinfo=UTC)
+    end = datetime(2026, 1, 5, tzinfo=UTC)
+    cached = [
+        _bar(datetime(2026, 1, 2, tzinfo=UTC)),
+        _bar(datetime(2026, 1, 5, tzinfo=UTC)),
+    ]
+
+    historical = assess_ohlcv_coverage(
+        cached, Timeframe.D1, start, end, mode="historical", now=datetime(2026, 8, 3, tzinfo=UTC)
+    )
+    latest = assess_ohlcv_coverage(
+        cached,
+        Timeframe.D1,
+        start,
+        end,
+        mode="latest",
+        freshness_seconds=86_400,
+        now=datetime(2026, 8, 3, tzinfo=UTC),
+    )
+
+    assert historical.status is CoverageStatus.READY
+    assert latest.status is CoverageStatus.STALE
+    assert historical.missing_slices == ()
+
+
+def test_coverage_planner_reports_cold_range_and_bounded_slice():
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    end = datetime(2026, 1, 5, tzinfo=UTC)
+    assessment = assess_ohlcv_coverage([], Timeframe.D1, start, end)
+
+    assert assessment.status is CoverageStatus.MISSING
+    assert assessment.missing_slices == ((start, end),)
+    assert assessment.bar_count == 0

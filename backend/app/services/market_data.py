@@ -35,6 +35,7 @@ from app.providers import (
 )
 from app.providers.base import InstrumentProfile
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
+from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
@@ -545,7 +546,7 @@ async def fetch_ohlcv(
     cached = list((await db.execute(stmt)).scalars().all())
 
     if _needs_fetch_for_range(cached, timeframe, start, end):
-        repair_slices = _missing_range_slices(cached, timeframe, start, end)
+        repair_slices = missing_range_slices(cached, timeframe, start, end)
         # A current-window request may have no obvious bounded gap while still
         # needing a freshness refresh. In that case retain the existing range
         # fetch semantics; historical/internal gaps use only their slices.
@@ -641,72 +642,22 @@ def _needs_fetch_for_range(
     if not cached:
         return True
 
-    first_cached = min(bar.ts for bar in cached)
-    last_cached = max(bar.ts for bar in cached)
-    if first_cached.tzinfo is None:
-        first_cached = first_cached.replace(tzinfo=UTC)
-    if last_cached.tzinfo is None:
-        last_cached = last_cached.replace(tzinfo=UTC)
     if start.tzinfo is None:
         start = start.replace(tzinfo=UTC)
     if end.tzinfo is None:
         end = end.replace(tzinfo=UTC)
 
-    fully_covered = first_cached <= start and last_cached >= end
     threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     range_is_historical = end <= (datetime.now(UTC) - threshold)
-    if fully_covered and range_is_historical:
-        return bool(_missing_range_slices(cached, timeframe, start, end))
-    return _needs_fetch(cached, timeframe)
-
-
-def _missing_range_slices(
-    cached: list[OHLCVBar],
-    timeframe: Timeframe,
-    start: datetime,
-    end: datetime,
-) -> list[tuple[datetime, datetime]]:
-    """Return bounded edge/obvious internal gaps for an explicit range.
-
-    The database stores bars, not exchange calendars.  Exact calendar-aware
-    inference is therefore unsafe for daily sessions (weekends and holidays
-    are legitimate gaps).  Edge gaps are exact; internal gaps are repaired
-    only when their distance is materially larger than the timeframe interval,
-    which avoids treating ordinary non-trading days as missing bars.
-    """
-    if not cached:
-        return [(start, end)]
-
-    step = timedelta(seconds=TIMEFRAME_SECONDS[timeframe])
-    start = _as_utc(start)
-    end = _as_utc(end)
-    ordered = sorted(_as_utc(bar.ts) for bar in cached if start <= _as_utc(bar.ts) <= end)
-    if not ordered:
-        return [(start, end)]
-
-    # Daily sessions can legitimately be separated by a weekend; intraday
-    # and higher timeframes use a tighter threshold for obvious holes.
-    tolerance = 4 if timeframe == Timeframe.D1 else 2
-    slices: list[tuple[datetime, datetime]] = []
-
-    if ordered[0] > start + step:
-        slices.append((start, ordered[0] - step))
-    elif ordered[0] > start:
-        slices.append((start, ordered[0]))
-
-    for previous, current in zip(ordered, ordered[1:]):
-        if current - previous > step * tolerance:
-            gap_start = previous + step
-            gap_end = current - step
-            if gap_start <= gap_end:
-                slices.append((gap_start, gap_end))
-
-    if ordered[-1] < end - step:
-        slices.append((ordered[-1] + step, end))
-    elif ordered[-1] < end:
-        slices.append((ordered[-1], end))
-
-    return slices
+    assessment = assess_ohlcv_coverage(
+        cached,
+        timeframe,
+        start,
+        end,
+        mode="historical" if range_is_historical else "latest",
+        freshness_seconds=int(threshold.total_seconds()),
+    )
+    return assessment.status.value != "ready"
 
 
 async def _fetch_provider(
