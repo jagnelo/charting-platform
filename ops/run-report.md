@@ -17652,5 +17652,5 @@ uncovered slice rather than repeat a generic completion claim.
 - Obsolete indicator-column batches are now canceled through Vue Query, with
   `AbortSignal` forwarded by the authenticated API client across retries.
 - Full frontend Vitest `496` across `80` files, TypeScript, production build, and diff
-  checks passed. Commit/push pending; strict V25 visual approval and broad acceptance
-  remain open.
+  checks passed. Checkpoint `77db22e` is committed and pushed; strict V25 visual approval
+  and broad acceptance remain open.
