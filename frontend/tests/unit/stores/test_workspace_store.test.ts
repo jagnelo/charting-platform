@@ -35,6 +35,17 @@ describe('workspace store layout tabs', () => {
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
   })
 
+  it('does not advance the successful-refresh timestamp when an input fails', async () => {
+    apiGet.mockRejectedValue(new Error('temporary analysis outage'))
+    const store = useWorkspaceStore()
+
+    await store.refreshMarketAnalysis()
+
+    expect(store.marketAnalysisRefreshing).toBe(false)
+    expect(store.marketAnalysisRefreshedAt).toBeNull()
+    expect(store.error).toContain('temporary analysis outage')
+  })
+
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

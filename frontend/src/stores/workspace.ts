@@ -696,8 +696,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       loadGroupSnapshot('sp500-sectors', 'SPY'),
       loadBreadth('sp500-sectors'),
       loadBreadthHistory('sp500-sectors'),
-    ]).then(() => {
-      marketAnalysisRefreshedAt.value = new Date().toISOString()
+    ]).then(results => {
+      // The individual loaders retain their error state and return null. Do not
+      // advance the last-successful timestamp when any shared input failed.
+      if (results.every(result => result !== null)) {
+        marketAnalysisRefreshedAt.value = new Date().toISOString()
+      }
     }).finally(() => {
       marketAnalysisRefreshing.value = false
       marketRefreshPromise = null

@@ -61,8 +61,8 @@ refreshes benchmark and sector memberships, sector rankings, current breadth, an
 historical breadth together; concurrent callers join the same request set, the shell
 shows an in-progress Refresh control, and an active workstation polls every five
 minutes only while the document is visible. The store records the last successful
-refresh time, while the existing response freshness and coverage fields remain the
-source of truth for stale or partial data.
+refresh time only when every shared input succeeds, while the existing response
+freshness and coverage fields remain the source of truth for stale or partial data.
 
 The benchmark watchlist now consumes the same canonical group snapshot as the sector
 workflow. It displays SPY/RSP and other benchmark rows with 1D/1W/1M/3M/YTD/1Y
