@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T17:56:19Z Cross-window watchlist synchronization
+
+- Watchlist mutations now publish a `BroadcastChannel` invalidation; other workstation
+  windows reload the canonical list cache after pop-out/docked edits.
+- Validation: full frontend Vitest `458 passed` across 76 files; TypeScript, production
+  build, and `git diff --check` passed.
+- Pushed checkpoint `1ac099062248ef4731d4f6603f9bdb6f2f047329`. Strict V25 visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-03T17:53:58Z Complete personal watchlist management
 
 - Added copy and confirmed delete actions to the primary workstation personal `WatchList`;

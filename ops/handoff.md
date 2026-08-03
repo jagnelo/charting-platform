@@ -1,5 +1,16 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T17:56:19Z
+
+- Added `BroadcastChannel` invalidation to the canonical watchlist store. Mutations from
+  a docked or floated workstation surface now cause other browser windows to reload
+  watchlists, while no Vue/request/runtime objects cross the window boundary.
+- Validation: full frontend Vitest `458 passed` across 76 files; TypeScript, production
+  build, and `git diff --check` passed. Checkpoint `1ac099062248ef4731d4f6603f9bdb6f2f047329`
+  pushed.
+- Strict V25 visual approval remains `required_missing`; the broader workstation,
+  backend, security, performance, and end-to-end acceptance matrix remains incomplete.
+
 ## Continuation update — 2026-08-03T17:53:58Z
 
 - Completed personal list-level mechanics in the workstation `WatchList`: copy and
