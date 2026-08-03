@@ -694,9 +694,38 @@ class _Market:
         if len(lengths) != 1 or next(iter(lengths), 0) != len(timestamps):
             raise ValueError("Declared OHLCV fields are not aligned")
         return [
-            {"timestamp": timestamps[index], **{name: values[index] for name, values in requested.items()}}
+            {"timestamp": timestamps[index], "session": self._sessions()[index], **{name: values[index] for name, values in requested.items()}}
             for index in range(len(timestamps))
         ]
+
+    def timestamps(self, symbol: str | None = None) -> list[str]:
+        self._check_declared(symbol)
+        values = self._dataset.get("timestamps")
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise ValueError("Declared dataset has no valid timestamp series")
+        return list(values)
+
+    def sessions(self, symbol: str | None = None) -> list[str]:
+        self._check_declared(symbol)
+        return self._sessions()
+
+    def metadata(self, symbol: str | None = None) -> dict[str, object]:
+        self._check_declared(symbol)
+        value = self._dataset.get("metadata")
+        if not isinstance(value, dict):
+            raise ValueError("Declared dataset has no instrument metadata")
+        return dict(value)
+
+    def _sessions(self) -> list[str]:
+        timestamps = self._dataset.get("timestamps")
+        sessions = self._dataset.get("sessions")
+        if not isinstance(timestamps, list):
+            raise ValueError("Declared dataset has no timestamp series")
+        if sessions is None:
+            return ["regular"] * len(timestamps)
+        if not isinstance(sessions, list) or len(sessions) != len(timestamps) or not all(isinstance(value, str) for value in sessions):
+            raise ValueError("Declared session fields are not aligned")
+        return list(sessions)
 
     def _series_fields(self, symbol: str | None = None) -> dict[str, list[object]]:
         self._check_declared(symbol)

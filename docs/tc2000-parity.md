@@ -83,6 +83,10 @@ benchmark. The unified `market` namespace exposes `open`, `high`, `low`, `close`
 `volume`, `vwap`, and aligned `ohlcv()` access, while retaining the compatibility rule
 that close-only hand-authored fixtures remain valid. Missing fields produce structured
 runner diagnostics and never trigger provider access.
+The same namespace exposes declared timestamps, session labels, and canonical instrument
+metadata (identity, currency, active/synthetic state, and primary identifier) so studies
+can make explicit metadata/session decisions without importing application models or
+calling providers.
 
 The relative-rotation uPlot surface now updates `setData`/`setSize` in place during
 resize and data refresh; it destroys the chart only during component teardown. A

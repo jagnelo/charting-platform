@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:45:00Z
+
+- Extended Study Lab manifests with canonical instrument metadata and declared session
+  labels in addition to aligned OHLCV fields. The isolated `market` SDK now exposes
+  `timestamps()`, `sessions()`, and `metadata()` with explicit declaration/alignment
+  errors; `ohlcv()` includes session labels and remains provider-free.
+- Ruff and the focused runner/API suites pass (`44 passed`); the full workstation,
+  exact-build visual, security, performance, migration, and acceptance gates remain
+  open.
+
 ## Continuation update — 2026-08-04T00:32:00Z
 
 - Extended Study Lab's canonical dataset materialization from close-only series to

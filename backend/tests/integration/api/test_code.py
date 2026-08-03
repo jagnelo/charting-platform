@@ -259,6 +259,8 @@ def test_research_run_materializes_only_declared_local_symbol_data(
     assert run.status_code == 202
     payload = run.json()
     assert payload["dataset_manifest"]["symbol"] == instrument.symbol
+    assert payload["dataset_manifest"]["metadata"]["instrument_id"] == instrument.id
+    assert len(payload["dataset_manifest"]["sessions"]) == len(ohlcv_bars)
     assert len(payload["dataset_manifest"]["closes"]) == len(ohlcv_bars)
     assert len(payload["dataset_manifest"]["opens"]) == len(ohlcv_bars)
     assert len(payload["dataset_manifest"]["highs"]) == len(ohlcv_bars)

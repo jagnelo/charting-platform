@@ -2,6 +2,15 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:45:00Z Study metadata and sessions
+
+- Study Lab manifests now include canonical instrument metadata and declared session
+  labels. The isolated `market` SDK exposes `timestamps()`, `sessions()`, and
+  `metadata()` with explicit declaration/alignment diagnostics; `ohlcv()` includes
+  session labels while preserving close-only fixture compatibility.
+- Ruff and the focused runner/API suite passed: `44` tests. Exact-build visual approval
+  and the complete acceptance matrix remain open.
+
 ## 2026-08-04T00:32:00Z Study dataset OHLCV contract
 
 - Study Lab research manifests now carry aligned open/high/low/close/volume/vwap fields

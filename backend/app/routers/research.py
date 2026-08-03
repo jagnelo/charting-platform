@@ -122,7 +122,7 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
     return fields
 
 
-def _bar_series(bars: list[OHLCVBar]) -> dict[str, list[float | None]]:
+def _bar_series(bars: list[OHLCVBar]) -> dict[str, list[float | None] | list[str]]:
     """Serialize the canonical OHLCV fields needed by the isolated market SDK."""
     return {
         "opens": [float(bar.open) for bar in bars],
@@ -131,6 +131,20 @@ def _bar_series(bars: list[OHLCVBar]) -> dict[str, list[float | None]]:
         "closes": [float(bar.close) for bar in bars],
         "volumes": [float(bar.volume) if bar.volume is not None else None for bar in bars],
         "vwaps": [float(bar.vwap) if bar.vwap is not None else None for bar in bars],
+        "sessions": [bar.session for bar in bars],
+    }
+
+
+def _instrument_metadata(instrument: Instrument) -> dict[str, object | None]:
+    return {
+        "instrument_id": instrument.id,
+        "symbol": instrument.symbol,
+        "name": instrument.name,
+        "currency": instrument.currency,
+        "is_active": instrument.is_active,
+        "is_synthetic": instrument.is_synthetic,
+        "primary_identifier_type": instrument.primary_identifier_type,
+        "primary_identifier_value": instrument.primary_identifier_value,
     }
 
 
@@ -169,6 +183,7 @@ async def _materialize_instrument_dataset(
         **_dataset_manifest_fields(manifest, options),
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
+        "metadata": _instrument_metadata(instrument),
         "timestamps": [bar.ts.isoformat() for bar in bars],
         **_bar_series(bars),
     }
@@ -202,6 +217,7 @@ async def _materialize_benchmark_dataset(
         "source": "canonical_database",
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
+        "metadata": _instrument_metadata(instrument),
         "timeframe": options["timeframe"].value,
         "adjustment": options["adjustment"],
         "session": options["session"],
@@ -297,6 +313,7 @@ async def _materialize_declared_dataset(db: AsyncSession, manifest: dict, run_co
                     "source": "canonical_database",
                     "symbol": instrument.symbol,
                     "instrument_id": instrument.id,
+                    "metadata": _instrument_metadata(instrument),
                     "timeframe": options["timeframe"].value,
                     "adjustment": options["adjustment"],
                     "session": options["session"],
