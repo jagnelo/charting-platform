@@ -87,3 +87,13 @@ dividing by zero, preserving valid cells and exact exclusion reasons in batch ou
 The factory relative-strength chart is now explicitly auto-ratio-enabled: selecting
 SPY/RSP, a sector, a constituent, or an industry proxy updates it to the relevant
 benchmark relationship while custom expressions remain untouched.
+
+Floated workstation tools now forward watchlist condition modes, Boolean pinning,
+column grouping/stacking, arbitrary serializable configuration, and industry-proxy
+selection back to the source shell. Pop-out startup hydrates the existing link-group
+symbol without publishing a default `SPY` selection into the source workspace. Focused
+watchlist Space/Shift+Space traversal stops at the list boundary, and a shared editor
+target guard suppresses workstation and uPlot shortcuts inside native inputs,
+contenteditable/code editors, and role-textbox search surfaces. Dedicated pop-out,
+keyboard-boundary, symbol-preservation, and editor-target tests plus the full frontend
+suite provide functional evidence; visual approval remains blocked by the manifest.
