@@ -39,9 +39,15 @@ dedicated regression test proves repeated resize callbacks do not create additio
 uPlot instances.
 
 Relative Rotation now exposes and persists its transparent inputs: market-group universe,
-benchmark, timeframe, split-adjustment mode, lookback, and tail length. Those values are
-sent to the canonical analysis endpoint rather than being hidden SPY/D1/20/10 constants;
-load generations prevent a late rotation response from replacing a newer selection.
+benchmark, timeframe, sampling cadence, split-adjustment mode, lookback, and tail length.
+Those values are sent to the canonical analysis endpoint rather than being hidden
+SPY/D1/20/10 constants; load generations prevent a late rotation response from replacing
+a newer selection.
+
+Relative Rotation also accepts a bounded sampling cadence (every 1–30 aligned observations)
+and always includes the latest aligned observation. Sampling is persisted in factory and
+user tool configuration, returned in the response, and used consistently for trend,
+momentum, and tail calculations; the default cadence remains one observation.
 
 The Relative Rotation backend now accepts an optional point-in-time `as_of` and applies it
 to both versioned market-group membership (`effective_at`/`known_at`) and local bars. The

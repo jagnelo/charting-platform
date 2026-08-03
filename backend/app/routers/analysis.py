@@ -503,6 +503,7 @@ async def group_relative_rotation(
     timeframe: Timeframe = Timeframe.D1,
     adjusted: bool = True,
     as_of: datetime | None = Query(default=None),
+    sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
     _: User = Depends(get_current_user),
@@ -565,25 +566,28 @@ async def group_relative_rotation(
                     instrument_id=instrument.id,
                 )
             )
+        sampled = aligned[::sampling]
+        if sampled and sampled[-1][0] != aligned[-1][0]:
+            sampled.append(aligned[-1])
         coordinates: list[RelativeRotationTailPoint] = []
-        for index in range(lookback * 2, len(aligned)):
-            ratio = aligned[index][1]
-            prior_ratio = aligned[index - lookback][1]
-            prior_prior_ratio = aligned[index - lookback * 2][1]
+        for index in range(lookback * 2, len(sampled)):
+            ratio = sampled[index][1]
+            prior_ratio = sampled[index - lookback][1]
+            prior_prior_ratio = sampled[index - lookback * 2][1]
             if prior_ratio == 0 or prior_prior_ratio == 0:
                 continue
             trend = ratio / prior_ratio - 1
             previous_trend = prior_ratio / prior_prior_ratio - 1
             coordinates.append(
                 RelativeRotationTailPoint(
-                    timestamp=aligned[index][0], trend=trend, momentum=trend - previous_trend
+                    timestamp=sampled[index][0], trend=trend, momentum=trend - previous_trend
                 )
             )
         if not coordinates:
             warnings.append(
                 AnalysisWarning(
                     code="insufficient_history",
-                    message=f"Relative rotation requires {lookback * 2 + 1} aligned bars.",
+                    message=f"Relative rotation requires {lookback * 2 + 1} sampled observations.",
                     instrument_id=instrument.id,
                 )
             )
@@ -630,6 +634,7 @@ async def group_relative_rotation(
         adjustment="split_adjusted" if adjusted else "raw",
         lookback=lookback,
         tail_length=tail_length,
+        sampling=sampling,
         membership_version=group.id,
         universe_provenance=_group_provenance(group, as_of),
         as_of=as_of,

@@ -158,6 +158,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
                 "group_key": "sp500-sectors",
                 "benchmark": "SPY",
                 "timeframe": "D1",
+                "sampling": 1,
                 "lookback": 20,
                 "tail_length": 10,
                 "adjusted": True,

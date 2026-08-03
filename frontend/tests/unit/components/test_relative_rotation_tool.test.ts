@@ -42,10 +42,10 @@ describe('RelativeRotationTool', () => {
 
   it('persists and sends transparent rotation controls', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'stale', rows: [] })
-    const wrapper = mount(RelativeRotationTool, { props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
+    const wrapper = mount(RelativeRotationTool, { props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
-    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, lookback: 12, tail_length: 4, as_of: '2024-04-30T23:59:59Z' })
+    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30T23:59:59Z' })
     await wrapper.get('input[aria-label="Rotation benchmark"]').setValue('IWM')
-    await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
+    await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
   })
 })

@@ -33,6 +33,7 @@ class TestWorkspaces:
             "group_key": "sp500-sectors",
             "benchmark": "SPY",
             "timeframe": "D1",
+            "sampling": 1,
             "lookback": 20,
             "tail_length": 10,
             "adjusted": True,
@@ -540,10 +541,11 @@ class TestWorkspaces:
         rotation = client.get(
             "/api/v1/analysis/groups/breadth-history-test/relative-rotation",
             headers=auth_headers,
-            params={"benchmark": instrument.symbol, "lookback": 20, "tail_length": 3},
+            params={"benchmark": instrument.symbol, "sampling": 2, "lookback": 20, "tail_length": 3},
         )
         assert rotation.status_code == 200
         row = rotation.json()["rows"][0]
+        assert rotation.json()["sampling"] == 2
         assert row["state"] == "leading"
         assert len(row["tail"]) == 3
         assert row["coverage"] == 1

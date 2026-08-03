@@ -63,6 +63,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     timeframe: str
     adjustment: str
     as_of: datetime | None = None
+    sampling: int = Field(default=1, ge=1, le=30)
     lookback: int
     tail_length: int
     membership_version: int
