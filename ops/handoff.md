@@ -1,5 +1,15 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T21:40:00Z
+
+- Added typed Study Lab `scatter` artifacts to the isolated runner. The artifact validates
+  aligned finite numeric x/y arrays, persists bounded structured output, and renders through
+  a dedicated uPlot point-cloud component; user code still cannot provide HTML, CSS, or JS.
+- Validation: focused runner histogram/scatter tests `2 passed`; Study Lab component tests
+  `2 passed`; Ruff, TypeScript, production build, and `git diff --check` passed. Checkpoint
+  `c949426` pushed. Strict visual approval and the broad workstation/backend/security/
+  performance/end-to-end acceptance matrix remain incomplete.
+
 ## Continuation update — 2026-08-03T21:30:00Z
 
 - Re-ran the complete frontend Vitest suite after the sortable rotation table change:

@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T21:40:00Z Study Lab scatter artifacts
+
+- Study Lab now supports typed numeric scatter artifacts in the sandbox and a uPlot
+  point-cloud renderer with aligned x/y validation.
+- Focused runner tests `2 passed`; Study Lab component tests `2 passed`; Ruff,
+  TypeScript/build/diff checks passed. Pushed `c949426`.
+- Strict V25 visual approval and the complete acceptance matrix remain open.
+
 ## 2026-08-03T21:30:00Z Full frontend regression
 
 - Full frontend Vitest suite passed `475` tests across 77 files after the sortable
