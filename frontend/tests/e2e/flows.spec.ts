@@ -73,7 +73,7 @@ test.describe('Chart', () => {
     const cp = new ChartPage(page)
     await cp.goto()
 
-    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    const symbolEntry = page.getByRole('combobox', { name: 'Active symbol' })
     await symbolEntry.fill('AAPL')
     await page.getByRole('button', { name: 'Go' }).click()
     await expect(symbolEntry).toHaveValue('AAPL')
@@ -107,7 +107,7 @@ test.describe('Chart', () => {
 
   test('F9b — expression search resolves and stays interactive', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
-    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    const symbolEntry = page.getByRole('combobox', { name: 'Active symbol' })
     await symbolEntry.fill('=SPY-QQQ')
     await page.getByRole('button', { name: 'Go' }).click()
     // A fresh free-source fixture may lack a constituent; in either case the
@@ -119,7 +119,7 @@ test.describe('Chart', () => {
 
   test('F9c — chart templates open from a workstation chart without changing the symbol', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/AAPL')
-    const symbolEntry = page.getByRole('textbox', { name: 'Active symbol' })
+    const symbolEntry = page.getByRole('combobox', { name: 'Active symbol' })
     await expect(symbolEntry).toHaveValue('AAPL')
     await page.getByRole('button', { name: 'Chart templates' }).first().click()
     const templateMenu = page.locator('.chart-template__menu:visible').last()

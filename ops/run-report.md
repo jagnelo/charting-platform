@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-04T00:15:00Z Browser runtime and flow acceptance
+
+- Propagated the Vue application context into Golden Layout's detached virtual roots,
+  moved the eager indicator/condition hydration watcher below all initialized refs and
+  loaders, and aligned the active-symbol acceptance locator with its ARIA combobox role.
+- Rebuilt the branch-scoped Docker stack. Full `frontend/tests/e2e/flows.spec.ts` passed
+  `22` Chromium flows with no unexpected browser console, page, or request failures;
+  TypeScript and the production build passed. Exact-build V25 visual approval and the
+  full security/performance/migration acceptance matrix remain open.
+
 ## 2026-08-04T00:07:00Z Immediate workstation column hydration
 
 - Made the shared indicator/condition refresh watcher immediate so already-materialized

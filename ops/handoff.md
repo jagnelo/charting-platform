@@ -1,5 +1,19 @@
 # Active Handoff
 
+## Continuation update — 2026-08-04T00:15:00Z
+
+- Fixed the Golden Layout detached-root boundary by carrying the host Vue app context
+  into virtual tool VNodes; detached workstation tools now retain Vue Query, Pinia,
+  router, and global provider injections in the real browser.
+- Fixed the immediate indicator/condition hydration watcher so it runs only after its
+  result refs and loader dependencies are initialized, eliminating production TDZ
+  page errors. The active-symbol search contract is correctly tested as an ARIA
+  combobox rather than a textbox.
+- Rebuilt the branch-scoped stack and ran the complete non-visual Chromium flow suite:
+  `22 passed` with no unexpected console, page, or request failures. TypeScript and
+  production build pass. Exact-build V25 visual approval and the wider security,
+  performance, migration, and acceptance gates remain open.
+
 ## Continuation update — 2026-08-04T00:07:00Z
 
 - Made the shared workstation indicator/condition refresh watcher immediate, ensuring

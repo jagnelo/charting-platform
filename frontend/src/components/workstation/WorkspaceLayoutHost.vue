@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, render, watch, type VNode } from 'vue'
+import { getCurrentInstance, onBeforeUnmount, onMounted, ref, render, watch, type VNode } from 'vue'
 import { GoldenLayout, type LayoutConfig } from 'golden-layout'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 
@@ -21,6 +21,7 @@ export interface DockToolActions {
 const props = defineProps<{ layout: LayoutConfig; renderTool: (tool: DockToolState, actions: DockToolActions) => VNode }>()
 const emit = defineEmits<{ changed: [layout: Record<string, unknown>, visibleToolKeys: string[]] }>()
 const host = ref<HTMLElement | null>(null)
+const appContext = getCurrentInstance()?.appContext
 let goldenLayout: GoldenLayout | null = null
 let suppressChange = false
 let lastLayoutFingerprint: string | null = null
@@ -47,13 +48,18 @@ function install(layout: LayoutConfig) {
     rootHtmlElement.className = 'workspace-layout-host__virtual-tool'
     rootHtmlElement.dataset.toolKey = tool.instance_key ?? ''
     mountedToolRoots.push(rootHtmlElement)
-    render(props.renderTool(tool, {
+    const vnode = props.renderTool(tool, {
       toggleMaximize: () => {
         const stack = container.parent.parentItem as unknown as { toggleMaximise?: () => void }
         stack.toggleMaximise?.()
       },
       close: () => container.close(),
-    }), rootHtmlElement)
+    })
+    // Golden Layout asks Vue to render each virtual component into a detached root.
+    // Carry the host application context across that boundary so injected services
+    // (Vue Query, Pinia, router, and global providers) remain available to tools.
+    if (appContext) vnode.appContext = appContext
+    render(vnode, rootHtmlElement)
     return { rootHtmlElement }
   }, true)
   goldenLayout.on('stateChanged', () => {

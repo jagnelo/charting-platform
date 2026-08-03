@@ -727,41 +727,6 @@ watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => 
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols)
 })
-watch(
-  () => [
-    ...personalWatchlistRows.value,
-    ...flaggedWatchlistRows.value,
-    ...comboWatchlistRows.value,
-    ...benchmarkRows.value,
-    ...sectorRows.value,
-    ...factoryWatchlistRows.value,
-    ...proxyRows.value,
-    ...constituentRows.value,
-  ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value) + JSON.stringify(configuredConditionColumns.value),
-  () => {
-    void loadIndicatorColumns([
-      ...personalWatchlistRows.value,
-      ...flaggedWatchlistRows.value,
-      ...comboWatchlistRows.value,
-      ...benchmarkRows.value,
-      ...sectorRows.value,
-      ...factoryWatchlistRows.value,
-      ...proxyRows.value,
-      ...constituentRows.value,
-    ])
-    void loadConditionColumns([
-      ...personalWatchlistRows.value,
-      ...flaggedWatchlistRows.value,
-      ...comboWatchlistRows.value,
-      ...benchmarkRows.value,
-      ...sectorRows.value,
-      ...factoryWatchlistRows.value,
-      ...proxyRows.value,
-      ...constituentRows.value,
-    ])
-  },
-  { immediate: true },
-)
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
 // update its uPlot instance immediately, while the same object is persisted by the
@@ -1248,6 +1213,7 @@ const configuredIndicatorColumns = computed(() => Array.isArray(props.tool.confi
 const configuredConditionColumns = computed(() => Array.isArray(props.tool.configuration.condition_columns)
   ? props.tool.configuration.condition_columns.filter((column): column is { key: string; name: string; screener_id: number; timeframe: string } => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
   : [])
+
 function addPlotColumn(payload: ChartPlotDragPayload) {
   const column = indicatorColumnFromPlot(payload)
   const columns = Array.isArray(props.tool.configuration.indicator_columns) ? props.tool.configuration.indicator_columns : []
@@ -1343,6 +1309,42 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
     indicatorWarnings.value = nextWarnings
   }
 }
+
+watch(
+  () => [
+    ...personalWatchlistRows.value,
+    ...flaggedWatchlistRows.value,
+    ...comboWatchlistRows.value,
+    ...benchmarkRows.value,
+    ...sectorRows.value,
+    ...factoryWatchlistRows.value,
+    ...proxyRows.value,
+    ...constituentRows.value,
+  ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value) + JSON.stringify(configuredConditionColumns.value),
+  () => {
+    void loadIndicatorColumns([
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...benchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...constituentRows.value,
+    ])
+    void loadConditionColumns([
+      ...personalWatchlistRows.value,
+      ...flaggedWatchlistRows.value,
+      ...comboWatchlistRows.value,
+      ...benchmarkRows.value,
+      ...sectorRows.value,
+      ...factoryWatchlistRows.value,
+      ...proxyRows.value,
+      ...constituentRows.value,
+    ])
+  },
+  { immediate: true },
+)
 const configuredPythonCondition = computed(() => {
   const condition = props.tool.configuration.python_condition
   if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return null
