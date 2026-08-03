@@ -2,6 +2,16 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T23:02:00Z Canonical OHLCV readiness endpoint
+
+- Added authenticated `/coverage/instruments/{symbol}/ohlcv` backed by the shared
+  provider-neutral readiness planner, with status, bounds, missing slices, explanation,
+  and canonical provenance.
+- Full backend unit suite `884 passed`; coverage-router tests `4 passed`; Ruff/diff checks
+  passed. Pushed `37262f7`.
+- Docker-backed route verification, strict V25 visual approval, and the complete
+  acceptance matrix remain open.
+
 ## 2026-08-03T22:50:00Z Shared OHLCV coverage planner
 
 - Added provider-neutral `ohlcv_coverage` readiness planning for ready/partial/missing/

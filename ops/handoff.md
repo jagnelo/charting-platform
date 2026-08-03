@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T23:02:00Z
+
+- Exposed authenticated `/coverage/instruments/{symbol}/ohlcv` using the shared readiness
+  planner. It returns ready/partial/missing/latest-stale status, local bounds, bounded
+  missing slices, explanation, and canonical provenance without provider routing.
+- Validation: full backend unit suite `884 passed`; coverage-router tests `4 passed`; Ruff
+  and `git diff --check` passed. Checkpoint `37262f7` is pushed. Docker-backed route
+  verification, strict V25 visual approval, and the complete acceptance matrix remain open.
+
 ## Continuation update — 2026-08-03T22:50:00Z
 
 - Extracted provider-neutral OHLCV coverage planning into `ohlcv_coverage`, distinguishing
