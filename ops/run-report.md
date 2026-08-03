@@ -2,6 +2,17 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T20:50:24Z Watchlist membership actions
+
+- Added explicit context-menu copy/move actions for canonical watchlist rows. Copy targets
+  unlocked personal lists; move is available only for editable personal sources and uses
+  add-then-remove semantics.
+- Focused VirtualWatchlistTool tests `30 passed`; full frontend Vitest `483 passed` across
+  78 files; TypeScript/build/diff checks passed. Updated parity evidence and pushed
+  `a61da35`.
+- Strict V25 visual approval, Docker-backed route verification, and the complete acceptance
+  matrix remain open.
+
 ## 2026-08-03T20:43:53Z Point-in-time constituent bar truncation
 
 - Corrected the ETF constituent snapshot route so historical `as_of` requests truncate

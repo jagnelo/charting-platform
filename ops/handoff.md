@@ -1,5 +1,17 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T20:50:24Z
+
+- Added real watchlist membership actions to the workstation context menu. Every
+  workstation list can copy a canonical row to an explicit unlocked personal-list target;
+  editable personal lists can move by adding first and removing the source only after the
+  destination accepts it. Current/source and locked targets are disabled.
+- Validation: focused VirtualWatchlistTool tests `30 passed`; full frontend Vitest `483
+  passed` across 78 files; TypeScript, production build, and `git diff --check` passed.
+  Parity evidence was updated and checkpoint `a61da35` is pushed. Strict V25 visual
+  approval, Docker-backed route verification, and the complete acceptance matrix remain
+  open.
+
 ## Continuation update — 2026-08-03T20:43:53Z
 
 - Corrected point-in-time ETF constituent snapshots so the constituent bars, selected
