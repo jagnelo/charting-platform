@@ -2,6 +2,14 @@
 
 Append a short entry after each worker session.
 
+## 2026-08-03T22:32:10Z Official drag/drop visual references
+
+- Added three official online drag/drop images to the V25 manifest with direct locators,
+  SHA-256 hashes, dimensions, and explicit Version 23 discovery-only status; updated
+  the visual source catalogue.
+- Visual manifest validation passed and `4476b54` was pushed. Strict V25 approval remains
+  unproven because the references are not pinned-build-approved baselines.
+
 ## 2026-08-03T22:27:10Z Explicit chart plot target mode
 
 - Chart plot library now supports explicit copy targeting for any other chart window,

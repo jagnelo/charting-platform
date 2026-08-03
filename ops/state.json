@@ -4,8 +4,8 @@
     "active_worker": "Codex",
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
-    "last_handoff_at": "2026-08-03T22:27:10Z",
-    "last_commit": "60c770f feat(chart): add explicit plot target mode",
+    "last_handoff_at": "2026-08-03T22:32:10Z",
+    "last_commit": "4476b54 docs(visual): record official drag drop references",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
@@ -18,9 +18,10 @@
         "console_check": "passed for focused F6/F7/F8b Chromium flow diagnostics (no unexpected console/page/request failures), 2026-07-30; full acceptance still required",
         "backend_log_check": "fresh branch stack logs confirm Alembic upgrade through head, successful top-down taxonomy seed, scheduler/API startup, passing health checks, and no instrument_indicator_config UndefinedTable/500 after focused browser acceptance; rebuilt backend was healthy after prepared-universe batch API addition",
         "provider_live_tests": "not_run (route compatibility changes covered by deterministic unit/integration fixtures; opt-in live provider matrix remains separate)",
-        "yaml_json_parse": "passed (state.json, visual-reference manifest YAML, .env.example provider-chain JSON, and Docker Compose YAML validated; Alembic reports e9f0a1b2c3d4 watchlist-item-flags as the current head; official release notes confirm pinned build 25.0.9571 while the available official help image remains a 25.0.9172.22877 discovery candidate; strict visual validator intentionally rejects application-shell-default/default as required_missing, 2026-08-03T20:57:00Z)"
+        "yaml_json_parse": "passed (visual manifest validator, state.json, .env.example provider-chain JSON, and Docker Compose YAML; manifest now records three official drag/drop image hashes/dimensions as Version 23 discovery-only references; Alembic current head e9f0a1b2c3d4; official release notes confirm pinned build 25.0.9571 while available official help images remain earlier-generation candidates; strict visual validator intentionally rejects required_missing surfaces, 2026-08-03T22:31:00Z)"
     },
     "notes": [
+        "2026-08-03T22:32:10Z: Expanded the visual-reference manifest with three official online drag/drop images, direct locators, SHA-256 hashes, dimensions, and explicit Version 23 discovery-only status; updated the controlling visual catalogue. Visual manifest validation passed, but strict V25 approval remains blocked because these references are not pinned-build approved baselines. Checkpoint 4476b54 pushed.",
         "2026-08-03T22:27:10Z: Added explicit chart plot target mode. The plot library retains the linked-chart shortcut and can copy cloned indicator configuration to any other chart window, including isolated/grey-link targets, without changing the target symbol. Focused ChartPlotLibrary tests 3 passed; full frontend Vitest 488 across 79 files; TypeScript/build/diff checks passed; checkpoint 60c770f pushed. Watchlist/condition/scan/alert promotion and strict V25 visual approval remain incomplete.",
         "2026-08-03T22:20:40Z: Validated the current Alembic head in a disposable PostgreSQL 16 instance. Full chain upgraded to e9f0a1b2c3d4, downgraded to d3e4f5a6b7c8, re-upgraded, and direct SQL verified watchlist_item.flagged is NOT NULL with false default; container removed. Strict V25 visual approval, Docker-backed route verification, provider live probes, and the broad workstation/backend acceptance matrix remain incomplete.",
         "2026-08-03T22:13:10Z: Added the derived Flagged Items source to the primary personal WatchList tool. It deduplicates flagged canonical instruments across personal lists, retains source watchlist/item IDs for unflagging and membership inspection, persists the serializable watchlist_id=flagged selection, and disables controls without a valid mutable source. Added pure helper coverage (2 tests), full frontend Vitest 487 across 79 files, TypeScript/build/diff checks passed; checkpoint 595189e pushed. Strict V25 visual approval, Docker-backed route verification, current-head migration upgrade/downgrade execution, and the broad workstation/backend acceptance matrix remain incomplete.",

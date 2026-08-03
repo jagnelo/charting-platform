@@ -1,5 +1,14 @@
 # Active Handoff
 
+## Continuation update — 2026-08-03T22:32:10Z
+
+- Expanded the V25 visual-reference manifest with three official online drag/drop
+  images, direct locators, SHA-256 hashes, dimensions, and explicit Version 23
+  discovery-only status. The controlling visual catalogue now points to the article.
+- Visual manifest validation passed. These references remain discovery evidence only;
+  strict V25 approval still requires pinned-build continuity, measurements, permission
+  review, and human approval. Checkpoint `4476b54` is pushed.
+
 ## Continuation update — 2026-08-03T22:27:10Z
 
 - Added explicit chart plot target mode. The plot library retains the linked-chart
