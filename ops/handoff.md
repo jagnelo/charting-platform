@@ -14444,3 +14444,15 @@
 - Validation: runner units `17 passed` with `--no-cov`; Ruff and diff check passed.
 - Commit `8f6d27ffe9935a8b2f20692b7578663a72e19b5a` is pushed. The complete goal and
   required V25 visual references remain unfinished.
+
+## 2026-08-03T14:15:00Z Relative-rotation uPlot lifecycle checkpoint
+
+- RelativeRotationTool no longer destroys/recreates uPlot for resize or data refresh.
+  It keeps one chart instance, updates data with `setData`, resizes with `setSize`,
+  and destroys only when the component unmounts.
+- Added a regression test that triggers repeated ResizeObserver callbacks and proves
+  the constructor runs once while `setData`/`setSize` run.
+- Validation: frontend full Vitest `431 passed`; TypeScript, production build, and
+  diff check passed.
+- Commit `7bde260fe65050258a9d4013a4e435b669dd80aa` is pushed. The full goal and V25
+  visual evidence gate remain open.

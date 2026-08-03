@@ -16475,3 +16475,12 @@ Append a short entry after each worker session.
 - Runner units `17 passed` with `--no-cov`; Ruff and diff check passed.
 - Commit `8f6d27ffe9935a8b2f20692b7578663a72e19b5a` pushed. Overall acceptance remains
   incomplete.
+
+## 2026-08-03T14:15:00Z Relative-rotation uPlot lifecycle checkpoint
+
+- Refactored relative rotation to reuse one uPlot instance across resize/data updates,
+  preserving the marker plugin while calling `setData` and `setSize`; teardown alone
+  calls `destroy`.
+- Full frontend Vitest `431 passed`; TypeScript, production build, and diff check
+  passed. Commit `7bde260fe65050258a9d4013a4e435b669dd80aa` pushed.
+- Full workstation/backend acceptance and approved V25 visual evidence remain open.
