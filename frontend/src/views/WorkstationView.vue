@@ -20,7 +20,7 @@
       </div>
       <label class="workstation__timeframe">TF
         <select :value="workspaceStore.linkedTimeframe" aria-label="Linked timeframe" @change="setLinkedTimeframe(($event.target as HTMLSelectElement).value)">
-          <option value="M15">15 minute</option><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option>
+          <option value="M1">1 minute</option><option value="M5">5 minutes</option><option value="M15">15 minutes</option><option value="M30">30 minutes</option><option value="H1">1 hour</option><option value="H2">2 hours</option><option value="H4">4 hours</option><option value="H12">12 hours</option><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option>
         </select>
       </label>
       <div class="workstation__status">

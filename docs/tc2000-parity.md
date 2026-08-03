@@ -122,7 +122,9 @@ Version 25 visual reference remains unapproved.
 The shared timeframe-link compatibility path now preserves valid `M1` one-minute
 timeframes and normalizes only the legacy `MN1` monthly token to canonical `MN`.
 This prevents intraday selections from being silently converted to monthly bars while
-retaining persisted legacy-state recovery.
+retaining persisted legacy-state recovery. The primary workstation shell and shared
+tool-window selectors expose the complete supported set from `M1` through `MN` rather
+than silently reducing linkable tools to four coarse intervals.
 
 Study Lab now exposes explicit timeframe, benchmark, adjustment, session, and date-range
 controls in the primary workstation tool. The research-run API validates those controls,

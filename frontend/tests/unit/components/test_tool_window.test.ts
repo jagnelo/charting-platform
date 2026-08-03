@@ -27,6 +27,7 @@ describe('ToolWindow', () => {
     })
 
     expect((wrapper.find('[aria-label="Chart timeframe"]').element as HTMLSelectElement).value).toBe('MN')
+    expect(wrapper.find('[aria-label="Chart timeframe"] option[value="M1"]').exists()).toBe(true)
     await wrapper.find('[aria-label="Chart timeframe link group"]').setValue('green')
     await wrapper.find('[aria-label="Chart timeframe"]').setValue('W1')
 

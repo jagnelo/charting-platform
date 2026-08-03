@@ -6,6 +6,8 @@ Append a short entry after each worker session.
 
 - Fixed shared workspace normalization so `M1` remains one-minute and only legacy `MN1`
   is normalized to monthly `MN`.
+- Exposed the complete supported timeframe set through the workstation shell and shared
+  tool-window selectors.
 - Validation: workspace store `20 passed`; full frontend Vitest `453 passed` across 76
   files; TypeScript, production build, and diff check passed.
 - Strict V25 visual approval and the complete acceptance matrix remain open.

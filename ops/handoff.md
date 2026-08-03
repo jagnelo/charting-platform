@@ -4,6 +4,9 @@
 
 - Corrected a workstation timeframe corruption: shared-link normalization now preserves
   valid `M1` one-minute bars and converts only legacy `MN1` to canonical `MN`.
+- The primary workstation and shared tool-window selectors now expose the complete
+  supported timeframe set (`M1`, `M5`, `M15`, `M30`, `H1`, `H2`, `H4`, `H12`, `D1`, `W1`,
+  `MN`) so the link contract is reachable from the UI.
 - Validation: focused workspace-store `20 passed`; full frontend Vitest `453 passed`
   across `76` files; TypeScript, production build, and diff checks passed. Strict V25
   visual approval remains `required_missing`, and the broader workstation acceptance
