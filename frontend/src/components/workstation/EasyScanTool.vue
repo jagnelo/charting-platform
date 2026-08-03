@@ -61,10 +61,10 @@ async function load() {
   try {
     const [saved, assets] = await Promise.all([
       api.get<ConditionAsset[]>('/workspaces/library/conditions'),
-      api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number }> }>>('/code/assets'),
+      api.get<Array<{ kind: string; name: string; versions: Array<{ id: number; version_number: number; output_contract: string }> }>>('/code/assets'),
     ])
     conditions.value = saved
-    pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
+    pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.filter(version => version.output_contract === 'boolean').slice(-1).map(version => ({ versionId: version.id, name: `${asset.name} v${version.version_number}` })))
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to load conditions' }
 }

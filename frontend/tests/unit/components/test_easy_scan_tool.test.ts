@@ -11,7 +11,7 @@ describe('EasyScanTool', () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/workspaces/library/conditions') return Promise.resolve([])
       if (path === '/code/assets') {
-        return Promise.resolve([{ kind: 'condition', name: 'Qualifies', versions: [{ id: 42, version_number: 1 }] }])
+        return Promise.resolve([{ kind: 'condition', name: 'Qualifies', versions: [{ id: 42, version_number: 1, output_contract: 'boolean' }] }])
       }
       return Promise.resolve([])
     })
@@ -20,6 +20,7 @@ describe('EasyScanTool', () => {
       if (path === '/screeners/7/run') {
         return Promise.resolve({ matched_ids: [11], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: [] } }, error: null })
       }
+      if (path === '/alerts/screener') return Promise.resolve({ id: 8 })
       return Promise.resolve({})
     })
 
@@ -40,5 +41,11 @@ describe('EasyScanTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/screeners/7/run', {})
     expect(wrapper.text()).toContain('1 matches')
     expect(wrapper.text()).toContain('1/1 evaluated')
+    const alertButton = wrapper.findAll('button').find(button => button.text() === 'Alert')
+    expect(alertButton).toBeDefined()
+    await alertButton!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 7, trigger_type: 'entered', repeat: true })
+    expect(wrapper.text()).toContain('Alert active')
   })
 })
