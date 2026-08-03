@@ -165,6 +165,17 @@ def test_runner_emits_typed_scatter_points_for_study_relationships():
     }
 
 
+def test_runner_emits_typed_heatmap_matrix_for_study_relationships():
+    result = execute_job(
+        {"source": "output.heatmap('matrix', [[1, 2], [3, 4]], ['A', 'B'], ['X', 'Y'])", "dataset": {}}
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["matrix"] == {
+        "type": "heatmap",
+        "value": {"rows": ["A", "B"], "columns": ["X", "Y"], "values": [[1.0, 2.0], [3.0, 4.0]]},
+    }
+
+
 def test_runner_computes_point_in_time_forward_returns_for_study_events():
     result = execute_job(
         {

@@ -6,6 +6,7 @@ vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
+vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { template: '<div class="heatmap-chart" />', props: ['name', 'rows', 'columns', 'values'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
 
@@ -37,6 +38,7 @@ describe('StudyLabTool', () => {
         { id: 6, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }] } },
         { id: 8, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }], sample_size: 1 } } },
         { id: 10, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [2, 4] } } },
+        { id: 11, name: 'matrix', artifact_type: 'heatmap', payload: { value: { rows: ['A', 'B'], columns: ['X', 'Y'], values: [[1, 2], [3, 4]] } } },
       ] })
       return Promise.resolve({})
     })
@@ -69,6 +71,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('.series-chart').exists()).toBe(true)
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
+    expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
     await wrapper.find('.study-lab-tool__events button').trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]).toEqual([{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }])
   })

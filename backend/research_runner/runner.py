@@ -377,6 +377,25 @@ class _Output:
             "value": {"x": [point[0] for point in points], "y": [point[1] for point in points]},
         })
 
+    def heatmap(self, name: str, values: object, rows: object = None, columns: object = None) -> None:
+        """Emit a bounded rectangular numeric matrix for the native Study Lab renderer."""
+        matrix = _materialize(values)
+        if not isinstance(matrix, list | tuple) or not matrix or not all(isinstance(row, list | tuple) for row in matrix):
+            raise ValueError("heatmap values must be a non-empty matrix")
+        width = len(matrix[0])
+        if width == 0 or any(len(row) != width for row in matrix):
+            raise ValueError("heatmap values must be rectangular")
+        normalized = [[float(value) for value in row] for row in matrix]
+        if not all(math.isfinite(value) for row in normalized for value in row):
+            raise ValueError("heatmap values must be finite numbers")
+        raw_rows = _materialize(rows)
+        raw_columns = _materialize(columns)
+        row_labels = [str(value) for value in raw_rows] if isinstance(raw_rows, list | tuple) else [str(index + 1) for index in range(len(normalized))]
+        column_labels = [str(value) for value in raw_columns] if isinstance(raw_columns, list | tuple) else [str(index + 1) for index in range(width)]
+        if len(row_labels) != len(normalized) or len(column_labels) != width:
+            raise ValueError("heatmap labels must match matrix dimensions")
+        self._store(name, {"type": "heatmap", "value": {"rows": row_labels, "columns": column_labels, "values": normalized}})
+
     def events(self, name: str, value: object) -> None:
         if not isinstance(value, list) or not all(isinstance(event, dict) for event in value):
             raise ValueError("events output must be a list of event objects")
