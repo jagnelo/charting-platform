@@ -16683,3 +16683,13 @@ uncovered slice rather than repeat a generic completion claim.
   `eece8e2` pushed.
 - Full goal remains active. Strict visual evidence is still `required_missing` and the
   broad functional/security/performance/migration/end-to-end matrix remains outstanding.
+
+## 2026-08-03T16:15:13Z Pop-out symbol-preservation checkpoint
+
+- Prevented floated-tool startup from publishing a default `SPY` symbol into the source
+  workspace; pop-outs now hydrate their existing linked symbol without mutation.
+- Validation: dedicated symbol-preservation test passed; frontend suite remains `443
+  passed` across `74` files; TypeScript, production build, and `git diff --check` passed.
+  Commit `6a81557` pushed.
+- Full goal remains active. Strict visual evidence is still `required_missing` and the
+  broad functional/security/performance/migration/end-to-end matrix remains outstanding.

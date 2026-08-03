@@ -14576,6 +14576,17 @@
 - The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
   choose another concrete uncovered acceptance slice.
 
+## 2026-08-03T16:15:13Z Pop-out symbol-preservation checkpoint
+
+- Pop-out startup now hydrates the tool from its existing link-group symbol without
+  publishing a default `SPY` event into the source workspace. Docked startup retains the
+  normal requested-symbol publication path.
+- Dedicated symbol-preservation regression passed; TypeScript, production build, and
+  `git diff --check` passed; full frontend Vitest remains `443` tests across `74` files.
+  Commit `6a815572b4587fda23ea5c060f1635a24297e54b` pushed.
+- The strict V25 visual gate and broad acceptance matrix remain incomplete. Next worker:
+  choose another concrete uncovered acceptance slice.
+
 ## 2026-08-03T15:35:00Z Large-watchlist virtualization checkpoint
 
 - Added a 10,000-row `VirtualWatchlistTool` regression. It verifies the full logical
