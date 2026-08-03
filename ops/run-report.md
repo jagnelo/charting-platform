@@ -16586,3 +16586,19 @@ Append a short entry after each worker session.
   passed`. TypeScript, production build, and `git diff --check` passed.
 - Commit `afe8e7c0fa427925b0a66b91fc435786adf9ba5f` pushed. Overall acceptance and
   approved V25 visual evidence remain incomplete; continue the full audit.
+
+## 2026-08-03T14:50:00Z Sector by Year calendar-analysis checkpoint
+
+- Added canonical `calendar_year_performance` cells to group snapshots. The backend
+  bounds the response to five years, uses first/last available local bars, never
+  forward-fills missing years, and returns observation timestamps plus structured
+  coverage warnings.
+- Wired the factory tab identity into `WorkstationToolContent`; `Sector by Year`
+  now renders dynamic year percentage columns and keeps `/ SPY`, RSI, and 52W
+  position columns. Added `calendarYearKeys` helper coverage and a route-level
+  integration assertion.
+- Validation: backend pure unit `1 passed`; Docker-backed integration `1 passed`
+  (two existing Nautilus deprecation warnings); frontend Vitest `438 passed`;
+  frontend type-check/build, backend Ruff, and `git diff --check` passed.
+- Commit `9851986` pushed. The completion goal remains active; approved pinned-build
+  V25 visual baselines and the broader acceptance matrix remain incomplete.

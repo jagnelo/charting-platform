@@ -14531,6 +14531,23 @@
   broad workstation/backend acceptance matrix remains incomplete. Next: continue the
   broad workstation/backend audit.
 
+## 2026-08-03T14:50:00Z Sector by Year calendar-analysis checkpoint
+
+- Group snapshots now return five bounded calendar-year performance cells per row,
+  calculated from each year's first and last canonical local bars without
+  forward-filling. Cells retain their observation timestamp and expose explicit
+  no-bars or insufficient-history warnings.
+- The factory `Sector by Year` tab is identified by its active tab key (and persisted
+  configuration fallback), publishes the calendar-year cells into dynamic percentage
+  columns, and retains relative-to-SPY and technical columns. Added pure helper and
+  Docker-backed endpoint regression coverage.
+- Backend focused unit `1 passed`; Docker-backed integration `1 passed` with two
+  existing Nautilus deprecation warnings; frontend Vitest `438 passed`; TypeScript,
+  production build, Ruff, and `git diff --check` passed. Commit `9851986` pushed.
+  Full goal remains active; approved V25 visual references remain `required_missing`
+  and broad acceptance remains incomplete. Next: continue the workstation/backend
+  requirement audit.
+
 ## 2026-08-03T14:15:00Z Factory industry drill-down checkpoint
 
 - Factory `Drill Down` and `Sector by Year` industry windows now render the selected
