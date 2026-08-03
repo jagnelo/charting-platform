@@ -5,7 +5,7 @@
     "worker_session_started_at": "2026-07-28T21:40:33Z",
     "worker_soft_stop_at": null,
     "last_handoff_at": "2026-08-03T18:00:00Z",
-    "last_commit": "fd4654a4b5f6b4fc81a74bc32005d1721ab92708 feat(sandbox): expose curated research namespaces",
+    "last_commit": "ed839a6d101f235a3b7863297ecb8a0e3cf3be98 fix(code): align API validator with sandbox SDK",
     "git_ready_to_commit": true,
     "validation": {
         "backend_lint": "passed (code validation, restricted numerical facades, isolated research runner/resource restoration, screener, visual, analysis, research, OHLCV session model, and migration modules, 2026-08-03)",
