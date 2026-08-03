@@ -48,8 +48,9 @@ isolated worker transitions to its terminal state.
 
 The Market Gauge tool now uses the shared TanStack Vue Query cache for retained
 EasyScan definitions and gauge snapshots. Selecting a scan fetches its canonical
-local-database gauge, active gauges refresh on the configured freshness interval or
-through an explicit Refresh control, and the dense tool chrome exposes the returned
+local-database gauge, active visible gauges refresh on the configured freshness
+interval or through an explicit Refresh control, and hidden tool surfaces/document
+visibility suspend automatic requests. The dense tool chrome exposes the returned
 freshness state, provenance, calculation version, and coverage-warning count. A
 component regression covers selection, refresh, stale-data labeling, and lineage
 display. This is functional evidence only; the Version 25 visual reference remains

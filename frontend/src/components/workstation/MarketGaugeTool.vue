@@ -1,5 +1,5 @@
 <template>
-  <section class="market-gauge">
+  <section ref="gaugeRoot" class="market-gauge">
     <header class="market-gauge__controls">
       <select v-model="selectedId" aria-label="Saved EasyScan">
         <option value="">Select saved EasyScan</option>
@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 type Scan = { id: number; name: string }
@@ -40,6 +40,11 @@ type Gauge = {
   exclusions: Array<{ code?: string; message: string }>
 }
 const selectedId = ref('')
+const gaugeRoot = ref<HTMLElement | null>(null)
+const surfaceVisible = ref(true)
+const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
+let visibilityObserver: IntersectionObserver | null = null
+function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const scansQuery = useQuery({
   queryKey: ['workstation', 'screeners'],
   queryFn: () => api.get<Scan[]>('/screeners'),
@@ -49,7 +54,7 @@ const scansQuery = useQuery({
 const gaugeQuery = useQuery({
   queryKey: computed(() => ['workstation', 'market-gauge', selectedId.value]),
   queryFn: () => api.get<Gauge>(`/analysis/gauges/${selectedId.value}`),
-  enabled: computed(() => Boolean(selectedId.value)),
+  enabled: computed(() => Boolean(selectedId.value) && surfaceVisible.value && documentVisible.value),
   staleTime: 30_000,
   refetchInterval: 60_000,
   refetchOnWindowFocus: true,
@@ -70,6 +75,20 @@ async function refresh() {
   await scansQuery.refetch()
   if (selectedId.value) await gaugeQuery.refetch()
 }
+onMounted(() => {
+  document.addEventListener('visibilitychange', updateDocumentVisibility)
+  if (typeof IntersectionObserver !== 'undefined' && gaugeRoot.value) {
+    visibilityObserver = new IntersectionObserver(entries => {
+      surfaceVisible.value = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0)
+    })
+    visibilityObserver.observe(gaugeRoot.value)
+  }
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', updateDocumentVisibility)
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
+})
 </script>
 
 <style scoped>

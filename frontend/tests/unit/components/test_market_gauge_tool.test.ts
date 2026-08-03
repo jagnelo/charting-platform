@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
@@ -14,6 +14,7 @@ function mountTool() {
 
 describe('MarketGaugeTool', () => {
   beforeEach(() => apiGet.mockReset())
+  afterEach(() => Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }))
 
   it('loads retained scans, refreshes a selected gauge, and shows freshness lineage', async () => {
     apiGet.mockImplementation((path: string) => {
@@ -52,5 +53,16 @@ describe('MarketGaugeTool', () => {
     await flushPromises()
     expect(apiGet.mock.calls.length).toBeGreaterThan(callsBeforeRefresh)
     expect(apiGet).toHaveBeenCalledWith('/analysis/gauges/7')
+  })
+
+  it('does not fetch a selected gauge while the document is hidden', async () => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    apiGet.mockResolvedValue([{ id: 7, name: 'Hidden gauge' }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.find('select').setValue('7')
+    await flushPromises()
+    expect(apiGet).not.toHaveBeenCalledWith('/analysis/gauges/7')
   })
 })
